@@ -25,7 +25,8 @@ defmodule HousekeepingEngine.Mixfile do
     [
       {:cqex, "~> 0.2.0"},
       {:cqerl, github: "matehat/cqerl"},
-      {:re2, git: "https://github.com/tuncer/re2.git", tag: "v1.7.2", override: true}
+      {:re2, git: "https://github.com/tuncer/re2.git", tag: "v1.7.2", override: true},
+      {:distillery, "~> 1.4"}
     ]
   end
 end
