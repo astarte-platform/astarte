@@ -1,5 +1,6 @@
 defmodule Housekeeping.Queries do
 
+  require Logger
   alias CQEx.Query, as: DatabaseQuery
 
   @create_realm_queries [
@@ -88,14 +89,18 @@ defmodule Housekeeping.Queries do
   end
 
   def create_realm(client, realm_name) do
-    true = String.match?(realm_name, ~r/[a-z][a-z0-9]*/)
+    if String.match?(realm_name, ~r/[a-z][a-z0-9]*/) do
+      for query_template <- @create_realm_queries do
+        query = String.replace(query_template, ":realm_name", realm_name)
+        {:ok, _} = DatabaseQuery.call(client, query)
+      end
 
-    for query_template <- @create_realm_queries do
-      query = String.replace(query_template, ":realm_name", realm_name)
-      {:ok, _} = DatabaseQuery.call(client, query)
+      :ok
+    else
+      Logger.warn("HouseKeeping.Queries: " <> realm_name <> " is not an allowed realm name.")
+      :error
     end
 
-    :ok
   end
 
   def create_astarte_keyspace(client) do
