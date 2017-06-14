@@ -1,0 +1,16 @@
+message Call {
+    enum Type {
+        CREATE_REALM = 0;
+    }
+
+    Type type = 1;
+    int32 version = 2;
+
+    oneof call {
+        CreateRealm create_realm = 3;
+    }
+}
+
+message CreateRealm {
+    string realm = 1;
+}
