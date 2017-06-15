@@ -20,7 +20,6 @@ mix:test-ci:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix test
         - mix coveralls
     except:
         - branches@Astarte-NG/housekeeping_engine
@@ -35,7 +34,6 @@ mix:build:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix test
         - mix coveralls
         - export MIX_ENV=dev
         - mix release

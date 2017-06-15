@@ -88,6 +88,10 @@ defmodule Housekeeping.Queries do
     client
   end
 
+  def connect do
+    CQEx.Client.new!
+  end
+
   def create_realm(client, realm_name) do
     if String.match?(realm_name, ~r/[a-z][a-z0-9]*/) do
       for query_template <- @create_realm_queries do
