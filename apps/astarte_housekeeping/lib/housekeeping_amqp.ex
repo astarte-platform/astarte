@@ -22,6 +22,9 @@ defmodule Housekeeping.AMQP do
          {:ok, conn} <- Connection.open(options),
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
+         # We link the connection to this process, that way if we die the connection dies too
+         # This is useful since unacked messages are requeued only after the connection is dead
+         Process.link(conn.pid),
          {:ok, chan} <- Channel.open(conn),
          {:ok, _consumer_tag} <- Basic.consume(chan, Keyword.get(options, :rpc_queue)) do
       {:ok, chan}
@@ -68,7 +71,8 @@ defmodule Housekeeping.AMQP do
   end
 
   def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: redelivered}}, chan) do
-    spawn fn -> consume(chan, tag, redelivered, payload) end
+    # We process the message asynchronously
+    spawn_link fn -> consume(chan, tag, redelivered, payload) end
     {:noreply, chan}
   end
 
