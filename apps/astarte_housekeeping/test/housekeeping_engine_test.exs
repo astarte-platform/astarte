@@ -22,4 +22,19 @@ defmodule HousekeepingEngineTest do
     assert(matched_type == type)
     assert(matched_version == version)
   end
+
+  test "that we know when to reply" do
+    create_realm_call = Housekeeping.RPC.CreateRealm.new(realm: "testRealm")
+    type = :CREATE_REALM
+    version = 42
+    rpc = Housekeeping.RPC.Call.new(call: {:create_realm, create_realm_call},
+                                    type: type,
+                                    version: version)
+
+    willReply = case rpc do
+      %Housekeeping.RPC.Call{reply_header: nil} -> false
+      _ -> true
+    end
+    assert(willReply == false)
+  end
 end
