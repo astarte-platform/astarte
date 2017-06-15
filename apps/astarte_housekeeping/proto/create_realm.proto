@@ -1,0 +1,3 @@
+message CreateRealm {
+    string realm = 1;
+}

@@ -1,0 +1,4 @@
+message ReplyHeader {
+    uint64 call_id = 1;
+    string reply_exchange = 2;
+}
