@@ -32,6 +32,7 @@ mix:build:
         - mix compile --force
         - mix test
         - mix coveralls
+        - export MIX_ENV=dev
         - mix release
         #- mkdir $APPLICATION_NAME
         #- cp _build/dev/rel/vmq_astarte/releases/0.1.0/$APPLICATION_NAME.tar.gz $APPLICATION_NAME-snapshot.tar.gz
