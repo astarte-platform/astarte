@@ -13,10 +13,12 @@ mix:test-ci:
     image: elixir:1.4
     stage: build
     script:
-        - export MIX_ENV=dev
+        - export MIX_ENV=test
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
+        - mix test
+        - mix coveralls
     except:
         - branches@Astarte-NG/housekeeping_engine
 
@@ -24,10 +26,12 @@ mix:build:
     image: elixir:1.4
     stage: build
     script:
-        - export MIX_ENV=dev
+        - export MIX_ENV=test
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
+        - mix test
+        - mix coveralls
         - mix release
         #- mkdir $APPLICATION_NAME
         #- cp _build/dev/rel/vmq_astarte/releases/0.1.0/$APPLICATION_NAME.tar.gz $APPLICATION_NAME-snapshot.tar.gz
@@ -46,6 +50,7 @@ mix:release-build:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
+        - mix test
         - mix release
         #- mkdir $APPLICATION_NAME
         #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
