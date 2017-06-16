@@ -19,6 +19,9 @@ mix:test-ci:
         - mix compile --force
         - mix test
         - mix coveralls
+    cache:
+        paths:
+            - deps
     except:
         - branches@Astarte-NG/housekeeping_engine
 
@@ -40,6 +43,9 @@ mix:build:
         #paths:
             #- $APPLICATION_NAME-snapshot.tar.gz
         #expire_in: 1 hour
+    cache:
+        paths:
+            - deps
     only:
         - master@Astarte-NG/housekeeping_engine
 
@@ -60,6 +66,9 @@ mix:release-build:
         #paths:
             #- $APPLICATION_NAME-$RELEASE_NAME.tar.gz
         #expire_in: 1 hour
+    cache:
+        paths:
+            - deps
     only:
         - tags@Astarte-NG/housekeeping_engine
 
