@@ -8,29 +8,32 @@ before_script:
 
 variables:
     APPLICATION_NAME: housekeeping_engine
+    CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
     image: elixir:1.4
+    services:
+        - cassandra:3
     stage: build
     script:
         - export MIX_ENV=test
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix test
         - mix coveralls
     except:
         - branches@Astarte-NG/housekeeping_engine
 
 mix:build:
     image: elixir:1.4
+    services:
+        - cassandra:3
     stage: build
     script:
         - export MIX_ENV=test
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix test
         - mix coveralls
         - export MIX_ENV=dev
         - mix release
@@ -45,6 +48,8 @@ mix:build:
 
 mix:release-build:
     image: elixir:1.4
+    services:
+        - cassandra:3
     stage: build
     script:
         - export MIX_ENV=prod
