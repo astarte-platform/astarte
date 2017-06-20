@@ -1,11 +1,10 @@
 message Call {
-    CallType type = 1;
-    int32 version = 2;
+    int32 version = 1;
 
-    optional ReplyHeader reply_header = 4;
+    optional ReplyHeader reply_header = 3;
 
     oneof call {
-        CreateRealm create_realm = 3;
+        CreateRealm create_realm = 2;
     }
 }
 
