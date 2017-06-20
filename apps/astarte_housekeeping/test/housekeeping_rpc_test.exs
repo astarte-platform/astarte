@@ -1,6 +1,5 @@
-defmodule HousekeepingEngineTest do
+defmodule HousekeepingRPCTest do
   use ExUnit.Case
-  doctest HousekeepingEngine
 
   test "Protobuf RPC round trip" do
     create_realm_call = Housekeeping.RPC.CreateRealm.new(realm: "testRealm")
