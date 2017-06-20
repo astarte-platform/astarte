@@ -1,3 +1,0 @@
-enum CallType {
-    CREATE_REALM = 0;
-}
