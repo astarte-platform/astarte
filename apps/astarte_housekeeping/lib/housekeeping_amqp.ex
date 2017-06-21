@@ -65,10 +65,12 @@ defmodule Housekeeping.AMQP do
 
   def handle_cast({:ack, tag}, chan) do
     Basic.ack(chan, tag)
+    {:noreply, chan}
   end
 
   def handle_cast({:reject, tag}, chan) do
     Basic.reject(chan, tag)
+    {:noreply, chan}
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
