@@ -1,2 +1,2 @@
-defmodule HousekeepingEngine do
+defmodule Housekeeping.Engine do
 end
