@@ -72,7 +72,7 @@ defmodule Housekeeping.AMQP do
 
   def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: redelivered}}, chan) do
     # We process the message asynchronously
-    spawn_link fn -> consume(chan, tag, redelivered, payload) end
+    spawn_link fn -> consume(tag, redelivered, payload) end
     {:noreply, chan}
   end
 
@@ -82,7 +82,7 @@ defmodule Housekeeping.AMQP do
     {:noreply, chan}
   end
 
-  defp consume(_channel, _tag, _redelivered, _payload) do
+  defp consume(_tag, _redelivered, _payload) do
     # TODO: do stuff
     :ok
   end
