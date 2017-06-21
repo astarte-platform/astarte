@@ -1,4 +1,4 @@
-defmodule Housekeeping.AMQP.Supervisor do
+defmodule Housekeeping.Supervisor do
   use Supervisor
 
   def start_link do
@@ -7,6 +7,7 @@ defmodule Housekeeping.AMQP.Supervisor do
 
   def init(_) do
     children = [
+      worker(Housekeeping.Engine, []),
       worker(Housekeeping.AMQP, [])
     ]
 
