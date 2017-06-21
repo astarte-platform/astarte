@@ -82,8 +82,8 @@ defmodule Housekeeping.AMQP do
     {:noreply, chan}
   end
 
-  defp consume(channel, tag, _redelivered, _payload) do
+  defp consume(_channel, _tag, _redelivered, _payload) do
     # TODO: do stuff
-    Basic.ack channel, tag
+    :ok
   end
 end
