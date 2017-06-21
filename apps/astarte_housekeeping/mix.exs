@@ -25,6 +25,7 @@ defmodule HousekeepingEngine.Mixfile do
 
   defp deps do
     [
+      {:amqp, "~> 0.2.2"},
       {:cqex, "~> 0.2.0"},
       {:cqerl, github: "matehat/cqerl"},
       {:re2, git: "https://github.com/tuncer/re2.git", tag: "v1.7.2", override: true},
