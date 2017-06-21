@@ -82,9 +82,11 @@ defmodule Housekeeping.AMQP do
     {:noreply, chan}
   end
 
-  defp consume(chan, tag, _redelivered, _payload) do
-    # TODO: do stuff
-    :ok
-    Basic.ack(chan, tag)
+  defp consume(chan, tag, redelivered, payload) do
+    case Housekeeping.Engine.process_rpc(payload) do
+      :ok -> Basic.ack(chan, tag)
+      # We don't want to keep failing on the same message
+      {:error, _reason} -> Basic.reject(chan, tag, [requeue: not redelivered])
+    end
   end
 end
