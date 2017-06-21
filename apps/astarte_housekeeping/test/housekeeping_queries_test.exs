@@ -1,6 +1,6 @@
 defmodule HousekeepingQueriesTest do
   use ExUnit.Case
-  doctest HousekeepingEngine
+  doctest Housekeeping.Queries
 
   test "keyspace and realm creation" do
     client = Housekeeping.Queries.connect
