@@ -94,12 +94,11 @@ defmodule Housekeeping.Queries do
 
   def create_realm(client, realm_name) do
     if String.match?(realm_name, ~r/[a-z][a-z0-9]*/) do
-      for query_template <- @create_realm_queries do
-        query = String.replace(query_template, ":realm_name", realm_name)
-        {:ok, _} = DatabaseQuery.call(client, query)
-      end
-
-      :ok
+      replaced_queries =
+        for query <- @create_realm_queries do
+          String.replace(query, ":realm_name", realm_name)
+        end
+      exec_queries(client, replaced_queries)
     else
       Logger.warn("HouseKeeping.Queries: " <> realm_name <> " is not an allowed realm name.")
       :error
@@ -108,11 +107,7 @@ defmodule Housekeeping.Queries do
   end
 
   def create_astarte_keyspace(client) do
-    for query <- @create_astarte_queries do
-      {:ok, _} = DatabaseQuery.call(client, query)
-    end
-
-    :ok
+    exec_queries(client, @create_astarte_queries)
   end
 
   defp exec_queries(client, _queries = [query | tail]) do
