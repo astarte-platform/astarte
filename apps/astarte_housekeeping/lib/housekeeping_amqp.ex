@@ -14,15 +14,15 @@ defmodule Housekeeping.AMQP do
   end
 
   def publish(exchange, routing_key, payload, options \\ []) do
-    GenServer.cast(:housekeeping_amqp, {:publish, exchange, routing_key, payload, options})
+    GenServer.call(:housekeeping_amqp, {:publish, exchange, routing_key, payload, options})
   end
 
   def ack(tag) do
-    GenServer.cast(:housekeeping_amqp, {:ack, tag})
+    GenServer.call(:housekeeping_amqp, {:ack, tag})
   end
 
   def reject(tag) do
-    GenServer.cast(:housekeeping_amqp, {:reject, tag})
+    GenServer.call(:housekeeping_amqp, {:reject, tag})
   end
 
   defp rabbitmq_connect(retry \\ true) do
@@ -58,19 +58,19 @@ defmodule Housekeeping.AMQP do
 
   # Server callbacks
 
-  def handle_cast({:publish, exchange, routing_key, payload, options}, chan) do
+  def handle_call({:publish, exchange, routing_key, payload, options}, chan) do
     Basic.publish(chan, exchange, routing_key, payload, options)
-    {:noreply, chan}
+    {:reply, :ok, chan}
   end
 
-  def handle_cast({:ack, tag}, chan) do
+  def handle_call({:ack, tag}, chan) do
     Basic.ack(chan, tag)
-    {:noreply, chan}
+    {:reply, :ok, chan}
   end
 
-  def handle_cast({:reject, tag}, chan) do
+  def handle_call({:reject, tag}, chan) do
     Basic.reject(chan, tag)
-    {:noreply, chan}
+    {:reply, :ok, chan}
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
