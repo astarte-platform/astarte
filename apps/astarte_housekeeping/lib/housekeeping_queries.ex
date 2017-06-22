@@ -115,4 +115,15 @@ defmodule Housekeeping.Queries do
     :ok
   end
 
+  defp exec_queries(client, _queries = [query | tail]) do
+    case DatabaseQuery.call(client, query) do
+      {:ok, _} -> exec_queries(client, tail)
+      %{msg: message} -> {:error, message}
+    end
+  end
+
+  defp exec_queries(_client, _queries = []) do
+    :ok
+  end
+
 end
