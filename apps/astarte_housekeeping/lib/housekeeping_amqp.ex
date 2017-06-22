@@ -17,14 +17,6 @@ defmodule Housekeeping.AMQP do
     GenServer.call(:housekeeping_amqp, {:publish, exchange, routing_key, payload, options})
   end
 
-  def ack(tag) do
-    GenServer.call(:housekeeping_amqp, {:ack, tag})
-  end
-
-  def reject(tag) do
-    GenServer.call(:housekeeping_amqp, {:reject, tag})
-  end
-
   defp rabbitmq_connect(retry \\ true) do
     with {:ok, options} <- Application.fetch_env(:housekeeping_engine, :amqp),
          {:ok, conn} <- Connection.open(options),
@@ -63,16 +55,6 @@ defmodule Housekeeping.AMQP do
     {:reply, :ok, chan}
   end
 
-  def handle_call({:ack, tag}, chan) do
-    Basic.ack(chan, tag)
-    {:reply, :ok, chan}
-  end
-
-  def handle_call({:reject, tag}, chan) do
-    Basic.reject(chan, tag)
-    {:reply, :ok, chan}
-  end
-
   # Confirmation sent by the broker after registering this process as a consumer
   def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, chan) do
     {:noreply, chan}
@@ -90,7 +72,7 @@ defmodule Housekeeping.AMQP do
 
   def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: redelivered}}, chan) do
     # We process the message asynchronously
-    spawn_link fn -> consume(tag, redelivered, payload) end
+    spawn_link fn -> consume(chan, tag, redelivered, payload) end
     {:noreply, chan}
   end
 
@@ -100,8 +82,9 @@ defmodule Housekeeping.AMQP do
     {:noreply, chan}
   end
 
-  defp consume(_tag, _redelivered, _payload) do
+  defp consume(chan, tag, _redelivered, _payload) do
     # TODO: do stuff
     :ok
+    Basic.ack(chan, tag)
   end
 end
