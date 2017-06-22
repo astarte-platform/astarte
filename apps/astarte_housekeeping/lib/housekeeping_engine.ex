@@ -1,6 +1,8 @@
 defmodule Housekeeping.Engine do
   use GenServer
 
+  @timeout 10000
+
   def start_link do
     GenServer.start_link(__MODULE__, [], name: :housekeeping_engine)
   end
@@ -10,7 +12,7 @@ defmodule Housekeeping.Engine do
   end
 
   def process_rpc(message) do
-    GenServer.call(:housekeeping_engine, {:process_rpc, message})
+    GenServer.call(:housekeeping_engine, {:process_rpc, message}, @timeout)
   end
 
   def handle_call({:process_rpc, message}, _from, client) do
