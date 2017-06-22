@@ -101,7 +101,7 @@ defmodule Housekeeping.Queries do
       exec_queries(client, replaced_queries)
     else
       Logger.warn("HouseKeeping.Queries: " <> realm_name <> " is not an allowed realm name.")
-      :error
+      {:error, :realm_not_allowed}
     end
 
   end
