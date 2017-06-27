@@ -19,7 +19,8 @@ defmodule HousekeepingEngine.Mixfile do
   def application do
     [
       applications: [:cqex],
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {Housekeeping.Application, []}
     ]
   end
 
