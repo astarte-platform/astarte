@@ -8,7 +8,6 @@ defmodule Housekeeping.Supervisor do
   def init(_) do
     children = [
       worker(Housekeeping.Engine, []),
-      worker(Housekeeping.AMQP, [])
     ]
 
     supervise(children, strategy: :one_for_one)
