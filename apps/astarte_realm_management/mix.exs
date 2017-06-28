@@ -18,7 +18,7 @@ defmodule RealmManagement.Mixfile do
 
    defp deps do
      [
-       {:astarte_core, in_umbrella: true},
+       {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
        {:amqp, "~> 0.2.2"},
        {:cqex, "~> 0.2.0"},
        {:cqerl, github: "matehat/cqerl"},
