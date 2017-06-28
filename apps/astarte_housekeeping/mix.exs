@@ -27,6 +27,7 @@ defmodule HousekeepingEngine.Mixfile do
   defp deps do
     [
       {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
+      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"},
       {:cqex, "~> 0.2.0"},
       {:cqerl, github: "matehat/cqerl"},
       {:re2, git: "https://github.com/tuncer/re2.git", tag: "v1.7.2", override: true},
