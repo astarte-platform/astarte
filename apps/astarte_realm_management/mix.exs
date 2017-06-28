@@ -24,7 +24,7 @@ defmodule RealmManagement.Mixfile do
        {:cqerl, github: "matehat/cqerl"},
        {:re2, git: "https://github.com/tuncer/re2.git", tag: "v1.7.2", override: true},
        {:exprotobuf, "~> 1.2.7"},
-       {:distillery, "~> 1.4"},
+       {:distillery, "~> 1.4", runtime: false},
        {:excoveralls, "~> 0.6", only: :test}
      ]
   end
