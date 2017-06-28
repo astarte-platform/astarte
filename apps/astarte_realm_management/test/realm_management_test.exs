@@ -167,7 +167,7 @@ defmodule RealmManagementTest do
   """
 
   def connect_to_local_database do
-    {:ok, client} = CQEx.Client.new({"127.0.0.1", 9042})
+    {:ok, client} = CQEx.Client.new({"cassandra", 9042})
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_interfaces_table)
@@ -178,7 +178,7 @@ defmodule RealmManagementTest do
   end
 
   def destroy_local_test_keyspace do
-    {:ok, client} = CQEx.Client.new({"127.0.0.1", 9042})
+    {:ok, client} = CQEx.Client.new({"cassandra", 9042})
     DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
     :ok
   end
