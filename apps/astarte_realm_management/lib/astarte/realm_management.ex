@@ -1,4 +1,4 @@
-defmodule Astarte.RealmManagement.Application do
+defmodule Astarte.RealmManagement do
   use Application
 
   def start(_type, _args) do
