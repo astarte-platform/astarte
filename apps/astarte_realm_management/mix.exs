@@ -1,4 +1,4 @@
-defmodule RealmManagement.Mixfile do
+defmodule Astarte.RealmManagement.Mixfile do
   use Mix.Project
 
   def project do
