@@ -10,11 +10,11 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :realm_management, key: :value
+#     config :astarte_realm_management, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:realm_management, :key)
+#     Application.get_env(:astarte_realm_management, :key)
 #
 # Or configure a 3rd-party app:
 #

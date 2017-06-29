@@ -1,4 +1,4 @@
-defmodule RealmManagementTest do
+defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
   alias CQEx.Query, as: DatabaseQuery
@@ -166,7 +166,7 @@ defmodule RealmManagementTest do
   """
 
   def connect_to_test_database do
-    {:ok, client} = CQEx.Client.new({"cassandra", 9042})
+    {:ok, client} = CQEx.Client.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_interfaces_table)
@@ -177,11 +177,11 @@ defmodule RealmManagementTest do
   end
 
   def connect_to_test_realm(realm) do
-    CQEx.Client.new!({"cassandra", 9042}, [keyspace: realm])
+    CQEx.Client.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm])
   end
 
   def destroy_local_test_keyspace do
-    {:ok, client} = CQEx.Client.new({"cassandra", 9042})
+    {:ok, client} = CQEx.Client.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
     DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
     :ok
   end

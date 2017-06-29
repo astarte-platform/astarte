@@ -1,4 +1,4 @@
-defmodule RealmManagement.Mixfile do
+defmodule Astarte.RealmManagement.Mixfile do
   use Mix.Project
 
   def project do
@@ -15,7 +15,7 @@ defmodule RealmManagement.Mixfile do
   def application do
     [
      extra_applications: [:logger],
-     mod: {Astarte.RealmManagement.Application, []}
+     mod: {Astarte.RealmManagement, []}
     ]
   end
 
