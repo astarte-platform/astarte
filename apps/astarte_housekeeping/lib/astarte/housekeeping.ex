@@ -1,4 +1,4 @@
-defmodule Astarte.Housekeeping.Application do
+defmodule Astarte.Housekeeping do
   use Application
 
   def start(_type, _args) do
