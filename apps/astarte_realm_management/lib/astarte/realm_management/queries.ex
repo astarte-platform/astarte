@@ -42,7 +42,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   defp create_interface_table(:individual, interface_name, mappings) do
     mappings_cql = for mapping <- mappings do
-        AstarteCore.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> AstarteCore.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+        Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
     end
 
     columns = mappings_cql
@@ -59,7 +59,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   defp create_interface_table(:object, interface_name, mappings) do
     mappings_cql = for mapping <- mappings do
-      AstarteCore.CQLUtils.endpoint_to_db_column_name(mapping.endpoint) <> " " <> AstarteCore.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+      Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
     end
 
     columns = mappings_cql
@@ -73,7 +73,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def install_new_interface(client, interface_document) do
-    table_name = AstarteCore.CQLUtils.interface_name_to_table_name(interface_document.descriptor.name, interface_document.descriptor.major_version)
+    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_document.descriptor.name, interface_document.descriptor.major_version)
     {:ok, _} = DatabaseQuery.call(client, create_interface_table(interface_document.descriptor.aggregation, table_name, interface_document.mappings))
 
     query = DatabaseQuery.new
@@ -81,9 +81,9 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:name, interface_document.descriptor.name)
       |> DatabaseQuery.put(:major_version, interface_document.descriptor.major_version)
       |> DatabaseQuery.put(:minor_version, interface_document.descriptor.minor_version)
-      |> DatabaseQuery.put(:type, AstarteCore.Interface.Type.to_int(interface_document.descriptor.type))
-      |> DatabaseQuery.put(:ownership, AstarteCore.Interface.Ownership.to_int(interface_document.descriptor.ownership))
-      |> DatabaseQuery.put(:aggregation, AstarteCore.Interface.Aggregation.to_int(interface_document.descriptor.aggregation))
+      |> DatabaseQuery.put(:type, Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type))
+      |> DatabaseQuery.put(:ownership, Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership))
+      |> DatabaseQuery.put(:aggregation, Astarte.Core.Interface.Aggregation.to_int(interface_document.descriptor.aggregation))
       |> DatabaseQuery.put(:source, interface_document.source)
     {:ok, _} = DatabaseQuery.call(client, query)
 
@@ -92,14 +92,14 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:interface_name, interface_document.descriptor.name)
       |> DatabaseQuery.put(:interface_major_version, interface_document.descriptor.major_version)
       |> DatabaseQuery.put(:interface_minor_version, interface_document.descriptor.minor_version)
-      |> DatabaseQuery.put(:interface_type, AstarteCore.Interface.Type.to_int(interface_document.descriptor.type))
+      |> DatabaseQuery.put(:interface_type, Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type))
 
     for mapping <- interface_document.mappings do
       query = base_query
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
-        |> DatabaseQuery.put(:value_type, AstarteCore.Mapping.ValueType.to_int(mapping.value_type))
-        |> DatabaseQuery.put(:reliability, AstarteCore.Mapping.Reliability.to_int(mapping.reliability))
-        |> DatabaseQuery.put(:retention, AstarteCore.Mapping.Retention.to_int(mapping.retention))
+        |> DatabaseQuery.put(:value_type, Astarte.Core.Mapping.ValueType.to_int(mapping.value_type))
+        |> DatabaseQuery.put(:reliability, Astarte.Core.Mapping.Reliability.to_int(mapping.reliability))
+        |> DatabaseQuery.put(:retention, Astarte.Core.Mapping.Retention.to_int(mapping.retention))
         |> DatabaseQuery.put(:expiry, mapping.expiry)
         |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
       {:ok, _} = DatabaseQuery.call(client, query)
