@@ -13,7 +13,7 @@ variables:
 mix:test-ci:
     image: elixir:1.4
     services:
-        - cassandra:3
+        - scylladb/scylla:latest
         - rabbitmq:3.6
     stage: build
     script:
@@ -31,7 +31,7 @@ mix:test-ci:
 mix:build:
     image: elixir:1.4
     services:
-        - cassandra:3
+        - scylladb/scylla:latest
         - rabbitmq:3.6
     stage: build
     script:
@@ -57,7 +57,7 @@ mix:build:
 mix:release-build:
     image: elixir:1.4
     services:
-        - cassandra:3
+        - scylladb/scylla:latest
         - rabbitmq:3.6
     stage: build
     script:
