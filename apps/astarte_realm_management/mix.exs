@@ -9,7 +9,7 @@ defmodule RealmManagement.Mixfile do
      start_permanent: Mix.env == :prod,
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
-     deps: deps()]
+     deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))]
   end
 
   def application do
@@ -19,7 +19,21 @@ defmodule RealmManagement.Mixfile do
     ]
   end
 
-   defp deps do
+  defp astarte_required_modules("true") do
+    [
+      {:astarte_core, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true}
+    ]
+  end
+
+  defp astarte_required_modules(_) do
+    [
+      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
+      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"}
+    ]
+  end
+
+  defp deps do
      [
        {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
        {:amqp, "~> 0.2.2"},
