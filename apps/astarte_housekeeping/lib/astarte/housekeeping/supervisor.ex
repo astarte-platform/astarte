@@ -7,8 +7,8 @@ defmodule Astarte.Housekeeping.Supervisor do
 
   def init(_) do
 
-    amqp_opts = Application.get_env(:housekeeping_engine, :amqp_connection)
-    consumer_opts = Application.get_env(:housekeeping_engine, :amqp_consumer)
+    amqp_opts = Application.get_env(:astarte_housekeeping, :amqp_connection)
+    consumer_opts = Application.get_env(:astarte_housekeeping, :amqp_consumer)
 
     children = [
       worker(Astarte.Housekeeping.Engine, []),
