@@ -190,7 +190,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     case connect_to_test_database() do
       {:ok, _} ->
         client = connect_to_test_realm("autotestrealm")
-        intdoc = Astarte.Core.InterfaceDocument.Utils.from_json(@object_datastream_interface_json)
+        intdoc = Astarte.Core.InterfaceDocument.from_json(@object_datastream_interface_json)
         Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
         DatabaseQuery.call!(client, @insert_log_line0_device_a)
@@ -229,7 +229,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     case connect_to_test_database() do
       {:ok, _} ->
         client = connect_to_test_realm("autotestrealm")
-        intdoc = Astarte.Core.InterfaceDocument.Utils.from_json(@individual_property_thing_owned_interface )
+        intdoc = Astarte.Core.InterfaceDocument.from_json(@individual_property_thing_owned_interface )
         Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
         endpoint = DatabaseQuery.call!(client, @find_endpoint_id)
