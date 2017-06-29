@@ -1,6 +1,6 @@
 %{"amqp": {:hex, :amqp, "0.2.2", "eeb9d832c5440585699ae89f48c38f662a2d44f48e694dfe9ba15824b53da1f9", [:mix], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.6.10", "f26fbacca4e71f58eba1a57746e5f10598550aa46e89bc67060da6ad1a6d95d5", [:make, :rebar3], [{:rabbit_common, "3.6.10", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
-  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "56b0d927ad4b099a9e49ba95a3c2a75370300e18", []},
+  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "414e541680deb608b223a2ba62379bd086990a6c", []},
   "certifi": {:hex, :certifi, "1.2.1", "c3904f192bd5284e5b13f20db3ceac9626e14eeacfbb492e19583cf0e37b22be", [:rebar3], [], "hexpm"},
   "cqerl": {:git, "https://github.com/matehat/cqerl.git", "1bb6844e50ca6aa44d1db9c126ba09850ee75bd0", []},
   "cqex": {:hex, :cqex, "0.2.0", "e94f565527b7440f1f894dfdda8b3df0b5bd12a9416d0306076a60dc65f1b4e6", [:mix], [], "hexpm"},
