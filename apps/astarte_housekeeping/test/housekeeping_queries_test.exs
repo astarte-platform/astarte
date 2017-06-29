@@ -1,10 +1,10 @@
 defmodule HousekeepingQueriesTest do
   use ExUnit.Case
-  doctest Housekeeping.Queries
+  doctest Astarte.Housekeeping.Queries
 
   test "keyspace and realm creation" do
-    client = Housekeeping.Queries.connect
-    assert(Housekeeping.Queries.create_astarte_keyspace(client) == :ok)
-    assert(Housekeeping.Queries.create_realm(client, "test") == :ok)
+    client = Astarte.Housekeeping.Queries.connect
+    assert(Astarte.Housekeeping.Queries.create_astarte_keyspace(client) == :ok)
+    assert(Astarte.Housekeeping.Queries.create_realm(client, "test") == :ok)
   end
 end

@@ -1,4 +1,4 @@
-defmodule Housekeeping.Queries do
+defmodule Astarte.Housekeeping.Queries do
 
   require Logger
   alias CQEx.Query, as: DatabaseQuery

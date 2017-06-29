@@ -38,8 +38,8 @@ end
 # when running `mix release`, the first release in the file
 # will be used by default
 
-release :housekeeping_engine do
-  set version: current_version(:housekeeping_engine)
+release :astarte_housekeeping do
+  set version: current_version(:astarte_housekeeping)
   set applications: [
     :runtime_tools
   ]

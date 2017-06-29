@@ -2,7 +2,7 @@ defmodule HousekeepingEngine.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :housekeeping_engine,
+    [app: :astarte_housekeeping,
      version: "0.1.0",
      build_path: "_build",
      config_path: "config/config.exs",
@@ -20,7 +20,7 @@ defmodule HousekeepingEngine.Mixfile do
     [
       applications: [:cqex],
       extra_applications: [:logger],
-      mod: {Housekeeping.Application, []}
+      mod: {Astarte.Housekeeping, []}
     ]
   end
 
