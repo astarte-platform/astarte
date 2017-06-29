@@ -2,7 +2,7 @@ defmodule RealmManagement.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :realm_management,
+    [app: :astarte_realm_management,
      version: "0.1.0",
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
