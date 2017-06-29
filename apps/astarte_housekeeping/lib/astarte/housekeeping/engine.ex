@@ -1,4 +1,4 @@
-defmodule Housekeeping.Engine do
+defmodule Astarte.Housekeeping.Engine do
   use GenServer
 
   @timeout 10000
@@ -20,7 +20,7 @@ defmodule Housekeeping.Engine do
     reply =
       case call_tuple do
         {:create_realm, %Astarte.RPC.Protocol.Housekeeping.CreateRealm{realm: realm}} ->
-          Housekeeping.Queries.create_realm(client, realm)
+          Astarte.Housekeeping.Queries.create_realm(client, realm)
       end
     {:reply, reply, client}
   end
