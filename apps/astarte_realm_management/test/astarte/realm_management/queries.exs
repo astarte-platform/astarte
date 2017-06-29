@@ -1,4 +1,4 @@
-defmodule RealmManagementTest do
+defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
   alias CQEx.Query, as: DatabaseQuery
