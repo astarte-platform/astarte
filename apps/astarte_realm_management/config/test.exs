@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :cqerl,
-  cassandra_nodes: [{"cassandra", 9042}]
+  cassandra_nodes: [{System.get_env("CASSANDRA_DB_HOST") || "cassandra", System.get_env("CASSANDRA_DB_PORT") || 9042}]
 
 config :astarte_realm_management, :amqp_connection,
   username: "guest",
