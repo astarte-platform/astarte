@@ -1,4 +1,4 @@
-defmodule HousekeepingEngine.Mixfile do
+defmodule Astarte.Housekeeping.Mixfile do
   use Mix.Project
 
   def project do
