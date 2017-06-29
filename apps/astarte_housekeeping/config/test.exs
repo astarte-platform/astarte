@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :cqerl, 
-  cassandra_nodes: [{"cassandra", 9042}]
+  cassandra_nodes: [{"scylladb-scylla", 9042}]
 
 config :housekeeping_engine, :amqp_connection,
   username: "guest",
