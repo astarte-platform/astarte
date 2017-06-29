@@ -1,5 +1,6 @@
 defmodule Astarte.Housekeeping.Engine do
   use GenServer
+  require Logger
 
   @timeout 10000
 
@@ -16,11 +17,19 @@ defmodule Astarte.Housekeeping.Engine do
   end
 
   def handle_call({:process_rpc, message}, _from, client) do
-    %Astarte.RPC.Protocol.Housekeeping.Call{call: call_tuple} = Astarte.RPC.Protocol.Housekeeping.Call.decode(message)
     reply =
-      case call_tuple do
-        {:create_realm, %Astarte.RPC.Protocol.Housekeeping.CreateRealm{realm: realm}} ->
-          Astarte.Housekeeping.Queries.create_realm(client, realm)
+      case Astarte.RPC.Protocol.Housekeeping.Call.decode(message) do
+        %Astarte.RPC.Protocol.Housekeeping.Call{call: call_tuple} when call_tuple != nil ->
+          case call_tuple do
+            {:create_realm, %Astarte.RPC.Protocol.Housekeeping.CreateRealm{realm: realm}} ->
+              Astarte.Housekeeping.Queries.create_realm(client, realm)
+            _ ->
+              Logger.warn "Received unexpected call: " <> inspect call_tuple
+              {:error, :unexpected_call}
+          end
+        _ ->
+          Logger.warn "Received unexpected message: " <> inspect message
+          {:error, :unexpected_message}
       end
     {:reply, reply, client}
   end
