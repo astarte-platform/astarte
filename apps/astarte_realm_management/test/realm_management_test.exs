@@ -166,7 +166,7 @@ defmodule RealmManagementTest do
     SELECT path FROM com_ispirata_hemera_devicelog_status_v2 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id;
   """
 
-  def connect_to_local_database do
+  def connect_to_test_database do
     {:ok, client} = CQEx.Client.new({"cassandra", 9042})
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
@@ -177,6 +177,10 @@ defmodule RealmManagementTest do
     end
   end
 
+  def connect_to_test_realm(realm) do
+    CQEx.Client.new!({"cassandra", 9042}, [keyspace: realm])
+  end
+
   def destroy_local_test_keyspace do
     {:ok, client} = CQEx.Client.new({"cassandra", 9042})
     DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
@@ -184,9 +188,9 @@ defmodule RealmManagementTest do
   end
 
   test "object interface install" do
-    case connect_to_local_database() do
+    case connect_to_test_database() do
       {:ok, _} ->
-        client = RealmManagement.Queries.connect_to_local_realm("autotestrealm")
+        client = connect_to_test_realm("autotestrealm")
         intdoc = AstarteCore.InterfaceDocument.Utils.from_json(@object_datastream_interface_json)
         RealmManagement.Queries.install_new_interface(client, intdoc)
 
@@ -223,9 +227,9 @@ defmodule RealmManagementTest do
   end
 
   test "individual interface install" do
-    case connect_to_local_database() do
+    case connect_to_test_database() do
       {:ok, _} ->
-        client = RealmManagement.Queries.connect_to_local_realm("autotestrealm")
+        client = connect_to_test_realm("autotestrealm")
         intdoc = AstarteCore.InterfaceDocument.Utils.from_json(@individual_property_thing_owned_interface )
         RealmManagement.Queries.install_new_interface(client, intdoc)
 
