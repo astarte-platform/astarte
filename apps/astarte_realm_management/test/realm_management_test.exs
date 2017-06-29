@@ -192,7 +192,7 @@ defmodule RealmManagementTest do
       {:ok, _} ->
         client = connect_to_test_realm("autotestrealm")
         intdoc = AstarteCore.InterfaceDocument.Utils.from_json(@object_datastream_interface_json)
-        RealmManagement.Queries.install_new_interface(client, intdoc)
+        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
         DatabaseQuery.call!(client, @insert_log_line0_device_a)
         DatabaseQuery.call!(client, @insert_log_line1_device_a)
