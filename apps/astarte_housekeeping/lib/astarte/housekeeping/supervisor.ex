@@ -12,7 +12,7 @@ defmodule Astarte.Housekeeping.Supervisor do
 
     children = [
       worker(Astarte.Housekeeping.Engine, []),
-      worker(AstarteCore.AMQPConnection, [amqp_opts, consumer_opts, Housekeeping.AMQP])
+      worker(Astarte.Core.AMQPConnection, [amqp_opts, consumer_opts, Astarte.Housekeeping.AMQP])
     ]
 
     supervise(children, strategy: :one_for_one)
