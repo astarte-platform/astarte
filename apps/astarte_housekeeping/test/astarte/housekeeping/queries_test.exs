@@ -1,4 +1,4 @@
-defmodule HousekeepingQueriesTest do
+defmodule Astarte.Housekeeping.QueriesTest do
   use ExUnit.Case
   doctest Astarte.Housekeeping.Queries
 
