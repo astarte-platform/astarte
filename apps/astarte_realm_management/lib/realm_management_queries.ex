@@ -1,4 +1,4 @@
-defmodule RealmManagement.Queries do
+defmodule Astarte.RealmManagement.Queries do
 
   require Logger
   alias CQEx.Query, as: DatabaseQuery
