@@ -2,7 +2,7 @@ defmodule RealmManagement.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :realm_management,
+    [app: :astarte_realm_management,
      version: "0.1.0",
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
@@ -35,7 +35,6 @@ defmodule RealmManagement.Mixfile do
 
   defp deps do
      [
-       {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
        {:amqp, "~> 0.2.2"},
        {:cqex, "~> 0.2.0"},
        {:cqerl, github: "matehat/cqerl"},

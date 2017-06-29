@@ -2,7 +2,6 @@ defmodule RealmManagementTest do
   use ExUnit.Case
   require Logger
   alias CQEx.Query, as: DatabaseQuery
-  doctest RealmManagement
 
   @object_datastream_interface_json """
 {
@@ -231,7 +230,7 @@ defmodule RealmManagementTest do
       {:ok, _} ->
         client = connect_to_test_realm("autotestrealm")
         intdoc = AstarteCore.InterfaceDocument.Utils.from_json(@individual_property_thing_owned_interface )
-        RealmManagement.Queries.install_new_interface(client, intdoc)
+        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
         endpoint = DatabaseQuery.call!(client, @find_endpoint_id)
           |> Enum.to_list
