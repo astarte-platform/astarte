@@ -21,8 +21,13 @@ defmodule Astarte.RealmManagement.Engine do
   def install_interface(realm_name, interface_json) do
     interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
-    DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
-    |> Astarte.RealmManagement.Queries.install_new_interface(interface_document)
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    unless Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_document.descriptor.name, interface_document.descriptor.major_version) do
+      Astarte.RealmManagement.Queries.install_new_interface(client, interface_document)
+    else
+      {:error, :already_installed_interface}
+    end
   end
 
 end
