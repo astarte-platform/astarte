@@ -20,7 +20,6 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   def application do
     [
-      applications: [:cqex],
       extra_applications: [:logger],
       mod: {Astarte.Housekeeping, []}
     ]
