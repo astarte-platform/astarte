@@ -24,7 +24,7 @@ defmodule Astarte.Housekeeping.Queries do
     """,
     """
       CREATE TABLE :realm_name.endpoints (
-        endpoint_id int,
+        endpoint_id uuid,
         interface_name ascii,
         interface_major_version int,
         interface_minor_version int,
