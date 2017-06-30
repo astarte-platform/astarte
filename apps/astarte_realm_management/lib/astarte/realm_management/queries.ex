@@ -43,6 +43,10 @@ defmodule Astarte.RealmManagement.Queries do
     SELECT COUNT(*) FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
   """
 
+  @query_interface_source """
+    SELECT source FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
+  """
+
   def connect_to_local_realm(realm) do
     {:ok, client} = CQEx.Client.new({"127.0.0.1", 9042}, [keyspace: realm])
     client
@@ -135,6 +139,23 @@ defmodule Astarte.RealmManagement.Queries do
       |> List.first
 
     count != [count: 0]
+  end
+
+  def interface_source(client, interface_name, interface_major) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@query_interface_source)
+      |> DatabaseQuery.put(:interface_name, interface_name)
+      |> DatabaseQuery.put(:interface_major, interface_major)
+
+    result_row = DatabaseQuery.call!(client, query)
+      |> Enum.to_list
+      |> List.first
+
+    if result_row != nil do
+      result_row[:source]
+    else
+      nil
+    end
   end
 
 end

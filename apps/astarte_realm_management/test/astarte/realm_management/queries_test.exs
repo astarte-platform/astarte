@@ -141,12 +141,14 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == []
+        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == nil
 
         Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
+        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == intdoc.source
 
         DatabaseQuery.call!(client, @insert_log_line0_device_a)
         DatabaseQuery.call!(client, @insert_log_line1_device_a)
@@ -190,12 +192,14 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == []
+        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == nil
 
         Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
+        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == intdoc.source
 
         endpoint = DatabaseQuery.call!(client, @find_endpoint_id)
           |> Enum.to_list
