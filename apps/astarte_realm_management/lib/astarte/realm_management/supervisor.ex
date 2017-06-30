@@ -11,7 +11,6 @@ defmodule Astarte.RealmManagement.Supervisor do
     consumer_opts = Application.get_env(:astarte_realm_management, :amqp_consumer)
 
     children = [
-      worker(Astarte.RealmManagement.Engine, []),
       worker(Astarte.Core.AMQPConnection, [amqp_opts, consumer_opts, Astarte.RealmManagement.AMQP])
     ]
 
