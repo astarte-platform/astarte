@@ -35,6 +35,14 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
+  @query_interface_versions """
+    SELECT major_version, minor_version FROM interfaces WHERE name=:interface_name;
+  """
+
+  @query_interface_available_major """
+    SELECT COUNT(*) FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
+  """
+
   def connect_to_local_realm(realm) do
     {:ok, client} = CQEx.Client.new({"127.0.0.1", 9042}, [keyspace: realm])
     client
@@ -106,6 +114,27 @@ defmodule Astarte.RealmManagement.Queries do
     end
 
     :ok
+  end
+
+  def interface_available_versions(client, interface_name) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@query_interface_versions)
+      |> DatabaseQuery.put(:interface_name, interface_name)
+
+    DatabaseQuery.call!(client, query)
+    |> Enum.to_list
+  end
+
+  def is_interface_major_available?(client, interface_name, interface_major) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@query_interface_available_major)
+      |> DatabaseQuery.put(:interface_name, interface_name)
+      |> DatabaseQuery.put(:interface_major, interface_major)
+    count = DatabaseQuery.call!(client, query)
+      |> Enum.to_list
+      |> List.first
+
+    count != [count: 0]
   end
 
 end
