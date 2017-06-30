@@ -30,4 +30,16 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  def interface_source(realm_name, interface_name, interface_major_version) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    Astarte.RealmManagement.Queries.interface_source(client, interface_name, interface_major_version)
+  end
+
+  def list_interface_versions(realm_name, interface_name) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    Astarte.RealmManagement.Queries.interface_available_versions(client, interface_name)
+  end
+
 end
