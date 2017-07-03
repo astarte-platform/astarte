@@ -6,12 +6,8 @@ defmodule Astarte.RealmManagement.Supervisor do
   end
 
   def init(_) do
-
-    amqp_opts = Application.get_env(:astarte_realm_management, :amqp_connection)
-    consumer_opts = Application.get_env(:astarte_realm_management, :amqp_consumer)
-
     children = [
-      worker(Astarte.Core.AMQPConnection, [amqp_opts, consumer_opts, Astarte.RealmManagement.AMQP])
+      worker(Astarte.RealmManagement.RPC.AMQPServer, [])
     ]
 
     supervise(children, strategy: :one_for_one)
