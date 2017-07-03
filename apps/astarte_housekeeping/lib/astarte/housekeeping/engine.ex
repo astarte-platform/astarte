@@ -12,25 +12,12 @@ defmodule Astarte.Housekeeping.Engine do
     CQEx.Client.new()
   end
 
-  def process_rpc(message) do
-    GenServer.call(:astarte_housekeeping_engine, {:process_rpc, message}, @timeout)
+  def create_realm(realm) do
+    GenServer.call(:astarte_housekeeping_engine, {:create_realm, realm}, @timeout)
   end
 
-  def handle_call({:process_rpc, message}, _from, client) do
-    reply =
-      case Astarte.RPC.Protocol.Housekeeping.Call.decode(message) do
-        %Astarte.RPC.Protocol.Housekeeping.Call{call: call_tuple} when call_tuple != nil ->
-          case call_tuple do
-            {:create_realm, %Astarte.RPC.Protocol.Housekeeping.CreateRealm{realm: realm}} ->
-              Astarte.Housekeeping.Queries.create_realm(client, realm)
-            _ ->
-              Logger.warn "Received unexpected call: " <> inspect call_tuple
-              {:error, :unexpected_call}
-          end
-        _ ->
-          Logger.warn "Received unexpected message: " <> inspect message
-          {:error, :unexpected_message}
-      end
+  def handle_call({:create_realm, realm}, _from, client) do
+    reply = Astarte.Housekeeping.Queries.create_realm(client, realm)
     {:reply, reply, client}
   end
 end

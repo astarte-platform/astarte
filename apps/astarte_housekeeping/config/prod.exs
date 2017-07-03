@@ -10,6 +10,5 @@ config :astarte_housekeeping, :amqp_connection,
   virtual_host: "/",
   port: 5672
 
-config :astarte_housekeeping, :amqp_consumer,
-  queue: "housekeeping_rpc",
-  callback: &Housekeeping.Engine.process_rpc/1
+config :astarte_housekeeping, :rpc_queue,
+  "housekeeping_rpc"
