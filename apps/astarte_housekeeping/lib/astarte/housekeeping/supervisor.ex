@@ -8,6 +8,7 @@ defmodule Astarte.Housekeeping.Supervisor do
   def init(_) do
     children = [
       worker(Astarte.Housekeeping.Engine, []),
+      worker(Astarte.Housekeeping.RPC.AMQPServer, [])
     ]
 
     supervise(children, strategy: :one_for_one)
