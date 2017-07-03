@@ -5,12 +5,21 @@ defmodule Astarte.RealmManagement.Engine do
   def install_interface(realm_name, interface_json) do
     interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+    if String.contains?(String.downcase(interface_json), ["drop", "insert", "delete", "update", "keyspace", "table"]) do
+      Logger.warn "Found possible CQL command in JSON interface: " <> inspect interface_json
+    end
 
-    unless Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_document.descriptor.name, interface_document.descriptor.major_version) do
-      Astarte.RealmManagement.Queries.install_new_interface(client, interface_document)
+    if interface_document != nil do
+      client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+      unless Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_document.descriptor.name, interface_document.descriptor.major_version) do
+        Astarte.RealmManagement.Queries.install_new_interface(client, interface_document)
+      else
+        {:error, :already_installed_interface}
+      end
     else
-      {:error, :already_installed_interface}
+      Logger.warn "Received invalid interface JSON: " <> inspect interface_json
+      {:error, :invalid_interface_document}
     end
   end
 
