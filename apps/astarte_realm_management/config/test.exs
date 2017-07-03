@@ -10,6 +10,5 @@ config :astarte_realm_management, :amqp_connection,
   virtual_host: "/",
   port: 5672
 
-config :astarte_realm_management, :amqp_consumer,
-  queue: "realm_management_rpc",
-  callback: &Astarte.RealmManagement.Engine.process_rpc/1
+config :astarte_realm_management, :rpc_queue,
+  "realm_management_rpc"
