@@ -7,7 +7,7 @@ before_script:
     - mix local.rebar --force
 
 variables:
-    APPLICATION_NAME: housekeeping_engine
+    APPLICATION_NAME: astarte_housekeeping
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
@@ -26,7 +26,7 @@ mix:test-ci:
         paths:
             - deps
     except:
-        - branches@Astarte-NG/housekeeping_engine
+        - branches@Astarte-NG/astarte_housekeeping
 
 mix:build:
     image: elixir:1.4
@@ -52,7 +52,7 @@ mix:build:
         paths:
             - deps
     only:
-        - master@Astarte-NG/housekeeping_engine
+        - master@Astarte-NG/astarte_housekeeping
 
 mix:release-build:
     image: elixir:1.4
@@ -78,7 +78,21 @@ mix:release-build:
         paths:
             - deps
     only:
-        - tags@Astarte-NG/housekeeping_engine
+        - tags@Astarte-NG/astarte_housekeeping
+
+docker:snapshot-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+    services:
+        - docker:dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte_housekeeping
+    script:
+        - docker build -t registry.ispirata.com/Astarte-NG/astarte_housekeeping:snapshot .
+        - docker push registry.ispirata.com/Astarte-NG/astarte_housekeeping:snapshot
 
 #s3:upload-snapshot:
     #image: debian:jessie
