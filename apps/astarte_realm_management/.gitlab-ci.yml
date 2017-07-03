@@ -7,7 +7,7 @@ before_script:
     - mix local.rebar --force
 
 variables:
-    APPLICATION_NAME: realm_management
+    APPLICATION_NAME: astarte_realm_management
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
@@ -25,7 +25,7 @@ mix:test-ci:
         paths:
             - deps
     except:
-        - branches@Astarte-NG/realm_management
+        - branches@Astarte-NG/astarte_realm_management
 
 mix:build:
     image: elixir:1.4
@@ -50,7 +50,7 @@ mix:build:
         paths:
             - deps
     only:
-        - master@Astarte-NG/realm_management
+        - master@Astarte-NG/astarte_realm_management
 
 mix:release-build:
     image: elixir:1.4
@@ -75,7 +75,7 @@ mix:release-build:
         paths:
             - deps
     only:
-        - tags@Astarte-NG/realm_management
+        - tags@Astarte-NG/astarte_realm_management
 
 #s3:upload-snapshot:
     #image: debian:jessie
@@ -92,7 +92,7 @@ mix:release-build:
     #script:
         #- s3cmd put $APPLICATION_NAME-snapshot.tar.gz s3://astarte.snapshots --access_key=$S3_ACCESS_KEY --secret_key=$S3_SECRET_KEY --host=$S3_HOST --host-bucket='$S3_HOST_BUCKET' --storage-class=STANDARD_IA --signature-v2 -P --disable-multipart
     #only:
-        #- master@Astarte-NG/realm_management
+        #- master@Astarte-NG/astarte_realm_management
 
 #s3:upload-release:
     #image: debian:jessie
@@ -110,4 +110,4 @@ mix:release-build:
         #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
         #- s3cmd put $APPLICATION_NAME-$RELEASE_NAME.tar.gz s3://astarte.releases --access_key=$S3_ACCESS_KEY --secret_key=$S3_SECRET_KEY --host=$S3_HOST --host-bucket='$S3_HOST_BUCKET' --storage-class=STANDARD_IA --signature-v2 -P --disable-multipart
     #only:
-        #- tags@Astarte-NG/realm_management
+        #- tags@Astarte-NG/astarte_realm_management
