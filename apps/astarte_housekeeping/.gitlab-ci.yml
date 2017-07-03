@@ -91,8 +91,8 @@ docker:snapshot-container:
     only:
         - master@Astarte-NG/astarte_housekeeping
     script:
-        - docker build -t registry.ispirata.com/Astarte-NG/astarte_housekeeping:snapshot .
-        - docker push registry.ispirata.com/Astarte-NG/astarte_housekeeping:snapshot
+        - docker build -t registry.ispirata.com/astarte-ng/astarte_housekeeping:snapshot .
+        - docker push registry.ispirata.com/astarte-ng/astarte_housekeeping:snapshot
 
 #s3:upload-snapshot:
     #image: debian:jessie
