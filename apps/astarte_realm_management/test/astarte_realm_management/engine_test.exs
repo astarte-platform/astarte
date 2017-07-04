@@ -78,13 +78,13 @@ defmodule Astarte.RealmManagement.EngineTest do
         assert Astarte.RealmManagement.Engine.install_interface("autotestrealm", @test_interface_a_1) == {:error, :already_installed_interface}
         assert Astarte.RealmManagement.Engine.install_interface("autotestrealm", @test_interface_a_2) == :ok
 
-        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 1) == @test_interface_a_0
-        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Configuration", 1) == @test_interface_b_0
-        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 2) == @test_interface_a_2
-        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Missing", 1) == nil
+        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 1) == {:ok, @test_interface_a_0}
+        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Configuration", 1) == {:ok, @test_interface_b_0}
+        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 2) == {:ok, @test_interface_a_2}
+        assert Astarte.RealmManagement.Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Missing", 1) == {:error, :interface_not_found}
 
-        assert Astarte.RealmManagement.Engine.list_interface_versions("autotestrealm", "com.ispirata.Hemera.DeviceLog.Configuration") == [[major_version: 1, minor_version: 0]]
-        assert Astarte.RealmManagement.Engine.list_interface_versions("autotestrealm", "com.ispirata.Hemera.DeviceLog.Missing") == []
+        assert Astarte.RealmManagement.Engine.list_interface_versions("autotestrealm", "com.ispirata.Hemera.DeviceLog.Configuration") == {:ok, [[major_version: 1, minor_version: 0]]}
+        assert Astarte.RealmManagement.Engine.list_interface_versions("autotestrealm", "com.ispirata.Hemera.DeviceLog.Missing") == {:error, :interface_not_found}
 
         Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
       {:error, msg} -> Logger.warn "Skipped 'install interface' test, database engine says: " <> msg
