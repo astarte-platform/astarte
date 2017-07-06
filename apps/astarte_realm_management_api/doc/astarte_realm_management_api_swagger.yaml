@@ -1,0 +1,138 @@
+swagger: "2.0"
+info:
+  description: "API for realm management."
+  version: "0.1.0"
+  title: "Realm Management API"
+  contact:
+    email: "davide.bettio@ispirata.com"
+host: "realmmanagement.api.astarte.cloud"
+basePath: "/v1"
+tags:
+- name: "interface"
+  description: "Interface management"
+  externalDocs:
+    description: "Find out more"
+    url: "http://www.astarte.cloud/"
+schemes:
+- "http"
+paths:
+  /interfaces:
+    get:
+      tags:
+      - "interface"
+      summary: "Get interfaces list"
+      description: "Get a list of all installed interfaces."
+      operationId: "getInterfaces"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success"
+          examples:
+            text/json: ["com.example.interfacefoo", "com.example.interfacebar"]
+  /interfaces/{interface_name}:
+    get:
+      tags:
+      - "interface"
+      summary: "Get interface major versions"
+      description: "An interface might have multiple major versions, list all of them. Previous minor versions for a given major version are not retrieved, only the most recent interface for each interface major is returned."
+      operationId: "getInterfacesMajorVersions"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "interface_name"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+          examples:
+            text/json: [1, 2, 10]
+  /interfaces/{interface_name}/{major_version}:
+    post:
+      tags:
+      - "interface"
+      summary: "Add a new interface to the realm"
+      description: "Install a new interface, or a newer major version for a given interface. Validation is performed, and an error is returned if interface cannot be installed, afterwards installation is performed."
+      operationId: "addInterface"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "interface_name"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "major_version"
+        in: "path"
+        description: "Interface major version"
+        required: true
+        type: "integer"
+      - in: "body"
+        name: "body"
+        description: "Interface object that needs to be added to the realm"
+        required: true
+        schema:
+          $ref: '#/definitions/Interface'
+      responses:
+        405:
+          description: "Validation exception"
+    put:
+      tags:
+      - "interface"
+      summary: "Updates an existing interface to a new minor release"
+      description: "Replace an existing interface with a certain major version with a newer one (that must have same major version and a higher minor version). Server side validation is performed and afterwards interface upgrade is performed. This operation cannot be reverted."
+      operationId: "updateInterface"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "interface_name"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "major_version"
+        in: "path"
+        description: "Interface major version"
+        required: true
+        type: "integer"
+      - in: "body"
+        name: "body"
+        description: "Interface object that needs to be added to the realm"
+        required: true
+        schema:
+          $ref: '#/definitions/Interface'
+      responses:
+        405:
+          description: "Validation exception"
+    get:
+      tags:
+      - "interface"
+      summary: "Get an interface"
+      description: "Previously uploaded interface source file is retrieved."
+      operationId: "getInterface"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "interface_name"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "major_version"
+        in: "path"
+        description: "Interface major version"
+        required: true
+        type: "integer"
+      responses:
+        200:
+          description: "Success"
+definitions:
+  Interface:
+    type: "object"
