@@ -4,7 +4,7 @@ info:
   version: "0.1.0"
   title: "Astarte App Engine API"
   contact:
-    email: "davide.bettio@ispirata.com"
+    email: "info@ispirata.com"
 host: "api.astarte.cloud"
 basePath: "/v1"
 tags:
