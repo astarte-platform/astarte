@@ -15,7 +15,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   #
   # Type `mix help compile.app` for more information.
   def application do
-    [mod: {Astarte.Housekeeping.API.Application, []},
+    [mod: {Astarte.Housekeeping.API, []},
      extra_applications: [:logger, :runtime_tools]]
   end
 
