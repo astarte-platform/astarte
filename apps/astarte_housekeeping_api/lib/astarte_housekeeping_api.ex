@@ -1,4 +1,4 @@
-defmodule Astarte.Housekeeping.API.Application do
+defmodule Astarte.Housekeeping.API do
   use Application
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
