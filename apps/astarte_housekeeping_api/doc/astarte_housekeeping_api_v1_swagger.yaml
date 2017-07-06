@@ -1,0 +1,79 @@
+swagger: "2.0"
+info:
+  description: "APIs for administration activities such as realm creation and astarte configuration."
+  version: "0.1.0"
+  title: "HouseKeeping API"
+  contact:
+    email: "info@ispirata.com"
+host: "housekeeping.api.astarte.cloud"
+basePath: "/v1"
+tags:
+- name: "realm"
+  description: "API for realm management."
+schemes:
+- "http"
+paths:
+  /realms:
+    get:
+      tags:
+      - "realm"
+      summary: "Get realms list"
+      description: "Get a list of all realms."
+      operationId: "getRealms"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success"
+          examples:
+            text/json: ["arealm", "anotherrealm"]
+
+    post:
+      tags:
+      - "realm"
+      summary: "Create a realm"
+      description: "Create a new realm. Realm creation will be executed asynchronously."
+      operationId: "createRealm"
+      consumes:
+        - "application/json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success"
+
+  /realms/{realm_name}:
+    get:
+      tags:
+      - "realm"
+      summary: "Get realm configuration"
+      description: "Retrieves realm configuration."
+      operationId: "getRealmConfiguration"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Realm name"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+    put:
+      tags:
+      - "realm"
+      summary: "Update a realm"
+      description: "Update realm configuration."
+      operationId: "updateRealm"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Realm name"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
