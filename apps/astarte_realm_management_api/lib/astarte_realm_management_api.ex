@@ -1,4 +1,4 @@
-defmodule Astarte.RealmManagement.API.Application do
+defmodule Astarte.RealmManagement.API do
   use Application
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
