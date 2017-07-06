@@ -1,4 +1,4 @@
-defmodule AstarteRealmManagementApi.Web.ChannelCase do
+defmodule Astarte.RealmManagement.API.Web.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -21,7 +21,7 @@ defmodule AstarteRealmManagementApi.Web.ChannelCase do
       use Phoenix.ChannelTest
 
       # The default endpoint for testing
-      @endpoint AstarteRealmManagementApi.Web.Endpoint
+      @endpoint Astarte.RealmManagement.API.Web.Endpoint
     end
   end
 

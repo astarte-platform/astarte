@@ -1,4 +1,4 @@
-defmodule AstarteRealmManagementApi.Mixfile do
+defmodule Astarte.RealmManagement.API.Mixfile do
   use Mix.Project
 
   def project do
@@ -19,7 +19,7 @@ defmodule AstarteRealmManagementApi.Mixfile do
   #
   # Type `mix help compile.app` for more information.
   def application do
-    [mod: {AstarteRealmManagementApi.Application, []},
+    [mod: {Astarte.RealmManagement.API.Application, []},
      extra_applications: [:logger, :runtime_tools]]
   end
 

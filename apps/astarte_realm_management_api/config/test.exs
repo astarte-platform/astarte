@@ -2,7 +2,7 @@ use Mix.Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :astarte_realm_management_api, AstarteRealmManagementApi.Web.Endpoint,
+config :astarte_realm_management_api, Astarte.RealmManagement.API.Web.Endpoint,
   http: [port: 4001],
   server: false
 

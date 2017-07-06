@@ -7,14 +7,14 @@ use Mix.Config
 
 # General application configuration
 config :astarte_realm_management_api,
-  namespace: AstarteRealmManagementApi
+  namespace: Astarte.RealmManagement.API
 
 # Configures the endpoint
-config :astarte_realm_management_api, AstarteRealmManagementApi.Web.Endpoint,
+config :astarte_realm_management_api, Astarte.RealmManagement.API.Web.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "CixkA/Dn3ya0rSp9nV0ZkvE0qEaSp2cKH/hzp5LiPK9iEGjX6S92b8fDrnfgCS5Y",
-  render_errors: [view: AstarteRealmManagementApi.Web.ErrorView, accepts: ~w(json)],
-  pubsub: [name: AstarteRealmManagementApi.PubSub,
+  render_errors: [view: Astarte.RealmManagement.API.Web.ErrorView, accepts: ~w(json)],
+  pubsub: [name: Astarte.RealmManagement.API.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
