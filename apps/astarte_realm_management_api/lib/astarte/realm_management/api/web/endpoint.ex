@@ -1,7 +1,7 @@
-defmodule AstarteRealmManagementApi.Web.Endpoint do
+defmodule Astarte.RealmManagement.API.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_realm_management_api
 
-  socket "/socket", AstarteRealmManagementApi.Web.UserSocket
+  socket "/socket", Astarte.RealmManagement.API.Web.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -36,7 +36,7 @@ defmodule AstarteRealmManagementApi.Web.Endpoint do
     key: "_astarte_realm_management_api_key",
     signing_salt: "5VDxq45D"
 
-  plug AstarteRealmManagementApi.Web.Router
+  plug Astarte.RealmManagement.API.Web.Router
 
   @doc """
   Dynamically loads configuration from the system environment

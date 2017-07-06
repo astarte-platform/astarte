@@ -1,11 +1,11 @@
-defmodule AstarteRealmManagementApi.Web.Gettext do
+defmodule Astarte.RealmManagement.API.Web.Gettext do
   @moduledoc """
   A module providing Internationalization with a gettext-based API.
 
   By using [Gettext](https://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import AstarteRealmManagementApi.Web.Gettext
+      import Astarte.RealmManagement.API.Web.Gettext
 
       # Simple translation
       gettext "Here is the string to translate"

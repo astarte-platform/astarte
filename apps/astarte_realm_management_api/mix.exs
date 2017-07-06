@@ -1,13 +1,13 @@
-defmodule AstarteRealmManagementApi.Mixfile do
+defmodule Astarte.RealmManagement.API.Mixfile do
   use Mix.Project
 
   def project do
     [app: :astarte_realm_management_api,
      version: "0.0.1",
-     build_path: "../../_build",
-     config_path: "../../config/config.exs",
-     deps_path: "../../deps",
-     lockfile: "../../mix.lock",
+     build_path: "_build",
+     config_path: "config/config.exs",
+     deps_path: "deps",
+     lockfile: "mix.lock",
      elixir: "~> 1.4",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
@@ -19,7 +19,7 @@ defmodule AstarteRealmManagementApi.Mixfile do
   #
   # Type `mix help compile.app` for more information.
   def application do
-    [mod: {AstarteRealmManagementApi.Application, []},
+    [mod: {Astarte.RealmManagement.API.Application, []},
      extra_applications: [:logger, :runtime_tools]]
   end
 
