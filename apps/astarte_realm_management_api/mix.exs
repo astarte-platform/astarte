@@ -37,7 +37,8 @@ defmodule Astarte.RealmManagement.API.Mixfile do
      {:gettext, "~> 0.11"},
      {:cowboy, "~> 1.0"},
 
-     {:distillery, "~> 1.4", runtime: false}
+     {:distillery, "~> 1.4", runtime: false},
+     {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 end
