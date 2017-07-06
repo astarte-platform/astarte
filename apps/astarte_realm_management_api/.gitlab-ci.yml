@@ -1,0 +1,106 @@
+stages:
+    - build
+    - deploy
+
+before_script:
+    - mix local.hex --force
+    - mix local.rebar --force
+
+variables:
+    APPLICATION_NAME: astarte_realm_management_api
+
+mix:test-ci:
+    image: elixir:1.4
+    stage: build
+    script:
+        - export MIX_ENV=test
+        - mix deps.get --force
+        - mix deps.compile --force
+        - mix compile --force
+        - mix coveralls
+    cache:
+        paths:
+            - deps
+    except:
+        - branches@Astarte-NG/$APPLICATION_NAME
+
+mix:build:
+    image: elixir:1.4
+    stage: build
+    script:
+        - export MIX_ENV=test
+        - mix deps.get --force
+        - mix deps.compile --force
+        - mix compile --force
+        - mix coveralls
+        - export MIX_ENV=dev
+        - mix release
+        #- mkdir $APPLICATION_NAME
+        #- cp _build/dev/rel/vmq_astarte/releases/0.1.0/$APPLICATION_NAME.tar.gz $APPLICATION_NAME-snapshot.tar.gz
+    #artifacts:
+        #paths:
+            #- $APPLICATION_NAME-snapshot.tar.gz
+        #expire_in: 1 hour
+    cache:
+        paths:
+            - deps
+    only:
+        - master@Astarte-NG/$APPLICATION_NAME
+
+mix:release-build:
+    image: elixir:1.4
+    stage: build
+    script:
+        - export MIX_ENV=prod
+        - mix deps.get --force
+        - mix deps.compile --force
+        - mix compile --force
+        - mix test
+        - mix release
+        #- mkdir $APPLICATION_NAME
+        #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
+        #- cp _build/dev/rel/vmq_astarte/releases/0.1.0/$APPLICATION_NAME.tar.gz $APPLICATION_NAME-$RELEASE_NAME.tar.gz
+    #artifacts:
+        #paths:
+            #- $APPLICATION_NAME-$RELEASE_NAME.tar.gz
+        #expire_in: 1 hour
+    cache:
+        paths:
+            - deps
+    only:
+        - tags@Astarte-NG/$APPLICATION_NAME
+
+#s3:upload-snapshot:
+    #image: debian:jessie
+    #stage: deploy
+    #before_script:
+        ## Install s3cmd (newer version, to support host)
+        #- apt-get update
+        #- apt-get install -y python-setuptools libmagic1 python-dateutil python-magic wget
+        #- wget https://github.com/s3tools/s3cmd/releases/download/v1.6.1/s3cmd-1.6.1.tar.gz
+        #- tar xf s3cmd-1.6.1.tar.gz
+        #- pushd s3cmd-1.6.1
+        #- python setup.py install
+        #- popd
+    #script:
+        #- s3cmd put $APPLICATION_NAME-snapshot.tar.gz s3://astarte.snapshots --access_key=$S3_ACCESS_KEY --secret_key=$S3_SECRET_KEY --host=$S3_HOST --host-bucket='$S3_HOST_BUCKET' --storage-class=STANDARD_IA --signature-v2 -P --disable-multipart
+    #only:
+        #- master@Astarte-NG/$APPLICATION_NAME
+
+#s3:upload-release:
+    #image: debian:jessie
+    #stage: deploy
+    #before_script:
+        ## Install s3cmd (newer version, to support host)
+        #- apt-get update
+        #- apt-get install -y python-setuptools libmagic1 python-dateutil python-magic wget
+        #- wget https://github.com/s3tools/s3cmd/releases/download/v1.6.1/s3cmd-1.6.1.tar.gz
+        #- tar xf s3cmd-1.6.1.tar.gz
+        #- pushd s3cmd-1.6.1
+        #- python setup.py install
+        #- popd
+    #script:
+        #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
+        #- s3cmd put $APPLICATION_NAME-$RELEASE_NAME.tar.gz s3://astarte.releases --access_key=$S3_ACCESS_KEY --secret_key=$S3_SECRET_KEY --host=$S3_HOST --host-bucket='$S3_HOST_BUCKET' --storage-class=STANDARD_IA --signature-v2 -P --disable-multipart
+    #only:
+        #- tags@Astarte-NG/$APPLICATION_NAME
