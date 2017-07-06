@@ -22,7 +22,7 @@ mix:test-ci:
         paths:
             - deps
     except:
-        - branches@Astarte-NG/$APPLICATION_NAME
+        - branches@Astarte-NG/astarte_realm_management_api
 
 mix:build:
     image: elixir:1.4
@@ -45,7 +45,7 @@ mix:build:
         paths:
             - deps
     only:
-        - master@Astarte-NG/$APPLICATION_NAME
+        - master@Astarte-NG/astarte_realm_management_api
 
 mix:release-build:
     image: elixir:1.4
@@ -68,7 +68,7 @@ mix:release-build:
         paths:
             - deps
     only:
-        - tags@Astarte-NG/$APPLICATION_NAME
+        - tags@Astarte-NG/astarte_realm_management_api
 
 #s3:upload-snapshot:
     #image: debian:jessie
