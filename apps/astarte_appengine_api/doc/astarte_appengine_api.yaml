@@ -1,0 +1,270 @@
+swagger: "2.0"
+info:
+  description: "AppEngine API"
+  version: "0.1.0"
+  title: "Astarte App Engine API"
+  contact:
+    email: "davide.bettio@ispirata.com"
+host: "api.astarte.cloud"
+basePath: "/v1"
+tags:
+- name: "device"
+  description: "Device data status retrival and publish"
+  externalDocs:
+    description: "Find out more"
+    url: "http://www.astarte.cloud/"
+schemes:
+- "http"
+paths:
+  /devices/{device_id}:
+    get:
+      tags:
+      - "device"
+      summary: "Get device general status"
+      description: "A device overview status is returned. Overview includes an array of reported interfaces (introspection), offline/online status, etc..."
+      operationId: "getDeviceStatus"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+          examples:
+            text/json: { "status": "online", "introspection": [{"interface": "com.test.foo", "major_version": 1}, {"interface": "com.test.bar", "major_version": 1}]}
+        404:
+          description: "Device Not found"
+  /devices/{device_id}/interfaces:
+    get:
+      tags:
+      - "device"
+      summary: "Get interfaces list"
+      description: "Get a list of interfaces supported by a certain device. Interfaces that are not reported by the device are not reported here. If a device stops to advertise a certain interface, it should be retrived from a different API, same applies for older versions of a certain interface."
+      operationId: "getInterfaces"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Interface or Device Not found"
+          examples:
+            text/json: ["com.test.foo", "com.test.bar"]
+  /devices/{device_id}/interfaces/{interface}:
+    get:
+      tags:
+      - "device"
+      summary: "Get properties values"
+      description: "Get a values snapshot for a given interface on a certain device. This action performed on a data stream interface returns the most recent set of data for each endpoint. More specific APIs should be used for advances data stream actions."
+      operationId: "getInterfacePropertiesValues"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      - name: "interface"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Interface or Device Not found"
+    put:
+      tags:
+      - "device"
+      summary: "Update and push all properties for a given object interface"
+      description: "Replaces all properties values for a given server owned interface on a certain device. Pushing all data must be used only when the target interface is an object properties aggregation, for individual properties interfaces actions should be performed on each invidual path."
+      operationId: "setInterfacePropertiesValues"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      - name: "interface"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Interface or Device Not found"
+        405:
+          description: "Invalid object"
+  /devices/{device_id}/interfaces/{interface}/{path}:
+    get:
+      tags:
+      - "device"
+      summary: "Get property value"
+      description: "Retrieve a value on a given path. This action on a data production path returns the last entry if no query parameters are specified."
+      operationId: "getInterfacePropertyValue"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      - name: "interface"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "path"
+        in: "path"
+        description: "Endpoint Path"
+        required: true
+        type: "string"
+      - name: "since"
+        in: "query"
+        description: "Query all values since a certain timestamp (all entries where timestamp >= since). This query parameter applies only on data productions. It must be a ISO 8601 valid timestamp. It can't be used if since is already used. See also 'since-after', to' and 'limit' parameters."
+        required: false
+        type: "string"
+      - name: "since-after"
+        in: "query"
+        description: "Query all values since after a certain timestamp (all entries where timestamp > since_after). This query parameter applies only on data productions. It must be a ISO 8601 valid timestamp. It can't be used if since is already specified. See also 'since', to' and 'limit' parameters."
+        required: false
+        type: "string"
+      - name: "to"
+        in: "query"
+        description: "Query all values up to a certain timestamp. If since is not specified first entry date is assumed by default. This query parameter applies only on data productions. It must be a ISO 8601 valid timestamp. See also 'since' and 'limit' parameters."
+        required: false
+        type: "string"
+      - name: "limit"
+        in: "query"
+        description: "Limit number of retrieved data production entries to 'limit'. This parameter must be always specified when 'since', 'since-after' and 'to' query parameters are used. If limit is specified without any 'since' and 'to' parameter, last 'limit' values are retrieved. When 'limit' entries are returned, it should be checked if any other entry is left by using since-after the last received timestamp.  An error is returned if limit exceeds maximum allowed value. See also 'since' and 'to' parameters."
+        required: false
+        type: "string"
+      responses:
+        404:
+          description: "Interface or Device Not found"
+        405:
+          description: "Invalid Request"
+    put:
+      tags:
+      - "device"
+      summary: "Update and push a value on a certain existing property path"
+      description: "Update and push a property value to the device on a certain endpoint path. interface should be an individual server owned property interface. It mustn't be used to stream data to a device or to update single properties that are members of an object aggregated interface."
+      operationId: "updatePathValue"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      - name: "interface"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "path"
+        in: "path"
+        description: "Endpoint Path"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Interface or Device Not found"
+        405:
+          description: "Invalid object"
+    post:
+      tags:
+      - "device"
+      summary: "Push new data"
+      description: "Either create a new path with a certain value for a certain endpoint and push it to the device, or stream data on that path. The behavior strongly depends on the interface and mapping type."
+      operationId: "setPathValue"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      - name: "interface"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "path"
+        in: "path"
+        description: "Endpoint Path"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Interface or Device Not found"
+        405:
+          description: "Invalid object"
+    delete:
+      tags:
+      - "device"
+      summary: "Delete path and push an unset value message"
+      description: "Unset a value on a certain path, path is also deleted. Endpoint must support unset."
+      operationId: "deletePathValue"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      - name: "interface"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "path"
+        in: "path"
+        description: "Endpoint Path"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Interface or Device Not found"
+        405:
+          description: "Invalid object"
+
+  /devices/{device_id}/interfaces/{interface}/{path}/{timestamp}:
+    get:
+      tags:
+      - "device"
+      summary: "Get streamed value at a certain timestamp"
+      description: "Retrieve a value on a given path at a certain timestamp, this action can be used only on a data stream."
+      operationId: "getInterfaceStreamedValue"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "device_id"
+        in: "path"
+        description: "Device ID"
+        required: true
+        type: "string"
+      - name: "interface"
+        in: "path"
+        description: "Interface name"
+        required: true
+        type: "string"
+      - name: "path"
+        in: "path"
+        description: "Endpoint Path"
+        required: true
+        type: "string"
+      - name: "timestamp"
+        in: "path"
+        description: "Streamed value timestamp"
+        required: true
+        type: "string"
+      responses:
+        404:
+          description: "Interface, Device or Timestamp Not found"
