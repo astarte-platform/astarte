@@ -152,9 +152,9 @@ defmodule Astarte.RealmManagement.Queries do
       |> List.first
 
     if result_row != nil do
-      result_row[:source]
+      {:ok, result_row[:source]}
     else
-      nil
+      {:error, :interface_not_found}
     end
   end
 
