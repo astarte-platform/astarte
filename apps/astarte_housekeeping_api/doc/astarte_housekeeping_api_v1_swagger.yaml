@@ -32,12 +32,17 @@ paths:
       tags:
       - "realm"
       summary: "Create a realm"
-      description: "Create a new realm. Realm creation will be executed asynchronously."
+      description: "Create a new realm, realm configuration should be provided. Realm creation will be executed asynchronously."
       operationId: "createRealm"
       consumes:
         - "application/json"
-      produces:
-      - "application/json"
+      parameters:
+      - name: "body"
+        in: "body"
+        description: "Realm JSON configuration object."
+        required: true
+        schema:
+          $ref: '#/definitions/Realm'
       responses:
         200:
           description: "Success"
@@ -60,6 +65,8 @@ paths:
       responses:
         200:
           description: "Success"
+          schema:
+            $ref: '#/definitions/Realm'
     put:
       tags:
       - "realm"
@@ -74,6 +81,22 @@ paths:
         description: "Realm name"
         required: true
         type: "string"
+      - name: "body"
+        in: "body"
+        description: "Realm JSON configuration object."
+        required: true
+        schema:
+          $ref: '#/definitions/Realm'
       responses:
         200:
           description: "Success"
+
+definitions:
+  Realm:
+    type: "object"
+    required:
+      - "realm_name"
+    properties:
+      realm_name:
+        type: "string"
+        example: "myrealm"
