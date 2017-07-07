@@ -55,7 +55,6 @@ paths:
           description: "Success"
           examples:
             text/json: [1, 2, 10]
-  /interfaces/{interface_name}/{major_version}:
     post:
       tags:
       - "interface"
@@ -67,16 +66,6 @@ paths:
       produces:
       - "application/json"
       parameters:
-      - name: "interface_name"
-        in: "path"
-        description: "Interface name"
-        required: true
-        type: "string"
-      - name: "major_version"
-        in: "path"
-        description: "Interface major version"
-        required: true
-        type: "integer"
       - in: "body"
         name: "body"
         description: "Interface object that needs to be added to the realm"
@@ -86,6 +75,7 @@ paths:
       responses:
         405:
           description: "Validation exception"
+  /interfaces/{interface_name}/{major_version}:
     put:
       tags:
       - "interface"
