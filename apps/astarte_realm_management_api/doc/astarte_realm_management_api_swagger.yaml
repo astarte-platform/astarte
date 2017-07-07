@@ -13,6 +13,11 @@ tags:
   externalDocs:
     description: "Find out more"
     url: "http://www.astarte.cloud/"
+- name: "trigger"
+  description: "Trigger management"
+  externalDocs:
+    description: "Find out more"
+    url: "http://www.astarte.cloud/"
 schemes:
 - "http"
 paths:
@@ -133,6 +138,95 @@ paths:
       responses:
         200:
           description: "Success"
+  /triggers:
+    get:
+      tags:
+      - "trigger"
+      summary: "Get triggers list"
+      description: "Get a list of all installed triggers. The trigger name for each installed trigger is reported."
+      operationId: "getTriggersList"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success"
+          examples:
+            text/json: ["new_data_on_test_interface", "connected_device", "value_above_threshold_alarm"]
+  /triggers/{trigger_name}:
+    get:
+      tags:
+      - "trigger"
+      summary: "Get trigger configuration"
+      description: "Retrieve installed trigger configuration. A trigger JSON representation is returned."
+      operationId: "getTrigger"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "trigger_name"
+        in: "path"
+        description: "Trigger name"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "Trigger not found"
+    put:
+      tags:
+      - "trigger"
+      summary: "Upate trigger configuration"
+      description: "Update an existing trigger. This action allows to replace trigger configuration. Previous configuration will be used for any previously queued event."
+      operationId: "updateTrigger"
+      parameters:
+      - name: "trigger_name"
+        in: "path"
+        description: "Trigger name"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "Trigger Not Found"
+        405:
+          description: "Invalid Trigger Configuration"
+    post:
+      tags:
+      - "trigger"
+      summary: "Install trigger configuration"
+      description: "Install a new trigger with given trigger_name. Trigger validation is performed before installation, if trigger configuration is not valid or a trigger with the same name already exists an error is reported. New trigger events might not be immediately processed."
+      operationId: "installTrigger"
+      parameters:
+      - name: "trigger_name"
+        in: "path"
+        description: "Trigger name"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "Trigger Not Found"
+        405:
+          description: "Invalid Trigger Configuration"
+    delete:
+      tags:
+      - "trigger"
+      summary: "Delete trigger"
+      description: "Delete an existing trigger with a given trigger_name. Already queued triggers might be delivered for a short time after trigger deletion."
+      operationId: "deleteTrigger"
+      parameters:
+      - name: "trigger_name"
+        in: "path"
+        description: "Trigger name"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+        404:
+          description: "Trigger Not Found"
 definitions:
   Interface:
     type: "object"
