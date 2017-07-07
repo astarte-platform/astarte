@@ -156,7 +156,7 @@ paths:
     put:
       tags:
       - "device"
-      summary: "Update and push a value on a certain existing property path"
+      summary: "Update and push a value on a path"
       description: "Update and push a property value to the device on a certain endpoint path. interface should be an individual server owned property interface. It mustn't be used to stream data to a device or to update single properties that are members of an object aggregated interface."
       operationId: "updatePathValue"
       parameters:
@@ -183,9 +183,9 @@ paths:
     post:
       tags:
       - "device"
-      summary: "Push new data"
-      description: "Either create a new path with a certain value for a certain endpoint and push it to the device, or stream data on that path. The behavior strongly depends on the interface and mapping type."
-      operationId: "setPathValue"
+      summary: "Stream data"
+      description: "Stream a value on a certain path. Endpoint must be a member of a datastream interface."
+      operationId: "streamData"
       parameters:
       - name: "device_id"
         in: "path"
