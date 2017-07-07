@@ -47,11 +47,6 @@ defmodule Astarte.RealmManagement.Queries do
     SELECT source FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
   """
 
-  def connect_to_local_realm(realm) do
-    {:ok, client} = CQEx.Client.new({"127.0.0.1", 9042}, [keyspace: realm])
-    client
-  end
-
   defp create_interface_table(:individual, interface_name, mappings) do
     mappings_cql = for mapping <- mappings do
         Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
