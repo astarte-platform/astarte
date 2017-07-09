@@ -21,7 +21,7 @@ tags:
 schemes:
 - "http"
 paths:
-  /interfaces:
+  /{realm_name}/interfaces:
     get:
       tags:
       - "interface"
@@ -30,12 +30,18 @@ paths:
       operationId: "getInterfaces"
       produces:
       - "application/json"
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the interface belongs to"
+        required: true
+        type: "string"
       responses:
         200:
           description: "Success"
           examples:
             text/json: ["com.example.interfacefoo", "com.example.interfacebar"]
-  /interfaces/{interface_name}:
+  /{realm_name}/interfaces/{interface_name}:
     get:
       tags:
       - "interface"
@@ -45,6 +51,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the interface belongs to"
+        required: true
+        type: "string"
       - name: "interface_name"
         in: "path"
         description: "Interface name"
@@ -66,6 +77,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the interface belongs to"
+        required: true
+        type: "string"
       - in: "body"
         name: "body"
         description: "Interface object that needs to be added to the realm"
@@ -75,7 +91,7 @@ paths:
       responses:
         405:
           description: "Validation exception"
-  /interfaces/{interface_name}/{major_version}:
+  /{realm_name}/interfaces/{interface_name}/{major_version}:
     put:
       tags:
       - "interface"
@@ -87,6 +103,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the interface belongs to"
+        required: true
+        type: "string"
       - name: "interface_name"
         in: "path"
         description: "Interface name"
@@ -115,6 +136,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the interface belongs to"
+        required: true
+        type: "string"
       - name: "interface_name"
         in: "path"
         description: "Interface name"
@@ -128,7 +154,7 @@ paths:
       responses:
         200:
           description: "Success"
-  /triggers:
+  /{realm_name}/triggers:
     get:
       tags:
       - "trigger"
@@ -137,12 +163,18 @@ paths:
       operationId: "getTriggersList"
       produces:
       - "application/json"
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the trigger belongs to"
+        required: true
+        type: "string"
       responses:
         200:
           description: "Success"
           examples:
             text/json: ["new_data_on_test_interface", "connected_device", "value_above_threshold_alarm"]
-  /triggers/{trigger_name}:
+  /{realm_name}/triggers/{trigger_name}:
     get:
       tags:
       - "trigger"
@@ -152,6 +184,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the trigger belongs to"
+        required: true
+        type: "string"
       - name: "trigger_name"
         in: "path"
         description: "Trigger name"
@@ -169,6 +206,11 @@ paths:
       description: "Update an existing trigger. This action allows to replace trigger configuration. Previous configuration will be used for any previously queued event."
       operationId: "updateTrigger"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the trigger belongs to"
+        required: true
+        type: "string"
       - name: "trigger_name"
         in: "path"
         description: "Trigger name"
@@ -188,6 +230,11 @@ paths:
       description: "Install a new trigger with given trigger_name. Trigger validation is performed before installation, if trigger configuration is not valid or a trigger with the same name already exists an error is reported. New trigger events might not be immediately processed."
       operationId: "installTrigger"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the trigger belongs to"
+        required: true
+        type: "string"
       - name: "trigger_name"
         in: "path"
         description: "Trigger name"
@@ -207,6 +254,11 @@ paths:
       description: "Delete an existing trigger with a given trigger_name. Already queued triggers might be delivered for a short time after trigger deletion."
       operationId: "deleteTrigger"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the trigger belongs to"
+        required: true
+        type: "string"
       - name: "trigger_name"
         in: "path"
         description: "Trigger name"
