@@ -16,7 +16,7 @@ tags:
 schemes:
 - "http"
 paths:
-  /devices/{device_id}:
+  /{realm_name}/devices/{device_id}:
     get:
       tags:
       - "device"
@@ -26,6 +26,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -38,7 +43,7 @@ paths:
             text/json: { "status": "online", "introspection": [{"interface": "com.test.foo", "major_version": 1}, {"interface": "com.test.bar", "major_version": 1}]}
         404:
           description: "Device Not found"
-  /devices/{device_id}/interfaces:
+  /{realm_name}/devices/{device_id}/interfaces:
     get:
       tags:
       - "device"
@@ -48,6 +53,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -58,7 +68,7 @@ paths:
           description: "Interface or Device Not found"
           examples:
             text/json: ["com.test.foo", "com.test.bar"]
-  /devices/{device_id}/interfaces/{interface}:
+  /{realm_name}/devices/{device_id}/interfaces/{interface}:
     get:
       tags:
       - "device"
@@ -68,6 +78,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -88,6 +103,11 @@ paths:
       description: "Replaces all properties values for a given server owned interface on a certain device. Pushing all data must be used only when the target interface is an object properties aggregation, for individual properties interfaces actions should be performed on each invidual path."
       operationId: "setInterfacePropertiesValues"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -103,7 +123,7 @@ paths:
           description: "Interface or Device Not found"
         405:
           description: "Invalid object"
-  /devices/{device_id}/interfaces/{interface}/{path}:
+  /{realm_name}/devices/{device_id}/interfaces/{interface}/{path}:
     get:
       tags:
       - "device"
@@ -113,6 +133,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -160,6 +185,11 @@ paths:
       description: "Update and push a property value to the device on a certain endpoint path. interface should be an individual server owned property interface. It mustn't be used to stream data to a device or to update single properties that are members of an object aggregated interface."
       operationId: "updatePathValue"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -187,6 +217,11 @@ paths:
       description: "Stream a value on a certain path. Endpoint must be a member of a datastream interface."
       operationId: "streamData"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -214,6 +249,11 @@ paths:
       description: "Unset a value on a certain path, path is also deleted. Endpoint must support unset."
       operationId: "deletePathValue"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
@@ -235,7 +275,7 @@ paths:
         405:
           description: "Invalid object"
 
-  /devices/{device_id}/interfaces/{interface}/{path}/{timestamp}:
+  /{realm_name}/devices/{device_id}/interfaces/{interface}/{path}/{timestamp}:
     get:
       tags:
       - "device"
@@ -245,6 +285,11 @@ paths:
       produces:
       - "application/json"
       parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
       - name: "device_id"
         in: "path"
         description: "Device ID"
