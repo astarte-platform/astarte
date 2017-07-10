@@ -5,7 +5,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
 
   alias Astarte.RealmManagement.API.Repo
 
-  alias Astarte.RealmManagement.API.Interfaces.Interface
+  alias Astarte.Core.InterfaceDocument, as: Interface
 
   @doc """
   Returns the list of interfaces.

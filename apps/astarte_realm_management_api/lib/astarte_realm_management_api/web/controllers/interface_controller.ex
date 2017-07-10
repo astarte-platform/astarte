@@ -2,7 +2,7 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
   use Astarte.RealmManagement.API.Web, :controller
 
   alias Astarte.RealmManagement.API.Interfaces
-  alias Astarte.RealmManagement.API.Interfaces.Interface
+  alias Astarte.Core.InterfaceDocument, as: Interface
 
   action_fallback Astarte.RealmManagement.API.Web.FallbackController
 
