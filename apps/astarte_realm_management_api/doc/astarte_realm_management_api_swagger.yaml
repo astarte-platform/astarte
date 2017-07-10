@@ -41,31 +41,7 @@ paths:
           description: "Success"
           examples:
             text/json: ["com.example.interfacefoo", "com.example.interfacebar"]
-  /{realm_name}/interfaces/{interface_name}:
-    get:
-      tags:
-      - "interface"
-      summary: "Get interface major versions"
-      description: "An interface might have multiple major versions, list all of them. Previous minor versions for a given major version are not retrieved, only the most recent interface for each interface major is returned."
-      operationId: "getInterfacesMajorVersions"
-      produces:
-      - "application/json"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "The realm which the interface belongs to"
-        required: true
-        type: "string"
-      - name: "interface_name"
-        in: "path"
-        description: "Interface name"
-        required: true
-        type: "string"
-      responses:
-        200:
-          description: "Success"
-          examples:
-            text/json: [1, 2, 10]
+
     post:
       tags:
       - "interface"
@@ -91,18 +67,37 @@ paths:
       responses:
         405:
           description: "Validation exception"
-  /{realm_name}/interfaces/{interface_name}/{major_version}:
-    put:
+
+
+  /{realm_name}/interfaces/{interface_name}:
+    parameters:
+    - name: "realm_name"
+      in: "path"
+      description: "The realm which the interface belongs to"
+      required: true
+      type: "string"
+    - name: "interface_name"
+      in: "path"
+      description: "Interface name"
+      required: true
+      type: "string"
+
+    get:
       tags:
       - "interface"
-      summary: "Updates an existing interface to a new minor release"
-      description: "Replace an existing interface with a certain major version with a newer one (that must have same major version and a higher minor version). Server side validation is performed and afterwards interface upgrade is performed. This operation cannot be reverted."
-      operationId: "updateInterface"
-      consumes:
-      - "application/json"
+      summary: "Get interface major versions"
+      description: "An interface might have multiple major versions, list all of them. Previous minor versions for a given major version are not retrieved, only the most recent interface for each interface major is returned."
+      operationId: "getInterfacesMajorVersions"
       produces:
       - "application/json"
-      parameters:
+      responses:
+        200:
+          description: "Success"
+          examples:
+            text/json: [1, 2, 10]
+
+  /{realm_name}/interfaces/{interface_name}/{major_version}:
+    parameters:
       - name: "realm_name"
         in: "path"
         description: "The realm which the interface belongs to"
@@ -118,6 +113,18 @@ paths:
         description: "Interface major version"
         required: true
         type: "integer"
+
+    put:
+      tags:
+      - "interface"
+      summary: "Updates an existing interface to a new minor release"
+      description: "Replace an existing interface with a certain major version with a newer one (that must have same major version and a higher minor version). Server side validation is performed and afterwards interface upgrade is performed. This operation cannot be reverted."
+      operationId: "updateInterface"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
       - in: "body"
         name: "body"
         description: "Interface object that needs to be added to the realm"
@@ -135,26 +142,19 @@ paths:
       operationId: "getInterface"
       produces:
       - "application/json"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "The realm which the interface belongs to"
-        required: true
-        type: "string"
-      - name: "interface_name"
-        in: "path"
-        description: "Interface name"
-        required: true
-        type: "string"
-      - name: "major_version"
-        in: "path"
-        description: "Interface major version"
-        required: true
-        type: "integer"
       responses:
         200:
           description: "Success"
+
+
   /{realm_name}/triggers:
+    parameters:
+    - name: "realm_name"
+      in: "path"
+      description: "The realm which the trigger belongs to"
+      required: true
+      type: "string"
+
     get:
       tags:
       - "trigger"
@@ -163,12 +163,6 @@ paths:
       operationId: "getTriggersList"
       produces:
       - "application/json"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "The realm which the trigger belongs to"
-        required: true
-        type: "string"
       responses:
         200:
           description: "Success"
@@ -182,11 +176,6 @@ paths:
       description: "Install a new trigger using provided configuration. Trigger validation is performed before installation, if trigger configuration is not valid or a trigger with the same name already exists an error is reported. New trigger events might not be immediately processed."
       operationId: "installTrigger"
       parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "The realm which the trigger belongs to"
-        required: true
-        type: "string"
       - name: "body"
         in: "body"
         schema:
@@ -198,7 +187,21 @@ paths:
           description: "Trigger Not Found"
         405:
           description: "Invalid Trigger Configuration"
+
+
   /{realm_name}/triggers/{trigger_name}:
+    parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the trigger belongs to"
+        required: true
+        type: "string"
+      - name: "trigger_name"
+        in: "path"
+        description: "Trigger name"
+        required: true
+        type: "string"
+
     get:
       tags:
       - "trigger"
@@ -207,22 +210,12 @@ paths:
       operationId: "getTrigger"
       produces:
       - "application/json"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "The realm which the trigger belongs to"
-        required: true
-        type: "string"
-      - name: "trigger_name"
-        in: "path"
-        description: "Trigger name"
-        required: true
-        type: "string"
       responses:
         200:
           description: "Success"
         404:
           description: "Trigger not found"
+
     put:
       tags:
       - "trigger"
@@ -230,16 +223,6 @@ paths:
       description: "Update an existing trigger. This action allows to replace trigger configuration. Previous configuration will be used for any previously queued event."
       operationId: "updateTrigger"
       parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "The realm which the trigger belongs to"
-        required: true
-        type: "string"
-      - name: "trigger_name"
-        in: "path"
-        description: "Trigger name"
-        required: true
-        type: "string"
       - name: "body"
         in: "body"
         schema:
@@ -251,28 +234,20 @@ paths:
           description: "Trigger Not Found"
         405:
           description: "Invalid Trigger Configuration"
+
     delete:
       tags:
       - "trigger"
       summary: "Delete trigger"
       description: "Delete an existing trigger with a given trigger_name. Already queued triggers might be delivered for a short time after trigger deletion."
       operationId: "deleteTrigger"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "The realm which the trigger belongs to"
-        required: true
-        type: "string"
-      - name: "trigger_name"
-        in: "path"
-        description: "Trigger name"
-        required: true
-        type: "string"
       responses:
         200:
           description: "Success"
         404:
           description: "Trigger Not Found"
+
+
 definitions:
   Interface:
     type: "object"
