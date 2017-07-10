@@ -3,7 +3,6 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   The boundary for the Interfaces system.
   """
 
-  import Ecto.Query, warn: false
   alias Astarte.RealmManagement.API.Repo
 
   alias Astarte.RealmManagement.API.Interfaces.Interface
