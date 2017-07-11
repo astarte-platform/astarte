@@ -83,15 +83,6 @@ defmodule Astarte.Housekeeping.Queries do
     """
   ]
 
-  def connect_to_local do
-    {:ok, client} = CQEx.Client.new({"127.0.0.1", 9042})
-    client
-  end
-
-  def connect do
-    CQEx.Client.new!
-  end
-
   def create_realm(client, realm_name) do
     if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
       replaced_queries =
