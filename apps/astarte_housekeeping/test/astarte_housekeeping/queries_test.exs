@@ -3,7 +3,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
   doctest Astarte.Housekeeping.Queries
 
   test "keyspace and realm creation" do
-    client = Astarte.Housekeeping.Queries.connect
+    client = CQEx.Client.new!
     assert(Astarte.Housekeeping.Queries.create_astarte_keyspace(client) == :ok)
     assert(Astarte.Housekeeping.Queries.create_realm(client, "test") == :ok)
   end
