@@ -2,6 +2,7 @@ defmodule Astarte.Housekeeping.Queries do
 
   require Logger
   alias CQEx.Query, as: DatabaseQuery
+  alias CQEx.Result, as: DatabaseResult
 
   @create_realm_queries [
     """
@@ -83,6 +84,10 @@ defmodule Astarte.Housekeeping.Queries do
     """
   ]
 
+  @realm_exists_query """
+    SELECT realm_name FROM astarte.realms WHERE realm_name=:realm_name;
+  """
+
   def create_realm(client, realm_name) do
     if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
       replaced_queries =
@@ -99,6 +104,15 @@ defmodule Astarte.Housekeeping.Queries do
 
   def create_astarte_keyspace(client) do
     exec_queries(client, @create_astarte_queries)
+  end
+
+  def realm_exists?(client, realm_name) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@realm_exists_query)
+      |> DatabaseQuery.put(:realm_name, realm_name)
+
+    DatabaseQuery.call!(client, query)
+      |> DatabaseResult.size() > 0
   end
 
   defp exec_queries(client, _queries = [query | tail]) do
