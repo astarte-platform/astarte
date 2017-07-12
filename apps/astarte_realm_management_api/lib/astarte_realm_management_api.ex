@@ -6,12 +6,9 @@ defmodule Astarte.RealmManagement.API do
   def start(_type, _args) do
     import Supervisor.Spec
 
-    # Define workers and child supervisors to be supervised
     children = [
-      # Start the endpoint when the application starts
       supervisor(Astarte.RealmManagement.API.Web.Endpoint, []),
-      # Start your own worker by calling: Astarte.RealmManagement.API.Worker.start_link(arg1, arg2, arg3)
-      # worker(Astarte.RealmManagement.API.Worker, [arg1, arg2, arg3]),
+      worker(Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient, [])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
