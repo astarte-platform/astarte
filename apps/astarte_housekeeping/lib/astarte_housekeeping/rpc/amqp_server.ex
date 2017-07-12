@@ -8,13 +8,13 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     process_decoded_call(Call.decode(payload))
   end
 
-  defp process_decoded_call(%Call{call: call_tuple}) when call_tuple != nil do
-    process_call_tuple(call_tuple)
+  defp process_decoded_call(%Call{call: nil}) do
+    Logger.warn "Received empty call"
+    {:error, :empty_call}
   end
 
-  defp process_decoded_call(invalid_message) do
-    Logger.warn "Received unexpected message: " <> inspect invalid_message
-    {:error, :unexpected_message}
+  defp process_decoded_call(%Call{call: call_tuple}) do
+    process_call_tuple(call_tuple)
   end
 
   defp process_call_tuple({:create_realm, %CreateRealm{realm: realm}}) do
