@@ -25,9 +25,4 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
   defp process_call_tuple({:create_realm, %CreateRealm{realm: realm}}) do
     Astarte.Housekeeping.Engine.create_realm(realm)
   end
-
-  defp process_call_tuple(invalid_call) do
-    Logger.warn "Received unexpected call: " <> inspect invalid_call
-    {:error, :unexpected_call}
-  end
 end
