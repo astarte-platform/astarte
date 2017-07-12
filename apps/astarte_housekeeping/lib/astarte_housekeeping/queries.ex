@@ -93,7 +93,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def create_realm(client, realm_name) do
-    if String.match?(realm_name, ~r/[a-z][a-z0-9]*/) do
+    if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
       replaced_queries =
         for query <- @create_realm_queries do
           String.replace(query, ":realm_name", realm_name)
