@@ -3,7 +3,7 @@
   "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "5f0ea9d8b754bda126f8b01651c7f90c009cacb2", []},
   "certifi": {:hex, :certifi, "1.2.1", "c3904f192bd5284e5b13f20db3ceac9626e14eeacfbb492e19583cf0e37b22be", [:rebar3], [], "hexpm"},
   "cqerl": {:git, "https://github.com/astarte-platform/cqerl.git", "7e7d5b45b0ece29b2220fd1916c52e0d1755e149", []},
-  "cqex": {:git, "https://github.com/astarte-platform/cqex.git", "630a86be6078ce83f97e204568b23306a9edfb39", []},
+  "cqex": {:git, "https://github.com/astarte-platform/cqex.git", "ad1a841f78bc0c5aaee4197a6a7fcb34402857f4", []},
   "distillery": {:hex, :distillery, "1.4.0", "d633cd322c8efa0428082b00b7f902daf8caa166d45f9022bbc19a896d2e1e56", [:mix], [], "hexpm"},
   "excoveralls": {:hex, :excoveralls, "0.7.0", "05cb3332c2b0f799df3ab90eb7df1ae5a147c86776e91792848a12b7ed87242f", [:mix], [{:exjsx, ">= 3.0.0", [hex: :exjsx, repo: "hexpm", optional: false]}, {:hackney, ">= 0.12.0", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm"},
   "exjsx": {:hex, :exjsx, "4.0.0", "60548841e0212df401e38e63c0078ec57b33e7ea49b032c796ccad8cde794b5c", [:mix], [{:jsx, "~> 2.8.0", [hex: :jsx, repo: "hexpm", optional: false]}], "hexpm"},
