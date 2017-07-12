@@ -6,8 +6,8 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
 
   action_fallback Astarte.RealmManagement.API.Web.FallbackController
 
-  def index(conn, _params) do
-    interfaces = Astarte.RealmManagement.API.Interfaces.list_interfaces()
+  def index(conn, %{"realm_name" => realm_name}) do
+    interfaces = Astarte.RealmManagement.API.Interfaces.list_interfaces(realm_name)
     render(conn, "index.json", interfaces: interfaces)
   end
 
@@ -20,8 +20,8 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    interface = Astarte.RealmManagement.API.Interfaces.get_interface!(id)
+  def show(conn, %{"realm_name" => realm_name, "id" => id}) do
+    interface = Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id)
     render(conn, "show.json", interface: interface)
   end
 

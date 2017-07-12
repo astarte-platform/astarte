@@ -4,7 +4,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   """
 
   alias Astarte.RealmManagement.API.Repo
-
+  alias Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient
   alias Astarte.Core.InterfaceDocument, as: Interface
 
   @doc """
@@ -16,8 +16,8 @@ defmodule Astarte.RealmManagement.API.Interfaces do
       [%Interface{}, ...]
 
   """
-  def list_interfaces do
-    raise "TODO"
+  def list_interfaces(realm_name) do
+    AMQPClient.get_interfaces_list(realm_name)
   end
 
   @doc """
@@ -31,7 +31,11 @@ defmodule Astarte.RealmManagement.API.Interfaces do
       %Interface{}
 
   """
-  def get_interface!(id), do: raise "TODO"
+  def get_interface!(realm_name, id) do
+    for interface_version <- AMQPClient.get_interface_versions_list(realm_name, id) do
+      interface_version[:major_version]
+    end
+  end
 
   @doc """
   Creates a interface.
