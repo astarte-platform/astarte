@@ -17,6 +17,11 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     process_call_tuple(call_tuple)
   end
 
+  defp process_call_tuple({:create_realm, %CreateRealm{realm: nil}}) do
+    Logger.warn "CreateRealm with realm == nil"
+    {:error, :invalid_argument}
+  end
+
   defp process_call_tuple({:create_realm, %CreateRealm{realm: realm}}) do
     Astarte.Housekeeping.Engine.create_realm(realm)
   end
