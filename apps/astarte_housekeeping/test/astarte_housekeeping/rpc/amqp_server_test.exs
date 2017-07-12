@@ -1,7 +1,7 @@
 defmodule Astarte.Housekeeping.AMQPServerTest do
   use ExUnit.Case
   alias Astarte.Housekeeping.RPC.AMQPServer
-  alias Astarte.RPC.Protocol.Housekeeping.{Call,CreateRealm}
+  use Astarte.RPC.Protocol.Housekeeping
 
   test "invalid empty message" do
     encoded = Call.new
@@ -23,5 +23,32 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       |> Call.encode()
 
     assert AMQPServer.process_rpc(encoded) == {:error, :realm_not_allowed}
+  end
+
+  test "realm creation and DoesRealmExist successful call" do
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: "newtestrealm")})
+      |> Call.encode()
+
+    assert AMQPServer.process_rpc(encoded) == :ok
+
+    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: "newtestrealm"}}}
+      |> Call.encode()
+
+    expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}}}
+
+    {:ok, enc_reply} = AMQPServer.process_rpc(encoded)
+
+    assert Reply.decode(enc_reply) == expected
+  end
+
+  test "DoesRealmExist non-existing realm" do
+    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: "nonexistingrealm"}}}
+      |> Call.encode()
+
+    expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: false}}}
+
+    {:ok, enc_reply} = AMQPServer.process_rpc(encoded)
+
+    assert Reply.decode(enc_reply) == expected
   end
 end
