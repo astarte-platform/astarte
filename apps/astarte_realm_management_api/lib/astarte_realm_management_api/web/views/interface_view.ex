@@ -3,14 +3,11 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceView do
   alias Astarte.RealmManagement.API.Web.InterfaceView
 
   def render("index.json", %{interfaces: interfaces}) do
-    %{data: render_many(interfaces, InterfaceView, "interface.json")}
+    interfaces
   end
 
   def render("show.json", %{interface: interface}) do
-    %{data: render_one(interface, InterfaceView, "interface.json")}
+    interface
   end
 
-  def render("interface.json", %{interface: interface}) do
-    %{id: interface.id}
-  end
 end
