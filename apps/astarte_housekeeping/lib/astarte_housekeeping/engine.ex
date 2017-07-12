@@ -9,7 +9,12 @@ defmodule Astarte.Housekeeping.Engine do
   end
 
   def init(_opts) do
-    CQEx.Client.new()
+    client = CQEx.Client.new!()
+    unless Astarte.Housekeeping.Queries.astarte_keyspace_exists?(client) do
+      Logger.info("Astarte keyspace not found, creating it")
+      Astarte.Housekeeping.Queries.create_astarte_keyspace(client)
+    end
+    {:ok, client}
   end
 
   def create_realm(realm) do
