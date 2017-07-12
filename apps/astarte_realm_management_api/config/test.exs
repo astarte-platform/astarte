@@ -8,3 +8,6 @@ config :astarte_realm_management_api, Astarte.RealmManagement.API.Web.Endpoint,
 
 # Print only warnings and errors during test
 config :logger, level: :warn
+
+config :astarte_realm_management_api, :rpc_queue,
+  "realm_management_rpc"
