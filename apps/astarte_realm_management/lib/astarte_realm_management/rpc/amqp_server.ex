@@ -7,10 +7,12 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   alias Astarte.RPC.Protocol.RealmManagement.InstallInterface
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceSource
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsList
+  alias Astarte.RPC.Protocol.RealmManagement.GetInterfacesList
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceSourceReply
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReply
   alias Astarte.RPC.Protocol.RealmManagement.GenericErrorReply
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReplyVersionTuple
+  alias Astarte.RPC.Protocol.RealmManagement.GetInterfacesListReply
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
     msg = %GetInterfaceSourceReply{
@@ -28,6 +30,14 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_interface_versions_list_reply, msg}})}
+  end
+
+  def encode_reply(:get_interfaces_list, {:ok, reply}) do
+    msg = %GetInterfacesListReply{
+      interfaces_names: reply
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_interfaces_list_reply, msg}})}
   end
 
   def encode_reply(_call_atom, {:error, :retry}) do
@@ -62,6 +72,9 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
 
           {:get_interface_versions_list, %GetInterfaceVersionsList{realm_name: realm_name, interface_name: interface_name}} ->
             encode_reply(:get_interface_versions_list, Astarte.RealmManagement.Engine.list_interface_versions(realm_name, interface_name))
+
+          {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
+            encode_reply(:get_interfaces_list, Astarte.RealmManagement.Engine.get_interfaces_list(realm_name))
 
         invalid_call ->
           Logger.warn "Received unexpected call: " <> inspect invalid_call
