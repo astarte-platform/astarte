@@ -34,7 +34,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     {:error, :retry}
   end
 
-  def encode_reply(call_atom, {:error, reason}) when is_atom(reason) do
+  def encode_reply(_call_atom, {:error, reason}) when is_atom(reason) do
     {:ok, Reply.encode(
       %Reply {
         error: true,
