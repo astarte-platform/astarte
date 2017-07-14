@@ -35,3 +35,6 @@ config :logger, :console, format: "[$level] $message\n"
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
+
+config :astarte_realm_management_api, :rpc_queue,
+  "realm_management_rpc"
