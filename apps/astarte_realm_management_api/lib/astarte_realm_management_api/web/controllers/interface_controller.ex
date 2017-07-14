@@ -1,7 +1,6 @@
 defmodule Astarte.RealmManagement.API.Web.InterfaceController do
   use Astarte.RealmManagement.API.Web, :controller
 
-  alias Astarte.RealmManagement.API.Interfaces
   alias Astarte.Core.InterfaceDocument, as: Interface
 
   action_fallback Astarte.RealmManagement.API.Web.FallbackController
@@ -25,18 +24,4 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
     render(conn, "show.json", interface: interface)
   end
 
-  def update(conn, %{"id" => id, "interface" => interface_params}) do
-    interface = Astarte.RealmManagement.API.Interfaces.get_interface!(id)
-
-    with {:ok, %Interface{} = interface} <- Astarte.RealmManagement.API.Interfaces.update_interface(interface, interface_params) do
-      render(conn, "show.json", interface: interface)
-    end
-  end
-
-  def delete(conn, %{"id" => id}) do
-    interface = Astarte.RealmManagement.API.Interfaces.get_interface!(id)
-    with {:ok, %Interface{}} <- Astarte.RealmManagement.API.Interfaces.delete_interface(interface) do
-      send_resp(conn, :no_content, "")
-    end
-  end
 end

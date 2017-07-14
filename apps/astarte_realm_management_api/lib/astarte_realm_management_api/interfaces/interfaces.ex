@@ -53,48 +53,4 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     raise "TODO"
   end
 
-  @doc """
-  Updates a interface.
-
-  ## Examples
-
-      iex> update_interface(interface, %{field: new_value})
-      {:ok, %Interface{}}
-
-      iex> update_interface(interface, %{field: bad_value})
-      {:error, ...}
-
-  """
-  def update_interface(%Interface{} = interface, attrs) do
-    raise "TODO"
-  end
-
-  @doc """
-  Deletes a Interface.
-
-  ## Examples
-
-      iex> delete_interface(interface)
-      {:ok, %Interface{}}
-
-      iex> delete_interface(interface)
-      {:error, ...}
-
-  """
-  def delete_interface(%Interface{} = interface) do
-    raise "TODO"
-  end
-
-  @doc """
-  Returns a datastructure for tracking interface changes.
-
-  ## Examples
-
-      iex> change_interface(interface)
-      %Todo{...}
-
-  """
-  def change_interface(%Interface{} = interface) do
-    raise "TODO"
-  end
 end
