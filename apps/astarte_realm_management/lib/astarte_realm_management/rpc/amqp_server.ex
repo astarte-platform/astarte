@@ -34,13 +34,13 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     {:error, :retry}
   end
 
-  def encode_reply(call_atom, {:error, reason}) when is_atom(reason) do
+  def encode_reply(_call_atom, {:error, reason}) when is_atom(reason) do
     {:ok, Reply.encode(
       %Reply {
         error: true,
         reply:
           {:generic_error_reply, %GenericErrorReply {
-            error_name: to_string(reason) <> "@" <> to_string(call_atom)
+            error_name: to_string(reason)
           }}
       }
     )}
