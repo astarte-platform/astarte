@@ -18,7 +18,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
       error: true,
       reply: {:generic_error_reply, %Astarte.RPC.Protocol.RealmManagement.GenericErrorReply {
         error_data: nil,
-        error_name: "fake_error@test",
+        error_name: "fake_error",
         user_readable_error_name: nil,
         user_readable_message: nil
       }

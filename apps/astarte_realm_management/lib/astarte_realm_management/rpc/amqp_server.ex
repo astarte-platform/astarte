@@ -40,7 +40,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
         error: true,
         reply:
           {:generic_error_reply, %GenericErrorReply {
-            error_name: to_string(reason) <> "@" <> to_string(call_atom)
+            error_name: to_string(reason)
           }}
       }
     )}
