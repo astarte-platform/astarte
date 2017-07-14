@@ -6,7 +6,7 @@ config :cqerl,
 config :astarte_realm_management, :amqp_connection,
   username: "guest",
   password: "guest",
-  hostname: "localhost",
+  host: "localhost",
   virtual_host: "/",
   port: 5672
 
