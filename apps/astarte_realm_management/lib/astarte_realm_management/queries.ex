@@ -47,6 +47,10 @@ defmodule Astarte.RealmManagement.Queries do
     SELECT source FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
   """
 
+  @query_interfaces """
+    SELECT DISTINCT name FROM interfaces;
+  """
+
   defp create_interface_table(:individual, interface_name, mappings) do
     mappings_cql = for mapping <- mappings do
         Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
@@ -150,6 +154,18 @@ defmodule Astarte.RealmManagement.Queries do
       {:ok, result_row[:source]}
     else
       {:error, :interface_not_found}
+    end
+  end
+
+  def get_interfaces_list(client) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@query_interfaces)
+
+    rows = DatabaseQuery.call!(client, query)
+      |> Enum.to_list
+
+    for result <- rows do
+      result[:name]
     end
   end
 

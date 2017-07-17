@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         expiry int,
         allow_unset boolean,
 
-        PRIMARY KEY (endpoint_id)
+        PRIMARY KEY (endpoint_id, endpoint)
       );
   """
 

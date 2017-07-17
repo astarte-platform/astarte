@@ -41,4 +41,12 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  def get_interfaces_list(realm_name) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    result = Astarte.RealmManagement.Queries.get_interfaces_list(client)
+
+    {:ok, result}
+  end
+
 end

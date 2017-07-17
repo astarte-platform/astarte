@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
         user_readable_error_name: nil,
         user_readable_message: nil
       }
-    }, version: nil}
+    }, version: 1}
 
     {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:test, {:error, :fake_error})
     assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
@@ -55,6 +55,18 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
     }
 
     {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:get_interface_versions_list, {:ok, [[major_version: 1, minor_version: 2], [major_version: 2, minor_version: 0]]})
+    assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
+
+    expectedReply = %Astarte.RPC.Protocol.RealmManagement.Reply {
+      error: false,
+      reply: {:get_interfaces_list_reply, %Astarte.RPC.Protocol.RealmManagement.GetInterfacesListReply {
+        interfaces_names: [
+          "interface.a", "interface.b"
+        ]
+      }}
+    }
+
+    {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:get_interfaces_list, {:ok, ["interface.a", "interface.b"]})
     assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
   end
 

@@ -73,6 +73,8 @@ defmodule Astarte.RealmManagement.EngineTest do
   test "install interface" do
     case Astarte.RealmManagement.DatabaseTestHelper.connect_to_test_database() do
       {:ok, _} ->
+        assert Astarte.RealmManagement.Engine.get_interfaces_list("autotestrealm") == {:ok, []}
+
         assert Astarte.RealmManagement.Engine.install_interface("autotestrealm", @test_interface_a_0) == :ok
         assert Astarte.RealmManagement.Engine.install_interface("autotestrealm", @test_interface_b_0) == :ok
         assert Astarte.RealmManagement.Engine.install_interface("autotestrealm", @test_interface_a_1) == {:error, :already_installed_interface}
@@ -85,6 +87,11 @@ defmodule Astarte.RealmManagement.EngineTest do
 
         assert Astarte.RealmManagement.Engine.list_interface_versions("autotestrealm", "com.ispirata.Hemera.DeviceLog.Configuration") == {:ok, [[major_version: 1, minor_version: 0]]}
         assert Astarte.RealmManagement.Engine.list_interface_versions("autotestrealm", "com.ispirata.Hemera.DeviceLog.Missing") == {:error, :interface_not_found}
+
+        {:ok, interfaces_list} = Astarte.RealmManagement.Engine.get_interfaces_list("autotestrealm")
+        sorted_interfaces = interfaces_list
+          |> Enum.sort
+        assert sorted_interfaces == ["com.ispirata.Hemera.DeviceLog.Configuration", "com.ispirata.Hemera.DeviceLog.Status"]
 
         Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
       {:error, msg} -> Logger.warn "Skipped 'install interface' test, database engine says: " <> msg

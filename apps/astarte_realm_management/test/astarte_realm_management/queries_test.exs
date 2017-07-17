@@ -106,7 +106,6 @@ defmodule Astarte.RealmManagement.QueriesTest do
 }
 """
 
-  #TODO: should we index by endpoint/interface?
   @find_endpoint_id """
     SELECT * FROM endpoints WHERE endpoint = '/filterRules/%{ruleId}/%{filterKey}/value' ALLOW FILTERING;
   """
@@ -142,6 +141,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == []
         assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
+        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == []
 
         Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
@@ -149,6 +149,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
         assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:ok, intdoc.source}
+        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
 
         DatabaseQuery.call!(client, @insert_log_line0_device_a)
         DatabaseQuery.call!(client, @insert_log_line1_device_a)
@@ -193,6 +194,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == []
         assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
+        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == []
 
         Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
 
@@ -200,6 +202,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
         assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
         assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:ok, intdoc.source}
+        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
 
         endpoint = DatabaseQuery.call!(client, @find_endpoint_id)
           |> Enum.to_list
