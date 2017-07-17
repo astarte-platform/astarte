@@ -18,6 +18,13 @@ config :astarte_realm_management_api, Astarte.RealmManagement.API.Web.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json"
 
+config :astarte_realm_management_api, :amqp_connection,
+  username: "guest",
+  password: "guest",
+  host: "rabbitmq",
+  virtual_host: "/",
+  port: 5672
+
 # Do not print debug messages in production
 config :logger, level: :info
 

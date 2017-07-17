@@ -13,6 +13,14 @@ config :astarte_realm_management_api, Astarte.RealmManagement.API.Web.Endpoint,
   check_origin: false,
   watchers: []
 
+config :astarte_realm_management_api, :amqp_connection,
+  username: "guest",
+  password: "guest",
+  host: "rabbitmq",
+  virtual_host: "/",
+  port: 5672
+
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
