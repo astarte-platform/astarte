@@ -13,6 +13,9 @@ config :astarte_housekeeping_api, Astarte.Housekeeping.API.Web.Endpoint,
   check_origin: false,
   watchers: []
 
+config :astarte_housekeeping_api, :rpc_queue,
+  "housekeeping_rpc"
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
