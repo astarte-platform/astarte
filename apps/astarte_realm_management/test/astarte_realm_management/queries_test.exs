@@ -106,7 +106,6 @@ defmodule Astarte.RealmManagement.QueriesTest do
 }
 """
 
-  #TODO: should we index by endpoint/interface?
   @find_endpoint_id """
     SELECT * FROM endpoints WHERE endpoint = '/filterRules/%{ruleId}/%{filterKey}/value' ALLOW FILTERING;
   """
