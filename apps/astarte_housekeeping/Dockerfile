@@ -11,7 +11,8 @@ WORKDIR /app
 ENV MIX_ENV prod
 ADD . .
 RUN mix deps.get
-RUN mix release --env=$MIX_ENV
+# TODO: remove --no-tar when we start using Erlang/OTP 20
+RUN mix release --env=$MIX_ENV --no-tar
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
 FROM debian:jessie-slim
