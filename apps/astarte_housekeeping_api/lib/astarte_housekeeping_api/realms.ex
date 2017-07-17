@@ -3,9 +3,6 @@ defmodule Astarte.Housekeeping.API.Realms do
   The boundary for the Realms system.
   """
 
-  import Ecto.Query, warn: false
-  alias Astarte.Housekeeping.API.Repo
-
   alias Astarte.Housekeeping.API.Realms.Realm
 
   @doc """
