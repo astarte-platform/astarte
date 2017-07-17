@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
         user_readable_error_name: nil,
         user_readable_message: nil
       }
-    }, version: nil}
+    }, version: 1}
 
     {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:test, {:error, :fake_error})
     assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
