@@ -5,7 +5,9 @@ defmodule Astarte.RealmManagement.API.Web.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/api", Astarte.RealmManagement.API.Web do
+  scope "/v1", Astarte.RealmManagement.API.Web do
     pipe_through :api
+
+    resources "/:realm_name/interfaces", InterfaceController, except: [:new, :edit, :delete, :update]
   end
 end

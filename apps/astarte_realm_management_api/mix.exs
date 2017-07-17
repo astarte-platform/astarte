@@ -14,7 +14,8 @@ defmodule Astarte.RealmManagement.API.Mixfile do
      start_permanent: Mix.env == :prod,
      test_coverage: [tool: ExCoveralls],
      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
-     deps: deps()]
+     deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+    ]
   end
 
   # Configuration for the OTP application.
@@ -29,9 +30,20 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_),     do: ["lib"]
 
-  # Specifies your project dependencies.
-  #
-  # Type `mix help deps` for examples and options.
+  defp astarte_required_modules("true") do
+    [
+      {:astarte_core, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true}
+    ]
+  end
+
+  defp astarte_required_modules(_) do
+    [
+      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
+      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"}
+    ]
+  end
+
   defp deps do
     [
      {:phoenix, "~> 1.3.0-rc"},
