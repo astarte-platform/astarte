@@ -21,7 +21,7 @@ config :astarte_realm_management_api, Astarte.RealmManagement.API.Web.Endpoint,
 config :astarte_realm_management_api, :amqp_connection,
   username: "guest",
   password: "guest",
-  host: "rabbitmq",
+  host: System.get_env("RABBITMQ_HOST") || "localhost",
   virtual_host: "/",
   port: 5672
 
