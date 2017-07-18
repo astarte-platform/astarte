@@ -155,17 +155,17 @@ paths:
         type: "string"
       - name: "since"
         in: "query"
-        description: "Query all values since a certain timestamp (all entries where timestamp >= since). This query parameter applies only on data productions. It must be a ISO 8601 valid timestamp. It can't be used if since is already used. See also 'since-after', to' and 'limit' parameters."
+        description: "Query all values since a certain timestamp (all entries where timestamp >= since). This query parameter applies only on data streams. It must be a ISO 8601 valid timestamp. It can't be used if since is already used. See also 'since-after', to' and 'limit' parameters."
         required: false
         type: "string"
       - name: "since-after"
         in: "query"
-        description: "Query all values since after a certain timestamp (all entries where timestamp > since_after). This query parameter applies only on data productions. It must be a ISO 8601 valid timestamp. It can't be used if since is already specified. See also 'since', to' and 'limit' parameters."
+        description: "Query all values since after a certain timestamp (all entries where timestamp > since_after). This query parameter applies only on data streams. It must be a ISO 8601 valid timestamp. It can't be used if since is already specified. See also 'since', to' and 'limit' parameters."
         required: false
         type: "string"
       - name: "to"
         in: "query"
-        description: "Query all values up to a certain timestamp. If since is not specified first entry date is assumed by default. This query parameter applies only on data productions. It must be a ISO 8601 valid timestamp. See also 'since' and 'limit' parameters."
+        description: "Query all values up to a certain timestamp. If since is not specified first entry date is assumed by default. This query parameter applies only on data streams. It must be a ISO 8601 valid timestamp. See also 'since' and 'limit' parameters."
         required: false
         type: "string"
       - name: "limit"
