@@ -11,7 +11,7 @@ defmodule Astarte.Housekeeping.API.Web.RealmController do
     render(conn, "index.json", realms: realms)
   end
 
-  def create(conn, %{"realm" => realm_params}) do
+  def create(conn, realm_params = %{}) do
     with {:ok, %Realm{} = realm} <- Realms.create_realm(realm_params) do
       conn
       |> put_status(:created)
