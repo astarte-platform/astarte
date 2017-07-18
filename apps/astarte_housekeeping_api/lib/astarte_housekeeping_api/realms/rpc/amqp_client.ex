@@ -9,7 +9,7 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   def create_realm(realm = %Realm{realm_name: realm_name}) do
     %CreateRealm{realm: realm_name}
     |> encode_call(:create_realm)
-    |> rpc_call()
+    |> rpc_cast()
 
     {:ok, realm}
   end
