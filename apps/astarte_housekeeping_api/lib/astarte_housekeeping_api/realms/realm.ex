@@ -11,6 +11,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   def changeset(realm, params \\ %{}) do
     realm
     |> cast(params, @required_fields)
+    |> validate_required(@required_fields)
     |> validate_format(:name, ~r/^[a-z][a-z0-9]*$/)
   end
 end
