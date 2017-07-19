@@ -4,9 +4,9 @@ defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
   alias Astarte.Housekeeping.API.Realms
   alias Astarte.Housekeeping.API.Realms.Realm
 
-  @create_attrs %{}
+  @create_attrs %{"realm_name" => "testrealm"}
   @update_attrs %{}
-  @invalid_attrs %{}
+  @invalid_attrs %{"realm_name" => "0invalid"}
 
   def fixture(:realm) do
     {:ok, realm} = Housekeeping.API.Realms.create_realm(@create_attrs)
