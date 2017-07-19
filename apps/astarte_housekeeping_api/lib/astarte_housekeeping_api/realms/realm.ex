@@ -4,6 +4,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
 
   @required_fields [:realm_name]
 
+  @primary_key false
   @derive {Phoenix.Param, key: :realm_name}
 
   embedded_schema do
