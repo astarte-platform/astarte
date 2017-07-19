@@ -19,11 +19,13 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       realm
     end
 
+    @tag :wip
     test "list_realms/0 returns all realms" do
       realm = realm_fixture()
       assert Realms.list_realms() == [realm]
     end
 
+    @tag :wip
     test "get_realm!/1 returns the realm with given id" do
       realm = realm_fixture()
       assert Realms.get_realm!(realm.id) == realm
@@ -37,24 +39,28 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_attrs)
     end
 
+    @tag :wip
     test "update_realm/2 with valid data updates the realm" do
       realm = realm_fixture()
       assert {:ok, realm} = Realms.update_realm(realm, @update_attrs)
       assert %Realm{} = realm
     end
 
+    @tag :wip
     test "update_realm/2 with invalid data returns error changeset" do
       realm = realm_fixture()
       assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm, @invalid_attrs)
       assert realm == Realms.get_realm!(realm.id)
     end
 
+    @tag :wip
     test "delete_realm/1 deletes the realm" do
       realm = realm_fixture()
       assert {:ok, %Realm{}} = Realms.delete_realm(realm)
       assert_raise Ecto.NoResultsError, fn -> Realms.get_realm!(realm.id) end
     end
 
+    @tag :wip
     test "change_realm/1 returns a realm changeset" do
       realm = realm_fixture()
       assert %Ecto.Changeset{} = Realms.change_realm(realm)
