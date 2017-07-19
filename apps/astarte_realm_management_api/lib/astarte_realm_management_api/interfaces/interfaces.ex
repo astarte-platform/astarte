@@ -17,8 +17,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   end
 
   def get_interface!(realm_name, interface_name, interface_major_version) do
-    Logger.warn "get_interfaces: " <> realm_name <> " " <> interface_name <> " " <> interface_major_version
-    raise "TODO"
+    AMQPClient.get_interface(realm_name, interface_name, interface_major_version)
   end
 
   def create_interface!(attrs \\ %{}) do
