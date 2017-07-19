@@ -18,8 +18,13 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => id, "major_version" => major_version}) do
-    interface = Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, major_version)
-    render(conn, "show.json", interface: interface)
+    {parsed_major, ""} = Integer.parse(major_version)
+    interface_source = Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, parsed_major)
+
+    # do not use render here, just return a raw json, render would escape this and ecapsulate it inside an outer JSON object
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, interface_source)
   end
 
   def update(conn, %{"id" => id, "interface" => interface_params}) do
