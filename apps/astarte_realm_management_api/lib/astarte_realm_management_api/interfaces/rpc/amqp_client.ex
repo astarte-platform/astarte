@@ -23,6 +23,17 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def get_interface(realm_name, interface_name, interface_major_version) do
+    {:ok, payload} = %GetInterfaceSource{
+        realm_name: realm_name,
+        interface_name: interface_name,
+        interface_major_version: interface_major_version
+      }
+      |> encode_and_call(:get_interface_source)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
@@ -54,6 +65,10 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
     for interface_name <- get_interfaces_list_reply.interfaces_names do
       interface_name
     end
+  end
+
+  defp extract_result({:get_interface_source_reply, get_interface_source_reply}) do
+    get_interface_source_reply.source
   end
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}) do
