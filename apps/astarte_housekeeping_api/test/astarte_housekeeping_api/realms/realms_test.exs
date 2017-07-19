@@ -9,6 +9,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     @valid_attrs %{realm_name: "mytestrealm"}
     @update_attrs %{}
     @invalid_attrs %{realm_name: "0invalid"}
+    @empty_attrs %{realm_name: ""}
 
     def realm_fixture(attrs \\ %{}) do
       {:ok, realm} =
@@ -37,6 +38,10 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
     test "create_realm/1 with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_attrs)
+    end
+
+    test "create_realm/1 with empty required data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_attrs)
     end
 
     @tag :wip
