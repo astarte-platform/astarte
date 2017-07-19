@@ -8,6 +8,9 @@ defmodule Astarte.RealmManagement.API.Web.Router do
   scope "/v1", Astarte.RealmManagement.API.Web do
     pipe_through :api
 
-    resources "/:realm_name/interfaces", InterfaceController, except: [:new, :edit, :delete, :update]
+    get "/:realm_name/interfaces/:id", InterfaceVersionController, :index
+    resources "/:realm_name/interfaces", InterfaceController, only: [:index, :create]
+    get "/:realm_name/interfaces/:id/:major", InterfaceController, :show
+    put "/:realm_name/interfaces/:id/:major", InterfaceController, :update
   end
 end
