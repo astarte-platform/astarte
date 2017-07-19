@@ -18,6 +18,9 @@ config :astarte_housekeeping_api, Astarte.Housekeeping.API.Web.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json"
 
+config :astarte_housekeeping_api, :rpc_queue,
+  "housekeeping_rpc"
+
 # Do not print debug messages in production
 config :logger, level: :info
 

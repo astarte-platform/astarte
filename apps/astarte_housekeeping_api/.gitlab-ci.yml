@@ -11,13 +11,15 @@ variables:
 
 mix:test-ci:
     image: elixir:1.4
+    services:
+        - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=test
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix coveralls
+        - mix coveralls --exclude wip
     cache:
         paths:
             - deps
@@ -26,13 +28,15 @@ mix:test-ci:
 
 mix:build:
     image: elixir:1.4
+    services:
+        - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=test
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix coveralls
+        - mix coveralls --exclude wip
         - export MIX_ENV=dev
         - mix release
         #- mkdir $APPLICATION_NAME
@@ -49,13 +53,15 @@ mix:build:
 
 mix:release-build:
     image: elixir:1.4
+    services:
+        - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=prod
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix test
+        - mix test --exclude wip
         - mix release --env=prod
         #- mkdir $APPLICATION_NAME
         #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
