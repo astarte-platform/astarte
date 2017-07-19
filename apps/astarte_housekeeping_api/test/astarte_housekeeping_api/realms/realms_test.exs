@@ -6,9 +6,9 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   describe "realms" do
     alias Astarte.Housekeeping.API.Realms.Realm
 
-    @valid_attrs %{}
+    @valid_attrs %{realm_name: "mytestrealm"}
     @update_attrs %{}
-    @invalid_attrs %{}
+    @invalid_attrs %{realm_name: "0invalid"}
 
     def realm_fixture(attrs \\ %{}) do
       {:ok, realm} =
