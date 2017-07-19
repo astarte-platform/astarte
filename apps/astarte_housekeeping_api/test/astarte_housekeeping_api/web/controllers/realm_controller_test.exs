@@ -17,6 +17,7 @@ defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
+  @tag :wip
   test "lists all entries on index", %{conn: conn} do
     conn = get conn, realm_path(conn, :index)
     assert json_response(conn, 200)["data"] == []
@@ -36,6 +37,7 @@ defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
     assert json_response(conn, 422)["errors"] != %{}
   end
 
+  @tag :wip
   test "updates chosen realm and renders realm when data is valid", %{conn: conn} do
     %Realm{id: id} = realm = fixture(:realm)
     conn = put conn, realm_path(conn, :update, realm), realm: @update_attrs
@@ -46,12 +48,14 @@ defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
       "id" => id}
   end
 
+  @tag :wip
   test "does not update chosen realm and renders errors when data is invalid", %{conn: conn} do
     realm = fixture(:realm)
     conn = put conn, realm_path(conn, :update, realm), realm: @invalid_attrs
     assert json_response(conn, 422)["errors"] != %{}
   end
 
+  @tag :wip
   test "deletes chosen realm", %{conn: conn} do
     realm = fixture(:realm)
     conn = delete conn, realm_path(conn, :delete, realm)
