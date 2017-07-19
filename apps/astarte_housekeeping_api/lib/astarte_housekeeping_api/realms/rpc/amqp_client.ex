@@ -14,8 +14,26 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
     {:ok, realm}
   end
 
-  defp encode_call(call = %CreateRealm{}, :create_realm) do
-    %Call{call: {:create_realm, call}}
+  defp realm_exists?(realm_name) do
+    %DoesRealmExist{realm: realm_name}
+    |> encode_call(:does_realm_exist)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  defp encode_call(call, callname) do
+    %Call{call: {callname, call}}
     |> Call.encode()
   end
+
+  defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
+    %Reply{reply: reply} = Reply.decode(encoded_reply)
+    reply
+  end
+
+  defp extract_reply({:does_realm_exist_reply, %DoesRealmExistReply{exists: exists}}) do
+    exists
+  end
+
 end
