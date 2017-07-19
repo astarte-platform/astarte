@@ -7,11 +7,17 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   alias Astarte.Housekeeping.API.Realms.Realm
 
   def create_realm(realm = %Realm{realm_name: realm_name}) do
-    %CreateRealm{realm: realm_name}
-    |> encode_call(:create_realm)
-    |> rpc_cast()
+    if realm_exists?(realm_name) do
+      error_changeset = Realm.changeset(realm)
+        |> Ecto.Changeset.add_error(:realm_name, "already exists")
+      {:error, error_changeset}
+    else
+      %CreateRealm{realm: realm_name}
+      |> encode_call(:create_realm)
+      |> rpc_cast()
 
-    {:ok, realm}
+      {:ok, realm}
+    end
   end
 
   defp realm_exists?(realm_name) do
