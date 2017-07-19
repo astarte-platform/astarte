@@ -24,34 +24,35 @@ defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
   end
 
   test "creates realm and renders realm when data is valid", %{conn: conn} do
-    conn = post conn, realm_path(conn, :create), realm: @create_attrs
-    assert %{"id" => id} = json_response(conn, 201)["data"]
+    conn = post conn, realm_path(conn, :create), @create_attrs
+    assert %{"realm_name" => realm_name} = json_response(conn, 201)
 
-    conn = get conn, realm_path(conn, :show, id)
-    assert json_response(conn, 200)["data"] == %{
-      "id" => id}
+    # GET not yet implemented
+    #    conn = get conn, realm_path(conn, :show, realm_name)
+    #    assert json_response(conn, 200) == %{
+    #    "realm_name" => realm_name}
   end
 
   test "does not create realm and renders errors when data is invalid", %{conn: conn} do
-    conn = post conn, realm_path(conn, :create), realm: @invalid_attrs
+    conn = post conn, realm_path(conn, :create), @invalid_attrs
     assert json_response(conn, 422)["errors"] != %{}
   end
 
   @tag :wip
   test "updates chosen realm and renders realm when data is valid", %{conn: conn} do
-    %Realm{id: id} = realm = fixture(:realm)
-    conn = put conn, realm_path(conn, :update, realm), realm: @update_attrs
-    assert %{"id" => ^id} = json_response(conn, 200)["data"]
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    conn = put conn, realm_path(conn, :update, realm), @update_attrs
+    assert %{"realm_name" => ^realm_name} = json_response(conn, 200)
 
-    conn = get conn, realm_path(conn, :show, id)
-    assert json_response(conn, 200)["data"] == %{
-      "id" => id}
+    conn = get conn, realm_path(conn, :show, realm_name)
+    assert json_response(conn, 200) == %{
+      "realm_name" => realm_name}
   end
 
   @tag :wip
   test "does not update chosen realm and renders errors when data is invalid", %{conn: conn} do
     realm = fixture(:realm)
-    conn = put conn, realm_path(conn, :update, realm), realm: @invalid_attrs
+    conn = put conn, realm_path(conn, :update, realm), @invalid_attrs
     assert json_response(conn, 422)["errors"] != %{}
   end
 
