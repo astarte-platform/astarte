@@ -5,28 +5,30 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
   use Astarte.RPC.Protocol.Housekeeping
 
   def process_rpc(payload) do
-    process_decoded_call(Call.decode(payload))
+    with {:ok, call_tuple} <- extract_call_tuple(Call.decode(payload)) do
+      call_rpc(call_tuple)
+    end
   end
 
-  defp process_decoded_call(%Call{call: nil}) do
+  defp extract_call_tuple(%Call{call: nil}) do
     Logger.warn "Received empty call"
     {:error, :empty_call}
   end
 
-  defp process_decoded_call(%Call{call: call_tuple}) do
-    process_call_tuple(call_tuple)
+  defp extract_call_tuple(%Call{call: call_tuple}) do
+    {:ok, call_tuple}
   end
 
-  defp process_call_tuple({:create_realm, %CreateRealm{realm: nil}}) do
+  defp call_rpc({:create_realm, %CreateRealm{realm: nil}}) do
     Logger.warn "CreateRealm with realm == nil"
     {:error, :invalid_argument}
   end
 
-  defp process_call_tuple({:create_realm, %CreateRealm{realm: realm}}) do
+  defp call_rpc({:create_realm, %CreateRealm{realm: realm}}) do
     Astarte.Housekeeping.Engine.create_realm(realm)
   end
 
-  defp process_call_tuple({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
+  defp call_rpc({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
     exists = Astarte.Housekeeping.Engine.realm_exists?(realm)
 
     %DoesRealmExistReply{exists: exists}
