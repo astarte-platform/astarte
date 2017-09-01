@@ -21,7 +21,7 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
 
   defp call_rpc({:create_realm, %CreateRealm{realm: nil}}) do
     Logger.warn "CreateRealm with realm == nil"
-    {:error, :invalid_argument}
+    generic_error(:empty_name, "empty realm name")
   end
 
   defp call_rpc({:create_realm, %CreateRealm{realm: realm}}) do
