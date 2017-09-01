@@ -119,6 +119,11 @@ defmodule Astarte.RealmManagement.Queries do
     :ok
   end
 
+  def update_interface(client, interface_document) do
+    Logger.warn "update_interface: " <> inspect(interface_document)
+    {:error, :not_implemented}
+  end
+
   def interface_available_versions(client, interface_name) do
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(@query_interface_versions)
