@@ -36,6 +36,21 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     |> ok_wrap
   end
 
+  defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
+    %GenericErrorReply{error_name: to_string(error_name),
+                       user_readable_message: user_readable_message,
+                       user_readable_error_name: user_readable_error_name,
+                       error_data: error_data}
+    |> encode_reply(:generic_error_reply)
+    |> ok_wrap
+  end
+
+  defp generic_ok(async \\ false) do
+    %GenericOkReply{async_operation: async}
+    |> encode_reply(:generic_ok_reply)
+    |> ok_wrap
+  end
+
   defp encode_reply(reply, reply_type) do
     %Reply{reply: {reply_type, reply}}
     |> Reply.encode
