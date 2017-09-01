@@ -13,9 +13,8 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
 
     with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.create_interface!(realm_name, interface_source) do
       conn
-      |> put_status(:created)
       |> put_resp_header("location", interface_path(conn, :show, realm_name, doc.descriptor.name, Integer.to_string(doc.descriptor.major_version)))
-      |> send_resp(:no_content, "")
+      |> send_resp(:created, "")
     end
   end
 
