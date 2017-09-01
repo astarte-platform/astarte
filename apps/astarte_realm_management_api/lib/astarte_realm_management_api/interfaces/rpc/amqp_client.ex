@@ -34,6 +34,17 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def install_interface(realm_name, interface_json) do
+    {:ok, payload} = %InstallInterface{
+        realm_name: realm_name,
+        interface_json: interface_json,
+        async_operation: true
+      }
+      |> encode_and_call(:install_interface)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
@@ -55,6 +66,10 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
     extract_error(reply)
   end
 
+  defp extract_result({:generic_ok_reply, _generic_reply}) do
+    {:ok, :started}
+  end
+
   defp extract_result({:get_interface_versions_list_reply, get_interface_versions_list_reply}) do
     for version <- get_interface_versions_list_reply.versions do
       [major_version: version.major_version, minor_version: version.minor_version]
@@ -73,6 +88,14 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}) do
     raise InterfaceNotFoundError
+  end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "already_installed_interface"}}) do
+    raise AlreadyInstalledInterfaceError
+  end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "invalid_interface_document"}}) do
+    raise InvalidInterfaceDocumentError
   end
 
 end
