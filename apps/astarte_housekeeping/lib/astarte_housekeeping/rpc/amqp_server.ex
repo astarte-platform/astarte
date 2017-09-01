@@ -24,8 +24,15 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     generic_error(:empty_name, "empty realm name")
   end
 
-  defp call_rpc({:create_realm, %CreateRealm{realm: realm}}) do
-    Astarte.Housekeeping.Engine.create_realm(realm)
+  defp call_rpc({:create_realm, %CreateRealm{realm: realm, async_operation: async}}) do
+    if Astarte.Housekeeping.Engine.realm_exists?(realm) do
+      generic_error(:existing_realm, "realm already exists")
+    else
+      case Astarte.Housekeeping.Engine.create_realm(realm, async: async) do
+        {:error, reason} -> generic_error(reason)
+        :ok -> generic_ok(async)
+      end
+    end
   end
 
   defp call_rpc({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
