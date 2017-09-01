@@ -20,7 +20,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     AMQPClient.get_interface(realm_name, interface_name, interface_major_version)
   end
 
-  def create_interface!(realm_name, interface_source, attrs \\ %{}) do
+  def create_interface!(realm_name, interface_source, _attrs \\ %{}) do
     AMQPClient.install_interface(realm_name, interface_source)
   end
 
