@@ -2,7 +2,7 @@ defmodule Astarte.RealmManagement.Engine do
   require Logger
   alias CQEx.Client, as: DatabaseClient
 
-  def install_interface(realm_name, interface_json) do
+  def install_interface(realm_name, interface_json, opts \\ []) do
     interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
     if String.contains?(String.downcase(interface_json), ["drop", "insert", "delete", "update", "keyspace", "table"]) do
@@ -13,7 +13,12 @@ defmodule Astarte.RealmManagement.Engine do
       client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
       unless Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_document.descriptor.name, interface_document.descriptor.major_version) do
-        Astarte.RealmManagement.Queries.install_new_interface(client, interface_document)
+        if (opts[:async]) do
+          Task.start_link(Astarte.RealmManagement.Queries, :install_new_interface, [client, interface_document])
+          {:ok, :started}
+        else
+          Astarte.RealmManagement.Queries.install_new_interface(client, interface_document)
+        end
       else
         {:error, :already_installed_interface}
       end

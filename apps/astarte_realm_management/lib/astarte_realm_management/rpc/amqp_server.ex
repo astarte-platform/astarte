@@ -11,6 +11,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceSourceReply
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReply
   alias Astarte.RPC.Protocol.RealmManagement.GenericErrorReply
+  alias Astarte.RPC.Protocol.RealmManagement.GenericOkReply
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReplyVersionTuple
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfacesListReply
 
@@ -40,6 +41,14 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_interfaces_list_reply, msg}})}
   end
 
+  def encode_reply(_call_atom, {:ok, :started}) do
+    msg = %GenericOkReply {
+      async_operation: true
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, msg}})}
+  end
+
   def encode_reply(_call_atom, {:error, :retry}) do
     {:error, :retry}
   end
@@ -64,8 +73,8 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     case Call.decode(payload) do
       %Call{call: call_tuple} when call_tuple != nil ->
         case call_tuple do
-          {:install_interface, %InstallInterface{realm_name: realm_name, interface_json: interface_json}} ->
-            encode_reply(:install_interface, Astarte.RealmManagement.Engine.install_interface(realm_name, interface_json))
+          {:install_interface, %InstallInterface{realm_name: realm_name, interface_json: interface_json, async_operation: async_operation}} ->
+            encode_reply(:install_interface, Astarte.RealmManagement.Engine.install_interface(realm_name, interface_json, async: async_operation))
 
           {:get_interface_source, %GetInterfaceSource{realm_name: realm_name, interface_name: interface_name, interface_major_version: interface_major_version}} ->
             encode_reply(:get_interface_source, Astarte.RealmManagement.Engine.interface_source(realm_name, interface_name, interface_major_version))
