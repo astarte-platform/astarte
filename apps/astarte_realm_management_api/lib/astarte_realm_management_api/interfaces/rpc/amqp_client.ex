@@ -49,6 +49,17 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def update_interface(realm_name, interface_json) do
+    {:ok, payload} = %UpdateInterface{
+        realm_name: realm_name,
+        interface_json: interface_json,
+        async_operation: true
+      }
+      |> encode_and_call(:update_interface)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
