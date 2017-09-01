@@ -17,12 +17,21 @@ defmodule Astarte.Housekeeping.Engine do
     {:ok, client}
   end
 
-  def create_realm(realm) do
-    GenServer.call(:astarte_housekeeping_engine, {:create_realm, realm}, @timeout)
+  def create_realm(realm, opts \\ []) do
+    if opts[:async] do
+      GenServer.cast(:astarte_housekeeping_engine, {:create_realm, realm})
+    else
+      GenServer.call(:astarte_housekeeping_engine, {:create_realm, realm}, @timeout)
+    end
   end
 
   def realm_exists?(realm) do
     GenServer.call(:astarte_housekeeping_engine, {:realm_exists, realm})
+  end
+
+  def handle_cast({:create_realm, realm}, client) do
+    Astarte.Housekeeping.Queries.create_realm(client, realm)
+    {:noreply, client}
   end
 
   def handle_call({:create_realm, realm}, _from, client) do

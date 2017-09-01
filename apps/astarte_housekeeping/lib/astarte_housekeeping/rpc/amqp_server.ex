@@ -5,32 +5,56 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
   use Astarte.RPC.Protocol.Housekeeping
 
   def process_rpc(payload) do
-    process_decoded_call(Call.decode(payload))
+    with {:ok, call_tuple} <- extract_call_tuple(Call.decode(payload)) do
+      call_rpc(call_tuple)
+    end
   end
 
-  defp process_decoded_call(%Call{call: nil}) do
+  defp extract_call_tuple(%Call{call: nil}) do
     Logger.warn "Received empty call"
     {:error, :empty_call}
   end
 
-  defp process_decoded_call(%Call{call: call_tuple}) do
-    process_call_tuple(call_tuple)
+  defp extract_call_tuple(%Call{call: call_tuple}) do
+    {:ok, call_tuple}
   end
 
-  defp process_call_tuple({:create_realm, %CreateRealm{realm: nil}}) do
+  defp call_rpc({:create_realm, %CreateRealm{realm: nil}}) do
     Logger.warn "CreateRealm with realm == nil"
-    {:error, :invalid_argument}
+    generic_error(:empty_name, "empty realm name")
   end
 
-  defp process_call_tuple({:create_realm, %CreateRealm{realm: realm}}) do
-    Astarte.Housekeeping.Engine.create_realm(realm)
+  defp call_rpc({:create_realm, %CreateRealm{realm: realm, async_operation: async}}) do
+    if Astarte.Housekeeping.Engine.realm_exists?(realm) do
+      generic_error(:existing_realm, "realm already exists")
+    else
+      case Astarte.Housekeeping.Engine.create_realm(realm, async: async) do
+        {:error, reason} -> generic_error(reason)
+        :ok -> generic_ok(async)
+      end
+    end
   end
 
-  defp process_call_tuple({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
+  defp call_rpc({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
     exists = Astarte.Housekeeping.Engine.realm_exists?(realm)
 
     %DoesRealmExistReply{exists: exists}
     |> encode_reply(:does_realm_exist_reply)
+    |> ok_wrap
+  end
+
+  defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
+    %GenericErrorReply{error_name: to_string(error_name),
+                       user_readable_message: user_readable_message,
+                       user_readable_error_name: user_readable_error_name,
+                       error_data: error_data}
+    |> encode_reply(:generic_error_reply)
+    |> ok_wrap
+  end
+
+  defp generic_ok(async \\ false) do
+    %GenericOkReply{async_operation: async}
+    |> encode_reply(:generic_ok_reply)
     |> ok_wrap
   end
 
