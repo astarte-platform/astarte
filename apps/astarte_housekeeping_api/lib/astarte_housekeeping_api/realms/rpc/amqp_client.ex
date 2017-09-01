@@ -36,4 +36,15 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
     exists
   end
 
+  defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
+    {:error, Map.from_struct(error_struct)}
+  end
+
+  defp extract_reply({:generic_ok_reply, %GenericOkReply{async_operation: async}}) do
+    if async do
+      {:ok, :started}
+    else
+      :ok
+    end
+  end
 end
