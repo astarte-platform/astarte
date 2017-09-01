@@ -4,6 +4,10 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
     amqp_options: Application.get_env(:astarte_realm_management_api, :amqp_connection, [])
   use Astarte.RPC.Protocol.RealmManagement
 
+  alias Astarte.RealmManagement.API.AlreadyInstalledInterfaceError
+  alias Astarte.RealmManagement.API.InterfaceNotFoundError
+  alias Astarte.RealmManagement.API.InvalidInterfaceDocumentError
+
   def get_interface_versions_list(realm_name, interface_name) do
     {:ok, payload} = %GetInterfaceVersionsList{
         realm_name: realm_name,

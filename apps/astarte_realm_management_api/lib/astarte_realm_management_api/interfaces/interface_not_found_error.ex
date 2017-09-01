@@ -1,10 +1,10 @@
-defmodule InterfaceNotFoundError do
+defmodule Astarte.RealmManagement.API.InterfaceNotFoundError do
 
   defexception plug_status: 404,
     message: "Interface Not Found"
 
     def exception(opts) do
-      %InterfaceNotFoundError{
+      %Astarte.RealmManagement.API.InterfaceNotFoundError{
       }
     end
 end
