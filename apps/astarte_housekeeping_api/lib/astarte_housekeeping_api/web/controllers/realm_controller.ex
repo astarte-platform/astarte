@@ -14,9 +14,8 @@ defmodule Astarte.Housekeeping.API.Web.RealmController do
   def create(conn, realm_params = %{}) do
     with {:ok, %Realm{} = realm} <- Realms.create_realm(realm_params) do
       conn
-      |> put_status(:created)
       |> put_resp_header("location", realm_path(conn, :show, realm))
-      |> render("show.json", realm: realm)
+      |> send_resp(:created, "")
     end
   end
 

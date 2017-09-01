@@ -7,16 +7,28 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   alias Astarte.Housekeeping.API.Realms.Realm
 
   def create_realm(realm = %Realm{realm_name: realm_name}) do
-    if realm_exists?(realm_name) do
-      error_changeset = Realm.changeset(realm)
-        |> Ecto.Changeset.add_error(:realm_name, "already exists")
-      {:error, error_changeset}
-    else
-      %CreateRealm{realm: realm_name}
-      |> encode_call(:create_realm)
-      |> rpc_cast()
+    reply = %CreateRealm{realm: realm_name, async_operation: true}
+    |> encode_call(:create_realm)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
 
-      {:ok, realm}
+    case reply do
+      {:ok, :started} -> {:ok, realm}
+      {:error, error_map} ->
+        changeset = Realm.changeset(realm)
+
+        # Add the available infos from the error map
+        error_changeset =
+          Enum.reduce(error_map, changeset, fn({k, v}, acc) ->
+            if v do
+              Ecto.Changeset.add_error(acc, k, v)
+            else
+              acc
+            end
+          end)
+
+        {:error, error_changeset}
     end
   end
 
@@ -42,4 +54,15 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
     exists
   end
 
+  defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
+    {:error, Map.from_struct(error_struct)}
+  end
+
+  defp extract_reply({:generic_ok_reply, %GenericOkReply{async_operation: async}}) do
+    if async do
+      {:ok, :started}
+    else
+      :ok
+    end
+  end
 end
