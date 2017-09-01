@@ -25,6 +25,11 @@ defmodule Astarte.Housekeeping.Engine do
     GenServer.call(:astarte_housekeeping_engine, {:realm_exists, realm})
   end
 
+  def handle_cast({:create_realm, realm}, client) do
+    Astarte.Housekeeping.Queries.create_realm(client, realm)
+    {:noreply, client}
+  end
+
   def handle_call({:create_realm, realm}, _from, client) do
     reply = Astarte.Housekeeping.Queries.create_realm(client, realm)
     {:reply, reply, client}
