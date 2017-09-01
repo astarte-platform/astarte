@@ -8,12 +8,14 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
     render(conn, "index.json", interfaces: interfaces)
   end
 
-  def create(conn, %{"interface" => interface_source}) do
-    with {:ok, interface_source} <- Astarte.RealmManagement.API.Interfaces.create_interface(interface_source) do
+  def create(conn, %{"realm_name" => realm_name, "data" => interface_source}) do
+    doc = Astarte.Core.InterfaceDocument.from_json(interface_source)
+
+    with {:ok, interface_source} <- Astarte.RealmManagement.API.Interfaces.create_interface!(realm_name, interface_source) do
       conn
       |> put_status(:created)
-      |> put_resp_header("location", interface_path(conn, :show, interface_source))
-      |> render("show.json", interface: interface_source)
+      |> put_resp_header("location", interface_path(conn, :show, realm_name, doc.descriptor.name, Integer.to_string(doc.descriptor.major_version)))
+      |> send_resp(:no_content, "")
     end
   end
 
