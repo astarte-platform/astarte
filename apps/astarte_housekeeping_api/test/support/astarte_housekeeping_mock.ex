@@ -16,8 +16,12 @@ defmodule Astarte.Housekeeping.Mock do
     call_tuple
   end
 
-  defp execute_rpc({:create_realm, %CreateRealm{realm: realm}}) do
+  defp execute_rpc({:create_realm, %CreateRealm{realm: realm, async_operation: async}}) do
     Astarte.Housekeeping.Mock.DB.put_realm(%Realm{realm_name: realm})
+
+    %GenericOkReply{async_operation: async}
+    |> encode_reply(:generic_ok_reply)
+    |> ok_wrap
   end
 
   defp execute_rpc({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
