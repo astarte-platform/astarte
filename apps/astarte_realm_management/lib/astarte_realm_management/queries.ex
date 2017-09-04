@@ -121,6 +121,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   def update_interface(client, interface_document) do
     Logger.warn "update_interface: " <> inspect(interface_document)
+    Logger.warn "client: " <> inspect(client)
     {:error, :not_implemented}
   end
 
