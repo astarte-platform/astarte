@@ -59,6 +59,23 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  def delete_interface(realm_name, interface_name, interface_major_version, opts \\ []) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    cond do
+      Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_name, interface_major_version) == false ->
+        {:error, :interface_major_version_does_not_exist}
+
+      true ->
+        if (opts[:async]) do
+          Task.start_link(Astarte.RealmManagement.Queries, :update_interface, [client, interface_name, interface_major_version])
+          {:ok, :started}
+        else
+          Astarte.RealmManagement.Queries.delete_interface(client, interface_name, interface_major_version)
+        end
+    end
+  end
+
   def interface_source(realm_name, interface_name, interface_major_version) do
     client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 

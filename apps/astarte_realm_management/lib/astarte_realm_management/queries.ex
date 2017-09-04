@@ -124,6 +124,12 @@ defmodule Astarte.RealmManagement.Queries do
     {:error, :not_implemented}
   end
 
+  def delete_interface(client, interface_name, interface_major_version) do
+    Logger.warn "delete interface: " <> interface_name <> " version: " <> Integer.to_string(interface_major_version)
+    Logger.warn inspect(client)
+    {:error, :not_implemented}
+  end
+
   def interface_available_versions(client, interface_name) do
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(@query_interface_versions)
