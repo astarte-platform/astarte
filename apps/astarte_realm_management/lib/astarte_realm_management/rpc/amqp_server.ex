@@ -14,6 +14,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   alias Astarte.RPC.Protocol.RealmManagement.GenericOkReply
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReplyVersionTuple
   alias Astarte.RPC.Protocol.RealmManagement.GetInterfacesListReply
+  alias Astarte.RPC.Protocol.RealmManagement.UpdateInterface
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
     msg = %GetInterfaceSourceReply{
@@ -84,6 +85,9 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
 
           {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
             encode_reply(:get_interfaces_list, Astarte.RealmManagement.Engine.get_interfaces_list(realm_name))
+
+          {:update_interface, %UpdateInterface{realm_name: realm_name, interface_json: interface_json, async_operation: async_operation}} ->
+            encode_reply(:update_interface, Astarte.RealmManagement.Engine.update_interface(realm_name, interface_json, async: async_operation))
 
         invalid_call ->
           Logger.warn "Received unexpected call: " <> inspect invalid_call
