@@ -29,6 +29,10 @@ defmodule Astarte.Housekeeping.Engine do
     GenServer.call(:astarte_housekeeping_engine, {:realm_exists, realm})
   end
 
+  def realms_list() do
+    GenServer.call(:astarte_housekeeping_engine, {:realms_list})
+  end
+
   def handle_cast({:create_realm, realm}, client) do
     Astarte.Housekeeping.Queries.create_realm(client, realm)
     {:noreply, client}
@@ -41,6 +45,11 @@ defmodule Astarte.Housekeeping.Engine do
 
   def handle_call({:realm_exists, realm}, _from, client) do
     reply = Astarte.Housekeeping.Queries.realm_exists?(client, realm)
+    {:reply, reply, client}
+  end
+
+  def handle_call({:realms_list}, _from, client) do
+    reply = Astarte.Housekeeping.Queries.realms_list(client)
     {:reply, reply, client}
   end
 end
