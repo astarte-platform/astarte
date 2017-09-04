@@ -28,11 +28,20 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
     |> send_resp(200, interface_source)
   end
 
-  def update(conn, %{"realm_name" => realm_name, "data" => interface_source}) do
-    # TODO: verify that interface_source matches the resources on which it has been pushed on
+  def update(conn, %{"realm_name" => realm_name, "id" => interface_name, "major_version" => major_version, "data" => interface_source}) do
+    doc = Astarte.Core.InterfaceDocument.from_json(interface_source)
 
-    with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.update_interface!(realm_name, interface_source) do
-      send_resp(conn, :no_content, "")
+    cond do
+      doc == nil ->
+        {:error, :invalid}
+      doc.descriptor.name != interface_name ->
+        {:error, :conflict}
+      {doc.descriptor.major_version, ""} != Integer.parse(major_version) ->
+        {:error, :conflict}
+      true ->
+        with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.update_interface!(realm_name, interface_source) do
+          send_resp(conn, :no_content, "")
+        end
     end
   end
 
