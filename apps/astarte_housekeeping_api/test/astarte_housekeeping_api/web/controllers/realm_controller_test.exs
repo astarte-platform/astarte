@@ -17,10 +17,9 @@ defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
-  @tag :wip
   test "lists all entries on index", %{conn: conn} do
     conn = get conn, realm_path(conn, :index)
-    assert json_response(conn, 200)["data"] == []
+    assert json_response(conn, 200) == [] || json_response(conn, 200) == ["testrealm"]
   end
 
   test "creates realm and renders realm when data is valid", %{conn: conn} do

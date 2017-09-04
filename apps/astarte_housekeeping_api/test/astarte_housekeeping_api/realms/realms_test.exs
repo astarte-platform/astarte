@@ -20,7 +20,6 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       realm
     end
 
-    @tag :wip
     test "list_realms/0 returns all realms" do
       realm = realm_fixture()
       assert Realms.list_realms() == [realm]
