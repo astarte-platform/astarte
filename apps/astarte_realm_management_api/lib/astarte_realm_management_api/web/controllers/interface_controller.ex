@@ -45,9 +45,10 @@ defmodule Astarte.RealmManagement.API.Web.InterfaceController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    interface = Astarte.RealmManagement.API.Interfaces.get_interface!(id)
-    with {:ok, interface_source} <- Astarte.RealmManagement.API.Interfaces.delete_interface(interface) do
+  def delete(conn, %{"realm_name" => realm_name, "id" => interface_name, "major_version" => major_version}) do
+    {parsed_major, ""} = Integer.parse(major_version)
+
+    with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.delete_interface!(realm_name, interface_name, parsed_major) do
       send_resp(conn, :no_content, "")
     end
   end
