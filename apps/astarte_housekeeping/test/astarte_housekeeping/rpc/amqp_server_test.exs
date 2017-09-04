@@ -71,4 +71,16 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     assert Reply.decode(enc_reply) == expected
   end
+
+  test "GetRealmsList successful call" do
+    encoded = %Call{call: {:get_realms_list, %GetRealmsList{}}}
+      |> Call.encode()
+
+    {:ok, list_reply} = AMQPServer.process_rpc(encoded)
+
+    expected = %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: ["newtestrealm"]}}}
+
+    assert Reply.decode(list_reply) == expected
+  end
+
 end
