@@ -60,6 +60,18 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def delete_interface(realm_name, interface_name, interface_major_version) do
+    {:ok, payload} = %DeleteInterface{
+        realm_name: realm_name,
+        interface_name: interface_name,
+        interface_major_version: interface_major_version,
+        async_operation: true
+      }
+      |> encode_and_call(:delete_interface)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
