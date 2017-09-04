@@ -120,7 +120,7 @@ defmodule Astarte.Housekeeping.Queries do
       |> DatabaseQuery.put(:realm_name, realm_name)
 
     DatabaseQuery.call!(client, query)
-      |> DatabaseResult.size() > 0
+    |> DatabaseResult.size() > 0
   end
 
   def astarte_keyspace_exists?(client) do
@@ -137,7 +137,7 @@ defmodule Astarte.Housekeeping.Queries do
       |> DatabaseQuery.statement(@realms_list_query)
 
     DatabaseQuery.call!(client, query)
-      |> Enum.map(fn(row) -> row[:realm_name] end)
+    |> Enum.map(fn(row) -> row[:realm_name] end)
   end
 
   defp exec_queries(client, _queries = [query | tail]) do
