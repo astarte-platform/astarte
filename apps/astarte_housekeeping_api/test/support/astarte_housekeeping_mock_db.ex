@@ -16,4 +16,8 @@ defmodule Astarte.Housekeeping.Mock.DB do
   def realm_exists?(realm_name) do
     Agent.get(__MODULE__, &Map.has_key?(&1, realm_name))
   end
+
+  def realms_list do
+    Agent.get(__MODULE__, &Map.keys(&1))
+  end
 end
