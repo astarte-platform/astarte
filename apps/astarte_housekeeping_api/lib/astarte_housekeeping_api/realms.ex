@@ -16,7 +16,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   """
   def list_realms do
-    raise "TODO"
+    AMQPClient.list_realms()
   end
 
   @doc """
