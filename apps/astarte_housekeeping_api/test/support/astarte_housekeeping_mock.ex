@@ -32,6 +32,14 @@ defmodule Astarte.Housekeeping.Mock do
     |> ok_wrap
   end
 
+  defp execute_rpc({:get_realms_list, %GetRealmsList{}}) do
+    list = Astarte.Housekeeping.Mock.DB.realms_list
+
+    %GetRealmsListReply{realms_names: list}
+    |> encode_reply(:get_realms_list_reply)
+    |> ok_wrap
+  end
+
   defp encode_reply(reply, reply_type) do
     %Reply{reply: {reply_type, reply}}
     |> Reply.encode
