@@ -91,7 +91,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
             encode_reply(:update_interface, Astarte.RealmManagement.Engine.update_interface(realm_name, interface_json, async: async_operation))
 
           {:delete_interface, %DeleteInterface{realm_name: realm_name, interface_name: interface_name, interface_major_version: interface_major_version, async_operation: async_operation}} ->
-            encode_reply(:delete_interface_interface, Astarte.RealmManagement.Engine.delete_interface(realm_name, interface_name, interface_major_version, async: async_operation))
+            encode_reply(:delete_interface, Astarte.RealmManagement.Engine.delete_interface(realm_name, interface_name, interface_major_version, async: async_operation))
 
         invalid_call ->
           Logger.warn "Received unexpected call: " <> inspect invalid_call

@@ -68,7 +68,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       true ->
         if (opts[:async]) do
-          Task.start_link(Astarte.RealmManagement.Queries, :update_interface, [client, interface_name, interface_major_version])
+          Task.start_link(Astarte.RealmManagement.Queries, :delete_interface, [client, interface_name, interface_major_version])
           {:ok, :started}
         else
           Astarte.RealmManagement.Queries.delete_interface(client, interface_name, interface_major_version)
