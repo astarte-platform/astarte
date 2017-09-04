@@ -12,5 +12,6 @@ defmodule Astarte.RealmManagement.API.Web.Router do
     resources "/:realm_name/interfaces", InterfaceController, only: [:index, :create]
     get "/:realm_name/interfaces/:id/:major_version", InterfaceController, :show
     put "/:realm_name/interfaces/:id/:major_version", InterfaceController, :update
+    delete "/:realm_name/interfaces/:id/:major_version", InterfaceController, :delete
   end
 end

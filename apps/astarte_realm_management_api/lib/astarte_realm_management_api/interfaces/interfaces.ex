@@ -26,4 +26,8 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     AMQPClient.update_interface(realm_name, interface_source)
   end
 
+  def delete_interface!(realm_name, interface_name, interface_major_version, _attrs \\ %{}) do
+    AMQPClient.delete_interface(realm_name, interface_name, interface_major_version)
+  end
+
 end
