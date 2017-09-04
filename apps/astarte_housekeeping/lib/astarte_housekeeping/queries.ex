@@ -92,6 +92,10 @@ defmodule Astarte.Housekeeping.Queries do
     SELECT config_value FROM astarte.astarte_schema WHERE config_key='schema_version'
   """
 
+  @realms_list_query """
+    SELECT realm_name FROM astarte.realms;
+  """
+
   def create_realm(client, realm_name) do
     if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
       replaced_queries =
@@ -126,6 +130,14 @@ defmodule Astarte.Housekeeping.Queries do
     # Try the query, if it returns an error we assume it doesn't exist
     # We can't query system tables since they differ between Cassandra 3.x and Scylla
     match?({:ok, _}, DatabaseQuery.call(client, query))
+  end
+
+  def realms_list(client) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@realms_list_query)
+
+    DatabaseQuery.call!(client, query)
+      |> Enum.map(fn(row) -> row[:realm_name] end)
   end
 
   defp exec_queries(client, _queries = [query | tail]) do
