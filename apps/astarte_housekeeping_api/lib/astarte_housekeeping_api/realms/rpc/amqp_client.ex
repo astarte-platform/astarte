@@ -15,13 +15,11 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   end
 
   def list_realms do
-    realms_list = %GetRealmsList{}
-      |> encode_call(:get_realms_list)
-      |> rpc_call()
-      |> decode_reply()
-      |> extract_reply()
-
-    Enum.map(realms_list, fn(realm_name) -> %Realm{realm_name: realm_name} end)
+    %GetRealmsList{}
+    |> encode_call(:get_realms_list)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
   end
 
   defp realm_exists?(realm_name) do
@@ -46,8 +44,8 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
     exists
   end
 
-  defp extract_reply({:get_realms_list_reply, %GetRealmsListReply{realms_names: realms}}) do
-    realms
+  defp extract_reply({:get_realms_list_reply, %GetRealmsListReply{realms_names: realms_list}}) do
+    Enum.map(realms_list, fn(realm_name) -> %Realm{realm_name: realm_name} end)
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
