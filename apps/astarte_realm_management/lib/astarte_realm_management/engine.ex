@@ -3,59 +3,62 @@ defmodule Astarte.RealmManagement.Engine do
   alias CQEx.Client, as: DatabaseClient
 
   def install_interface(realm_name, interface_json, opts \\ []) do
-    interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
+    {connection_status, connection_result} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
     if String.contains?(String.downcase(interface_json), ["drop", "insert", "delete", "update", "keyspace", "table"]) do
       Logger.warn "Found possible CQL command in JSON interface: " <> inspect interface_json
     end
 
-    if interface_document != nil do
-      client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+    interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
-      unless Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_document.descriptor.name, interface_document.descriptor.major_version) do
+    cond do
+      interface_document == nil ->
+        Logger.warn "Received invalid interface JSON: " <> inspect interface_json
+        {:error, :invalid_interface_document}
+
+      {connection_status, connection_result} == {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, interface_document.descriptor.name, interface_document.descriptor.major_version) == true ->
+        {:error, :already_installed_interface}
+
+      true ->
         if (opts[:async]) do
-          Task.start_link(Astarte.RealmManagement.Queries, :install_new_interface, [client, interface_document])
+          Task.start_link(Astarte.RealmManagement.Queries, :install_new_interface, [connection_result, interface_document])
           {:ok, :started}
         else
-          Astarte.RealmManagement.Queries.install_new_interface(client, interface_document)
+          Astarte.RealmManagement.Queries.install_new_interface(connection_result, interface_document)
         end
-      else
-        {:error, :already_installed_interface}
-      end
-    else
-      Logger.warn "Received invalid interface JSON: " <> inspect interface_json
-      {:error, :invalid_interface_document}
     end
   end
 
   def update_interface(realm_name, interface_json, opts \\ []) do
-    interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
-
-    # TODO: use cond do here
+    {connection_status, connection_result} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
     if String.contains?(String.downcase(interface_json), ["drop", "insert", "delete", "update", "keyspace", "table"]) do
       Logger.warn "Found possible CQL command in JSON interface: " <> inspect interface_json
     end
 
-    if interface_document != nil do
-      client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+    interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
-      if Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_document.descriptor.name, interface_document.descriptor.major_version) do
+    cond do
+      interface_document == nil ->
+        Logger.warn "Received invalid interface JSON: " <> inspect interface_json
+        {:error, :invalid_interface_document}
 
-        # TODO: we also need to check that no endpoints have been removed and their type is still the same
+      {connection_status, connection_result} == {:error, :shutdown} ->
+        {:error, :realm_not_found}
 
+      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, interface_document.descriptor.name, interface_document.descriptor.major_version) != true ->
+        {:error, :interface_major_version_does_not_exist}
+
+      true ->
         if (opts[:async]) do
-          Task.start_link(Astarte.RealmManagement.Queries, :update_interface, [client, interface_document])
+          Task.start_link(Astarte.RealmManagement.Queries, :update_interface, [connection_result, interface_document])
           {:ok, :started}
         else
-          Astarte.RealmManagement.Queries.update_interface(client, interface_document)
+          Astarte.RealmManagement.Queries.update_interface(connection_result, interface_document)
         end
-      else
-        {:error, :interface_major_version_does_not_exist}
-      end
-    else
-      Logger.warn "Received invalid interface JSON: " <> inspect interface_json
-      {:error, :invalid_interface_document}
     end
   end
 
@@ -77,29 +80,40 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def interface_source(realm_name, interface_name, interface_major_version) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+    case DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
 
-    Astarte.RealmManagement.Queries.interface_source(client, interface_name, interface_major_version)
+      {:ok, client} ->
+        Astarte.RealmManagement.Queries.interface_source(client, interface_name, interface_major_version)
+    end
   end
 
   def list_interface_versions(realm_name, interface_name) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+    case DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
 
-    result = Astarte.RealmManagement.Queries.interface_available_versions(client, interface_name)
+      {:ok, client} ->
+        result = Astarte.RealmManagement.Queries.interface_available_versions(client, interface_name)
 
-    if result != [] do
-      {:ok, result}
-    else
-      {:error, :interface_not_found}
+        if result != [] do
+          {:ok, result}
+        else
+          {:error, :interface_not_found}
+        end
     end
   end
 
   def get_interfaces_list(realm_name) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+    case DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
 
-    result = Astarte.RealmManagement.Queries.get_interfaces_list(client)
-
-    {:ok, result}
+      {:ok, client} ->
+        result = Astarte.RealmManagement.Queries.get_interfaces_list(client)
+        {:ok, result}
+    end
   end
 
 end
