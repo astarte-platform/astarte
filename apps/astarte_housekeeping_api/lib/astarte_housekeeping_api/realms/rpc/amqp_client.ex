@@ -22,6 +22,14 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
     |> extract_reply()
   end
 
+  def get_realm(realm_name) do
+    %GetRealm{realm_name: realm_name}
+    |> encode_call(:get_realm)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   defp realm_exists?(realm_name) do
     %DoesRealmExist{realm: realm_name}
     |> encode_call(:does_realm_exist)
