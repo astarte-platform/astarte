@@ -146,6 +146,17 @@ paths:
         200:
           description: "Success"
 
+    delete:
+      tags:
+      - "interface"
+      summary: "Delete a draft interface"
+      description: "Delete an interface draft (a draft is an interface with major version 0). An interface with a major version different than 0 should be manually deleted."
+      operationId: "deleteInterface"
+      responses:
+        204:
+          description: "No Content"
+        403:
+          description: "Forbidden"
 
   /{realm_name}/triggers:
     parameters:
