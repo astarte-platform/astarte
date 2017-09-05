@@ -6,6 +6,7 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
 
   alias Astarte.RealmManagement.API.AlreadyInstalledInterfaceError
   alias Astarte.RealmManagement.API.InterfaceNotFoundError
+  alias Astarte.RealmManagement.API.RealmNotFoundError
   alias Astarte.RealmManagement.API.InvalidInterfaceDocumentError
 
   def get_interface_versions_list(realm_name, interface_name) do
@@ -115,6 +116,10 @@ defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}) do
     raise InterfaceNotFoundError
+  end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
+    raise RealmNotFoundError
   end
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "already_installed_interface"}}) do
