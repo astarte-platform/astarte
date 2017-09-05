@@ -31,8 +31,8 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
     encoded = Call.new(call: {:create_realm, CreateRealm.new})
       |> Call.encode()
 
-    expected = %Reply{reply: {:generic_error_reply, %GenericErrorReply{error_name: "empty_name",
-                                                                       user_readable_message: "empty realm name"}}}
+    expected = generic_error("empty_name", "empty realm name")
+
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
     assert Reply.decode(reply) == generic_error("empty_name", "empty realm name")
