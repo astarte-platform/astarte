@@ -96,6 +96,10 @@ defmodule Astarte.Housekeeping.Queries do
     SELECT realm_name FROM astarte.realms;
   """
 
+  @get_realm_query """
+    SELECT * from astarte.realms WHERE realm_name=:realm_name;
+  """
+
   def create_realm(client, realm_name) do
     if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
       replaced_queries =
@@ -138,6 +142,17 @@ defmodule Astarte.Housekeeping.Queries do
 
     DatabaseQuery.call!(client, query)
     |> Enum.map(fn(row) -> row[:realm_name] end)
+  end
+
+  def get_realm(client, realm_name) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@get_realm_query)
+      |> DatabaseQuery.put(:realm_name, realm_name)
+
+    case DatabaseQuery.call!(client, query)[0] do
+      nil -> {:error, :realm_not_found}
+      record -> Enum.into(record, %{})
+    end
   end
 
   defp exec_queries(client, _queries = [query | tail]) do
