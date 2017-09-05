@@ -49,8 +49,14 @@ defmodule Astarte.Housekeeping.API.Realms do
       |> Realm.changeset(attrs)
 
     if changeset.valid? do
-      Ecto.Changeset.apply_changes(changeset)
-      |> AMQPClient.create_realm()
+      realm = Ecto.Changeset.apply_changes(changeset)
+      case AMQPClient.create_realm(realm) do
+        :ok -> {:ok, realm}
+
+        {:ok, :started} -> {:ok, realm}
+
+        other -> other
+      end
     else
       {:error, %{changeset | action: :create}}
     end
