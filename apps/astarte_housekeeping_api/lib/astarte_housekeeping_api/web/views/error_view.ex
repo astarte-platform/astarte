@@ -5,6 +5,10 @@ defmodule Astarte.Housekeeping.API.Web.ErrorView do
     %{errors: %{detail: "Page not found"}}
   end
 
+  def render("realm_not_found.json", _assigns) do
+    %{errors: %{detail: "realm not found"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end

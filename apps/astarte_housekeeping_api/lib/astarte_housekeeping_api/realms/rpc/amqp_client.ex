@@ -6,7 +6,7 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   use Astarte.RPC.Protocol.Housekeeping
   alias Astarte.Housekeeping.API.Realms.Realm
 
-  def create_realm(realm = %Realm{realm_name: realm_name}) do
+  def create_realm(%Realm{realm_name: realm_name}) do
     %CreateRealm{realm: realm_name, async_operation: true}
     |> encode_call(:create_realm)
     |> rpc_call()
@@ -17,6 +17,14 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   def list_realms do
     %GetRealmsList{}
     |> encode_call(:get_realms_list)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_realm(realm_name) do
+    %GetRealm{realm_name: realm_name}
+    |> encode_call(:get_realm)
     |> rpc_call()
     |> decode_reply()
     |> extract_reply()
@@ -46,6 +54,14 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
 
   defp extract_reply({:get_realms_list_reply, %GetRealmsListReply{realms_names: realms_list}}) do
     Enum.map(realms_list, fn(realm_name) -> %Realm{realm_name: realm_name} end)
+  end
+
+  defp extract_reply({:get_realm_reply, %GetRealmReply{realm_name: realm_name}}) do
+    {:ok, %Realm{realm_name: realm_name}}
+  end
+
+  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
+    {:error, :realm_not_found}
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
