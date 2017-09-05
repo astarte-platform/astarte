@@ -7,29 +7,11 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   alias Astarte.Housekeeping.API.Realms.Realm
 
   def create_realm(realm = %Realm{realm_name: realm_name}) do
-    reply = %CreateRealm{realm: realm_name, async_operation: true}
+    %CreateRealm{realm: realm_name, async_operation: true}
     |> encode_call(:create_realm)
     |> rpc_call()
     |> decode_reply()
     |> extract_reply()
-
-    case reply do
-      {:ok, :started} -> {:ok, realm}
-      {:error, error_map} ->
-        changeset = Realm.changeset(realm)
-
-        # Add the available infos from the error map
-        error_changeset =
-          Enum.reduce(error_map, changeset, fn({k, v}, acc) ->
-            if v do
-              Ecto.Changeset.add_error(acc, k, v)
-            else
-              acc
-            end
-          end)
-
-        {:error, error_changeset}
-    end
   end
 
   def list_realms do
@@ -69,7 +51,21 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
-    {:error, Map.from_struct(error_struct)}
+    error_map = Map.from_struct(error_struct)
+
+    changeset = Realm.error_changeset(%Realm{})
+
+    # Add the available infos from the error map
+    error_changeset =
+      Enum.reduce(error_map, changeset, fn({k, v}, acc) ->
+        if v do
+          Ecto.Changeset.add_error(acc, k, v)
+        else
+          acc
+        end
+      end)
+
+    {:error, error_changeset}
   end
 
   defp extract_reply({:generic_ok_reply, %GenericOkReply{async_operation: async}}) do
