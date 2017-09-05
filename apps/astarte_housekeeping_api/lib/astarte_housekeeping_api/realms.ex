@@ -22,15 +22,15 @@ defmodule Astarte.Housekeeping.API.Realms do
   @doc """
   Gets a single realm.
 
-  Raises if the Realm does not exist.
-
   ## Examples
 
       iex> get_realm!(123)
       %Realm{}
 
   """
-  def get_realm!(id), do: raise "TODO"
+  def get_realm(realm_name) do
+    AMQPClient.get_realm(realm_name)
+  end
 
   @doc """
   Creates a realm.
