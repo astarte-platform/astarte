@@ -1,6 +1,6 @@
 %{"amqp": {:hex, :amqp, "0.2.2", "eeb9d832c5440585699ae89f48c38f662a2d44f48e694dfe9ba15824b53da1f9", [:mix], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.6.10", "f26fbacca4e71f58eba1a57746e5f10598550aa46e89bc67060da6ad1a6d95d5", [:make, :rebar3], [{:rabbit_common, "3.6.10", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
-  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "685acdfc021dae292759c7b79b143c8fe640706d", []},
+  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "0facb6e63130172786ed1c362cb4c056c5a98370", []},
   "certifi": {:hex, :certifi, "1.2.1", "c3904f192bd5284e5b13f20db3ceac9626e14eeacfbb492e19583cf0e37b22be", [:rebar3], [], "hexpm"},
   "cqerl": {:git, "https://github.com/astarte-platform/cqerl.git", "d25d72ac5be6fef9c9cee2c463cb37d6e923fdca", []},
   "cqex": {:git, "https://github.com/astarte-platform/cqex.git", "ad1a841f78bc0c5aaee4197a6a7fcb34402857f4", []},
