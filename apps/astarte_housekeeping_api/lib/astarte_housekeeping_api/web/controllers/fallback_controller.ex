@@ -12,6 +12,12 @@ defmodule Astarte.Housekeeping.API.Web.FallbackController do
     |> render(Astarte.Housekeeping.API.Web.ChangesetView, "error.json", changeset: changeset)
   end
 
+  def call(conn, {:error, :realm_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> render(Astarte.Housekeeping.API.Web.ErrorView, :realm_not_found)
+  end
+
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)
