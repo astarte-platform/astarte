@@ -6,6 +6,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   @invalid_test_realm "not~valid"
   @not_existing_realm "nonexistingrealm"
   @test_realm "newtestrealm"
+  @another_test_realm "anothertestrealm"
 
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
     %Reply{reply: {:generic_error_reply, %GenericErrorReply{error_name: error_name,
@@ -87,12 +88,20 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "GetRealm successful call" do
-    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @test_realm}}}
+    # We create another realm to avoid test ordering problems
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @another_test_realm)})
+      |> Call.encode()
+
+    {:ok, create_reply} = AMQPServer.process_rpc(encoded)
+
+    assert Reply.decode(create_reply) == generic_ok()
+
+    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @another_test_realm}}}
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-    expected = %Reply{reply: {:get_realm_reply, %GetRealmReply{realm_name: @test_realm}}}
+    expected = %Reply{reply: {:get_realm_reply, %GetRealmReply{realm_name: @another_test_realm}}}
 
     assert Reply.decode(reply) == expected
   end
