@@ -12,7 +12,8 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
                                                             user_readable_message: user_readable_message,
                                                             user_readable_error_name: user_readable_error_name,
                                                             error_data: error_data
-                                                           }}}
+                                                           }},
+           error: true }
   end
 
   defp generic_ok(async \\ false) do
