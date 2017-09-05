@@ -50,7 +50,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
      {:phoenix_pubsub, "~> 1.0"},
      {:gettext, "~> 0.11"},
      {:cowboy, "~> 1.0"},
-
+     {:ecto, "~> 2.1"},
      {:distillery, "~> 1.4", runtime: false},
      {:excoveralls, "~> 0.6", only: :test}
     ]
