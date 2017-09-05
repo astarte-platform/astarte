@@ -35,6 +35,22 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
+  @delete_endpoint_from_endpoints """
+     DELETE FROM endpoints WHERE endpoint_id=:endpoint_id;
+  """
+
+  @delete_interface_from_interfaces """
+     DELETE FROM interfaces WHERE name=:name;
+  """
+
+  @drop_interface_table """
+     DROP TABLE :table_name;
+  """
+
+  @query_interface_endpoints_with_major_0 """
+    SELECT endpoint_id FROM endpoints WHERE interface_name=:name AND interface_major_version=0 ALLOW FILTERING;
+  """
+
   @query_interface_versions """
     SELECT major_version, minor_version FROM interfaces WHERE name=:interface_name;
   """
@@ -126,9 +142,36 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_interface(client, interface_name, interface_major_version) do
-    Logger.warn "delete interface: " <> interface_name <> " version: " <> Integer.to_string(interface_major_version)
-    Logger.warn inspect(client)
-    {:error, :not_implemented}
+    if interface_major_version != 0 do
+      {:error, :forbidden}
+
+    else
+      Logger.warn "delete interface: " <> interface_name
+
+      query = DatabaseQuery.new
+        |> DatabaseQuery.statement(@delete_interface_from_interfaces)
+        |> DatabaseQuery.put(:name, interface_name)
+      DatabaseQuery.call!(client, query)
+
+      query = DatabaseQuery.new
+        |> DatabaseQuery.statement(@query_interface_endpoints_with_major_0)
+        |> DatabaseQuery.put(:name, interface_name)
+      endpoints_to_delete = DatabaseQuery.call!(client, query)
+        |> Enum.to_list
+
+      Enum.each(endpoints_to_delete, fn(endpoint) ->
+        delete_query = DatabaseQuery.new
+          |> DatabaseQuery.statement(@delete_endpoint_from_endpoints)
+          |> DatabaseQuery.put(:endpoint_id, endpoint[:endpoint_id])
+        DatabaseQuery.call!(client, delete_query)
+      end)
+
+      drop_table_statement = @drop_interface_table
+        |> String.replace(":table_name", Astarte.Core.CQLUtils.interface_name_to_table_name(interface_name, 0))
+      DatabaseQuery.call!(client, drop_table_statement)
+
+      :ok
+    end
   end
 
   def interface_available_versions(client, interface_name) do
