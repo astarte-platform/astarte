@@ -48,6 +48,10 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
     Enum.map(realms_list, fn(realm_name) -> %Realm{realm_name: realm_name} end)
   end
 
+  defp extract_reply({:get_realm_reply, %GetRealmReply{realm_name: realm_name}}) do
+    {:ok, %Realm{realm_name: realm_name}}
+  end
+
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 
