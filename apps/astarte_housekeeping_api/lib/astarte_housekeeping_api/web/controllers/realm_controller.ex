@@ -20,21 +20,23 @@ defmodule Astarte.Housekeeping.API.Web.RealmController do
   end
 
   def show(conn, %{"id" => id}) do
-    realm = Realms.get_realm!(id)
-    render(conn, "show.json", realm: realm)
+    with {:ok, %Realm{} = realm} <- Realms.get_realm(id) do
+      render(conn, "show.json", realm: realm)
+    end
   end
 
   def update(conn, %{"id" => id, "realm" => realm_params}) do
-    realm = Realms.get_realm!(id)
+    with {:ok, %Realm{} = realm} <- Realms.get_realm(id),
+         {:ok, %Realm{} = realm} <- Realms.update_realm(realm, realm_params) do
 
-    with {:ok, %Realm{} = realm} <- Realms.update_realm(realm, realm_params) do
       render(conn, "show.json", realm: realm)
     end
   end
 
   def delete(conn, %{"id" => id}) do
-    realm = Realms.get_realm!(id)
-    with {:ok, %Realm{}} <- Realms.delete_realm(realm) do
+    with {:ok, %Realm{} = realm} <- Realms.get_realm(id),
+         {:ok, %Realm{}} <- Realms.delete_realm(realm) do
+
       send_resp(conn, :no_content, "")
     end
   end
