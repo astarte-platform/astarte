@@ -88,4 +88,26 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
     assert Reply.decode(list_reply) == expected
   end
 
+  test "GetRealm successful call" do
+    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @test_realm}}}
+      |> Call.encode()
+
+    {:ok, reply} = AMQPServer.process_rpc(encoded)
+
+    expected = %Reply{reply: {:get_realm_reply, %GetRealmReply{realm_name: @test_realm}}}
+
+    assert Reply.decode(reply) == expected
+  end
+
+  test "GetRealm failed call" do
+    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @not_existing_realm}}}
+      |> Call.encode()
+
+    {:ok, reply} = AMQPServer.process_rpc(encoded)
+
+    expected = generic_error("realm_not_found")
+
+    assert Reply.decode(reply) == expected
+  end
+
 end
