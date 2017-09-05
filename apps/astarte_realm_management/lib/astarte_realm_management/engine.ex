@@ -80,9 +80,13 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def interface_source(realm_name, interface_name, interface_major_version) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+    case DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
 
-    Astarte.RealmManagement.Queries.interface_source(client, interface_name, interface_major_version)
+      {:ok, client} ->
+        Astarte.RealmManagement.Queries.interface_source(client, interface_name, interface_major_version)
+    end
   end
 
   def list_interface_versions(realm_name, interface_name) do
