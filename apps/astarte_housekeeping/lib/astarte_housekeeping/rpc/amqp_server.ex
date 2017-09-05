@@ -51,6 +51,18 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     |> ok_wrap
   end
 
+  defp call_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do
+    case Astarte.Housekeeping.Engine.get_realm(realm_name) do
+      %{realm_name: realm_name_reply} ->
+        %GetRealmReply{realm_name: realm_name_reply}
+        |> encode_reply(:get_realm_reply)
+        |> ok_wrap
+
+      {:error, reason} ->
+        generic_error(reason)
+    end
+  end
+
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
     %GenericErrorReply{error_name: to_string(error_name),
                        user_readable_message: user_readable_message,
@@ -64,6 +76,11 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     %GenericOkReply{async_operation: async}
     |> encode_reply(:generic_ok_reply)
     |> ok_wrap
+  end
+
+  defp encode_reply(%GenericErrorReply{} = reply, _reply_type) do
+    %Reply{reply: {:generic_error_reply, reply}, error: true}
+    |> Reply.encode
   end
 
   defp encode_reply(reply, reply_type) do

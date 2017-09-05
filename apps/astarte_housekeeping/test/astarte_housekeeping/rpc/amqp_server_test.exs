@@ -3,12 +3,17 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   alias Astarte.Housekeeping.RPC.AMQPServer
   use Astarte.RPC.Protocol.Housekeeping
 
+  @invalid_test_realm "not~valid"
+  @not_existing_realm "nonexistingrealm"
+  @test_realm "newtestrealm"
+
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
     %Reply{reply: {:generic_error_reply, %GenericErrorReply{error_name: error_name,
                                                             user_readable_message: user_readable_message,
                                                             user_readable_error_name: user_readable_error_name,
                                                             error_data: error_data
-                                                           }}}
+                                                           }},
+           error: true }
   end
 
   defp generic_ok(async \\ false) do
@@ -26,8 +31,8 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
     encoded = Call.new(call: {:create_realm, CreateRealm.new})
       |> Call.encode()
 
-    expected = %Reply{reply: {:generic_error_reply, %GenericErrorReply{error_name: "empty_name",
-                                                                       user_readable_message: "empty realm name"}}}
+    expected = generic_error("empty_name", "empty realm name")
+
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
     assert Reply.decode(reply) == generic_error("empty_name", "empty realm name")
@@ -35,7 +40,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
   test "valid call, invalid realm_name" do
 
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: "not~valid")})
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @invalid_test_realm)})
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
@@ -44,14 +49,14 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "realm creation and DoesRealmExist successful call" do
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: "newtestrealm")})
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm)})
       |> Call.encode()
 
     {:ok, create_reply} = AMQPServer.process_rpc(encoded)
 
     assert Reply.decode(create_reply) == generic_ok()
 
-    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: "newtestrealm"}}}
+    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
       |> Call.encode()
 
     expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}}}
@@ -62,7 +67,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "DoesRealmExist non-existing realm" do
-    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: "nonexistingrealm"}}}
+    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @not_existing_realm}}}
       |> Call.encode()
 
     expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: false}}}
@@ -78,9 +83,31 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     {:ok, list_reply} = AMQPServer.process_rpc(encoded)
 
-    expected = %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: ["newtestrealm"]}}}
+    expected = %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: [@test_realm]}}}
 
     assert Reply.decode(list_reply) == expected
+  end
+
+  test "GetRealm successful call" do
+    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @test_realm}}}
+      |> Call.encode()
+
+    {:ok, reply} = AMQPServer.process_rpc(encoded)
+
+    expected = %Reply{reply: {:get_realm_reply, %GetRealmReply{realm_name: @test_realm}}}
+
+    assert Reply.decode(reply) == expected
+  end
+
+  test "GetRealm failed call" do
+    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @not_existing_realm}}}
+      |> Call.encode()
+
+    {:ok, reply} = AMQPServer.process_rpc(encoded)
+
+    expected = generic_error("realm_not_found")
+
+    assert Reply.decode(reply) == expected
   end
 
 end
