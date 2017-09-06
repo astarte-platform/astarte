@@ -1,4 +1,4 @@
-defmodule Astarte.Housekeeping.API.Web.ErrorHelpers do
+defmodule Astarte.Housekeeping.APIWeb.ErrorHelpers do
   @moduledoc """
   Conveniences for translating and building error messages.
   """
@@ -21,9 +21,9 @@ defmodule Astarte.Housekeeping.API.Web.ErrorHelpers do
     #     dgettext "errors", "is invalid"
     #
     if count = opts[:count] do
-      Gettext.dngettext(Astarte.Housekeeping.API.Web.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(Astarte.Housekeeping.APIWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(Astarte.Housekeeping.API.Web.Gettext, "errors", msg, opts)
+      Gettext.dgettext(Astarte.Housekeeping.APIWeb.Gettext, "errors", msg, opts)
     end
   end
 end

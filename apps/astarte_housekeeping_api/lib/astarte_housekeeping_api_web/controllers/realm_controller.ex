@@ -1,10 +1,10 @@
-defmodule Astarte.Housekeeping.API.Web.RealmController do
-  use Astarte.Housekeeping.API.Web, :controller
+defmodule Astarte.Housekeeping.APIWeb.RealmController do
+  use Astarte.Housekeeping.APIWeb, :controller
 
   alias Astarte.Housekeeping.API.Realms
   alias Astarte.Housekeeping.API.Realms.Realm
 
-  action_fallback Astarte.Housekeeping.API.Web.FallbackController
+  action_fallback Astarte.Housekeeping.APIWeb.FallbackController
 
   def index(conn, _params) do
     realms = Realms.list_realms()

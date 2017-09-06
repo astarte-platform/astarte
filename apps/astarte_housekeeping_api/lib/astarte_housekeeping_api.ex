@@ -9,7 +9,7 @@ defmodule Astarte.Housekeeping.API do
     # Define workers and child supervisors to be supervised
     children = [
       # Start the endpoint when the application starts
-      supervisor(Astarte.Housekeeping.API.Web.Endpoint, []),
+      supervisor(Astarte.Housekeeping.APIWeb.Endpoint, []),
       # Start your own worker by calling: Astarte.Housekeeping.API.Worker.start_link(arg1, arg2, arg3)
       worker(Astarte.Housekeeping.API.Realms.RPC.AMQPClient, []),
     ]

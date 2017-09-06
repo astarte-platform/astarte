@@ -1,5 +1,5 @@
-defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
-  use Astarte.Housekeeping.API.Web.ConnCase
+defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
+  use Astarte.Housekeeping.APIWeb.ConnCase
 
   alias Astarte.Housekeeping.API.Realms
   alias Astarte.Housekeeping.API.Realms.Realm

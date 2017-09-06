@@ -1,11 +1,11 @@
-defmodule Astarte.Housekeeping.API.Web.ChangesetView do
-  use Astarte.Housekeeping.API.Web, :view
+defmodule Astarte.Housekeeping.APIWeb.ChangesetView do
+  use Astarte.Housekeeping.APIWeb, :view
 
   @doc """
   Traverses and translates changeset errors.
 
   See `Ecto.Changeset.traverse_errors/2` and
-  `Astarte.Housekeeping.API.Web.ErrorHelpers.translate_error/1` for more details.
+  `Astarte.Housekeeping.APIWeb.ErrorHelpers.translate_error/1` for more details.
   """
   def translate_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, &translate_error/1)
