@@ -40,6 +40,22 @@ defmodule Astarte.Housekeeping.Mock do
     |> ok_wrap
   end
 
+  defp execute_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do
+    case Astarte.Housekeeping.Mock.DB.get_realm(realm_name) do
+      nil ->
+        generic_error(:realm_not_found)
+      realm ->
+        %GetRealmReply{realm_name: realm_name}
+        |> encode_reply(:get_realm_reply)
+    end
+    |> ok_wrap
+  end
+
+  defp generic_error(error_name) do
+    %GenericErrorReply{error_name: to_string(error_name)}
+    |> encode_reply(:generic_error_reply)
+  end
+
   defp encode_reply(reply, reply_type) do
     %Reply{reply: {reply_type, reply}}
     |> Reply.encode

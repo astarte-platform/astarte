@@ -10,7 +10,7 @@ defmodule Astarte.Housekeeping.Mock.DB do
   end
 
   def get_realm(realm_name) do
-    Agent.get(__MODULE__, &Map.fetch!(&1, realm_name))
+    Agent.get(__MODULE__, &Map.get(&1, realm_name))
   end
 
   def realm_exists?(realm_name) do
