@@ -72,7 +72,7 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     |> ok_wrap
   end
 
-  defp generic_ok(async \\ false) do
+  defp generic_ok(async) do
     %GenericOkReply{async_operation: async}
     |> encode_reply(:generic_ok_reply)
     |> ok_wrap
