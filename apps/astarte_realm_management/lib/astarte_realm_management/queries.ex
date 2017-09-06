@@ -47,6 +47,8 @@ defmodule Astarte.RealmManagement.Queries do
      DROP TABLE :table_name;
   """
 
+  # TODO: ALLOW FILTERING is not supported on Scylla DB right now
+  # https://github.com/scylladb/scylla/labels/cassandra%203.x%20compatibility
   @query_interface_endpoints_with_major_0 """
     SELECT endpoint_id FROM endpoints WHERE interface_name=:name AND interface_major_version=0 ALLOW FILTERING;
   """
