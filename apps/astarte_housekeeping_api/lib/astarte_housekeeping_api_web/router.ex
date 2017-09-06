@@ -1,11 +1,11 @@
-defmodule Astarte.Housekeeping.API.Web.Router do
-  use Astarte.Housekeeping.API.Web, :router
+defmodule Astarte.Housekeeping.APIWeb.Router do
+  use Astarte.Housekeeping.APIWeb, :router
 
   pipeline :api do
     plug :accepts, ["json"]
   end
 
-  scope "/v1", Astarte.Housekeeping.API.Web do
+  scope "/v1", Astarte.Housekeeping.APIWeb do
     pipe_through :api
 
     resources "/realms", RealmController, except: [:new, :edit, :delete]

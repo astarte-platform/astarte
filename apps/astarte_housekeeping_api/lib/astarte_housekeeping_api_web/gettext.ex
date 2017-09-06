@@ -1,11 +1,11 @@
-defmodule Astarte.Housekeeping.API.Web.Gettext do
+defmodule Astarte.Housekeeping.APIWeb.Gettext do
   @moduledoc """
   A module providing Internationalization with a gettext-based API.
 
   By using [Gettext](https://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import Astarte.Housekeeping.API.Web.Gettext
+      import Astarte.Housekeeping.APIWeb.Gettext
 
       # Simple translation
       gettext "Here is the string to translate"

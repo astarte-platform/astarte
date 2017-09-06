@@ -1,7 +1,7 @@
-defmodule Astarte.Housekeeping.API.Web.Endpoint do
+defmodule Astarte.Housekeeping.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_housekeeping_api
 
-  socket "/socket", Astarte.Housekeeping.API.Web.UserSocket
+  socket "/socket", Astarte.Housekeeping.APIWeb.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -36,7 +36,7 @@ defmodule Astarte.Housekeeping.API.Web.Endpoint do
     key: "_astarte_housekeeping_api_key",
     signing_salt: "DtYzPxzr"
 
-  plug Astarte.Housekeeping.API.Web.Router
+  plug Astarte.Housekeeping.APIWeb.Router
 
   @doc """
   Dynamically loads configuration from the system environment
