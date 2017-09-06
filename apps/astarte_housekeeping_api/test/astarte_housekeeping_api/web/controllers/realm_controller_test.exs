@@ -26,10 +26,8 @@ defmodule Astarte.Housekeeping.API.Web.RealmControllerTest do
     conn = post conn, realm_path(conn, :create), @create_attrs
     assert response(conn, 201)
 
-    # GET not yet implemented
-    #    conn = get conn, realm_path(conn, :show, realm_name)
-    #    assert json_response(conn, 200) == %{
-    #    "realm_name" => realm_name}
+    conn = get conn, realm_path(conn, :show, @create_attrs["realm_name"])
+    assert json_response(conn, 200) == %{"realm_name" => @create_attrs["realm_name"]}
   end
 
   test "does not create realm and renders errors when data is invalid", %{conn: conn} do
