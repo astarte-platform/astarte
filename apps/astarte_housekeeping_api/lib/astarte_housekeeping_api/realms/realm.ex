@@ -20,7 +20,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
 
   def error_changeset(realm, params \\ %{}) do
     changeset = realm
-      |> cast(%{}, @required_fields)
+      |> cast(params, @required_fields)
 
     %{changeset | valid?: false}
   end
