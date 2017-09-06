@@ -25,10 +25,9 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert Realms.list_realms() == [realm]
     end
 
-    @tag :wip
-    test "get_realm!/1 returns the realm with given id" do
+    test "get_realm/1 returns the realm with given id" do
       realm = realm_fixture()
-      assert Realms.get_realm!(realm.id) == realm
+      assert Realms.get_realm(realm.realm_name) == {:ok, realm}
     end
 
     test "create_realm/1 with valid data creates a realm" do
