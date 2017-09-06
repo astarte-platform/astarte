@@ -1,8 +1,8 @@
-defmodule Astarte.RealmManagement.API.Web.UserSocket do
+defmodule Astarte.RealmManagement.APIWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", Astarte.RealmManagement.API.Web.RoomChannel
+  # channel "room:*", Astarte.RealmManagement.APIWeb.RoomChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
@@ -30,7 +30,7 @@ defmodule Astarte.RealmManagement.API.Web.UserSocket do
   # Would allow you to broadcast a "disconnect" event and terminate
   # all active sockets and channels for a given user:
   #
-  #     Astarte.RealmManagement.API.Web.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
+  #     Astarte.RealmManagement.APIWeb.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
   #
   # Returning `nil` makes this socket anonymous.
   def id(_socket), do: nil

@@ -1,7 +1,7 @@
-defmodule Astarte.RealmManagement.API.Web.InterfaceController do
-  use Astarte.RealmManagement.API.Web, :controller
+defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
+  use Astarte.RealmManagement.APIWeb, :controller
 
-  action_fallback Astarte.RealmManagement.API.Web.FallbackController
+  action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name}) do
     interfaces = Astarte.RealmManagement.API.Interfaces.list_interfaces!(realm_name)

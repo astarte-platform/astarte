@@ -7,7 +7,7 @@ defmodule Astarte.RealmManagement.API do
     import Supervisor.Spec
 
     children = [
-      supervisor(Astarte.RealmManagement.API.Web.Endpoint, []),
+      supervisor(Astarte.RealmManagement.APIWeb.Endpoint, []),
       worker(Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient, [])
     ]
 

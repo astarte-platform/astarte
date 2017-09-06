@@ -1,5 +1,5 @@
-defmodule Astarte.RealmManagement.API.Web.InterfaceView do
-  use Astarte.RealmManagement.API.Web, :view
+defmodule Astarte.RealmManagement.APIWeb.InterfaceView do
+  use Astarte.RealmManagement.APIWeb, :view
 
   def render("index.json", %{interfaces: interfaces}) do
     interfaces

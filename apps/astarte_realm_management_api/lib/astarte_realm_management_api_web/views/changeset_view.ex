@@ -1,11 +1,11 @@
-defmodule Astarte.RealmManagement.API.Web.ChangesetView do
-  use Astarte.RealmManagement.API.Web, :view
+defmodule Astarte.RealmManagement.APIWeb.ChangesetView do
+  use Astarte.RealmManagement.APIWeb, :view
 
   @doc """
   Traverses and translates changeset errors.
 
   See `Ecto.Changeset.traverse_errors/2` and
-  `Astarte.RealmManagement.API.Web.ErrorHelpers.translate_error/1` for more details.
+  `Astarte.RealmManagement.APIWeb.ErrorHelpers.translate_error/1` for more details.
   """
   def translate_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, &translate_error/1)
