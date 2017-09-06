@@ -1,11 +1,11 @@
-defmodule Astarte.RealmManagement.API.Web.Router do
-  use Astarte.RealmManagement.API.Web, :router
+defmodule Astarte.RealmManagement.APIWeb.Router do
+  use Astarte.RealmManagement.APIWeb, :router
 
   pipeline :api do
     plug :accepts, ["json"]
   end
 
-  scope "/v1", Astarte.RealmManagement.API.Web do
+  scope "/v1", Astarte.RealmManagement.APIWeb do
     pipe_through :api
 
     get "/:realm_name/interfaces/:id", InterfaceVersionController, :index

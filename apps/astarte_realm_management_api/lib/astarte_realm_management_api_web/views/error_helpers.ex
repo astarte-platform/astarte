@@ -1,4 +1,4 @@
-defmodule Astarte.RealmManagement.API.Web.ErrorHelpers do
+defmodule Astarte.RealmManagement.APIWeb.ErrorHelpers do
   @moduledoc """
   Conveniences for translating and building error messages.
   """
@@ -21,9 +21,9 @@ defmodule Astarte.RealmManagement.API.Web.ErrorHelpers do
     #     dgettext "errors", "is invalid"
     #
     if count = opts[:count] do
-      Gettext.dngettext(Astarte.RealmManagement.API.Web.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(Astarte.RealmManagement.APIWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(Astarte.RealmManagement.API.Web.Gettext, "errors", msg, opts)
+      Gettext.dgettext(Astarte.RealmManagement.APIWeb.Gettext, "errors", msg, opts)
     end
   end
 end

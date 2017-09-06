@@ -1,4 +1,4 @@
-defmodule Astarte.RealmManagement.API.Web.ConnCase do
+defmodule Astarte.RealmManagement.APIWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -19,10 +19,10 @@ defmodule Astarte.RealmManagement.API.Web.ConnCase do
     quote do
       # Import conveniences for testing with connections
       use Phoenix.ConnTest
-      import Astarte.RealmManagement.API.Web.Router.Helpers
+      import Astarte.RealmManagement.APIWeb.Router.Helpers
 
       # The default endpoint for testing
-      @endpoint Astarte.RealmManagement.API.Web.Endpoint
+      @endpoint Astarte.RealmManagement.APIWeb.Endpoint
     end
   end
 

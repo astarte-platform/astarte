@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   #
   # Type `mix help compile.app` for more information.
   def application do
-    [mod: {Astarte.RealmManagement.API, []},
+    [mod: {Astarte.RealmManagement.API.Application, []},
      extra_applications: [:logger, :runtime_tools]]
   end
 

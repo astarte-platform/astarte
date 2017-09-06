@@ -1,4 +1,4 @@
-defmodule Astarte.RealmManagement.API do
+defmodule Astarte.RealmManagement.API.Application do
   use Application
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
@@ -7,7 +7,7 @@ defmodule Astarte.RealmManagement.API do
     import Supervisor.Spec
 
     children = [
-      supervisor(Astarte.RealmManagement.API.Web.Endpoint, []),
+      supervisor(Astarte.RealmManagement.APIWeb.Endpoint, []),
       worker(Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient, [])
     ]
 
