@@ -74,7 +74,7 @@ defmodule Astarte.Housekeeping.API.Realms do
       {:error, ...}
 
   """
-  def update_realm(%Realm{} = realm, attrs) do
+  def update_realm(%Realm{} = _realm, _attrs) do
     raise "TODO"
   end
 
@@ -90,7 +90,7 @@ defmodule Astarte.Housekeeping.API.Realms do
       {:error, ...}
 
   """
-  def delete_realm(%Realm{} = realm) do
+  def delete_realm(%Realm{} = _realm) do
     raise "TODO"
   end
 
@@ -103,7 +103,7 @@ defmodule Astarte.Housekeeping.API.Realms do
       %Todo{...}
 
   """
-  def change_realm(%Realm{} = realm) do
+  def change_realm(%Realm{} = _realm) do
     raise "TODO"
   end
 end
