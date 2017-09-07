@@ -69,7 +69,9 @@ defmodule Astarte.RealmManagement.Queries do
     SELECT DISTINCT name FROM interfaces;
   """
 
-  defp create_interface_table(:individual, interface_name, mappings) do
+  defp create_interface_table(:individual, interface_descriptor, mappings) do
+    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+
     mappings_cql = for mapping <- mappings do
         Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
     end
@@ -80,13 +82,15 @@ defmodule Astarte.RealmManagement.Queries do
       |> Enum.join(~s(,\n))
 
     create_table_statement = @create_interface_table_with_individual_aggregation
-    |> String.replace(":interface_name", interface_name)
+    |> String.replace(":interface_name", table_name)
     |> String.replace(":columns", columns)
 
     create_table_statement
   end
 
-  defp create_interface_table(:object, interface_name, mappings) do
+  defp create_interface_table(:object, interface_descriptor, mappings) do
+    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+
     mappings_cql = for mapping <- mappings do
       Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
     end
@@ -95,15 +99,14 @@ defmodule Astarte.RealmManagement.Queries do
       |> Enum.join(~s(,\n))
 
     create_table_statement = @create_interface_table_with_object_aggregation
-      |> String.replace(":interface_name", interface_name)
+      |> String.replace(":interface_name", table_name)
       |> String.replace(":columns", columns)
 
     create_table_statement
   end
 
   def install_new_interface(client, interface_document) do
-    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_document.descriptor.name, interface_document.descriptor.major_version)
-    {:ok, _} = DatabaseQuery.call(client, create_interface_table(interface_document.descriptor.aggregation, table_name, interface_document.mappings))
+    {:ok, _} = DatabaseQuery.call(client, create_interface_table(interface_document.descriptor.aggregation, interface_document.descriptor, interface_document.mappings))
 
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(@insert_into_interfaces)
