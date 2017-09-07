@@ -19,10 +19,11 @@ defmodule Astarte.RealmManagement.Queries do
       device_id uuid,
       endpoint_id uuid,
       path varchar,
+      :value_timestamp
       reception_timestamp timestamp,
       endpoint_tokens list<varchar>,
       :columns,
-      PRIMARY KEY(device_id, endpoint_id, path)
+      PRIMARY KEY(device_id, endpoint_id, path :key_timestamp)
     )
   """
 
@@ -82,9 +83,22 @@ defmodule Astarte.RealmManagement.Queries do
       |> Enum.sort
       |> Enum.join(~s(,\n))
 
+    {value_timestamp, key_timestamp} = case {interface_descriptor.type, interface_descriptor.explicit_timestamp} do
+      {:datastream, true} ->
+        {"value_timestamp timestamp,", ", value_timestamp"}
+
+      {:datastream, false} ->
+        {"", ", reception_timestamp"}
+
+      {:properties, false} ->
+        {"", ""}
+    end
+
     create_table_statement = @create_interface_table_with_individual_aggregation
     |> String.replace(":interface_name", table_name)
+    |> String.replace(":value_timestamp", value_timestamp)
     |> String.replace(":columns", columns)
+    |> String.replace(":key_timestamp", key_timestamp)
 
     create_table_statement
   end
