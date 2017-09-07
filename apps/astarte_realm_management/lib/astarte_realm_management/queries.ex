@@ -29,9 +29,10 @@ defmodule Astarte.RealmManagement.Queries do
   @create_interface_table_with_object_aggregation """
     CREATE TABLE :interface_name (
       device_id uuid,
+      :value_timestamp,
       reception_timestamp timestamp,
       :columns,
-      PRIMARY KEY(device_id, reception_timestamp)
+      PRIMARY KEY(device_id, :key_timestamp)
     )
   """
 
@@ -98,9 +99,17 @@ defmodule Astarte.RealmManagement.Queries do
     columns = mappings_cql
       |> Enum.join(~s(,\n))
 
+    {value_timestamp, key_timestamp} = if interface_descriptor.explicit_timestamp do
+      {"value_timestamp timestamp,", "value_timestamp"}
+    else
+      {"", "reception_timestamp"}
+    end
+
     create_table_statement = @create_interface_table_with_object_aggregation
       |> String.replace(":interface_name", table_name)
+      |> String.replace(":value_timestamp", value_timestamp)
       |> String.replace(":columns", columns)
+      |> String.replace(":key_timestamp", key_timestamp)
 
     create_table_statement
   end
