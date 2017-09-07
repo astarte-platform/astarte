@@ -19,19 +19,21 @@ defmodule Astarte.RealmManagement.Queries do
       device_id uuid,
       endpoint_id uuid,
       path varchar,
+      :value_timestamp
       reception_timestamp timestamp,
       endpoint_tokens list<varchar>,
       :columns,
-      PRIMARY KEY(device_id, endpoint_id, path)
+      PRIMARY KEY(device_id, endpoint_id, path :key_timestamp)
     )
   """
 
   @create_interface_table_with_object_aggregation """
     CREATE TABLE :interface_name (
       device_id uuid,
+      :value_timestamp,
       reception_timestamp timestamp,
       :columns,
-      PRIMARY KEY(device_id, reception_timestamp)
+      PRIMARY KEY(device_id, :key_timestamp)
     )
   """
 
@@ -69,7 +71,9 @@ defmodule Astarte.RealmManagement.Queries do
     SELECT DISTINCT name FROM interfaces;
   """
 
-  defp create_interface_table(:individual, interface_name, mappings) do
+  defp create_interface_table(:individual, interface_descriptor, mappings) do
+    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+
     mappings_cql = for mapping <- mappings do
         Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
     end
@@ -79,14 +83,29 @@ defmodule Astarte.RealmManagement.Queries do
       |> Enum.sort
       |> Enum.join(~s(,\n))
 
+    {value_timestamp, key_timestamp} = case {interface_descriptor.type, interface_descriptor.explicit_timestamp} do
+      {:datastream, true} ->
+        {"value_timestamp timestamp,", ", value_timestamp"}
+
+      {:datastream, false} ->
+        {"", ", reception_timestamp"}
+
+      {:properties, false} ->
+        {"", ""}
+    end
+
     create_table_statement = @create_interface_table_with_individual_aggregation
-    |> String.replace(":interface_name", interface_name)
+    |> String.replace(":interface_name", table_name)
+    |> String.replace(":value_timestamp", value_timestamp)
     |> String.replace(":columns", columns)
+    |> String.replace(":key_timestamp", key_timestamp)
 
     create_table_statement
   end
 
-  defp create_interface_table(:object, interface_name, mappings) do
+  defp create_interface_table(:object, interface_descriptor, mappings) do
+    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+
     mappings_cql = for mapping <- mappings do
       Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
     end
@@ -94,16 +113,23 @@ defmodule Astarte.RealmManagement.Queries do
     columns = mappings_cql
       |> Enum.join(~s(,\n))
 
+    {value_timestamp, key_timestamp} = if interface_descriptor.explicit_timestamp do
+      {"value_timestamp timestamp,", "value_timestamp"}
+    else
+      {"", "reception_timestamp"}
+    end
+
     create_table_statement = @create_interface_table_with_object_aggregation
-      |> String.replace(":interface_name", interface_name)
+      |> String.replace(":interface_name", table_name)
+      |> String.replace(":value_timestamp", value_timestamp)
       |> String.replace(":columns", columns)
+      |> String.replace(":key_timestamp", key_timestamp)
 
     create_table_statement
   end
 
   def install_new_interface(client, interface_document) do
-    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_document.descriptor.name, interface_document.descriptor.major_version)
-    {:ok, _} = DatabaseQuery.call(client, create_interface_table(interface_document.descriptor.aggregation, table_name, interface_document.mappings))
+    {:ok, _} = DatabaseQuery.call(client, create_interface_table(interface_document.descriptor.aggregation, interface_document.descriptor, interface_document.mappings))
 
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(@insert_into_interfaces)

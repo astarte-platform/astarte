@@ -126,6 +126,39 @@ defmodule Astarte.RealmManagement.QueriesTest do
     SELECT path FROM com_ispirata_hemera_devicelog_status_v2 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id;
   """
 
+  @individual_datastream_with_explicit_timestamp_interface_json """
+{
+   "interface_name": "com.monotonic.Number",
+   "version_major": 1,
+   "version_minor": 0,
+   "type": "datastream",
+   "quality": "producer",
+   "aggregation": "individual",
+   "explicit_timestamp": true,
+   "mappings": [
+       {
+           "path": "/monotonicInteger/%{ind}/v",
+           "type": "longinteger",
+           "reliability": "guaranteed",
+           "retention": "stored"
+       }
+   ]
+}
+  """
+
+  @insert_monotonic_number """
+    INSERT INTO com_monotonic_number_v1 (device_id, endpoint_id, path, value_timestamp, reception_timestamp, longinteger_value)
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/monotonicInteger/:ind/v', :value_timestamp, '2012-02-03 04:06+0000', :num) ;
+    """
+
+  @find_monotonic_num_endpoint_id """
+    SELECT * FROM endpoints WHERE endpoint = '/monotonicInteger/%{ind}/v' ALLOW FILTERING;
+  """
+
+  @list_monotonic_number_values """
+    SELECT value_timestamp FROM com_monotonic_number_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id AND path='/monotonicInteger/:ind/v';
+  """
+
   def connect_to_test_realm(realm) do
     CQEx.Client.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm])
   end
@@ -247,6 +280,65 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
       {:error, msg} -> Logger.warn "Skipped 'individual interface install' test, database engine says: " <> msg
     end
+  end
+
+  test "timestamp handling" do
+     case Astarte.RealmManagement.DatabaseTestHelper.connect_to_test_database() do
+      {:ok, _} ->
+        client = connect_to_test_realm("autotestrealm")
+
+        doc = Astarte.Core.InterfaceDocument.from_json(@individual_datastream_with_explicit_timestamp_interface_json)
+        Astarte.RealmManagement.Queries.install_new_interface(client, doc)
+
+        endpoint = DatabaseQuery.call!(client, @find_monotonic_num_endpoint_id)
+          |> Enum.to_list
+          |> List.first
+        endpoint_id = endpoint[:endpoint_id]
+
+        insert_values(client, endpoint_id, 0, 100)
+        insert_values(client, endpoint_id, 1, 20)
+        insert_values(client, endpoint_id, 2, 10)
+
+        assert check_order(client, endpoint_id, 0) == true
+        assert check_order(client, endpoint_id, 1) == true
+        assert check_order(client, endpoint_id, 2) == true
+
+        Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+
+      {:error, msg} -> Logger.warn "Skipped 'individual interface install' test, database engine says: " <> msg
+    end
+  end
+
+  defp insert_values(_client, _endpoint_id, _ind, 0) do
+  end
+
+  defp insert_values(client, endpoint_id, ind, n) do
+    statement = @insert_monotonic_number
+      |> String.replace(":ind", Integer.to_string(ind))
+
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(statement)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:value_timestamp, 1504800339954 + Enum.random(0..157700000000))
+      |> DatabaseQuery.put(:num, n)
+    DatabaseQuery.call!(client, query)
+
+    insert_values(client, endpoint_id, ind, n - 1)
+  end
+
+  defp check_order(client, endpoint_id, ind) do
+    statement = @list_monotonic_number_values
+      |> String.replace(":ind", Integer.to_string(ind))
+
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(statement)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    timestamps = DatabaseQuery.call!(client, query)
+      |> Enum.to_list
+
+    sorted_timestamps = Enum.sort(timestamps, &(&1[:value_timestamp] <= &2[:value_timestamp]))
+
+    timestamps == sorted_timestamps
   end
 
 end
