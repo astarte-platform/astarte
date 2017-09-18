@@ -33,7 +33,8 @@ defmodule Astarte.RealmManagement.Queries do
       :value_timestamp,
       reception_timestamp timestamp,
       :columns,
-      PRIMARY KEY(device_id, :key_timestamp)
+
+      PRIMARY KEY(device_id, :key_timestamp reception_timestamp)
     )
   """
 
@@ -114,9 +115,9 @@ defmodule Astarte.RealmManagement.Queries do
       |> Enum.join(~s(,\n))
 
     {value_timestamp, key_timestamp} = if interface_descriptor.explicit_timestamp do
-      {"value_timestamp timestamp,", "value_timestamp"}
+      {"value_timestamp timestamp,", "value_timestamp,"}
     else
-      {"", "reception_timestamp"}
+      {"", ""}
     end
 
     create_table_statement = @create_interface_table_with_object_aggregation
