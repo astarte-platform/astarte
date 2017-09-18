@@ -58,12 +58,14 @@ defmodule Astarte.Housekeeping.Queries do
         name ascii,
         major_version int,
         minor_version int,
+        interface_id uuid,
         storage_type int,
         storage ascii,
         type int,
         quality int,
         flags int,
         source varchar,
+
         PRIMARY KEY (name, major_version)
       );
     """,
