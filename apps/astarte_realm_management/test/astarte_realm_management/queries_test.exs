@@ -128,7 +128,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
   @individual_datastream_with_explicit_timestamp_interface_json """
 {
-   "interface_name": "com.monotonic.Number",
+   "interface_name": "com.timestamp.Test",
    "version_major": 1,
    "version_minor": 0,
    "type": "datastream",
@@ -137,7 +137,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
    "explicit_timestamp": true,
    "mappings": [
        {
-           "path": "/monotonicInteger/%{ind}/v",
+           "path": "/test/%{ind}/v",
            "type": "longinteger",
            "reliability": "guaranteed",
            "retention": "stored"
@@ -146,17 +146,17 @@ defmodule Astarte.RealmManagement.QueriesTest do
 }
   """
 
-  @insert_monotonic_number """
-    INSERT INTO com_monotonic_number_v1 (device_id, endpoint_id, path, value_timestamp, reception_timestamp, longinteger_value)
-      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/monotonicInteger/:ind/v', :value_timestamp, :reception_timestamp, :num) ;
+  @insert_timestamp_test_value """
+    INSERT INTO com_timestamp_test_v1 (device_id, endpoint_id, path, value_timestamp, reception_timestamp, longinteger_value)
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/test/:ind/v', :value_timestamp, :reception_timestamp, :num) ;
     """
 
-  @find_monotonic_num_endpoint_id """
-    SELECT * FROM endpoints WHERE endpoint = '/monotonicInteger/%{ind}/v' ALLOW FILTERING;
+  @find_timestamp_test_endpoint_id """
+    SELECT * FROM endpoints WHERE endpoint = '/test/%{ind}/v' ALLOW FILTERING;
   """
 
-  @list_monotonic_number_values """
-    SELECT value_timestamp FROM com_monotonic_number_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id AND path='/monotonicInteger/:ind/v';
+  @list_timestamp_test_values """
+    SELECT value_timestamp FROM com_timestamp_test_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
   """
 
   def connect_to_test_realm(realm) do
@@ -290,18 +290,18 @@ defmodule Astarte.RealmManagement.QueriesTest do
         doc = Astarte.Core.InterfaceDocument.from_json(@individual_datastream_with_explicit_timestamp_interface_json)
         Astarte.RealmManagement.Queries.install_new_interface(client, doc)
 
-        endpoint = DatabaseQuery.call!(client, @find_monotonic_num_endpoint_id)
+        endpoint = DatabaseQuery.call!(client, @find_timestamp_test_endpoint_id)
           |> Enum.to_list
           |> List.first
         endpoint_id = endpoint[:endpoint_id]
 
-        insert_values(client, endpoint_id, 0, 100)
-        insert_values(client, endpoint_id, 1, 20)
-        insert_values(client, endpoint_id, 2, 10)
+        timestamp_handling_insert_values(client, endpoint_id, 0, 100)
+        timestamp_handling_insert_values(client, endpoint_id, 1, 20)
+        timestamp_handling_insert_values(client, endpoint_id, 2, 10)
 
-        assert check_order(client, endpoint_id, 0) == {100, true}
-        assert check_order(client, endpoint_id, 1) == {20, true}
-        assert check_order(client, endpoint_id, 2) == {10, true}
+        assert timestamp_handling_check_order(client, endpoint_id, 0) == {100, true}
+        assert timestamp_handling_check_order(client, endpoint_id, 1) == {20, true}
+        assert timestamp_handling_check_order(client, endpoint_id, 2) == {10, true}
 
         Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
 
@@ -309,11 +309,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
     end
   end
 
-  defp insert_values(_client, _endpoint_id, _ind, 0) do
+  defp timestamp_handling_insert_values(_client, _endpoint_id, _ind, 0) do
   end
 
-  defp insert_values(client, endpoint_id, ind, n) do
-    statement = @insert_monotonic_number
+  defp timestamp_handling_insert_values(client, endpoint_id, ind, n) do
+    statement = @insert_timestamp_test_value
       |> String.replace(":ind", Integer.to_string(ind))
 
     query = DatabaseQuery.new
@@ -324,11 +324,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
       |> DatabaseQuery.put(:num, n)
     DatabaseQuery.call!(client, query)
 
-    insert_values(client, endpoint_id, ind, n - 1)
+    timestamp_handling_insert_values(client, endpoint_id, ind, n - 1)
   end
 
-  defp check_order(client, endpoint_id, ind) do
-    statement = @list_monotonic_number_values
+  defp timestamp_handling_check_order(client, endpoint_id, ind) do
+    statement = @list_timestamp_test_values
       |> String.replace(":ind", Integer.to_string(ind))
 
     query = DatabaseQuery.new
