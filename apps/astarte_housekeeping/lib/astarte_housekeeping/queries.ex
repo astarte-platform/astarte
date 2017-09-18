@@ -13,12 +13,25 @@ defmodule Astarte.Housekeeping.Queries do
     """,
     """
       CREATE TABLE :realm_name.devices (
-        device_id ascii,
-        introspection list<ascii>,
+        device_id uuid,
+        extended_id ascii,
+        introspection set<ascii>,
+        protocol_revision int,
+        triggers set<ascii>,
+        metadata map<ascii, text>,
+        inhibit_pairing boolean,
+        api_key ascii,
+        cert_serial ascii,
+        cert_aki ascii,
+        first_pairing timestamp,
         last_connection timestamp,
         last_disconnection timestamp,
         connected boolean,
-        protocol_revision int,
+        pending_empty_cache boolean,
+        total_received_msgs bigint,
+        total_received_bytes bigint,
+        last_pairing_ip inet,
+        last_seen_ip inet,
 
         PRIMARY KEY (device_id)
       );
