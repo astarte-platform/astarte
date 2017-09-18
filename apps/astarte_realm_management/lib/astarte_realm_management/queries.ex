@@ -86,7 +86,7 @@ defmodule Astarte.RealmManagement.Queries do
 
     {value_timestamp, key_timestamp} = case {interface_descriptor.type, interface_descriptor.explicit_timestamp} do
       {:datastream, true} ->
-        {"value_timestamp timestamp,", ", value_timestamp"}
+        {"value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
 
       {:datastream, false} ->
         {"", ", reception_timestamp"}
