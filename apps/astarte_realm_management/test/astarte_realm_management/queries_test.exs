@@ -148,7 +148,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
   @insert_monotonic_number """
     INSERT INTO com_monotonic_number_v1 (device_id, endpoint_id, path, value_timestamp, reception_timestamp, longinteger_value)
-      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/monotonicInteger/:ind/v', :value_timestamp, '2012-02-03 04:06+0000', :num) ;
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/monotonicInteger/:ind/v', :value_timestamp, :reception_timestamp, :num) ;
     """
 
   @find_monotonic_num_endpoint_id """
@@ -299,9 +299,9 @@ defmodule Astarte.RealmManagement.QueriesTest do
         insert_values(client, endpoint_id, 1, 20)
         insert_values(client, endpoint_id, 2, 10)
 
-        assert check_order(client, endpoint_id, 0) == true
-        assert check_order(client, endpoint_id, 1) == true
-        assert check_order(client, endpoint_id, 2) == true
+        assert check_order(client, endpoint_id, 0) == {100, true}
+        assert check_order(client, endpoint_id, 1) == {20, true}
+        assert check_order(client, endpoint_id, 2) == {10, true}
 
         Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
 
@@ -320,6 +320,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
       |> DatabaseQuery.statement(statement)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:value_timestamp, 1504800339954 + Enum.random(0..157700000000))
+      |> DatabaseQuery.put(:reception_timestamp, 1504800339954 + Enum.random(0..157700000000))
       |> DatabaseQuery.put(:num, n)
     DatabaseQuery.call!(client, query)
 
@@ -338,7 +339,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     sorted_timestamps = Enum.sort(timestamps, &(&1[:value_timestamp] <= &2[:value_timestamp]))
 
-    timestamps == sorted_timestamps
+    {length(timestamps), timestamps == sorted_timestamps}
   end
 
 end
