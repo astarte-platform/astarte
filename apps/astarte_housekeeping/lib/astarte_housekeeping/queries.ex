@@ -58,6 +58,8 @@ defmodule Astarte.Housekeeping.Queries do
         name ascii,
         major_version int,
         minor_version int,
+        storage_type int,
+        storage ascii,
         type int,
         quality int,
         flags int,
