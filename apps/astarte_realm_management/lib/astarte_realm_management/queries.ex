@@ -225,8 +225,9 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def update_interface(client, interface_document) do
-    Logger.warn "update_interface: " <> inspect(interface_document)
-    Logger.warn "client: " <> inspect(client)
+    Logger.warn "update_interface: #{inspect interface_document}"
+    Logger.warn "client: #{inspect client}"
+
     {:error, :not_implemented}
   end
 
@@ -235,7 +236,7 @@ defmodule Astarte.RealmManagement.Queries do
       {:error, :forbidden}
 
     else
-      Logger.warn "delete interface: " <> interface_name
+      Logger.info "delete interface: #{interface_name}"
 
       interface_id = Astarte.Core.CQLUtils.interface_id(interface_name, interface_major_version)
 

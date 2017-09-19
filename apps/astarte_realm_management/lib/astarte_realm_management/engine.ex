@@ -6,14 +6,14 @@ defmodule Astarte.RealmManagement.Engine do
     {connection_status, connection_result} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
     if String.contains?(String.downcase(interface_json), ["drop", "insert", "delete", "update", "keyspace", "table"]) do
-      Logger.warn "Found possible CQL command in JSON interface: " <> inspect interface_json
+      Logger.warn "Found possible CQL command in JSON interface: #{inspect interface_json}"
     end
 
     interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
     cond do
       interface_document == nil ->
-        Logger.warn "Received invalid interface JSON: " <> inspect interface_json
+        Logger.warn "Received invalid interface JSON: #{inspect interface_json}"
         {:error, :invalid_interface_document}
 
       {connection_status, connection_result} == {:error, :shutdown} ->
@@ -36,14 +36,14 @@ defmodule Astarte.RealmManagement.Engine do
     {connection_status, connection_result} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
     if String.contains?(String.downcase(interface_json), ["drop", "insert", "delete", "update", "keyspace", "table"]) do
-      Logger.warn "Found possible CQL command in JSON interface: " <> inspect interface_json
+      Logger.warn "Found possible CQL command in JSON interface: #{inspect interface_json}"
     end
 
     interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
     cond do
       interface_document == nil ->
-        Logger.warn "Received invalid interface JSON: " <> inspect interface_json
+        Logger.warn "Received invalid interface JSON: #{inspect interface_json}"
         {:error, :invalid_interface_document}
 
       {connection_status, connection_result} == {:error, :shutdown} ->

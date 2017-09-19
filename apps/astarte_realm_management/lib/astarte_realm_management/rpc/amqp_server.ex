@@ -81,11 +81,11 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
             encode_reply(:delete_interface, Astarte.RealmManagement.Engine.delete_interface(realm_name, interface_name, interface_major_version, async: async_operation))
 
         invalid_call ->
-          Logger.warn "Received unexpected call: " <> inspect invalid_call
+          Logger.warn "Received unexpected call: #{inspect invalid_call}"
           {:error, :unexpected_call}
         end
       invalid_message ->
-        Logger.warn "Received unexpected message: " <> inspect invalid_message
+        Logger.warn "Received unexpected message: #{inspect invalid_message}"
         {:error, :unexpected_message}
     end
   end
