@@ -123,7 +123,7 @@ defmodule Astarte.RealmManagement.Queries do
     table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
 
     mappings_cql = for mapping <- mappings do
-        Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+        "#{Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type)} #{Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
     end
 
     columns = mappings_cql
@@ -155,7 +155,7 @@ defmodule Astarte.RealmManagement.Queries do
     table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
 
     mappings_cql = for mapping <- mappings do
-      Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+      "#{Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
     end
 
     columns = mappings_cql
