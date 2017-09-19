@@ -76,9 +76,10 @@ defmodule Astarte.RealmManagement.Queries do
      DELETE FROM interfaces WHERE name=:name;
   """
 
-  @drop_interface_table """
-     DROP TABLE :table_name;
-  """
+  # TODO: disable DROP TABLE
+  #  @drop_interface_table """
+  #   DROP TABLE :table_name;
+  #"""
 
   @query_interface_versions """
     SELECT major_version, minor_version FROM interfaces WHERE name=:interface_name;
@@ -244,9 +245,10 @@ defmodule Astarte.RealmManagement.Queries do
         |> DatabaseQuery.put(:interface_id, interface_id)
       DatabaseQuery.call!(client, delete_query)
 
-      drop_table_statement = @drop_interface_table
-        |> String.replace(":table_name", Astarte.Core.CQLUtils.interface_name_to_table_name(interface_name, 0))
-      DatabaseQuery.call!(client, drop_table_statement)
+      #TODO: no need to delete a table for the multi interface approach
+      #drop_table_statement = @drop_interface_table
+      #  |> String.replace(":table_name", Astarte.Core.CQLUtils.interface_name_to_table_name(interface_name, 0))
+      #DatabaseQuery.call!(client, drop_table_statement)
 
       :ok
     end
