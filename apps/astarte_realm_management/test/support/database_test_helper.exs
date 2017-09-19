@@ -14,16 +14,21 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         name ascii,
         major_version int,
         minor_version int,
+        interface_id uuid,
+        storage_type int,
+        storage ascii,
         type int,
         quality int,
         flags int,
         source varchar,
+
         PRIMARY KEY (name, major_version)
       );
   """
 
   @create_endpoints_table """
       CREATE TABLE autotestrealm.endpoints (
+        interface_id uuid,
         endpoint_id uuid,
         interface_name ascii,
         interface_major_version int,
@@ -36,7 +41,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         expiry int,
         allow_unset boolean,
 
-        PRIMARY KEY (endpoint_id, endpoint)
+        PRIMARY KEY ((interface_id), endpoint_id)
       );
   """
 

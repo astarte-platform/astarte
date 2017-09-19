@@ -106,10 +106,6 @@ defmodule Astarte.RealmManagement.QueriesTest do
 }
 """
 
-  @find_endpoint_id """
-    SELECT * FROM endpoints WHERE endpoint = '/filterRules/%{ruleId}/%{filterKey}/value' ALLOW FILTERING;
-  """
-
   @insert_devicelog_status_0 """
     INSERT INTO com_ispirata_hemera_devicelog_status_v2 (device_id, endpoint_id, path, endpoint_tokens, reception_timestamp, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/filterRules/0/testKey/value', ['0', 'testKey'], '2012-02-03 04:06+0000', 'T€ST_VÆLÙE') ;
   """
@@ -151,8 +147,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
       VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/test/:ind/v', :value_timestamp, :reception_timestamp, :num) ;
     """
 
-  @find_timestamp_test_endpoint_id """
-    SELECT * FROM endpoints WHERE endpoint = '/test/%{ind}/v' ALLOW FILTERING;
+  @list_endpoints_by_interface """
+    SELECT * FROM endpoints WHERE interface_id = :interface_id;
   """
 
   @list_timestamp_test_values """
@@ -161,6 +157,18 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
   def connect_to_test_realm(realm) do
     CQEx.Client.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm])
+  end
+
+  def find_endpoint(client, interface_name, interface_major, endpoint) do
+    query = DatabaseQuery.new
+      |> DatabaseQuery.statement(@list_endpoints_by_interface)
+      |> DatabaseQuery.put(:interface_id, Astarte.Core.CQLUtils.interface_id(interface_name, interface_major))
+
+    DatabaseQuery.call!(client, query)
+      |> Enum.to_list
+      |> Enum.find(fn(row) ->
+        row[:endpoint] == endpoint
+      end)
   end
 
   test "object interface install" do
@@ -237,10 +245,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:ok, intdoc.source}
         assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
 
-        endpoint = DatabaseQuery.call!(client, @find_endpoint_id)
-          |> Enum.to_list
-          |> List.first
-
+        endpoint = find_endpoint(client, "com.ispirata.Hemera.DeviceLog.Status", 2, "/filterRules/%{ruleId}/%{filterKey}/value")
         endpoint_id = endpoint[:endpoint_id]
 
         assert endpoint[:interface_name] == "com.ispirata.Hemera.DeviceLog.Status"
@@ -290,10 +295,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         doc = Astarte.Core.InterfaceDocument.from_json(@individual_datastream_with_explicit_timestamp_interface_json)
         Astarte.RealmManagement.Queries.install_new_interface(client, doc)
 
-        endpoint = DatabaseQuery.call!(client, @find_timestamp_test_endpoint_id)
-          |> Enum.to_list
-          |> List.first
-        endpoint_id = endpoint[:endpoint_id]
+        endpoint_id = find_endpoint(client, "com.timestamp.Test", 1, "/test/%{ind}/v")[:endpoint_id]
 
         timestamp_handling_insert_values(client, endpoint_id, 0, 100)
         timestamp_handling_insert_values(client, endpoint_id, 1, 20)

@@ -123,7 +123,6 @@ defmodule Astarte.RealmManagement.EngineTest do
     end
   end
 
-  @tag :cassandra_only
   test "delete interface" do
     case Astarte.RealmManagement.DatabaseTestHelper.connect_to_test_database() do
       {:ok, _} ->
