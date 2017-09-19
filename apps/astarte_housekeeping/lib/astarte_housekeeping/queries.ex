@@ -43,6 +43,7 @@ defmodule Astarte.Housekeeping.Queries do
         interface_major_version int,
         interface_minor_version int,
         interface_type int,
+        interface_id uuid,
         endpoint ascii,
         value_type int,
         reliabilty int,
@@ -58,12 +59,14 @@ defmodule Astarte.Housekeeping.Queries do
         name ascii,
         major_version int,
         minor_version int,
+        interface_id uuid,
         storage_type int,
         storage ascii,
         type int,
         quality int,
         flags int,
         source varchar,
+
         PRIMARY KEY (name, major_version)
       );
     """,
