@@ -14,6 +14,36 @@ defmodule Astarte.RealmManagement.Queries do
     (interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version, interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset)
     VALUES (:interface_id, uuid(), :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
   """
+
+  @create_individual_multiinterface_table """
+    CREATE TABLE IF NOT EXISTS :table_name (
+      device_id uuid,
+      interface_id uuid,
+      endpoint_id uuid,
+      path varchar,
+      :value_timestamp
+      reception_timestamp timestamp,
+      endpoint_tokens list<varchar>,
+
+      double_value double,
+      integer_value int,
+      boolean_value boolean,
+      longinteger_value bigint,
+      string_value varchar,
+      binaryblob_value blob,
+      datetime_value timestamp,
+      doublearray_value list<double>,
+      integerarray_value list<int>,
+      booleanarray_value list<boolean>,
+      longintegerarray_value list<bigint>,
+      stringarray_value list<varchar>,
+      binaryblobarray_value list<blob>,
+      datetimearray_value list<timestamp>,
+
+      PRIMARY KEY((device_id, interface_id), endpoint_id, path :key_timestamp)
+    )
+  """
+
   @create_interface_table_with_individual_aggregation """
     CREATE TABLE :interface_name (
       device_id uuid,
