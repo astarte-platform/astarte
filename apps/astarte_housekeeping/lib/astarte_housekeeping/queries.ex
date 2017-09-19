@@ -38,12 +38,12 @@ defmodule Astarte.Housekeeping.Queries do
     """,
     """
       CREATE TABLE :realm_name.endpoints (
+        interface_id uuid,
         endpoint_id uuid,
         interface_name ascii,
         interface_major_version int,
         interface_minor_version int,
         interface_type int,
-        interface_id uuid,
         endpoint ascii,
         value_type int,
         reliabilty int,
@@ -51,7 +51,7 @@ defmodule Astarte.Housekeeping.Queries do
         expiry int,
         allow_unset boolean,
 
-        PRIMARY KEY (endpoint_id)
+        PRIMARY KEY ((interface_id), endpoint_id)
       );
     """,
     """
