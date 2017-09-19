@@ -123,7 +123,7 @@ defmodule Astarte.RealmManagement.Queries do
     table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
 
     mappings_cql = for mapping <- mappings do
-        Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+        "#{Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type)} #{Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
     end
 
     columns = mappings_cql
@@ -155,7 +155,7 @@ defmodule Astarte.RealmManagement.Queries do
     table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
 
     mappings_cql = for mapping <- mappings do
-      Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint) <> " " <> Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+      "#{Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
     end
 
     columns = mappings_cql
@@ -225,8 +225,9 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def update_interface(client, interface_document) do
-    Logger.warn "update_interface: " <> inspect(interface_document)
-    Logger.warn "client: " <> inspect(client)
+    Logger.warn "update_interface: #{inspect interface_document}"
+    Logger.warn "client: #{inspect client}"
+
     {:error, :not_implemented}
   end
 
@@ -235,7 +236,7 @@ defmodule Astarte.RealmManagement.Queries do
       {:error, :forbidden}
 
     else
-      Logger.warn "delete interface: " <> interface_name
+      Logger.info "delete interface: #{interface_name}"
 
       interface_id = Astarte.Core.CQLUtils.interface_id(interface_name, interface_major_version)
 

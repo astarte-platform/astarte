@@ -2,20 +2,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   use Astarte.RPC.AMQPServer,
     queue: Application.fetch_env!(:astarte_realm_management, :rpc_queue),
     amqp_options: Application.get_env(:astarte_realm_management, :amqp_connection, [])
-  alias Astarte.RPC.Protocol.RealmManagement.Call
-  alias Astarte.RPC.Protocol.RealmManagement.Reply
-  alias Astarte.RPC.Protocol.RealmManagement.InstallInterface
-  alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceSource
-  alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsList
-  alias Astarte.RPC.Protocol.RealmManagement.GetInterfacesList
-  alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceSourceReply
-  alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReply
-  alias Astarte.RPC.Protocol.RealmManagement.GenericErrorReply
-  alias Astarte.RPC.Protocol.RealmManagement.GenericOkReply
-  alias Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReplyVersionTuple
-  alias Astarte.RPC.Protocol.RealmManagement.GetInterfacesListReply
-  alias Astarte.RPC.Protocol.RealmManagement.UpdateInterface
-  alias Astarte.RPC.Protocol.RealmManagement.DeleteInterface
+  use Astarte.RPC.Protocol.RealmManagement
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
     msg = %GetInterfaceSourceReply{
@@ -94,11 +81,11 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
             encode_reply(:delete_interface, Astarte.RealmManagement.Engine.delete_interface(realm_name, interface_name, interface_major_version, async: async_operation))
 
         invalid_call ->
-          Logger.warn "Received unexpected call: " <> inspect invalid_call
+          Logger.warn "Received unexpected call: #{inspect invalid_call}"
           {:error, :unexpected_call}
         end
       invalid_message ->
-        Logger.warn "Received unexpected message: " <> inspect invalid_message
+        Logger.warn "Received unexpected message: #{inspect invalid_message}"
         {:error, :unexpected_message}
     end
   end
