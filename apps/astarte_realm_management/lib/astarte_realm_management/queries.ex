@@ -177,7 +177,11 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def install_new_interface(client, interface_document) do
-    table_type = :one
+    table_type = if interface_document.descriptor.aggregation == :individual do
+      :multi
+    else
+      :one
+    end
 
     {storage_type, table_name, create_table_statement} = create_interface_table(interface_document.descriptor.aggregation, table_type, interface_document.descriptor, interface_document.mappings)
     {:ok, _} = DatabaseQuery.call(client, create_table_statement)
