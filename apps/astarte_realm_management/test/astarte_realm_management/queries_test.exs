@@ -107,19 +107,19 @@ defmodule Astarte.RealmManagement.QueriesTest do
 """
 
   @insert_devicelog_status_0 """
-    INSERT INTO com_ispirata_hemera_devicelog_status_v2 (device_id, endpoint_id, path, endpoint_tokens, reception_timestamp, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/filterRules/0/testKey/value', ['0', 'testKey'], '2012-02-03 04:06+0000', 'T€ST_VÆLÙE') ;
+    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/0/testKey/value', ['0', 'testKey'], '2012-02-03 04:06+0000', 'T€ST_VÆLÙE') ;
   """
 
   @insert_devicelog_status_1 """
-    INSERT INTO com_ispirata_hemera_devicelog_status_v2 (device_id, endpoint_id, path, endpoint_tokens, reception_timestamp, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/filterRules/1/testKey2/value', ['1', 'testKey2'], '2012-02-03 04:06+0000', 'test') ;
+    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/1/testKey2/value', ['1', 'testKey2'], '2012-02-03 04:06+0000', 'test') ;
   """
 
   @find_devicelog_status_entry """
-    SELECT device_id, path, endpoint_tokens, reception_timestamp, string_value FROM com_ispirata_hemera_devicelog_status_v2 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id AND path='/filterRules/0/testKey/value';
+    SELECT device_id, path, endpoint_tokens, reception_timestamp, string_value FROM individual_property WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/filterRules/0/testKey/value';
   """
 
   @find_devicelog_status_entries """
-    SELECT path FROM com_ispirata_hemera_devicelog_status_v2 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id;
+    SELECT path FROM individual_property WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id;
   """
 
   @individual_datastream_with_explicit_timestamp_interface_json """
@@ -143,8 +143,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @insert_timestamp_test_value """
-    INSERT INTO com_timestamp_test_v1 (device_id, endpoint_id, path, value_timestamp, reception_timestamp, longinteger_value)
-      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :endpoint_id, '/test/:ind/v', :value_timestamp, :reception_timestamp, :num) ;
+    INSERT INTO individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, longinteger_value)
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/test/:ind/v', :value_timestamp, :reception_timestamp, :num) ;
     """
 
   @list_endpoints_by_interface """
@@ -152,7 +152,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @list_timestamp_test_values """
-    SELECT value_timestamp FROM com_timestamp_test_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
+    SELECT value_timestamp FROM individual_datastream WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
   """
 
   def connect_to_test_realm(realm) do
@@ -247,6 +247,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
         endpoint = find_endpoint(client, "com.ispirata.Hemera.DeviceLog.Status", 2, "/filterRules/%{ruleId}/%{filterKey}/value")
         endpoint_id = endpoint[:endpoint_id]
+        interface_id = Astarte.Core.CQLUtils.interface_id("com.ispirata.Hemera.DeviceLog.Status", 2)
 
         assert endpoint[:interface_name] == "com.ispirata.Hemera.DeviceLog.Status"
         assert endpoint[:interface_major_version] == 2
@@ -257,16 +258,19 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
         query = DatabaseQuery.new
           |> DatabaseQuery.statement(@insert_devicelog_status_0)
+          |> DatabaseQuery.put(:interface_id, interface_id)
           |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         DatabaseQuery.call!(client, query)
 
         query = DatabaseQuery.new
           |> DatabaseQuery.statement(@insert_devicelog_status_1)
+          |> DatabaseQuery.put(:interface_id, interface_id)
           |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         DatabaseQuery.call!(client, query)
 
         query = DatabaseQuery.new
           |> DatabaseQuery.statement(@find_devicelog_status_entry)
+          |> DatabaseQuery.put(:interface_id, interface_id)
           |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         entry = DatabaseQuery.call!(client, query)
           |> Enum.to_list
@@ -275,6 +279,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
         query = DatabaseQuery.new
           |> DatabaseQuery.statement(@find_devicelog_status_entries)
+          |> DatabaseQuery.put(:interface_id, interface_id)
           |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         entries = DatabaseQuery.call!(client, query)
           |> Enum.to_list
@@ -321,6 +326,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(statement)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:interface_id, Astarte.Core.CQLUtils.interface_id("com.timestamp.Test", 1))
       |> DatabaseQuery.put(:value_timestamp, 1504800339954 + Enum.random(0..157700000000))
       |> DatabaseQuery.put(:reception_timestamp, 1504800339954 + Enum.random(0..157700000000))
       |> DatabaseQuery.put(:num, n)
@@ -335,6 +341,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(statement)
+      |> DatabaseQuery.put(:interface_id, Astarte.Core.CQLUtils.interface_id("com.timestamp.Test", 1))
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
     timestamps = DatabaseQuery.call!(client, query)
       |> Enum.to_list
