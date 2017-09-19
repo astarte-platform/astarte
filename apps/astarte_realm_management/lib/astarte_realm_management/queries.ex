@@ -5,8 +5,8 @@ defmodule Astarte.RealmManagement.Queries do
 
   @insert_into_interfaces """
     INSERT INTO interfaces
-      (name, major_version, minor_version, type, quality, flags, source)
-      VALUES (:name, :major_version, :minor_version, :type, :ownership, :aggregation, :source)
+      (name, major_version, minor_version, interface_id, storage_type, storage, type, quality, flags, source)
+      VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :source)
   """
 
   @insert_into_endpoints """
@@ -133,6 +133,9 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:name, interface_document.descriptor.name)
       |> DatabaseQuery.put(:major_version, interface_document.descriptor.major_version)
       |> DatabaseQuery.put(:minor_version, interface_document.descriptor.minor_version)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:storage_type, 16)
+      |> DatabaseQuery.put(:storage, Astarte.Core.CQLUtils.interface_name_to_table_name(interface_document.descriptor.name, interface_document.descriptor.major_version))
       |> DatabaseQuery.put(:type, Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type))
       |> DatabaseQuery.put(:ownership, Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership))
       |> DatabaseQuery.put(:aggregation, Astarte.Core.Interface.Aggregation.to_int(interface_document.descriptor.aggregation))
