@@ -11,8 +11,8 @@ defmodule Astarte.RealmManagement.Queries do
 
   @insert_into_endpoints """
   INSERT INTO endpoints
-    (endpoint_id, interface_name, interface_major_version, interface_minor_version, interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset)
-    VALUES (uuid(), :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
+    (interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version, interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset)
+    VALUES (:interface_id, uuid(), :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
   """
   @create_interface_table_with_individual_aggregation """
     CREATE TABLE :interface_name (
@@ -38,8 +38,8 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
-  @delete_endpoint_from_endpoints """
-     DELETE FROM endpoints WHERE endpoint_id=:endpoint_id;
+  @delete_interface_endpoints """
+     DELETE FROM endpoints WHERE interface_id=:interface_id;
   """
 
   @delete_interface_from_interfaces """
@@ -48,12 +48,6 @@ defmodule Astarte.RealmManagement.Queries do
 
   @drop_interface_table """
      DROP TABLE :table_name;
-  """
-
-  # TODO: ALLOW FILTERING is not supported on Scylla DB right now
-  # https://github.com/scylladb/scylla/labels/cassandra%203.x%20compatibility
-  @query_interface_endpoints_with_major_0 """
-    SELECT endpoint_id FROM endpoints WHERE interface_name=:name AND interface_major_version=0 ALLOW FILTERING;
   """
 
   @query_interface_versions """
@@ -132,6 +126,8 @@ defmodule Astarte.RealmManagement.Queries do
   def install_new_interface(client, interface_document) do
     {:ok, _} = DatabaseQuery.call(client, create_interface_table(interface_document.descriptor.aggregation, interface_document.descriptor, interface_document.mappings))
 
+    interface_id = Astarte.Core.CQLUtils.interface_id(interface_document.descriptor.name, interface_document.descriptor.major_version)
+
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(@insert_into_interfaces)
       |> DatabaseQuery.put(:name, interface_document.descriptor.name)
@@ -152,6 +148,7 @@ defmodule Astarte.RealmManagement.Queries do
 
     for mapping <- interface_document.mappings do
       query = base_query
+        |> DatabaseQuery.put(:interface_id, interface_id)
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
         |> DatabaseQuery.put(:value_type, Astarte.Core.Mapping.ValueType.to_int(mapping.value_type))
         |> DatabaseQuery.put(:reliability, Astarte.Core.Mapping.Reliability.to_int(mapping.reliability))
@@ -177,23 +174,17 @@ defmodule Astarte.RealmManagement.Queries do
     else
       Logger.warn "delete interface: " <> interface_name
 
+      interface_id = Astarte.Core.CQLUtils.interface_id(interface_name, interface_major_version)
+
       query = DatabaseQuery.new
         |> DatabaseQuery.statement(@delete_interface_from_interfaces)
         |> DatabaseQuery.put(:name, interface_name)
       DatabaseQuery.call!(client, query)
 
-      query = DatabaseQuery.new
-        |> DatabaseQuery.statement(@query_interface_endpoints_with_major_0)
-        |> DatabaseQuery.put(:name, interface_name)
-      endpoints_to_delete = DatabaseQuery.call!(client, query)
-        |> Enum.to_list
-
-      Enum.each(endpoints_to_delete, fn(endpoint) ->
-        delete_query = DatabaseQuery.new
-          |> DatabaseQuery.statement(@delete_endpoint_from_endpoints)
-          |> DatabaseQuery.put(:endpoint_id, endpoint[:endpoint_id])
-        DatabaseQuery.call!(client, delete_query)
-      end)
+      delete_query = DatabaseQuery.new
+        |> DatabaseQuery.statement(@delete_interface_endpoints)
+        |> DatabaseQuery.put(:interface_id, interface_id)
+      DatabaseQuery.call!(client, delete_query)
 
       drop_table_statement = @drop_interface_table
         |> String.replace(":table_name", Astarte.Core.CQLUtils.interface_name_to_table_name(interface_name, 0))
