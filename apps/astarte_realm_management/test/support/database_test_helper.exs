@@ -21,6 +21,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         quality int,
         flags int,
         source varchar,
+        automaton_transitions blob,
+        automaton_accepting_states blob,
 
         PRIMARY KEY (name, major_version)
       );
