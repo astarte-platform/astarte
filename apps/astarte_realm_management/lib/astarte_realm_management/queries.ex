@@ -5,14 +5,14 @@ defmodule Astarte.RealmManagement.Queries do
 
   @insert_into_interfaces """
     INSERT INTO interfaces
-      (name, major_version, minor_version, interface_id, storage_type, storage, type, quality, flags, source)
-      VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :source)
+      (name, major_version, minor_version, interface_id, storage_type, storage, type, quality, flags, source, automaton_transitions, automaton_accepting_states)
+      VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :source, :automaton_transitions, :automaton_accepting_states)
   """
 
   @insert_into_endpoints """
   INSERT INTO endpoints
     (interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version, interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset)
-    VALUES (:interface_id, uuid(), :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
+    VALUES (:interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
   """
 
   @create_individual_multiinterface_table """
@@ -176,7 +176,7 @@ defmodule Astarte.RealmManagement.Queries do
     {9, table_name, create_table_statement}
   end
 
-  def install_new_interface(client, interface_document) do
+  def install_new_interface(client, interface_document, automaton) do
     table_type = if interface_document.descriptor.aggregation == :individual do
       :multi
     else
@@ -187,6 +187,13 @@ defmodule Astarte.RealmManagement.Queries do
     {:ok, _} = DatabaseQuery.call(client, create_table_statement)
 
     interface_id = Astarte.Core.CQLUtils.interface_id(interface_document.descriptor.name, interface_document.descriptor.major_version)
+
+    {transitions, accepting_states} = automaton
+
+    accepting_states = Enum.reduce(accepting_states, %{}, fn(state, new_states) ->
+      {state_index, endpoint} = state
+      Map.put(new_states, state_index, Astarte.Core.CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, endpoint))
+    end)
 
     query = DatabaseQuery.new
       |> DatabaseQuery.statement(@insert_into_interfaces)
@@ -200,6 +207,8 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:ownership, Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership))
       |> DatabaseQuery.put(:aggregation, Astarte.Core.Interface.Aggregation.to_int(interface_document.descriptor.aggregation))
       |> DatabaseQuery.put(:source, interface_document.source)
+      |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
+      |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
     {:ok, _} = DatabaseQuery.call(client, query)
 
     base_query = DatabaseQuery.new
@@ -212,6 +221,7 @@ defmodule Astarte.RealmManagement.Queries do
     for mapping <- interface_document.mappings do
       query = base_query
         |> DatabaseQuery.put(:interface_id, interface_id)
+        |> DatabaseQuery.put(:endpoint_id, Astarte.Core.CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, mapping.endpoint))
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
         |> DatabaseQuery.put(:value_type, Astarte.Core.Mapping.ValueType.to_int(mapping.value_type))
         |> DatabaseQuery.put(:reliability, Astarte.Core.Mapping.Reliability.to_int(mapping.reliability))
