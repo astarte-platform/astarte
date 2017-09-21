@@ -177,6 +177,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         client = connect_to_test_realm("autotestrealm")
 
         {:ok, intdoc} = Astarte.Core.InterfaceDocument.from_json(@object_datastream_interface_json)
+        {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
@@ -184,7 +185,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
         assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == []
 
-        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
+        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc, automaton)
 
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
@@ -230,6 +231,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         client = connect_to_test_realm("autotestrealm")
 
         {:ok, intdoc} = Astarte.Core.InterfaceDocument.from_json(@individual_property_thing_owned_interface )
+        {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
@@ -237,7 +239,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
         assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == []
 
-        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc)
+        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc, automaton)
 
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
         assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
@@ -298,7 +300,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
         client = connect_to_test_realm("autotestrealm")
 
         {:ok, doc} = Astarte.Core.InterfaceDocument.from_json(@individual_datastream_with_explicit_timestamp_interface_json)
-        Astarte.RealmManagement.Queries.install_new_interface(client, doc)
+        {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
+        Astarte.RealmManagement.Queries.install_new_interface(client, doc, automaton)
 
         endpoint_id = find_endpoint(client, "com.timestamp.Test", 1, "/test/%{ind}/v")[:endpoint_id]
 

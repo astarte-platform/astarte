@@ -25,11 +25,20 @@ defmodule Astarte.RealmManagement.Engine do
       true ->
         {:ok, interface_document} = interface_result
 
-        if (opts[:async]) do
-          Task.start_link(Astarte.RealmManagement.Queries, :install_new_interface, [connection_result, interface_document])
-          {:ok, :started}
-        else
-          Astarte.RealmManagement.Queries.install_new_interface(connection_result, interface_document)
+        automaton_build_result = Astarte.Core.Mapping.EndpointsAutomaton.build(interface_document.mappings)
+
+        cond do
+          match?({:error, _}, automaton_build_result) ->
+            automaton_build_result
+
+          opts[:async] ->
+            {:ok, automaton} = automaton_build_result
+            Task.start_link(Astarte.RealmManagement.Queries, :install_new_interface, [connection_result, interface_document, automaton])
+            {:ok, :started}
+
+          true ->
+            {:ok, automaton} = automaton_build_result
+            Astarte.RealmManagement.Queries.install_new_interface(connection_result, interface_document, automaton)
         end
     end
   end
