@@ -12,7 +12,7 @@ defmodule Astarte.RealmManagement.Queries do
   @insert_into_endpoints """
   INSERT INTO endpoints
     (interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version, interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset)
-    VALUES (:interface_id, uuid(), :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
+    VALUES (:interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
   """
 
   @create_individual_multiinterface_table """
@@ -212,6 +212,7 @@ defmodule Astarte.RealmManagement.Queries do
     for mapping <- interface_document.mappings do
       query = base_query
         |> DatabaseQuery.put(:interface_id, interface_id)
+        |> DatabaseQuery.put(:endpoint_id, Astarte.Core.CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, mapping.endpoint, mapping.value_type))
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
         |> DatabaseQuery.put(:value_type, Astarte.Core.Mapping.ValueType.to_int(mapping.value_type))
         |> DatabaseQuery.put(:reliability, Astarte.Core.Mapping.Reliability.to_int(mapping.reliability))
