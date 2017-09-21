@@ -9,20 +9,22 @@ defmodule Astarte.RealmManagement.Engine do
       Logger.warn "Found possible CQL command in JSON interface: #{inspect interface_json}"
     end
 
-    interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
+    interface_result = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
     cond do
-      interface_document == nil ->
+      interface_result == :error ->
         Logger.warn "Received invalid interface JSON: #{inspect interface_json}"
         {:error, :invalid_interface_document}
 
       {connection_status, connection_result} == {:error, :shutdown} ->
         {:error, :realm_not_found}
 
-      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, interface_document.descriptor.name, interface_document.descriptor.major_version) == true ->
+      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, elem(interface_result, 1).descriptor.name, elem(interface_result, 1).descriptor.major_version) == true ->
         {:error, :already_installed_interface}
 
       true ->
+        {:ok, interface_document} = interface_result
+
         if (opts[:async]) do
           Task.start_link(Astarte.RealmManagement.Queries, :install_new_interface, [connection_result, interface_document])
           {:ok, :started}
@@ -39,20 +41,22 @@ defmodule Astarte.RealmManagement.Engine do
       Logger.warn "Found possible CQL command in JSON interface: #{inspect interface_json}"
     end
 
-    interface_document = Astarte.Core.InterfaceDocument.from_json(interface_json)
+    interface_result = Astarte.Core.InterfaceDocument.from_json(interface_json)
 
     cond do
-      interface_document == nil ->
+      interface_result == :error ->
         Logger.warn "Received invalid interface JSON: #{inspect interface_json}"
         {:error, :invalid_interface_document}
 
       {connection_status, connection_result} == {:error, :shutdown} ->
         {:error, :realm_not_found}
 
-      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, interface_document.descriptor.name, interface_document.descriptor.major_version) != true ->
+      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, elem(interface_result, 1).descriptor.name, elem(interface_result, 1).descriptor.major_version) != true ->
         {:error, :interface_major_version_does_not_exist}
 
       true ->
+        {:ok, interface_document} = interface_result
+
         if (opts[:async]) do
           Task.start_link(Astarte.RealmManagement.Queries, :update_interface, [connection_result, interface_document])
           {:ok, :started}
