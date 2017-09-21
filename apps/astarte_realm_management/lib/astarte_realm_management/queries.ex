@@ -212,7 +212,7 @@ defmodule Astarte.RealmManagement.Queries do
     for mapping <- interface_document.mappings do
       query = base_query
         |> DatabaseQuery.put(:interface_id, interface_id)
-        |> DatabaseQuery.put(:endpoint_id, Astarte.Core.CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, mapping.endpoint, mapping.value_type))
+        |> DatabaseQuery.put(:endpoint_id, Astarte.Core.CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, mapping.endpoint))
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
         |> DatabaseQuery.put(:value_type, Astarte.Core.Mapping.ValueType.to_int(mapping.value_type))
         |> DatabaseQuery.put(:reliability, Astarte.Core.Mapping.Reliability.to_int(mapping.reliability))
