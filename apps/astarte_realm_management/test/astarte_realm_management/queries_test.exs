@@ -151,12 +151,34 @@ defmodule Astarte.RealmManagement.QueriesTest do
     SELECT * FROM endpoints WHERE interface_id = :interface_id;
   """
 
+  @find_interface_by_interface_name """
+    SELECT * FROM interfaces WHERE name = :name AND major_version = :major_version;
+  """
+
   @list_timestamp_test_values """
     SELECT value_timestamp FROM individual_datastream WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
   """
 
   def connect_to_test_realm(realm) do
     CQEx.Client.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm])
+  end
+
+  def retrieve_endpoint_id(client, interface_name, interface_major, path) do
+    query =
+      DatabaseQuery.new
+      |> DatabaseQuery.statement(@find_interface_by_interface_name)
+      |> DatabaseQuery.put(:name, interface_name)
+      |> DatabaseQuery.put(:major_version, interface_major)
+
+    interface_row =
+      DatabaseQuery.call!(client, query)
+      |> Enum.take(1)
+      |> hd
+
+    automaton = {:erlang.binary_to_term(interface_row[:automaton_transitions]), :erlang.binary_to_term(interface_row[:automaton_accepting_states])}
+    {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
+
+    endpoint_id
   end
 
   def find_endpoint(client, interface_name, interface_major, endpoint) do
@@ -303,7 +325,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
         Astarte.RealmManagement.Queries.install_new_interface(client, doc, automaton)
 
-        endpoint_id = find_endpoint(client, "com.timestamp.Test", 1, "/test/%{ind}/v")[:endpoint_id]
+        endpoint_id = retrieve_endpoint_id(client, "com.timestamp.Test", 1, "/test/0/v")
 
         timestamp_handling_insert_values(client, endpoint_id, 0, 100)
         timestamp_handling_insert_values(client, endpoint_id, 1, 20)
