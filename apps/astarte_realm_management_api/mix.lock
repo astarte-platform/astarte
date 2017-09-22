@@ -1,5 +1,6 @@
 %{"amqp": {:hex, :amqp, "0.2.2", "eeb9d832c5440585699ae89f48c38f662a2d44f48e694dfe9ba15824b53da1f9", [:mix], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.6.10", "f26fbacca4e71f58eba1a57746e5f10598550aa46e89bc67060da6ad1a6d95d5", [:make, :rebar3], [{:rabbit_common, "3.6.10", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
+  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "f833c54f5f8ba373c0c7782c553e7d940a643f08", []},
   "certifi": {:hex, :certifi, "1.2.1", "c3904f192bd5284e5b13f20db3ceac9626e14eeacfbb492e19583cf0e37b22be", [:rebar3], [], "hexpm"},
   "cowboy": {:hex, :cowboy, "1.1.2", "61ac29ea970389a88eca5a65601460162d370a70018afe6f949a29dca91f3bb0", [:rebar3], [{:cowlib, "~> 1.0.2", [hex: :cowlib, repo: "hexpm", optional: false]}, {:ranch, "~> 1.3.2", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm"},
   "cowlib": {:hex, :cowlib, "1.0.2", "9d769a1d062c9c3ac753096f868ca121e2730b9a377de23dec0f7e08b1df84ee", [:make], [], "hexpm"},

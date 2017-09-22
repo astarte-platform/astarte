@@ -9,12 +9,17 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
   end
 
   def create(conn, %{"realm_name" => realm_name, "data" => interface_source}) do
-    doc = Astarte.Core.InterfaceDocument.from_json(interface_source)
+    case Astarte.Core.InterfaceDocument.from_json(interface_source) do
+      :error ->
+        {:error, :invalid}
 
-    with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.create_interface!(realm_name, interface_source) do
-      conn
-      |> put_resp_header("location", interface_path(conn, :show, realm_name, doc.descriptor.name, Integer.to_string(doc.descriptor.major_version)))
-      |> send_resp(:created, "")
+      {:ok, doc} ->
+
+        with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.create_interface!(realm_name, interface_source) do
+          conn
+          |> put_resp_header("location", interface_path(conn, :show, realm_name, doc.descriptor.name, Integer.to_string(doc.descriptor.major_version)))
+          |> send_resp(:created, "")
+        end
     end
   end
 
@@ -29,15 +34,18 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
   end
 
   def update(conn, %{"realm_name" => realm_name, "id" => interface_name, "major_version" => major_version, "data" => interface_source}) do
-    doc = Astarte.Core.InterfaceDocument.from_json(interface_source)
+    doc_result = Astarte.Core.InterfaceDocument.from_json(interface_source)
 
     cond do
-      doc == nil ->
+      doc_result == :error ->
         {:error, :invalid}
-      doc.descriptor.name != interface_name ->
+
+      elem(doc_result, 1).descriptor.name != interface_name ->
         {:error, :conflict}
-      {doc.descriptor.major_version, ""} != Integer.parse(major_version) ->
+
+      {elem(doc_result, 1).descriptor.major_version, ""} != Integer.parse(major_version) ->
         {:error, :conflict}
+
       true ->
         with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.update_interface!(realm_name, interface_source) do
           send_resp(conn, :no_content, "")
