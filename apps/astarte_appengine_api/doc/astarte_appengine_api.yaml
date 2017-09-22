@@ -183,6 +183,11 @@ paths:
         description: "Filter streamed objects that have the property specified by 'filter-on' set to 'value'. 'value' must be a valid string rappresentation of the value. See also 'filter-on' and 'limit'"
         required: false
         type: "string"
+      - name: "retrieve-metadata"
+        in: "query"
+        description: "Retrieve metadata for each value if any, defaults to false. If true for each value it will be returned a JSON object with a metadata sub-object."
+        required: false
+        type: "boolean"
       responses:
         404:
           description: "Interface or Device Not found"
