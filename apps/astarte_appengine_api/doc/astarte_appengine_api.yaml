@@ -158,7 +158,7 @@ paths:
         description: "Query all values since a certain timestamp (all entries where timestamp >= since). This query parameter applies only on data streams. It must be a ISO 8601 valid timestamp. It can't be used if since is already used. See also 'since-after', to' and 'limit' parameters."
         required: false
         type: "string"
-      - name: "since-after"
+      - name: "since_after"
         in: "query"
         description: "Query all values since after a certain timestamp (all entries where timestamp > since_after). This query parameter applies only on data streams. It must be a ISO 8601 valid timestamp. It can't be used if since is already specified. See also 'since', to' and 'limit' parameters."
         required: false
@@ -173,17 +173,17 @@ paths:
         description: "Limit number of retrieved data production entries to 'limit'. This parameter must be always specified when 'since', 'since-after' and 'to' query parameters are used. If limit is specified without any 'since' and 'to' parameter, last 'limit' values are retrieved. When 'limit' entries are returned, it should be checked if any other entry is left by using since-after the last received timestamp.  An error is returned if limit exceeds maximum allowed value. See also 'since' and 'to' parameters."
         required: false
         type: "string"
-      - name: "filter-on"
+      - name: "filter_on"
         in: "query"
         description: "Use a certain property to filter streamed object aggregation. Object property must be enabled for filtering. See also 'filter-value' and 'limit'."
         required: false
         type: "string"
-      - name: "filter-value"
+      - name: "filter_value"
         in: "query"
         description: "Filter streamed objects that have the property specified by 'filter-on' set to 'value'. 'value' must be a valid string rappresentation of the value. See also 'filter-on' and 'limit'"
         required: false
         type: "string"
-      - name: "retrieve-metadata"
+      - name: "retrieve_metadata"
         in: "query"
         description: "Retrieve metadata for each value if any, defaults to false. If true for each value it will be returned a JSON object with a metadata sub-object."
         required: false
