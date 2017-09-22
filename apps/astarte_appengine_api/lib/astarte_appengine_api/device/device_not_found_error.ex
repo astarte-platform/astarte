@@ -17,23 +17,14 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-#TODO: what should we do here?
-defmodule AstarteAppengineApiWeb.ChangesetView do
-  use AstarteAppengineApiWeb, :view
+defmodule AstarteAppengineApi.Device.DeviceNotFoundError do
 
-  @doc """
-  Traverses and translates changeset errors.
+  defexception plug_status: 404,
+    message: "Device Not Found"
 
-  See `Ecto.Changeset.traverse_errors/2` and
-  `AstarteAppengineApiWeb.ErrorHelpers.translate_error/1` for more details.
-  """
-  def translate_errors(_changeset) do
-    #Ecto.Changeset.traverse_errors(changeset, &translate_error/1)
-  end
-
-  def render("error.json", %{changeset: changeset}) do
-    # When encoded, the changeset returns its errors
-    # as a JSON object. So we just pass it forward.
-    %{errors: translate_errors(changeset)}
-  end
+    def exception(_opts) do
+      %AstarteAppengineApi.Device.DeviceNotFoundError{
+      }
+    end
 end
+
