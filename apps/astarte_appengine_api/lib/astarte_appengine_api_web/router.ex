@@ -24,7 +24,9 @@ defmodule AstarteAppengineApiWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/api", AstarteAppengineApiWeb do
+  scope "/v1", AstarteAppengineApiWeb do
     pipe_through :api
+
+    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
   end
 end
