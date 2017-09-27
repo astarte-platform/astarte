@@ -32,6 +32,8 @@ defmodule AstarteAppengineApi.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -74,6 +76,7 @@ defmodule AstarteAppengineApi.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:cqex, github: "astarte-platform/cqex"},
+      {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 end
