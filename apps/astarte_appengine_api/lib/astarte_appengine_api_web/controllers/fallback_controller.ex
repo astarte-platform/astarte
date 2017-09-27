@@ -17,16 +17,23 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.Router do
-  use AstarteAppengineApiWeb, :router
+defmodule AstarteAppengineApiWeb.FallbackController do
+  @moduledoc """
+  Translates controller action results into valid `Plug.Conn` responses.
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
+  See `Phoenix.Controller.action_fallback/1` for more details.
+  """
+  use AstarteAppengineApiWeb, :controller
 
-  scope "/v1", AstarteAppengineApiWeb do
-    pipe_through :api
+  #def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
+  #  conn
+  #  |> put_status(:unprocessable_entity)
+  #  |> render(AstarteAppengineApiWeb.ChangesetView, "error.json", changeset: changeset)
+  #end
 
-    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
+  def call(conn, {:error, :not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> render(AstarteAppengineApiWeb.ErrorView, :"404")
   end
 end

@@ -17,16 +17,14 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.Router do
-  use AstarteAppengineApiWeb, :router
+defmodule AstarteAppengineApi.Device.EndpointNotFoundError do
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
+  defexception plug_status: 404,
+    message: "Endpoint Not Found"
 
-  scope "/v1", AstarteAppengineApiWeb do
-    pipe_through :api
-
-    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
-  end
+    def exception(_opts) do
+      %AstarteAppengineApi.Device.EndpointNotFoundError{
+      }
+    end
 end
+

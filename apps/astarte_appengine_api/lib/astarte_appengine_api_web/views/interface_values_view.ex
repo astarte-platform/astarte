@@ -17,16 +17,19 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.Router do
-  use AstarteAppengineApiWeb, :router
+defmodule AstarteAppengineApiWeb.InterfaceValuesView do
+  use AstarteAppengineApiWeb, :view
+  alias AstarteAppengineApiWeb.InterfaceValuesView
 
-  pipeline :api do
-    plug :accepts, ["json"]
+  def render("index.json", %{interfaces: interfaces}) do
+    %{data: render_many(interfaces, InterfaceValuesView, "interface_values.json")}
   end
 
-  scope "/v1", AstarteAppengineApiWeb do
-    pipe_through :api
+  def render("show.json", %{interface_values: interface_values}) do
+    %{data: render_one(interface_values, InterfaceValuesView, "interface_values.json")}
+  end
 
-    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
+  def render("interface_values.json", %{interface_values: interface_values}) do
+    interface_values
   end
 end
