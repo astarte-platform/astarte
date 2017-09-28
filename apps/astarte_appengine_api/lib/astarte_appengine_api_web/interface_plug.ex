@@ -1,4 +1,4 @@
-defmodule AstarteAppengineApiWeb.InterfacePlug do
+defmodule Astarte.AppEngine.APIWeb.InterfacePlug do
 
   def init(options) do
     options

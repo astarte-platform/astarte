@@ -17,11 +17,11 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.UserSocket do
+defmodule Astarte.AppEngine.APIWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", AstarteAppengineApiWeb.RoomChannel
+  # channel "room:*", Astarte.AppEngine.APIWeb.RoomChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
@@ -49,7 +49,7 @@ defmodule AstarteAppengineApiWeb.UserSocket do
   # Would allow you to broadcast a "disconnect" event and terminate
   # all active sockets and channels for a given user:
   #
-  #     AstarteAppengineApiWeb.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
+  #     Astarte.AppEngine.APIWeb.Endpoint.broadcast("user_socket:#{user.id}", "disconnect", %{})
   #
   # Returning `nil` makes this socket anonymous.
   def id(_socket), do: nil

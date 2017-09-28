@@ -17,7 +17,7 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApi.Mixfile do
+defmodule Astarte.AppEngine.API.Mixfile do
   use Mix.Project
 
   def project do
@@ -39,7 +39,7 @@ defmodule AstarteAppengineApi.Mixfile do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {AstarteAppengineApi.Application, []},
+      mod: {Astarte.AppEngine.API.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

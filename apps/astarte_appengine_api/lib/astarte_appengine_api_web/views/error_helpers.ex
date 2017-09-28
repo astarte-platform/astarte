@@ -17,7 +17,7 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.ErrorHelpers do
+defmodule Astarte.AppEngine.APIWeb.ErrorHelpers do
   @moduledoc """
   Conveniences for translating and building error messages.
   """
@@ -40,9 +40,9 @@ defmodule AstarteAppengineApiWeb.ErrorHelpers do
     #     dgettext "errors", "is invalid"
     #
     if count = opts[:count] do
-      Gettext.dngettext(AstarteAppengineApiWeb.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(Astarte.AppEngine.APIWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(AstarteAppengineApiWeb.Gettext, "errors", msg, opts)
+      Gettext.dgettext(Astarte.AppEngine.APIWeb.Gettext, "errors", msg, opts)
     end
   end
 end

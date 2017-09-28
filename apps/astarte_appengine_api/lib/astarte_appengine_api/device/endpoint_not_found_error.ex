@@ -17,13 +17,13 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApi.Device.EndpointNotFoundError do
+defmodule Astarte.AppEngine.API.Device.EndpointNotFoundError do
 
   defexception plug_status: 404,
     message: "Endpoint Not Found"
 
     def exception(_opts) do
-      %AstarteAppengineApi.Device.EndpointNotFoundError{
+      %Astarte.AppEngine.API.Device.EndpointNotFoundError{
       }
     end
 end

@@ -18,14 +18,14 @@
 #
 
 #TODO: what should we do here?
-defmodule AstarteAppengineApiWeb.ChangesetView do
-  use AstarteAppengineApiWeb, :view
+defmodule Astarte.AppEngine.APIWeb.ChangesetView do
+  use Astarte.AppEngine.APIWeb, :view
 
   @doc """
   Traverses and translates changeset errors.
 
   See `Ecto.Changeset.traverse_errors/2` and
-  `AstarteAppengineApiWeb.ErrorHelpers.translate_error/1` for more details.
+  `Astarte.AppEngine.APIWeb.ErrorHelpers.translate_error/1` for more details.
   """
   def translate_errors(_changeset) do
     #Ecto.Changeset.traverse_errors(changeset, &translate_error/1)

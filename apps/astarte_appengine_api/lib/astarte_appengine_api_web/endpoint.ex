@@ -17,10 +17,10 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.Endpoint do
+defmodule Astarte.AppEngine.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_appengine_api
 
-  socket "/socket", AstarteAppengineApiWeb.UserSocket
+  socket "/socket", Astarte.AppEngine.APIWeb.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -55,8 +55,8 @@ defmodule AstarteAppengineApiWeb.Endpoint do
     key: "_astarte_appengine_api_key",
     signing_salt: "V7l/jiVr"
 
-  plug AstarteAppengineApiWeb.InterfacePlug, %{}
-  plug AstarteAppengineApiWeb.Router
+  plug Astarte.AppEngine.APIWeb.InterfacePlug, %{}
+  plug Astarte.AppEngine.APIWeb.Router
 
   @doc """
   Callback invoked for dynamically configuring the endpoint.
