@@ -17,19 +17,14 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
-  use Astarte.AppEngine.APIWeb, :view
-  alias Astarte.AppEngine.APIWeb.DeviceStatusView
+defmodule Astarte.AppEngine.API.Device.DevicesListingNotAllowedError do
 
-  def render("index.json", %{devices: devices}) do
-    %{data: render_many(devices, DeviceStatusView, "device_status.json")}
-  end
+  defexception plug_status: 404,
+    message: "Devices Listing Not Allowed"
 
-  def render("show.json", %{device_status: device_status}) do
-    %{data: render_one(device_status, DeviceStatusView, "device_status.json")}
-  end
-
-  def render("device_status.json", %{device_status: device_status}) do
-    device_status
-  end
+    def exception(_opts) do
+      %Astarte.AppEngine.API.Device.DevicesListingNotAllowedError{
+      }
+    end
 end
+

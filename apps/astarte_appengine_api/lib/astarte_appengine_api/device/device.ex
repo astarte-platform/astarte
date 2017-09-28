@@ -23,6 +23,7 @@ defmodule Astarte.AppEngine.API.Device do
   """
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
+  alias Astarte.AppEngine.API.Device.DevicesListingNotAllowedError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.PathNotFoundError
@@ -33,17 +34,41 @@ defmodule Astarte.AppEngine.API.Device do
   @doc """
   Intentionally not implemented.
   """
-  def list_devices do
+  def list_devices!(_realm_name) do
     #TODO: It should list available devices, but it doesn't scale well. It must be implemented in a meaningful way.
     # Possible implementations: raise Forbidden, show some stats, list all devices only if configured on small installations.
-    raise "TODO"
+    raise DevicesListingNotAllowedError
   end
 
   @doc """
-  Returns device status
+  Returns a DeviceStatus struct which represents device status.
+  Device status returns information such as connected, last_connection and last_disconnection.
   """
-  def get_device_status!(id) do
-    raise "TODO"
+  def get_device_status!(realm_name, encoded_device_id) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    device_id = decode_device_id(encoded_device_id)
+
+    device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes FROM devices WHERE device_id=:device_id")
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    device_row =
+      DatabaseQuery.call!(client, device_query)
+      |> DatabaseResult.head()
+
+    %DeviceStatus{
+      id: device_row[:extended_id],
+      connected: device_row[:connected],
+      last_connection: millis_or_null_to_datetime!(device_row[:last_connection]),
+      last_disconnection: millis_or_null_to_datetime!(device_row[:last_disconnection]),
+      first_pairing: millis_or_null_to_datetime!(device_row[:first_pairing]),
+      last_pairing_ip: ip_or_null_to_string(device_row[:last_pairing_ip]),
+      last_seen_ip: ip_or_null_to_string(device_row[:last_seen_ip]),
+      total_received_msgs: device_row[:total_received_msgs],
+      total_received_bytes: device_row[:total_received_bytes]
+    }
   end
 
   @doc """
@@ -312,4 +337,21 @@ defmodule Astarte.AppEngine.API.Device do
 
     values
   end
+
+  defp millis_or_null_to_datetime!(millis) do
+    if millis == :null do
+      nil
+    else
+      DateTime.from_unix!(millis, :millisecond)
+    end
+  end
+
+  defp ip_or_null_to_string(ip) do
+    if ip == :null do
+      nil
+    else
+      :inet_parse.ntoa(ip)
+    end
+  end
+
 end
