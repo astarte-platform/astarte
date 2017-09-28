@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.API.Device do
   @moduledoc """
   The Device context.
   """
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
@@ -28,6 +29,22 @@ defmodule Astarte.AppEngine.API.Device do
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+
+  @doc """
+  Intentionally not implemented.
+  """
+  def list_devices do
+    #TODO: It should list available devices, but it doesn't scale well. It must be implemented in a meaningful way.
+    # Possible implementations: raise Forbidden, show some stats, list all devices only if configured on small installations.
+    raise "TODO"
+  end
+
+  @doc """
+  Returns device status
+  """
+  def get_device_status!(id) do
+    raise "TODO"
+  end
 
   @doc """
   Returns the list of interfaces.
