@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
       conn = get conn, interface_values_path(conn, :show, "autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.LCDMonitor")
       assert json_response(conn, 200)["data"] == %{"time" => %{"from" => 8, "to" => 20}}
 
-      conn = get conn, interface_values_path(conn, :show, "autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.LCDMonitor", %{ "path" =>"time/to"})
+      conn = get conn, "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.test.LCDMonitor/time/to"
       assert json_response(conn, 200)["data"] == 20
     end
   end
