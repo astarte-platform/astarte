@@ -24,6 +24,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
+  alias Astarte.AppEngine.API.Device.PathNotFoundError
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
@@ -274,16 +275,24 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
 
-    DatabaseQuery.call!(client, query)
-    |> Enum.reduce(%{}, fn(row, values_map) ->
-      if String.starts_with?(row[:path], path) do
-        [{:path, row_path}, {_, row_value}] = row
-        simplified_path = simplify_path(path, row_path)
+    values =
+      DatabaseQuery.call!(client, query)
+      |> Enum.reduce(%{}, fn(row, values_map) ->
+        if String.starts_with?(row[:path], path) do
+          [{:path, row_path}, {_, row_value}] = row
+          simplified_path = simplify_path(path, row_path)
 
-        Map.put(values_map, simplified_path, row_value)
-      else
-        values_map
-      end
-    end)
+          Map.put(values_map, simplified_path, row_value)
+        else
+          values_map
+        end
+      end)
+
+    #TODO: next release idea: raise ValueNotSetError for debug purposes if path has not been guessed, that means it is a complete path, but it is not set.
+    if values == %{} do
+      raise PathNotFoundError
+    end
+
+    values
   end
 end
