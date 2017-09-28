@@ -274,19 +274,16 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
 
-    value_rows =
-      DatabaseQuery.call!(client, query)
-      |> Enum.to_list()
-    #TODO: we should filter out rows that doesn't match path
+    DatabaseQuery.call!(client, query)
+    |> Enum.reduce(%{}, fn(row, values_map) ->
+      if String.starts_with?(row[:path], path) do
+        [{:path, row_path}, {_, row_value}] = row
+        simplified_path = simplify_path(path, row_path)
 
-    if value_rows != [] do
-      #TODO: not really readable here, change this code
-      simplified_path = simplify_path(path, hd(value_rows)[:path])
-      [[{:path, _}, {_, value}]] = value_rows
-      %{simplified_path => value}
-    else
-      %{}
-    end
+        Map.put(values_map, simplified_path, row_value)
+      else
+        values_map
+      end
+    end)
   end
-
 end
