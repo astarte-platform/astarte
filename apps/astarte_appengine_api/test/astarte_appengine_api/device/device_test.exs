@@ -1,6 +1,6 @@
-defmodule AstarteAppengineApi.DeviceTest do
+defmodule Astarte.AppEngine.API.DeviceTest do
   use ExUnit.Case
-  alias AstarteAppengineApi.Device
+  alias Astarte.AppEngine.API.Device
 
   setup do
     {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()

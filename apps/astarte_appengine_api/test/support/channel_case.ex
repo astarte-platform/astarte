@@ -1,4 +1,4 @@
-defmodule AstarteAppengineApiWeb.ChannelCase do
+defmodule Astarte.AppEngine.APIWeb.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -21,7 +21,7 @@ defmodule AstarteAppengineApiWeb.ChannelCase do
       use Phoenix.ChannelTest
 
       # The default endpoint for testing
-      @endpoint AstarteAppengineApiWeb.Endpoint
+      @endpoint Astarte.AppEngine.APIWeb.Endpoint
     end
   end
 

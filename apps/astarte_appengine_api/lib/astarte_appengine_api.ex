@@ -1,6 +1,6 @@
-defmodule AstarteAppengineApi do
+defmodule Astarte.AppEngine.API do
   @moduledoc """
-  AstarteAppengineApi keeps the contexts that define your domain
+  Astarte.AppEngine.API keeps the contexts that define your domain
   and business logic.
 
   Contexts are also responsible for managing your data, regardless

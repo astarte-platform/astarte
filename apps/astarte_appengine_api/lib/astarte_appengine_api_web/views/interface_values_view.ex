@@ -17,9 +17,9 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.InterfaceValuesView do
-  use AstarteAppengineApiWeb, :view
-  alias AstarteAppengineApiWeb.InterfaceValuesView
+defmodule Astarte.AppEngine.APIWeb.InterfaceValuesView do
+  use Astarte.AppEngine.APIWeb, :view
+  alias Astarte.AppEngine.APIWeb.InterfaceValuesView
 
   def render("index.json", %{interfaces: interfaces}) do
     %{data: render_many(interfaces, InterfaceValuesView, "interface_values.json")}

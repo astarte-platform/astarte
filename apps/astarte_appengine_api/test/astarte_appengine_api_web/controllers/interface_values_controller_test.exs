@@ -1,5 +1,5 @@
-defmodule AstarteAppengineApiWeb.InterfaceValuesControllerTest do
-  use AstarteAppengineApiWeb.ConnCase
+defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
+  use Astarte.AppEngine.APIWeb.ConnCase
 
   setup %{conn: conn} do
     {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()

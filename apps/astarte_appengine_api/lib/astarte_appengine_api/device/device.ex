@@ -17,13 +17,13 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApi.Device do
+defmodule Astarte.AppEngine.API.Device do
   @moduledoc """
   The Device context.
   """
-  alias AstarteAppengineApi.Device.DeviceNotFoundError
-  alias AstarteAppengineApi.Device.EndpointNotFoundError
-  alias AstarteAppengineApi.Device.InterfaceNotFoundError
+  alias Astarte.AppEngine.API.Device.DeviceNotFoundError
+  alias Astarte.AppEngine.API.Device.EndpointNotFoundError
+  alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult

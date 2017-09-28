@@ -17,13 +17,13 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApi.Device.DeviceNotFoundError do
+defmodule Astarte.AppEngine.API.Device.DeviceNotFoundError do
 
   defexception plug_status: 404,
     message: "Device Not Found"
 
     def exception(_opts) do
-      %AstarteAppengineApi.Device.DeviceNotFoundError{
+      %Astarte.AppEngine.API.Device.DeviceNotFoundError{
       }
     end
 end

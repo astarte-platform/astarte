@@ -17,8 +17,8 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.ErrorView do
-  use AstarteAppengineApiWeb, :view
+defmodule Astarte.AppEngine.APIWeb.ErrorView do
+  use Astarte.AppEngine.APIWeb, :view
 
   def render("404.json", _assigns) do
     %{errors: %{detail: "Page not found"}}

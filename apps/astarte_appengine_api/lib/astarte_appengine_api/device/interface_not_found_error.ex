@@ -17,13 +17,13 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApi.Device.InterfaceNotFoundError do
+defmodule Astarte.AppEngine.API.Device.InterfaceNotFoundError do
 
   defexception plug_status: 404,
     message: "Interface Not Found"
 
     def exception(_opts) do
-      %AstarteAppengineApi.Device.InterfaceNotFoundError{
+      %Astarte.AppEngine.API.Device.InterfaceNotFoundError{
       }
     end
 end

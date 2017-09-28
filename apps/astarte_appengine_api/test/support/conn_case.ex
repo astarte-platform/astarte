@@ -1,4 +1,4 @@
-defmodule AstarteAppengineApiWeb.ConnCase do
+defmodule Astarte.AppEngine.APIWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -19,10 +19,10 @@ defmodule AstarteAppengineApiWeb.ConnCase do
     quote do
       # Import conveniences for testing with connections
       use Phoenix.ConnTest
-      import AstarteAppengineApiWeb.Router.Helpers
+      import Astarte.AppEngine.APIWeb.Router.Helpers
 
       # The default endpoint for testing
-      @endpoint AstarteAppengineApiWeb.Endpoint
+      @endpoint Astarte.AppEngine.APIWeb.Endpoint
     end
   end
 

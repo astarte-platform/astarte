@@ -7,14 +7,14 @@ use Mix.Config
 
 # General application configuration
 config :astarte_appengine_api,
-  namespace: AstarteAppengineApi
+  namespace: Astarte.AppEngine.API
 
 # Configures the endpoint
-config :astarte_appengine_api, AstarteAppengineApiWeb.Endpoint,
+config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "oLTSqHyMVoBtu3Gu504Dn6HFN1qdFXtkJ0yFViRDbXckOHgTjFs1XaRS0QaKZ8KL",
-  render_errors: [view: AstarteAppengineApiWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: AstarteAppengineApi.PubSub,
+  render_errors: [view: Astarte.AppEngine.APIWeb.ErrorView, accepts: ~w(json)],
+  pubsub: [name: Astarte.AppEngine.API.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger

@@ -17,11 +17,11 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.InterfaceValuesController do
-  use AstarteAppengineApiWeb, :controller
-  alias AstarteAppengineApi.Device
+defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
+  use Astarte.AppEngine.APIWeb, :controller
+  alias Astarte.AppEngine.API.Device
 
-  action_fallback AstarteAppengineApiWeb.FallbackController
+  action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name, "device_id" => device_id}) do
     interfaces = Device.list_interfaces!(realm_name, device_id)

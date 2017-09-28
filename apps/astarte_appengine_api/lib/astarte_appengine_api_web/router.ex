@@ -17,14 +17,14 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule AstarteAppengineApiWeb.Router do
-  use AstarteAppengineApiWeb, :router
+defmodule Astarte.AppEngine.APIWeb.Router do
+  use Astarte.AppEngine.APIWeb, :router
 
   pipeline :api do
     plug :accepts, ["json"]
   end
 
-  scope "/v1", AstarteAppengineApiWeb do
+  scope "/v1", Astarte.AppEngine.APIWeb do
     pipe_through :api
 
     resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
