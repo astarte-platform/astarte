@@ -30,6 +30,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  require Logger
 
   @doc """
   Intentionally not implemented.
@@ -93,7 +94,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     major_version = interface_version!(client, device_id, interface)
 
-    interface_row = retrieve_interface_row(client, interface, major_version)
+    interface_row = retrieve_interface_row!(client, interface, major_version)
 
     endpoint_query = DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT value_type, endpoint_id FROM endpoints WHERE interface_id=:interface_id")
@@ -127,7 +128,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     major_version = interface_version!(client, device_id, interface)
 
-    interface_row = retrieve_interface_row(client, interface, major_version)
+    interface_row = retrieve_interface_row!(client, interface, major_version)
 
     {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
     if status == :error and endpoint_ids == :not_found do
@@ -276,7 +277,7 @@ defmodule Astarte.AppEngine.API.Device do
     major
   end
 
-  defp retrieve_interface_row(client, interface, major_version) do
+  defp retrieve_interface_row!(client, interface, major_version) do
     interface_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT name, major_version, minor_version, interface_id, type, quality, flags, storage, storage_type, automaton_transitions, automaton_accepting_states FROM interfaces" <>
@@ -284,8 +285,16 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:name, interface)
       |> DatabaseQuery.put(:major_version, major_version)
 
-    DatabaseQuery.call!(client, interface_query)
-    |> DatabaseResult.head()
+    interface_row =
+      DatabaseQuery.call!(client, interface_query)
+      |> DatabaseResult.head()
+
+    if interface_row == :empty_dataset do
+      Logger.warn "Device.retrieve_interface_row: interface not found. This error here means that the device has an interface that is not installed."
+      raise InterfaceNotFoundError
+    end
+
+    interface_row
   end
 
   defp decode_device_id(encoded_device_id) do
