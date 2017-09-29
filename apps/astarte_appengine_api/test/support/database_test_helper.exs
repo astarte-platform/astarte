@@ -55,7 +55,9 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @insert_device """
-    INSERT INTO autotestrealm.devices (device_id, introspection) VALUES (7f454c46-0201-0100-0000-000000000000, {'com.test.LCDMonitor;1'});
+        INSERT INTO autotestrealm.devices (device_id, extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
+          VALUES (7f454c46-0201-0100-0000-000000000000, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
+          '8.8.8.8', '4.4.4.4', 45000, 4500000, {'com.test.LCDMonitor;1'});
   """
 
   @create_interfaces_table """

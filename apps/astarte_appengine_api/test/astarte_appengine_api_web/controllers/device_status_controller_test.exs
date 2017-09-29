@@ -1,77 +1,32 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
   use Astarte.AppEngine.APIWeb.ConnCase
 
-  alias Astarte.AppEngine.API.Device
-  alias Astarte.AppEngine.API.Device.DeviceStatus
-
-  @create_attrs %{}
-  @update_attrs %{}
-  @invalid_attrs %{}
-
-  def fixture(:device_status) do
-    {:ok, device_status} = AppEngine.API.Device.create_device_status(@create_attrs)
-    device_status
-  end
-
   setup %{conn: conn} do
+    {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()
+
+    on_exit fn ->
+      Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+    end
+
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
-  describe "index" do
-    test "lists all devices", %{conn: conn} do
-      conn = get conn, device_status_path(conn, :index)
-      assert json_response(conn, 200)["data"] == []
+  describe "show" do
+    test "get device_status", %{conn: conn} do
+      expected_device_status = %{
+        "connected" => false,
+        "id" => "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "last_connection" => "2017-09-28T03:45:00.000Z",
+        "last_disconnection" => "2017-09-29T18:25:00.000Z",
+        "first_pairing" => "2016-08-20T09:44:00.000Z",
+        "last_pairing_ip" => '4.4.4.4',
+        "last_seen_ip" => '8.8.8.8',
+        "total_received_bytes" => 4500000,
+        "total_received_msgs" => 45000
+      }
+
+      conn = get conn, device_status_path(conn, :show, "autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ")
+      assert json_response(conn, 200)["data"] == expected_device_status
     end
-  end
-
-  describe "create device_status" do
-    test "renders device_status when data is valid", %{conn: conn} do
-      conn = post conn, device_status_path(conn, :create), device_status: @create_attrs
-      assert %{"id" => id} = json_response(conn, 201)["data"]
-
-      conn = get conn, device_status_path(conn, :show, id)
-      assert json_response(conn, 200)["data"] == %{
-        "id" => id}
-    end
-
-    test "renders errors when data is invalid", %{conn: conn} do
-      conn = post conn, device_status_path(conn, :create), device_status: @invalid_attrs
-      assert json_response(conn, 422)["errors"] != %{}
-    end
-  end
-
-  describe "update device_status" do
-    setup [:create_device_status]
-
-    test "renders device_status when data is valid", %{conn: conn, device_status: %DeviceStatus{id: id} = device_status} do
-      conn = put conn, device_status_path(conn, :update, device_status), device_status: @update_attrs
-      assert %{"id" => ^id} = json_response(conn, 200)["data"]
-
-      conn = get conn, device_status_path(conn, :show, id)
-      assert json_response(conn, 200)["data"] == %{
-        "id" => id}
-    end
-
-    test "renders errors when data is invalid", %{conn: conn, device_status: device_status} do
-      conn = put conn, device_status_path(conn, :update, device_status), device_status: @invalid_attrs
-      assert json_response(conn, 422)["errors"] != %{}
-    end
-  end
-
-  describe "delete device_status" do
-    setup [:create_device_status]
-
-    test "deletes chosen device_status", %{conn: conn, device_status: device_status} do
-      conn = delete conn, device_status_path(conn, :delete, device_status)
-      assert response(conn, 204)
-      assert_error_sent 404, fn ->
-        get conn, device_status_path(conn, :show, device_status)
-      end
-    end
-  end
-
-  defp create_device_status(_) do
-    device_status = fixture(:device_status)
-    {:ok, device_status: device_status}
   end
 end
