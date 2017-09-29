@@ -27,6 +27,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.PathNotFoundError
+  alias Astarte.Core.Mapping.ValueType
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
@@ -331,9 +332,11 @@ defmodule Astarte.AppEngine.API.Device do
       |> Enum.reduce(%{}, fn(row, values_map) ->
         if String.starts_with?(row[:path], path) do
           [{:path, row_path}, {_, row_value}] = row
-          simplified_path = simplify_path(path, row_path)
 
-          Map.put(values_map, simplified_path, row_value)
+          simplified_path = simplify_path(path, row_path)
+          nice_value = db_value_to_json_friendly_value(row_value, ValueType.from_int(endpoint_row[:value_type]), allow_bigintegers: true)
+
+          Map.put(values_map, simplified_path, nice_value)
         else
           values_map
         end
@@ -345,6 +348,63 @@ defmodule Astarte.AppEngine.API.Device do
     end
 
     values
+  end
+
+  defp db_value_to_json_friendly_value(value, :longinteger, opts) do
+    cond do
+      opts[:allow_bigintegers] ->
+        value
+
+      opts[:allow_safe_bigintegers] ->
+        # the following magic value is the biggest mantissa allowed in a double value
+        if value <= 0xFFFFFFFFFFFFF do
+          value
+        else
+          Integer.to_string(value)
+        end
+
+      true ->
+        Integer.to_string(value)
+    end
+  end
+
+  defp db_value_to_json_friendly_value(value, :binaryblob, _opts) do
+    Base.encode64(value)
+  end
+
+  defp db_value_to_json_friendly_value(value, :datetime, opts) do
+    if opts[:keep_milliseconds] do
+      value
+    else
+      DateTime.from_unix!(value, :millisecond)
+    end
+  end
+
+  defp db_value_to_json_friendly_value(value, :longintegerarray, opts) do
+    for item <- value do
+      db_value_to_json_friendly_value(item, :longintegerarray, opts)
+    end
+  end
+
+  defp db_value_to_json_friendly_value(value, :binaryblobarray, _opts) do
+    for item <- value do
+      Base.encode64(item)
+    end
+  end
+
+  defp db_value_to_json_friendly_value(value, :datetimearray, opts) do
+    for item <- value do
+      db_value_to_json_friendly_value(item, :datetimearray, opts)
+    end
+  end
+
+  defp db_value_to_json_friendly_value(:null, _value_type, _opts) do
+    Logger.warn "Device.db_value_to_json_friendly_value: it has been found a path with a :null value. This shouldn't happen."
+    raise PathNotFoundError
+  end
+
+  defp db_value_to_json_friendly_value(value, _value_type, _opts) do
+    value
   end
 
   defp millis_or_null_to_datetime!(millis) do
