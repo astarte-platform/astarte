@@ -1,7 +1,9 @@
 defmodule Astarte.AppEngine.API.DeviceTest do
   use ExUnit.Case
   alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
+  alias Astarte.AppEngine.API.Device.DevicesListingNotAllowedError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.PathNotFoundError
@@ -41,4 +43,27 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       Device.get_interface_values!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.LCDMonitor", "weekSchedule/9/start")
     end
   end
+
+  test "list_devices/1 returns all devices" do
+    assert_raise DevicesListingNotAllowedError, fn ->
+      Device.list_devices!("autotestrealm")
+    end
+  end
+
+  test "get_device_status!/2 returns the device_status with given id" do
+    expected_device_status = %DeviceStatus{
+      connected: false,
+      id: "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+      last_connection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 28, hour: 3, minute: 45, month: 9, year: 2017},
+      last_disconnection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC", day: 29, hour: 18, minute: 25},
+      first_pairing: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 20, hour: 9, minute: 44, month: 8, year: 2016},
+      last_pairing_ip: '4.4.4.4',
+      last_seen_ip: '8.8.8.8',
+      total_received_bytes: 4500000,
+      total_received_msgs: 45000
+    }
+
+    assert Device.get_device_status!("autotestrealm", expected_device_status.id) == expected_device_status
+  end
+
 end

@@ -17,17 +17,14 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.APIWeb.Router do
-  use Astarte.AppEngine.APIWeb, :router
+defmodule Astarte.AppEngine.API.Device.DevicesListingNotAllowedError do
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
+  defexception plug_status: 404,
+    message: "Devices Listing Not Allowed"
 
-  scope "/v1", Astarte.AppEngine.APIWeb do
-    pipe_through :api
-
-    resources "/:realm_name/devices", DeviceStatusController, except: [:new, :edit]
-    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
-  end
+    def exception(_opts) do
+      %Astarte.AppEngine.API.Device.DevicesListingNotAllowedError{
+      }
+    end
 end
+

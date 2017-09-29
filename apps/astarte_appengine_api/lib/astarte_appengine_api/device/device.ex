@@ -21,13 +21,56 @@ defmodule Astarte.AppEngine.API.Device do
   @moduledoc """
   The Device context.
   """
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
+  alias Astarte.AppEngine.API.Device.DevicesListingNotAllowedError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.PathNotFoundError
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  require Logger
+
+  @doc """
+  Intentionally not implemented.
+  """
+  def list_devices!(_realm_name) do
+    #TODO: It should list available devices, but it doesn't scale well. It must be implemented in a meaningful way.
+    # Possible implementations: raise Forbidden, show some stats, list all devices only if configured on small installations.
+    raise DevicesListingNotAllowedError
+  end
+
+  @doc """
+  Returns a DeviceStatus struct which represents device status.
+  Device status returns information such as connected, last_connection and last_disconnection.
+  """
+  def get_device_status!(realm_name, encoded_device_id) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    device_id = decode_device_id(encoded_device_id)
+
+    device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes FROM devices WHERE device_id=:device_id")
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    device_row =
+      DatabaseQuery.call!(client, device_query)
+      |> DatabaseResult.head()
+
+    %DeviceStatus{
+      id: device_row[:extended_id],
+      connected: device_row[:connected],
+      last_connection: millis_or_null_to_datetime!(device_row[:last_connection]),
+      last_disconnection: millis_or_null_to_datetime!(device_row[:last_disconnection]),
+      first_pairing: millis_or_null_to_datetime!(device_row[:first_pairing]),
+      last_pairing_ip: ip_or_null_to_string(device_row[:last_pairing_ip]),
+      last_seen_ip: ip_or_null_to_string(device_row[:last_seen_ip]),
+      total_received_msgs: device_row[:total_received_msgs],
+      total_received_bytes: device_row[:total_received_bytes]
+    }
+  end
 
   @doc """
   Returns the list of interfaces.
@@ -51,7 +94,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     major_version = interface_version!(client, device_id, interface)
 
-    interface_row = retrieve_interface_row(client, interface, major_version)
+    interface_row = retrieve_interface_row!(client, interface, major_version)
 
     endpoint_query = DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT value_type, endpoint_id FROM endpoints WHERE interface_id=:interface_id")
@@ -85,7 +128,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     major_version = interface_version!(client, device_id, interface)
 
-    interface_row = retrieve_interface_row(client, interface, major_version)
+    interface_row = retrieve_interface_row!(client, interface, major_version)
 
     {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
     if status == :error and endpoint_ids == :not_found do
@@ -234,7 +277,7 @@ defmodule Astarte.AppEngine.API.Device do
     major
   end
 
-  defp retrieve_interface_row(client, interface, major_version) do
+  defp retrieve_interface_row!(client, interface, major_version) do
     interface_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT name, major_version, minor_version, interface_id, type, quality, flags, storage, storage_type, automaton_transitions, automaton_accepting_states FROM interfaces" <>
@@ -242,8 +285,16 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:name, interface)
       |> DatabaseQuery.put(:major_version, major_version)
 
-    DatabaseQuery.call!(client, interface_query)
-    |> DatabaseResult.head()
+    interface_row =
+      DatabaseQuery.call!(client, interface_query)
+      |> DatabaseResult.head()
+
+    if interface_row == :empty_dataset do
+      Logger.warn "Device.retrieve_interface_row: interface not found. This error here means that the device has an interface that is not installed."
+      raise InterfaceNotFoundError
+    end
+
+    interface_row
   end
 
   defp decode_device_id(encoded_device_id) do
@@ -295,4 +346,21 @@ defmodule Astarte.AppEngine.API.Device do
 
     values
   end
+
+  defp millis_or_null_to_datetime!(millis) do
+    if millis == :null do
+      nil
+    else
+      DateTime.from_unix!(millis, :millisecond)
+    end
+  end
+
+  defp ip_or_null_to_string(ip) do
+    if ip == :null do
+      nil
+    else
+      :inet_parse.ntoa(ip)
+    end
+  end
+
 end

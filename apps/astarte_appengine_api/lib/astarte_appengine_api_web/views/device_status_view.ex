@@ -17,17 +17,19 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.APIWeb.Router do
-  use Astarte.AppEngine.APIWeb, :router
+defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
+  use Astarte.AppEngine.APIWeb, :view
+  alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
-  pipeline :api do
-    plug :accepts, ["json"]
+  def render("index.json", %{devices: devices}) do
+    %{data: render_many(devices, DeviceStatusView, "device_status.json")}
   end
 
-  scope "/v1", Astarte.AppEngine.APIWeb do
-    pipe_through :api
+  def render("show.json", %{device_status: device_status}) do
+    %{data: render_one(device_status, DeviceStatusView, "device_status.json")}
+  end
 
-    resources "/:realm_name/devices", DeviceStatusController, except: [:new, :edit]
-    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
+  def render("device_status.json", %{device_status: device_status}) do
+    device_status
   end
 end
