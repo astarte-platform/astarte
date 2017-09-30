@@ -66,3 +66,17 @@ mix:release-build:
             - deps
     only:
         - tags@Astarte-NG/astarte_appengine_api
+
+docker:snapshot-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+    services:
+        - docker:dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte_appengine_api
+    script:
+        - docker build -t registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot .
+        - docker push registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot
