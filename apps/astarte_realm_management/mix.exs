@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   defp deps do
      [
        {:amqp, "~> 0.2.2"},
-       {:cqex, github: "astarte-platform/cqex"},
+       {:cqex, github: "ispirata/cqex"},
        {:exprotobuf, "~> 1.2.7"},
        {:distillery, "~> 1.4", runtime: false},
        {:excoveralls, "~> 0.6", only: :test}
