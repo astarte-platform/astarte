@@ -60,7 +60,7 @@ mix:release-build:
         - mix deps.compile --force
         - mix compile --force
         - mix test --exclude cassandra_only
-        - mix release
+        - mix release --env=prod
     cache:
         paths:
             - deps
