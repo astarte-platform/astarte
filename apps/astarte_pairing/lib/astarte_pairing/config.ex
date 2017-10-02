@@ -18,4 +18,13 @@ defmodule Astarte.Pairing.Config do
   def amqp_options do
     Application.get_env(:astarte_pairing, :amqp_connection, [])
   end
+
+  @doc """
+  Returns the broker_url contained in the config.
+
+  Raises if it doesn't exist since it's required.
+  """
+  def broker_url! do
+    Application.fetch_env!(:astarte_pairing, :broker_url)
+  end
 end
