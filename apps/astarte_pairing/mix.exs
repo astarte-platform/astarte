@@ -7,7 +7,7 @@ defmodule Astarte.Pairing.Mixfile do
       version: "0.1.0",
       elixir: "~> 1.5",
       start_permanent: Mix.env == :prod,
-      deps: deps()
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
 
@@ -15,6 +15,17 @@ defmodule Astarte.Pairing.Mixfile do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  defp astarte_required_modules("true") do
+    [
+      {:astarte_rpc, in_umbrella: true}
+    ]
+  end
+  defp astarte_required_modules(_) do
+    [
+      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"}
     ]
   end
 
