@@ -11,7 +11,7 @@ variables:
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -29,7 +29,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_realm_management
 
 mix:build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -55,7 +55,7 @@ mix:build:
         - master@Astarte-NG/astarte_realm_management
 
 mix:release-build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -66,7 +66,7 @@ mix:release-build:
         - mix deps.compile --force
         - mix compile --force
         - mix test --exclude cassandra_only
-        - mix release
+        - mix release --env=prod
         #- mkdir $APPLICATION_NAME
         #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
         #- cp _build/dev/rel/vmq_astarte/releases/0.1.0/$APPLICATION_NAME.tar.gz $APPLICATION_NAME-$RELEASE_NAME.tar.gz
@@ -79,6 +79,20 @@ mix:release-build:
             - deps
     only:
         - tags@Astarte-NG/astarte_realm_management
+
+docker:snapshot-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+    services:
+        - docker:dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte_realm_management
+    script:
+        - docker build -t registry.ispirata.com/astarte-ng/astarte_realm_management:snapshot .
+        - docker push registry.ispirata.com/astarte-ng/astarte_realm_management:snapshot
 
 #s3:upload-snapshot:
     #image: debian:jessie
