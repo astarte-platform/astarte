@@ -28,8 +28,10 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
     amqp_options: Config.amqp_options()
   use Astarte.RPC.Protocol.Pairing
 
-  def process_rpc(_payload) do
-    raise "TODO"
+  def process_rpc(payload) do
+    with {:ok, call_tuple} <- extract_call_tuple(Call.decode(payload)) do
+      call_rpc(call_tuple)
+    end
   end
 
   defp extract_call_tuple(%Call{call: nil}) do
