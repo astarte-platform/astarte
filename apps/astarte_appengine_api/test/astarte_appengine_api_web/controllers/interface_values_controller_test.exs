@@ -14,7 +14,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
   describe "index" do
     test "lists all interfaces", %{conn: conn} do
       conn = get conn, interface_values_path(conn, :index, "autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ")
-      assert json_response(conn, 200)["data"] == ["com.test.LCDMonitor"]
+      assert json_response(conn, 200)["data"] == ["com.test.LCDMonitor", "com.test.SimpleStreamTest"]
     end
 
     test "get interface values", %{conn: conn} do
@@ -24,6 +24,16 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
 
       conn = get conn, "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.test.LCDMonitor/time/to"
       assert json_response(conn, 200)["data"] == 20
+
+      expected_reply = [
+        %{"timestamp" => "2017-09-28T04:05:00.000Z", "value" => 0},
+        %{"timestamp" => "2017-09-28T04:06:00.000Z", "value" => 1},
+        %{"timestamp" => "2017-09-28T04:07:00.000Z", "value" => 2},
+        %{"timestamp" => "2017-09-29T05:07:00.000Z", "value" => 3},
+        %{"timestamp" => "2017-09-30T07:10:00.000Z", "value" => 4}
+      ]
+      conn = get conn, "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.test.SimpleStreamTest/0/value"
+      assert json_response(conn, 200)["data"] == expected_reply
     end
   end
 end

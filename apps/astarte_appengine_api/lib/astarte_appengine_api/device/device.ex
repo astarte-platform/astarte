@@ -27,6 +27,9 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.PathNotFoundError
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Interface.Aggregation
+  alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping.ValueType
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
@@ -107,7 +110,7 @@ defmodule Astarte.AppEngine.API.Device do
     values_map =
       Enum.reduce(endpoint_rows, %{}, fn(endpoint_row, values) ->
         #TODO: we can do this by using just one query without any filter on the endpoint
-        value = retrieve_endpoint_values(client, device_id, interface_row, endpoint_row[:endpoint_id], endpoint_row)
+        value = retrieve_endpoint_values(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_row[:endpoint_id], endpoint_row, "/")
 
         Map.merge(values, value)
       end)
@@ -140,6 +143,10 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.statement("SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;")
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
 
+    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path)
+  end
+
+  defp do_get_interface_values!(client, device_id, :individual, :properties, interface_row, endpoint_ids, endpoint_query, path) do
     values_map =
       List.foldl(endpoint_ids, %{}, fn(endpoint_id, values) ->
         endpoint_query =
@@ -151,7 +158,7 @@ defmodule Astarte.AppEngine.API.Device do
           |> DatabaseResult.head()
 
           #TODO: we should use path in this query if _status is :ok
-          value = retrieve_endpoint_values(client, device_id, interface_row, endpoint_id, endpoint_row, path)
+          value = retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path)
 
           #TODO: next release idea: raise ValueNotSetError for debug purposes if path has not been guessed, that means it is a complete path, but it is not set.
           if value == %{} do
@@ -167,6 +174,27 @@ defmodule Astarte.AppEngine.API.Device do
     else
       inflate_tree(values_map)
     end
+  end
+
+  defp do_get_interface_values!(client, device_id, :individual, :datastream, interface_row, endpoint_ids, endpoint_query, path) do
+    [endpoint_id] = endpoint_ids
+
+    endpoint_query =
+      endpoint_query
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+    endpoint_row =
+      DatabaseQuery.call!(client, endpoint_query)
+      |> DatabaseResult.head()
+
+
+    values = retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path)
+
+    if values == [] do
+      raise PathNotFoundError
+    end
+
+    values
   end
 
   #TODO: optimize: do not use string replace
@@ -323,7 +351,60 @@ defmodule Astarte.AppEngine.API.Device do
     " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
   end
 
-  defp retrieve_endpoint_values(client, device_id, interface_row, endpoint_id, endpoint_row, path \\ "/") do
+  defp prepare_get_individual_datastream_statement(value_type, metadata, table_name, timestamp_column, opts) do
+    metadata_column =
+      if metadata do
+        ",metadata"
+      else
+        ""
+      end
+
+    since =
+      cond do
+        (opts[:since] == true) and (opts[:since_after] == nil) ->
+          "AND #{timestamp_column} >= :since"
+
+        (opts[:since_after] == true) and (opts[:since] == nil) ->
+          "AND #{timestamp_column} > :since"
+
+        (opts[:since_after] == nil) and (opts[:since] == nil) ->
+          ""
+      end
+
+    to = ""
+    limit = ""
+
+    "SELECT #{timestamp_column}, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
+      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since} #{to} #{limit}"
+  end
+
+  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/") do
+    #TODO: Swagger specification says that last value for each path sould be returned, we cannot implement this right now.
+    # it is required to use individual_property table to store available path, then we should iterate on all of them and report
+    # most recent value.
+    raise "TODO"
+  end
+
+  defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path) do
+    query_statement = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], "reception_timestamp", since: true)
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.put(:since, 0)
+
+    values = DatabaseQuery.call!(client, query)
+
+    for value <- values do
+      [{:reception_timestamp, tstamp}, {_, v}] = value
+      %{"timestamp" => db_value_to_json_friendly_value(tstamp, :datetime, []), "value" => db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), [])}
+    end
+  end
+
+  defp retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path) do
     query_statement = prepare_get_property_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage])
     query =
       DatabaseQuery.new()
