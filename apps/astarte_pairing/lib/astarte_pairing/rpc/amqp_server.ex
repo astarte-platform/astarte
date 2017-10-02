@@ -26,4 +26,22 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
   def process_rpc(_payload) do
     raise "TODO"
   end
+
+  defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
+    %GenericErrorReply{error_name: to_string(error_name),
+                       user_readable_message: user_readable_message,
+                       user_readable_error_name: user_readable_error_name,
+                       error_data: error_data}
+    |> encode_reply(:generic_error_reply)
+    |> ok_wrap
+  end
+
+  defp encode_reply(%GenericErrorReply{} = reply, _reply_type) do
+    %Reply{reply: {:generic_error_reply, reply}, error: true}
+    |> Reply.encode
+  end
+
+  defp ok_wrap(result) do
+    {:ok, result}
+  end
 end
