@@ -52,6 +52,10 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
     %Reply{reply: {:generic_error_reply, reply}, error: true}
     |> Reply.encode
   end
+  defp encode_reply(reply, reply_type) do
+    %Reply{reply: {reply_type, reply}}
+    |> Reply.encode
+  end
 
   defp ok_wrap(result) do
     {:ok, result}
