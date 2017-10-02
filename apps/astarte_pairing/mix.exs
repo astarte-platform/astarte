@@ -34,7 +34,8 @@ defmodule Astarte.Pairing.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:excoveralls, "~> 0.7.3", only: :test}
+      {:excoveralls, "~> 0.7.3", only: :test},
+      {:distillery, "~> 1.5", runtime: false}
     ]
   end
 end
