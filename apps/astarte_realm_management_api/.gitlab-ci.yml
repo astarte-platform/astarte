@@ -10,7 +10,7 @@ variables:
     APPLICATION_NAME: astarte_realm_management_api
 
 mix:test-ci:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - rabbitmq:3.6
     stage: build
@@ -27,7 +27,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_realm_management_api
 
 mix:build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - rabbitmq:3.6
     stage: build
@@ -52,7 +52,7 @@ mix:build:
         - master@Astarte-NG/astarte_realm_management_api
 
 mix:release-build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - rabbitmq:3.6
     stage: build
