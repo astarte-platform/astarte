@@ -1,4 +1,4 @@
-# Astarte.Pairing
+# Astarte Pairing
 
 **TODO: Add description**
 
