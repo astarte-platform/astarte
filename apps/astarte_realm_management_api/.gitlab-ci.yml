@@ -10,7 +10,7 @@ variables:
     APPLICATION_NAME: astarte_realm_management_api
 
 mix:test-ci:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - rabbitmq:3.6
     stage: build
@@ -27,7 +27,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_realm_management_api
 
 mix:build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - rabbitmq:3.6
     stage: build
@@ -52,7 +52,7 @@ mix:build:
         - master@Astarte-NG/astarte_realm_management_api
 
 mix:release-build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - rabbitmq:3.6
     stage: build
@@ -75,6 +75,20 @@ mix:release-build:
             - deps
     only:
         - tags@Astarte-NG/astarte_realm_management_api
+
+docker:snapshot-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+    services:
+        - docker:dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte_realm_management_api
+    script:
+        - docker build -t registry.ispirata.com/astarte-ng/astarte_realm_management_api:snapshot .
+        - docker push registry.ispirata.com/astarte-ng/astarte_realm_management_api:snapshot
 
 #s3:upload-snapshot:
     #image: debian:jessie
