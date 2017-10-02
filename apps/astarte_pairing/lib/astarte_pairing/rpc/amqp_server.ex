@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
   @moduledoc false
 
   alias Astarte.Pairing.Config
+  alias Astarte.Pairing.Engine
 
   use Astarte.RPC.AMQPServer,
     queue: Config.rpc_queue!(),
@@ -37,6 +38,14 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
   end
   defp extract_call_tuple(%Call{call: call_tuple}) do
     {:ok, call_tuple}
+  end
+
+  defp call_rpc({:get_info, %GetInfo{}}) do
+    %{url: url, version: version} = Engine.get_info()
+    %GetInfoReply{url: url,
+                  version: version}
+    |> encode_reply(:get_info_reply)
+    |> ok_wrap
   end
 
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
