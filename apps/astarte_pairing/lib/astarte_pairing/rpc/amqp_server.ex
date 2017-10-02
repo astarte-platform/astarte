@@ -18,6 +18,8 @@
 #
 
 defmodule Astarte.Pairing.RPC.AMQPServer do
+  @moduledoc false
+
   use Astarte.RPC.AMQPServer,
     queue: Application.fetch_env!(:astarte_pairing, :rpc_queue),
     amqp_options: Application.get_env(:astarte_pairing, :amqp_connection, [])
