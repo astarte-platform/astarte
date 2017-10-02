@@ -11,7 +11,7 @@ variables:
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -29,7 +29,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_appengine_api
 
 mix:build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -49,7 +49,7 @@ mix:build:
         - master@Astarte-NG/astarte_appengine_api
 
 mix:release-build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -60,9 +60,23 @@ mix:release-build:
         - mix deps.compile --force
         - mix compile --force
         - mix test --exclude cassandra_only
-        - mix release
+        - mix release --env=prod
     cache:
         paths:
             - deps
     only:
         - tags@Astarte-NG/astarte_appengine_api
+
+docker:snapshot-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+    services:
+        - docker:dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte_appengine_api
+    script:
+        - docker build -t registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot .
+        - docker push registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot
