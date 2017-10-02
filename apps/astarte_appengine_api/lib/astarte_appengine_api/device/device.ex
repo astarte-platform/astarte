@@ -110,7 +110,7 @@ defmodule Astarte.AppEngine.API.Device do
     values_map =
       Enum.reduce(endpoint_rows, %{}, fn(endpoint_row, values) ->
         #TODO: we can do this by using just one query without any filter on the endpoint
-        value = retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_row[:endpoint_id], endpoint_row, "/")
+        value = retrieve_endpoint_values(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_row[:endpoint_id], endpoint_row, "/")
 
         Map.merge(values, value)
       end)
@@ -376,6 +376,13 @@ defmodule Astarte.AppEngine.API.Device do
 
     "SELECT #{timestamp_column}, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
       " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since} #{to} #{limit}"
+  end
+
+  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/") do
+    #TODO: Swagger specification says that last value for each path sould be returned, we cannot implement this right now.
+    # it is required to use individual_property table to store available path, then we should iterate on all of them and report
+    # most recent value.
+    raise "TODO"
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path) do
