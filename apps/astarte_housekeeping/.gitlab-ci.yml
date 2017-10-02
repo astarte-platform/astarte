@@ -11,7 +11,7 @@ variables:
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -29,7 +29,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_housekeeping
 
 mix:build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -55,7 +55,7 @@ mix:build:
         - master@Astarte-NG/astarte_housekeeping
 
 mix:release-build:
-    image: elixir:1.4
+    image: elixir:1.5
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -66,7 +66,7 @@ mix:release-build:
         - mix deps.compile --force
         - mix compile --force
         - mix test
-        - mix release --env=prod --no-tar #TODO: remove --no-tar when updating to Erlang/OTP 20
+        - mix release --env=prod
         #- mkdir $APPLICATION_NAME
         #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
         #- cp _build/dev/rel/vmq_astarte/releases/0.1.0/$APPLICATION_NAME.tar.gz $APPLICATION_NAME-$RELEASE_NAME.tar.gz
