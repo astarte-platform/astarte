@@ -76,6 +76,20 @@ mix:release-build:
     only:
         - tags@Astarte-NG/astarte_realm_management_api
 
+docker:snapshot-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+    services:
+        - docker:dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte_realm_management_api
+    script:
+        - docker build -t registry.ispirata.com/astarte-ng/astarte_realm_management_api:snapshot .
+        - docker push registry.ispirata.com/astarte-ng/astarte_realm_management_api:snapshot
+
 #s3:upload-snapshot:
     #image: debian:jessie
     #stage: deploy
