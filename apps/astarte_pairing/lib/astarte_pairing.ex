@@ -18,7 +18,17 @@
 #
 
 defmodule Astarte.Pairing do
-  @moduledoc """
-  Documentation for Astarte.Pairing.
-  """
+  @moduledoc false
+
+  use Application
+
+  alias Astarte.Pairing.RPC.AMQPServer
+
+  def start(_type, _args) do
+    children = [
+      AMQPServer,
+    ]
+
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
 end
