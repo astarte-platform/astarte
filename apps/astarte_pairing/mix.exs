@@ -36,6 +36,7 @@ defmodule Astarte.Pairing.Mixfile do
   defp deps do
     [
       {:cqex, github: "ispirata/cqex"},
+      {:uuid, "~> 1.7", hex: :uuid_erl},
 
       {:excoveralls, "~> 0.7.3", only: :test},
       {:distillery, "~> 1.5", runtime: false}
