@@ -17,18 +17,13 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.Pairing do
-  @moduledoc false
+defmodule Astarte.Pairing.RPC.AMQPServer do
+  use Astarte.RPC.AMQPServer,
+    queue: Application.fetch_env!(:astarte_pairing, :rpc_queue),
+    amqp_options: Application.get_env(:astarte_pairing, :amqp_connection, [])
+  use Astarte.RPC.Protocol.Pairing
 
-  use Application
-
-  alias Astarte.Pairing.RPC.AMQPServer
-
-  def start(_type, _args) do
-    children = [
-      AMQPServer,
-    ]
-
-    Supervisor.start_link(children, strategy: :one_for_one)
+  def process_rpc(_payload) do
+    raise "TODO"
   end
 end

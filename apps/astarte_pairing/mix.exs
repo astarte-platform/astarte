@@ -16,6 +16,7 @@ defmodule Astarte.Pairing.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {Astarte.Pairing, []},
       extra_applications: [:logger]
     ]
   end
