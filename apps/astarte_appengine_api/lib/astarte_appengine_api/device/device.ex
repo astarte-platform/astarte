@@ -153,6 +153,11 @@ defmodule Astarte.AppEngine.API.Device do
           #TODO: we should use path in this query if _status is :ok
           value = retrieve_endpoint_values(client, device_id, interface_row, endpoint_id, endpoint_row, path)
 
+          #TODO: next release idea: raise ValueNotSetError for debug purposes if path has not been guessed, that means it is a complete path, but it is not set.
+          if value == %{} do
+            raise PathNotFoundError
+          end
+
           Map.merge(values, value)
       end)
 
@@ -341,11 +346,6 @@ defmodule Astarte.AppEngine.API.Device do
           values_map
         end
       end)
-
-    #TODO: next release idea: raise ValueNotSetError for debug purposes if path has not been guessed, that means it is a complete path, but it is not set.
-    if values == %{} do
-      raise PathNotFoundError
-    end
 
     values
   end
