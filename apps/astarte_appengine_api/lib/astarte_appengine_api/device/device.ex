@@ -27,6 +27,8 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.PathNotFoundError
+  alias Astarte.Core.Interface.Aggregation
+  alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping.ValueType
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
@@ -140,6 +142,10 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.statement("SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;")
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
 
+    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path)
+  end
+
+  defp do_get_interface_values!(client, device_id, :individual, :properties, interface_row, endpoint_ids, endpoint_query, path) do
     values_map =
       List.foldl(endpoint_ids, %{}, fn(endpoint_id, values) ->
         endpoint_query =
