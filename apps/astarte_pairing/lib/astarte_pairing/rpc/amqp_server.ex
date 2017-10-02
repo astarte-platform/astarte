@@ -27,6 +27,14 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
     raise "TODO"
   end
 
+  defp extract_call_tuple(%Call{call: nil}) do
+    Logger.warn "Received empty call"
+    {:error, :empty_call}
+  end
+  defp extract_call_tuple(%Call{call: call_tuple}) do
+    {:ok, call_tuple}
+  end
+
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
     %GenericErrorReply{error_name: to_string(error_name),
                        user_readable_message: user_readable_message,
