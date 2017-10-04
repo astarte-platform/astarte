@@ -12,3 +12,6 @@ config :astarte_pairing, :rpc_queue,
 
 config :astarte_pairing, :broker_url,
   "ssl://broker.beta.astarte.cloud:8883/"
+
+config :cqerl, :cassandra_nodes,
+  [{System.get_env("CASSANDRA_DB_HOST") || "localhost", System.get_env("CASSANDRA_DB_PORT") || 9042}]

@@ -53,4 +53,12 @@ defmodule Astarte.Pairing.Config do
   def secret_key_base do
     Application.get_env(:astarte_pairing, :secret_key_base)
   end
+
+  @doc """
+  Returns the cassandra node configuration
+  """
+  def cassandra_node do
+    Application.get_env(:cqerl, :cassandra_nodes)
+    |> List.first()
+  end
 end
