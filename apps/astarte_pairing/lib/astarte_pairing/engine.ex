@@ -22,12 +22,32 @@ defmodule Astarte.Pairing.Engine do
   This module performs the pairing operations requested via RPC.
   """
 
+  alias Astarte.Pairing.APIKey
   alias Astarte.Pairing.Config
+  alias Astarte.Pairing.Queries
+  alias Astarte.Pairing.Utils
+  alias CQEx.Client
 
   @version Mix.Project.config[:version]
 
   def get_info do
     %{version: @version,
       url: Config.broker_url!()}
+  end
+
+  def generate_api_key(realm, hardware_id) do
+    with {:ok, device_uuid_bytes} <- Utils.extended_id_to_uuid(hardware_id) do
+
+      device_uuid_string = :uuid.uuid_to_string(device_uuid_bytes)
+
+      client =
+        Config.cassandra_node()
+        |> Client.new!(keyspace: realm)
+
+      case Queries.insert_device(client, device_uuid_string, hardware_id) do
+        :ok -> APIKey.generate(realm, device_uuid_bytes, "api_salt")
+        error -> error
+      end
+    end
   end
 end
