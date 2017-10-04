@@ -22,4 +22,30 @@ defmodule Astarte.Pairing.APIKey do
   This module is responsible for generating and verifying the APIKeys for the
   pairing authentication
   """
+
+  alias Astarte.Pairing.Config
+  alias Plug.Crypto.KeyGenerator
+
+  @doc """
+  Generates an API key starting from a realm and a device_uuid.
+
+  The key is signed using a secret derived from the base secret and the
+  salt passed in the function.
+
+  Returns the generated API key.
+  """
+  def generate(realm, device_uuid, salt) do
+    secret = get_secret(salt)
+
+    api_key =
+      device_uuid <> realm
+      |> MessageVerifier.sign(secret)
+
+    {:ok, api_key}
+  end
+
+  defp get_secret(salt) do
+    Config.secret_key_base()
+    |> KeyGenerator.generate(salt)
+  end
 end
