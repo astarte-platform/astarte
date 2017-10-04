@@ -25,6 +25,7 @@ defmodule Astarte.Pairing.APIKey do
 
   alias Astarte.Pairing.Config
   alias Plug.Crypto.KeyGenerator
+  alias Plug.Crypto.MessageVerifier
 
   @doc """
   Generates an API key starting from a realm and a device_uuid.
@@ -42,6 +43,27 @@ defmodule Astarte.Pairing.APIKey do
       |> MessageVerifier.sign(secret)
 
     {:ok, api_key}
+  end
+
+  @doc """
+  Verifies the API key using the secret derived from the base secret stored
+  in the config and the given salt.
+
+  If the verification succeeds, it unpacks the information contained in the API key.
+
+  Returns `{:ok, %{realm: ..., device_uuid: ...}}` on success and `{:error, :invalid}`
+  if the verification fails.
+  """
+  def verify(api_key, salt) do
+    secret = get_secret(salt)
+
+    case MessageVerifier.verify(api_key, secret) do
+      {:ok, <<device_uuid :: binary-size(16), realm :: binary>>} ->
+        %{realm: realm, device_uuid: device_uuid}
+
+      :error ->
+        {:error, :invalid}
+    end
   end
 
   defp get_secret(salt) do
