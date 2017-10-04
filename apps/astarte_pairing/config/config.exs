@@ -2,4 +2,7 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+config :astarte_pairing, :secret_key_base,
+  "42WxT+9X+hKbTlv3n7cmzCrlzO2NpCVjRUlpfPYdWt627wetvY4il7Qpq6RRqeNk"
+
 import_config "#{Mix.env}.exs"

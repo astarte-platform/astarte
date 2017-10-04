@@ -46,4 +46,11 @@ defmodule Astarte.Pairing.Config do
   def broker_url! do
     Application.fetch_env!(:astarte_pairing, :broker_url)
   end
+
+  @doc """
+  Returns the secret for signing and verifying the API keys.
+  """
+  def secret_key_base do
+    Application.get_env(:astarte_pairing, :secret_key_base)
+  end
 end
