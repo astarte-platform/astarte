@@ -28,7 +28,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       start_permanent: Mix.env == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
-      deps: deps()
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
 
@@ -36,6 +36,18 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       extra_applications: [:logger],
       mod: {Astarte.DataUpdaterPlant.Application, []}
+    ]
+  end
+
+  defp astarte_required_modules("true") do
+    [
+      {:astarte_core, in_umbrella: true}
+    ]
+  end
+
+  defp astarte_required_modules(_) do
+    [
+      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"}
     ]
   end
 
