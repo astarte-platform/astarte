@@ -34,6 +34,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     |> GenServer.cast({:handle_message, interface, path, payload})
   end
 
+  def handle_introspection(realm, encoded_device_id, payload) do
+    get_data_updater_process(realm, encoded_device_id)
+    |> GenServer.cast({:handle_introspection, payload})
+  end
+
   defp get_data_updater_process(realm, encoded_device_id) do
     device_id = decode_device_id(encoded_device_id)
 

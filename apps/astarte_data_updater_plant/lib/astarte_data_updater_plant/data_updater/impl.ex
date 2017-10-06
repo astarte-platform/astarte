@@ -125,6 +125,41 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
+  def handle_introspection(state, payload) do
+    db_client = connect_to_db(state)
+
+    new_introspection_list =
+      payload
+      |> String.split(";")
+      |> Enum.sort()
+
+    #TODO: change me
+    db_introspection_list =
+      for introspection_item <- new_introspection_list do
+        [interface_name, major_version, _minor_version] = String.split(introspection_item, ":")
+        "#{interface_name};#{major_version}"
+      end
+
+    diff = List.myers_difference(Enum.sort(state.introspection), db_introspection_list)
+
+    #TODO: handle changes
+    IO.puts "Introspection changes #{inspect diff}"
+
+    device_update_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("UPDATE devices SET introspection=:introspection WHERE device_id=:device_id")
+      |> DatabaseQuery.put(:device_id, state.device_id)
+      |> DatabaseQuery.put(:introspection, db_introspection_list)
+
+    DatabaseQuery.call!(db_client, device_update_query)
+
+    %{state |
+      introspection: db_introspection_list,
+      total_received_msgs: state.total_received_msgs + 1,
+      total_received_bytes: state.total_received_bytes + byte_size(payload)
+    }
+  end
+
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
     major_version = interface_version!(db_client, state.device_id, interface_name)
     interface_row = retrieve_interface_row!(db_client, interface_name, major_version)

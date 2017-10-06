@@ -45,6 +45,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:noreply, new_state}
   end
 
+  def handle_cast({:handle_introspection, payload}, state) do
+    new_state = Impl.handle_introspection(state, payload)
+    {:noreply, new_state}
+  end
+
   def handle_call({:dump_state}, _from, state) do
     IO.puts inspect state
     {:reply, :ok, state}
