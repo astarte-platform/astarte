@@ -96,13 +96,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     {interface_descriptor, new_state} = maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
 
-    {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+    {resolve_result, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
     endpoint = Map.get(new_state.mappings, endpoint_id)
-
-    if interface_descriptor.ownership == :server do
-      Logger.warn "Device tried to write on server owned interface: #{interface}"
-      :error
-    end
 
     #TODO: use different BSON library
     value =
@@ -111,12 +106,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         _ -> :error
       end
 
-    case value do
-      :error ->
-        IO.puts("Cannot decode value")
+    result =
+      cond do
+        interface_descriptor.ownership == :server ->
+          Logger.warn "#{state.realm}: Device #{inspect state.device_id} tried to write on server owned interface: #{interface}."
+          {:error, :maybe_outdate_introspection}
 
-      _ ->
-        insert_value_into_db(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp)
+        resolve_result != :ok ->
+          Logger.warn "#{state.realm}: Cannot resolve #{path} to #{interface} endpoint."
+          {:error, :maybe_outdate_introspection}
+
+        value == :error ->
+          Logger.warn "#{state.realm}: Invalid BSON payload: #{Bson.decode(payload)} sent to #{interface}#{path}."
+          {:error, :invalid_message}
+
+        true ->
+          insert_value_into_db(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp)
+      end
+
+    if result != :ok do
+      Logger.debug "result is #{inspect result} further actions should be required."
     end
 
     %{new_state |
@@ -210,7 +219,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:reception_timestamp, timestamp)
         |> DatabaseQuery.put(:value, value)
 
-      DatabaseQuery.call!(db_client, insert_query)
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
   end
 
   #TODO: we should pattern match on storage type instead of :individual, :datastream
@@ -227,7 +238,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:reception_timestamp, timestamp)
         |> DatabaseQuery.put(:value, value)
 
-      DatabaseQuery.call!(db_client, insert_query)
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
   end
 
   #TODO: copied from AppEngine, make it an api
