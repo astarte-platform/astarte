@@ -56,7 +56,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   end
 
   def handle_call({:dump_state}, _from, state) do
-    IO.puts inspect state
-    {:reply, :ok, state}
+    {:reply, state, state}
   end
 end
