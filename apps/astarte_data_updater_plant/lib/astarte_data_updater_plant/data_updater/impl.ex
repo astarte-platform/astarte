@@ -56,14 +56,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_connection(state, ip_address) do
+  def handle_connection(state, ip_address, _delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
     device_update_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement("UPDATE devices SET connected=true, last_connection=:last_connection, last_seen_ip=:last_seen_ip WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
-      |> DatabaseQuery.put(:last_connection, DateTime.to_unix(DateTime.utc_now(), :milliseconds))
+      |> DatabaseQuery.put(:last_connection, timestamp)
       |> DatabaseQuery.put(:last_seen_ip, ip_address)
 
     DatabaseQuery.call!(db_client, device_update_query)
@@ -71,7 +71,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     state
   end
 
-  def handle_disconnection(state) do
+  def handle_disconnection(state, _delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
     device_update_query =
@@ -80,7 +80,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         "total_received_msgs=:total_received_msgs, total_received_bytes=:total_received_bytes " <>
         "WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
-      |> DatabaseQuery.put(:last_disconnection, DateTime.to_unix(DateTime.utc_now(), :milliseconds))
+      |> DatabaseQuery.put(:last_disconnection, timestamp)
       |> DatabaseQuery.put(:total_received_msgs, state.total_received_msgs)
       |> DatabaseQuery.put(:total_received_bytes, state.total_received_bytes)
 
@@ -91,7 +91,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_message(state, interface, path, payload) do
+  def handle_data(state, interface, path, payload, _delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
     {interface_descriptor, new_state} = maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
@@ -116,7 +116,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         IO.puts("Cannot decode value")
 
       _ ->
-        insert_value_into_db(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value)
+        insert_value_into_db(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp)
     end
 
     %{new_state |
@@ -125,7 +125,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_introspection(state, payload) do
+  def handle_introspection(state, payload, _delivery_tag, _timestamp) do
     db_client = connect_to_db(state)
 
     new_introspection_list =
@@ -160,6 +160,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
+  def handle_control(state, payload, path, _delivery_tag, _timestamp) do
+    IO.puts "Control on #{path}, payload: #{inspect payload}"
+
+    state
+  end
+
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
     major_version = interface_version!(db_client, state.device_id, interface_name)
     interface_row = retrieve_interface_row!(db_client, interface_name, major_version)
@@ -191,7 +197,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   #TODO: we should pattern match on storage type instead of :individual, :property
-  defp insert_value_into_db(db_client, :individual, :properties, device_id, interface_descriptor, endpoint_id, endpoint, path, value) do
+  defp insert_value_into_db(db_client, :individual, :properties, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
     insert_query =
       DatabaseQuery.new()
         |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} " <>
@@ -201,14 +207,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
         |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:path, path)
-        |> DatabaseQuery.put(:reception_timestamp, DateTime.to_unix(DateTime.utc_now(), :milliseconds))
+        |> DatabaseQuery.put(:reception_timestamp, timestamp)
         |> DatabaseQuery.put(:value, value)
 
       DatabaseQuery.call!(db_client, insert_query)
   end
 
   #TODO: we should pattern match on storage type instead of :individual, :datastream
-  defp insert_value_into_db(db_client, :individual, :datastream, device_id, interface_descriptor, endpoint_id, endpoint, path, value) do
+  defp insert_value_into_db(db_client, :individual, :datastream, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
     insert_query =
       DatabaseQuery.new()
         |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} " <>
@@ -218,7 +224,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
         |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:path, path)
-        |> DatabaseQuery.put(:reception_timestamp, DateTime.to_unix(DateTime.utc_now(), :milliseconds))
+        |> DatabaseQuery.put(:reception_timestamp, timestamp)
         |> DatabaseQuery.put(:value, value)
 
       DatabaseQuery.call!(db_client, insert_query)

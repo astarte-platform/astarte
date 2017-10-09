@@ -19,24 +19,29 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
-  def handle_connection(realm, encoded_device_id, ip_address) do
+  def handle_connection(realm, encoded_device_id, ip_address, delivery_tag, timestamp) do
     get_data_updater_process(realm, encoded_device_id)
-    |> GenServer.cast({:handle_connection, ip_address})
+    |> GenServer.cast({:handle_connection, ip_address, delivery_tag, timestamp})
   end
 
-  def handle_disconnection(realm, encoded_device_id) do
+  def handle_disconnection(realm, encoded_device_id, delivery_tag, timestamp) do
     get_data_updater_process(realm, encoded_device_id)
-    |> GenServer.cast({:handle_disconnection})
+    |> GenServer.cast({:handle_disconnection, delivery_tag, timestamp})
   end
 
-  def handle_message(realm, encoded_device_id, interface, path, payload) do
+  def handle_data(realm, encoded_device_id, interface, path, payload, delivery_tag, timestamp) do
     get_data_updater_process(realm, encoded_device_id)
-    |> GenServer.cast({:handle_message, interface, path, payload})
+    |> GenServer.cast({:handle_data, interface, path, payload, delivery_tag, timestamp})
   end
 
-  def handle_introspection(realm, encoded_device_id, payload) do
+  def handle_introspection(realm, encoded_device_id, payload, delivery_tag, timestamp) do
     get_data_updater_process(realm, encoded_device_id)
-    |> GenServer.cast({:handle_introspection, payload})
+    |> GenServer.cast({:handle_introspection, payload, delivery_tag, timestamp})
+  end
+
+  def handle_control(realm, encoded_device_id, path, payload, delivery_tag, timestamp) do
+    get_data_updater_process(realm, encoded_device_id)
+    |> GenServer.cast({:handle_control, path, payload, delivery_tag, timestamp})
   end
 
   defp get_data_updater_process(realm, encoded_device_id) do

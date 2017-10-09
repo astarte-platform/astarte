@@ -30,23 +30,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:ok, new_state}
   end
 
-  def handle_cast({:handle_connection, ip_address}, state) do
-    new_state = Impl.handle_connection(state, ip_address)
+  def handle_cast({:handle_connection, ip_address, delivery_tag, timestamp}, state) do
+    new_state = Impl.handle_connection(state, ip_address, delivery_tag, timestamp)
     {:noreply, new_state}
   end
 
-  def handle_cast({:handle_disconnection}, state) do
-    new_state = Impl.handle_disconnection(state)
+  def handle_cast({:handle_disconnection, delivery_tag, timestamp}, state) do
+    new_state = Impl.handle_disconnection(state, delivery_tag, timestamp)
     {:noreply, new_state}
   end
 
-  def handle_cast({:handle_message, interface, path, payload}, state) do
-    new_state = Impl.handle_message(state, interface, path, payload)
+  def handle_cast({:handle_data, interface, path, payload, delivery_tag, timestamp}, state) do
+    new_state = Impl.handle_data(state, interface, path, payload, delivery_tag, timestamp)
     {:noreply, new_state}
   end
 
-  def handle_cast({:handle_introspection, payload}, state) do
-    new_state = Impl.handle_introspection(state, payload)
+  def handle_cast({:handle_introspection, payload, delivery_tag, timestamp}, state) do
+    new_state = Impl.handle_introspection(state, payload, delivery_tag, timestamp)
+    {:noreply, new_state}
+  end
+
+  def handle_cast({:handle_control, payload, path, delivery_tag, timestamp}, state) do
+    new_state = Impl.handle_control(state, payload, path, delivery_tag, timestamp)
     {:noreply, new_state}
   end
 
