@@ -12,6 +12,8 @@ variables:
 mix:test-ci:
     image: elixir:1.5
     stage: build
+    services:
+        - scylladb/scylla:latest
     script:
         - export MIX_ENV=test
         - mix deps.get --force
@@ -27,6 +29,8 @@ mix:test-ci:
 mix:build:
     image: elixir:1.5
     stage: build
+    services:
+        - scylladb/scylla:latest
     script:
         - export MIX_ENV=test
         - mix deps.get --force
@@ -44,6 +48,8 @@ mix:build:
 mix:release-build:
     image: elixir:1.5
     stage: build
+    services:
+        - scylladb/scylla:latest
     script:
         - export MIX_ENV=prod
         - mix deps.get --force
