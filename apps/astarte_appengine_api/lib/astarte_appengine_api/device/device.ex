@@ -500,7 +500,9 @@ defmodule Astarte.AppEngine.API.Device do
     if ip == :null do
       nil
     else
-      :inet_parse.ntoa(ip)
+      ip
+      |> :inet_parse.ntoa
+      |> to_string
     end
   end
 
