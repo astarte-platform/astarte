@@ -29,10 +29,34 @@ defmodule Astarte.Pairing.Queries do
   INSERT INTO devices
   (device_id, extended_id, inhibit_pairing, protocol_revision, total_received_bytes, total_received_msgs)
   VALUES (:device_id, :extended_id, :inhibit_pairing, :protocol_revision, :total_received_bytes, :total_received_msgs)
-  IF NOT EXISTS
+  """
+
+  @select_device """
+  SELECT device_id
+  FROM devices
+  WHERE device_id=:device_id
   """
 
   def insert_device(client, device_uuid, extended_id) do
+    #TODO: use IF NOT EXISTS as soon as Scylla supports it
+    device_exists_query =
+      Query.new()
+      |> Query.statement(@select_device)
+      |> Query.put(:device_id, device_uuid)
+
+    case Query.call(client, device_exists_query) do
+      {:ok, res} ->
+        if Result.size(res) > 0 do
+          {:error, :device_exists}
+        else
+          insert_not_existing_device(client, device_uuid, extended_id)
+        end
+      _error ->
+        {:error, :db_error}
+    end
+  end
+
+  defp insert_not_existing_device(client, device_uuid, extended_id) do
     query =
       Query.new()
       |> Query.statement(@insert_new_device)
@@ -44,19 +68,9 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:total_received_msgs, 0)
 
     case Query.call(client, query) do
-      {:ok, result} ->
-        applied =
-          result
-          |> Result.head()
-          |> Keyword.get(:'[applied]')
-
-        if applied do
-          :ok
-        else
-          {:error, :device_exists}
-        end
-
-      {:error, _} ->
+      {:ok, _res} ->
+        :ok
+      _error ->
         {:error, :db_error}
     end
   end
