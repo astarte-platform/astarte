@@ -1,4 +1,4 @@
-defmodule Astarte.Pairing.AMQPServerTest do
+defmodule Astarte.Pairing.RPC.AMQPServerTest do
   use ExUnit.Case
 
   alias Astarte.Pairing.Config
