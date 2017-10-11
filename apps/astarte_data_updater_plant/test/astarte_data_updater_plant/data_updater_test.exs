@@ -27,14 +27,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> DatabaseQuery.put(:device_id, device_id_uuid)
 
     DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
-
+    DataUpdater.dump_state(realm, device_id)
 
     device_row =
       DatabaseQuery.call!(db_client, device_query)
       |> DatabaseResult.head()
 
     assert device_row == [connected: true, total_received_msgs: 45000, total_received_bytes: 4500000]
-    DataUpdater.dump_state(realm, device_id)
 
     DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/time/from", Bson.encode(%{"v" => 9000}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds))
     DataUpdater.handle_data(realm, device_id, "com.test.SimpleStreamTest", "/0/value", Bson.encode(%{"v" => 5}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:15:32+00:00"), 1), :milliseconds))
