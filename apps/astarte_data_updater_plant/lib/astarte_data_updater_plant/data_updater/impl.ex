@@ -110,11 +110,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       cond do
         interface_descriptor.ownership == :server ->
           Logger.warn "#{state.realm}: Device #{inspect state.device_id} tried to write on server owned interface: #{interface}."
-          {:error, :maybe_outdate_introspection}
+          {:error, :maybe_outdated_introspection}
 
         resolve_result != :ok ->
           Logger.warn "#{state.realm}: Cannot resolve #{path} to #{interface} endpoint."
-          {:error, :maybe_outdate_introspection}
+          {:error, :maybe_outdated_introspection}
 
         value == :error ->
           Logger.warn "#{state.realm}: Invalid BSON payload: #{Bson.decode(payload)} sent to #{interface}#{path}."
