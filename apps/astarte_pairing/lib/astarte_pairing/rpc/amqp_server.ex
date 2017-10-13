@@ -42,6 +42,17 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
     {:ok, call_tuple}
   end
 
+  defp call_rpc({:do_pairing, %DoPairing{csr: csr, api_key: api_key, device_ip: device_ip}}) do
+    case Engine.do_pairing(csr, api_key, device_ip) do
+      {:ok, certificate} ->
+        %DoPairingReply{client_crt: certificate}
+        |> encode_reply(:do_pairing_reply)
+        |> ok_wrap()
+
+      {:error, reason} ->
+        generic_error(reason)
+    end
+  end
   defp call_rpc({:get_info, %GetInfo{}}) do
     %{url: url, version: version} = Engine.get_info()
     %GetInfoReply{url: url,
