@@ -23,12 +23,25 @@ defmodule Astarte.Pairing.Engine do
   """
 
   alias Astarte.Pairing.APIKey
+  alias Astarte.Pairing.CFSSLPairing
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.Queries
   alias Astarte.Pairing.Utils
   alias CQEx.Client
 
   @version Mix.Project.config[:version]
+
+  def do_pairing(csr, api_key, device_ip) do
+    with %{realm: realm, device_uuid: device_uuid} <- APIKey.verify(api_key, "api_salt"),
+         {:ok, ip_tuple} <- parse_ip(device_ip),
+         {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
+         {:ok, device} <- Queries.select_device_for_pairing(client, device_uuid),
+         {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <- CFSSLPairing.pair(csr, realm, device[:extended_id]),
+         :ok <- Queries.update_device_after_pairing(client, device_uuid, cert_data, ip_tuple, device[:first_pairing]) do
+
+      {:ok, cert}
+    end
+  end
 
   def get_info do
     %{version: @version,
