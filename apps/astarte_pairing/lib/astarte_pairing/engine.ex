@@ -50,4 +50,11 @@ defmodule Astarte.Pairing.Engine do
       end
     end
   end
+
+  defp parse_ip(ip_string) do
+    case to_charlist(ip_string) |> :inet.parse_address() do
+      {:ok, ip_tuple} -> {:ok, ip_tuple}
+      {:error, _} -> {:error, :invalid_ip}
+    end
+  end
 end
