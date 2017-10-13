@@ -37,6 +37,12 @@ defmodule Astarte.Pairing.Queries do
   WHERE device_id=:device_id
   """
 
+  @select_device_for_pairing """
+  SELECT extended_id, first_pairing
+  FROM devices
+  WHERE device_id=:device_id
+  """
+
   def insert_device(client, device_uuid, extended_id) do
     #TODO: use IF NOT EXISTS as soon as Scylla supports it
     device_exists_query =
@@ -51,6 +57,25 @@ defmodule Astarte.Pairing.Queries do
         else
           insert_not_existing_device(client, device_uuid, extended_id)
         end
+      _error ->
+        {:error, :db_error}
+    end
+  end
+
+  def select_device_for_pairing(client, device_uuid) do
+    device_query =
+      Query.new()
+      |> Query.statement(@select_device_for_pairing)
+      |> Query.put(:device_id, device_uuid)
+
+    case Query.call(client, device_query) do
+      {:ok, res} ->
+        if Enum.empty?(res) do
+          {:error, :device_not_found}
+        else
+          {:ok, Result.head(res)}
+        end
+
       _error ->
         {:error, :db_error}
     end
