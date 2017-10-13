@@ -62,7 +62,7 @@ defmodule Astarte.Pairing.APIKey do
         %{realm: realm, device_uuid: device_uuid}
 
       :error ->
-        {:error, :invalid}
+        {:error, :invalid_api_key}
     end
   end
 

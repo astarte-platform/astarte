@@ -26,6 +26,6 @@ defmodule Astarte.Pairing.APIKeyTest do
 
     tampered_api_key = "#{prefix}.#{tampered_payload}.#{postfix}"
 
-    assert APIKey.verify(tampered_api_key, "api_salt") == {:error, :invalid}
+    assert APIKey.verify(tampered_api_key, "api_salt") == {:error, :invalid_api_key}
   end
 end
