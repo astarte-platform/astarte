@@ -332,7 +332,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp decode_device_id(encoded_device_id) do
-    << device_uuid :: binary-size(16), _extended_id :: binary >> = Base.decode64!(encoded_device_id)
+    << device_uuid :: binary-size(16), _extended_id :: binary >> = Base.url_decode64!(encoded_device_id, padding: false)
 
     device_uuid
   end
