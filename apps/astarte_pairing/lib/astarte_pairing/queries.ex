@@ -43,6 +43,12 @@ defmodule Astarte.Pairing.Queries do
   WHERE device_id=:device_id
   """
 
+  @update_device_after_pairing """
+  UPDATE devices
+  SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_pairing_ip=:last_pairing_ip, first_pairing=:first_pairing
+  WHERE device_id=:device_id
+  """
+
   def insert_device(client, device_uuid, extended_id) do
     #TODO: use IF NOT EXISTS as soon as Scylla supports it
     device_exists_query =
@@ -75,6 +81,32 @@ defmodule Astarte.Pairing.Queries do
         else
           {:ok, Result.head(res)}
         end
+
+      _error ->
+        {:error, :db_error}
+    end
+  end
+
+  def update_device_after_pairing(client, device_uuid, cert_data, device_ip, :null) do
+    first_pairing_timestamp =
+      DateTime.utc_now()
+      |> DateTime.to_unix(:milliseconds)
+
+    update_device_after_pairing(client, device_uuid, cert_data, device_ip, first_pairing_timestamp)
+  end
+  def update_device_after_pairing(client, device_uuid, %{serial: serial, aki: aki} = _cert_data, device_ip, first_pairing_timestamp) do
+    query =
+      Query.new()
+      |> Query.statement(@update_device_after_pairing)
+      |> Query.put(:device_id, device_uuid)
+      |> Query.put(:cert_aki, aki)
+      |> Query.put(:cert_serial, serial)
+      |> Query.put(:last_pairing_ip, device_ip)
+      |> Query.put(:first_pairing, first_pairing_timestamp)
+
+    case Query.call(client, query) do
+      {:ok, _res} ->
+        :ok
 
       _error ->
         {:error, :db_error}
