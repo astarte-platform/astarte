@@ -25,6 +25,8 @@ defmodule Astarte.Pairing.Queries do
   alias CQEx.Query
   alias CQEx.Result
 
+  require Logger
+
   @insert_new_device """
   INSERT INTO devices
   (device_id, extended_id, inhibit_pairing, protocol_revision, total_received_bytes, total_received_msgs)
@@ -63,7 +65,8 @@ defmodule Astarte.Pairing.Queries do
         else
           insert_not_existing_device(client, device_uuid, extended_id)
         end
-      _error ->
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
         {:error, :db_error}
     end
   end
@@ -82,7 +85,8 @@ defmodule Astarte.Pairing.Queries do
           {:ok, Result.head(res)}
         end
 
-      _error ->
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
         {:error, :db_error}
     end
   end
@@ -108,7 +112,8 @@ defmodule Astarte.Pairing.Queries do
       {:ok, _res} ->
         :ok
 
-      _error ->
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
         {:error, :db_error}
     end
   end
@@ -127,7 +132,8 @@ defmodule Astarte.Pairing.Queries do
     case Query.call(client, query) do
       {:ok, _res} ->
         :ok
-      _error ->
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
         {:error, :db_error}
     end
   end
