@@ -32,7 +32,7 @@ defmodule Astarte.Pairing.Engine do
   @version Mix.Project.config[:version]
 
   def do_pairing(csr, api_key, device_ip) do
-    with %{realm: realm, device_uuid: device_uuid} <- APIKey.verify(api_key, "api_salt"),
+    with {:ok, %{realm: realm, device_uuid: device_uuid}} <- APIKey.verify(api_key, "api_salt"),
          {:ok, ip_tuple} <- parse_ip(device_ip),
          {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
          {:ok, device} <- Queries.select_device_for_pairing(client, device_uuid),

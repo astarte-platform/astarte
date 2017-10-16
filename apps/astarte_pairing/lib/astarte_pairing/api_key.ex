@@ -59,7 +59,7 @@ defmodule Astarte.Pairing.APIKey do
 
     case MessageVerifier.verify(api_key, secret) do
       {:ok, <<device_uuid :: binary-size(16), realm :: binary>>} ->
-        %{realm: realm, device_uuid: device_uuid}
+        {:ok, %{realm: realm, device_uuid: device_uuid}}
 
       :error ->
         {:error, :invalid_api_key}

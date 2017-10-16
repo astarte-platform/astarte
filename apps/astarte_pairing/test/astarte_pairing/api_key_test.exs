@@ -11,7 +11,7 @@ defmodule Astarte.Pairing.APIKeyTest do
     {:ok, device_uuid} = Utils.extended_id_to_uuid(@test_hw_id)
     {:ok, api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
 
-    assert APIKey.verify(api_key, "api_salt") == %{realm: @test_realm, device_uuid: device_uuid}
+    assert APIKey.verify(api_key, "api_salt") == {:ok, %{realm: @test_realm, device_uuid: device_uuid}}
   end
 
   test "APIKey fails to verify if tampered" do
