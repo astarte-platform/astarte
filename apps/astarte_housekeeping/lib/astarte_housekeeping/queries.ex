@@ -39,7 +39,6 @@ defmodule Astarte.Housekeeping.Queries do
         triggers set<ascii>,
         metadata map<ascii, text>,
         inhibit_pairing boolean,
-        api_key ascii,
         cert_serial ascii,
         cert_aki ascii,
         first_pairing timestamp,
