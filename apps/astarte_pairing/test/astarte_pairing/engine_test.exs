@@ -6,6 +6,7 @@ defmodule Astarte.Pairing.EngineTest do
   alias Astarte.Pairing.DatabaseTestHelper
   alias Astarte.Pairing.Engine
   alias Astarte.Pairing.Queries
+  alias Astarte.Pairing.TestHelper
   alias Astarte.Pairing.Utils
   alias CFXXL.CertUtils
 
@@ -42,7 +43,7 @@ defmodule Astarte.Pairing.EngineTest do
   end
 
   setup do
-    hw_id = random_hw_id()
+    hw_id = TestHelper.random_hw_id()
     {:ok, api_key} = Engine.generate_api_key(@test_realm, hw_id)
 
     {:ok, api_key: api_key}
@@ -58,7 +59,7 @@ defmodule Astarte.Pairing.EngineTest do
 
   test "do_pairing with unexisting realm encoded in API key" do
     {:ok, device_uuid} =
-      random_hw_id()
+      TestHelper.random_hw_id()
       |> Utils.extended_id_to_uuid()
 
     {:ok, api_key} = APIKey.generate("unexisting", device_uuid, "api_salt")
@@ -70,7 +71,7 @@ defmodule Astarte.Pairing.EngineTest do
     # We don't pass through Engine for the APIKey so the device
     # is never inserted in the DB
     {:ok, device_uuid} =
-      random_hw_id()
+      TestHelper.random_hw_id()
       |> Utils.extended_id_to_uuid()
 
     {:ok, api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
@@ -119,9 +120,5 @@ defmodule Astarte.Pairing.EngineTest do
     assert {:ok, _second_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
     {:ok, repaired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
     assert first_pairing_timestamp == repaired_device[:first_pairing]
-  end
-
-  defp random_hw_id do
-    :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
   end
 end
