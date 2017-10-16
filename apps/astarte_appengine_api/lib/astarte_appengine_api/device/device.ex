@@ -271,11 +271,8 @@ defmodule Astarte.AppEngine.API.Device do
       raise DeviceNotFoundError
     end
 
-    #TODO: optimize schema here
-    for interface_tuple <- device_row[:introspection] do
-      interface_tuple
-      |> String.split(";")
-      |> hd
+    for {interface_name, _interface_major} <- device_row[:introspection] do
+      interface_name
     end
   end
 
@@ -293,22 +290,18 @@ defmodule Astarte.AppEngine.API.Device do
       raise DeviceNotFoundError
     end
 
-    interface_pair =
+    interface_tuple =
       device_row[:introspection]
-      |> Enum.find(fn(item) -> match?([^interface, _version], String.split(item, ";")) end)
+      |> List.keyfind(interface, 0)
 
-    if interface_pair == nil do
-      #TODO: report device introspection here for debug purposes
-      raise InterfaceNotFoundError
+    case interface_tuple do
+      {_interface_name, interface_major} ->
+        interface_major
+
+      nil ->
+        #TODO: report device introspection here for debug purposes
+        raise InterfaceNotFoundError
     end
-
-    {major, ""} =
-      interface_pair
-      |> String.split(";")
-      |> List.last()
-      |> Integer.parse()
-
-    major
   end
 
   defp retrieve_interface_row!(client, interface, major_version) do
