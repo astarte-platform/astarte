@@ -14,7 +14,7 @@ config :astarte_pairing, :broker_url,
   "ssl://broker.beta.astarte.cloud:8883/"
 
 config :astarte_pairing, :cfssl_url,
-  "http://localhost:8888"
+  System.get_env("CFSSL_API_URL") || "http://laslabs-alpine-cfssl:8080"
 
 config :cqerl, :cassandra_nodes,
   [{System.get_env("CASSANDRA_DB_HOST") || "scylladb-scylla", System.get_env("CASSANDRA_DB_PORT") || 9042}]
