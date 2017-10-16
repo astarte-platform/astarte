@@ -17,11 +17,7 @@ defmodule Astarte.Pairing.CFSSLPairing do
     device_common_name = "#{realm}/#{extended_id}"
     subject = %Subject{CN: device_common_name}
 
-    client =
-      Config.cfssl_url()
-      |> Client.new()
-
-    case CFXXL.sign(client, csr, subject: subject, profile: "device") do
+    case CFXXL.sign(client(), csr, subject: subject, profile: "device") do
       {:ok, %{"certificate" => cert}} ->
         aki = CertUtils.authority_key_identifier!(cert)
         serial = CertUtils.serial_number!(cert)
@@ -43,9 +39,7 @@ defmodule Astarte.Pairing.CFSSLPairing do
   # If it was not present in the DB, no need to revoke it
   def revoke(:null, :null), do: :ok
   def revoke(serial, aki) do
-    client = Client.new(Config.cfssl_url())
-
-    case CFXXL.revoke(client, serial, aki, "superseded") do
+    case CFXXL.revoke(client(), serial, aki, "superseded") do
       # Don't fail even if we couldn't revoke, just warn
       {:error, reason} ->
         Logger.warn("Failed to revoke certificate with serial #{serial} and AKI #{aki}: #{reason}")
@@ -53,5 +47,10 @@ defmodule Astarte.Pairing.CFSSLPairing do
 
       :ok -> :ok
     end
+  end
+
+  defp client do
+    Config.cfssl_url()
+    |> Client.new()
   end
 end
