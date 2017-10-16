@@ -12,6 +12,8 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
   @test_hw_id_1 :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
   @test_hw_id_2 :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
 
+  @test_realm DatabaseTestHelper.test_realm()
+
   setup_all do
     DatabaseTestHelper.seed_db()
 
@@ -43,13 +45,13 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
   test "GenerateAPIKey call" do
     encoded =
-      %Call{call: {:generate_api_key, %GenerateAPIKey{realm: DatabaseTestHelper.test_realm(), hw_id: @test_hw_id_1}}}
+      %Call{call: {:generate_api_key, %GenerateAPIKey{realm: @test_realm, hw_id: @test_hw_id_1}}}
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
     {:ok, device_uuid} = Utils.extended_id_to_uuid(@test_hw_id_1)
-    {:ok, expected_api_key} = APIKey.generate(DatabaseTestHelper.test_realm(), device_uuid, "api_salt")
+    {:ok, expected_api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
 
     expected_reply =
       %Reply{reply:
@@ -60,13 +62,13 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
   test "GenerateAPIKey can't insert the same device twice" do
     encoded =
-      %Call{call: {:generate_api_key, %GenerateAPIKey{realm: DatabaseTestHelper.test_realm(), hw_id: @test_hw_id_2}}}
+      %Call{call: {:generate_api_key, %GenerateAPIKey{realm: @test_realm, hw_id: @test_hw_id_2}}}
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
     {:ok, device_uuid} = Utils.extended_id_to_uuid(@test_hw_id_2)
-    {:ok, expected_api_key} = APIKey.generate(DatabaseTestHelper.test_realm(), device_uuid, "api_salt")
+    {:ok, expected_api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
 
     expected_reply =
       %Reply{reply:
@@ -85,7 +87,7 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
   test "GenerateAPIKey fails with invalid hw_id" do
     encoded =
-      %Call{call: {:generate_api_key, %GenerateAPIKey{realm: DatabaseTestHelper.test_realm(), hw_id: "invalid_hw_id"}}}
+      %Call{call: {:generate_api_key, %GenerateAPIKey{realm: @test_realm, hw_id: "invalid_hw_id"}}}
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
