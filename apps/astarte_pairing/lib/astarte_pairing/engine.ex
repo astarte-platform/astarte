@@ -36,6 +36,7 @@ defmodule Astarte.Pairing.Engine do
          {:ok, ip_tuple} <- parse_ip(device_ip),
          {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
          {:ok, device} <- Queries.select_device_for_pairing(client, device_uuid),
+         _ <- CFSSLPairing.revoke(device[:cert_serial], device[:cert_aki]),
          {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <- CFSSLPairing.pair(csr, realm, device[:extended_id]),
          :ok <- Queries.update_device_after_pairing(client, device_uuid, cert_data, ip_tuple, device[:first_pairing]) do
 
