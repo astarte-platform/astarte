@@ -17,20 +17,26 @@ defmodule Astarte.Pairing.CFSSLPairing do
     device_common_name = "#{realm}/#{extended_id}"
     subject = %Subject{CN: device_common_name}
 
-    {:ok, %{"certificate" => cert}} =
-      Client.new(Config.cfssl_url())
-      |> CFXXL.sign(csr, subject: subject, profile: "device")
+    client =
+      Config.cfssl_url()
+      |> Client.new()
 
-    aki = CertUtils.authority_key_identifier!(cert)
-    serial = CertUtils.serial_number!(cert)
-    cn = CertUtils.common_name!(cert)
+    case CFXXL.sign(client, csr, subject: subject, profile: "device") do
+      {:ok, %{"certificate" => cert}} ->
+        aki = CertUtils.authority_key_identifier!(cert)
+        serial = CertUtils.serial_number!(cert)
+        cn = CertUtils.common_name!(cert)
 
-    if cn == device_common_name do
-      {:ok, %{cert: cert,
-              aki: aki,
-              serial: serial}}
-    else
-      {:error, :invalid_common_name}
+        if cn == device_common_name do
+          {:ok, %{cert: cert,
+                  aki: aki,
+                  serial: serial}}
+        else
+          {:error, :invalid_common_name}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
