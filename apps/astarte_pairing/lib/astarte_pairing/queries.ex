@@ -38,7 +38,7 @@ defmodule Astarte.Pairing.Queries do
   """
 
   @select_device_for_pairing """
-  SELECT extended_id, first_pairing
+  SELECT extended_id, first_pairing, cert_aki, cert_serial
   FROM devices
   WHERE device_id=:device_id
   """
