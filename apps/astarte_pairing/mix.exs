@@ -35,6 +35,10 @@ defmodule Astarte.Pairing.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:cqex, github: "ispirata/cqex"},
+      {:plug, "~> 1.4.0"},
+      {:uuid, "~> 1.7", hex: :uuid_erl},
+
       {:excoveralls, "~> 0.7.3", only: :test},
       {:distillery, "~> 1.5", runtime: false}
     ]

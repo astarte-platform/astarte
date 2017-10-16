@@ -49,6 +49,17 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
     |> encode_reply(:get_info_reply)
     |> ok_wrap
   end
+  defp call_rpc({:generate_api_key, %GenerateAPIKey{realm: realm, hw_id: hw_id}}) do
+    case Engine.generate_api_key(realm, hw_id) do
+      {:ok, api_key} ->
+        %GenerateAPIKeyReply{api_key: api_key}
+        |> encode_reply(:generate_api_key_reply)
+        |> ok_wrap()
+
+      {:error, reason} ->
+        generic_error(reason)
+    end
+  end
 
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
     %GenericErrorReply{error_name: to_string(error_name),
