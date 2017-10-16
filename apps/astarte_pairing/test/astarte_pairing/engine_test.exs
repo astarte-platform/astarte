@@ -101,6 +101,26 @@ defmodule Astarte.Pairing.EngineTest do
     assert device[:cert_serial] == second_serial
   end
 
+  test "first_pairing timestamp", %{api_key: api_key} do
+    {:ok, %{realm: realm, device_uuid: device_uuid}} = APIKey.verify(api_key, "api_salt")
+
+    db_client =
+      Config.cassandra_node()
+      |> CQEx.Client.new!(keyspace: realm)
+
+    {:ok, no_paired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
+    assert no_paired_device[:first_pairing] == :null
+
+    assert {:ok, _first_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
+    {:ok, paired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
+    first_pairing_timestamp = paired_device[:first_pairing]
+    assert first_pairing_timestamp != :null
+
+    assert {:ok, _second_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
+    {:ok, repaired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
+    assert first_pairing_timestamp == repaired_device[:first_pairing]
+  end
+
   defp random_hw_id do
     :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
   end
