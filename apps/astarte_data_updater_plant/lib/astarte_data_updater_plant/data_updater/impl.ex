@@ -50,7 +50,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       connected: true,
       total_received_msgs: device_row[:total_received_msgs],
       total_received_bytes: device_row[:total_received_bytes],
-      introspection: device_row[:introspection],
+      introspection: Enum.into(device_row[:introspection], %{}),
       interfaces: %{},
       mappings: %{}
     }
@@ -137,19 +137,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_introspection(state, payload, _delivery_tag, _timestamp) do
     db_client = connect_to_db(state)
 
-    new_introspection_list =
-      payload
-      |> String.split(";")
+    new_introspection_list = String.split(payload, ";")
+
+    db_introspection_map =
+      List.foldl(new_introspection_list, %{}, fn(introspection_item, introspection_map) ->
+        [interface_name, major_version_string, _minor_version] = String.split(introspection_item, ":")
+        {major_version, garbage} = Integer.parse(major_version_string)
+
+        if garbage != "" do
+          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage: #{garbage}."
+        end
+
+        Map.put(introspection_map, interface_name, major_version)
+      end)
+
+    current_sorted_introspection =
+      state.introspection
+      |> Enum.map(fn(x) -> x end)
       |> Enum.sort()
 
-    #TODO: change me
-    db_introspection_list =
-      for introspection_item <- new_introspection_list do
-        [interface_name, major_version, _minor_version] = String.split(introspection_item, ":")
-        "#{interface_name};#{major_version}"
-      end
+    new_sorted_introspection =
+      db_introspection_map
+      |> Enum.map(fn(x) -> x end)
+      |> Enum.sort()
 
-    diff = List.myers_difference(Enum.sort(state.introspection), db_introspection_list)
+    diff = List.myers_difference(current_sorted_introspection, new_sorted_introspection)
 
     #TODO: handle changes
     IO.puts "Introspection changes #{inspect diff}"
@@ -158,12 +170,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       DatabaseQuery.new()
       |> DatabaseQuery.statement("UPDATE devices SET introspection=:introspection WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
-      |> DatabaseQuery.put(:introspection, db_introspection_list)
+      |> DatabaseQuery.put(:introspection, db_introspection_map)
 
     DatabaseQuery.call!(db_client, device_update_query)
 
     %{state |
-      introspection: db_introspection_list,
+      introspection: db_introspection_map,
       total_received_msgs: state.total_received_msgs + 1,
       total_received_bytes: state.total_received_bytes + byte_size(payload)
     }
@@ -279,22 +291,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     #  raise DeviceNotFoundError
     #end
 
-    interface_pair =
+    interface_tuple =
       device_row[:introspection]
-      |> Enum.find(fn(item) -> match?([^interface, _version], String.split(item, ";")) end)
+      |> List.keyfind(interface, 0)
 
-    #if interface_pair == nil do
-    #  #TODO: report device introspection here for debug purposes
-    #  raise InterfaceNotFoundError
-    #end
+    case interface_tuple do
+      {_interface_name, interface_major} ->
+        interface_major
 
-    {major, ""} =
-      interface_pair
-      |> String.split(";")
-      |> List.last()
-      |> Integer.parse()
-
-    major
+      nil ->
+        #TODO: report device introspection here for debug purposes
+        #raise InterfaceNotFoundError
+        {:error, :interface_not_found}
+    end
   end
 
   defp connect_to_db(state) do
