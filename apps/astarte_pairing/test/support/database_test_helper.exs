@@ -62,6 +62,6 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       Config.cassandra_node()
       |> Client.new!()
 
-    Query.cast(client, @drop_autotestrealm)
+    Query.call(client, @drop_autotestrealm)
   end
 end
