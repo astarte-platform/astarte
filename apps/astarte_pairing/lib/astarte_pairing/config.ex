@@ -61,4 +61,11 @@ defmodule Astarte.Pairing.Config do
     Application.get_env(:cqerl, :cassandra_nodes)
     |> List.first()
   end
+
+  @doc """
+  Returns the CFSSL base_url
+  """
+  def cfssl_url do
+    Application.fetch_env!(:astarte_pairing, :cfssl_url)
+  end
 end
