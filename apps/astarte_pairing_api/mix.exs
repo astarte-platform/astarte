@@ -9,6 +9,8 @@ defmodule Astarte.Pairing.API.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
       deps: deps()
     ]
   end
@@ -36,7 +38,9 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:phoenix_pubsub, "~> 1.0"},
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
-      {:ecto, "~> 2.1"}
+      {:ecto, "~> 2.1"},
+
+      {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 end
