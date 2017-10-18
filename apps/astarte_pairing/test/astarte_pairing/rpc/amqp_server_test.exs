@@ -36,6 +36,41 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
   @test_realm DatabaseTestHelper.test_realm()
 
+  @self_signed_crt """
+  -----BEGIN CERTIFICATE-----
+  MIIFfzCCA2egAwIBAgIJALsySXafOY1aMA0GCSqGSIb3DQEBCwUAMFYxCzAJBgNV
+  BAYTAklUMRAwDgYDVQQIDAdFeGFtcGxlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn
+  aXRzIFB0eSBMdGQxEjAQBgNVBAMMCXRlc3QvaHdpZDAeFw0xNzEwMTgxNTE2MzBa
+  Fw0xODEwMTgxNTE2MzBaMFYxCzAJBgNVBAYTAklUMRAwDgYDVQQIDAdFeGFtcGxl
+  MSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxEjAQBgNVBAMMCXRl
+  c3QvaHdpZDCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKVsOtA5JoWo
+  nOF7BASELrkbus/miu9ySu9u/DtQyrsQcUm5dYHbI0jET9CQv+mI46oNzNDkhQUJ
+  +1d82fYgd8mkSglKE8QValmIDJzEwRTMVhsj8i8UydwAiuj0wRuW+hHZw1t3kLXL
+  4e/CsLBejqKXAWBLxpDgYNulU5c11Dzof7+So8m/y1Kg9TMCgqF979u1jlHA19x8
+  PVeUeAcFvrjiV+cr4XbzNCGBMH1f/bm93dBJjbOEuSVCEm4XE5XnvRT3hWSSp3eV
+  9P1uRCNyUTkFuru/f/bkVQsvO+YU39IlNePIEozjvdiZeqXqAmei4JugLWhq/Qwy
+  skCS/7avlOmgbGjJd8zSGAAl8/0hUH4YkJ4zcvp7rzc/Ze/E7VJuQOrxbmCpaIBo
+  C8s3geMCu+7vzyixkgtvG6lWrX7xzMKPbAX5ciBXYMiNIB14GSlPEn6RqFmPnB0Z
+  azUtMY8qYVSPSGo12vuWCt6grCh3cpFakWg6LnviW035iClPhup6JXs42jb1UMZv
+  kY9eNWICJ+mOZYBEVgFqL5cTVwRis7ZDkBvcuhEOxn6OwkicQuvTWhmFNDttZM9M
+  0YAvGzdQU6mtqH7GOHjqi5hSrZ8vthi275jL9sQv9fuEtjTM6r3zE+sFgwTbxSeq
+  Rk2M/smGcy8NMfke63j/NFCKcAJeexkLAgMBAAGjUDBOMB0GA1UdDgQWBBTpVKpD
+  FWDodB9WohGhL6Q3kMUITDAfBgNVHSMEGDAWgBTpVKpDFWDodB9WohGhL6Q3kMUI
+  TDAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQAxlhkVPkKv2mKvXspj
+  codSBTfIBMV+TdlwKKT+3A71k0fpS3HSvH98lLxkZLHPQuTi4/hpscITzvdfyLnG
+  HFRrCwc3v2x8d3/Fny7MPJu+5HLRMdDXVOSQXOUcA+P1KwibXWwp6GG8kZJ+VWAW
+  eRiOFwptBje8tdeF3YkEHS5GJ92DOyUc6As2UjCu+Psx0cB5Kevny4XFcekUs1Bd
+  hYH1Hnr/WFZJQJz68Bp+APr36UusQRo7a4YrOwnlYszGqrZQtQNRY8XVP5pC/YhD
+  cVtXOyU9NkCPlvxsCdTXObeQq38yxLm6gXi3cJBb1eAL0tBAXky0sLrzOHq462Cn
+  nzvGySpFjMtO4ZTK9hOp4o9/vXx2U/AWk62yCrhDtD8mlV+ljIbw2V6rFJsFnBsX
+  DFG3ljCR7sW+YCLtn/Fig/H07alBr3GiTjAG8vCSMAbvk/QMs1MNEj55FpXY/B6h
+  EXK2dEY+KPwMSBSwxrrZ74BXw0TWcwTVTRpkmtZ8qLTnXYOQ5kYKJ+aDR389+Vy6
+  d4NjjktgugxaL4tGkSMwiinZbBeG9oxtOgZOKQ/W+K1qzCb2ySH2hk5NTdbt7fQX
+  1o2dS9VvunQFSNA8diqBSOjuyoEuR6qo1ejF0o7KW6cJWMsvqq+awKuNmqM7yG59
+  ySj0xif2Z8U7MTfhmZs1cyDA/A==
+  -----END CERTIFICATE-----
+  """
+
   setup_all do
     DatabaseTestHelper.seed_db()
 
@@ -161,5 +196,15 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
       assert expected_err_reply == Reply.decode(reply)
     end
+  end
+
+  test "VerifyCertificate fail with self signed crt" do
+    encoded =
+      %Call{call: {:verify_certificate, %VerifyCertificate{crt: @self_signed_crt}}}
+      |> Call.encode()
+
+    {:ok, verify_reply} = AMQPServer.process_rpc(encoded)
+
+    assert %Reply{reply: {:verify_certificate_reply, %VerifyCertificateReply{valid: false, cause: :INVALID_ISSUER}}} == Reply.decode(verify_reply)
   end
 end
