@@ -23,6 +23,7 @@ defmodule Astarte.Pairing.Engine do
   """
 
   alias Astarte.Pairing.APIKey
+  alias Astarte.Pairing.CertVerifier
   alias Astarte.Pairing.CFSSLPairing
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.Queries
@@ -63,6 +64,10 @@ defmodule Astarte.Pairing.Engine do
         error -> error
       end
     end
+  end
+
+  def verify_certificate(pem_cert) do
+    CertVerifier.verify(pem_cert, Config.ca_cert())
   end
 
   defp parse_ip(ip_string) do

@@ -71,6 +71,24 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
         generic_error(reason)
     end
   end
+  defp call_rpc({:verify_certificate, %VerifyCertificate{crt: crt}}) do
+    case Engine.verify_certificate(crt) do
+      {:ok, %{timestamp: timestamp, until: until}} ->
+        %VerifyCertificateReply{valid: true, timestamp: timestamp, until: until}
+        |> encode_reply(:verify_certificate_reply)
+        |> ok_wrap()
+
+      {:error, reason} ->
+        cause = reason_to_certificate_validation_error(reason)
+
+        # If generic cause, add reason to string as details
+        details = if cause == :INVALID, do: to_string(reason), else: nil
+
+        %VerifyCertificateReply{valid: false, cause: cause, details: details}
+        |> encode_reply(:verify_certificate_reply)
+        |> ok_wrap()
+    end
+  end
 
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
     %GenericErrorReply{error_name: to_string(error_name),
@@ -80,6 +98,15 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
     |> encode_reply(:generic_error_reply)
     |> ok_wrap
   end
+
+  defp reason_to_certificate_validation_error(:cert_expired), do: :EXPIRED
+  defp reason_to_certificate_validation_error(:invalid_issuer), do: :INVALID_ISSUER
+  defp reason_to_certificate_validation_error(:invalid_signature), do: :INVALID_SIGNATURE
+  defp reason_to_certificate_validation_error(:name_not_permitted), do: :NAME_NOT_PERMITTED
+  defp reason_to_certificate_validation_error(:missing_basic_constraint), do: :MISSING_BASIC_CONSTRAINT
+  defp reason_to_certificate_validation_error(:invalid_key_usage), do: :INVALID_KEY_USAGE
+  defp reason_to_certificate_validation_error(:revoked), do: :REVOKED
+  defp reason_to_certificate_validation_error(_), do: :INVALID
 
   defp encode_reply(%GenericErrorReply{} = reply, _reply_type) do
     %Reply{reply: {:generic_error_reply, reply}, error: true}

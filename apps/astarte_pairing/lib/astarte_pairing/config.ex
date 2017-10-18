@@ -22,6 +22,20 @@ defmodule Astarte.Pairing.Config do
   This module helps the access to the runtime configuration of Astarte Pairing
   """
 
+  alias Astarte.Pairing.CFSSLPairing
+
+  def init! do
+    if Application.fetch_env(:astarte_pairing, :ca_cert) == :error do
+      case CFSSLPairing.ca_cert() do
+        {:ok, cert} ->
+          Application.put_env(:astarte_pairing, :ca_cert, cert)
+
+        {:error, _reason} ->
+          raise "no CA certificate available"
+      end
+    end
+  end
+
   @doc """
   Returns the rpc_queue contained in the config.
 
@@ -67,5 +81,12 @@ defmodule Astarte.Pairing.Config do
   """
   def cfssl_url do
     Application.fetch_env!(:astarte_pairing, :cfssl_url)
+  end
+
+  @doc """
+  Returns the PEM encoded CFSSL CA certificate
+  """
+  def ca_cert do
+    Application.fetch_env!(:astarte_pairing, :ca_cert)
   end
 end

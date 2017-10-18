@@ -22,9 +22,12 @@ defmodule Astarte.Pairing do
 
   use Application
 
+  alias Astarte.Pairing.Config
   alias Astarte.Pairing.RPC.AMQPServer
 
   def start(_type, _args) do
+    Config.init!()
+
     children = [
       AMQPServer,
     ]
