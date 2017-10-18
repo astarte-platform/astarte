@@ -42,7 +42,7 @@ defmodule Astarte.Pairing.CFSSLPairing do
     case CFXXL.revoke(client(), serial, aki, "superseded") do
       # Don't fail even if we couldn't revoke, just warn
       {:error, reason} ->
-        Logger.warn("Failed to revoke certificate with serial #{serial} and AKI #{aki}: #{reason}")
+        Logger.warn("Failed to revoke certificate with serial #{serial} and AKI #{aki}: #{inspect(reason)}")
         :ok
 
       :ok -> :ok
