@@ -21,13 +21,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     db_client = connect_to_db(realm)
 
+    DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
+    DataUpdater.dump_state(realm, device_id)
+
     device_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT connected, total_received_msgs, total_received_bytes FROM devices WHERE device_id=:device_id;")
       |> DatabaseQuery.put(:device_id, device_id_uuid)
-
-    DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
-    DataUpdater.dump_state(realm, device_id)
 
     device_row =
       DatabaseQuery.call!(db_client, device_query)
@@ -35,6 +35,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert device_row == [connected: true, total_received_msgs: 45000, total_received_bytes: 4500000]
 
+    # Introspection sub-test
+    device_introspection_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id;")
+      |> DatabaseQuery.put(:device_id, device_id_uuid)
+
+    prev_device_introspection =
+      DatabaseQuery.call!(db_client, device_introspection_query)
+      |> DatabaseResult.head()
+      |> Keyword.get(:introspection)
+      |> Enum.into(%{})
+
+    DataUpdater.handle_introspection(realm, device_id, "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
+    DataUpdater.dump_state(realm, device_id)
+
+    device_introspection =
+      DatabaseQuery.call!(db_client, device_introspection_query)
+      |> DatabaseResult.head()
+      |> Keyword.get(:introspection)
+      |> Enum.into(%{})
+
+    assert prev_device_introspection == device_introspection
+
+    # Incoming data sub-test
     DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/time/from", Bson.encode(%{"v" => 9000}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds))
     DataUpdater.handle_data(realm, device_id, "com.test.SimpleStreamTest", "/0/value", Bson.encode(%{"v" => 5}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:15:32+00:00"), 1), :milliseconds))
 
@@ -80,7 +104,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       DatabaseQuery.call!(db_client, device_query)
       |> DatabaseResult.head()
 
-    assert device_row == [connected: false, total_received_msgs: 45002, total_received_bytes: 4500086]
+    assert device_row == [connected: false, total_received_msgs: 45003, total_received_bytes: 4500139]
   end
 
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
