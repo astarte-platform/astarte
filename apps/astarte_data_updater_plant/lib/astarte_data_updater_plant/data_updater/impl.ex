@@ -50,7 +50,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       connected: true,
       total_received_msgs: device_row[:total_received_msgs],
       total_received_bytes: device_row[:total_received_bytes],
-      introspection: device_row[:introspection],
+      introspection: Enum.into(device_row[:introspection], %{}),
       interfaces: %{},
       mappings: %{}
     }
@@ -137,19 +137,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_introspection(state, payload, _delivery_tag, _timestamp) do
     db_client = connect_to_db(state)
 
-    new_introspection_list =
-      payload
-      |> String.split(";")
+    new_introspection_list = String.split(payload, ";")
+
+    db_introspection_map =
+      List.foldl(new_introspection_list, %{}, fn(introspection_item, introspection_map) ->
+        [interface_name, major_version_string, _minor_version] = String.split(introspection_item, ":")
+        {major_version, garbage} = Integer.parse(major_version_string)
+
+        if garbage != "" do
+          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage: #{garbage}."
+        end
+
+        Map.put(introspection_map, interface_name, major_version)
+      end)
+
+    current_sorted_introspection =
+      state.introspection
+      |> Enum.map(fn(x) -> x end)
       |> Enum.sort()
 
-    #TODO: change me
-    db_introspection_list =
-      for introspection_item <- new_introspection_list do
-        [interface_name, major_version, _minor_version] = String.split(introspection_item, ":")
-        "#{interface_name};#{major_version}"
-      end
+    new_sorted_introspection =
+      db_introspection_map
+      |> Enum.map(fn(x) -> x end)
+      |> Enum.sort()
 
-    diff = List.myers_difference(Enum.sort(state.introspection), db_introspection_list)
+    diff = List.myers_difference(current_sorted_introspection, new_sorted_introspection)
 
     #TODO: handle changes
     IO.puts "Introspection changes #{inspect diff}"
@@ -158,21 +170,62 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       DatabaseQuery.new()
       |> DatabaseQuery.statement("UPDATE devices SET introspection=:introspection WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
-      |> DatabaseQuery.put(:introspection, db_introspection_list)
+      |> DatabaseQuery.put(:introspection, db_introspection_map)
 
     DatabaseQuery.call!(db_client, device_update_query)
 
     %{state |
-      introspection: db_introspection_list,
+      introspection: db_introspection_map,
       total_received_msgs: state.total_received_msgs + 1,
       total_received_bytes: state.total_received_bytes + byte_size(payload)
     }
   end
 
-  def handle_control(state, payload, path, _delivery_tag, _timestamp) do
+  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>> , _delivery_tag, _timestamp) do
+    operation_result = prune_device_properties(state, "")
+
+    if operation_result != :ok do
+      Logger.debug "result is #{inspect operation_result} further actions should be required."
+    end
+
+    #TODO: ACK here
+
+    %{state |
+      total_received_msgs: state.total_received_msgs + 1,
+      total_received_bytes: state.total_received_bytes + byte_size(<<0, 0, 0, 0>>) + byte_size("/producer/properties")
+    }
+  end
+
+  def handle_control(state, "/producer/properties", payload, _delivery_tag, _timestamp) do
+    #TODO: check payload size, to avoid anoying crashes
+
+    <<_size_header :: size(32), zlib_payload :: binary>> = payload
+    #TODO: uncompress is not safe
+    decoded_payload = :zlib.uncompress(zlib_payload)
+
+    operation_result = prune_device_properties(state, decoded_payload)
+
+    if operation_result != :ok do
+      Logger.debug "result is #{inspect operation_result} further actions should be required."
+    end
+
+    #TODO: ACK here
+
+    %{state |
+      total_received_msgs: state.total_received_msgs + 1,
+      total_received_bytes: state.total_received_bytes + byte_size(payload) + byte_size("/producer/properties")
+    }
+  end
+
+  def handle_control(_state, "/emptyCache", _payload,_delivery_tag, _timestamp) do
+    #TODO: implement empty cache
+    raise "TODO"
+  end
+
+  def handle_control(_state, path, payload, _delivery_tag, _timestamp) do
     IO.puts "Control on #{path}, payload: #{inspect payload}"
 
-    state
+    raise "TODO or unexpected"
   end
 
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
@@ -183,7 +236,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     endpoint_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id FROM endpoints WHERE interface_id=:interface_id")
+      |> DatabaseQuery.statement("SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id, interface_id FROM endpoints WHERE interface_id=:interface_id")
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
 
     mappings =
@@ -243,6 +296,97 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
+  defp parse_device_properties_payload(_state, "") do
+    MapSet.new()
+  end
+
+  defp parse_device_properties_payload(state, decoded_payload) do
+      decoded_payload
+      |> String.split(";")
+      |> List.foldl(MapSet.new(), fn(property_full_path, paths_acc) ->
+        if property_full_path != nil do
+          case String.split(property_full_path, "/", parts: 2) do
+            [interface, path] ->
+              if Map.has_key?(state.introspection, interface) do
+                MapSet.put(paths_acc, {interface, "/" <> path})
+              else
+                paths_acc
+              end
+
+            _ ->
+              Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent a malformed entry in device properties control message: #{inspect property_full_path}."
+              paths_acc
+          end
+        else
+          paths_acc
+        end
+      end)
+  end
+
+  defp prune_device_properties(state, decoded_payload) do
+    paths_set = parse_device_properties_payload(state, decoded_payload)
+
+    db_client = connect_to_db(state)
+
+    Enum.each(state.introspection, fn({interface, _}) ->
+      prune_interface(state, db_client, interface, paths_set)
+    end)
+
+    :ok
+  end
+
+  defp prune_interface(state, db_client, interface, all_paths_set) do
+    {interface_descriptor, new_state} = maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
+
+    cond do
+      interface_descriptor.type != :properties ->
+        {:ok, state}
+
+      interface_descriptor.ownership != :thing ->
+        Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} tried to write on server owned interface: #{interface}."
+        {:error, :maybe_outdated_introspection}
+
+      true ->
+        Enum.each(new_state.mappings, fn({endpoint_id, mapping}) ->
+          if mapping.interface_id == interface_descriptor.interface_id do
+            all_paths_query =
+              DatabaseQuery.new()
+                |> DatabaseQuery.statement("SELECT path FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id")
+                |> DatabaseQuery.put(:device_id, state.device_id)
+                |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+                |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+            DatabaseQuery.call!(db_client, all_paths_query)
+            |> Enum.each(fn(path_row) ->
+              path = path_row[:path]
+              if not MapSet.member?(all_paths_set, {interface, path}) do
+                delete_property_from_db(state, db_client, interface_descriptor, path)
+              end
+            end)
+          else
+            :ok
+          end
+        end)
+
+        {:ok, new_state}
+    end
+  end
+
+  defp delete_property_from_db(state, db_client, interface_descriptor, path) do
+    {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+
+    delete_query =
+      DatabaseQuery.new()
+        |> DatabaseQuery.statement("DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path;")
+        |> DatabaseQuery.put(:device_id, state.device_id)
+        |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+        |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+        |> DatabaseQuery.put(:path, path)
+
+    DatabaseQuery.call!(db_client, delete_query)
+    :ok
+  end
+
   #TODO: copied from AppEngine, make it an api
   defp retrieve_interface_row!(client, interface, major_version) do
     interface_query =
@@ -279,26 +423,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     #  raise DeviceNotFoundError
     #end
 
-    interface_pair =
+    interface_tuple =
       device_row[:introspection]
-      |> Enum.find(fn(item) -> match?([^interface, _version], String.split(item, ";")) end)
+      |> List.keyfind(interface, 0)
 
-    #if interface_pair == nil do
-    #  #TODO: report device introspection here for debug purposes
-    #  raise InterfaceNotFoundError
-    #end
+    case interface_tuple do
+      {_interface_name, interface_major} ->
+        interface_major
 
-    {major, ""} =
-      interface_pair
-      |> String.split(";")
-      |> List.last()
-      |> Integer.parse()
-
-    major
+      nil ->
+        #TODO: report device introspection here for debug purposes
+        #raise InterfaceNotFoundError
+        {:error, :interface_not_found}
+    end
   end
 
   defp connect_to_db(state) do
     DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: state.realm])
+  end
+
+  defp pretty_device_id(device_id) do
+    Base.url_encode64(device_id, padding: false)
   end
 
 end
