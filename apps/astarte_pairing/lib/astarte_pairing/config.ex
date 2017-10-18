@@ -68,4 +68,11 @@ defmodule Astarte.Pairing.Config do
   def cfssl_url do
     Application.fetch_env!(:astarte_pairing, :cfssl_url)
   end
+
+  @doc """
+  Returns the PEM encoded CFSSL CA certificate
+  """
+  def ca_cert do
+    Application.fetch_env!(:astarte_pairing, :ca_cert)
+  end
 end
