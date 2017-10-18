@@ -49,6 +49,16 @@ defmodule Astarte.Pairing.CFSSLPairing do
     end
   end
 
+  def ca_cert do
+    case CFXXL.info(client(), "", profile: "device") do
+      {:ok, %{"certificate" => cert}} ->
+        {:ok, cert}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp client do
     Config.cfssl_url()
     |> Client.new()
