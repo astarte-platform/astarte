@@ -81,6 +81,15 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
     |> ok_wrap
   end
 
+  defp reason_to_certificate_validation_error(:cert_expired), do: :EXPIRED
+  defp reason_to_certificate_validation_error(:invalid_issuer), do: :INVALID_ISSUER
+  defp reason_to_certificate_validation_error(:invalid_signature), do: :INVALID_SIGNATURE
+  defp reason_to_certificate_validation_error(:name_not_permitted), do: :NAME_NOT_PERMITTED
+  defp reason_to_certificate_validation_error(:missing_basic_constraint), do: :MISSING_BASIC_CONSTRAINT
+  defp reason_to_certificate_validation_error(:invalid_key_usage), do: :INVALID_KEY_USAGE
+  defp reason_to_certificate_validation_error(:revoked), do: :REVOKED
+  defp reason_to_certificate_validation_error(_), do: :INVALID
+
   defp encode_reply(%GenericErrorReply{} = reply, _reply_type) do
     %Reply{reply: {:generic_error_reply, reply}, error: true}
     |> Reply.encode
