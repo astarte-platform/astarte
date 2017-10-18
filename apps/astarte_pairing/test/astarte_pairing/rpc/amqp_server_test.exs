@@ -128,15 +128,23 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
       {:ok, api_key: api_key}
     end
 
-    test "valid call", %{api_key: api_key} do
+    test "valid call with VerifyCertificate", %{api_key: api_key} do
       encoded =
         %Call{call: {:do_pairing, %DoPairing{api_key: api_key, csr: @test_csr, device_ip: "2.3.4.5"}}}
         |> Call.encode()
 
       {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-      assert match?(%Reply{reply: {:do_pairing_reply, %DoPairingReply{client_crt: _client_crt}}},
-                    Reply.decode(reply))
+      assert %Reply{reply: {:do_pairing_reply, %DoPairingReply{client_crt: client_crt}}} = Reply.decode(reply)
+
+      encoded_verify =
+        %Call{call: {:verify_certificate, %VerifyCertificate{crt: client_crt}}}
+        |> Call.encode()
+
+      {:ok, verify_reply} = AMQPServer.process_rpc(encoded_verify)
+
+      assert match?(%Reply{reply: {:verify_certificate_reply, %VerifyCertificateReply{valid: true, timestamp: _ts, until: _until}}},
+                    Reply.decode(verify_reply))
     end
 
     test "invalid call", %{api_key: api_key} do
