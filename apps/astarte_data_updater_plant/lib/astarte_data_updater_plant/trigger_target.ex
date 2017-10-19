@@ -17,17 +17,10 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
+defmodule Astarte.DataUpdaterPlant.TriggerTarget do
+  @enforce_keys [:queue_name]
   defstruct [
-    :realm,
-    :device_id,
-    :introspection,
-    :interfaces,
-    :mappings,
-    :device_triggers,
-    :data_triggers,
-    :connected,
-    :total_received_msgs,
-    :total_received_bytes
+    :queue_name,
+    :routing_topic
   ]
 end

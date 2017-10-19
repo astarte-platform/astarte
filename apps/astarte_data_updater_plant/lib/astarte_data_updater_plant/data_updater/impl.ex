@@ -23,6 +23,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.DataUpdaterPlant.DataTrigger
+  alias Astarte.DataUpdaterPlant.TriggerTarget
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias CQEx.Client, as: DatabaseClient
@@ -69,6 +71,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, device_update_query)
 
+    on_device_connection(state)
+
     state
   end
 
@@ -87,12 +91,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, device_update_query)
 
+    on_device_disconnection(state)
+
     %{state |
       connected: false
     }
   end
 
-  def handle_data(state, interface, path, payload, _delivery_tag, timestamp) do
+  def handle_data(state, interface, path, payload, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
     {interface_descriptor, new_state} = maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
@@ -133,7 +139,52 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :invalid_message}
 
         true ->
-          insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
+          any_interface_triggers = get_on_data_triggers(new_state, :on_incoming_data, :any_interface, :any_endpoint)
+          Enum.each(any_interface_triggers, fn(trigger) ->
+            process_trigger(state, trigger, delivery_tag, path, value)
+          end)
+
+          any_endpoint_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, :any_endpoint )
+          Enum.each(any_endpoint_triggers, fn(trigger) ->
+            process_trigger(state, trigger, delivery_tag, path, value)
+          end)
+
+          incoming_data_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
+          Enum.each(incoming_data_triggers, fn(trigger) ->
+            process_trigger(state, trigger, delivery_tag, path, value)
+          end)
+
+          value_change_triggers = get_on_data_triggers(new_state, :on_value_change, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
+          value_changed_triggers = get_on_data_triggers(new_state, :on_value_changed, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
+          path_created_triggers = get_on_data_triggers(new_state, :on_path_created, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
+
+          previous_value =
+            if (value_change_triggers != []) or (value_changed_triggers != []) or (path_created_triggers != []) do
+              retrieved_value = query_previous_value(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path)
+              if retrieved_value != value do
+                Enum.each(value_change_triggers, fn(trigger) ->
+                  process_trigger(state, trigger, delivery_tag, path, value)
+                end)
+              end
+            else
+              nil
+            end
+
+          result = insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
+
+          if (previous_value == nil) and (path_created_triggers != []) do
+              Enum.each(path_created_triggers, fn(trigger) ->
+                process_trigger(state, trigger, delivery_tag, path, value)
+              end)
+          end
+
+          if (previous_value != nil) and (value_changed_triggers != []) do
+              Enum.each(path_created_triggers, fn(trigger) ->
+                process_trigger(state, trigger, delivery_tag, path, value)
+              end)
+          end
+
+          result
       end
 
     if result != :ok do
@@ -457,6 +508,73 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
+  defp process_trigger(state, trigger, delivery_tag, path, value) do
+    Enum.each(trigger.trigger_targets, fn(target) ->
+      push_event_on_queue(state, target, trigger.trigger_name, delivery_tag, {path, value})
+    end)
+  end
+
+  defp push_event_on_queue(state, trigger_target, trigger_name, delivery_tag, payload) do
+    event_id = delivery_tag
+
+    Logger.debug "#{state.realm}: Going to push event for trigger id #{inspect trigger_name} on #{pretty_device_id(state.device_id)} " <>
+            "to #{inspect trigger_target.queue_name} with routing topic #{inspect trigger_target.routing_topic}. Payload #{inspect payload}. event id: #{inspect event_id}"
+  end
+
+  defp on_device_connection(state) do
+    trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
+    Enum.each(trigger_targets, fn(trigger_target) ->
+      push_event_on_queue(state, trigger_target, nil, nil, nil)
+    end)
+
+    :ok
+  end
+
+  defp on_device_disconnection(state) do
+    trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
+    Enum.each(trigger_targets, fn(trigger_target) ->
+      push_event_on_queue(state, trigger_target, nil, nil, nil)
+    end)
+
+    :ok
+  end
+
+  defp get_on_data_triggers(state, event, interface_id, endpoint_id) do
+    key = {event, interface_id, endpoint_id}
+
+    Map.get(state.data_triggers, key, [])
+  end
+
+  defp get_on_data_triggers(state, event, interface_id, endpoint_id, path, value) do
+    key = {event, interface_id, endpoint_id}
+
+    candidate_triggers = Map.get(state.data_triggers, key, nil)
+    if candidate_triggers do
+      path_tokens = String.split(path, "/")
+
+      for trigger <- candidate_triggers,
+          path_matches?(path_tokens, trigger.path_match_tokens) and
+          ValueMatchOperators.value_matches?(value, trigger.value_match_operator, trigger.known_value) do
+        trigger
+      end
+    else
+      []
+    end
+  end
+
+  defp path_matches?([], []) do
+    true
+  end
+
+  defp path_matches?([path_token | path_tokens], [path_match_token | path_match_tokens]) do
+    if (path_token == path_match_token) or (path_match_token == nil) do
+      path_matches?(path_tokens, path_match_tokens)
+    else
+      false
+    end
+  end
+
+
   #TODO: copied from AppEngine, make it an api
   defp retrieve_interface_row!(client, interface, major_version) do
     interface_query =
@@ -506,6 +624,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         #raise InterfaceNotFoundError
         {:error, :interface_not_found}
     end
+  end
+
+  defp query_previous_value(_db_client, :individual, :properties, _device_id, _interface_descriptor, _endpoint_id, _endpoint, _path) do
+    #TODO: implement me
+    nil
   end
 
   defp connect_to_db(state) do
