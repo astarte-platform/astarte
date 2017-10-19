@@ -11,7 +11,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       start_permanent: Mix.env == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
-      deps: deps()
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
 
@@ -28,6 +28,18 @@ defmodule Astarte.Pairing.API.Mixfile do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_),     do: ["lib"]
+
+  defp astarte_required_modules("true") do
+    [
+      {:astarte_rpc, in_umbrella: true},
+    ]
+  end
+
+  defp astarte_required_modules(_) do
+    [
+      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"},
+    ]
+  end
 
   # Specifies your project dependencies.
   #
