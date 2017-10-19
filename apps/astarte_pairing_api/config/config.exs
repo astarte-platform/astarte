@@ -25,6 +25,13 @@ config :logger, :console,
 config :astarte_pairing_api, :rpc_queue,
   "pairing_rpc"
 
+config :astarte_pairing_api, :amqp_options,
+  username: "guest",
+  password: "guest",
+  host: "localhost",
+  virtual_host: "/",
+  port: 5672
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env}.exs"
