@@ -3,6 +3,7 @@ defmodule Astarte.Pairing.API.Agent.APIKeyRequest do
   import Ecto.Changeset
   alias Astarte.Pairing.API.Agent.APIKeyRequest
 
+  @primary_key false
   embedded_schema do
     field :hw_id, :string
     field :realm, :string
