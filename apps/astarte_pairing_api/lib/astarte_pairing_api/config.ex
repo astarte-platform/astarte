@@ -14,6 +14,6 @@ defmodule Astarte.Pairing.API.Config do
   Returns the AMQP connection options
   """
   def amqp_options do
-    Application.get_env(:astarte_pairing_api, :amqp_options)
+    Application.get_env(:astarte_pairing_api, :amqp_options, [])
   end
 end
