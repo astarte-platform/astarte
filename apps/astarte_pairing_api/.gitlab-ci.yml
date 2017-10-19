@@ -38,6 +38,7 @@ mix:build:
         - mix compile --force
         - mix coveralls
         - export MIX_ENV=dev
+        - mix conform.configure
         - mix release
     cache:
         paths:
@@ -56,6 +57,7 @@ mix:release-build:
         - mix deps.compile --force
         - mix compile --force
         - mix test
+        - mix conform.configure
         - mix release --env=prod
     cache:
         paths:
