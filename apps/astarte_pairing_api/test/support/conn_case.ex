@@ -26,6 +26,10 @@ defmodule Astarte.Pairing.APIWeb.ConnCase do
     end
   end
 
+  setup_all do
+    Astarte.Pairing.Mock.start_link()
+    :ok
+  end
 
   setup _tags do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
