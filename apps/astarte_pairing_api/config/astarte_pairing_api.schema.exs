@@ -61,6 +61,46 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_pairing_api.rpc_queue"
     ],
+    "amqp.username": [
+      commented: true,
+      datatype: :binary,
+      default: "guest",
+      doc: "AMQP username.",
+      hidden: false,
+      to: "astarte_pairing_api.amqp_options.username"
+    ],
+    "amqp.password": [
+      commented: true,
+      datatype: :binary,
+      default: "guest",
+      doc: "AMQP password.",
+      hidden: false,
+      to: "astarte_pairing_api.amqp_options.password"
+    ],
+    "amqp.host": [
+      commented: true,
+      datatype: :binary,
+      default: "localhost",
+      doc: "AMQP host.",
+      hidden: false,
+      to: "astarte_pairing_api.amqp_options.host"
+    ],
+    "amqp.virtual_host": [
+      commented: true,
+      datatype: :binary,
+      default: "/",
+      doc: "AMQP virtual host.",
+      hidden: false,
+      to: "astarte_pairing_api.amqp_options.virtual_host"
+    ],
+    "amqp.port": [
+      commented: true,
+      datatype: :integer,
+      default: 5672,
+      doc: "AMQP port.",
+      hidden: false,
+      to: "astarte_pairing_api.amqp_options.port"
+    ],
     "port": [
       commented: false,
       datatype: :integer,
