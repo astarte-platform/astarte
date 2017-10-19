@@ -52,14 +52,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [],
   import: [],
   mappings: [
-    "astarte_pairing_api.namespace": [
-      commented: false,
-      datatype: :atom,
-      default: Astarte.Pairing.API,
-      doc: "Provide documentation for astarte_pairing_api.namespace here.",
-      hidden: false,
-      to: "astarte_pairing_api.namespace"
-    ],
+    # Available options
     "astarte_pairing_api.rpc_queue": [
       commented: false,
       datatype: :binary,
@@ -68,12 +61,21 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_pairing_api.rpc_queue"
     ],
+    "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port": [
+      commented: false,
+      datatype: :integer,
+      default: 4000,
+      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port here.",
+      hidden: false,
+      to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port"
+    ],
+    # Hidden options
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host": [
       commented: false,
       datatype: :binary,
       default: "localhost",
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.secret_key_base": [
@@ -81,15 +83,23 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "LXWGqSIaFRDtOaX5Qgfw5TrSAsWQs6V8OkXEsGuuqRhc1oFvrGax/SfP7F7gAIcX",
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.secret_key_base here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.secret_key_base"
+    ],
+    "astarte_pairing_api.namespace": [
+      commented: false,
+      datatype: :atom,
+      default: Astarte.Pairing.API,
+      doc: "Provide documentation for astarte_pairing_api.namespace here.",
+      hidden: true,
+      to: "astarte_pairing_api.namespace"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.view": [
       commented: false,
       datatype: :atom,
       default: Astarte.Pairing.APIWeb.ErrorView,
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.view here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.view"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.accepts": [
@@ -101,7 +111,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
         "json"
       ],
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.accepts here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.accepts"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.name": [
@@ -109,7 +119,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: Astarte.Pairing.API.PubSub,
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.name here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.name"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.adapter": [
@@ -117,23 +127,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: Phoenix.PubSub.PG2,
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.adapter here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.adapter"
-    ],
-    "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port": [
-      commented: false,
-      datatype: :integer,
-      default: 4000,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port here.",
-      hidden: false,
-      to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.debug_errors": [
       commented: false,
       datatype: :atom,
       default: true,
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.debug_errors here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.debug_errors"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.code_reloader": [
@@ -141,7 +143,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: true,
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.code_reloader here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.code_reloader"
     ],
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.check_origin": [
@@ -149,7 +151,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: false,
       doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.check_origin here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.check_origin"
     ],
     "logger.console.metadata": [
@@ -161,7 +163,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
         :request_id
       ],
       doc: "Provide documentation for logger.console.metadata here.",
-      hidden: false,
+      hidden: true,
       to: "logger.console.metadata"
     ],
     "logger.console.format": [
@@ -171,7 +173,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       [$level] $message
       """,
       doc: "Provide documentation for logger.console.format here.",
-      hidden: false,
+      hidden: true,
       to: "logger.console.format"
     ],
     "phoenix.stacktrace_depth": [
@@ -179,7 +181,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :integer,
       default: 20,
       doc: "Provide documentation for phoenix.stacktrace_depth here.",
-      hidden: false,
+      hidden: true,
       to: "phoenix.stacktrace_depth"
     ]
   ],
