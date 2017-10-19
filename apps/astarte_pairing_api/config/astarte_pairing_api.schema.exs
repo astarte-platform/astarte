@@ -104,7 +104,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "port": [
       commented: false,
       datatype: :integer,
-      default: 4000,
+      default: 4003,
       doc: "The port used from the Phoenix server.",
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port"
