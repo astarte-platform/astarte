@@ -4,6 +4,7 @@ defmodule Astarte.Pairing.API.Info do
   """
 
   alias Astarte.Pairing.API.Info.BrokerInfo
+  alias Astarte.Pairing.API.RPC.AMQPClient
 
   @doc """
   Gets broker_info.
@@ -12,9 +13,17 @@ defmodule Astarte.Pairing.API.Info do
 
   ## Examples
 
-      iex> get_broker_info!(123)
-      %BrokerInfo{}
+      iex> get_broker_info!()
+      %BrokerInfo{url: "ssl://broker.example.com:1234", version: "1"}
 
   """
-  def get_broker_info!(id), do: raise "TODO"
+  def get_broker_info! do
+    case AMQPClient.get_info do
+      {:ok, %{url: url, version: version}} ->
+        %BrokerInfo{url: url, version: version}
+
+      _ ->
+        raise "Broker info unavailable"
+    end
+  end
 end
