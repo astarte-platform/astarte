@@ -69,6 +69,14 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port"
     ],
+    "bind_address": [
+      commented: true,
+      datatype: :binary,
+      doc: "The bind address for the Phoenix server.",
+      default: "0.0.0.0",
+      hidden: false,
+      to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip"
+    ],
     # Hidden options
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host": [
       commented: false,
@@ -185,6 +193,17 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       to: "phoenix.stacktrace_depth"
     ]
   ],
-  transforms: [],
+  transforms: [
+    "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip": fn conf ->
+      [{_, ip}] =Conform.Conf.get(conf, "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip")
+
+      charlist_ip = to_charlist(ip)
+
+      case :inet.parse_address(charlist_ip) do
+        {:ok, tuple_ip} -> tuple_ip
+        _ -> raise "Invalid IP address in bind_address"
+      end
+    end
+  ],
   validators: []
 ]
