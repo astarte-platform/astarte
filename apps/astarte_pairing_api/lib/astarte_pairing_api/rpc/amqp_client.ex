@@ -18,6 +18,14 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
     |> extract_reply()
   end
 
+  def generate_api_key(realm, hw_id) do
+    %GenerateAPIKey{realm: realm, hw_id: hw_id}
+    |> encode_call(:generate_api_key)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
@@ -31,7 +39,9 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
   defp extract_reply({:get_info_reply, %GetInfoReply{url: url, version: version}}) do
     {:ok, %{url: url, version: version}}
   end
-
+  defp extract_reply({:generate_api_key_reply, %GenerateAPIKeyReply{api_key: api_key}}) do
+    {:ok, api_key}
+  end
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 
