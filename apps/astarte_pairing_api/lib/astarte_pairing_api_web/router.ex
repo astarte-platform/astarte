@@ -5,7 +5,7 @@ defmodule Astarte.Pairing.APIWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/api", Astarte.Pairing.APIWeb do
+  scope "/api/v1", Astarte.Pairing.APIWeb do
     pipe_through :api
   end
 end
