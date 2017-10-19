@@ -3,7 +3,7 @@ defmodule Astarte.Pairing.APIWeb.BrokerInfoView do
   alias Astarte.Pairing.APIWeb.BrokerInfoView
 
   def render("show.json", %{broker_info: broker_info}) do
-    %{data: render_one(broker_info, BrokerInfoView, "broker_info.json")}
+    render_one(broker_info, BrokerInfoView, "broker_info.json")
   end
 
   def render("broker_info.json", %{broker_info: broker_info}) do
