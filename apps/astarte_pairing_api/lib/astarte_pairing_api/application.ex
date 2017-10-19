@@ -6,10 +6,8 @@ defmodule Astarte.Pairing.API.Application do
   def start(_type, _args) do
     # Define workers and child supervisors to be supervised
     children = [
-      # Start the endpoint when the application starts
       Astarte.Pairing.APIWeb.Endpoint,
-      # Start your own worker by calling: Astarte.Pairing.API.Worker.start_link(arg1, arg2, arg3)
-      # worker(Astarte.Pairing.API.Worker, [arg1, arg2, arg3]),
+      Astarte.Pairing.API.RPC.AMQPClient,
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
