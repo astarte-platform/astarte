@@ -53,19 +53,19 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   import: [],
   mappings: [
     # Available options
-    "astarte_pairing_api.rpc_queue": [
+    "rpc_queue": [
       commented: false,
       datatype: :binary,
       default: "pairing_rpc",
-      doc: "Provide documentation for astarte_pairing_api.rpc_queue here.",
+      doc: "The AMQP queue used to send RPC to astarte_pairing.",
       hidden: false,
       to: "astarte_pairing_api.rpc_queue"
     ],
-    "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port": [
+    "port": [
       commented: false,
       datatype: :integer,
       default: 4000,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port here.",
+      doc: "The port used from the Phoenix server.",
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port"
     ],
