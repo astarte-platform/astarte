@@ -39,6 +39,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:ecto, "~> 2.1"},
+      {:conform, "~> 2.2"},
 
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}

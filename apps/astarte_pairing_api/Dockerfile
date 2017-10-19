@@ -11,6 +11,7 @@ WORKDIR /app
 ENV MIX_ENV prod
 ADD . .
 RUN mix deps.get
+RUN mix conform.configure
 RUN mix release --env=$MIX_ENV
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
