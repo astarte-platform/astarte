@@ -117,16 +117,14 @@ defmodule Astarte.RealmManagement.Queries do
   """
 
   defp create_interface_table(:individual, :multi, interface_descriptor, _mappings) do
-    {suffix, value_timestamp, key_timestamp} = case {interface_descriptor.type, interface_descriptor.explicit_timestamp} do
-      {:datastream, true} ->
-        {"datastream", "value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
+    {suffix, value_timestamp, key_timestamp} =
+      case interface_descriptor.type do
+        :datastream ->
+          {"datastream", "value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
 
-      {:datastream, false} ->
-        {"datastream", "", ", reception_timestamp"}
-
-      {:properties, false} ->
-        {"property", "", ""}
-    end
+        :properties ->
+          {"property", "", ""}
+      end
 
     table_name = "individual_#{suffix}"
 
@@ -150,16 +148,14 @@ defmodule Astarte.RealmManagement.Queries do
       |> Enum.sort
       |> Enum.join(~s(,\n))
 
-    {value_timestamp, key_timestamp} = case {interface_descriptor.type, interface_descriptor.explicit_timestamp} do
-      {:datastream, true} ->
-        {"value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
+    {value_timestamp, key_timestamp} =
+      case interface_descriptor.type do
+        :datastream ->
+          {"value_timestamp timestamp, ", ", value_timestamp, reception_timestamp"}
 
-      {:datastream, false} ->
-        {"", ", reception_timestamp"}
-
-      {:properties, false} ->
-        {"", ""}
-    end
+        :properties ->
+          {"", ""}
+      end
 
     create_table_statement = @create_interface_table_with_individual_aggregation
     |> String.replace(":interface_name", table_name)
