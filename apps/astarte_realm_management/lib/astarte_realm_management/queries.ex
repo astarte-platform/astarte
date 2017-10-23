@@ -20,6 +20,7 @@
 defmodule Astarte.RealmManagement.Queries do
 
   require Logger
+  alias Astarte.Core.StorageType
   alias CQEx.Query, as: DatabaseQuery
 
   @insert_into_interfaces """
@@ -117,13 +118,13 @@ defmodule Astarte.RealmManagement.Queries do
   """
 
   defp create_interface_table(:individual, :multi, interface_descriptor, _mappings) do
-    {suffix, value_timestamp, key_timestamp} =
+    {table_type, suffix, value_timestamp, key_timestamp} =
       case interface_descriptor.type do
         :datastream ->
-          {"datastream", "value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
+          {:multi_interface_individual_datastream_dbtable, "datastream", "value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
 
         :properties ->
-          {"property", "", ""}
+          {:multi_interface_individual_properties_dbtable, "property", "", ""}
       end
 
     table_name = "individual_#{suffix}"
@@ -133,7 +134,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> String.replace(":value_timestamp", value_timestamp)
       |> String.replace(":key_timestamp", key_timestamp)
 
-    {0, table_name, create_table_statement}
+    {table_type, table_name, create_table_statement}
   end
 
   defp create_interface_table(:individual, :one, interface_descriptor, mappings) do
@@ -148,13 +149,13 @@ defmodule Astarte.RealmManagement.Queries do
       |> Enum.sort
       |> Enum.join(~s(,\n))
 
-    {value_timestamp, key_timestamp} =
+    {table_type, value_timestamp, key_timestamp} =
       case interface_descriptor.type do
         :datastream ->
-          {"value_timestamp timestamp, ", ", value_timestamp, reception_timestamp"}
+          {:one_individual_datastream_dbtable, "value_timestamp timestamp, ", ", value_timestamp, reception_timestamp"}
 
         :properties ->
-          {"", ""}
+          {:one_individual_properties_dbtable, "", ""}
       end
 
     create_table_statement = @create_interface_table_with_individual_aggregation
@@ -163,7 +164,7 @@ defmodule Astarte.RealmManagement.Queries do
     |> String.replace(":columns", columns)
     |> String.replace(":key_timestamp", key_timestamp)
 
-    {8, table_name, create_table_statement}
+    {table_type, table_name, create_table_statement}
   end
 
   defp create_interface_table(:object, :one, interface_descriptor, mappings) do
@@ -188,7 +189,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> String.replace(":columns", columns)
       |> String.replace(":key_timestamp", key_timestamp)
 
-    {9, table_name, create_table_statement}
+    {:one_object_datastream_dbtable, table_name, create_table_statement}
   end
 
   def install_new_interface(client, interface_document, automaton) do
@@ -216,7 +217,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:major_version, interface_document.descriptor.major_version)
       |> DatabaseQuery.put(:minor_version, interface_document.descriptor.minor_version)
       |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:storage_type, storage_type)
+      |> DatabaseQuery.put(:storage_type, StorageType.to_int(storage_type))
       |> DatabaseQuery.put(:storage, table_name)
       |> DatabaseQuery.put(:type, Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type))
       |> DatabaseQuery.put(:ownership, Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership))
