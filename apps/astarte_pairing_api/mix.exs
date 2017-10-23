@@ -52,6 +52,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:cowboy, "~> 1.0"},
       {:ecto, "~> 2.1"},
       {:conform, "~> 2.2"},
+      {:guardian, "~> 1.0-beta"},
 
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
