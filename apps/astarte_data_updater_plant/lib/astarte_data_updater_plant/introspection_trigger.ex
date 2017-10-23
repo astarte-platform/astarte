@@ -17,18 +17,10 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
+defmodule Astarte.DataUpdaterPlant.IntrospectionTrigger do
+  @enforce_keys [:trigger_name, :trigger_targets]
   defstruct [
-    :realm,
-    :device_id,
-    :introspection,
-    :interfaces,
-    :mappings,
-    :device_triggers,
-    :data_triggers,
-    :introspection_triggers,
-    :connected,
-    :total_received_msgs,
-    :total_received_bytes
+    :trigger_name,
+    :trigger_targets
   ]
 end

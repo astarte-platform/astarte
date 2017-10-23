@@ -23,8 +23,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.DataUpdaterPlant.DataTrigger
-  alias Astarte.DataUpdaterPlant.TriggerTarget
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias CQEx.Client, as: DatabaseClient
@@ -55,7 +53,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       total_received_bytes: device_row[:total_received_bytes],
       introspection: Enum.into(device_row[:introspection], %{}),
       interfaces: %{},
-      mappings: %{}
+      mappings: %{},
+      device_triggers: %{},
+      data_triggers: %{},
+      introspection_triggers: %{}
     }
   end
 
@@ -197,7 +198,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_introspection(state, payload, _delivery_tag, _timestamp) do
+  def handle_introspection(state, payload, delivery_tag, _timestamp) do
     db_client = connect_to_db(state)
 
     new_introspection_list = String.split(payload, ";")
@@ -225,9 +226,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> Enum.sort()
 
     diff = List.myers_difference(current_sorted_introspection, new_sorted_introspection)
+    Enum.each(diff, fn({change_type, changed_interfaces}) ->
+      case change_type do
+        :ins ->
+          Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been added to #{pretty_device_id(state.device_id)} ."
+          Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
+            introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_added, :any_interface}, [])
+            Enum.each(introspection_triggers, fn(introspection_trigger) ->
+              Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
+                push_event_on_queue(state, trigger_target, nil, delivery_tag, {:added_interface, interface_name, interface_major})
+              end)
+            end)
+          end)
 
-    #TODO: handle changes
-    IO.puts "Introspection changes #{inspect diff}"
+        :del ->
+          Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been removed from #{pretty_device_id(state.device_id)} ."
+          Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
+            introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_deleted, :any_interface}, [])
+            Enum.each(introspection_triggers, fn(introspection_trigger) ->
+              Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
+                push_event_on_queue(state, trigger_target, nil, delivery_tag, {:deleted_interface, interface_name, interface_major})
+              end)
+            end)
+          end)
+
+        :eq ->
+          Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have not changed on #{pretty_device_id(state.device_id)} ."
+      end
+    end)
 
     device_update_query =
       DatabaseQuery.new()
