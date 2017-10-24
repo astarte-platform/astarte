@@ -252,12 +252,12 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
   @insert_into_interface_0 """
   INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, quality, storage, storage_type, type) VALUES
-    ('com.test.LCDMonitor', 1, :automaton_accepting_states, :automaton_transitions, 1, bfc48596-1fad-b242-6521-435c00698fca, 3, 1, 'individual_property', 0, 1)
+    ('com.test.LCDMonitor', 1, :automaton_accepting_states, :automaton_transitions, 1, bfc48596-1fad-b242-6521-435c00698fca, 3, 1, 'individual_property', 1, 1)
   """
 
   @insert_into_interface_1 """
   INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, quality, storage, storage_type, type) VALUES
-    ('com.test.SimpleStreamTest', 1, :automaton_accepting_states, :automaton_transitions, 1, d2d90d55-a779-b988-9db4-15284b04f2e9, 0, 1, 'individual_datastream', 0, 2)
+    ('com.test.SimpleStreamTest', 1, :automaton_accepting_states, :automaton_transitions, 1, d2d90d55-a779-b988-9db4-15284b04f2e9, 0, 1, 'individual_datastream', 2, 2)
   """
 
   def create_test_keyspace do

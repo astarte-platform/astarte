@@ -31,6 +31,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping.ValueType
+  alias Astarte.Core.StorageType
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
@@ -330,7 +331,7 @@ defmodule Astarte.AppEngine.API.Device do
     device_uuid
   end
 
-  defp prepare_get_property_statement(value_type, metadata, table_name) do
+  defp prepare_get_property_statement(value_type, metadata, table_name, :multi_interface_individual_properties_dbtable) do
     metadata_column =
       if metadata do
         ",metadata"
@@ -344,7 +345,7 @@ defmodule Astarte.AppEngine.API.Device do
     " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
   end
 
-  defp prepare_get_individual_datastream_statement(value_type, metadata, table_name, opts) do
+  defp prepare_get_individual_datastream_statement(value_type, metadata, table_name, :multi_interface_individual_datastream_dbtable, opts) do
     metadata_column =
       if metadata do
         ",metadata"
@@ -379,7 +380,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path) do
-    query_statement = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], since: true)
+    query_statement = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]), since: true)
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
@@ -398,7 +399,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path) do
-    query_statement = prepare_get_property_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage])
+    query_statement = prepare_get_property_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]))
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
