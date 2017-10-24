@@ -35,6 +35,7 @@ defmodule Astarte.RealmManagement.Queries do
     VALUES (:interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
   """
 
+  # TODO: should we add reception_timestamp_submillis only to datastreams?
   @create_individual_multiinterface_table """
     CREATE TABLE IF NOT EXISTS :table_name (
       device_id uuid,
@@ -43,6 +44,7 @@ defmodule Astarte.RealmManagement.Queries do
       path varchar,
       :value_timestamp
       reception_timestamp timestamp,
+      reception_timestamp_submillis smallint,
       endpoint_tokens list<varchar>,
 
       double_value double,
@@ -152,7 +154,7 @@ defmodule Astarte.RealmManagement.Queries do
     {table_type, value_timestamp, key_timestamp} =
       case interface_descriptor.type do
         :datastream ->
-          {:one_individual_datastream_dbtable, "value_timestamp timestamp, ", ", value_timestamp, reception_timestamp"}
+          {:one_individual_datastream_dbtable, "value_timestamp timestamp, ", ", value_timestamp, reception_timestamp, reception_timestamp_submillis"}
 
         :properties ->
           {:one_individual_properties_dbtable, "", ""}
