@@ -260,6 +260,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   #TODO: we should pattern match on storage type instead of :individual, :property
   defp insert_value_into_db(db_client, :individual, :properties, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
+    # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
         |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} " <>
@@ -270,6 +271,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:path, path)
         |> DatabaseQuery.put(:reception_timestamp, timestamp)
+        |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
         |> DatabaseQuery.put(:value, value)
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -280,17 +282,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   #TODO: we should pattern match on storage type instead of :individual, :datastream
   defp insert_value_into_db(db_client, :individual, :datastream, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
     # TODO: use received value_timestamp when needed
+    # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
         |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} " <>
-          "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, #{CQLUtils.type_to_db_column_name(endpoint.value_type)}) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :value);")
+          "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(endpoint.value_type)}) " <>
+          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value);")
         |> DatabaseQuery.put(:device_id, device_id)
         |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
         |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:path, path)
         |> DatabaseQuery.put(:value_timestamp, timestamp)
         |> DatabaseQuery.put(:reception_timestamp, timestamp)
+        |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
         |> DatabaseQuery.put(:value, value)
 
     DatabaseQuery.call!(db_client, insert_query)
