@@ -35,6 +35,7 @@ defmodule Astarte.Housekeeping.Queries do
         device_id uuid,
         extended_id ascii,
         introspection map<ascii, int>,
+        introspection_minor map<ascii, int>,
         protocol_revision int,
         triggers set<ascii>,
         metadata map<ascii, text>,
