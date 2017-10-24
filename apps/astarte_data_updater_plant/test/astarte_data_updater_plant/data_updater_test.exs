@@ -86,12 +86,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     value_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND reception_timestamp>=:reception_timestamp")
+      |> DatabaseQuery.statement("SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp")
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, "/0/value")
-      |> DatabaseQuery.put(:reception_timestamp, 1507557632000)
+      |> DatabaseQuery.put(:value_timestamp, 1507557632000)
 
     value =
       DatabaseQuery.call!(db_client, value_query)
@@ -156,12 +156,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     value_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND reception_timestamp>=:reception_timestamp")
+      |> DatabaseQuery.statement("SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp")
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, "/0/value")
-      |> DatabaseQuery.put(:reception_timestamp, 1507557632000)
+      |> DatabaseQuery.put(:value_timestamp, 1507557632000)
 
     value =
       DatabaseQuery.call!(db_client, value_query)

@@ -175,6 +175,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       interface_id uuid,
       endpoint_id uuid,
       path varchar,
+      value_timestamp timestamp,
       reception_timestamp timestamp,
       endpoint_tokens list<varchar>,
 
@@ -193,66 +194,66 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
 
-      PRIMARY KEY((device_id, interface_id), endpoint_id, path, reception_timestamp)
+      PRIMARY KEY((device_id, interface_id), endpoint_id, path, value_timestamp, reception_timestamp)
     );
   """
 
   @insert_values [
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 9bfaca2e-cd94-1a67-0d5a-6e2b2071a777, '/time/from', 8);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 9bfaca2e-cd94-1a67-0d5a-6e2b2071a777, '/time/from', 8);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 465d0ef4-5ce3-20e4-9421-2ed7978a27da, '/time/to', 20);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 465d0ef4-5ce3-20e4-9421-2ed7978a27da, '/time/to', 20);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/2/start', 12);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/2/start', 12);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/3/start', 15);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/3/start', 15);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/4/start', 16);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/4/start', 16);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/2/stop', 15);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/2/stop', 15);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/3/stop', 16);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/3/stop', 16);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/4/stop', 18);
+      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/4/stop', 18);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, string_value) VALUES
-     (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, a60682ff-036d-8d93-f3f8-f39730deba34, '/lcdCommand', 'SWITCH_ON');
+     (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, a60682ff-036d-8d93-f3f8-f39730deba34, '/lcdCommand', 'SWITCH_ON');
   """,
   """
-    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, reception_timestamp, integer_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:05+0000', 0);
+    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, integer_value) VALUES
+      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:05+0000', '2017-09-28 05:05+0000', 0);
   """,
   """
-    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, reception_timestamp, integer_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:06+0000', 1);
+    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, integer_value) VALUES
+      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 1);
   """,
   """
-    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, reception_timestamp, integer_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:07+0000', 2);
+    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, integer_value) VALUES
+      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:07+0000', '2017-09-28 05:07+0000', 2);
   """,
   """
-    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, reception_timestamp, integer_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-29 05:07+0000', 3);
+    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, integer_value) VALUES
+      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-29 05:07+0000', '2017-09-29 06:07+0000', 3);
   """,
   """
-    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, reception_timestamp, integer_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-30 07:10+0000', 4);
+    INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, integer_value) VALUES
+      (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-30 07:10+0000', '2017-09-30 08:10+0000', 4);
   """
   ]
 
