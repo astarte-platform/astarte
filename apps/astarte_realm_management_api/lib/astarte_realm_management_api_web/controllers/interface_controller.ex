@@ -27,7 +27,16 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     render(conn, "index.json", interfaces: interfaces)
   end
 
-  def create(conn, %{"realm_name" => realm_name, "data" => interface_source}) do
+  def create(conn, %{"realm_name" => realm_name, "data" => data}) do
+    interface_source =
+      cond do
+        is_bitstring(data) ->
+          data
+
+        is_map(data) ->
+          Poison.encode!(data, pretty: true)
+      end
+
     case Astarte.Core.InterfaceDocument.from_json(interface_source) do
       :error ->
         {:error, :invalid}
