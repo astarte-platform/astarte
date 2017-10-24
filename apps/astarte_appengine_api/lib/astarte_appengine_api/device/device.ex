@@ -344,7 +344,7 @@ defmodule Astarte.AppEngine.API.Device do
     " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
   end
 
-  defp prepare_get_individual_datastream_statement(value_type, metadata, table_name, timestamp_column, opts) do
+  defp prepare_get_individual_datastream_statement(value_type, metadata, table_name, opts) do
     metadata_column =
       if metadata do
         ",metadata"
@@ -355,10 +355,10 @@ defmodule Astarte.AppEngine.API.Device do
     since =
       cond do
         (opts[:since] == true) and (opts[:since_after] == nil) ->
-          "AND #{timestamp_column} >= :since"
+          "AND value_timestamp >= :since"
 
         (opts[:since_after] == true) and (opts[:since] == nil) ->
-          "AND #{timestamp_column} > :since"
+          "AND value_timestamp > :since"
 
         (opts[:since_after] == nil) and (opts[:since] == nil) ->
           ""
@@ -367,7 +367,7 @@ defmodule Astarte.AppEngine.API.Device do
     to = ""
     limit = ""
 
-    "SELECT #{timestamp_column}, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
+    "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
       " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since} #{to} #{limit}"
   end
 
@@ -379,7 +379,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path) do
-    query_statement = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], "reception_timestamp", since: true)
+    query_statement = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], since: true)
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
@@ -392,7 +392,7 @@ defmodule Astarte.AppEngine.API.Device do
     values = DatabaseQuery.call!(client, query)
 
     for value <- values do
-      [{:reception_timestamp, tstamp}, {_, v}] = value
+      [{:value_timestamp, tstamp}, {_, v}] = value
       %{"timestamp" => db_value_to_json_friendly_value(tstamp, :datetime, []), "value" => db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), [])}
     end
   end
