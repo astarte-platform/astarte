@@ -121,7 +121,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :invalid_message}
 
         true ->
-          insert_value_into_db(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp)
+          insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp)
       end
 
     if result != :ok do
@@ -258,8 +258,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {interface_descriptor, state}
   end
 
-  #TODO: we should pattern match on storage type instead of :individual, :property
-  defp insert_value_into_db(db_client, :individual, :properties, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
+  defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
@@ -279,8 +278,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
-  #TODO: we should pattern match on storage type instead of :individual, :datastream
-  defp insert_value_into_db(db_client, :individual, :datastream, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
+  defp insert_value_into_db(db_client, :multi_interface_individual_datastream_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
