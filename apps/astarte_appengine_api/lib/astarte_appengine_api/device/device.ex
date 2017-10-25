@@ -372,11 +372,57 @@ defmodule Astarte.AppEngine.API.Device do
       " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since} #{to} #{limit}"
   end
 
+  defp column_pretty_name(endpoint) do
+    [pretty_name] =
+      endpoint
+      |> String.split("/")
+      |> tl
+
+    pretty_name
+  end
+
   defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/") do
     #TODO: Swagger specification says that last value for each path sould be returned, we cannot implement this right now.
     # it is required to use individual_property table to store available path, then we should iterate on all of them and report
     # most recent value.
     raise "TODO"
+  end
+
+  defp retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, _endpoint_id, endpoint_rows, "/") do
+    # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
+    # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
+    {columns, column_atom_to_pretty_name} =
+      Enum.reduce(endpoint_rows, {"", %{}}, fn(endpoint, {query_acc, atoms_map}) ->
+        endpoint_name = endpoint[:endpoint]
+        column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
+
+        next_query_acc = "#{query_acc} #{column_name}, "
+        next_atom_map = Map.put(atoms_map, String.to_atom(column_name), column_pretty_name(endpoint_name))
+
+        {next_query_acc, next_atom_map}
+      end)
+
+    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id AND reception_timestamp>=:since;"
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:since, 0)
+
+    values = DatabaseQuery.call!(client, query)
+
+    for value <- values do
+      base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, [])}
+
+      List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
+        pretty_name = column_atom_to_pretty_name[column]
+        if pretty_name do
+          Map.put(acc, pretty_name, column_value)
+        else
+          acc
+        end
+      end)
+    end
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path) do
