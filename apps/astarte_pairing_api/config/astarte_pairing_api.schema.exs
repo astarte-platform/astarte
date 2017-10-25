@@ -101,6 +101,14 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_pairing_api.amqp_options.port"
     ],
+    "jwt_public_key_path": [
+      commented: false,
+      datatype: :binary,
+      doc: "The path to the public key used to verify the Agent JWT.",
+      hidden: false,
+      required: true,
+      to: "astarte_pairing_api.jwt_public_key_path"
+    ],
     "port": [
       commented: false,
       datatype: :integer,
