@@ -101,22 +101,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     interface_row = retrieve_interface_row!(client, interface, major_version)
 
-    endpoint_query = DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT value_type, endpoint_id FROM endpoints WHERE interface_id=:interface_id")
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-
-    endpoint_rows =
-      DatabaseQuery.call!(client, endpoint_query)
-
-    values_map =
-      Enum.reduce(endpoint_rows, %{}, fn(endpoint_row, values) ->
-        #TODO: we can do this by using just one query without any filter on the endpoint
-        value = retrieve_endpoint_values(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_row[:endpoint_id], endpoint_row, "/")
-
-        Map.merge(values, value)
-      end)
-
-    inflate_tree(values_map)
+    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row)
   end
 
   @doc """
@@ -145,6 +130,29 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
 
     do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path)
+  end
+
+  defp do_get_interface_values!(client, device_id, :individual, interface_row) do
+    endpoint_query = DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT value_type, endpoint_id FROM endpoints WHERE interface_id=:interface_id")
+      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+
+    endpoint_rows =
+      DatabaseQuery.call!(client, endpoint_query)
+
+    values_map =
+      Enum.reduce(endpoint_rows, %{}, fn(endpoint_row, values) ->
+        #TODO: we can do this by using just one query without any filter on the endpoint
+        value = retrieve_endpoint_values(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_row[:endpoint_id], endpoint_row, "/")
+
+        Map.merge(values, value)
+      end)
+
+    inflate_tree(values_map)
+  end
+
+  defp do_get_interface_values!(client, device_id, :object, interface_row) do
+    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, nil, nil, "/")
   end
 
   defp do_get_interface_values!(client, device_id, :individual, :properties, interface_row, endpoint_ids, endpoint_query, path) do
@@ -192,6 +200,22 @@ defmodule Astarte.AppEngine.API.Device do
     values = retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path)
 
     if values == [] do
+      raise PathNotFoundError
+    end
+
+    values
+  end
+
+  defp do_get_interface_values!(client, device_id, :object, :datastream, interface_row, _endpoint_ids, _endpoint_query, path) do
+    endpoint_query = DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;")
+      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+
+    endpoint_rows = DatabaseQuery.call!(client, endpoint_query)
+
+    values = retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, nil, endpoint_rows, path)
+
+    if (values == []) and (path != "/") do
       raise PathNotFoundError
     end
 
