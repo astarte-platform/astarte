@@ -109,9 +109,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
 
     #TODO: use different BSON library
+    decoded_payload = Bson.decode(payload)
     value =
-      case Bson.decode(payload) do
+      case decoded_payload do
         %{v: bson_value} -> bson_value
+        %{} = bson_value -> bson_value
         _ -> :error
       end
 
