@@ -34,6 +34,14 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
       ]
       conn = get conn, "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.test.SimpleStreamTest/0/value"
       assert json_response(conn, 200)["data"] == expected_reply
+
+      expected_reply = [
+        %{"string" => "aaa", "timestamp" => "2017-09-30T07:10:00.000Z", "value" => 1.1},
+        %{"string" => "bbb", "timestamp" => "2017-09-30T07:12:00.000Z", "value" => 2.2},
+        %{"string" => "ccc", "timestamp" => "2017-09-30T07:13:00.000Z", "value" => 3.3}
+      ]
+      conn = get conn, "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.example.TestObject/"
+      assert json_response(conn, 200)["data"] == expected_reply
     end
   end
 end
