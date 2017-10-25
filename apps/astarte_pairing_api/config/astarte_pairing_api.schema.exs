@@ -251,6 +251,16 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
         {:ok, tuple_ip} -> tuple_ip
         _ -> raise "Invalid IP address in bind_address"
       end
+    end,
+    "astarte_pairing_api.jwt_public_key": fn conf ->
+      [{_, public_key_path}] = Conform.Conf.get(conf, "astarte_pairing_api.jwt_public_key_path")
+
+      if public_key_path == nil, do: raise "No JWT public key path configured"
+
+      case JOSE.JWK.from_pem_file(public_key_path) do
+        [] -> raise "Can't load JWT public key from path #{public_key_path}"
+        jwk -> jwk
+      end
     end
   ],
   validators: []
