@@ -96,8 +96,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     {interface_descriptor, new_state} = maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
 
-    {resolve_result, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
-    endpoint = Map.get(new_state.mappings, endpoint_id)
+    {resolve_result, endpoint} =
+      case interface_descriptor.aggregation do
+        :individual ->
+          {resolve_result, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+          endpoint = Map.get(new_state.mappings, endpoint_id)
+
+          {resolve_result, endpoint}
+
+        :object ->
+          {:ok, %Mapping{}}
+      end
 
     #TODO: use different BSON library
     value =
@@ -121,7 +130,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :invalid_message}
 
         true ->
-          insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp)
+          insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
       end
 
     if result != :ok do
