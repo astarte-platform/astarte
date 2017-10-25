@@ -17,7 +17,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   test "list_interfaces!/2 returns all interfaces" do
-    assert Device.list_interfaces!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ") == ["com.test.LCDMonitor", "com.test.SimpleStreamTest"]
+    assert Device.list_interfaces!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ") == ["com.example.TestObject", "com.test.LCDMonitor", "com.test.SimpleStreamTest"]
   end
 
   test "get_interface_values! returns interfaces values on individual property interface" do

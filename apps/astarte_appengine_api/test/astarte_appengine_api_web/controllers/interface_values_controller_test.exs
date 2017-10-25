@@ -14,7 +14,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
   describe "index" do
     test "lists all interfaces", %{conn: conn} do
       conn = get conn, interface_values_path(conn, :index, "autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ")
-      assert json_response(conn, 200)["data"] == ["com.test.LCDMonitor", "com.test.SimpleStreamTest"]
+      assert json_response(conn, 200)["data"] == ["com.example.TestObject", "com.test.LCDMonitor", "com.test.SimpleStreamTest"]
     end
 
     test "get interface values", %{conn: conn} do

@@ -50,7 +50,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   @insert_device """
         INSERT INTO autotestrealm.devices (device_id, extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
           VALUES (7f454c46-0201-0100-0000-000000000000, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
-          '8.8.8.8', '4.4.4.4', 45000, 4500000, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1});
+          '8.8.8.8', '4.4.4.4', 45000, 4500000, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1, 'com.example.TestObject': 1});
   """
 
   @create_interfaces_table """
@@ -131,6 +131,14 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 	INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
       (d2d90d55-a779-b988-9db4-15284b04f2e9, f16391ce-d060-fd45-d655-384090817324, False, '/foo/%{param}/timestampValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 13);
+  """,
+  """
+	INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
+      (e7f6d126-ae91-9689-2dba-71a0be336507, ee440afe-1576-0c8e-4a8d-5ea603429f1d, False, '/string', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 7);
+  """,
+  """
+	INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
+      (e7f6d126-ae91-9689-2dba-71a0be336507, aae432cf-b8c3-34a1-33c1-082ed93c8b2a, False, '/value', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 1);
   """
   ]
 
@@ -191,6 +199,16 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     );
   """
 
+  @create_test_object_table """
+    CREATE TABLE autotestrealm.com_example_testobject_v1 (
+      device_id uuid,
+      reception_timestamp timestamp,
+      string varchar,
+      value double,
+      PRIMARY KEY (device_id, reception_timestamp)
+    );
+  """
+
   @insert_values [
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
@@ -247,6 +265,18 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
     INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, integer_value) VALUES
       (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-30 07:10+0000', '2017-09-30 08:10+0000', 4);
+  """,
+  """
+    INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, reception_timestamp, value, string) VALUES
+      (7f454c46-0201-0100-0000-000000000000, '2017-09-30 07:10+0000', 1.1, 'aaa');
+  """,
+  """
+    INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, reception_timestamp, value, string) VALUES
+      (7f454c46-0201-0100-0000-000000000000, '2017-09-30 07:12+0000', 2.2, 'bbb');
+  """,
+  """
+    INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, reception_timestamp, value, string) VALUES
+      (7f454c46-0201-0100-0000-000000000000, '2017-09-30 07:13+0000', 3.3, 'ccc');
   """
   ]
 
@@ -258,6 +288,11 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   @insert_into_interface_1 """
   INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, quality, storage, storage_type, type) VALUES
     ('com.test.SimpleStreamTest', 1, :automaton_accepting_states, :automaton_transitions, 1, d2d90d55-a779-b988-9db4-15284b04f2e9, 0, 1, 'individual_datastream', 2, 2)
+  """
+
+  @insert_into_interface_2 """
+  INSERT INTO autotestrealm.interfaces (name, major_version, flags, interface_id, minor_version, quality, storage, storage_type, type) VALUES
+    ('com.example.TestObject', 1, 2, e7f6d126-ae91-9689-2dba-71a0be336507, 5, 1, 'com_example_testobject_v1', 5, 2)
   """
 
   def create_test_keyspace do
@@ -272,6 +307,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         end)
         DatabaseQuery.call!(client, @create_individual_property_table)
         DatabaseQuery.call!(client, @create_individual_datastream_table)
+        DatabaseQuery.call!(client, @create_test_object_table)
         Enum.each(@insert_values, fn(query) ->
           DatabaseQuery.call!(client, query)
         end)
@@ -289,6 +325,11 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
           |> DatabaseQuery.statement(@insert_into_interface_1)
           |> DatabaseQuery.put(:automaton_accepting_states,Base.decode64!("g3QAAAAFYQJtAAAAEB0LKXeI4kKFx0b1KBoYu5RhBW0AAAAQ+dOZdd00faHAc+dz6VaGSmEGbQAAABAy6K3F70GJRXCk7mQaPmmSYQdtAAAAEG7ooCoBz8asqB4bf6iuMWZhCG0AAAAQ8WORztBg/UXWVThAkIFzJA=="))
           |> DatabaseQuery.put(:automaton_transitions,Base.decode64!("g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="))
+        DatabaseQuery.call!(client, query)
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_interface_2)
         DatabaseQuery.call!(client, query)
 
         {:ok, client}
