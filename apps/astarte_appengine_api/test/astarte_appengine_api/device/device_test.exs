@@ -17,7 +17,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   test "list_interfaces!/2 returns all interfaces" do
-    assert Device.list_interfaces!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ") == ["com.test.LCDMonitor", "com.test.SimpleStreamTest"]
+    assert Device.list_interfaces!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ") == ["com.example.TestObject", "com.test.LCDMonitor", "com.test.SimpleStreamTest"]
   end
 
   test "get_interface_values! returns interfaces values on individual property interface" do
@@ -69,6 +69,20 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise PathNotFoundError, fn ->
       Device.get_interface_values!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.SimpleStreamTest", "100/value")
     end
+  end
+
+
+  test "get_interface_values! returns interfaces values on object datastream interface" do
+    test = "autotestrealm"
+    device_id = "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
+
+    expected_reply = [
+      %{"string" => "aaa", "value" => 1.1, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1)},
+      %{"string" => "bbb", "value" => 2.2, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1)},
+      %{"string" => "ccc", "value" => 3.3, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1)}
+    ]
+
+    assert Device.get_interface_values!(test, device_id, "com.example.TestObject") == expected_reply
   end
 
   test "list_devices/1 returns all devices" do
