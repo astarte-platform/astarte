@@ -109,6 +109,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload1, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:50+00:00"), 1), :milliseconds))
     payload2 = Bson.encode(%{"v" => %{"value" => 0}})
     DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload2, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:51+00:00"), 1), :milliseconds))
+    # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
+    payload3 = Bson.encode(%{"string" => "zzz"})
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload3, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-09-30T07:13:00+00:00"), 1), :milliseconds))
 
     DataUpdater.dump_state(realm, device_id)
 
@@ -124,7 +127,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert objects == [
       [device_id: device_id_uuid, reception_timestamp: 1506755400000, string: "aaa", value: 1.1],
       [device_id: device_id_uuid, reception_timestamp: 1506755520000, string: "bbb", value: 2.2],
-      [device_id: device_id_uuid, reception_timestamp: 1506755580000, string: "ccc", value: 3.3],
+      [device_id: device_id_uuid, reception_timestamp: 1506755580000, string: "zzz", value: 3.3],
       [device_id: device_id_uuid, reception_timestamp: 1509007729000, string: "Astarteです", value: 1.9],
       [device_id: device_id_uuid, reception_timestamp: 1509007730000, string: "Hello World');", value: nil],
       [device_id: device_id_uuid, reception_timestamp: 1509007731000, string: nil, value: 0.0]
@@ -208,7 +211,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       DatabaseQuery.call!(db_client, device_query)
       |> DatabaseResult.head()
 
-    assert device_row == [connected: false, total_received_msgs: 45010, total_received_bytes: 4500579]
+    assert device_row == [connected: false, total_received_msgs: 45011, total_received_bytes: 4500623]
   end
 
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
