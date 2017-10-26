@@ -53,20 +53,20 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
   @insert_log_line0_device_a """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, reception_timestamp, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
-      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '2010-02-04 04:05+0000', 'test', '2010-02-03 04:05+0000', 9123456789012345678, 'com.test', 5, '/bin/test')
+      (device_id, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '2010-02-04 04:05+0000', 0, 'test', '2010-02-03 04:05+0000', 9123456789012345678, 'com.test', 5, '/bin/test')
   """
 
   @insert_log_line1_device_a """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, reception_timestamp, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
-      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '2012-02-04 04:06+0000', 'testです', '2012-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
+      (device_id, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '2012-02-04 04:06+0000', 0, 'testです', '2012-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
   @insert_log_line0_device_b """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, reception_timestamp, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
-      VALUES (536be249-bbbb-4e02-9583-5a4833cbfe49, '2012-02-03 04:06+0000', 'testです', '2010-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
+      (device_id, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      VALUES (536be249-bbbb-4e02-9583-5a4833cbfe49, '2012-02-03 04:06+0000', 0, 'testです', '2010-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
   @count_log_entries_for_device_a """
@@ -107,11 +107,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
 """
 
   @insert_devicelog_status_0 """
-    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/0/testKey/value', ['0', 'testKey'], '2012-02-03 04:06+0000', 'T€ST_VÆLÙE') ;
+    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, reception_timestamp_submillis, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/0/testKey/value', ['0', 'testKey'], '2012-02-03 04:06+0000', 0, 'T€ST_VÆLÙE') ;
   """
 
   @insert_devicelog_status_1 """
-    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/1/testKey2/value', ['1', 'testKey2'], '2012-02-03 04:06+0000', 'test') ;
+    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, reception_timestamp_submillis, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/1/testKey2/value', ['1', 'testKey2'], '2012-02-03 04:06+0000', 0, 'test') ;
   """
 
   @find_devicelog_status_entry """
@@ -234,12 +234,12 @@ defmodule Astarte.RealmManagement.QueriesTest do
         a_log_entry = DatabaseQuery.call!(client, @a_log_entry_for_device_a)
           |> Enum.to_list
 
-        assert a_log_entry == [[device_id: <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>, reception_timestamp: 1328328360000, applicationid: "this.is.a.bit.longer.string", cmdline: "/usr/bin/things/test", message: "testです", monotonictimestamp: -1, pid: -2, timestamp: 1328241960000]]
+        assert a_log_entry == [[device_id: <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>, reception_timestamp: 1328328360000, reception_timestamp_submillis: 0, applicationid: "this.is.a.bit.longer.string", cmdline: "/usr/bin/things/test", message: "testです", monotonictimestamp: -1, pid: -2, timestamp: 1328241960000]]
 
         an_older_log_entry = DatabaseQuery.call!(client, @an_older_log_entry_for_device_a)
           |> Enum.to_list
 
-        assert an_older_log_entry == [[device_id: <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>, reception_timestamp: 1265256300000, applicationid: "com.test", cmdline: "/bin/test", message: "test", monotonictimestamp: 9123456789012345678, pid: 5, timestamp: 1265169900000]]
+        assert an_older_log_entry == [[device_id: <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>, reception_timestamp: 1265256300000, reception_timestamp_submillis: 0, applicationid: "com.test", cmdline: "/bin/test", message: "test", monotonictimestamp: 9123456789012345678, pid: 5, timestamp: 1265169900000]]
 
         Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
 
