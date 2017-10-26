@@ -300,8 +300,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @insert_into_interface_2 """
-  INSERT INTO autotestrealm.interfaces (name, major_version, flags, interface_id, minor_version, quality, storage, storage_type, type) VALUES
-    ('com.example.TestObject', 1, 2, e7f6d126-ae91-9689-2dba-71a0be336507, 5, 1, 'com_example_testobject_v1', 5, 2)
+  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, quality, storage, storage_type, type) VALUES
+    ('com.example.TestObject', 1, :automaton_accepting_states, :automaton_transitions, 2, e7f6d126-ae91-9689-2dba-71a0be336507, 5, 1, 'com_example_testobject_v1', 5, 2)
   """
 
   def create_test_keyspace do
@@ -339,6 +339,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         query =
           DatabaseQuery.new()
           |> DatabaseQuery.statement(@insert_into_interface_2)
+          |> DatabaseQuery.put(:automaton_accepting_states, <<131, 100, 0, 3, 110, 105, 108>>)
+          |> DatabaseQuery.put(:automaton_transitions, <<131, 100, 0, 3, 110, 105, 108>>)
         DatabaseQuery.call!(client, query)
 
         {:ok, client}
