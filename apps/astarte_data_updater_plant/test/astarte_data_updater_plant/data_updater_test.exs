@@ -99,6 +99,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert value == [integer_value: 5]
 
+    # Introspection change subtest
+    DataUpdater.handle_introspection(realm, device_id, "com.test.LCDMonitor:1:0;com.example.TestObject:1:5;com.test.SimpleStreamTest:1:0", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
+
+    # Incoming object aggregation subtest
+    payload0 = Bson.encode(%{"value" => 1.9, "string" => "Astarteです"})
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload0, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:49+00:00"), 1), :milliseconds))
+    payload1 = Bson.encode(%{"string" => "Hello World');"})
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload1, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:50+00:00"), 1), :milliseconds))
+    payload2 = Bson.encode(%{"v" => %{"value" => 0}})
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload2, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:51+00:00"), 1), :milliseconds))
+    # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
+    payload3 = Bson.encode(%{"string" => "zzz"})
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload3, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-09-30T07:13:00+00:00"), 1), :milliseconds))
+    payload4 = Bson.encode(%{})
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload4, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-30T07:13:00+00:00"), 1), :milliseconds))
+
+    DataUpdater.dump_state(realm, device_id)
+
+    objects_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT * FROM com_example_testobject_v1 WHERE device_id=:device_id")
+      |> DatabaseQuery.put(:device_id, device_id_uuid)
+
+    objects =
+      DatabaseQuery.call!(db_client, objects_query)
+      |> Enum.to_list
+
+    assert objects == [
+      [device_id: device_id_uuid, reception_timestamp: 1506755400000, string: "aaa", value: 1.1],
+      [device_id: device_id_uuid, reception_timestamp: 1506755520000, string: "bbb", value: 2.2],
+      [device_id: device_id_uuid, reception_timestamp: 1506755580000, string: "zzz", value: 3.3],
+      [device_id: device_id_uuid, reception_timestamp: 1509007729000, string: "Astarteです", value: 1.9],
+      [device_id: device_id_uuid, reception_timestamp: 1509007730000, string: "Hello World');", value: nil],
+      [device_id: device_id_uuid, reception_timestamp: 1509007731000, string: nil, value: 0.0],
+      [device_id: device_id_uuid, reception_timestamp: 1509347580000, string: nil, value: nil]
+    ]
+
     # Test /producer/properties control message
     data = <<0, 0, 0, 98>> <> :zlib.compress("com.test.LCDMonitor/time/to;com.test.LCDMonitor/weekSchedule/10/start")
     DataUpdater.handle_control(realm, device_id, "/producer/properties", data, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
@@ -177,7 +214,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       DatabaseQuery.call!(db_client, device_query)
       |> DatabaseResult.head()
 
-    assert device_row == [connected: false, total_received_msgs: 45006, total_received_bytes: 4500328]
+    assert device_row == [connected: false, total_received_msgs: 45012, total_received_bytes: 4500651]
   end
 
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do

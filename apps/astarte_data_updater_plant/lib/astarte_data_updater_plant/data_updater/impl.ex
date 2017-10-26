@@ -96,13 +96,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     {interface_descriptor, new_state} = maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
 
-    {resolve_result, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
-    endpoint = Map.get(new_state.mappings, endpoint_id)
+    {resolve_result, endpoint} =
+      case interface_descriptor.aggregation do
+        :individual ->
+          {resolve_result, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+          endpoint = Map.get(new_state.mappings, endpoint_id)
+
+          {resolve_result, endpoint}
+
+        :object ->
+          {:ok, %Mapping{}}
+      end
 
     #TODO: use different BSON library
+    decoded_payload = Bson.decode(payload)
     value =
-      case Bson.decode(payload) do
+      case decoded_payload do
         %{v: bson_value} -> bson_value
+        %{} = bson_value -> bson_value
         _ -> :error
       end
 
@@ -117,11 +128,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :maybe_outdated_introspection}
 
         value == :error ->
-          Logger.warn "#{state.realm}: Invalid BSON payload: #{Bson.decode(payload)} sent to #{interface}#{path}."
+          Logger.warn "#{state.realm}: Invalid BSON payload: #{inspect payload} sent to #{interface}#{path}."
           {:error, :invalid_message}
 
         true ->
-          insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp)
+          insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
       end
 
     if result != :ok do
@@ -294,6 +305,58 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:reception_timestamp, timestamp)
         |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
         |> DatabaseQuery.put(:value, value)
+
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
+  end
+
+  defp insert_value_into_db(db_client, :one_object_datastream_dbtable, device_id, interface_descriptor, _endpoint_id, _endpoint, _path, value, timestamp) do
+    #TODO: we should cache endpoints by interface_id
+    endpoint_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;")
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+
+    endpoint_rows = DatabaseQuery.call!(db_client, endpoint_query)
+
+    #FIXME: new atoms are created here, we should avoid this. We need to fix our BSON decoder before, and to understand better CQEx code.
+    column_atoms =
+      Enum.reduce(endpoint_rows, %{}, fn(endpoint, column_atoms_acc) ->
+        [endpoint_name] =
+          endpoint[:endpoint]
+          |> String.split("/")
+          |> tl
+
+        column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
+
+        Map.put(column_atoms_acc, String.to_atom(endpoint_name), String.to_atom(column_name))
+      end)
+
+    {query_values, placeholders, query_columns} =
+      Enum.reduce(value, {%{}, "", ""}, fn({obj_key, obj_value}, {query_values_acc, placeholders_acc, query_acc}) ->
+        if column_atoms[obj_key] != nil do
+          column_name = CQLUtils.endpoint_to_db_column_name(to_string(obj_key))
+
+          next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], obj_value)
+          next_placeholders_acc = "#{placeholders_acc} :#{to_string(column_atoms[obj_key])},"
+          next_query_acc = "#{query_acc} #{column_name}, "
+
+          {next_query_values_acc, next_placeholders_acc, next_query_acc}
+        else
+          Logger.warn "Unexpected object key #{inspect obj_key} with value #{inspect obj_value}"
+          query_values_acc
+        end
+      end)
+
+    # TODO: use received value_timestamp when needed
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} (device_id, #{query_columns} reception_timestamp) VALUES (:device_id, #{placeholders} :reception_timestamp);")
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:reception_timestamp, timestamp)
+      |> DatabaseQuery.merge(query_values)
 
     DatabaseQuery.call!(db_client, insert_query)
 
