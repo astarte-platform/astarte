@@ -3,6 +3,7 @@ defmodule Astarte.Pairing.Mock do
 
   @test_broker_url "ssl://broker.example.com:9000"
   @test_version "1"
+  @existing_hw_id "existing"
   @test_api_key_prefix "testapikeyprefix"
 
   use Astarte.RPC.AMQPServer,
@@ -22,6 +23,10 @@ defmodule Astarte.Pairing.Mock do
     @test_api_key_prefix <> realm <> hw_id
   end
 
+  def existing_hw_id do
+    @existing_hw_id
+  end
+
   def process_rpc(payload) do
     extract_call_tuple(Call.decode(payload))
     |> execute_rpc()
@@ -34,6 +39,10 @@ defmodule Astarte.Pairing.Mock do
   defp execute_rpc({:get_info, %GetInfo{}}) do
     %GetInfoReply{url: @test_broker_url, version: @test_version}
     |> encode_reply(:get_info_reply)
+    |> ok_wrap()
+  end
+  defp execute_rpc({:generate_api_key, %GenerateAPIKey{realm: _realm, hw_id: @existing_hw_id}}) do
+    generic_error(:device_exists)
     |> ok_wrap()
   end
   defp execute_rpc({:generate_api_key, %GenerateAPIKey{realm: realm, hw_id: hw_id}}) do
