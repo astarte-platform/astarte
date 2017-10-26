@@ -16,4 +16,11 @@ defmodule Astarte.Pairing.API.Config do
   def amqp_options do
     Application.get_env(:astarte_pairing_api, :amqp_options, [])
   end
+
+  @doc """
+  Returns the JWT public key
+  """
+  def jwt_public_key do
+    Application.get_env(:astarte_pairing_api, :jwt_public_key)
+  end
 end

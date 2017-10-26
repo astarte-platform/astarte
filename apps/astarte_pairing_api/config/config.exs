@@ -32,6 +32,10 @@ config :astarte_pairing_api, :amqp_options,
   virtual_host: "/",
   port: 5672
 
+config :astarte_pairing_api, Astarte.Pairing.APIWeb.AgentGuardian,
+  allowed_algos: ["RS512"],
+  secret_key: {Astarte.Pairing.API.Config, :jwt_public_key, []}
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env}.exs"
