@@ -4,6 +4,14 @@ defmodule Astarte.Pairing.APIWeb.APIKeyController do
   alias Astarte.Pairing.API.Agent
   alias Astarte.Pairing.API.Agent.APIKey
 
+  plug Guardian.Plug.Pipeline,
+    otp_app: :astarte_pairing_api,
+    module: Astarte.Pairing.APIWeb.Guardian,
+    error_handler: Astarte.Pairing.APIWeb.FallbackController
+  plug Guardian.Plug.VerifyHeader, realm: :none
+  plug Guardian.Plug.EnsureAuthenticated
+  plug Guardian.Plug.LoadResource
+
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
   def create(conn, %{"api_key" => api_key_params}) do
