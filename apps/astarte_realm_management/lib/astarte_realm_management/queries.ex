@@ -84,9 +84,10 @@ defmodule Astarte.RealmManagement.Queries do
       device_id uuid,
       :value_timestamp,
       reception_timestamp timestamp,
+      reception_timestamp_submillis smallint,
       :columns,
 
-      PRIMARY KEY(device_id, :key_timestamp reception_timestamp)
+      PRIMARY KEY(device_id, :key_timestamp reception_timestamp, reception_timestamp_submillis)
     )
   """
 
