@@ -127,13 +127,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> Enum.to_list
 
     assert objects == [
-      [device_id: device_id_uuid, reception_timestamp: 1506755400000, string: "aaa", value: 1.1],
-      [device_id: device_id_uuid, reception_timestamp: 1506755520000, string: "bbb", value: 2.2],
-      [device_id: device_id_uuid, reception_timestamp: 1506755580000, string: "zzz", value: 3.3],
-      [device_id: device_id_uuid, reception_timestamp: 1509007729000, string: "Astarteです", value: 1.9],
-      [device_id: device_id_uuid, reception_timestamp: 1509007730000, string: "Hello World');", value: nil],
-      [device_id: device_id_uuid, reception_timestamp: 1509007731000, string: nil, value: 0.0],
-      [device_id: device_id_uuid, reception_timestamp: 1509347580000, string: nil, value: nil]
+      [device_id: device_id_uuid, reception_timestamp: 1506755400000, reception_timestamp_submillis: 0, string: "aaa", value: 1.1],
+      [device_id: device_id_uuid, reception_timestamp: 1506755520000, reception_timestamp_submillis: 0, string: "bbb", value: 2.2],
+      [device_id: device_id_uuid, reception_timestamp: 1506755580000, reception_timestamp_submillis: 0, string: "zzz", value: 3.3],
+      [device_id: device_id_uuid, reception_timestamp: 1509007729000, reception_timestamp_submillis: 0, string: "Astarteです", value: 1.9],
+      [device_id: device_id_uuid, reception_timestamp: 1509007730000, reception_timestamp_submillis: 0, string: "Hello World');", value: nil],
+      [device_id: device_id_uuid, reception_timestamp: 1509007731000, reception_timestamp_submillis: 0, string: nil, value: 0.0],
+      [device_id: device_id_uuid, reception_timestamp: 1509347580000, reception_timestamp_submillis: 0, string: nil, value: nil]
     ]
 
     # Test /producer/properties control message

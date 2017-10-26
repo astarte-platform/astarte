@@ -353,9 +353,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} (device_id, #{query_columns} reception_timestamp) VALUES (:device_id, #{placeholders} :reception_timestamp);")
+      |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} (device_id, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
+                                 "VALUES (:device_id, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);")
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:reception_timestamp, timestamp)
+      |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
       |> DatabaseQuery.merge(query_values)
 
     DatabaseQuery.call!(db_client, insert_query)
