@@ -3,7 +3,7 @@ defmodule Astarte.Pairing.Mock do
 
   @test_broker_url "ssl://broker.example.com:9000"
   @test_version "1"
-  @test_api_key "testapikey"
+  @test_api_key_prefix "testapikeyprefix"
 
   use Astarte.RPC.AMQPServer,
     queue: Config.rpc_queue(),
@@ -19,7 +19,7 @@ defmodule Astarte.Pairing.Mock do
   end
 
   def api_key(realm, hw_id) do
-    @test_api_key <> realm <> hw_id
+    @test_api_key_prefix <> realm <> hw_id
   end
 
   def process_rpc(payload) do
@@ -37,7 +37,7 @@ defmodule Astarte.Pairing.Mock do
     |> ok_wrap()
   end
   defp execute_rpc({:generate_api_key, %GenerateAPIKey{realm: realm, hw_id: hw_id}}) do
-    %GenerateAPIKeyReply{api_key: @test_api_key <> realm <> hw_id}
+    %GenerateAPIKeyReply{api_key: @test_api_key_prefix <> realm <> hw_id}
     |> encode_reply(:generate_api_key_reply)
     |> ok_wrap()
   end
