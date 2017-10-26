@@ -3,6 +3,8 @@ defmodule Astarte.Pairing.APIWeb.APIKeyController do
 
   alias Astarte.Pairing.API.Agent
   alias Astarte.Pairing.API.Agent.APIKey
+  alias Astarte.Pairing.API.Agent.Realm
+  alias Astarte.Pairing.APIWeb.AgentGuardian
 
   plug Guardian.Plug.Pipeline,
     otp_app: :astarte_pairing_api,
@@ -14,12 +16,13 @@ defmodule Astarte.Pairing.APIWeb.APIKeyController do
 
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
-  def create(conn, %{"api_key" => api_key_params}) do
-    with {:ok, %APIKey{} = api_key} <- Pairing.API.Agent.create_api_key(api_key_params) do
+  def create(conn, %{"hwId" => hw_id}) do
+    # hwId is spelled this way to preserve backwards compatibility
+    with %Realm{realm_name: realm} <- AgentGuardian.Plug.current_resource(conn),
+         {:ok, %APIKey{} = api_key} <- Agent.generate_api_key(%{"hw_id" => hw_id, "realm" => realm}) do
       conn
       |> put_status(:created)
-      |> put_resp_header("location", api_key_path(conn, :show, api_key))
-      |> render("show.json", api_key: api_key)
+      |> render("show.json", api_key)
     end
   end
 end
