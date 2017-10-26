@@ -2,7 +2,7 @@ defmodule Astarte.Pairing.APIWeb.APIKeyControllerTest do
   use Astarte.Pairing.APIWeb.ConnCase
 
   alias Astarte.Pairing.API.Agent.Realm
-  alias Astarte.Pairing.API.TestJWTProducer
+  alias Astarte.Pairing.APIWeb.TestJWTProducer
   alias Astarte.Pairing.Mock
 
   @test_realm "testrealm"

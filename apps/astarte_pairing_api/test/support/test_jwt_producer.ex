@@ -1,4 +1,4 @@
-defmodule Astarte.Pairing.API.TestJWTProducer do
+defmodule Astarte.Pairing.APIWeb.TestJWTProducer do
   use Guardian, otp_app: :astarte_pairing_api
 
   alias Astarte.Pairing.API.Agent.Realm
