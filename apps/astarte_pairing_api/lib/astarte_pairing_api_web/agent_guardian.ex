@@ -1,4 +1,4 @@
-defmodule Astarte.Pairing.APIWeb.Guardian do
+defmodule Astarte.Pairing.APIWeb.AgentGuardian do
   use Guardian, otp_app: :astarte_pairing_api
 
   alias Astarte.Pairing.API.Agent.Realm

@@ -32,7 +32,7 @@ config :astarte_pairing_api, :amqp_options,
   virtual_host: "/",
   port: 5672
 
-config :astarte_pairing_api, Astarte.Pairing.APIWeb.Guardian,
+config :astarte_pairing_api, Astarte.Pairing.APIWeb.AgentGuardian,
   allowed_algos: ["RS512"],
   secret_key: {Astarte.Pairing.API.Config, :jwt_public_key, []}
 

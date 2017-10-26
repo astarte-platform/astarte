@@ -6,7 +6,7 @@ defmodule Astarte.Pairing.APIWeb.APIKeyController do
 
   plug Guardian.Plug.Pipeline,
     otp_app: :astarte_pairing_api,
-    module: Astarte.Pairing.APIWeb.Guardian,
+    module: Astarte.Pairing.APIWeb.AgentGuardian,
     error_handler: Astarte.Pairing.APIWeb.FallbackController
   plug Guardian.Plug.VerifyHeader, realm: :none
   plug Guardian.Plug.EnsureAuthenticated
