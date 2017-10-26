@@ -128,7 +128,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :maybe_outdated_introspection}
 
         value == :error ->
-          Logger.warn "#{state.realm}: Invalid BSON payload: #{Bson.decode(payload)} sent to #{interface}#{path}."
+          Logger.warn "#{state.realm}: Invalid BSON payload: #{inspect payload} sent to #{interface}#{path}."
           {:error, :invalid_message}
 
         true ->
