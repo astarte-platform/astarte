@@ -156,7 +156,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       endpoint_id uuid,
       path varchar,
       reception_timestamp timestamp,
-      reception_timestamp_submillis timestamp,
+      reception_timestamp_submillis smallint,
       endpoint_tokens list<varchar>,
 
       double_value double,
@@ -186,7 +186,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       path varchar,
       value_timestamp timestamp,
       reception_timestamp timestamp,
-      reception_timestamp_submillis timestamp,
+      reception_timestamp_submillis smallint,
       endpoint_tokens list<varchar>,
 
       double_value double,
