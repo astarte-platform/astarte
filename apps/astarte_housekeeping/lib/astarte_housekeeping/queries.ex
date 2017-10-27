@@ -37,7 +37,6 @@ defmodule Astarte.Housekeeping.Queries do
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
         protocol_revision int,
-        triggers set<ascii>,
         metadata map<ascii, text>,
         inhibit_pairing boolean,
         cert_serial ascii,
@@ -89,6 +88,17 @@ defmodule Astarte.Housekeeping.Queries do
         automaton_accepting_states blob,
 
         PRIMARY KEY (name, major_version)
+      );
+    """,
+    """
+      CREATE TABLE :realm_name.simple_triggers (
+        object_id uuid,
+        object_type int,
+        parent_trigger uuid,
+        simple_trigger_id uuid,
+        trigger_data blob,
+
+        PRIMARY KEY ((object_id, object_type), parent_trigger, simple_trigger_id)
       );
     """,
     """
