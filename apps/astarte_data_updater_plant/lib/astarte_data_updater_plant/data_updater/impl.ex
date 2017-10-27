@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
@@ -234,7 +235,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_added, :any_interface}, [])
             Enum.each(introspection_triggers, fn(introspection_trigger) ->
               Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
-                push_event_on_queue(state, trigger_target, nil, delivery_tag, {:added_interface, interface_name, interface_major})
+                push_event_on_target(state, trigger_target, nil, delivery_tag, {:added_interface, interface_name, interface_major})
               end)
             end)
           end)
@@ -245,7 +246,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_deleted, :any_interface}, [])
             Enum.each(introspection_triggers, fn(introspection_trigger) ->
               Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
-                push_event_on_queue(state, trigger_target, nil, delivery_tag, {:deleted_interface, interface_name, interface_major})
+                push_event_on_target(state, trigger_target, nil, delivery_tag, {:deleted_interface, interface_name, interface_major})
               end)
             end)
           end)
@@ -536,21 +537,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp process_trigger(state, trigger, delivery_tag, path, value) do
     Enum.each(trigger.trigger_targets, fn(target) ->
-      push_event_on_queue(state, target, trigger.trigger_name, delivery_tag, {path, value})
+      push_event_on_target(state, target, trigger.trigger_name, delivery_tag, {path, value})
     end)
   end
 
-  defp push_event_on_queue(state, trigger_target, trigger_name, delivery_tag, payload) do
+  defp push_event_on_target(state, %AMQPTriggerTarget{} = trigger_target, trigger_name, delivery_tag, payload) do
     event_id = delivery_tag
 
     Logger.debug "#{state.realm}: Going to push event for trigger id #{inspect trigger_name} on #{pretty_device_id(state.device_id)} " <>
-            "to #{inspect trigger_target.queue_name} with routing topic #{inspect trigger_target.routing_topic}. Payload #{inspect payload}. event id: #{inspect event_id}"
+            "to #{inspect trigger_target.exchange} with routing key #{inspect trigger_target.routing_key}. Payload #{inspect payload}. event id: #{inspect event_id}"
   end
 
   defp on_device_connection(state) do
     trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
     Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_queue(state, trigger_target, nil, nil, nil)
+      push_event_on_target(state, trigger_target, nil, nil, nil)
     end)
 
     :ok
@@ -559,7 +560,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp on_device_disconnection(state) do
     trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
     Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_queue(state, trigger_target, nil, nil, nil)
+      push_event_on_target(state, trigger_target, nil, nil, nil)
     end)
 
     :ok
