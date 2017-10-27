@@ -92,6 +92,17 @@ defmodule Astarte.Housekeeping.Queries do
       );
     """,
     """
+      CREATE TABLE :realm_name.simple_triggers (
+        object_id uuid,
+        object_type int,
+        parent_trigger uuid,
+        simple_trigger_id uuid,
+        trigger_data blob,
+
+        PRIMARY KEY ((object_id, object_type), parent_trigger, simple_trigger_id)
+      );
+    """,
+    """
       INSERT INTO astarte.realms
         (realm_name) VALUES (':realm_name');
     """
