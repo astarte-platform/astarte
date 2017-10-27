@@ -19,31 +19,31 @@
 
 defmodule Astarte.DataUpdaterPlant.ValueMatchOperators do
 
-  def value_matches?(_received_value, :any, _known_value) do
+  def value_matches?(_received_value, :ANY, _known_value) do
     true
   end
 
-  def value_matches?(received_value, :equality, known_value) do
+  def value_matches?(received_value, :EQUALITY, known_value) do
     received_value == known_value
   end
 
-  def value_matches?(received_value, :not_equality, known_value) do
+  def value_matches?(received_value, :NOT_EQUALITY, known_value) do
     received_value != known_value
   end
 
-  def value_matches?(received_value, :greater_than, known_value) do
+  def value_matches?(received_value, :GREATER_THAN, known_value) do
     received_value > known_value
   end
 
-  def value_matches?(received_value, :greater_or_equal_than, known_value) do
+  def value_matches?(received_value, :GREATER_OR_EQUAL_THAN, known_value) do
     received_value >= known_value
   end
 
-  def value_matches?(received_value, :lower_than, known_value) do
+  def value_matches?(received_value, :LOWER_THAN, known_value) do
     received_value < known_value
   end
 
-  def value_matches?(received_value, :lower_or_equal_than, known_value) do
+  def value_matches?(received_value, :LOWER_OR_EQUAL_THAN, known_value) do
     received_value <= known_value
   end
 
