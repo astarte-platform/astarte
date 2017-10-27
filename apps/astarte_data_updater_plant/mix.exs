@@ -55,6 +55,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test},
+      {:exprotobuf, "~> 1.2.7"},
       {:cqex, github: "ispirata/cqex"},
       {:bson, "~> 0.4.4"}
     ]
