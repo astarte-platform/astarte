@@ -6,6 +6,9 @@ defmodule Astarte.Pairing.Mock do
   @existing_hw_id "existing"
   @test_api_key_prefix "testapikeyprefix"
 
+  @certificate_base "I hereby certify that you're really you: "
+  @valid_api_key "validapikey"
+
   use Astarte.RPC.AMQPServer,
     queue: Config.rpc_queue(),
     amqp_options: Config.amqp_options()
@@ -25,6 +28,14 @@ defmodule Astarte.Pairing.Mock do
 
   def existing_hw_id do
     @existing_hw_id
+  end
+
+  def certificate(csr, device_ip) do
+    @certificate_base <> csr <> device_ip
+  end
+
+  def valid_api_key do
+    @valid_api_key
   end
 
   def process_rpc(payload) do
@@ -48,6 +59,15 @@ defmodule Astarte.Pairing.Mock do
   defp execute_rpc({:generate_api_key, %GenerateAPIKey{realm: realm, hw_id: hw_id}}) do
     %GenerateAPIKeyReply{api_key: @test_api_key_prefix <> realm <> hw_id}
     |> encode_reply(:generate_api_key_reply)
+    |> ok_wrap()
+  end
+  defp execute_rpc({:do_pairing, %DoPairing{csr: csr, api_key: @valid_api_key, device_ip: device_ip}}) do
+    %DoPairingReply{client_crt: @certificate_base <> csr <> device_ip}
+    |> encode_reply(:do_pairing_reply)
+    |> ok_wrap()
+  end
+  defp execute_rpc({:do_pairing, %DoPairing{csr: _csr, api_key: _valid_api_key, device_ip: _device_ip}}) do
+    generic_error(:invalid_api_key)
     |> ok_wrap()
   end
 
