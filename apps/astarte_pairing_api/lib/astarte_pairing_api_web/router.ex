@@ -8,6 +8,7 @@ defmodule Astarte.Pairing.APIWeb.Router do
   scope "/api/v1", Astarte.Pairing.APIWeb do
     pipe_through :api
 
+    post "/pairing", CertificateController, :create
     post "/devices/apikeysFromDevice", APIKeyController, :create
     get "/info", BrokerInfoController, :show
   end
