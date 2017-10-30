@@ -31,12 +31,12 @@ message DataTrigger {
 
     enum MatchOperator {
         ANY = 1;
-        EQUALITY = 2;
-        NOT_EQUALITY = 3;
+        EQUAL = 2;
+        NOT_EQUAL = 3;
         GREATER_THAN = 4;
-        GREATER_OR_EQUAL_THAN = 5;
-        LOWER_THAN = 6;
-        LOWER_OR_EQUAL_THAN = 7;
+        GREATER_OR_EQUAL_TO = 5;
+        LESS_THAN = 6;
+        LESS_OR_EQUAL_TO = 7;
     }
 
     DataTriggerType data_trigger_type = 2;
