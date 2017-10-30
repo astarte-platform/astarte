@@ -13,6 +13,6 @@ defmodule Astarte.Pairing.APIWeb.Plug.FixLegacyPairingMIME do
   end
 
   defp legacy_pairing?(conn) do
-    conn.path_info == ["api", "v1", "pairing"]
+    conn.request_path == "/api/v1/pairing"
   end
 end
