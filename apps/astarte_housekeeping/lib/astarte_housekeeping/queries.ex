@@ -97,6 +97,7 @@ defmodule Astarte.Housekeeping.Queries do
         parent_trigger uuid,
         simple_trigger_id uuid,
         trigger_data blob,
+        trigger_target blob,
 
         PRIMARY KEY ((object_id, object_type), parent_trigger, simple_trigger_id)
       );
