@@ -26,6 +26,14 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
     |> extract_reply()
   end
 
+  def do_pairing(csr, api_key, device_ip) do
+    %DoPairing{csr: csr, api_key: api_key, device_ip: device_ip}
+    |> encode_call(:do_pairing)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
@@ -41,6 +49,9 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
   end
   defp extract_reply({:generate_api_key_reply, %GenerateAPIKeyReply{api_key: api_key}}) do
     {:ok, api_key}
+  end
+  defp extract_reply({:do_pairing_reply, %DoPairingReply{client_crt: client_crt}}) do
+    {:ok, client_crt}
   end
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)

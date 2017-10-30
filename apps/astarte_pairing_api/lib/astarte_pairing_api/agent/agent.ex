@@ -6,6 +6,7 @@ defmodule Astarte.Pairing.API.Agent do
   alias Astarte.Pairing.API.Agent.APIKey
   alias Astarte.Pairing.API.Agent.APIKeyRequest
   alias Astarte.Pairing.API.RPC.AMQPClient
+  alias Astarte.Pairing.API.Utils
 
   def generate_api_key(attrs \\ %{}) do
     changeset =
@@ -19,7 +20,7 @@ defmodule Astarte.Pairing.API.Agent do
           {:ok, %APIKey{api_key: api_key}}
 
         {:error, %{} = error_map} ->
-          {:error, error_map_into_changeset(changeset, error_map)}
+          {:error, Utils.error_map_into_changeset(changeset, error_map)}
 
         _other ->
           {:error, :rpc_error}
@@ -28,15 +29,5 @@ defmodule Astarte.Pairing.API.Agent do
     else
       {:error, %{changeset | action: :create}}
     end
-  end
-
-  defp error_map_into_changeset(%Ecto.Changeset{} = changeset, error_map) do
-    Enum.reduce(error_map, %{changeset | valid?: false}, fn {k, v}, acc ->
-      if v do
-        Ecto.Changeset.add_error(acc, k, v)
-      else
-        acc
-      end
-    end)
   end
 end
