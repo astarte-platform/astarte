@@ -33,7 +33,7 @@ config :astarte_pairing_api, :amqp_options,
   port: 5672
 
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.AgentGuardian,
-  allowed_algos: ["RS512"],
+  allowed_algos: ["RS256"],
   secret_key: {Astarte.Pairing.API.Config, :jwt_public_key, []}
 
 # Import environment specific config. This must remain at the bottom
