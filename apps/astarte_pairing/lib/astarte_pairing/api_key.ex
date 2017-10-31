@@ -51,6 +51,9 @@ defmodule Astarte.Pairing.APIKey do
 
   If the verification succeeds, it unpacks the information contained in the API key.
 
+  If it fails, it checks if there's a fallback_verify function and if there's, it
+  returns the result of that function
+
   Returns `{:ok, %{realm: ..., device_uuid: ...}}` on success and `{:error, :invalid}`
   if the verification fails.
   """
@@ -62,7 +65,13 @@ defmodule Astarte.Pairing.APIKey do
         {:ok, %{realm: realm, device_uuid: device_uuid}}
 
       :error ->
-        {:error, :invalid_api_key}
+        fallback_verify = Config.fallback_api_key_verify_fun()
+        if fallback_verify do
+          {module, fun} = fallback_verify
+          apply(module, fun, [api_key, salt])
+        else
+          {:error, :invalid_api_key}
+        end
     end
   end
 
