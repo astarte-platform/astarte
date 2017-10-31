@@ -7,7 +7,7 @@ defmodule Astarte.Pairing.APIWeb.CertificateControllerTest do
   @create_attrs %{"data" => @csr}
   @invalid_attrs %{"data" => ""}
 
-  describe "create api_key" do
+  describe "create certificate" do
     setup %{conn: conn} do
       conn =
         conn
