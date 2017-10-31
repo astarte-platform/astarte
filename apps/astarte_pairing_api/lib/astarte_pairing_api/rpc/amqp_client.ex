@@ -34,6 +34,14 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
     |> extract_reply()
   end
 
+  def verify_certificate(certificate) do
+    %VerifyCertificate{crt: certificate}
+    |> encode_call(:verify_certificate)
+    |> rpc_call()
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
