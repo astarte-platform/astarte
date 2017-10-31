@@ -6,7 +6,7 @@ defmodule Astarte.Pairing.APIWeb.EndpointTest do
   @create_attrs "csr"
   @invalid_attrs ""
 
-  describe "create api_key" do
+  describe "create certificate" do
     setup %{conn: conn} do
       conn =
         conn
