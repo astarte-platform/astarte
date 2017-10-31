@@ -43,7 +43,7 @@ config :astarte_pairing_api, :jwt_public_key,
     "n" => "9skBBt-9MkjhJos5bLBtmseZihmMGQJ2O117UJe_FDO349WQypecBf-_G7Vlq-HkvK_8rqmWLBP0ywaueDvfeSYzREuJkfGG49diJ0uZHSYsq4WUaENYfUVeVBk5oeN1zbkkmkpKKwRfkFiMS1YDqfAd_d2fQOGkAlMhAuCpYi5Y-5sG5ScUe-Fypc83i8M_wZbUHTjg6sSoBsqrGlo4yWOqI3jPnPcI1xSCz6YB2pQeFYkb4mpR4b4VfMURGbitJ9O6teEl9arXisSBwIG_W35OAqjaivIDngn91gF0W5ywodyen4td-7R5DH_kxlyBJihvbdNraDw6P1NY7v3tyw"}
 
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.TestJWTProducer,
-  allowed_algos: ["RS512"],
+  allowed_algos: ["RS256"],
   secret_key:
     %{"d" => "JSXCks9RAmW4Bn5EiZjRFtBey0vnK8iUFYGP02TULW1Pi-sU3XoO0VRa5wfaIxJgxQpUpdH_OelTGtCJqK2SiQD4DJq2PZK2tEsyiim2BY4-gR8dZMhmZIzxkwUtCLJdhDcPTG5MVcdVvzuk-p4a9RSg3xriIvkUIAl1WaKJvK5jqCzJSZzui8up1UGWu2C1lT_9rIM58yRCdfe6AiP9Ozniw-qs6ySZse6pRXeKOelcmt0qB3dO9OcUmejNKmcte2GPZYUJrw5nz0aZzRmH10kQPz5INSaR21D_cMtbi2O3k1uDHjw4rSwbdSj7xN07548PjnffSeYSj3jXvv56iQ",
       "dp" => "rnJLKBSSF7hlOX67MElFWBgra79S0hISgHll4o7a3MD6QC0PhLYEt8NBI-pZhNL3EqWr1d4dOkStKT3qcF32zO4xmwtTeYnnWoOu-dkiptTCY00CENLDZgaOMHTuVjcg1SO7F1gZzIxK9fSONsRMnxa9JA9-sj4oCMYfAqkmyak",
