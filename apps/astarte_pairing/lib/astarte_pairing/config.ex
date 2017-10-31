@@ -89,4 +89,11 @@ defmodule Astarte.Pairing.Config do
   def ca_cert do
     Application.fetch_env!(:astarte_pairing, :ca_cert)
   end
+
+  @doc """
+  Returns the fallback api key verify function as {mod, fun} tuple.
+  """
+  def fallback_api_key_verify_fun do
+    Application.get_env(:astarte_pairing, :fallback_api_key_verify_fun)
+  end
 end
