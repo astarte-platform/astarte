@@ -56,6 +56,16 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
     {:ok, client_crt}
   end
 
+  defp extract_reply({:verify_certificate_reply, %VerifyCertificateReply{} = reply_struct}) do
+    reply =
+      %{valid: reply_struct.valid,
+        timestamp: reply_struct.timestamp,
+        until: reply_struct.until,
+        cause: reply_struct.cause,
+        details: reply_struct.details}
+    {:ok, reply}
+  end
+
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 
