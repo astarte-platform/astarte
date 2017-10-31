@@ -21,8 +21,11 @@ defmodule Astarte.Pairing.API.PairingTest do
       assert crt == Mock.certificate(@csr, @device_ip)
     end
 
-    test "pair/1 with invalid data returns error changeset" do
+    test "pair/1 with malformed data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = Pairing.pair(@no_csr_attrs)
+    end
+
+    test "pair/1 with an invalid api key returns an unauthorized error" do
       assert {:error, :unauthorized} = Pairing.pair(@invalid_api_key_attrs)
     end
   end
