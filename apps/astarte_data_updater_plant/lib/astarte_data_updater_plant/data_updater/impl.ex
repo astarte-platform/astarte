@@ -24,7 +24,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.DataTrigger
   alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger, as: SimpleTriggersProtobufDataTrigger
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
@@ -236,7 +239,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_added, :any_interface}, [])
             Enum.each(introspection_triggers, fn(introspection_trigger) ->
               Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
-                push_event_on_target(state, trigger_target, nil, delivery_tag, {:added_interface, interface_name, interface_major})
+                push_event_on_target(state, trigger_target, delivery_tag, {:added_interface, interface_name, interface_major})
               end)
             end)
           end)
@@ -247,7 +250,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_deleted, :any_interface}, [])
             Enum.each(introspection_triggers, fn(introspection_trigger) ->
               Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
-                push_event_on_target(state, trigger_target, nil, delivery_tag, {:deleted_interface, interface_name, interface_major})
+                push_event_on_target(state, trigger_target, delivery_tag, {:deleted_interface, interface_name, interface_major})
               end)
             end)
           end)
@@ -342,6 +345,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       interface_ids_to_name:  Map.put(state.interface_ids_to_name, interface_descriptor.interface_id, interface_name),
       mappings: mappings
     }
+
+    new_state = populate_triggers_for_object!(new_state, db_client, interface_descriptor.interface_id, :interface)
 
     {interface_descriptor, new_state}
   end
@@ -539,21 +544,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp process_trigger(state, trigger, delivery_tag, path, value) do
     Enum.each(trigger.trigger_targets, fn(target) ->
-      push_event_on_target(state, target, trigger.trigger_name, delivery_tag, {path, value})
+      push_event_on_target(state, target, delivery_tag, {path, value})
     end)
   end
 
-  defp push_event_on_target(state, %AMQPTriggerTarget{} = trigger_target, trigger_name, delivery_tag, payload) do
+  defp push_event_on_target(state, %AMQPTriggerTarget{} = trigger_target, delivery_tag, payload) do
     event_id = delivery_tag
 
-    Logger.debug "#{state.realm}: Going to push event for trigger id #{inspect trigger_name} on #{pretty_device_id(state.device_id)} " <>
+    Logger.debug "#{state.realm}: Going to push event for trigger id #{:uuid.uuid_to_string(trigger_target.parent_trigger_id)}/#{:uuid.uuid_to_string(trigger_target.simple_trigger_id)} on #{pretty_device_id(state.device_id)} " <>
             "to #{inspect trigger_target.exchange} with routing key #{inspect trigger_target.routing_key}. Payload #{inspect payload}. event id: #{inspect event_id}"
   end
 
   defp on_device_connection(state) do
     trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
     Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_target(state, trigger_target, nil, nil, nil)
+      push_event_on_target(state, trigger_target, nil, nil)
     end)
 
     :ok
@@ -562,7 +567,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp on_device_disconnection(state) do
     trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
     Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_target(state, trigger_target, nil, nil, nil)
+      push_event_on_target(state, trigger_target, nil, nil)
     end)
 
     :ok
@@ -658,6 +663,123 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp query_previous_value(_db_client, :individual, :properties, _device_id, _interface_descriptor, _endpoint_id, _endpoint, _path) do
     #TODO: implement me
     nil
+  end
+
+  def simple_trigger_to_data_trigger(protobuf_data_trigger) do
+    %SimpleTriggersProtobufDataTrigger{
+      match_path: match_path,
+      value_match_operator: value_match_operator,
+      known_value: known_value
+    } = protobuf_data_trigger
+
+    %{v: plain_value} = Bson.decode(known_value)
+
+    path_match_tokens =
+      if match_path do
+        match_path
+        |> String.replace(~r/%{[a-zA-Z0-9]*}/, "")
+        |> String.split("/")
+      else
+        nil
+      end
+
+    %DataTrigger{
+      path_match_tokens: path_match_tokens,
+      value_match_operator: value_match_operator,
+      known_value: plain_value,
+      trigger_targets: nil
+    }
+  end
+
+  def are_congruent?(trigger_a, trigger_b) do
+    (trigger_a.path_match_tokens == trigger_b.path_match_tokens) and
+    (trigger_a.value_match_operator == trigger_b.value_match_operator) and
+    (trigger_a.known_value == trigger_b.known_value)
+  end
+
+  defp populate_triggers_for_object!(state, client, object_id, object_type) do
+    object_type_int =
+      case object_type do
+        :device -> 1
+        :interface -> 2
+      end
+
+    simple_triggers_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT simple_trigger_id, parent_trigger_id, trigger_data, trigger_target FROM simple_triggers WHERE object_id=:object_id AND object_type=:object_type_int")
+      |> DatabaseQuery.put(:object_id, object_id)
+      |> DatabaseQuery.put(:object_type_int, object_type_int)
+
+    simple_triggers_rows =
+      DatabaseQuery.call!(client, simple_triggers_query)
+
+    Enum.reduce(simple_triggers_rows, state, fn(row, state_acc) ->
+      trigger_id = row[:simple_trigger_id]
+      parent_trigger_id = row[:parent_trigger_id]
+      simple_trigger = SimpleTriggersProtobufUtils.deserialize_simple_trigger(row[:trigger_data])
+      trigger_target =
+        SimpleTriggersProtobufUtils.deserialize_trigger_target(row[:trigger_target])
+        |> Map.put(:simple_trigger_id, trigger_id)
+        |> Map.put(:parent_trigger_id, parent_trigger_id)
+
+      case simple_trigger do
+        {:data_trigger, proto_buf_data_trigger} ->
+
+          data_trigger = simple_trigger_to_data_trigger(proto_buf_data_trigger)
+          data_triggers = state_acc.data_triggers
+
+          event_type =
+            case proto_buf_data_trigger.data_trigger_type do
+              :INCOMING_DATA ->
+                :on_incoming_data
+            end
+
+          endpoint =
+            if proto_buf_data_trigger.match_path != nil do
+              interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, object_id))
+              {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(proto_buf_data_trigger.match_path, interface_descriptor.automaton)
+              endpoint_id
+            else
+              :any_endpoint
+            end
+
+          data_trigger_key = {event_type, object_id, endpoint}
+
+          candidate_triggers = Map.get(data_triggers, data_trigger_key)
+          existing_trigger =
+            if candidate_triggers do
+              Enum.find(candidate_triggers, fn(candidate) -> are_congruent?(candidate, data_trigger) end)
+            else
+              nil
+            end
+
+          targets =
+            if existing_trigger do
+              existing_trigger.trigger_targets
+            else
+              []
+            end
+
+          new_targets = [trigger_target] ++ targets
+          new_data_trigger = %{data_trigger | trigger_targets: new_targets}
+
+          new_triggers_chain =
+            if candidate_triggers do
+              List.foldl(candidate_triggers, [], fn(t, acc) ->
+                if are_congruent?(t, new_data_trigger) do
+                  [new_data_trigger] ++ acc
+                else
+                  [t] ++ acc
+                end
+              end)
+            else
+              [new_data_trigger]
+            end
+
+          next_data_triggers = Map.put(data_triggers, data_trigger_key, new_triggers_chain)
+          Map.put(state_acc, :data_triggers, next_data_triggers)
+        end
+    end)
   end
 
   defp connect_to_db(state) do

@@ -18,9 +18,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataTrigger do
-  @enforce_keys [:trigger_name, :trigger_targets]
+  @enforce_keys [:trigger_targets]
   defstruct [
-    :trigger_name,
     :path_match_tokens,
     :value_match_operator,
     :known_value,

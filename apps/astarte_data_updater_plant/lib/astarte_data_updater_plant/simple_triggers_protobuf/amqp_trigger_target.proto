@@ -20,7 +20,11 @@
 message AMQPTriggerTarget {
     int32 version = 1 [default = 1];
 
-    string exchange = 2;
-    string routing_key = 3;
-    map<string, string> static_headers = 4;
+    // those should stay null, they get overwritten once loaded
+    bytes simple_trigger_id = 2;
+    bytes parent_trigger_id = 3;
+
+    string exchange = 4;
+    string routing_key = 5;
+    map<string, string> static_headers = 6;
 }
