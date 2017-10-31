@@ -54,6 +54,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       total_received_bytes: device_row[:total_received_bytes],
       introspection: Enum.into(device_row[:introspection], %{}),
       interfaces: %{},
+      interface_ids_to_name: %{},
       mappings: %{},
       device_triggers: %{},
       data_triggers: %{},
@@ -338,6 +339,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = %State{state |
       interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
+      interface_ids_to_name:  Map.put(state.interface_ids_to_name, interface_descriptor.interface_id, interface_name),
       mappings: mappings
     }
 

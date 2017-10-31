@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :device_id,
     :introspection,
     :interfaces,
+    :interface_ids_to_name,
     :mappings,
     :device_triggers,
     :data_triggers,
