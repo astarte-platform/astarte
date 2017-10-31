@@ -9,6 +9,9 @@ defmodule Astarte.Pairing.Mock do
   @certificate_base "I hereby certify that you're really you: "
   @valid_api_key "validapikey"
 
+  @valid_crt "validcrt"
+  @ms_in_a_month 2628000000
+
   use Astarte.RPC.AMQPServer,
     queue: Config.rpc_queue(),
     amqp_options: Config.amqp_options()
@@ -38,6 +41,10 @@ defmodule Astarte.Pairing.Mock do
     @valid_api_key
   end
 
+  def valid_crt do
+    @valid_crt
+  end
+
   def process_rpc(payload) do
     extract_call_tuple(Call.decode(payload))
     |> execute_rpc()
@@ -52,22 +59,47 @@ defmodule Astarte.Pairing.Mock do
     |> encode_reply(:get_info_reply)
     |> ok_wrap()
   end
+
   defp execute_rpc({:generate_api_key, %GenerateAPIKey{realm: _realm, hw_id: @existing_hw_id}}) do
     generic_error(:device_exists)
     |> ok_wrap()
   end
+
   defp execute_rpc({:generate_api_key, %GenerateAPIKey{realm: realm, hw_id: hw_id}}) do
     %GenerateAPIKeyReply{api_key: @test_api_key_prefix <> realm <> hw_id}
     |> encode_reply(:generate_api_key_reply)
     |> ok_wrap()
   end
+
   defp execute_rpc({:do_pairing, %DoPairing{csr: csr, api_key: @valid_api_key, device_ip: device_ip}}) do
     %DoPairingReply{client_crt: @certificate_base <> csr <> device_ip}
     |> encode_reply(:do_pairing_reply)
     |> ok_wrap()
   end
+
   defp execute_rpc({:do_pairing, %DoPairing{csr: _csr, api_key: _valid_api_key, device_ip: _device_ip}}) do
     generic_error(:invalid_api_key)
+    |> ok_wrap()
+  end
+
+  defp execute_rpc({:verify_certificate, %VerifyCertificate{crt: @valid_crt}}) do
+    now_ms =
+      DateTime.utc_now()
+      |> DateTime.to_unix(:milliseconds)
+    one_month_from_now = now_ms + @ms_in_a_month
+
+    %VerifyCertificateReply{valid: true, timestamp: now_ms, until: one_month_from_now}
+    |> encode_reply(:verify_certificate_reply)
+    |> ok_wrap()
+  end
+
+  defp execute_rpc({:verify_certificate, %VerifyCertificate{crt: _invalid}}) do
+    now_ms =
+      DateTime.utc_now()
+      |> DateTime.to_unix(:milliseconds)
+
+    %VerifyCertificateReply{valid: false, timestamp: now_ms, cause: :INVALID, details: "invalid_certificate"}
+    |> encode_reply(:verify_certificate_reply)
     |> ok_wrap()
   end
 

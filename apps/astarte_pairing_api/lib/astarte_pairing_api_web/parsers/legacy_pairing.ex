@@ -30,8 +30,8 @@ defmodule Astarte.Pairing.APIWeb.Parsers.LegacyPairing do
     raise Plug.BadRequestError
   end
 
-  defp decode({:ok, csr, conn}) do
-    {:ok, %{"csr" => csr}, conn}
+  defp decode({:ok, data, conn}) do
+    {:ok, %{"data" => data}, conn}
   rescue
     e -> raise Plug.Parsers.ParseError, exception: e
   end

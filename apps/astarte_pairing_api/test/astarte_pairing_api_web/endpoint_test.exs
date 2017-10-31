@@ -3,10 +3,11 @@ defmodule Astarte.Pairing.APIWeb.EndpointTest do
 
   alias Astarte.Pairing.Mock
 
-  @create_attrs "csr"
   @invalid_attrs ""
 
-  describe "create api_key" do
+  describe "create certificate" do
+    @create_attrs "csr"
+
     setup %{conn: conn} do
       conn =
         conn

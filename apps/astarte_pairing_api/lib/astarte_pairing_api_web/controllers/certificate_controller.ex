@@ -3,10 +3,12 @@ defmodule Astarte.Pairing.APIWeb.CertificateController do
 
   alias Astarte.Pairing.API.Pairing
   alias Astarte.Pairing.API.Pairing.Certificate
+  alias Astarte.Pairing.API.Pairing.CertificateStatus
+  alias Astarte.Pairing.APIWeb.CertificateStatusView
 
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
-  def create(conn, %{"csr" => csr}) do
+  def create(conn, %{"data" => csr}) do
     with device_ip <- get_ip(conn),
          {:ok, api_key} <- get_api_key(conn),
          params = %{"csr" => csr, "api_key" => api_key, "device_ip" => device_ip},
@@ -14,6 +16,14 @@ defmodule Astarte.Pairing.APIWeb.CertificateController do
       conn
       |> put_status(:created)
       |> render("show.json", certificate: certificate)
+    end
+  end
+
+  def verify(conn, %{"data" => certificate}) do
+    with {:ok, %CertificateStatus{} = status} <- Pairing.verify_certificate(%{"certificate" => certificate}) do
+      conn
+      |> put_status(:created)
+      |> render(CertificateStatusView, "show.json", certificate_status: status)
     end
   end
 
