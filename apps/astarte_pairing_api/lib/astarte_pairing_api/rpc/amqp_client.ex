@@ -47,12 +47,15 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
   defp extract_reply({:get_info_reply, %GetInfoReply{url: url, version: version}}) do
     {:ok, %{url: url, version: version}}
   end
+
   defp extract_reply({:generate_api_key_reply, %GenerateAPIKeyReply{api_key: api_key}}) do
     {:ok, api_key}
   end
+
   defp extract_reply({:do_pairing_reply, %DoPairingReply{client_crt: client_crt}}) do
     {:ok, client_crt}
   end
+
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 
