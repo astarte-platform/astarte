@@ -2,10 +2,11 @@ defmodule Astarte.Pairing.API.PairingTest do
   use Astarte.Pairing.API.DataCase
 
   alias Astarte.Pairing.API.Pairing
-  alias Astarte.Pairing.API.Pairing.Certificate
   alias Astarte.Pairing.Mock
 
   describe "certficate request" do
+    alias Astarte.Pairing.API.Pairing.Certificate
+
     @device_ip "2.3.4.5"
     @csr "testcsr"
     @valid_api_key Mock.valid_api_key()
