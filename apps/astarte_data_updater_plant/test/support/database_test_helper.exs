@@ -99,6 +99,19 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     );
   """
 
+  @create_simple_triggers_table """
+      CREATE TABLE autotestrealm.simple_triggers (
+        object_id uuid,
+        object_type int,
+        parent_trigger uuid,
+        simple_trigger_id uuid,
+        trigger_data blob,
+        trigger_target blob,
+
+        PRIMARY KEY ((object_id, object_type), parent_trigger, simple_trigger_id)
+      );
+  """
+
   @insert_endpoints [
   """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
@@ -306,6 +319,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     ('com.example.TestObject', 1, :automaton_accepting_states, :automaton_transitions, 2, e7f6d126-ae91-9689-2dba-71a0be336507, 5, 1, 'com_example_testobject_v1', 5, 2)
   """
 
+  @insert_into_simple_triggers_0 """
+  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger, simple_trigger_id, trigger_data, trigger_target) VALUES (d9b4ff40-d4cb-a479-d021-127205822baa, 2, Uuid(), Uuid(), :trigger_data, :trigger_target);
+  """
+
   def create_test_keyspace do
     {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
     case DatabaseQuery.call(client, @create_autotestrealm) do
@@ -316,6 +333,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         Enum.each(@insert_endpoints, fn(query) ->
           DatabaseQuery.call!(client, query)
         end)
+        DatabaseQuery.call!(client, @create_simple_triggers_table)
         DatabaseQuery.call!(client, @create_individual_property_table)
         DatabaseQuery.call!(client, @create_individual_datastream_table)
         DatabaseQuery.call!(client, @create_test_object_table)
@@ -343,6 +361,39 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
           |> DatabaseQuery.statement(@insert_into_interface_2)
           |> DatabaseQuery.put(:automaton_accepting_states, <<131, 100, 0, 3, 110, 105, 108>>)
           |> DatabaseQuery.put(:automaton_transitions, <<131, 100, 0, 3, 110, 105, 108>>)
+        DatabaseQuery.call!(client, query)
+
+        simple_trigger_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+            simple_trigger: {
+              :data_trigger,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger{
+                data_trigger_type: :INCOMING_DATA,
+                match_path: "/weekSchedule/%{weekDay}/start",
+                value_match_operator: :GREATER_THAN,
+                known_value: Bson.encode(%{v: 9})
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+                exchange: "test_exchange_gt9",
+                routing_key: "rt_gt9"
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers_0)
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
         DatabaseQuery.call!(client, query)
 
         {:ok, client}
