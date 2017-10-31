@@ -4,7 +4,7 @@ defmodule Astarte.Pairing.APIWeb.Plug.FixLegacyPairingMIME do
   def init(_opts), do: false
 
   def call(conn, _opts) do
-    if legacy_pairing?(conn) do
+    if legacy_pairing?(conn.request_path) do
       conn
       |> put_req_header("content-type", "application/astarte-legacy-pairing")
     else
@@ -12,7 +12,9 @@ defmodule Astarte.Pairing.APIWeb.Plug.FixLegacyPairingMIME do
     end
   end
 
-  defp legacy_pairing?(conn) do
-    conn.request_path == "/api/v1/pairing"
-  end
+  defp legacy_pairing?("/api/v1/pairing"), do: true
+
+  defp legacy_pairing?("/api/v1/verifyCertificate"), do: true
+
+  defp legacy_pairing?(_), do: false
 end
