@@ -29,4 +29,36 @@ defmodule Astarte.Pairing.API.PairingTest do
       assert {:error, :unauthorized} = Pairing.pair(@invalid_api_key_attrs)
     end
   end
+
+  describe "certificate verification" do
+    alias Astarte.Pairing.API.Pairing.CertificateStatus
+
+    @valid_crt Mock.valid_crt()
+
+    @valid_attrs %{certificate: @valid_crt}
+    @no_certificate_attrs %{}
+    @nil_certificate_attrs %{certificate: nil}
+    @invalid_crt_attrs %{certificate: "invalid"}
+
+    test "verify_certificate/1 with valid certificate returns a CertificateStatus" do
+      assert {:ok,
+        %CertificateStatus{
+          valid: true,
+          until: _until,
+          timestamp: _timestamp}} = Pairing.verify_certificate(@valid_attrs)
+    end
+
+    test "verify_certificate/1 with malformed attrs returns an error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Pairing.verify_certificate(@no_certificate_attrs)
+      assert {:error, %Ecto.Changeset{}} = Pairing.verify_certificate(@nil_certificate_attrs)
+    end
+
+    test "verify_certificate/1 with invalid crt returns an invalid CertificateStatus" do
+      assert {:ok,
+        %CertificateStatus{valid: false,
+          timestamp: _timestamp,
+          cause: _cause,
+          details: _details}} = Pairing.verify_certificate(@invalid_crt_attrs)
+    end
+  end
 end
