@@ -5,6 +5,8 @@ defmodule Astarte.Pairing.API.Pairing do
 
   alias Astarte.Pairing.API.Pairing.CertificateRequest
   alias Astarte.Pairing.API.Pairing.Certificate
+  alias Astarte.Pairing.API.Pairing.CertificateStatus
+  alias Astarte.Pairing.API.Pairing.VerifyCertificateRequest
   alias Astarte.Pairing.API.RPC.AMQPClient
   alias Astarte.Pairing.API.Utils
 
@@ -29,6 +31,32 @@ defmodule Astarte.Pairing.API.Pairing do
           {:error, :rpc_error}
       end
 
+    else
+      {:error, %{changeset | action: :create}}
+    end
+  end
+
+  def verify_certificate(params) do
+    changeset =
+      %VerifyCertificateRequest{}
+      |> VerifyCertificateRequest.changeset(params)
+
+    if changeset.valid? do
+      %VerifyCertificateRequest{certificate: certificate} = Ecto.Changeset.apply_changes(changeset)
+      case AMQPClient.verify_certificate(certificate) do
+        {:ok, %{valid: valid, timestamp: timestamp, cause: cause, until: until, details: details}} ->
+          cert_status =
+            %CertificateStatus{valid: valid,
+                               timestamp: timestamp,
+                               cause: cause,
+                               until: until,
+                               details: details}
+
+          {:ok, cert_status}
+
+        {:error, _reason} ->
+          {:error, :rpc_error}
+      end
     else
       {:error, %{changeset | action: :create}}
     end
