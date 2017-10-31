@@ -2,6 +2,7 @@ defmodule Astarte.Pairing.APIKeyTest do
   use ExUnit.Case
 
   alias Astarte.Pairing.APIKey
+  alias Astarte.Pairing.TestHelper
   alias Astarte.Pairing.Utils
 
   @test_realm "testrealm"
@@ -27,5 +28,16 @@ defmodule Astarte.Pairing.APIKeyTest do
     tampered_api_key = "#{prefix}.#{tampered_payload}.#{postfix}"
 
     assert APIKey.verify(tampered_api_key, "api_salt") == {:error, :invalid_api_key}
+  end
+
+  test "APIKey fallback verify" do
+    Application.put_env(:astarte_pairing, :fallback_api_key_verify_fun, {Astarte.Pairing.TestHelper, :fallback_verify_key})
+
+    assert {:ok, _realm, _uuid} = APIKey.verify(TestHelper.valid_fallback_api_key(), "api_salt")
+    assert {:error, :invalid_api_key} = APIKey.verify("invalid", "api_salt")
+
+    on_exit fn ->
+      Application.delete_env(:astarte_pairing, :fallback_api_key_verify_fun)
+    end
   end
 end
