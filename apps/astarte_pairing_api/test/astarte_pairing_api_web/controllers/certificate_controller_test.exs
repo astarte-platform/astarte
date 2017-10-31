@@ -4,8 +4,8 @@ defmodule Astarte.Pairing.APIWeb.CertificateControllerTest do
   alias Astarte.Pairing.Mock
 
   @csr "testcsr"
-  @create_attrs %{"csr" => @csr}
-  @invalid_attrs %{"csr" => ""}
+  @create_attrs %{"data" => @csr}
+  @invalid_attrs %{"data" => ""}
 
   describe "create api_key" do
     setup %{conn: conn} do
