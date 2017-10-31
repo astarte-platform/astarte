@@ -596,7 +596,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp path_matches?([path_token | path_tokens], [path_match_token | path_match_tokens]) do
-    if (path_token == path_match_token) or (path_match_token == nil) do
+    if (path_token == path_match_token) or (path_match_token == "") do
       path_matches?(path_tokens, path_match_tokens)
     else
       false
