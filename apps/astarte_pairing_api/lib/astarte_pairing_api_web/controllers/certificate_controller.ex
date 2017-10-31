@@ -6,7 +6,7 @@ defmodule Astarte.Pairing.APIWeb.CertificateController do
 
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
-  def create(conn, %{"csr" => csr}) do
+  def create(conn, %{"data" => csr}) do
     with device_ip <- get_ip(conn),
          {:ok, api_key} <- get_api_key(conn),
          params = %{"csr" => csr, "api_key" => api_key, "device_ip" => device_ip},
