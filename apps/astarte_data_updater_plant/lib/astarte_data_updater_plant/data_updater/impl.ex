@@ -584,7 +584,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.get(state.data_triggers, key, [])
   end
 
-  defp get_on_data_triggers(state, event, interface_id, endpoint_id, path, value) do
+  defp get_on_data_triggers(state, event, interface_id, endpoint_id, path, value \\ nil) do
     key = {event, interface_id, endpoint_id}
 
     candidate_triggers = Map.get(state.data_triggers, key, nil)
@@ -674,10 +674,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %SimpleTriggersProtobufDataTrigger{
       match_path: match_path,
       value_match_operator: value_match_operator,
-      known_value: known_value
+      known_value: encoded_known_value
     } = protobuf_data_trigger
 
-    %{v: plain_value} = Bson.decode(known_value)
+    %{v: plain_value} =
+      if encoded_known_value do
+        Bson.decode(encoded_known_value)
+      else
+        %{v: nil}
+      end
 
     path_match_tokens =
       if match_path do
