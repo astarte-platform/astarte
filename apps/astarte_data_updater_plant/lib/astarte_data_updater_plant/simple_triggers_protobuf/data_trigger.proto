@@ -41,6 +41,6 @@ message DataTrigger {
 
     DataTriggerType data_trigger_type = 2;
     string match_path = 3;
-    MatchOperator value_match_operator = 4;
+    MatchOperator value_match_operator = 4 [default = ANY];
     bytes known_value = 5;
 }
