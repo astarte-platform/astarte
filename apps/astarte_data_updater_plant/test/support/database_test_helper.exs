@@ -328,6 +328,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177, 3, Uuid(), Uuid(), :trigger_data, :trigger_target);
   """
 
+  @insert_into_simple_triggers_2 """
+  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (7f454c46-0201-0100-0000-000000000000, 1, Uuid(), Uuid(), :trigger_data, :trigger_target);
+  """
+
   def create_test_keyspace do
     {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
     case DatabaseQuery.call(client, @create_autotestrealm) do
@@ -426,6 +430,35 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         query =
           DatabaseQuery.new()
           |> DatabaseQuery.statement(@insert_into_simple_triggers_1)
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+        DatabaseQuery.call!(client, query)
+
+        simple_trigger_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+            simple_trigger: {
+              :device_trigger,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DeviceTrigger{
+                device_event_type: :DEVICE_CONNECTED,
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+                exchange: "test_device_connected"
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers_2)
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
         DatabaseQuery.call!(client, query)
