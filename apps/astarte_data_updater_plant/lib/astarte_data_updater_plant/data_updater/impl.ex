@@ -34,6 +34,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
+  @any_device_object_id <<140, 77, 4, 17, 75, 202, 11, 92, 131, 72, 15, 167, 65, 149, 191, 244>>
   @any_interface_object_id <<247, 238, 60, 243, 184, 175, 236, 43, 25, 242, 126, 91, 253, 141, 17, 119>>
 
   def init_state(realm, device_id) do
@@ -65,6 +66,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       data_triggers: %{},
       introspection_triggers: %{}
     }
+    |> populate_triggers_for_object!(db_client, @any_device_object_id, :any_device)
+    |> populate_triggers_for_object!(db_client, device_id, :device)
   end
 
   def handle_connection(state, ip_address, _delivery_tag, timestamp) do
@@ -705,6 +708,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :device -> 1
         :interface -> 2
         :any_interface -> 3
+        :any_device -> 4
       end
 
     simple_triggers_query =
@@ -809,6 +813,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           next_introspection_triggers = Map.put(introspection_triggers, introspection_trigger_key, new_targets)
           Map.put(state_acc, :introspection_triggers, next_introspection_triggers)
+
+        {:device_trigger, proto_buf_device_trigger} ->
+
+          device_triggers = state_acc.device_triggers
+
+          event_type =
+            case proto_buf_device_trigger.device_event_type do
+              :DEVICE_CONNECTED ->
+                :on_device_connection
+
+              :DEVICE_DISCONNECTED ->
+                :on_device_disconnection
+
+              :DEVICE_EMTPY_CACHE_RECEIVED ->
+                :on_empty_cache_received
+
+              :DEVICE_ERROR ->
+                :on_device_error
+            end
+
+          existing_trigger_targets = Map.get(device_triggers, event_type, [])
+
+          new_targets = [trigger_target] ++ existing_trigger_targets
+
+          next_device_triggers = Map.put(device_triggers, event_type, new_targets)
+          Map.put(state_acc, :device_triggers, next_device_triggers)
       end
     end)
   end
