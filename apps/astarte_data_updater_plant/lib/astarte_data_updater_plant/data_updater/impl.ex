@@ -729,118 +729,118 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> Map.put(:simple_trigger_id, trigger_id)
         |> Map.put(:parent_trigger_id, parent_trigger_id)
 
-      case simple_trigger do
-        {:data_trigger, proto_buf_data_trigger} ->
-
-          data_trigger = simple_trigger_to_data_trigger(proto_buf_data_trigger)
-          data_triggers = state_acc.data_triggers
-
-          event_type =
-            case proto_buf_data_trigger.data_trigger_type do
-              :INCOMING_DATA ->
-                :on_incoming_data
-            end
-
-          endpoint =
-            if proto_buf_data_trigger.match_path != nil do
-              interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, object_id))
-              {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(proto_buf_data_trigger.match_path, interface_descriptor.automaton)
-              endpoint_id
-            else
-              :any_endpoint
-            end
-
-          data_trigger_key = {event_type, object_id, endpoint}
-
-          candidate_triggers = Map.get(data_triggers, data_trigger_key)
-          existing_trigger =
-            if candidate_triggers do
-              Enum.find(candidate_triggers, fn(candidate) -> are_congruent?(candidate, data_trigger) end)
-            else
-              nil
-            end
-
-          targets =
-            if existing_trigger do
-              existing_trigger.trigger_targets
-            else
-              []
-            end
-
-          new_targets = [trigger_target] ++ targets
-          new_data_trigger = %{data_trigger | trigger_targets: new_targets}
-
-          new_triggers_chain =
-            if candidate_triggers do
-              List.foldl(candidate_triggers, [], fn(t, acc) ->
-                if are_congruent?(t, new_data_trigger) do
-                  [new_data_trigger] ++ acc
-                else
-                  [t] ++ acc
-                end
-              end)
-            else
-              [new_data_trigger]
-            end
-
-          next_data_triggers = Map.put(data_triggers, data_trigger_key, new_triggers_chain)
-          Map.put(state_acc, :data_triggers, next_data_triggers)
-
-        {:introspection_trigger, proto_buf_introspection_trigger} ->
-
-          introspection_triggers = state_acc.introspection_triggers
-
-          event_type =
-            case proto_buf_introspection_trigger.change_type do
-              :INCOMING_INTROSPECTION ->
-                :on_incoming_introspection
-
-              :INTERFACE_ADDED ->
-                :on_interface_added
-
-              :INTERFACE_REMOVED ->
-                :on_interface_removed
-
-              :INTERFACE_MINOR_UPDATED ->
-                :on_interface_minor_updated
-            end
-
-          introspection_trigger_key = {event_type, proto_buf_introspection_trigger.match_interface || :any_interface}
-
-          existing_trigger_targets = Map.get(introspection_triggers, introspection_trigger_key, [])
-
-          new_targets = [trigger_target] ++ existing_trigger_targets
-
-          next_introspection_triggers = Map.put(introspection_triggers, introspection_trigger_key, new_targets)
-          Map.put(state_acc, :introspection_triggers, next_introspection_triggers)
-
-        {:device_trigger, proto_buf_device_trigger} ->
-
-          device_triggers = state_acc.device_triggers
-
-          event_type =
-            case proto_buf_device_trigger.device_event_type do
-              :DEVICE_CONNECTED ->
-                :on_device_connection
-
-              :DEVICE_DISCONNECTED ->
-                :on_device_disconnection
-
-              :DEVICE_EMTPY_CACHE_RECEIVED ->
-                :on_empty_cache_received
-
-              :DEVICE_ERROR ->
-                :on_device_error
-            end
-
-          existing_trigger_targets = Map.get(device_triggers, event_type, [])
-
-          new_targets = [trigger_target] ++ existing_trigger_targets
-
-          next_device_triggers = Map.put(device_triggers, event_type, new_targets)
-          Map.put(state_acc, :device_triggers, next_device_triggers)
-      end
+        load_trigger(state_acc, object_id, object_type, simple_trigger, trigger_target)
     end)
+  end
+
+  defp load_trigger(state, object_id, _object_type, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
+    data_trigger = simple_trigger_to_data_trigger(proto_buf_data_trigger)
+    data_triggers = state.data_triggers
+
+    event_type =
+      case proto_buf_data_trigger.data_trigger_type do
+        :INCOMING_DATA ->
+          :on_incoming_data
+      end
+
+    endpoint =
+      if proto_buf_data_trigger.match_path != nil do
+        interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, object_id))
+        {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(proto_buf_data_trigger.match_path, interface_descriptor.automaton)
+        endpoint_id
+      else
+        :any_endpoint
+      end
+
+    data_trigger_key = {event_type, object_id, endpoint}
+
+    candidate_triggers = Map.get(data_triggers, data_trigger_key)
+    existing_trigger =
+      if candidate_triggers do
+        Enum.find(candidate_triggers, fn(candidate) -> are_congruent?(candidate, data_trigger) end)
+      else
+        nil
+      end
+
+    targets =
+      if existing_trigger do
+        existing_trigger.trigger_targets
+      else
+        []
+      end
+
+    new_targets = [trigger_target] ++ targets
+    new_data_trigger = %{data_trigger | trigger_targets: new_targets}
+
+    new_triggers_chain =
+      if candidate_triggers do
+        List.foldl(candidate_triggers, [], fn(t, acc) ->
+          if are_congruent?(t, new_data_trigger) do
+            [new_data_trigger] ++ acc
+          else
+            [t] ++ acc
+          end
+        end)
+      else
+        [new_data_trigger]
+      end
+
+    next_data_triggers = Map.put(data_triggers, data_trigger_key, new_triggers_chain)
+    Map.put(state, :data_triggers, next_data_triggers)
+  end
+
+  defp load_trigger(state, _object_id, _object_type, {:introspection_trigger, proto_buf_introspection_trigger}, trigger_target) do
+    introspection_triggers = state.introspection_triggers
+
+    event_type =
+      case proto_buf_introspection_trigger.change_type do
+        :INCOMING_INTROSPECTION ->
+          :on_incoming_introspection
+
+        :INTERFACE_ADDED ->
+          :on_interface_added
+
+        :INTERFACE_REMOVED ->
+          :on_interface_removed
+
+        :INTERFACE_MINOR_UPDATED ->
+          :on_interface_minor_updated
+      end
+
+    introspection_trigger_key = {event_type, proto_buf_introspection_trigger.match_interface || :any_interface}
+
+    existing_trigger_targets = Map.get(introspection_triggers, introspection_trigger_key, [])
+
+    new_targets = [trigger_target] ++ existing_trigger_targets
+
+    next_introspection_triggers = Map.put(introspection_triggers, introspection_trigger_key, new_targets)
+    Map.put(state, :introspection_triggers, next_introspection_triggers)
+  end
+
+  defp load_trigger(state, _object_id, _object_type, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
+    device_triggers = state.device_triggers
+
+    event_type =
+      case proto_buf_device_trigger.device_event_type do
+        :DEVICE_CONNECTED ->
+          :on_device_connection
+
+        :DEVICE_DISCONNECTED ->
+          :on_device_disconnection
+
+        :DEVICE_EMPTY_CACHE_RECEIVED ->
+          :on_empty_cache_received
+
+        :DEVICE_ERROR ->
+          :on_device_error
+      end
+
+    existing_trigger_targets = Map.get(device_triggers, event_type, [])
+
+    new_targets = [trigger_target] ++ existing_trigger_targets
+
+    next_device_triggers = Map.put(device_triggers, event_type, new_targets)
+    Map.put(state, :device_triggers, next_device_triggers)
   end
 
   defp connect_to_db(state) do
