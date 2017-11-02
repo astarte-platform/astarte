@@ -27,7 +27,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataTrigger
   alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
-  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger, as: SimpleTriggersProtobufDataTrigger
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
@@ -680,43 +679,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     nil
   end
 
-  def simple_trigger_to_data_trigger(protobuf_data_trigger) do
-    %SimpleTriggersProtobufDataTrigger{
-      match_path: match_path,
-      value_match_operator: value_match_operator,
-      known_value: encoded_known_value
-    } = protobuf_data_trigger
-
-    %{v: plain_value} =
-      if encoded_known_value do
-        Bson.decode(encoded_known_value)
-      else
-        %{v: nil}
-      end
-
-    path_match_tokens =
-      if match_path do
-        match_path
-        |> String.replace(~r/%{[a-zA-Z0-9]*}/, "")
-        |> String.split("/")
-      else
-        nil
-      end
-
-    %DataTrigger{
-      path_match_tokens: path_match_tokens,
-      value_match_operator: value_match_operator,
-      known_value: plain_value,
-      trigger_targets: nil
-    }
-  end
-
-  def are_congruent?(trigger_a, trigger_b) do
-    (trigger_a.path_match_tokens == trigger_b.path_match_tokens) and
-    (trigger_a.value_match_operator == trigger_b.value_match_operator) and
-    (trigger_a.known_value == trigger_b.known_value)
-  end
-
   defp populate_triggers_for_object!(state, client, object_id, object_type) do
     object_type_int =
       case object_type do
@@ -749,7 +711,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp load_trigger(state, object_id, _object_type, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
-    data_trigger = simple_trigger_to_data_trigger(proto_buf_data_trigger)
+    data_trigger = SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
     data_triggers = state.data_triggers
 
     event_type =
@@ -791,7 +753,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     candidate_triggers = Map.get(data_triggers, data_trigger_key)
     existing_trigger =
       if candidate_triggers do
-        Enum.find(candidate_triggers, fn(candidate) -> are_congruent?(candidate, data_trigger) end)
+        Enum.find(candidate_triggers, fn(candidate) -> DataTrigger.are_congruent?(candidate, data_trigger) end)
       else
         nil
       end
@@ -809,7 +771,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     new_triggers_chain =
       if candidate_triggers do
         List.foldl(candidate_triggers, [], fn(t, acc) ->
-          if are_congruent?(t, new_data_trigger) do
+          if DataTrigger.are_congruent?(t, new_data_trigger) do
             [new_data_trigger] ++ acc
           else
             [t] ++ acc

@@ -18,6 +18,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.Utils do
+  alias Astarte.DataUpdaterPlant.DataTrigger
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger, as: SimpleTriggersProtobufDataTrigger
   alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer
 
@@ -37,6 +39,37 @@ defmodule Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.Utils do
     } = SimpleTriggerContainer.decode(payload)
 
     {simple_trigger_type, simple_trigger}
+  end
+
+  def simple_trigger_to_data_trigger(protobuf_data_trigger) do
+    %SimpleTriggersProtobufDataTrigger{
+      match_path: match_path,
+      value_match_operator: value_match_operator,
+      known_value: encoded_known_value
+    } = protobuf_data_trigger
+
+    %{v: plain_value} =
+      if encoded_known_value do
+        Bson.decode(encoded_known_value)
+      else
+        %{v: nil}
+      end
+
+    path_match_tokens =
+      if match_path do
+        match_path
+        |> String.replace(~r/%{[a-zA-Z0-9]*}/, "")
+        |> String.split("/")
+      else
+        nil
+      end
+
+    %DataTrigger{
+      path_match_tokens: path_match_tokens,
+      value_match_operator: value_match_operator,
+      known_value: plain_value,
+      trigger_targets: nil
+    }
   end
 
 end
