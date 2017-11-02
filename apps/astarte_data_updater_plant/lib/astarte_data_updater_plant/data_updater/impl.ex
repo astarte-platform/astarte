@@ -547,9 +547,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
-  defp process_trigger(state, trigger, delivery_tag, path, value) do
+  defp process_trigger(state, trigger, delivery_tag, path, value \\ nil) do
     Enum.each(trigger.trigger_targets, fn(target) ->
-      push_event_on_target(state, target, delivery_tag, {path, value})
+      event_payload =
+        if value do
+          {path, value}
+        else
+          path
+        end
+
+      push_event_on_target(state, target, delivery_tag, event_payload)
     end)
   end
 
