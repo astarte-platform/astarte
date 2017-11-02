@@ -332,6 +332,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (7f454c46-0201-0100-0000-000000000000, 1, Uuid(), Uuid(), :trigger_data, :trigger_target);
   """
 
+  @insert_into_simple_triggers_3 """
+  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (d9b4ff40-d4cb-a479-d021-127205822baa, 2, Uuid(), Uuid(), :trigger_data, :trigger_target);
+  """
+
   def create_test_keyspace do
     {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
     case DatabaseQuery.call(client, @create_autotestrealm) do
@@ -462,6 +466,37 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
         DatabaseQuery.call!(client, query)
+
+        simple_trigger_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+            simple_trigger: {
+              :data_trigger,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger{
+                data_trigger_type: :PATH_REMOVED,
+                match_path: "/time/from"
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+                exchange: "test_exchange_path_removed",
+                routing_key: "path_removed"
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers_3)
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+          DatabaseQuery.call!(client, query)
 
         {:ok, client}
       %{msg: msg} -> {:error, msg}
