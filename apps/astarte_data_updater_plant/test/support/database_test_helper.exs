@@ -103,12 +103,12 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       CREATE TABLE autotestrealm.simple_triggers (
         object_id uuid,
         object_type int,
-        parent_trigger uuid,
+        parent_trigger_id uuid,
         simple_trigger_id uuid,
         trigger_data blob,
         trigger_target blob,
 
-        PRIMARY KEY ((object_id, object_type), parent_trigger, simple_trigger_id)
+        PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
       );
   """
 
@@ -320,7 +320,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @insert_into_simple_triggers_0 """
-  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger, simple_trigger_id, trigger_data, trigger_target) VALUES (d9b4ff40-d4cb-a479-d021-127205822baa, 2, Uuid(), Uuid(), :trigger_data, :trigger_target);
+  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (d9b4ff40-d4cb-a479-d021-127205822baa, 2, Uuid(), Uuid(), :trigger_data, :trigger_target);
   """
 
   def create_test_keyspace do
