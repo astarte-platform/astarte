@@ -757,18 +757,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :INCOMING_DATA ->
           :on_incoming_data
 
+        #TODO: implement :on_value_change
         :VALUE_CHANGE ->
           :on_value_change
 
+        #TODO: implement :on_value_changed
         :VALUE_CHANGED ->
           :on_value_changed
 
+        #TODO: implement :on_path_created
         :PATH_CREATED ->
           :on_path_created
 
         :PATH_REMOVED ->
           :on_path_removed
 
+        #TODO: implement :on_value_stored
         :VALUE_STORED ->
           :on_value_stored
       end
@@ -824,6 +828,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     event_type =
       case proto_buf_introspection_trigger.change_type do
+        #TODO: implement :on_incoming_introspection
         :INCOMING_INTROSPECTION ->
           :on_incoming_introspection
 
@@ -833,6 +838,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :INTERFACE_REMOVED ->
           :on_interface_removed
 
+        #TODO: implement :on_interface_minor_updated
         :INTERFACE_MINOR_UPDATED ->
           :on_interface_minor_updated
       end
@@ -858,9 +864,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :DEVICE_DISCONNECTED ->
           :on_device_disconnection
 
+        #TODO: implement :on_empty_cache_received
         :DEVICE_EMPTY_CACHE_RECEIVED ->
           :on_empty_cache_received
 
+        #TODO: implement :on_device_error
         :DEVICE_ERROR ->
           :on_device_error
       end
