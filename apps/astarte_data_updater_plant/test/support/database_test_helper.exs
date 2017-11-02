@@ -319,21 +319,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     ('com.example.TestObject', 1, :automaton_accepting_states, :automaton_transitions, 2, e7f6d126-ae91-9689-2dba-71a0be336507, 5, 1, 'com_example_testobject_v1', 5, 2)
   """
 
-  @insert_into_simple_triggers_0 """
-  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (d9b4ff40-d4cb-a479-d021-127205822baa, 2, Uuid(), Uuid(), :trigger_data, :trigger_target);
-  """
-
-  #f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177 means ':any_interface'
-  @insert_into_simple_triggers_1 """
-  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177, 3, Uuid(), Uuid(), :trigger_data, :trigger_target);
-  """
-
-  @insert_into_simple_triggers_2 """
-  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (7f454c46-0201-0100-0000-000000000000, 1, Uuid(), Uuid(), :trigger_data, :trigger_target);
-  """
-
-  @insert_into_simple_triggers_3 """
-  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (d9b4ff40-d4cb-a479-d021-127205822baa, 2, Uuid(), Uuid(), :trigger_data, :trigger_target);
+  @insert_into_simple_triggers """
+  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (:object_id, :object_type, Uuid(), Uuid(), :trigger_data, :trigger_target);
   """
 
   def create_test_keyspace do
@@ -404,7 +391,9 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
         query =
           DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers_0)
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"))
+          |> DatabaseQuery.put(:object_type, 2)
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
         DatabaseQuery.call!(client, query)
@@ -431,9 +420,12 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
           }
           |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
 
+        #object_id f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177 means ':any_interface'
         query =
           DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers_1)
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177"))
+          |> DatabaseQuery.put(:object_type, 3)
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
         DatabaseQuery.call!(client, query)
@@ -462,7 +454,9 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
         query =
           DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers_2)
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("7f454c46-0201-0100-0000-000000000000"))
+          |> DatabaseQuery.put(:object_type, 1)
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
         DatabaseQuery.call!(client, query)
@@ -493,7 +487,9 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
         query =
           DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers_3)
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"))
+          |> DatabaseQuery.put(:object_type, 2)
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
           DatabaseQuery.call!(client, query)
