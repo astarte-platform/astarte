@@ -34,6 +34,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
+  @any_interface_object_id <<247, 238, 60, 243, 184, 175, 236, 43, 25, 242, 126, 91, 253, 141, 17, 119>>
+
   def init_state(realm, device_id) do
     new_state = %State{
       realm: realm,
@@ -220,6 +222,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Map.put(introspection_map, interface_name, major_version)
       end)
 
+    will_be_discarded_state = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
+
+    #TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
+
     current_sorted_introspection =
       state.introspection
       |> Enum.map(fn(x) -> x end)
@@ -236,22 +242,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ins ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been added to #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_added, :any_interface}, [])
-            Enum.each(introspection_triggers, fn(introspection_trigger) ->
-              Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
-                push_event_on_target(state, trigger_target, delivery_tag, {:added_interface, interface_name, interface_major})
-              end)
+            introspection_triggers = Map.get(will_be_discarded_state.introspection_triggers, {:on_interface_added, :any_interface}, [])
+            Enum.each(introspection_triggers, fn(trigger_target) ->
+              push_event_on_target(will_be_discarded_state, trigger_target, delivery_tag, {:added_interface, interface_name, interface_major})
             end)
           end)
 
         :del ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been removed from #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(state.introspection_triggers, {:on_interface_deleted, :any_interface}, [])
-            Enum.each(introspection_triggers, fn(introspection_trigger) ->
-              Enum.each(introspection_trigger.trigger_targets, fn(trigger_target) ->
-                push_event_on_target(state, trigger_target, delivery_tag, {:deleted_interface, interface_name, interface_major})
-              end)
+            introspection_triggers = Map.get(will_be_discarded_state.introspection_triggers, {:on_interface_deleted, :any_interface}, [])
+            Enum.each(introspection_triggers, fn(trigger_target) ->
+              push_event_on_target(will_be_discarded_state, trigger_target, delivery_tag, {:deleted_interface, interface_name, interface_major})
             end)
           end)
 
@@ -702,6 +704,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       case object_type do
         :device -> 1
         :interface -> 2
+        :any_interface -> 3
       end
 
     simple_triggers_query =
@@ -778,7 +781,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           next_data_triggers = Map.put(data_triggers, data_trigger_key, new_triggers_chain)
           Map.put(state_acc, :data_triggers, next_data_triggers)
-        end
+
+        {:introspection_trigger, proto_buf_introspection_trigger} ->
+
+          introspection_triggers = state_acc.introspection_triggers
+
+          event_type =
+            case proto_buf_introspection_trigger.change_type do
+              :INCOMING_INTROSPECTION ->
+                :on_incoming_introspection
+
+              :INTERFACE_ADDED ->
+                :on_interface_added
+
+              :INTERFACE_REMOVED ->
+                :on_interface_removed
+
+              :INTERFACE_MINOR_UPDATED ->
+                :on_interface_minor_updated
+            end
+
+          introspection_trigger_key = {event_type, proto_buf_introspection_trigger.match_interface || :any_interface}
+
+          existing_trigger_targets = Map.get(introspection_triggers, introspection_trigger_key, [])
+
+          new_targets = [trigger_target] ++ existing_trigger_targets
+
+          next_introspection_triggers = Map.put(introspection_triggers, introspection_trigger_key, new_targets)
+          Map.put(state_acc, :introspection_triggers, next_introspection_triggers)
+      end
     end)
   end
 
