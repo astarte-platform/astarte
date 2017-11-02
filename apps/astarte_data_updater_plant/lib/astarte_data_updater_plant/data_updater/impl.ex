@@ -753,6 +753,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       case proto_buf_data_trigger.data_trigger_type do
         :INCOMING_DATA ->
           :on_incoming_data
+
+        :VALUE_CHANGE ->
+          :on_value_change
+
+        :VALUE_CHANGED ->
+          :on_value_changed
+
+        :PATH_CREATED ->
+          :on_path_created
+
+        :PATH_REMOVED ->
+          :on_path_removed
+
+        :VALUE_STORED ->
+          :on_value_stored
       end
 
     endpoint =
