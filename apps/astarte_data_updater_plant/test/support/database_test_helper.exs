@@ -18,6 +18,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.IntrospectionTrigger
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
 
@@ -399,26 +405,26 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         DatabaseQuery.call!(client, query)
 
         simple_trigger_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+          %SimpleTriggerContainer{
             simple_trigger: {
               :introspection_trigger,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.IntrospectionTrigger{
+              %IntrospectionTrigger{
                 change_type: :INTERFACE_ADDED,
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+          |> SimpleTriggerContainer.encode()
 
         trigger_target_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+          %TriggerTargetContainer{
             trigger_target: {
               :amqp_trigger_target,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+              %AMQPTriggerTarget{
                 exchange: "test_interface_added"
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+          |> TriggerTargetContainer.encode()
 
         #object_id f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177 means ':any_interface'
         query =
@@ -431,26 +437,26 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         DatabaseQuery.call!(client, query)
 
         simple_trigger_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+          %SimpleTriggerContainer{
             simple_trigger: {
               :device_trigger,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DeviceTrigger{
+              %DeviceTrigger{
                 device_event_type: :DEVICE_CONNECTED,
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+          |> SimpleTriggerContainer.encode()
 
         trigger_target_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+          %TriggerTargetContainer{
             trigger_target: {
               :amqp_trigger_target,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+              %AMQPTriggerTarget{
                 exchange: "test_device_connected"
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+          |> TriggerTargetContainer.encode()
 
         query =
           DatabaseQuery.new()
@@ -462,28 +468,28 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         DatabaseQuery.call!(client, query)
 
         simple_trigger_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+          %SimpleTriggerContainer{
             simple_trigger: {
               :data_trigger,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger{
+              %DataTrigger{
                 data_trigger_type: :PATH_REMOVED,
                 match_path: "/time/from"
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+          |> SimpleTriggerContainer.encode()
 
         trigger_target_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+          %TriggerTargetContainer{
             trigger_target: {
               :amqp_trigger_target,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+              %AMQPTriggerTarget{
                 exchange: "test_exchange_path_removed",
                 routing_key: "path_removed"
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+          |> TriggerTargetContainer.encode()
 
         query =
           DatabaseQuery.new()
