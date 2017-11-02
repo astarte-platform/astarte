@@ -520,7 +520,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             |> Enum.each(fn(path_row) ->
               path = path_row[:path]
               if not MapSet.member?(all_paths_set, {interface, path}) do
-                delete_property_from_db(state, db_client, interface_descriptor, path)
+                {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+                delete_property_from_db(new_state, db_client, interface_descriptor, endpoint_id, path)
+                path_removed_triggers = get_on_data_triggers(new_state, :on_path_removed, interface_descriptor.interface_id, endpoint_id, path)
+                Enum.each(path_removed_triggers, fn(trigger) ->
+                  process_trigger(new_state, trigger, nil, path)
+                end)
               end
             end)
           else
@@ -532,9 +537,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp delete_property_from_db(state, db_client, interface_descriptor, path) do
-    {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
-
+  defp delete_property_from_db(state, db_client, interface_descriptor, endpoint_id, path) do
     delete_query =
       DatabaseQuery.new()
         |> DatabaseQuery.statement("DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path;")
