@@ -23,7 +23,7 @@ message DataTrigger {
     enum DataTriggerType {
         INCOMING_DATA = 1;
         VALUE_CHANGE = 2;
-        VALUE_CHANGED = 3;
+        VALUE_CHANGE_APPLIED = 3;
         PATH_CREATED = 4;
         PATH_REMOVED = 5;
         VALUE_STORED = 6;
