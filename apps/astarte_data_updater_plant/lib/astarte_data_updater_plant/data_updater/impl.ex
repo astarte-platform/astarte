@@ -151,17 +151,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         true ->
           any_interface_triggers = get_on_data_triggers(new_state, :on_incoming_data, :any_interface, :any_endpoint)
           Enum.each(any_interface_triggers, fn(trigger) ->
-            process_trigger(state, trigger, delivery_tag, path, value)
+            process_trigger(new_state, trigger, delivery_tag, path, value)
           end)
 
           any_endpoint_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, :any_endpoint )
           Enum.each(any_endpoint_triggers, fn(trigger) ->
-            process_trigger(state, trigger, delivery_tag, path, value)
+            process_trigger(new_state, trigger, delivery_tag, path, value)
           end)
 
           incoming_data_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
           Enum.each(incoming_data_triggers, fn(trigger) ->
-            process_trigger(state, trigger, delivery_tag, path, value)
+            process_trigger(new_state, trigger, delivery_tag, path, value)
           end)
 
           value_change_triggers = get_on_data_triggers(new_state, :on_value_change, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
@@ -173,7 +173,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               retrieved_value = query_previous_value(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path)
               if retrieved_value != value do
                 Enum.each(value_change_triggers, fn(trigger) ->
-                  process_trigger(state, trigger, delivery_tag, path, value)
+                  process_trigger(new_state, trigger, delivery_tag, path, value)
                 end)
               end
             else
@@ -184,13 +184,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           if (previous_value == nil) and (path_created_triggers != []) do
               Enum.each(path_created_triggers, fn(trigger) ->
-                process_trigger(state, trigger, delivery_tag, path, value)
+                process_trigger(new_state, trigger, delivery_tag, path, value)
               end)
           end
 
           if (previous_value != nil) and (value_changed_triggers != []) do
               Enum.each(path_created_triggers, fn(trigger) ->
-                process_trigger(state, trigger, delivery_tag, path, value)
+                process_trigger(new_state, trigger, delivery_tag, path, value)
               end)
           end
 
