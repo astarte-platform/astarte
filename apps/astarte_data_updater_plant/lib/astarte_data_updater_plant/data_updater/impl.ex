@@ -125,13 +125,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, %Mapping{}}
       end
 
-    #TODO: use different BSON library
-    decoded_payload = Bson.decode(payload)
     value =
-      case decoded_payload do
-        %{v: bson_value} -> bson_value
-        %{} = bson_value -> bson_value
-        _ -> :error
+      if byte_size(payload) != 0 do
+        #TODO: use different BSON library
+        decoded_payload = Bson.decode(payload)
+        case decoded_payload do
+          %{v: bson_value} -> bson_value
+          %{} = bson_value -> bson_value
+          _ -> :error
+        end
+      else
+        nil
       end
 
     result =
