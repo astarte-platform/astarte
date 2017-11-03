@@ -706,7 +706,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> Map.put(:simple_trigger_id, trigger_id)
         |> Map.put(:parent_trigger_id, parent_trigger_id)
 
-        load_trigger(state_acc, object_id, object_type, simple_trigger, trigger_target)
+      load_trigger(state_acc, object_id, object_type, simple_trigger, trigger_target)
     end)
   end
 
