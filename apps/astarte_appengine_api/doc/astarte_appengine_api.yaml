@@ -173,16 +173,6 @@ paths:
         description: "Limit number of retrieved data production entries to 'limit'. This parameter must be always specified when 'since', 'since-after' and 'to' query parameters are used. If limit is specified without any 'since' and 'to' parameter, last 'limit' values are retrieved. When 'limit' entries are returned, it should be checked if any other entry is left by using since-after the last received timestamp.  An error is returned if limit exceeds maximum allowed value. See also 'since' and 'to' parameters."
         required: false
         type: "string"
-      - name: "filter_on"
-        in: "query"
-        description: "Use a certain property to filter streamed object aggregation. Object property must be enabled for filtering. See also 'filter-value' and 'limit'."
-        required: false
-        type: "string"
-      - name: "filter_value"
-        in: "query"
-        description: "Filter streamed objects that have the property specified by 'filter-on' set to 'value'. 'value' must be a valid string rappresentation of the value. See also 'filter-on' and 'limit'"
-        required: false
-        type: "string"
       - name: "retrieve_metadata"
         in: "query"
         description: "Retrieve metadata for each value if any, defaults to false. If true for each value it will be returned a JSON object with a metadata sub-object."
