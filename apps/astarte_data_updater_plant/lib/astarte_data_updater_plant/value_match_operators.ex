@@ -23,11 +23,11 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperators do
     true
   end
 
-  def value_matches?(received_value, :EQUAL, known_value) do
+  def value_matches?(received_value, :EQUAL_TO, known_value) do
     received_value == known_value
   end
 
-  def value_matches?(received_value, :NOT_EQUAL, known_value) do
+  def value_matches?(received_value, :NOT_EQUAL_TO, known_value) do
     received_value != known_value
   end
 

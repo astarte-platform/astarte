@@ -31,8 +31,8 @@ message DataTrigger {
 
     enum MatchOperator {
         ANY = 1;
-        EQUAL = 2;
-        NOT_EQUAL = 3;
+        EQUAL_TO = 2;
+        NOT_EQUAL_TO = 3;
         GREATER_THAN = 4;
         GREATER_OR_EQUAL_TO = 5;
         LESS_THAN = 6;
