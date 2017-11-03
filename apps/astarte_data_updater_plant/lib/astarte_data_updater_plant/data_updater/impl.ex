@@ -740,7 +740,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
 
     endpoint =
-      if proto_buf_data_trigger.match_path != nil do
+      if proto_buf_data_trigger.match_path != :any_endpoint do
         interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, object_id))
         {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(proto_buf_data_trigger.match_path, interface_descriptor.automaton)
         endpoint_id

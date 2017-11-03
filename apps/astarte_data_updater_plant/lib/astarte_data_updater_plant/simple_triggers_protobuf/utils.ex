@@ -61,7 +61,7 @@ defmodule Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.Utils do
         |> String.replace(~r/%{[a-zA-Z0-9]*}/, "")
         |> String.split("/")
       else
-        nil
+        :any_endpoint
       end
 
     %DataTrigger{
