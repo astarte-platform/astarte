@@ -364,6 +364,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, nil, _timestamp) do
+    if endpoint.allow_unset == false do
+      Logger.warn "Tried to unset value on allow_unset=false mapping."
+      #TODO: should we handle this situation?
+    end
+
     # TODO: :reception_timestamp_submillis is just a place holder right now
     unset_query =
       DatabaseQuery.new()
