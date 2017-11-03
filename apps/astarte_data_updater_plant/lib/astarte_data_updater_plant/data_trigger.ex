@@ -17,19 +17,19 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
+defmodule Astarte.DataUpdaterPlant.DataTrigger do
+  @enforce_keys [:trigger_targets]
   defstruct [
-    :realm,
-    :device_id,
-    :introspection,
-    :interfaces,
-    :interface_ids_to_name,
-    :mappings,
-    :device_triggers,
-    :data_triggers,
-    :introspection_triggers,
-    :connected,
-    :total_received_msgs,
-    :total_received_bytes
+    :path_match_tokens,
+    :value_match_operator,
+    :known_value,
+    :trigger_targets
   ]
+
+  def are_congruent?(trigger_a, trigger_b) do
+    (trigger_a.path_match_tokens == trigger_b.path_match_tokens) and
+    (trigger_a.value_match_operator == trigger_b.value_match_operator) and
+    (trigger_a.known_value == trigger_b.known_value)
+  end
+
 end

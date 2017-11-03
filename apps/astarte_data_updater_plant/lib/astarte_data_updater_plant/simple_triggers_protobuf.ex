@@ -17,19 +17,8 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
-  defstruct [
-    :realm,
-    :device_id,
-    :introspection,
-    :interfaces,
-    :interface_ids_to_name,
-    :mappings,
-    :device_triggers,
-    :data_triggers,
-    :introspection_triggers,
-    :connected,
-    :total_received_msgs,
-    :total_received_bytes
-  ]
+defmodule Astarte.DataUpdaterPlant.SimpleTriggersProtobuf do
+  @external_resource Path.expand("simple_triggers_protobuf", __DIR__)
+
+  use Protobuf, from: Path.wildcard(Path.expand("simple_triggers_protobuf/*.proto", __DIR__))
 end

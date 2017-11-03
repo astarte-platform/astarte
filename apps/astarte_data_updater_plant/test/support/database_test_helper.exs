@@ -18,6 +18,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.IntrospectionTrigger
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
 
@@ -33,6 +39,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         device_id uuid,
         extended_id ascii,
         introspection map<ascii, int>,
+        introspection_minor map<ascii, int>,
         protocol_revision int,
         triggers set<ascii>,
         metadata map<ascii, text>,
@@ -96,6 +103,19 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
         PRIMARY KEY ((interface_id), endpoint_id)
     );
+  """
+
+  @create_simple_triggers_table """
+      CREATE TABLE autotestrealm.simple_triggers (
+        object_id uuid,
+        object_type int,
+        parent_trigger_id uuid,
+        simple_trigger_id uuid,
+        trigger_data blob,
+        trigger_target blob,
+
+        PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
+      );
   """
 
   @insert_endpoints [
@@ -222,39 +242,39 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   @insert_values [
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 9bfaca2e-cd94-1a67-0d5a-6e2b2071a777, '/time/from', 8);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 9bfaca2e-cd94-1a67-0d5a-6e2b2071a777, '/time/from', 8);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 465d0ef4-5ce3-20e4-9421-2ed7978a27da, '/time/to', 20);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 465d0ef4-5ce3-20e4-9421-2ed7978a27da, '/time/to', 20);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/2/start', 12);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/2/start', 12);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/3/start', 15);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/3/start', 15);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/4/start', 16);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/4/start', 16);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/2/stop', 15);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/2/stop', 15);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/3/stop', 16);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/3/stop', 16);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-      (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/4/stop', 18);
+      (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/4/stop', 18);
   """,
   """
     INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, string_value) VALUES
-     (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, a60682ff-036d-8d93-f3f8-f39730deba34, '/lcdCommand', 'SWITCH_ON');
+     (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, a60682ff-036d-8d93-f3f8-f39730deba34, '/lcdCommand', 'SWITCH_ON');
   """,
   """
     INSERT INTO autotestrealm.individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
@@ -305,6 +325,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     ('com.example.TestObject', 1, :automaton_accepting_states, :automaton_transitions, 2, e7f6d126-ae91-9689-2dba-71a0be336507, 5, 1, 'com_example_testobject_v1', 5, 2)
   """
 
+  @insert_into_simple_triggers """
+  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (:object_id, :object_type, Uuid(), Uuid(), :trigger_data, :trigger_target);
+  """
+
   def create_test_keyspace do
     {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
     case DatabaseQuery.call(client, @create_autotestrealm) do
@@ -315,6 +339,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         Enum.each(@insert_endpoints, fn(query) ->
           DatabaseQuery.call!(client, query)
         end)
+        DatabaseQuery.call!(client, @create_simple_triggers_table)
         DatabaseQuery.call!(client, @create_individual_property_table)
         DatabaseQuery.call!(client, @create_individual_datastream_table)
         DatabaseQuery.call!(client, @create_test_object_table)
@@ -343,6 +368,137 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
           |> DatabaseQuery.put(:automaton_accepting_states, <<131, 100, 0, 3, 110, 105, 108>>)
           |> DatabaseQuery.put(:automaton_transitions, <<131, 100, 0, 3, 110, 105, 108>>)
         DatabaseQuery.call!(client, query)
+
+        simple_trigger_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+            simple_trigger: {
+              :data_trigger,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger{
+                data_trigger_type: :INCOMING_DATA,
+                match_path: "/weekSchedule/%{weekDay}/start",
+                value_match_operator: :GREATER_THAN,
+                known_value: Bson.encode(%{v: 9})
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+                exchange: "test_exchange_gt9",
+                routing_key: "rt_gt9"
+              }
+            }
+          }
+          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"))
+          |> DatabaseQuery.put(:object_type, 2)
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+        DatabaseQuery.call!(client, query)
+
+        simple_trigger_data =
+          %SimpleTriggerContainer{
+            simple_trigger: {
+              :introspection_trigger,
+              %IntrospectionTrigger{
+                change_type: :INTERFACE_ADDED,
+              }
+            }
+          }
+          |> SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %AMQPTriggerTarget{
+                exchange: "test_interface_added"
+              }
+            }
+          }
+          |> TriggerTargetContainer.encode()
+
+        #object_id f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177 means ':any_interface'
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177"))
+          |> DatabaseQuery.put(:object_type, 3)
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+        DatabaseQuery.call!(client, query)
+
+        simple_trigger_data =
+          %SimpleTriggerContainer{
+            simple_trigger: {
+              :device_trigger,
+              %DeviceTrigger{
+                device_event_type: :DEVICE_CONNECTED,
+              }
+            }
+          }
+          |> SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %AMQPTriggerTarget{
+                exchange: "test_device_connected"
+              }
+            }
+          }
+          |> TriggerTargetContainer.encode()
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("7f454c46-0201-0100-0000-000000000000"))
+          |> DatabaseQuery.put(:object_type, 1)
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+        DatabaseQuery.call!(client, query)
+
+        simple_trigger_data =
+          %SimpleTriggerContainer{
+            simple_trigger: {
+              :data_trigger,
+              %DataTrigger{
+                data_trigger_type: :PATH_REMOVED,
+                match_path: "/time/from"
+              }
+            }
+          }
+          |> SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %AMQPTriggerTarget{
+                exchange: "test_exchange_path_removed",
+                routing_key: "path_removed"
+              }
+            }
+          }
+          |> TriggerTargetContainer.encode()
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"))
+          |> DatabaseQuery.put(:object_type, 2)
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+          DatabaseQuery.call!(client, query)
 
         {:ok, client}
       %{msg: msg} -> {:error, msg}
