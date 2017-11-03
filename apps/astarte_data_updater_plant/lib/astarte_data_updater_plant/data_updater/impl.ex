@@ -765,16 +765,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         []
       end
 
-    new_targets = [trigger_target] ++ targets
+    new_targets = [trigger_target | targets]
     new_data_trigger = %{data_trigger | trigger_targets: new_targets}
 
     new_triggers_chain =
       if candidate_triggers do
         List.foldl(candidate_triggers, [], fn(t, acc) ->
           if DataTrigger.are_congruent?(t, new_data_trigger) do
-            [new_data_trigger] ++ acc
+            [new_data_trigger | acc]
           else
-            [t] ++ acc
+            [t | acc]
           end
         end)
       else
@@ -809,7 +809,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     existing_trigger_targets = Map.get(introspection_triggers, introspection_trigger_key, [])
 
-    new_targets = [trigger_target] ++ existing_trigger_targets
+    new_targets = [trigger_target | existing_trigger_targets]
 
     next_introspection_triggers = Map.put(introspection_triggers, introspection_trigger_key, new_targets)
     Map.put(state, :introspection_triggers, next_introspection_triggers)
@@ -837,7 +837,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     existing_trigger_targets = Map.get(device_triggers, event_type, [])
 
-    new_targets = [trigger_target] ++ existing_trigger_targets
+    new_targets = [trigger_target | existing_trigger_targets]
 
     next_device_triggers = Map.put(device_triggers, event_type, new_targets)
     Map.put(state, :device_triggers, next_device_triggers)
