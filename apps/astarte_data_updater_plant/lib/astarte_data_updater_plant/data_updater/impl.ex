@@ -363,6 +363,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {interface_descriptor, state}
   end
 
+  defp to_db_friendly_type(%Bson.UTC{ms: ms}) do
+    ms
+  end
+
+  defp to_db_friendly_type(value) do
+    value
+  end
+
   defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, nil, _timestamp) do
     if endpoint.allow_unset == false do
       Logger.warn "Tried to unset value on allow_unset=false mapping."
@@ -396,7 +404,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:path, path)
         |> DatabaseQuery.put(:reception_timestamp, timestamp)
         |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
-        |> DatabaseQuery.put(:value, value)
+        |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
 
@@ -418,7 +426,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:value_timestamp, timestamp)
         |> DatabaseQuery.put(:reception_timestamp, timestamp)
         |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
-        |> DatabaseQuery.put(:value, value)
+        |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
 
