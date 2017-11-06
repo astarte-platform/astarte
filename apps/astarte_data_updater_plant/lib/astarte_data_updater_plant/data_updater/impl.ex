@@ -35,6 +35,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   @any_device_object_id <<140, 77, 4, 17, 75, 202, 11, 92, 131, 72, 15, 167, 65, 149, 191, 244>>
   @any_interface_object_id <<247, 238, 60, 243, 184, 175, 236, 43, 25, 242, 126, 91, 253, 141, 17, 119>>
+  @max_uncompressed_payload_size 10485760
 
   def init_state(realm, device_id) do
     new_state = %State{
@@ -302,16 +303,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     #TODO: check payload size, to avoid anoying crashes
 
     <<_size_header :: size(32), zlib_payload :: binary>> = payload
-    #TODO: uncompress is not safe
-    decoded_payload = :zlib.uncompress(zlib_payload)
 
-    operation_result = prune_device_properties(state, decoded_payload)
+    decoded_payload = safe_deflate(zlib_payload)
 
-    if operation_result != :ok do
-      Logger.debug "result is #{inspect operation_result} further actions should be required."
+    if decoded_payload != :error do
+      operation_result = prune_device_properties(state, decoded_payload)
+
+      if operation_result != :ok do
+        Logger.debug "result is #{inspect operation_result} further actions should be required."
+      end
+
+      #TODO: ACK here
     end
-
-    #TODO: ACK here
 
     %{state |
       total_received_msgs: state.total_received_msgs + 1,
@@ -328,6 +331,57 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     IO.puts "Control on #{path}, payload: #{inspect payload}"
 
     raise "TODO or unexpected"
+  end
+
+  defp safe_deflate(zlib_payload) do
+    z = :zlib.open()
+    :ok = :zlib.inflateInit(z)
+
+    {continue_flag, output_list} = :zlib.safeInflate(z, zlib_payload)
+    uncompressed_size =
+      List.foldl(output_list, 0, fn(output_block, acc) ->
+        acc + byte_size(output_block)
+      end)
+
+    deflated_payload =
+      if uncompressed_size < @max_uncompressed_payload_size do
+        output_acc =
+          List.foldl(output_list, <<>>, fn(output_block, acc) ->
+            acc <> output_block
+          end)
+
+        safe_deflate_loop(z, output_acc, uncompressed_size, continue_flag)
+      else
+        :error
+      end
+
+    :zlib.inflateEnd(z)
+    :zlib.close(z)
+
+    deflated_payload
+  end
+
+  defp safe_deflate_loop(z, output_acc, size_acc, :continue) do
+    {continue_flag, output_list} = :zlib.safeInflate(z, [])
+    uncompressed_size =
+      List.foldl(output_list, size_acc, fn(output_block, acc) ->
+        acc + byte_size(output_block)
+      end)
+
+    if uncompressed_size < @max_uncompressed_payload_size do
+      output_acc =
+        List.foldl(output_list, output_acc, fn(output_block, acc) ->
+          acc <> output_block
+        end)
+
+      safe_deflate_loop(z, output_acc, uncompressed_size, continue_flag)
+    else
+      :error
+    end
+  end
+
+  defp safe_deflate_loop(_z, output_acc, _size_acc, :finished) do
+    output_acc
   end
 
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
