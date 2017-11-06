@@ -94,12 +94,12 @@ defmodule Astarte.Housekeeping.Queries do
       CREATE TABLE :realm_name.simple_triggers (
         object_id uuid,
         object_type int,
-        parent_trigger uuid,
+        parent_trigger_id uuid,
         simple_trigger_id uuid,
         trigger_data blob,
         trigger_target blob,
 
-        PRIMARY KEY ((object_id, object_type), parent_trigger, simple_trigger_id)
+        PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
       );
     """,
     """
