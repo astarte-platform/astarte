@@ -125,13 +125,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, %Mapping{}}
       end
 
-    #TODO: use different BSON library
-    decoded_payload = Bson.decode(payload)
     value =
-      case decoded_payload do
-        %{v: bson_value} -> bson_value
-        %{} = bson_value -> bson_value
-        _ -> :error
+      if byte_size(payload) != 0 do
+        #TODO: use different BSON library
+        decoded_payload = Bson.decode(payload)
+        case decoded_payload do
+          %{v: bson_value} -> bson_value
+          %{} = bson_value -> bson_value
+          _ -> :error
+        end
+      else
+        nil
       end
 
     result =
@@ -357,6 +361,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp maybe_handle_cache_miss(interface_descriptor, _interface_name, state, _db_client) do
     {interface_descriptor, state}
+  end
+
+  defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, nil, _timestamp) do
+    if endpoint.allow_unset == false do
+      Logger.warn "Tried to unset value on allow_unset=false mapping."
+      #TODO: should we handle this situation?
+    end
+
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    unset_query =
+      DatabaseQuery.new()
+        |> DatabaseQuery.statement("DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path")
+        |> DatabaseQuery.put(:device_id, device_id)
+        |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+        |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+        |> DatabaseQuery.put(:path, path)
+
+    DatabaseQuery.call!(db_client, unset_query)
+
+    :ok
   end
 
   defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
