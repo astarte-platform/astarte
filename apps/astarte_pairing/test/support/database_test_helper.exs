@@ -14,7 +14,8 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   CREATE TABLE autotestrealm.devices (
     device_id uuid,
     extended_id ascii,
-    introspection set<ascii>,
+    introspection map<ascii, int>,
+    introspection_minor map<ascii, int>,
     protocol_revision int,
     triggers set<ascii>,
     metadata map<ascii, text>,
