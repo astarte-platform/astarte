@@ -14,6 +14,7 @@ mix:test-ci:
     stage: build
     services:
         - scylladb/scylla:latest
+        - rabbitmq:3.6
     script:
         - export MIX_ENV=test
         - mix deps.get --force
@@ -31,6 +32,7 @@ mix:build:
     stage: build
     services:
         - scylladb/scylla:latest
+        - rabbitmq:3.6
     script:
         - export MIX_ENV=test
         - mix deps.get --force
@@ -50,6 +52,7 @@ mix:release-build:
     stage: build
     services:
         - scylladb/scylla:latest
+        - rabbitmq:3.6
     script:
         - export MIX_ENV=prod
         - mix deps.get --force
