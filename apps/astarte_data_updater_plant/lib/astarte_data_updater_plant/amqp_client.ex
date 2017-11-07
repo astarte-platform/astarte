@@ -2,6 +2,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
   require Logger
   use GenServer
 
+  alias AMQP.Basic
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
@@ -21,6 +22,26 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
     rabbitmq_connect(false)
   end
 
+  # Confirmation sent by the broker after registering this process as a consumer
+  def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, chan) do
+    {:noreply, chan}
+  end
+
+  # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
+  def handle_info({:basic_cancel, %{consumer_tag: _consumer_tag}}, chan) do
+    {:noreply, chan}
+  end
+
+  # Confirmation sent by the broker to the consumer process after a Basic.cancel
+  def handle_info({:basic_cancel_ok, %{consumer_tag: _consumer_tag}}, chan) do
+    {:noreply, chan}
+  end
+
+  # Message consumed
+  def handle_info({:basic_deliver, payload, meta}, chan) do
+    {:noreply, chan}
+  end
+
   def handle_info({:try_to_connect}, _state) do
     {:ok, new_state} = rabbitmq_connect()
     {:noreply, new_state}
@@ -37,7 +58,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
-         {:ok, _queue} <- Queue.declare(chan, Config.queue_name(), durable: true) do
+         {:ok, _queue} <- Queue.declare(chan, Config.queue_name(), durable: true),
+         {:ok, _consumer_tag} <- Basic.consume(chan, Config.queue_name()) do
 
       {:ok, chan}
 
