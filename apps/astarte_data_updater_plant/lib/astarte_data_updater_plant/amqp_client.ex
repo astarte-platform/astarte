@@ -4,6 +4,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
 
   alias AMQP.Channel
   alias AMQP.Connection
+  alias AMQP.Queue
   alias Astarte.DataUpdaterPlant.Config
 
   @connection_backoff 10000
@@ -35,7 +36,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
     with {:ok, conn} <- Connection.open(Config.amqp_options()),
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
-         {:ok, chan} <- Channel.open(conn) do
+         {:ok, chan} <- Channel.open(conn),
+         {:ok, _queue} <- Queue.declare(chan, Config.queue_name(), durable: true) do
 
       {:ok, chan}
 
