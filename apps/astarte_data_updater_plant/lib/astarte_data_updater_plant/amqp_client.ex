@@ -16,6 +16,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
+  def ack(delivery_tag) do
+    GenServer.call(__MODULE__, {:ack, delivery_tag})
+  end
+
   # Server callbacks
 
   def init(_args) do
@@ -25,6 +29,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
   def terminate(_reason, %Channel{conn: conn} = chan) do
     Channel.close(chan)
     Connection.close(conn)
+  end
+
+  def handle_call({:ack, delivery_tag}, chan) do
+    res = Basic.ack(chan, delivery_tag)
+    {:reply, res, chan}
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
