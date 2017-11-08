@@ -29,10 +29,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesView do
     render_struct =
       %{data: render_one(interface_values.data, InterfaceValuesView, "interface_values.json")}
 
-    if Map.has_key?(interface_values, :metadata) do
-      %{render_struct |
-        metadata: interface_values.metadata
-      }
+    if interface_values.metadata != nil do
+      Map.put(render_struct, :metadata, interface_values.metadata)
     else
       render_struct
     end

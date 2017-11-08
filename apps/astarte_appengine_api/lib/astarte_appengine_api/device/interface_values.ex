@@ -19,6 +19,7 @@
 
 defmodule Astarte.AppEngine.API.Device.InterfaceValues do
   defstruct [
-    :data
+    :data,
+    :metadata
   ]
 end

@@ -112,9 +112,7 @@ defmodule Astarte.AppEngine.API.Device do
         format: Changeset.get_field(changeset, :format)
       }
 
-      {:ok, %InterfaceValues{
-        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row, options)
-      }}
+      do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row, options)
     else
       {:error, changeset}
     end
@@ -153,9 +151,7 @@ defmodule Astarte.AppEngine.API.Device do
         format: Changeset.get_field(changeset, :format)
       }
 
-      {:ok, %InterfaceValues{
-        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path, options)
-      }}
+      do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path, options)
     else
       {:error, changeset}
     end
@@ -177,7 +173,7 @@ defmodule Astarte.AppEngine.API.Device do
         Map.merge(values, value)
       end)
 
-    inflate_tree(values_map)
+    {:ok, %InterfaceValues{data: inflate_tree(values_map)}}
   end
 
   defp do_get_interface_values!(client, device_id, :object, interface_row, opts) do
@@ -207,11 +203,14 @@ defmodule Astarte.AppEngine.API.Device do
       end)
 
     individual_value = Map.get(values_map, "")
-    if individual_value != nil do
-      individual_value
-    else
-      inflate_tree(values_map)
-    end
+    data =
+      if individual_value != nil do
+        individual_value
+      else
+        inflate_tree(values_map)
+      end
+
+    {:ok, %InterfaceValues{data: data}}
   end
 
   defp do_get_interface_values!(client, device_id, :individual, :datastream, interface_row, endpoint_ids, endpoint_query, path, opts) do
@@ -232,7 +231,7 @@ defmodule Astarte.AppEngine.API.Device do
       raise PathNotFoundError
     end
 
-    values
+    {:ok, %InterfaceValues{data: values}}
   end
 
   defp do_get_interface_values!(client, device_id, :object, :datastream, interface_row, _endpoint_ids, _endpoint_query, path, opts) do
@@ -242,13 +241,13 @@ defmodule Astarte.AppEngine.API.Device do
 
     endpoint_rows = DatabaseQuery.call!(client, endpoint_query)
 
-    values = retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, nil, endpoint_rows, path, opts)
+    interface_values = retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, nil, endpoint_rows, path, opts)
 
-    if (values == []) and (path != "/") do
+    if (elem(interface_values, 1).data == []) and (path != "/") do
       raise PathNotFoundError
     end
 
-    values
+    interface_values
   end
 
   #TODO: optimize: do not use string replace
@@ -538,22 +537,28 @@ defmodule Astarte.AppEngine.API.Device do
           |> Enum.reverse()
         end
 
-      %{metadata: %{"columns" => columns, "table_header" => table_header}, data: values_array}
+    {:ok, %InterfaceValues{
+      metadata: %{"columns" => columns, "table_header" => table_header},
+      data: values_array
+    }}
   end
 
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "structured"} = opts) do
-    for value <- values do
-      base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])}
+    values_list =
+      for value <- values do
+        base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])}
 
-      List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
-        pretty_name = column_atom_to_pretty_name[column]
-        if pretty_name do
-          Map.put(acc, pretty_name, column_value)
-        else
-          acc
-        end
-      end)
-    end
+        List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
+          pretty_name = column_atom_to_pretty_name[column]
+          if pretty_name do
+            Map.put(acc, pretty_name, column_value)
+          else
+            acc
+          end
+        end)
+      end
+
+    {:ok, %InterfaceValues{data: values_list}}
   end
 
   defp db_value_to_json_friendly_value(value, :longinteger, opts) do
