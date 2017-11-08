@@ -96,4 +96,48 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
       {:stop, :connection_failed}
     end
   end
+
+  defp handle_consume("connection", _payload, headers, timestamp, meta) do
+    %{"x_astarte_realm" => realm,
+      "x_astarte_device_id" => device_id,
+      "x_astarte_remote_ip" => ip_address} = headers
+
+    Astarte.DataUpdaterPlant.DataUpdater.handle_connection(realm, device_id, ip_address, meta.delivery_tag, timestamp)
+  end
+
+  defp handle_consume("disconnection", _payload, headers, timestamp, meta) do
+    %{"x_astarte_realm" => realm,
+      "x_astarte_device_id" => device_id} = headers
+
+    Astarte.DataUpdaterPlant.DataUpdater.handle_disconnection(realm, device_id, meta.delivery_tag, timestamp)
+  end
+
+  defp handle_consume("introspection", payload, headers, timestamp, meta) do
+    %{"x_astarte_realm" => realm,
+      "x_astarte_device_id" => device_id} = headers
+
+    Astarte.DataUpdaterPlant.DataUpdater.handle_introspection(realm, device_id, payload, meta.delivery_tag, timestamp)
+  end
+
+  defp handle_consume("data", payload, headers, timestamp, meta) do
+    %{"x_astarte_realm" => realm,
+      "x_astarte_device_id" => device_id,
+      "x_astarte_interface" => interface,
+      "x_astarte_path" => path} = headers
+
+    Astarte.DataUpdaterPlant.DataUpdater.handle_data(realm, device_id, interface, path, payload, meta.delivery_tag, timestamp)
+  end
+
+  defp handle_consume("control", payload, headers, timestamp, meta) do
+    %{"x_astarte_realm" => realm,
+      "x_astarte_device_id" => device_id,
+      "x_astarte_control_path" => control_path} = headers
+
+    Astarte.DataUpdaterPlant.DataUpdater.handle_control(realm, device_id, control_path, payload, meta.delivery_tag, timestamp)
+  end
+
+  defp handle_consume(msg_type, payload, headers, timestamp, meta) do
+    Logger.warn("Invalid AMQP message: #{inspect(msg_type)} #{inspect(payload)} #{inspect(headers)} #{inspect(timestamp)} #{inspect(meta)}")
+    :invalid_msg_type
+  end
 end
