@@ -53,11 +53,13 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      {:distillery, "~> 1.4", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test},
+      {:amqp, "~> 1.0.0-pre.2"},
       {:exprotobuf, "~> 1.2.7"},
       {:cqex, github: "ispirata/cqex"},
-      {:bson, "~> 0.4.4"}
+      {:bson, "~> 0.4.4"},
+
+      {:distillery, "~> 1.4", runtime: false},
+      {:excoveralls, "~> 0.6", only: :test},
     ]
   end
 end
