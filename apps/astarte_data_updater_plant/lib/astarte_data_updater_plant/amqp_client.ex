@@ -105,7 +105,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
 
     else
       {:error, reason} ->
-        Logger.warn("RabbitMQ Connection error: " <> inspect(reason))
+        Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
         maybe_retry(retry)
       :error ->
         Logger.warn("Unknown RabbitMQ connection error")
