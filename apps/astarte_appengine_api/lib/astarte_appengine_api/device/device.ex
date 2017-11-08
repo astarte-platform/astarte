@@ -37,6 +37,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  alias Ecto.Changeset
   require Logger
 
   @doc """
@@ -106,8 +107,12 @@ defmodule Astarte.AppEngine.API.Device do
 
       interface_row = retrieve_interface_row!(client, interface, major_version)
 
+      options = [
+        format: Changeset.get_field(changeset, :format)
+      ]
+
       {:ok, %InterfaceValues{
-        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row)
+        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row, options)
       }}
     else
       {:error, changeset}
@@ -142,15 +147,19 @@ defmodule Astarte.AppEngine.API.Device do
         |> DatabaseQuery.statement("SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;")
         |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
 
+      options = [
+        format: Changeset.get_field(changeset, :format)
+      ]
+
       {:ok, %InterfaceValues{
-        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path)
+        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path, options)
       }}
     else
       {:error, changeset}
     end
   end
 
-  defp do_get_interface_values!(client, device_id, :individual, interface_row) do
+  defp do_get_interface_values!(client, device_id, :individual, interface_row, opts) do
     endpoint_query = DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT value_type, endpoint_id FROM endpoints WHERE interface_id=:interface_id")
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
@@ -161,7 +170,7 @@ defmodule Astarte.AppEngine.API.Device do
     values_map =
       Enum.reduce(endpoint_rows, %{}, fn(endpoint_row, values) ->
         #TODO: we can do this by using just one query without any filter on the endpoint
-        value = retrieve_endpoint_values(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_row[:endpoint_id], endpoint_row, "/")
+        value = retrieve_endpoint_values(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_row[:endpoint_id], endpoint_row, "/", opts)
 
         Map.merge(values, value)
       end)
@@ -169,11 +178,11 @@ defmodule Astarte.AppEngine.API.Device do
     inflate_tree(values_map)
   end
 
-  defp do_get_interface_values!(client, device_id, :object, interface_row) do
-    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, nil, nil, "/")
+  defp do_get_interface_values!(client, device_id, :object, interface_row, opts) do
+    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, nil, nil, "/", opts)
   end
 
-  defp do_get_interface_values!(client, device_id, :individual, :properties, interface_row, endpoint_ids, endpoint_query, path) do
+  defp do_get_interface_values!(client, device_id, :individual, :properties, interface_row, endpoint_ids, endpoint_query, path, opts) do
     values_map =
       List.foldl(endpoint_ids, %{}, fn(endpoint_id, values) ->
         endpoint_query =
@@ -185,7 +194,7 @@ defmodule Astarte.AppEngine.API.Device do
           |> DatabaseResult.head()
 
           #TODO: we should use path in this query if _status is :ok
-          value = retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path)
+          value = retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path, opts)
 
           #TODO: next release idea: raise ValueNotSetError for debug purposes if path has not been guessed, that means it is a complete path, but it is not set.
           if value == %{} do
@@ -203,7 +212,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp do_get_interface_values!(client, device_id, :individual, :datastream, interface_row, endpoint_ids, endpoint_query, path) do
+  defp do_get_interface_values!(client, device_id, :individual, :datastream, interface_row, endpoint_ids, endpoint_query, path, opts) do
     [endpoint_id] = endpoint_ids
 
     endpoint_query =
@@ -215,7 +224,7 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseResult.head()
 
 
-    values = retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path)
+    values = retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts)
 
     if values == [] do
       raise PathNotFoundError
@@ -224,14 +233,14 @@ defmodule Astarte.AppEngine.API.Device do
     values
   end
 
-  defp do_get_interface_values!(client, device_id, :object, :datastream, interface_row, _endpoint_ids, _endpoint_query, path) do
+  defp do_get_interface_values!(client, device_id, :object, :datastream, interface_row, _endpoint_ids, _endpoint_query, path, opts) do
     endpoint_query = DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;")
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
 
     endpoint_rows = DatabaseQuery.call!(client, endpoint_query)
 
-    values = retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, nil, endpoint_rows, path)
+    values = retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, nil, endpoint_rows, path, opts)
 
     if (values == []) and (path != "/") do
       raise PathNotFoundError
@@ -423,14 +432,14 @@ defmodule Astarte.AppEngine.API.Device do
     pretty_name
   end
 
-  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/") do
+  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/", opts) do
     #TODO: Swagger specification says that last value for each path sould be returned, we cannot implement this right now.
     # it is required to use individual_property table to store available path, then we should iterate on all of them and report
     # most recent value.
     raise "TODO"
   end
 
-  defp retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, _endpoint_id, endpoint_rows, "/") do
+  defp retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, _endpoint_id, endpoint_rows, "/", opts) do
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
     {columns, column_atom_to_pretty_name} =
@@ -451,23 +460,11 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:since, 0)
 
-    values = DatabaseQuery.call!(client, query)
-
-    for value <- values do
-      base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, [])}
-
-      List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
-        pretty_name = column_atom_to_pretty_name[column]
-        if pretty_name do
-          Map.put(acc, pretty_name, column_value)
-        else
-          acc
-        end
-      end)
-    end
+    DatabaseQuery.call!(client, query)
+    |> pack_result(:object, :datastream, column_atom_to_pretty_name, opts)
   end
 
-  defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path) do
+  defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts) do
     query_statement = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]), since: true)
     query =
       DatabaseQuery.new()
@@ -486,7 +483,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path) do
+  defp retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path, opts) do
     query_statement = prepare_get_property_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]))
     query =
       DatabaseQuery.new()
@@ -511,6 +508,50 @@ defmodule Astarte.AppEngine.API.Device do
       end)
 
     values
+  end
+
+  defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, [format: "table"]) do
+      {_cols_count, columns, table_header} =
+        List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn({column, _column_value}, {next_index, acc, list_acc}) ->
+          pretty_name = column_atom_to_pretty_name[column]
+          if (pretty_name != nil) and (pretty_name != "timestamp") do
+            {next_index + 1, Map.put(acc, pretty_name, next_index), list_acc ++ [pretty_name]}
+          else
+            {next_index, acc, list_acc}
+          end
+        end)
+
+      values_array =
+        for value <- values do
+          base_array_entry = [db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, [])]
+
+          List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
+            pretty_name = column_atom_to_pretty_name[column]
+            if pretty_name do
+              [column_value | acc]
+            else
+              acc
+            end
+          end)
+          |> Enum.reverse()
+        end
+
+      %{metadata: %{"columns" => columns, "table_header" => table_header}, data: values_array}
+  end
+
+  defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, [format: "structured"]) do
+    for value <- values do
+      base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, [])}
+
+      List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
+        pretty_name = column_atom_to_pretty_name[column]
+        if pretty_name do
+          Map.put(acc, pretty_name, column_value)
+        else
+          acc
+        end
+      end)
+    end
   end
 
   defp db_value_to_json_friendly_value(value, :longinteger, opts) do
