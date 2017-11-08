@@ -10,6 +10,14 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
 
   @connection_backoff 10000
 
+  @msg_type_header "x_astarte_msg_type"
+  @realm_header "x_astarte_realm"
+  @device_id_header "x_astarte_device_id"
+  @ip_header "x_astarte_remote_ip"
+  @control_path_header "x_astarte_control_path"
+  @interface_header "x_astarte_interface"
+  @path_header "x_astarte_path"
+
   # API
 
   def start_link(args \\ []) do
