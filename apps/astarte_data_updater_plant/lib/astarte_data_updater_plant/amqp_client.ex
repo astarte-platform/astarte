@@ -22,6 +22,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
     rabbitmq_connect(false)
   end
 
+  def terminate(_reason, %Channel{conn: conn} = chan) do
+    Channel.close(chan)
+    Connection.close(conn)
+  end
+
   # Confirmation sent by the broker after registering this process as a consumer
   def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, chan) do
     {:noreply, chan}
