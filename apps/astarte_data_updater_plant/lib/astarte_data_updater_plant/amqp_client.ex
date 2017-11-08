@@ -140,4 +140,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
     Logger.warn("Invalid AMQP message: #{inspect(msg_type)} #{inspect(payload)} #{inspect(headers)} #{inspect(timestamp)} #{inspect(meta)}")
     :invalid_msg_type
   end
+
+  defp amqp_headers_to_map(headers) do
+    Enum.reduce(headers, %{}, fn {key, _type, value}, acc ->
+      Map.put(acc, key, value)
+    end)
+  end
 end
