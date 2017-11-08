@@ -32,14 +32,28 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesRequest  do
     field :allow_bigintegers, :boolean
     field :allow_safe_bigintegers, :boolean
     field :keep_milliseconds, :boolean
+    field :format, :string, default: "structured"
   end
 
   @doc false
   def changeset(%InterfaceValuesRequest{} = interface_values_request, attrs) do
+    cast_attrs = [
+      :since,
+      :since_after,
+      :to,
+      :limit,
+      :retrieve_metadata,
+      :allow_bigintegers,
+      :allow_safe_bigintegers,
+      :keep_milliseconds,
+      :format
+    ]
+
     interface_values_request
-    |> cast(attrs, [:since, :since_after, :to, :limit, :retrieve_metadata, :allow_bigintegers, :allow_safe_bigintegers, :keep_milliseconds])
-    |> validate_number(:limit, greater_than_or_equal_to: 0)
+    |> cast(attrs, cast_attrs)
     |> validate_mutual_exclusion(:since, :since_after)
+    |> validate_number(:limit, greater_than_or_equal_to: 0)
+    |> validate_inclusion(:format, ["structured", "table", "single_value_tables"])
   end
 
   def validate_mutual_exclusion(changeset, field_a, field_b) do
