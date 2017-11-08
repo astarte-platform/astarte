@@ -26,6 +26,8 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.DevicesListingNotAllowedError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
+  alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.AppEngine.API.Device.InterfaceValuesRequest
   alias Astarte.AppEngine.API.Device.PathNotFoundError
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface.Aggregation
@@ -92,16 +94,24 @@ defmodule Astarte.AppEngine.API.Device do
   Gets all values set on a certain interface.
   This function handles all GET requests on /{realm_name}/devices/{device_id}/interfaces/{interface}
   """
-  def get_interface_values!(realm_name, encoded_device_id, interface) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+  def get_interface_values!(realm_name, encoded_device_id, interface, params) do
+    changeset = InterfaceValuesRequest.changeset(%InterfaceValuesRequest{}, params)
 
-    device_id = decode_device_id(encoded_device_id)
+    if changeset.valid? do
+      client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
-    major_version = interface_version!(client, device_id, interface)
+      device_id = decode_device_id(encoded_device_id)
 
-    interface_row = retrieve_interface_row!(client, interface, major_version)
+      major_version = interface_version!(client, device_id, interface)
 
-    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row)
+      interface_row = retrieve_interface_row!(client, interface, major_version)
+
+      {:ok, %InterfaceValues{
+        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row)
+      }}
+    else
+      {:error, changeset}
+    end
   end
 
   @doc """
@@ -109,27 +119,35 @@ defmodule Astarte.AppEngine.API.Device do
 
   Raises if the Interface values does not exist.
   """
-  def get_interface_values!(realm_name, encoded_device_id, interface, no_prefix_path) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+  def get_interface_values!(realm_name, encoded_device_id, interface, no_prefix_path, params) do
+    changeset = InterfaceValuesRequest.changeset(%InterfaceValuesRequest{}, params)
 
-    device_id = decode_device_id(encoded_device_id)
+    if changeset.valid? do
+      client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
-    path = "/" <> no_prefix_path
+      device_id = decode_device_id(encoded_device_id)
 
-    major_version = interface_version!(client, device_id, interface)
+      path = "/" <> no_prefix_path
 
-    interface_row = retrieve_interface_row!(client, interface, major_version)
+      major_version = interface_version!(client, device_id, interface)
 
-    {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
-    if status == :error and endpoint_ids == :not_found do
-      raise EndpointNotFoundError
+      interface_row = retrieve_interface_row!(client, interface, major_version)
+
+      {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
+      if status == :error and endpoint_ids == :not_found do
+        raise EndpointNotFoundError
+      end
+
+      endpoint_query = DatabaseQuery.new()
+        |> DatabaseQuery.statement("SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;")
+        |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+
+      {:ok, %InterfaceValues{
+        data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path)
+      }}
+    else
+      {:error, changeset}
     end
-
-    endpoint_query = DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;")
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-
-    do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path)
   end
 
   defp do_get_interface_values!(client, device_id, :individual, interface_row) do
