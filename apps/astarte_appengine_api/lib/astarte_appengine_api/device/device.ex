@@ -107,9 +107,10 @@ defmodule Astarte.AppEngine.API.Device do
 
       interface_row = retrieve_interface_row!(client, interface, major_version)
 
-      options = [
+      options = %{
+        keep_milliseconds: Changeset.get_field(changeset, :keep_milliseconds),
         format: Changeset.get_field(changeset, :format)
-      ]
+      }
 
       {:ok, %InterfaceValues{
         data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row, options)
@@ -147,9 +148,10 @@ defmodule Astarte.AppEngine.API.Device do
         |> DatabaseQuery.statement("SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;")
         |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
 
-      options = [
+      options = %{
+        keep_milliseconds: Changeset.get_field(changeset, :keep_milliseconds),
         format: Changeset.get_field(changeset, :format)
-      ]
+      }
 
       {:ok, %InterfaceValues{
         data: do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path, options)
@@ -510,7 +512,7 @@ defmodule Astarte.AppEngine.API.Device do
     values
   end
 
-  defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, [format: "table"]) do
+  defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "table"} = opts) do
       {_cols_count, columns, table_header} =
         List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn({column, _column_value}, {next_index, acc, list_acc}) ->
           pretty_name = column_atom_to_pretty_name[column]
@@ -523,7 +525,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       values_array =
         for value <- values do
-          base_array_entry = [db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, [])]
+          base_array_entry = [db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])]
 
           List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
             pretty_name = column_atom_to_pretty_name[column]
@@ -539,9 +541,9 @@ defmodule Astarte.AppEngine.API.Device do
       %{metadata: %{"columns" => columns, "table_header" => table_header}, data: values_array}
   end
 
-  defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, [format: "structured"]) do
+  defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "structured"} = opts) do
     for value <- values do
-      base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, [])}
+      base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])}
 
       List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
         pretty_name = column_atom_to_pretty_name[column]

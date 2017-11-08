@@ -31,7 +31,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesRequest  do
     field :retrieve_metadata, :boolean
     field :allow_bigintegers, :boolean
     field :allow_safe_bigintegers, :boolean
-    field :keep_milliseconds, :boolean
+    field :keep_milliseconds, :boolean, default: false
     field :format, :string, default: "structured"
   end
 
