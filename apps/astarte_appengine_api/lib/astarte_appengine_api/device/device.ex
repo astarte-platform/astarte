@@ -98,7 +98,7 @@ defmodule Astarte.AppEngine.API.Device do
   def get_interface_values!(realm_name, encoded_device_id, interface, params) do
     changeset = InterfaceValuesRequest.changeset(%InterfaceValuesRequest{}, params)
 
-    if changeset.valid? do
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
       client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
       device_id = decode_device_id(encoded_device_id)
@@ -107,14 +107,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       interface_row = retrieve_interface_row!(client, interface, major_version)
 
-      options = %{
-        keep_milliseconds: Changeset.get_field(changeset, :keep_milliseconds),
-        format: Changeset.get_field(changeset, :format)
-      }
-
       do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), interface_row, options)
-    else
-      {:error, changeset}
     end
   end
 
@@ -126,7 +119,7 @@ defmodule Astarte.AppEngine.API.Device do
   def get_interface_values!(realm_name, encoded_device_id, interface, no_prefix_path, params) do
     changeset = InterfaceValuesRequest.changeset(%InterfaceValuesRequest{}, params)
 
-    if changeset.valid? do
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
       client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
       device_id = decode_device_id(encoded_device_id)
@@ -146,14 +139,7 @@ defmodule Astarte.AppEngine.API.Device do
         |> DatabaseQuery.statement("SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;")
         |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
 
-      options = %{
-        keep_milliseconds: Changeset.get_field(changeset, :keep_milliseconds),
-        format: Changeset.get_field(changeset, :format)
-      }
-
       do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path, options)
-    else
-      {:error, changeset}
     end
   end
 
@@ -524,7 +510,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     values_array =
       for value <- values do
-        base_array_entry = [db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])]
+        base_array_entry = [db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts.keep_milliseconds)]
 
         List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
           pretty_name = column_atom_to_pretty_name[column]
@@ -559,7 +545,7 @@ defmodule Astarte.AppEngine.API.Device do
           List.foldl(value, columns_acc, fn({column, column_value}, acc) ->
             pretty_name = column_atom_to_pretty_name[column]
             if pretty_name do
-              column_list = [[column_value, db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])] | Map.get(columns_acc, pretty_name, [])]
+              column_list = [[column_value, db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts.keep_milliseconds)] | Map.get(columns_acc, pretty_name, [])]
               Map.put(acc, pretty_name, column_list)
             else
               acc
@@ -580,7 +566,7 @@ defmodule Astarte.AppEngine.API.Device do
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "structured"} = opts) do
     values_list =
       for value <- values do
-        base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])}
+        base_array_entry = %{"timestamp" => db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts.keep_milliseconds)}
 
         List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
           pretty_name = column_atom_to_pretty_name[column]
