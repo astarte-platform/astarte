@@ -512,30 +512,30 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "table"} = opts) do
-      {_cols_count, columns, table_header} =
-        List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn({column, _column_value}, {next_index, acc, list_acc}) ->
+    {_cols_count, columns, table_header} =
+      List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn({column, _column_value}, {next_index, acc, list_acc}) ->
+        pretty_name = column_atom_to_pretty_name[column]
+        if (pretty_name != nil) and (pretty_name != "timestamp") do
+          {next_index + 1, Map.put(acc, pretty_name, next_index), list_acc ++ [pretty_name]}
+        else
+          {next_index, acc, list_acc}
+        end
+      end)
+
+    values_array =
+      for value <- values do
+        base_array_entry = [db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])]
+
+        List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
           pretty_name = column_atom_to_pretty_name[column]
-          if (pretty_name != nil) and (pretty_name != "timestamp") do
-            {next_index + 1, Map.put(acc, pretty_name, next_index), list_acc ++ [pretty_name]}
+          if pretty_name do
+            [column_value | acc]
           else
-            {next_index, acc, list_acc}
+            acc
           end
         end)
-
-      values_array =
-        for value <- values do
-          base_array_entry = [db_value_to_json_friendly_value(value[:reception_timestamp], :datetime, keep_milliseconds: opts[:keep_milliseconds])]
-
-          List.foldl(value, base_array_entry, fn({column, column_value}, acc) ->
-            pretty_name = column_atom_to_pretty_name[column]
-            if pretty_name do
-              [column_value | acc]
-            else
-              acc
-            end
-          end)
-          |> Enum.reverse()
-        end
+        |> Enum.reverse()
+      end
 
     {:ok, %InterfaceValues{
       metadata: %{"columns" => columns, "table_header" => table_header},
