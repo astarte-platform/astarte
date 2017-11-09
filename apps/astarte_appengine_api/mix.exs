@@ -72,6 +72,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:cqex, github: "ispirata/cqex"},
+      {:cors_plug, "~> 1.2"},
+
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
     ]

@@ -56,6 +56,7 @@ defmodule Astarte.AppEngine.APIWeb.Endpoint do
     signing_salt: "V7l/jiVr"
 
   plug Astarte.AppEngine.APIWeb.InterfacePlug, %{}
+  plug CORSPlug
   plug Astarte.AppEngine.APIWeb.Router
 
   @doc """
