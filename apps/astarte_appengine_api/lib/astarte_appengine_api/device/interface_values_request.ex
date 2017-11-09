@@ -53,7 +53,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesRequest  do
     |> cast(attrs, cast_attrs)
     |> validate_mutual_exclusion(:since, :since_after)
     |> validate_number(:limit, greater_than_or_equal_to: 0)
-    |> validate_inclusion(:format, ["structured", "table", "single_value_tables"])
+    |> validate_inclusion(:format, ["structured", "table", "disjoint_tables"])
   end
 
   def validate_mutual_exclusion(changeset, field_a, field_b) do
