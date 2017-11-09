@@ -17,10 +17,10 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.API.Device.InterfaceValuesRequest  do
+defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions  do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Astarte.AppEngine.API.Device.InterfaceValuesRequest
+  alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
 
   @primary_key false
   embedded_schema do
@@ -36,7 +36,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesRequest  do
   end
 
   @doc false
-  def changeset(%InterfaceValuesRequest{} = interface_values_request, attrs) do
+  def changeset(%InterfaceValuesOptions{} = interface_values_request, attrs) do
     cast_attrs = [
       :since,
       :since_after,

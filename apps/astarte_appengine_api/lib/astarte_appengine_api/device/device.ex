@@ -27,7 +27,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.AppEngine.API.Device.InterfaceValuesRequest
+  alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.PathNotFoundError
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface.Aggregation
@@ -96,7 +96,7 @@ defmodule Astarte.AppEngine.API.Device do
   This function handles all GET requests on /{realm_name}/devices/{device_id}/interfaces/{interface}
   """
   def get_interface_values!(realm_name, encoded_device_id, interface, params) do
-    changeset = InterfaceValuesRequest.changeset(%InterfaceValuesRequest{}, params)
+    changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
       client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
@@ -117,7 +117,7 @@ defmodule Astarte.AppEngine.API.Device do
   Raises if the Interface values does not exist.
   """
   def get_interface_values!(realm_name, encoded_device_id, interface, no_prefix_path, params) do
-    changeset = InterfaceValuesRequest.changeset(%InterfaceValuesRequest{}, params)
+    changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
       client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
