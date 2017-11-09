@@ -541,7 +541,7 @@ defmodule Astarte.AppEngine.API.Device do
         end
       end)
 
-    columns_map =
+    reversed_columns_map =
       Enum.reduce(values, %{}, fn(value, columns_acc) ->
         List.foldl(value, columns_acc, fn({column, column_value}, acc) ->
           pretty_name = column_atom_to_pretty_name[column]
@@ -554,13 +554,13 @@ defmodule Astarte.AppEngine.API.Device do
         end)
       end)
 
-    reversed_columns =
-      Enum.reduce(columns_map, %{}, fn({column_name, column_values}, acc) ->
+    columns =
+      Enum.reduce(reversed_columns_map, %{}, fn({column_name, column_values}, acc) ->
         Map.put(acc, column_name, Enum.reverse(column_values))
       end)
 
     {:ok, %InterfaceValues{
-      data: reversed_columns
+      data: columns
     }}
   end
 
