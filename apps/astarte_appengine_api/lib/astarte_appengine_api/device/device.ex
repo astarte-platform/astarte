@@ -498,15 +498,16 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "table"} = opts) do
-    {_cols_count, columns, table_header} =
+    {_cols_count, columns, reverse_table_header} =
       List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn({column, _column_value}, {next_index, acc, list_acc}) ->
         pretty_name = column_atom_to_pretty_name[column]
         if (pretty_name != nil) and (pretty_name != "timestamp") do
-          {next_index + 1, Map.put(acc, pretty_name, next_index), list_acc ++ [pretty_name]}
+          {next_index + 1, Map.put(acc, pretty_name, next_index), [pretty_name | list_acc]}
         else
           {next_index, acc, list_acc}
         end
       end)
+    table_header = Enum.reverse(reverse_table_header)
 
     values_array =
       for value <- values do
