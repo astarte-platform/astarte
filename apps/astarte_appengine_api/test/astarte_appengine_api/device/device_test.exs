@@ -55,6 +55,33 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     ]
     assert unpack_interface_values(Device.get_interface_values!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.SimpleStreamTest", "0/value", %{})) == expected_reply
 
+    expected_reply = [
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 30, hour: 7, microsecond: {0, 3}, minute: 10, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 4},
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 29, hour: 5, microsecond: {0, 3}, minute: 7, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 3}
+    ]
+    assert unpack_interface_values(Device.get_interface_values!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.SimpleStreamTest", "0/value", %{"limit" => 2})) == expected_reply
+
+    expected_reply = [
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 28, hour: 4, microsecond: {0, 3}, minute: 6, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 1},
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 28, hour: 4, microsecond: {0, 3}, minute: 7, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 2},
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 29, hour: 5, microsecond: {0, 3}, minute: 7, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 3}
+    ]
+    opts = %{"since" => "2017-09-28T04:06:00.000Z", "to" => "2017-09-30T07:10:00.000Z"}
+    assert unpack_interface_values(Device.get_interface_values!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.SimpleStreamTest", "0/value", opts)) == expected_reply
+
+    expected_reply = [
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 28, hour: 4, microsecond: {0, 3}, minute: 6, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 1},
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 28, hour: 4, microsecond: {0, 3}, minute: 7, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 2}
+    ]
+    opts = %{"since" => "2017-09-28T04:06:00.000Z", "to" => "2017-09-30T07:10:00.000Z", "limit" => 2}
+    assert unpack_interface_values(Device.get_interface_values!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.SimpleStreamTest", "0/value", opts)) == expected_reply
+
+    expected_reply = [
+      %{"timestamp" => %DateTime{calendar: Calendar.ISO, day: 28, hour: 4, microsecond: {0, 3}, minute: 7, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC"}, "value" => 2}
+    ]
+    opts = %{"since_after" => "2017-09-28T04:06:00.000Z", "to" => "2017-09-30T07:10:00.000Z", "limit" => 1}
+    assert unpack_interface_values(Device.get_interface_values!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.SimpleStreamTest", "0/value", opts)) == expected_reply
+
     assert_raise DeviceNotFoundError, fn ->
       Device.get_interface_values!("autotestrealm", "g0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ", "com.test.SimpleStreamTest", "0/value", %{})
     end
