@@ -452,7 +452,15 @@ defmodule Astarte.AppEngine.API.Device do
           {"", nil}
       end
 
-    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id #{since_statement};"
+    {to_statement, to_value} =
+      if opts.to != nil do
+        {"AND reception_timestamp < :to_timestamp", opts.to}
+
+      else
+        {"", nil}
+      end
+
+    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id #{since_statement} #{to_statement} ;"
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
@@ -462,6 +470,14 @@ defmodule Astarte.AppEngine.API.Device do
       if since_statement != "" do
         query
         |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :milliseconds))
+      else
+        query
+      end
+
+    query =
+      if to_statement != "" do
+        query
+        |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
       else
         query
       end
