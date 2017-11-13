@@ -5,6 +5,16 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
   alias Astarte.AppEngine.API.DataTransmitter.MQTTClient
 
+  @doc false
+  defimpl Bson.Encoder.Protocol, for: DateTime do
+    def encode(datetime) do
+      ms = DateTime.to_unix(datetime, :milliseconds)
+
+      %Bson.UTC{ms: ms}
+      |> Bson.Encoder.Protocol.encode()
+    end
+  end
+
   @doc """
   Pushes a payload on a datastream interface.
 
