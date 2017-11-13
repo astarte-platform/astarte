@@ -14,7 +14,6 @@ mix:test-ci:
     image: elixir:1.5
     services:
         - scylladb/scylla:latest
-        - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=test
@@ -32,7 +31,6 @@ mix:build:
     image: elixir:1.5
     services:
         - scylladb/scylla:latest
-        - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=test
@@ -52,7 +50,6 @@ mix:release-build:
     image: elixir:1.5
     services:
         - scylladb/scylla:latest
-        - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=prod
