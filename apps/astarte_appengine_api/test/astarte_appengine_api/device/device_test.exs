@@ -111,6 +111,35 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     ]
 
     assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", %{})) == expected_reply
+
+    expected_reply = [
+      %{"string" => "bbb", "value" => 2.2, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1)},
+      %{"string" => "ccc", "value" => 3.3, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1)}
+    ]
+    opts = %{"since" => "2017-09-30 07:12:00.000Z"}
+    assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
+
+    expected_reply = [
+      %{"string" => "ccc", "value" => 3.3, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1)}
+    ]
+    opts = %{"since_after" => "2017-09-30 07:12:00.000Z"}
+    assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
+
+    expected_reply = [
+      %{"string" => "ccc", "value" => 3.3, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1)},
+      %{"string" => "bbb", "value" => 2.2, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1)}
+    ]
+    opts = %{"limit" => 2}
+    assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
+
+    expected_reply = [
+      %{"string" => "bbb", "value" => 2.2, "timestamp" => elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1)}
+    ]
+    opts = %{"since" => "2017-09-30 07:12:00.000Z", "to" => "2017-09-30 07:13:00.000Z"}
+    assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
+
+    opts = %{"since" => "2017-09-30 07:12:00.000Z", "limit" => 1}
+    assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
   end
 
   test "list_devices/1 returns all devices" do
