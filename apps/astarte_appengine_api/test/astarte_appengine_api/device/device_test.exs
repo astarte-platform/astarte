@@ -140,6 +140,32 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     opts = %{"since" => "2017-09-30 07:12:00.000Z", "limit" => 1}
     assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
+
+    # format option tests
+
+    expected_reply = {
+      :ok,
+      %Astarte.AppEngine.API.Device.InterfaceValues{
+        data: [
+          [elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1), "aaa", 1.1],
+          [elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1), "bbb", 2.2],
+          [elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1), "ccc", 3.3]
+        ],
+        metadata: %{
+          "columns" => %{"string" => 1, "timestamp" => 0, "value" => 2},
+          "table_header" => ["timestamp", "string", "value"]
+        }
+      }
+    }
+    opts = %{"format" => "table"}
+    assert Device.get_interface_values!(test, device_id, "com.example.TestObject", opts) == expected_reply
+
+    expected_reply = %{
+      "string" => [["aaa", elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1)], ["bbb", elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1)], ["ccc", elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1)]],
+      "value" => [[1.1, elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1)], [2.2, elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1)], [3.3, elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1)]]
+    }
+    opts = %{"format" => "disjoint_tables"}
+    assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
   end
 
   test "list_devices/1 returns all devices" do
