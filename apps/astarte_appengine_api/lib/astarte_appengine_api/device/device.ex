@@ -460,7 +460,19 @@ defmodule Astarte.AppEngine.API.Device do
         {"", nil}
       end
 
-    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id #{since_statement} #{to_statement} ;"
+    {limit_statement, limit_value} =
+      cond do
+        (opts.limit != nil) and (since_value != nil) ->
+          {"LIMIT :limit_nrows", opts.limit}
+
+        (opts.limit != nil) and (since_value == nil) ->
+          {"ORDER BY reception_timestamp DESC LIMIT :limit_nrows", opts.limit}
+
+        true ->
+          {"", nil}
+      end
+
+    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id #{since_statement} #{to_statement} #{limit_statement} ;"
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
@@ -478,6 +490,14 @@ defmodule Astarte.AppEngine.API.Device do
       if to_statement != "" do
         query
         |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
+      else
+        query
+      end
+
+    query =
+      if limit_statement != "" do
+        query
+        |> DatabaseQuery.put(:limit_nrows, limit_value)
       else
         query
       end
