@@ -75,6 +75,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cqex, github: "ispirata/cqex"},
       {:cors_plug, "~> 1.2"},
       {:gen_mqtt, "~> 0.4.0"},
+      {:bson, "~> 0.4.4"},
 
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
