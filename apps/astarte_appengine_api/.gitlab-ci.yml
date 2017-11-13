@@ -9,11 +9,13 @@ before_script:
 variables:
     APPLICATION_NAME: astarte_appengine_api
     CASSANDRA_CLUSTER_NAME: astartetest
+    DOCKER_VERNEMQ_USER_AUTOTEST: 'autotest'
 
 mix:test-ci:
     image: elixir:1.5
     services:
         - scylladb/scylla:latest
+        - erlio/docker-vernemq:1.2.0
     stage: build
     script:
         - export MIX_ENV=test
@@ -31,6 +33,7 @@ mix:build:
     image: elixir:1.5
     services:
         - scylladb/scylla:latest
+        - erlio/docker-vernemq:1.2.0
     stage: build
     script:
         - export MIX_ENV=test
@@ -50,6 +53,7 @@ mix:release-build:
     image: elixir:1.5
     services:
         - scylladb/scylla:latest
+        - erlio/docker-vernemq:1.2.0
     stage: build
     script:
         - export MIX_ENV=prod
