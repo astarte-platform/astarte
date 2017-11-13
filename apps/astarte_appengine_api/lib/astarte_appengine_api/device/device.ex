@@ -440,12 +440,31 @@ defmodule Astarte.AppEngine.API.Device do
         {next_query_acc, next_atom_map}
       end)
 
-    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id AND reception_timestamp>=:since;"
+    {since_statement, since_value} =
+      cond do
+        opts.since != nil ->
+          {"AND reception_timestamp >= :since", opts.since}
+
+        opts.since_after != nil ->
+          {"AND reception_timestamp > :since", opts.since_after}
+
+        (opts.since == nil) and (opts.since_after == nil) ->
+          {"", nil}
+      end
+
+    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id #{since_statement};"
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:since, 0)
+
+    query =
+      if since_statement != "" do
+        query
+        |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :milliseconds))
+      else
+        query
+      end
 
     DatabaseQuery.call!(client, query)
     |> pack_result(:object, :datastream, column_atom_to_pretty_name, opts)
