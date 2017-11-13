@@ -391,23 +391,66 @@ defmodule Astarte.AppEngine.API.Device do
         ""
       end
 
-    since =
+    {since_statement, since_value} =
       cond do
-        (opts[:since] == true) and (opts[:since_after] == nil) ->
-          "AND value_timestamp >= :since"
+        opts.since != nil ->
+          {"AND value_timestamp >= :since", opts.since}
 
-        (opts[:since_after] == true) and (opts[:since] == nil) ->
-          "AND value_timestamp > :since"
+        opts.since_after != nil ->
+          {"AND value_timestamp > :since", opts.since_after}
 
-        (opts[:since_after] == nil) and (opts[:since] == nil) ->
-          ""
+        (opts.since == nil) and (opts.since_after == nil) ->
+          {"", nil}
       end
 
-    to = ""
-    limit = ""
+    {to_statement, to_value} =
+      if opts.to != nil do
+        {"AND value_timestamp < :to_timestamp", opts.to}
 
-    "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
-      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since} #{to} #{limit}"
+      else
+        {"", nil}
+      end
+
+    {limit_statement, limit_value} =
+      cond do
+        (opts.limit != nil) and (since_value != nil) ->
+          {"LIMIT :limit_nrows", opts.limit}
+
+        (opts.limit != nil) and (since_value == nil) ->
+          {"ORDER BY endpoint_id DESC, path DESC, value_timestamp DESC LIMIT :limit_nrows", opts.limit}
+
+        true ->
+          {"", nil}
+      end
+
+    query =
+      if since_statement != "" do
+        %{since: DateTime.to_unix(since_value, :milliseconds)}
+      else
+        %{}
+      end
+
+    query =
+      if to_statement != "" do
+        query
+        |> Map.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
+      else
+        query
+      end
+
+    query =
+      if limit_statement != "" do
+        query
+        |> Map.put(:limit_nrows, limit_value)
+      else
+        query
+      end
+
+    {
+      "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
+        " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}",
+      query
+    }
   end
 
   defp column_pretty_name(endpoint) do
@@ -507,7 +550,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts) do
-    query_statement = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]), since: true)
+    {query_statement, q_params} = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]), opts)
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
@@ -515,7 +558,7 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:since, 0)
+      |> DatabaseQuery.merge(q_params)
 
     values = DatabaseQuery.call!(client, query)
 
