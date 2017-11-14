@@ -210,14 +210,7 @@ defmodule Astarte.AppEngine.API.Device do
       DatabaseQuery.call!(client, endpoint_query)
       |> DatabaseResult.head()
 
-
-    values = retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts)
-
-    if values == [] do
-      raise PathNotFoundError
-    end
-
-    {:ok, %InterfaceValues{data: values}}
+    retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts)
   end
 
   defp do_get_interface_values!(client, device_id, :object, :datastream, interface_row, _endpoint_ids, _endpoint_query, path, opts) do
@@ -560,12 +553,8 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.merge(q_params)
 
-    values = DatabaseQuery.call!(client, query)
-
-    for value <- values do
-      [{:value_timestamp, tstamp}, {_, v}] = value
-      %{"timestamp" => db_value_to_json_friendly_value(tstamp, :datetime, []), "value" => db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), [])}
-    end
+    DatabaseQuery.call!(client, query)
+    |> pack_result(:individual, :datastream, endpoint_row, path, opts)
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path, opts) do
@@ -593,6 +582,65 @@ defmodule Astarte.AppEngine.API.Device do
       end)
 
     values
+  end
+
+  defp pack_result(values, :individual, :datastream, endpoint_row, _path, %{format: "structured"} = opts) do
+    values_array =
+      for value <- values do
+        [{:value_timestamp, tstamp}, {_, v}] = value
+        %{"timestamp" => db_value_to_json_friendly_value(tstamp, :datetime, keep_milliseconds: opts.keep_milliseconds), "value" => db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), [])}
+      end
+
+    if values_array == [] do
+      raise PathNotFoundError
+    end
+
+    {:ok, %InterfaceValues{
+      data: values_array
+    }}
+  end
+
+  defp pack_result(values, :individual, :datastream, endpoint_row, path, %{format: "table"} = opts) do
+    value_name =
+      path
+      |> String.split("/")
+      |> List.last
+
+    values_array =
+      for value <- values do
+        [{:value_timestamp, tstamp}, {_, v}] = value
+        [db_value_to_json_friendly_value(tstamp, :datetime, []), db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), keep_milliseconds: opts.keep_milliseconds)]
+      end
+
+    if values_array == [] do
+      raise PathNotFoundError
+    end
+
+    {:ok, %InterfaceValues{
+      metadata: %{"columns" => %{"timestamp" => 0, value_name => 1}, "table_header" => ["timestamp", value_name]},
+      data: values_array
+    }}
+  end
+
+  defp pack_result(values, :individual, :datastream, endpoint_row, path, %{format: "disjoint_tables"} = opts) do
+    value_name =
+      path
+      |> String.split("/")
+      |> List.last
+
+    values_array =
+      for value <- values do
+        [{:value_timestamp, tstamp}, {_, v}] = value
+        [db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), []), db_value_to_json_friendly_value(tstamp, :datetime, keep_milliseconds: opts.keep_milliseconds)]
+      end
+
+    if values_array == [] do
+      raise PathNotFoundError
+    end
+
+    {:ok, %InterfaceValues{
+      data: %{value_name => values_array}
+    }}
   end
 
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "table"} = opts) do
