@@ -455,7 +455,7 @@ defmodule Astarte.AppEngine.API.Device do
     pretty_name
   end
 
-  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/", opts) do
+  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/", _opts) do
     #TODO: Swagger specification says that last value for each path sould be returned, we cannot implement this right now.
     # it is required to use individual_property table to store available path, then we should iterate on all of them and report
     # most recent value.
