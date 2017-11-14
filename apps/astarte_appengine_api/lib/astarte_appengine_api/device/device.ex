@@ -672,16 +672,6 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "disjoint_tables"} = opts) do
-    {_cols_count, columns, table_header} =
-      List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn({column, _column_value}, {next_index, acc, list_acc}) ->
-        pretty_name = column_atom_to_pretty_name[column]
-        if (pretty_name != nil) and (pretty_name != "timestamp") do
-          {next_index + 1, Map.put(acc, pretty_name, next_index), list_acc ++ [pretty_name]}
-        else
-          {next_index, acc, list_acc}
-        end
-      end)
-
     reversed_columns_map =
       Enum.reduce(values, %{}, fn(value, columns_acc) ->
         List.foldl(value, columns_acc, fn({column, column_value}, acc) ->
