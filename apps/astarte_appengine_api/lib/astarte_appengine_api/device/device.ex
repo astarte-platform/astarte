@@ -622,12 +622,7 @@ defmodule Astarte.AppEngine.API.Device do
     }}
   end
 
-  defp pack_result(values, :individual, :datastream, endpoint_row, path, %{format: "disjoint_tables"} = opts) do
-    value_name =
-      path
-      |> String.split("/")
-      |> List.last
-
+  defp pack_result(values, :individual, :datastream, endpoint_row, _path, %{format: "disjoint_tables"} = opts) do
     values_array =
       for value <- values do
         [{:value_timestamp, tstamp}, {_, v}] = value
@@ -639,7 +634,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
 
     {:ok, %InterfaceValues{
-      data: %{value_name => values_array}
+      data: %{"value" => values_array}
     }}
   end
 
