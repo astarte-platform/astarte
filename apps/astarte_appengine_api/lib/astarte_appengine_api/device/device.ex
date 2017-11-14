@@ -210,14 +210,7 @@ defmodule Astarte.AppEngine.API.Device do
       DatabaseQuery.call!(client, endpoint_query)
       |> DatabaseResult.head()
 
-
-    values = retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts)
-
-    if values == [] do
-      raise PathNotFoundError
-    end
-
-    {:ok, %InterfaceValues{data: values}}
+    retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts)
   end
 
   defp do_get_interface_values!(client, device_id, :object, :datastream, interface_row, _endpoint_ids, _endpoint_query, path, opts) do
@@ -462,7 +455,7 @@ defmodule Astarte.AppEngine.API.Device do
     pretty_name
   end
 
-  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/", opts) do
+  defp retrieve_endpoint_values(_client, _device_id, :individual, :datastream, _interface_row, _endpoint_id, _endpoint_row, "/", _opts) do
     #TODO: Swagger specification says that last value for each path sould be returned, we cannot implement this right now.
     # it is required to use individual_property table to store available path, then we should iterate on all of them and report
     # most recent value.
@@ -560,12 +553,8 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.merge(q_params)
 
-    values = DatabaseQuery.call!(client, query)
-
-    for value <- values do
-      [{:value_timestamp, tstamp}, {_, v}] = value
-      %{"timestamp" => db_value_to_json_friendly_value(tstamp, :datetime, []), "value" => db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), [])}
-    end
+    DatabaseQuery.call!(client, query)
+    |> pack_result(:individual, :datastream, endpoint_row, path, opts)
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :properties, interface_row, endpoint_id, endpoint_row, path, opts) do
@@ -593,6 +582,60 @@ defmodule Astarte.AppEngine.API.Device do
       end)
 
     values
+  end
+
+  defp pack_result(values, :individual, :datastream, endpoint_row, _path, %{format: "structured"} = opts) do
+    values_array =
+      for value <- values do
+        [{:value_timestamp, tstamp}, {_, v}] = value
+        %{"timestamp" => db_value_to_json_friendly_value(tstamp, :datetime, keep_milliseconds: opts.keep_milliseconds), "value" => db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), [])}
+      end
+
+    if values_array == [] do
+      raise PathNotFoundError
+    end
+
+    {:ok, %InterfaceValues{
+      data: values_array
+    }}
+  end
+
+  defp pack_result(values, :individual, :datastream, endpoint_row, path, %{format: "table"} = opts) do
+    value_name =
+      path
+      |> String.split("/")
+      |> List.last
+
+    values_array =
+      for value <- values do
+        [{:value_timestamp, tstamp}, {_, v}] = value
+        [db_value_to_json_friendly_value(tstamp, :datetime, []), db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), keep_milliseconds: opts.keep_milliseconds)]
+      end
+
+    if values_array == [] do
+      raise PathNotFoundError
+    end
+
+    {:ok, %InterfaceValues{
+      metadata: %{"columns" => %{"timestamp" => 0, value_name => 1}, "table_header" => ["timestamp", value_name]},
+      data: values_array
+    }}
+  end
+
+  defp pack_result(values, :individual, :datastream, endpoint_row, _path, %{format: "disjoint_tables"} = opts) do
+    values_array =
+      for value <- values do
+        [{:value_timestamp, tstamp}, {_, v}] = value
+        [db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), []), db_value_to_json_friendly_value(tstamp, :datetime, keep_milliseconds: opts.keep_milliseconds)]
+      end
+
+    if values_array == [] do
+      raise PathNotFoundError
+    end
+
+    {:ok, %InterfaceValues{
+      data: %{"value" => values_array}
+    }}
   end
 
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "table"} = opts) do
@@ -629,16 +672,6 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp pack_result(values, :object, :datastream, column_atom_to_pretty_name, %{format: "disjoint_tables"} = opts) do
-    {_cols_count, columns, table_header} =
-      List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn({column, _column_value}, {next_index, acc, list_acc}) ->
-        pretty_name = column_atom_to_pretty_name[column]
-        if (pretty_name != nil) and (pretty_name != "timestamp") do
-          {next_index + 1, Map.put(acc, pretty_name, next_index), list_acc ++ [pretty_name]}
-        else
-          {next_index, acc, list_acc}
-        end
-      end)
-
     reversed_columns_map =
       Enum.reduce(values, %{}, fn(value, columns_acc) ->
         List.foldl(value, columns_acc, fn({column, column_value}, acc) ->
