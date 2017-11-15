@@ -511,4 +511,9 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     :ok
   end
 
+  def extended_id_to_uuid(extended_id) do
+     << device_uuid :: binary-size(16), _rest :: binary >> = Base.url_decode64!(extended_id, padding: false)
+
+    device_uuid
+  end
 end
