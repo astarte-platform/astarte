@@ -6,7 +6,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
-  setup do
+  setup_all do
     {:ok, _client} = Astarte.DataUpdaterPlant.DatabaseTestHelper.create_test_keyspace()
 
     on_exit fn ->
