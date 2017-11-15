@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.API.Device do
   @moduledoc """
   The Device context.
   """
+  alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
   alias Astarte.AppEngine.API.Device.DevicesListingNotAllowedError
@@ -30,8 +31,10 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.PathNotFoundError
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Type
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
   alias CQEx.Client, as: DatabaseClient
@@ -141,6 +144,60 @@ defmodule Astarte.AppEngine.API.Device do
 
       do_get_interface_values!(client, device_id, Aggregation.from_int(interface_row[:flags]), Type.from_int(interface_row[:type]), interface_row, endpoint_ids, endpoint_query, path, options)
     end
+  end
+
+  def update_interface_values!(realm_name, encoded_device_id, interface, no_prefix_path, value, params) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+
+    device_id = decode_device_id(encoded_device_id)
+    path = "/" <> no_prefix_path
+    major_version = interface_version!(client, device_id, interface)
+    interface_row = retrieve_interface_row!(client, interface, major_version)
+
+    {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
+    if status == :error and endpoint_ids == :not_found do
+      raise EndpointNotFoundError
+    end
+
+    [endpoint_id] = endpoint_ids
+
+    timestamp =
+      DateTime.utc_now()
+      |> DateTime.to_unix(:milliseconds)
+
+    interface_descriptor = InterfaceDescriptor.from_db_result!(interface_row)
+
+    if interface_descriptor.ownership != :server do
+      raise "Not Allowed"
+    end
+
+    endpoint_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id, interface_id FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id")
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+    mapping =
+      DatabaseQuery.call!(client, endpoint_query)
+      |> DatabaseResult.head()
+      |> Mapping.from_db_result!()
+
+    insert_value_into_db(client, interface_descriptor.storage_type, device_id, interface_descriptor, endpoint_id, mapping, path, value, timestamp)
+
+    case interface_descriptor.type do
+      :properties ->
+        DataTransmitter.set_property(realm_name, device_id, interface, path, value)
+
+      :datastream ->
+        DataTransmitter.push_datastream(realm_name, device_id, interface, path, value)
+
+      _ ->
+        raise "Unimplemented"
+    end
+
+    {:ok, %InterfaceValues{
+      data: value
+    }}
   end
 
   defp do_get_interface_values!(client, device_id, :individual, interface_row, opts) do
