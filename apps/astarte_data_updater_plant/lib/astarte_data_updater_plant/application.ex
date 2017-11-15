@@ -10,8 +10,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
-      AMQPClient,
-      {Registry, [keys: :unique, name: Registry.DataUpdater]}
+      {Registry, [keys: :unique, name: Registry.DataUpdater]},
+      AMQPClient
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
