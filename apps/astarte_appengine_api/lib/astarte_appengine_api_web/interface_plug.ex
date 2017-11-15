@@ -19,7 +19,15 @@ defmodule Astarte.AppEngine.APIWeb.InterfacePlug do
         new_query_string = "path=#{query_encoded_path}&#{conn.query_string}"
         new_params = Map.put(conn.params, "path", joined_path)
 
+        {new_method, new_query_params} =
+          if conn.method == "POST" do
+            {"PUT", Map.put(new_query_params, "action", "stream")}
+          else
+            {conn.method, new_query_params}
+          end
+
         %{ conn |
+          method: new_method,
           params: new_params,
           path_info: ["v1", realm_name, "devices", device_id, "interfaces", interface],
           query_params: new_query_params,
