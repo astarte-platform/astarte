@@ -54,11 +54,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       DatabaseQuery.call!(db_client, device_row_query)
       |> DatabaseResult.head()
 
+    introspection_map =
+      case device_row[:introspection] do
+        :null ->
+          %{}
+
+        nil ->
+          %{}
+
+        result ->
+          Enum.into(result, %{})
+      end
+
     %{new_state |
       connected: true,
       total_received_msgs: device_row[:total_received_msgs],
       total_received_bytes: device_row[:total_received_bytes],
-      introspection: Enum.into(device_row[:introspection], %{}),
+      introspection: introspection_map,
       interfaces: %{},
       interface_ids_to_name: %{},
       mappings: %{},
@@ -745,8 +757,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     #  raise DeviceNotFoundError
     #end
 
+    introspection =
+      case device_row[:introspection] do
+        :null ->
+          []
+
+        nil ->
+          []
+
+        result ->
+          result
+      end
+
     interface_tuple =
-      device_row[:introspection]
+      introspection
       |> List.keyfind(interface, 0)
 
     case interface_tuple do

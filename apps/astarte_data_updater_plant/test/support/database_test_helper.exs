@@ -63,8 +63,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
   @insert_device """
         INSERT INTO autotestrealm.devices (device_id, extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
-          VALUES (7f454c46-0201-0100-0000-000000000000, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
-          '8.8.8.8', '4.4.4.4', 45000, 4500000, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1});
+          VALUES (:device_id, :extended_id, false, :last_connection, :last_disconnection, :first_pairing,
+          :last_seen_ip, :last_pairing_ip, :total_received_msgs, :total_received_bytes, :introspection);
   """
 
   @create_interfaces_table """
@@ -334,7 +334,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_devices_table)
-        DatabaseQuery.call!(client, @insert_device)
         DatabaseQuery.call!(client, @create_endpoints_table)
         Enum.each(@insert_endpoints, fn(query) ->
           DatabaseQuery.call!(client, query)
@@ -511,4 +510,38 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     :ok
   end
 
+  def insert_device(extended_id, opts \\ []) do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    device_uuid = extended_id_to_uuid(extended_id)
+    last_connection = Keyword.get(opts, :last_connection)
+    last_disconnection = Keyword.get(opts, :last_disconnection)
+    first_pairing = Keyword.get(opts, :first_pairing, DateTime.utc_now() |> DateTime.to_unix(:milliseconds))
+    last_seen_ip = Keyword.get(opts, :last_seen_ip)
+    last_pairing_ip = Keyword.get(opts, :last_pairing_ip)
+    total_received_msgs = Keyword.get(opts, :total_received_msgs, 0)
+    total_received_bytes = Keyword.get(opts, :total_received_bytes, 0)
+    introspection = Keyword.get(opts, :introspection, %{})
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_device)
+      |> DatabaseQuery.put(:device_id, device_uuid)
+      |> DatabaseQuery.put(:extended_id, extended_id)
+      |> DatabaseQuery.put(:last_connection, last_connection)
+      |> DatabaseQuery.put(:last_disconnection, last_disconnection)
+      |> DatabaseQuery.put(:first_pairing, first_pairing)
+      |> DatabaseQuery.put(:last_seen_ip, last_seen_ip)
+      |> DatabaseQuery.put(:last_pairing_ip, last_pairing_ip)
+      |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
+      |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+      |> DatabaseQuery.put(:introspection, introspection)
+
+    DatabaseQuery.call(client, query)
+  end
+
+  def extended_id_to_uuid(extended_id) do
+     << device_uuid :: binary-size(16), _rest :: binary >> = Base.url_decode64!(extended_id, padding: false)
+
+    device_uuid
+  end
 end
