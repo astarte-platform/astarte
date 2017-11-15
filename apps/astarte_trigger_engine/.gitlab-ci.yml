@@ -1,0 +1,67 @@
+stages:
+    - build
+    - deploy
+
+before_script:
+    - mix local.hex --force
+    - mix local.rebar --force
+
+variables:
+    APPLICATION_NAME: astarte_trigger_engine
+
+mix:test-ci:
+    image: elixir:1.5
+    stage: build
+    services:
+        - scylladb/scylla:latest
+        - rabbitmq:3.6
+    script:
+        - export MIX_ENV=test
+        - mix deps.get --force
+        - mix deps.compile --force
+        - mix compile --force
+        - mix coveralls
+    cache:
+        paths:
+            - deps
+    except:
+        - branches@Astarte-NG/astarte_trigger_engine
+
+mix:build:
+    image: elixir:1.5
+    stage: build
+    services:
+        - scylladb/scylla:latest
+        - rabbitmq:3.6
+    script:
+        - export MIX_ENV=test
+        - mix deps.get --force
+        - mix deps.compile --force
+        - mix compile --force
+        - mix coveralls
+        - export MIX_ENV=dev
+        - mix release
+    cache:
+        paths:
+            - deps
+    only:
+        - master@Astarte-NG/astarte_trigger_engine
+
+mix:release-build:
+    image: elixir:1.5
+    stage: build
+    services:
+        - scylladb/scylla:latest
+        - rabbitmq:3.6
+    script:
+        - export MIX_ENV=prod
+        - mix deps.get --force
+        - mix deps.compile --force
+        - mix compile --force
+        - mix test
+        - mix release
+    cache:
+        paths:
+            - deps
+    only:
+        - tags@Astarte-NG/astarte_trigger_engine
