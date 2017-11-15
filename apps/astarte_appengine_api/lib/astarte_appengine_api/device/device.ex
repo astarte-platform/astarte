@@ -713,6 +713,55 @@ defmodule Astarte.AppEngine.API.Device do
     {:ok, %InterfaceValues{data: values_list}}
   end
 
+  #TODO Copy&pasted from data updater plant, make it a library
+  defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} " <>
+          "(device_id, interface_id, endpoint_id, path, reception_timestamp, #{CQLUtils.type_to_db_column_name(endpoint.value_type)}) " <>
+          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp, :value);")
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.put(:reception_timestamp, timestamp)
+      |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
+      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
+  end
+
+  #TODO Copy&pasted from data updater plant, make it a library
+  defp insert_value_into_db(db_client, :multi_interface_individual_datastream_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
+    # TODO: use received value_timestamp when needed
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} " <>
+          "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(endpoint.value_type)}) " <>
+          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value);")
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.put(:value_timestamp, timestamp)
+      |> DatabaseQuery.put(:reception_timestamp, timestamp)
+      |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
+      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
+  end
+
+  #TODO Copy&pasted from data updater plant, make it a library
+  defp to_db_friendly_type(value) do
+    value
+  end
+
   defp db_value_to_json_friendly_value(value, :longinteger, opts) do
     cond do
       opts[:allow_bigintegers] ->
