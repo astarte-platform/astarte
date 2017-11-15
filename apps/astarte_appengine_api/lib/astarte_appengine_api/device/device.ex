@@ -182,14 +182,17 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseResult.head()
       |> Mapping.from_db_result!()
 
+    #TODO: just get encoded_device_id
+    extended_device_id = get_device_status!(realm_name, encoded_device_id).id
+
     insert_value_into_db(client, interface_descriptor.storage_type, device_id, interface_descriptor, endpoint_id, mapping, path, value, timestamp)
 
     case interface_descriptor.type do
       :properties ->
-        DataTransmitter.set_property(realm_name, device_id, interface, path, value)
+        DataTransmitter.set_property(realm_name, extended_device_id, interface, path, value)
 
       :datastream ->
-        DataTransmitter.push_datastream(realm_name, device_id, interface, path, value)
+        DataTransmitter.push_datastream(realm_name, extended_device_id, interface, path, value)
 
       _ ->
         raise "Unimplemented"
