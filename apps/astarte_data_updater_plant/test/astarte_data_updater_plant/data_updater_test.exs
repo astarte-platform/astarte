@@ -250,6 +250,46 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert device_row == [connected: false, total_received_msgs: 45013, total_received_bytes: 4500692]
   end
 
+  test "empty introspection is updated correctly" do
+    realm = "autotestrealm"
+    device_id =
+      :crypto.strong_rand_bytes(32)
+      |> Base.url_encode64(padding: false)
+    device_id_uuid = DatabaseTestHelper.extended_id_to_uuid(device_id)
+    new_introspection_map = %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1}
+    new_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
+
+    DatabaseTestHelper.insert_device(device_id)
+
+    db_client = connect_to_db(realm)
+
+    DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-12-09T14:00:32+00:00"), 1), :milliseconds)*10000)
+    DataUpdater.dump_state(realm, device_id)
+
+    device_introspection_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id;")
+      |> DatabaseQuery.put(:device_id, device_id_uuid)
+
+    old_device_introspection =
+      DatabaseQuery.call!(db_client, device_introspection_query)
+      |> DatabaseResult.head()
+      |> Keyword.get(:introspection)
+
+    assert old_device_introspection == :null
+
+    DataUpdater.handle_introspection(realm, device_id, new_introspection_string, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds)*10000)
+    DataUpdater.dump_state(realm, device_id)
+
+    new_device_introspection =
+      DatabaseQuery.call!(db_client, device_introspection_query)
+      |> DatabaseResult.head()
+      |> Keyword.get(:introspection)
+      |> Enum.into(%{})
+
+    assert new_device_introspection == new_introspection_map
+  end
+
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
     query =
       DatabaseQuery.new
