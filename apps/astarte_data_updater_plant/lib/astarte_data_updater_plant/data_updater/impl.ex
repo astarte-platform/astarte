@@ -77,7 +77,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       DatabaseQuery.new()
       |> DatabaseQuery.statement("UPDATE devices SET connected=true, last_connection=:last_connection, last_seen_ip=:last_seen_ip WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
-      |> DatabaseQuery.put(:last_connection, timestamp)
+      |> DatabaseQuery.put(:last_connection, div(timestamp, 10000))
       |> DatabaseQuery.put(:last_seen_ip, ip_address)
 
     DatabaseQuery.call!(db_client, device_update_query)
@@ -96,7 +96,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         "total_received_msgs=:total_received_msgs, total_received_bytes=:total_received_bytes " <>
         "WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
-      |> DatabaseQuery.put(:last_disconnection, timestamp)
+      |> DatabaseQuery.put(:last_disconnection, div(timestamp, 10000))
       |> DatabaseQuery.put(:total_received_msgs, state.total_received_msgs)
       |> DatabaseQuery.put(:total_received_bytes, state.total_received_bytes)
 
@@ -456,8 +456,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
         |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:path, path)
-        |> DatabaseQuery.put(:reception_timestamp, timestamp)
-        |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
+        |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 10000))
+        |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 10000))
         |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -477,9 +477,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
         |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:path, path)
-        |> DatabaseQuery.put(:value_timestamp, timestamp)
-        |> DatabaseQuery.put(:reception_timestamp, timestamp)
-        |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
+        |> DatabaseQuery.put(:value_timestamp, div(timestamp, 10000))
+        |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 10000))
+        |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 10000))
         |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -532,8 +532,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> DatabaseQuery.statement("INSERT INTO #{interface_descriptor.storage} (device_id, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
                                  "VALUES (:device_id, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);")
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:reception_timestamp, timestamp)
-      |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
+      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 10000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 10000))
       |> DatabaseQuery.merge(query_values)
 
     DatabaseQuery.call!(db_client, insert_query)

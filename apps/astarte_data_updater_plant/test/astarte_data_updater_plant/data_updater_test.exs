@@ -21,7 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     db_client = connect_to_db(realm)
 
-    DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
+    DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds)*10000)
     DataUpdater.dump_state(realm, device_id)
 
     device_query =
@@ -47,7 +47,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> Keyword.get(:introspection)
       |> Enum.into(%{})
 
-    DataUpdater.handle_introspection(realm, device_id, "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
+    DataUpdater.handle_introspection(realm, device_id, "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds)*10000)
     DataUpdater.dump_state(realm, device_id)
 
     device_introspection =
@@ -59,10 +59,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert prev_device_introspection == device_introspection
 
     # Incoming data sub-test
-    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/time/from", Bson.encode(%{"v" => 9000}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds))
-    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/weekSchedule/9/start", Bson.encode(%{"v" => 9}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds))
-    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/weekSchedule/10/start", Bson.encode(%{"v" => 10}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds))
-    DataUpdater.handle_data(realm, device_id, "com.test.SimpleStreamTest", "/0/value", Bson.encode(%{"v" => 5}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:15:32+00:00"), 1), :milliseconds))
+    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/time/from", Bson.encode(%{"v" => 9000}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds)*10000)
+    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/weekSchedule/9/start", Bson.encode(%{"v" => 9}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds)*10000)
+    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/weekSchedule/10/start", Bson.encode(%{"v" => 10}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds)*10000)
+    DataUpdater.handle_data(realm, device_id, "com.test.SimpleStreamTest", "/0/value", Bson.encode(%{"v" => 5}), nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:15:32+00:00"), 1), :milliseconds)*10000)
 
     DataUpdater.dump_state(realm, device_id)
 
@@ -100,20 +100,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert value == [integer_value: 5]
 
     # Introspection change subtest
-    DataUpdater.handle_introspection(realm, device_id, "com.test.LCDMonitor:1:0;com.example.TestObject:1:5;com.test.SimpleStreamTest:1:0", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
+    DataUpdater.handle_introspection(realm, device_id, "com.test.LCDMonitor:1:0;com.example.TestObject:1:5;com.test.SimpleStreamTest:1:0", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds)*10000)
 
     # Incoming object aggregation subtest
     payload0 = Bson.encode(%{"value" => 1.9, "string" => "Astarteです"})
-    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload0, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:49+00:00"), 1), :milliseconds))
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload0, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:49+00:00"), 1), :milliseconds)*10000)
     payload1 = Bson.encode(%{"string" => "Hello World');"})
-    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload1, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:50+00:00"), 1), :milliseconds))
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload1, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:50+00:00"), 1), :milliseconds)*10000)
     payload2 = Bson.encode(%{"v" => %{"value" => 0}})
-    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload2, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:51+00:00"), 1), :milliseconds))
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload2, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:51+00:00"), 1), :milliseconds)*10000)
     # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
     payload3 = Bson.encode(%{"string" => "zzz"})
-    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload3, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-09-30T07:13:00+00:00"), 1), :milliseconds))
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload3, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-09-30T07:13:00+00:00"), 1), :milliseconds)*10000)
     payload4 = Bson.encode(%{})
-    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload4, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-30T07:13:00+00:00"), 1), :milliseconds))
+    DataUpdater.handle_data(realm, device_id, "com.example.TestObject", "/", payload4, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-30T07:13:00+00:00"), 1), :milliseconds)*10000)
 
     DataUpdater.dump_state(realm, device_id)
 
@@ -138,7 +138,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Test /producer/properties control message
     data = <<0, 0, 0, 98>> <> :zlib.compress("com.test.LCDMonitor/time/to;com.test.LCDMonitor/weekSchedule/10/start")
-    DataUpdater.handle_control(realm, device_id, "/producer/properties", data, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds))
+    DataUpdater.handle_control(realm, device_id, "/producer/properties", data, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds)*10000)
     DataUpdater.dump_state(realm, device_id)
 
     endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/time/from")
@@ -207,7 +207,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert value == [integer_value: 5]
 
     # Unset subtest
-    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/weekSchedule/10/start", <<>>, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T15:10:32+00:00"), 1), :milliseconds))
+    DataUpdater.handle_data(realm, device_id, "com.test.LCDMonitor", "/weekSchedule/10/start", <<>>, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T15:10:32+00:00"), 1), :milliseconds)*10000)
     DataUpdater.dump_state(realm, device_id)
 
     endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/weekSchedule/10/start")
@@ -227,7 +227,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert value == :empty_dataset
 
     # Device disconnection sub-test
-    DataUpdater.handle_disconnection(realm, device_id, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:30:45+00:00"), 1), :milliseconds))
+    DataUpdater.handle_disconnection(realm, device_id, nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:30:45+00:00"), 1), :milliseconds)*10000)
     DataUpdater.dump_state(realm, device_id)
 
     device_row =
