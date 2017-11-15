@@ -41,12 +41,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
     end
   end
 
-  #TODO: implement this
-  #def update(conn, %{"id" => id, "interface_values" => interface_values_params}) do
-  #  interface_values = Device.get_interface_values!(id)
-
-  #  with {:ok, %InterfaceValues{} = interface_values} <- Device.update_interface_values(interface_values, interface_values_params) do
-  #    render(conn, "show.json", interface_values: interface_values)
-  #  end
-  #end
+  def update(conn, %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface, "path" => path, "value" => value} = parameters) do
+    with {:ok, %InterfaceValues{} = interface_values} <- Device.update_interface_values!(realm_name, device_id, interface, path, value, parameters) do
+      render(conn, "show.json", interface_values: interface_values)
+    end
+  end
 end
