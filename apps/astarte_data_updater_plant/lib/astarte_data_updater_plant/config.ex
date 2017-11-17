@@ -4,10 +4,10 @@ defmodule Astarte.DataUpdaterPlant.Config do
   """
 
   @doc """
-  Returns the AMQP connection options
+  Returns the AMQP data consumer connection options
   """
-  def amqp_options do
-    Application.get_env(:astarte_data_updater_plant, :amqp_options, [])
+  def amqp_consumer_options do
+    Application.get_env(:astarte_data_updater_plant, :amqp_consumer_options, [])
   end
 
   @doc """

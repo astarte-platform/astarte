@@ -5,7 +5,7 @@ use Mix.Config
 config :astarte_data_updater_plant, :queue_name,
   "vmq_all"
 
-config :astarte_data_updater_plant, :amqp_options,
+config :astarte_data_updater_plant, :amqp_consumer_options,
   host: "localhost",
   username: "guest",
   password: "guest",
