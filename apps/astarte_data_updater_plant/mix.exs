@@ -54,7 +54,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp deps do
     [
       {:amqp, "~> 1.0.0-pre.2"},
-      {:exprotobuf, "~> 1.2.7"},
       {:cqex, github: "ispirata/cqex"},
       {:bson, "~> 0.4.4"},
 
