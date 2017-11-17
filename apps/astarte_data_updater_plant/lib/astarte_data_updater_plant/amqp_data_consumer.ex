@@ -1,4 +1,4 @@
-defmodule Astarte.DataUpdaterPlant.AMQPClient do
+defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   require Logger
   use GenServer
 
