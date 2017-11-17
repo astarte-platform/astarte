@@ -29,8 +29,8 @@ defmodule Astarte.Pairing.Queries do
 
   @insert_new_device """
   INSERT INTO devices
-  (device_id, extended_id, inhibit_pairing, protocol_revision, introspection, introspection_minor, total_received_bytes, total_received_msgs)
-  VALUES (:device_id, :extended_id, :inhibit_pairing, :protocol_revision, :introspection, :introspection_minor, :total_received_bytes, :total_received_msgs)
+  (device_id, extended_id, inhibit_pairing, protocol_revision, total_received_bytes, total_received_msgs)
+  VALUES (:device_id, :extended_id, :inhibit_pairing, :protocol_revision, :total_received_bytes, :total_received_msgs)
   """
 
   @select_device """
@@ -126,8 +126,6 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:extended_id, extended_id)
       |> Query.put(:inhibit_pairing, false)
       |> Query.put(:protocol_revision, 0)
-      |> Query.put(:introspection, %{})
-      |> Query.put(:introspection_minor, %{})
       |> Query.put(:total_received_bytes, 0)
       |> Query.put(:total_received_msgs, 0)
 
