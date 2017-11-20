@@ -18,12 +18,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
-  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger
-  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DeviceTrigger
-  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.IntrospectionTrigger
-  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer
-  alias Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.IntrospectionTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
 
@@ -369,10 +369,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         DatabaseQuery.call!(client, query)
 
         simple_trigger_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer{
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
             simple_trigger: {
               :data_trigger,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.DataTrigger{
+              %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
                 data_trigger_type: :INCOMING_DATA,
                 match_path: "/weekSchedule/%{weekDay}/start",
                 value_match_operator: :GREATER_THAN,
@@ -380,19 +380,19 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
 
         trigger_target_data =
-          %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer{
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
             trigger_target: {
               :amqp_trigger_target,
-              %Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.AMQPTriggerTarget{
+              %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
                 exchange: "test_exchange_gt9",
                 routing_key: "rt_gt9"
               }
             }
           }
-          |> Astarte.DataUpdaterPlant.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
 
         query =
           DatabaseQuery.new()
