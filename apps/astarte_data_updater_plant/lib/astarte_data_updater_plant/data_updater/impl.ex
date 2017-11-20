@@ -82,7 +82,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> populate_triggers_for_object!(db_client, device_id, :device)
   end
 
-  def handle_connection(state, ip_address, _delivery_tag, timestamp) do
+  def handle_connection(state, ip_address, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
     device_update_query =
@@ -94,12 +94,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, device_update_query)
 
-    on_device_connection(state)
+    on_device_connection(state, delivery_tag)
 
     state
   end
 
-  def handle_disconnection(state, _delivery_tag, timestamp) do
+  def handle_disconnection(state, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
     device_update_query =
@@ -114,7 +114,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, device_update_query)
 
-    on_device_disconnection(state)
+    on_device_disconnection(state, delivery_tag)
 
     %{state |
       connected: false
@@ -296,8 +296,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>> , _delivery_tag, _timestamp) do
-    operation_result = prune_device_properties(state, "")
+  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>> , delivery_tag, _timestamp) do
+    operation_result = prune_device_properties(state, "", delivery_tag)
 
     if operation_result != :ok do
       Logger.debug "result is #{inspect operation_result} further actions should be required."
@@ -311,7 +311,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_control(state, "/producer/properties", payload, _delivery_tag, _timestamp) do
+  def handle_control(state, "/producer/properties", payload, delivery_tag, _timestamp) do
     #TODO: check payload size, to avoid anoying crashes
 
     <<_size_header :: size(32), zlib_payload :: binary>> = payload
@@ -319,7 +319,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     decoded_payload = safe_deflate(zlib_payload)
 
     if decoded_payload != :error do
-      operation_result = prune_device_properties(state, decoded_payload)
+      operation_result = prune_device_properties(state, decoded_payload, delivery_tag)
 
       if operation_result != :ok do
         Logger.debug "result is #{inspect operation_result} further actions should be required."
@@ -580,19 +580,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end)
   end
 
-  defp prune_device_properties(state, decoded_payload) do
+  defp prune_device_properties(state, decoded_payload, delivery_tag) do
     paths_set = parse_device_properties_payload(state, decoded_payload)
 
     db_client = connect_to_db(state)
 
     Enum.each(state.introspection, fn({interface, _}) ->
-      prune_interface(state, db_client, interface, paths_set)
+      prune_interface(state, db_client, interface, paths_set, delivery_tag)
     end)
 
     :ok
   end
 
-  defp prune_interface(state, db_client, interface, all_paths_set) do
+  defp prune_interface(state, db_client, interface, all_paths_set, delivery_tag) do
     {interface_descriptor, new_state} = maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
 
     cond do
@@ -621,7 +621,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                 delete_property_from_db(new_state, db_client, interface_descriptor, endpoint_id, path)
                 path_removed_triggers = get_on_data_triggers(new_state, :on_path_removed, interface_descriptor.interface_id, endpoint_id, path)
                 Enum.each(path_removed_triggers, fn(trigger) ->
-                  process_trigger(new_state, trigger, nil, path)
+                  process_trigger(new_state, trigger, delivery_tag, path)
                 end)
               end
             end)
@@ -667,19 +667,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             "with routing key #{inspect trigger_target.routing_key}. Payload #{inspect payload}. event id: #{inspect event_id}"
   end
 
-  defp on_device_connection(state) do
+  defp on_device_connection(state, delivery_tag) do
     trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
     Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_target(state, trigger_target, nil, nil)
+      push_event_on_target(state, trigger_target, delivery_tag, nil)
     end)
 
     :ok
   end
 
-  defp on_device_disconnection(state) do
+  defp on_device_disconnection(state, delivery_tag) do
     trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
     Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_target(state, trigger_target, nil, nil)
+      push_event_on_target(state, trigger_target, delivery_tag, nil)
     end)
 
     :ok
