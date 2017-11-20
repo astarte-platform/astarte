@@ -182,11 +182,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           end)
 
           value_change_triggers = get_on_data_triggers(new_state, :on_value_change, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
-          value_changed_triggers = get_on_data_triggers(new_state, :on_value_changed, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
+          value_change_applied_triggers = get_on_data_triggers(new_state, :on_value_change_applied, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
           path_created_triggers = get_on_data_triggers(new_state, :on_path_created, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
 
           previous_value =
-            if (value_change_triggers != []) or (value_changed_triggers != []) or (path_created_triggers != []) do
+            if (value_change_triggers != []) or (value_change_applied_triggers != []) or (path_created_triggers != []) do
               retrieved_value = query_previous_value(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path)
               if retrieved_value != value do
                 Enum.each(value_change_triggers, fn(trigger) ->
@@ -205,7 +205,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               end)
           end
 
-          if (previous_value != nil) and (value_changed_triggers != []) do
+          if (previous_value != nil) and (value_change_applied_triggers != []) do
               Enum.each(path_created_triggers, fn(trigger) ->
                 process_trigger(new_state, trigger, delivery_tag, path, value)
               end)
@@ -834,8 +834,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           :on_value_change
 
         #TODO: implement :on_value_changed
-        :VALUE_CHANGED ->
-          :on_value_changed
+        :VALUE_CHANGE_APPLIED ->
+          :on_value_change_applied
 
         #TODO: implement :on_path_created
         :PATH_CREATED ->
