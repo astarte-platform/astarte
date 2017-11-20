@@ -206,7 +206,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           end
 
           if (previous_value != nil) and (value_change_applied_triggers != []) do
-              Enum.each(path_created_triggers, fn(trigger) ->
+              Enum.each(value_change_applied_triggers, fn(trigger) ->
                 process_trigger(new_state, trigger, delivery_tag, path, value)
               end)
           end
