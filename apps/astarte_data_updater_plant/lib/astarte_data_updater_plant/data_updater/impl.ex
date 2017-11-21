@@ -214,10 +214,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           insert_result = insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
 
-          if (previous_value == nil) and (path_created_triggers != []) do
-              Enum.each(path_created_triggers, fn(trigger) ->
-                process_trigger(new_state, trigger, delivery_tag, path, value)
-              end)
+          if old_bson_value == <<>> and payload != <<>> do
+            Enum.each(path_created_triggers, fn(trigger) ->
+              TriggersHandler.on_path_created(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
+            end)
           end
 
           if old_bson_value != payload do
