@@ -18,6 +18,13 @@ defmodule Astarte.DataUpdaterPlant.Config do
   end
 
   @doc """
+  Returns the events exchange name used by the AMQP producer
+  """
+  def events_exchange_name do
+    Application.get_env(:astarte_data_updater_plant, :amqp_events_exchange_name)
+  end
+
+  @doc """
   Returns the AMQP queue name from which DUP consumes
   """
   def queue_name do
