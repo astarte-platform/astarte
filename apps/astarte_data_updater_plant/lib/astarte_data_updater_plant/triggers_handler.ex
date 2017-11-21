@@ -50,8 +50,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     }
   end
 
-  defp dispatch_event(event = %SimpleEvent{}, %AMQPTriggerTarget{routing_key: routing_key, static_headers: headers}) do
-    SimpleEvent.encode(event)
+  defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{routing_key: routing_key, static_headers: static_headers}) do
+    {event_type, _event_struct} = simple_event.event
+
+    headers =
+      [{"x_astarte_realm", simple_event.realm},
+       {"x_astarte_device_id", simple_event.device_id},
+       {"x_astarte_event_type", to_string(event_type)}
+       | static_headers]
+
+    SimpleEvent.encode(simple_event)
     |> AMQPEventsProducer.publish(routing_key, headers)
   end
 end
