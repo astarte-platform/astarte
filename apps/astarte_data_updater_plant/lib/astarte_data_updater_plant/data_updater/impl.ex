@@ -27,6 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
@@ -166,19 +167,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :invalid_message}
 
         true ->
+          realm = new_state.realm
+          device_id_string = pretty_device_id(new_state.device_id)
+          interface_name = interface_descriptor.name
+
           any_interface_triggers = get_on_data_triggers(new_state, :on_incoming_data, :any_interface, :any_endpoint)
           Enum.each(any_interface_triggers, fn(trigger) ->
-            process_trigger(new_state, trigger, delivery_tag, path, value)
+            TriggersHandler.on_incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
           end)
 
           any_endpoint_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, :any_endpoint )
           Enum.each(any_endpoint_triggers, fn(trigger) ->
-            process_trigger(new_state, trigger, delivery_tag, path, value)
+            TriggersHandler.on_incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
           end)
 
           incoming_data_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
           Enum.each(incoming_data_triggers, fn(trigger) ->
-            process_trigger(new_state, trigger, delivery_tag, path, value)
+            TriggersHandler.on_incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
           end)
 
           value_change_triggers = get_on_data_triggers(new_state, :on_value_change, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
