@@ -5,6 +5,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias AMQP.Connection
   alias AMQP.Queue
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
@@ -85,6 +86,47 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, "x_astarte_realm") == @realm
     assert Map.get(headers_map, "x_astarte_device_id") == @device_id
     assert Map.get(headers_map, "x_astarte_event_type") == "incoming_data_event"
+    assert Map.get(headers_map, static_header_key) == static_header_value
+  end
+
+  test "on_path_created AMQPTarget handling" do
+    simple_trigger_id = :uuid.get_v4()
+    parent_trigger_id = :uuid.get_v4()
+    static_header_key = "important_metadata_path_created"
+    static_header_value = "test_meta_path_created"
+    static_headers = [{static_header_key, static_header_value}]
+
+    target =
+      %AMQPTriggerTarget{
+        simple_trigger_id: simple_trigger_id,
+        parent_trigger_id: parent_trigger_id,
+        static_headers: static_headers,
+        routing_key: @routing_key
+      }
+
+    TriggersHandler.on_path_created(target, @realm, @device_id, @interface, @path, @bson_value)
+
+    assert_receive {:event, payload, meta}
+
+    assert %SimpleEvent{
+      device_id: @device_id,
+      parent_trigger_id: ^parent_trigger_id,
+      simple_trigger_id: ^simple_trigger_id,
+      realm: @realm,
+      event: {:path_created_event, path_created_event}
+    } = SimpleEvent.decode(payload)
+
+    assert %PathCreatedEvent{
+      interface: @interface,
+      path: @path,
+      bson_value: @bson_value
+    } = path_created_event
+
+    headers_map = amqp_headers_to_map(meta.headers)
+
+    assert Map.get(headers_map, "x_astarte_realm") == @realm
+    assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+    assert Map.get(headers_map, "x_astarte_event_type") == "path_created_event"
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
