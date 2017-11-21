@@ -9,7 +9,6 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   alias Astarte.DataUpdaterPlant.Config
 
   @connection_backoff 10000
-  @exchange_name "astarte_events"
 
   # API
 
@@ -33,7 +32,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   def handle_call({:publish, payload, routing_key, headers}, _from, chan) do
-    reply = Basic.publish(chan, @exchange_name, routing_key, payload, headers: headers)
+    reply = Basic.publish(chan, Config.events_exchange_name(), routing_key, payload, headers: headers)
     {:reply, reply, chan}
   end
 
@@ -53,7 +52,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
-         :ok <- Exchange.declare(chan, @exchange_name, :direct, durable: true) do
+         :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true) do
 
       {:ok, chan}
 
