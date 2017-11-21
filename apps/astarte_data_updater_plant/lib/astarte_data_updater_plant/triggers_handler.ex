@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   """
 
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
@@ -39,6 +40,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   def on_incoming_data(target, realm, device_id, interface, path, bson_value) do
     %IncomingDataEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(:incoming_data_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
+  def on_path_created(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_path_created(target, realm, device_id, interface, path, bson_value)
+    end)
+  end
+
+  def on_path_created(target, realm, device_id, interface, path, bson_value) do
+    %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
+    |> make_simple_event(:path_created_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
