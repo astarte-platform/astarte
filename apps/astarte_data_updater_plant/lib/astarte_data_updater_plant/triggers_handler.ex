@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
@@ -50,6 +51,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   def on_value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
     %ValueChangeEvent{interface: interface, path: path, old_bson_value: old_bson_value, new_bson_value: new_bson_value}
     |> make_simple_event(:value_change_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
+  def on_value_change_applied(targets, realm, device_id, interface, path, old_bson_value, new_bson_value) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
+    end)
+  end
+
+  def on_value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
+    %ValueChangeAppliedEvent{interface: interface, path: path, old_bson_value: old_bson_value, new_bson_value: new_bson_value}
+    |> make_simple_event(:value_change_applied_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
