@@ -212,7 +212,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             end)
           end
 
-          result = insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
+          insert_result = insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
 
           if (previous_value == nil) and (path_created_triggers != []) do
               Enum.each(path_created_triggers, fn(trigger) ->
@@ -226,7 +226,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               end)
           end
 
-          result
+          insert_result
       end
 
     if result != :ok do
