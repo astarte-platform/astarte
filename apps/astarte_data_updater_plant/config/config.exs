@@ -12,4 +12,7 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
   virtual_host: "/",
   port: 5672
 
+config :astarte_data_updater_plant, :amqp_events_exchange_name,
+  "astarte_events"
+
 import_config "#{Mix.env}.exs"
