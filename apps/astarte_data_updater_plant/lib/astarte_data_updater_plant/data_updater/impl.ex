@@ -194,8 +194,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             if (value_change_triggers != []) or (value_change_applied_triggers != []) or (path_created_triggers != []) do
               retrieved_value = query_previous_value(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path)
               if retrieved_value != value do
+                # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
+                old_bson_value =
+                  %{v: retrieved_value}
+                  |> Bson.encode()
                 Enum.each(value_change_triggers, fn(trigger) ->
-                  process_trigger(new_state, trigger, delivery_tag, path, value)
+                  TriggersHandler.on_value_change(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
                 end)
               end
             else
