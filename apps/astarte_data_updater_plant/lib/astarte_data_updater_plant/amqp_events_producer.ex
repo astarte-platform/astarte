@@ -2,6 +2,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   require Logger
   use GenServer
 
+  alias AMQP.Basic
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Exchange
@@ -16,6 +17,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
+  def publish(payload, routing_key, headers) do
+    GenServer.call(__MODULE__, {:publish, payload, routing_key, headers})
+  end
+
   # Server callbacks
 
   def init(_args) do
@@ -25,6 +30,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   def terminate(_reason, %Channel{conn: conn} = chan) do
     Channel.close(chan)
     Connection.close(conn)
+  end
+
+  def handle_call({:publish, payload, routing_key, headers}, _from, chan) do
+    reply = Basic.publish(chan, @exchange_name, routing_key, payload, headers: headers)
+    {:reply, reply, chan}
   end
 
   def handle_info({:try_to_connect}, _state) do
