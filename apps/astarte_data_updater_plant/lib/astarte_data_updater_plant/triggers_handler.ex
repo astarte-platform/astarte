@@ -22,4 +22,36 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   This module handles the triggers by generating the events requested
   by the Trigger targets
   """
+
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
+
+  def on_incoming_data(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_incoming_data(target, realm, device_id, interface, path, bson_value)
+    end)
+  end
+
+  def on_incoming_data(target, realm, device_id, interface, path, bson_value) do
+    %IncomingDataEvent{interface: interface, path: path, bson_value: bson_value}
+    |> make_simple_event(:incoming_data_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
+  defp make_simple_event(event, event_type, simple_trigger_id, parent_trigger_id, realm, device_id) do
+    %SimpleEvent{
+      simple_trigger_id: simple_trigger_id,
+      parent_trigger_id: parent_trigger_id,
+      realm: realm,
+      device_id: device_id,
+      event: {event_type, event}
+    }
+  end
+
+  defp dispatch_event(event = %SimpleEvent{}, %AMQPTriggerTarget{routing_key: routing_key, static_headers: headers}) do
+    SimpleEvent.encode(event)
+    |> AMQPEventsProducer.publish(routing_key, headers)
+  end
 end
