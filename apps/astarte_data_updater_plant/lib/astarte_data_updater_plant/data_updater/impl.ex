@@ -192,19 +192,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           previous_value =
             if (value_change_triggers != []) or (value_change_applied_triggers != []) or (path_created_triggers != []) do
-              retrieved_value = query_previous_value(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path)
-              if retrieved_value != value do
-                # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
-                old_bson_value =
-                  %{v: retrieved_value}
-                  |> Bson.encode()
-                Enum.each(value_change_triggers, fn(trigger) ->
-                  TriggersHandler.on_value_change(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
-                end)
-              end
+              query_previous_value(db_client, interface_descriptor.aggregation, interface_descriptor.type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path)
             else
               nil
             end
+
+          # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
+          old_bson_value =
+            if previous_value do
+              %{v: previous_value}
+              |> Bson.encode()
+            else
+              <<>>
+            end
+
+          if old_bson_value != payload do
+            Enum.each(value_change_triggers, fn(trigger) ->
+              TriggersHandler.on_value_change(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
+            end)
+          end
 
           result = insert_value_into_db(db_client, interface_descriptor.storage_type, state.device_id, interface_descriptor, endpoint.endpoint_id, endpoint, path, value, timestamp)
 
