@@ -220,10 +220,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               end)
           end
 
-          if (previous_value != nil) and (value_change_applied_triggers != []) do
-              Enum.each(value_change_applied_triggers, fn(trigger) ->
-                process_trigger(new_state, trigger, delivery_tag, path, value)
-              end)
+          if old_bson_value != payload do
+            Enum.each(value_change_applied_triggers, fn(trigger) ->
+              TriggersHandler.on_value_change_applied(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
+            end)
           end
 
           insert_result
