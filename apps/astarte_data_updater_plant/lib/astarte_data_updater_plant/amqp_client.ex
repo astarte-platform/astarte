@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPClient do
     Connection.close(conn)
   end
 
-  def handle_call({:ack, delivery_tag}, chan) do
+  def handle_call({:ack, delivery_tag}, _from, chan) do
     res = Basic.ack(chan, delivery_tag)
     {:reply, res, chan}
   end
