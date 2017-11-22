@@ -303,19 +303,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ins ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been added to #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(introspection_triggers, {:on_interface_added, :any_interface}, [])
-            Enum.each(introspection_triggers, fn(trigger_target) ->
-              push_event_on_target(state, trigger_target, delivery_tag, {:added_interface, interface_name, interface_major})
-            end)
+            minor = Map.get(db_introspection_minor_map, interface_name)
+            interface_added_targets = Map.get(introspection_triggers, {:on_interface_added, :any_interface}, [])
+            TriggersHandler.on_interface_added(interface_added_targets, realm, device_id_string, interface_name, interface_major, minor)
           end)
 
         :del ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been removed from #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(introspection_triggers, {:on_interface_deleted, :any_interface}, [])
-            Enum.each(introspection_triggers, fn(trigger_target) ->
-              push_event_on_target(state, trigger_target, delivery_tag, {:deleted_interface, interface_name, interface_major})
-            end)
+            interface_removed_targets = Map.get(introspection_triggers, {:on_interface_deleted, :any_interface}, [])
+            TriggersHandler.on_interface_removed(interface_removed_targets, realm, device_id_string, interface_name, interface_major)
           end)
 
         :eq ->
