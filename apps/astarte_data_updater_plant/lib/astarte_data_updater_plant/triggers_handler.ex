@@ -88,6 +88,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     |> dispatch_event(target)
   end
 
+  def on_interface_minor_updated(targets, realm, device_id, interface, major_version, old_minor, new_minor) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor)
+    end)
+  end
+
+  def on_interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor) do
+    %InterfaceMinorUpdatedEvent{interface: interface, major_version: major_version, old_minor_version: old_minor, new_minor_version: new_minor}
+    |> make_simple_event(:interface_minor_updated_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
   def on_interface_removed(targets, realm, device_id, interface, major_version) when is_list(targets) do
     Enum.each(targets, fn target ->
       on_interface_removed(target, realm, device_id, interface, major_version)
