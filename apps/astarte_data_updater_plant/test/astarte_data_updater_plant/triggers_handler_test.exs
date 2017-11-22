@@ -1,21 +1,16 @@
 defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   use ExUnit.Case
 
+  use Astarte.Core.Triggers.SimpleEvents
+
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
-  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
+  @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
   @queue_name "test_events_queue"
   @routing_key "test_routing_key"
   @realm "test"
@@ -169,6 +164,45 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, "x_astarte_event_type") == "incoming_data_event"
     assert Map.get(headers_map, "x_astarte_simple_trigger_id") |> :uuid.string_to_uuid() == simple_trigger_id
     assert Map.get(headers_map, "x_astarte_parent_trigger_id") |> :uuid.string_to_uuid() ==  parent_trigger_id
+    assert Map.get(headers_map, static_header_key) == static_header_value
+  end
+
+  test "on_incoming_introspection AMQPTarget handling" do
+    simple_trigger_id = :uuid.get_v4()
+    parent_trigger_id = :uuid.get_v4()
+    static_header_key = "important_metadata_incoming_introspection"
+    static_header_value = "test_meta_incoming_introspection"
+    static_headers = [{static_header_key, static_header_value}]
+
+    target =
+      %AMQPTriggerTarget{
+        simple_trigger_id: simple_trigger_id,
+        parent_trigger_id: parent_trigger_id,
+        static_headers: static_headers,
+        routing_key: @routing_key
+      }
+
+    TriggersHandler.on_incoming_introspection(target, @realm, @device_id, @introspection)
+
+    assert_receive {:event, payload, meta}
+
+    assert %SimpleEvent{
+      device_id: @device_id,
+      parent_trigger_id: ^parent_trigger_id,
+      simple_trigger_id: ^simple_trigger_id,
+      realm: @realm,
+      event: {:incoming_introspection_event, incoming_introspection_event}
+    } = SimpleEvent.decode(payload)
+
+    assert %IncomingIntrospectionEvent{
+      introspection: @introspection,
+    } = incoming_introspection_event
+
+    headers_map = amqp_headers_to_map(meta.headers)
+
+    assert Map.get(headers_map, "x_astarte_realm") == @realm
+    assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+    assert Map.get(headers_map, "x_astarte_event_type") == "incoming_introspection_event"
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
