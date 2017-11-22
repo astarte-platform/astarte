@@ -189,6 +189,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           value_change_triggers = get_on_data_triggers(new_state, :on_value_change, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
           value_change_applied_triggers = get_on_data_triggers(new_state, :on_value_change_applied, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
           path_created_triggers = get_on_data_triggers(new_state, :on_path_created, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
+          path_removed_triggers = get_on_data_triggers(new_state, :on_path_removed, interface_descriptor.interface_id, endpoint.endpoint_id, path)
 
           previous_value =
             if (value_change_triggers != []) or (value_change_applied_triggers != []) or (path_created_triggers != []) do
@@ -217,6 +218,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           if old_bson_value == <<>> and payload != <<>> do
             Enum.each(path_created_triggers, fn(trigger) ->
               TriggersHandler.on_path_created(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
+            end)
+          end
+
+          if old_bson_value != <<>> and payload == <<>> do
+            Enum.each(path_created_triggers, fn(trigger) ->
+              TriggersHandler.on_path_removed(trigger.trigger_targets, realm, device_id_string, interface_name, path)
             end)
           end
 
