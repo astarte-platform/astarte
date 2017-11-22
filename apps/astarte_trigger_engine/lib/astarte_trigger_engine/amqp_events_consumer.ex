@@ -24,6 +24,7 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
   alias AMQP.Basic
   alias AMQP.Channel
   alias AMQP.Connection
+  alias AMQP.Exchange
   alias AMQP.Queue
   alias Astarte.TriggerEngine.Config
 
@@ -99,6 +100,7 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
+         :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.events_queue_name(), durable: true),
          :ok <- Queue.bind(chan, Config.events_queue_name(), Config.events_exchange_name(), routing_key: Config.events_routing_key()),
          {:ok, _consumer_tag} <- Basic.consume(chan, Config.events_queue_name()) do
