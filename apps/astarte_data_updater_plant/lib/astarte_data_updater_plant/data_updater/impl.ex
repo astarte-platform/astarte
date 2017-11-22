@@ -95,7 +95,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, device_update_query)
 
-    on_device_connection(state, delivery_tag)
+    trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
+    device_id_string = pretty_device_id(state.device_id)
+    TriggersHandler.on_device_connected(trigger_targets, state.realm, device_id_string, ip_address)
 
     state
   end
@@ -115,7 +117,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, device_update_query)
 
-    on_device_disconnection(state, delivery_tag)
+    trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
+    device_id_string = pretty_device_id(state.device_id)
+    TriggersHandler.on_device_disconnected(trigger_targets, state.realm, device_id_string)
 
     %{state |
       connected: false
@@ -688,24 +692,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     Logger.debug "#{state.realm}: Going to push event for trigger id #{:uuid.uuid_to_string(trigger_target.parent_trigger_id)}/#{:uuid.uuid_to_string(trigger_target.simple_trigger_id)} on #{pretty_device_id(state.device_id)} " <>
             "with routing key #{inspect trigger_target.routing_key}. Payload #{inspect payload}. event id: #{inspect event_id}"
-  end
-
-  defp on_device_connection(state, delivery_tag) do
-    trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
-    Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_target(state, trigger_target, delivery_tag, nil)
-    end)
-
-    :ok
-  end
-
-  defp on_device_disconnection(state, delivery_tag) do
-    trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
-    Enum.each(trigger_targets, fn(trigger_target) ->
-      push_event_on_target(state, trigger_target, delivery_tag, nil)
-    end)
-
-    :ok
   end
 
   defp get_on_data_triggers(state, event, interface_id, endpoint_id) do
