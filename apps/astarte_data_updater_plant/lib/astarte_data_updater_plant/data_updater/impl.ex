@@ -269,7 +269,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Map.put(introspection_map, interface_name, major_version)
       end)
 
-    will_be_discarded_state = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
+    %{introspection_triggers: introspection_triggers} = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
 
     #TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
 
@@ -289,18 +289,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ins ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been added to #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(will_be_discarded_state.introspection_triggers, {:on_interface_added, :any_interface}, [])
+            introspection_triggers = Map.get(introspection_triggers, {:on_interface_added, :any_interface}, [])
             Enum.each(introspection_triggers, fn(trigger_target) ->
-              push_event_on_target(will_be_discarded_state, trigger_target, delivery_tag, {:added_interface, interface_name, interface_major})
+              push_event_on_target(state, trigger_target, delivery_tag, {:added_interface, interface_name, interface_major})
             end)
           end)
 
         :del ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been removed from #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(will_be_discarded_state.introspection_triggers, {:on_interface_deleted, :any_interface}, [])
+            introspection_triggers = Map.get(introspection_triggers, {:on_interface_deleted, :any_interface}, [])
             Enum.each(introspection_triggers, fn(trigger_target) ->
-              push_event_on_target(will_be_discarded_state, trigger_target, delivery_tag, {:deleted_interface, interface_name, interface_major})
+              push_event_on_target(state, trigger_target, delivery_tag, {:deleted_interface, interface_name, interface_major})
             end)
           end)
 
