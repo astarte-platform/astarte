@@ -271,6 +271,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     %{introspection_triggers: introspection_triggers} = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
 
+    realm = state.realm
+    device_id_string = pretty_device_id(state.device_id)
+    on_introspection_targets = Map.get(introspection_triggers, {:on_incoming_introspection, :any_interface}, [])
+    TriggersHandler.on_incoming_introspection(on_introspection_targets, realm, device_id_string, payload)
+
     #TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
 
     current_sorted_introspection =
