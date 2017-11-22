@@ -23,14 +23,35 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   by the Trigger targets
   """
 
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
-  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
+  alias Astarte.Core.Triggers.SimpleEvents.{IncomingDataEvent,PathCreatedEvent,PathRemovedEvent,ValueChangeAppliedEvent,ValueChangeEvent}
+  alias Astarte.Core.Triggers.SimpleEvents.{DeviceConnectedEvent,DeviceDisconnectedEvent}
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
+
+  def on_device_connected(targets, realm, device_id, ip_address) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_device_connected(target, realm, device_id, ip_address)
+    end)
+  end
+
+  def on_device_connected(target, realm, device_id, ip_address) do
+    %DeviceConnectedEvent{device_ip_address: ip_address}
+    |> make_simple_event(:device_connected_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
+  def on_device_disconnected(targets, realm, device_id) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_device_disconnected(target, realm, device_id)
+    end)
+  end
+
+  def on_device_disconnected(target, realm, device_id) do
+    %DeviceDisconnectedEvent{}
+    |> make_simple_event(:device_disconnected_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
 
   def on_incoming_data(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
     Enum.each(targets, fn target ->
