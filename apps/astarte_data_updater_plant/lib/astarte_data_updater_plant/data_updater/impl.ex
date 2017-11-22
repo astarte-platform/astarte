@@ -222,7 +222,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           end
 
           if old_bson_value != <<>> and payload == <<>> do
-            Enum.each(path_created_triggers, fn(trigger) ->
+            Enum.each(path_removed_triggers, fn(trigger) ->
               TriggersHandler.on_path_removed(trigger.trigger_targets, realm, device_id_string, interface_name, path)
             end)
           end
