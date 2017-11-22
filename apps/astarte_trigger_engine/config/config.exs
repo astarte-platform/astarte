@@ -21,4 +21,11 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+config :astarte_trigger_engine, :amqp_consumer_options,
+  host: "localhost",
+  username: "guest",
+  password: "guest",
+  virtual_host: "/",
+  port: 5672
+
 import_config "#{Mix.env}.exs"
