@@ -4,6 +4,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
   alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
@@ -21,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @interface "com.Test.Interface"
   @path "/some/path"
   @bson_value %{v: "testvalue"} |> Bson.encode()
+  @ip_address "2.3.4.5"
 
   setup_all do
     {:ok, conn} = Connection.open(Config.amqp_producer_options())
@@ -47,6 +50,83 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     on_exit fn ->
       AMQP.Queue.unsubscribe(chan, consumer_tag)
     end
+  end
+
+  test "on_device_connected AMQPTarget handling" do
+    simple_trigger_id = :uuid.get_v4()
+    parent_trigger_id = :uuid.get_v4()
+    static_header_key = "important_metadata_connected"
+    static_header_value = "test_meta_connected"
+    static_headers = [{static_header_key, static_header_value}]
+
+    target =
+      %AMQPTriggerTarget{
+        simple_trigger_id: simple_trigger_id,
+        parent_trigger_id: parent_trigger_id,
+        static_headers: static_headers,
+        routing_key: @routing_key
+      }
+
+    TriggersHandler.on_device_connected(target, @realm, @device_id, @ip_address)
+
+    assert_receive {:event, payload, meta}
+
+    assert %SimpleEvent{
+      device_id: @device_id,
+      parent_trigger_id: ^parent_trigger_id,
+      simple_trigger_id: ^simple_trigger_id,
+      realm: @realm,
+      event: {:device_connected_event, device_connected_event}
+    } = SimpleEvent.decode(payload)
+
+    assert %DeviceConnectedEvent{
+      device_ip_address: @ip_address
+    } = device_connected_event
+
+    headers_map = amqp_headers_to_map(meta.headers)
+
+    assert Map.get(headers_map, "x_astarte_realm") == @realm
+    assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+    assert Map.get(headers_map, "x_astarte_event_type") == "device_connected_event"
+    assert Map.get(headers_map, static_header_key) == static_header_value
+  end
+
+  test "on_device_disconnected AMQPTarget handling" do
+    simple_trigger_id = :uuid.get_v4()
+    parent_trigger_id = :uuid.get_v4()
+    static_header_key = "important_metadata_disconnected"
+    static_header_value = "test_meta_disconnected"
+    static_headers = [{static_header_key, static_header_value}]
+
+    target =
+      %AMQPTriggerTarget{
+        simple_trigger_id: simple_trigger_id,
+        parent_trigger_id: parent_trigger_id,
+        static_headers: static_headers,
+        routing_key: @routing_key
+      }
+
+    TriggersHandler.on_device_disconnected(target, @realm, @device_id)
+
+    assert_receive {:event, payload, meta}
+
+    assert %SimpleEvent{
+      device_id: @device_id,
+      parent_trigger_id: ^parent_trigger_id,
+      simple_trigger_id: ^simple_trigger_id,
+      realm: @realm,
+      event: {:device_disconnected_event, device_disconnected_event}
+    } = SimpleEvent.decode(payload)
+
+    assert %DeviceDisconnectedEvent{
+    } = device_disconnected_event
+
+    headers_map = amqp_headers_to_map(meta.headers)
+
+    assert Map.get(headers_map, "x_astarte_realm") == @realm
+    assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+    assert Map.get(headers_map, "x_astarte_event_type") == "device_disconnected_event"
+    assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
   test "on_incoming_data AMQPTarget handling" do
