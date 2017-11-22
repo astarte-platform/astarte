@@ -87,6 +87,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, "x_astarte_realm") == @realm
     assert Map.get(headers_map, "x_astarte_device_id") == @device_id
     assert Map.get(headers_map, "x_astarte_event_type") == "incoming_data_event"
+    assert Map.get(headers_map, "x_astarte_simple_trigger_id") |> :uuid.string_to_uuid() == simple_trigger_id
+    assert Map.get(headers_map, "x_astarte_parent_trigger_id") |> :uuid.string_to_uuid() ==  parent_trigger_id
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
@@ -128,6 +130,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, "x_astarte_realm") == @realm
     assert Map.get(headers_map, "x_astarte_device_id") == @device_id
     assert Map.get(headers_map, "x_astarte_event_type") == "path_created_event"
+    assert Map.get(headers_map, "x_astarte_simple_trigger_id") |> :uuid.string_to_uuid() == simple_trigger_id
+    assert Map.get(headers_map, "x_astarte_parent_trigger_id") |> :uuid.string_to_uuid() ==  parent_trigger_id
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
@@ -168,6 +172,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, "x_astarte_realm") == @realm
     assert Map.get(headers_map, "x_astarte_device_id") == @device_id
     assert Map.get(headers_map, "x_astarte_event_type") == "path_removed_event"
+    assert Map.get(headers_map, "x_astarte_simple_trigger_id") |> :uuid.string_to_uuid() == simple_trigger_id
+    assert Map.get(headers_map, "x_astarte_parent_trigger_id") |> :uuid.string_to_uuid() ==  parent_trigger_id
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
@@ -212,6 +218,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, "x_astarte_realm") == @realm
     assert Map.get(headers_map, "x_astarte_device_id") == @device_id
     assert Map.get(headers_map, "x_astarte_event_type") == "value_change_event"
+    assert Map.get(headers_map, "x_astarte_simple_trigger_id") |> :uuid.string_to_uuid() == simple_trigger_id
+    assert Map.get(headers_map, "x_astarte_parent_trigger_id") |> :uuid.string_to_uuid() ==  parent_trigger_id
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
@@ -256,6 +264,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, "x_astarte_realm") == @realm
     assert Map.get(headers_map, "x_astarte_device_id") == @device_id
     assert Map.get(headers_map, "x_astarte_event_type") == "value_change_applied_event"
+    assert Map.get(headers_map, "x_astarte_simple_trigger_id") |> :uuid.string_to_uuid() == simple_trigger_id
+    assert Map.get(headers_map, "x_astarte_parent_trigger_id") |> :uuid.string_to_uuid() ==  parent_trigger_id
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
