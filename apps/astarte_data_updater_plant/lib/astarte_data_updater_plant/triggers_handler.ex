@@ -23,12 +23,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   by the Trigger targets
   """
 
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
-  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
+  alias Astarte.Core.Triggers.SimpleEvents.{IncomingDataEvent,PathCreatedEvent,PathRemovedEvent,ValueChangeAppliedEvent,ValueChangeEvent}
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
 
