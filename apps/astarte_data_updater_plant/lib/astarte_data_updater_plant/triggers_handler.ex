@@ -64,6 +64,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     |> dispatch_event(target)
   end
 
+  def on_incoming_introspection(targets, realm, device_id, introspection) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_incoming_introspection(target, realm, device_id, introspection)
+    end)
+  end
+
+  def on_incoming_introspection(target, realm, device_id, introspection) do
+    %IncomingIntrospectionEvent{introspection: introspection}
+    |> make_simple_event(:incoming_introspection_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
   def on_path_created(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
     Enum.each(targets, fn target ->
       on_path_created(target, realm, device_id, interface, path, bson_value)
