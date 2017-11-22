@@ -222,7 +222,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           end
 
           if old_bson_value != <<>> and payload == <<>> do
-            Enum.each(path_created_triggers, fn(trigger) ->
+            Enum.each(path_removed_triggers, fn(trigger) ->
               TriggersHandler.on_path_removed(trigger.trigger_targets, realm, device_id_string, interface_name, path)
             end)
           end
@@ -668,19 +668,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, delete_query)
     :ok
-  end
-
-  defp process_trigger(state, trigger, delivery_tag, path, value \\ nil) do
-    Enum.each(trigger.trigger_targets, fn(target) ->
-      event_payload =
-        if value do
-          {path, value}
-        else
-          path
-        end
-
-      push_event_on_target(state, target, delivery_tag, event_payload)
-    end)
   end
 
   defp push_event_on_target(state, %AMQPTriggerTarget{} = trigger_target, delivery_tag, payload) do

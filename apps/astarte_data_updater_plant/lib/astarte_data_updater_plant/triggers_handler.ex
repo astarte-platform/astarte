@@ -105,9 +105,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{routing_key: routing_key, static_headers: static_headers}) do
     {event_type, _event_struct} = simple_event.event
 
+    simple_trigger_id_str =
+      simple_event.simple_trigger_id
+      |> :uuid.uuid_to_string()
+      |> to_string()
+
+    parent_trigger_id_str =
+      simple_event.parent_trigger_id
+      |> :uuid.uuid_to_string()
+      |> to_string()
+
     headers =
       [{"x_astarte_realm", simple_event.realm},
        {"x_astarte_device_id", simple_event.device_id},
+       {"x_astarte_simple_trigger_id", simple_trigger_id_str},
+       {"x_astarte_parent_trigger_id", parent_trigger_id_str},
        {"x_astarte_event_type", to_string(event_type)}
        | static_headers]
 
