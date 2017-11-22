@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
@@ -52,6 +53,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   def on_path_created(target, realm, device_id, interface, path, bson_value) do
     %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(:path_created_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
+  def on_path_removed(targets, realm, device_id, interface, path) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_path_removed(target, realm, device_id, interface, path)
+    end)
+  end
+
+  def on_path_removed(target, realm, device_id, interface, path) do
+    %PathRemovedEvent{interface: interface, path: path}
+    |> make_simple_event(:path_removed_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
