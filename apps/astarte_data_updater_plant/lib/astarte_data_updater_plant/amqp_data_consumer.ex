@@ -63,7 +63,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   def handle_info({:basic_deliver, payload, meta}, chan) do
     {headers, no_headers_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
-    msg_type = Map.get(headers_map, "x_astarte_msg_type", headers_map)
+    msg_type = Map.get(headers_map, @msg_type_header, headers_map)
 
     {timestamp, clean_meta} = Map.pop(no_headers_meta, :timestamp)
 
