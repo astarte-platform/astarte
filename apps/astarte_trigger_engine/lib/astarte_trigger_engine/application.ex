@@ -22,8 +22,11 @@ defmodule Astarte.TriggerEngine.Application do
 
   use Application
 
+  alias Astarte.TriggerEngine.AMQPEventsConsumer
+
   def start(_type, _args) do
     children = [
+      AMQPEventsConsumer,
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.TriggerEngine.Supervisor]
