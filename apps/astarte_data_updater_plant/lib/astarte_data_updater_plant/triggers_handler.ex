@@ -88,6 +88,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     |> dispatch_event(target)
   end
 
+  def on_interface_removed(targets, realm, device_id, interface, major_version) when is_list(targets) do
+    Enum.each(targets, fn target ->
+      on_interface_removed(target, realm, device_id, interface, major_version)
+    end)
+  end
+
+  def on_interface_removed(target, realm, device_id, interface, major_version) do
+    %InterfaceRemovedEvent{interface: interface, major_version: major_version}
+    |> make_simple_event(:interface_removed_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> dispatch_event(target)
+  end
+
   def on_path_created(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
     Enum.each(targets, fn target ->
       on_path_created(target, realm, device_id, interface, path, bson_value)
