@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleEvents.{IncomingDataEvent,PathCreatedEvent,PathRemovedEvent,ValueChangeAppliedEvent,ValueChangeEvent}
+  alias Astarte.Core.Triggers.SimpleEvents.{DeviceConnectedEvent,DeviceDisconnectedEvent}
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
 
