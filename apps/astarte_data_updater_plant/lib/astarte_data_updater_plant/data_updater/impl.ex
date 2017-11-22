@@ -99,7 +99,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     device_id_string = pretty_device_id(state.device_id)
     TriggersHandler.on_device_connected(trigger_targets, state.realm, device_id_string, ip_address)
 
-    state
+    %{state |
+      connected: true
+    }
   end
 
   def handle_disconnection(state, delivery_tag, timestamp) do
