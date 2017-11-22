@@ -28,4 +28,13 @@ config :astarte_trigger_engine, :amqp_consumer_options,
   virtual_host: "/",
   port: 5672
 
+config :astarte_trigger_engine, :amqp_events_queue_name,
+  "astarte_events"
+
+config :astarte_trigger_engine, :amqp_events_exchange_name,
+  "astarte_events"
+
+config :astarte_trigger_engine, :amqp_events_routing_key,
+  "trigger_engine"
+
 import_config "#{Mix.env}.exs"
