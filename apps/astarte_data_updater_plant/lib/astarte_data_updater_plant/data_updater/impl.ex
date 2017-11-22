@@ -257,16 +257,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_introspection_list = String.split(payload, ";")
 
-    db_introspection_map =
-      List.foldl(new_introspection_list, %{}, fn(introspection_item, introspection_map) ->
-        [interface_name, major_version_string, _minor_version] = String.split(introspection_item, ":")
+    {db_introspection_map, db_introspection_minor_map} =
+      List.foldl(new_introspection_list, {%{}, %{}}, fn(introspection_item, {introspection_map, introspection_minor_map}) ->
+        [interface_name, major_version_string, minor_version_string] = String.split(introspection_item, ":")
         {major_version, garbage} = Integer.parse(major_version_string)
 
         if garbage != "" do
-          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage: #{garbage}."
+          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage in major version: #{garbage}."
         end
 
-        Map.put(introspection_map, interface_name, major_version)
+        {minor_version, garbage} = Integer.parse(minor_version_string)
+
+        if garbage != "" do
+          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage in minor version: #{garbage}."
+        end
+
+        introspection_map = Map.put(introspection_map, interface_name, major_version)
+        introspection_minor_map = Map.put(introspection_minor_map, interface_name, minor_version)
+
+        {introspection_map, introspection_minor_map}
       end)
 
     %{introspection_triggers: introspection_triggers} = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
@@ -314,11 +323,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
     end)
 
+    #TODO: handle triggers for interface minor updates
+
     device_update_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("UPDATE devices SET introspection=:introspection WHERE device_id=:device_id")
+      |> DatabaseQuery.statement("UPDATE devices SET introspection=:introspection, introspection_minor=:introspection_minor WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
       |> DatabaseQuery.put(:introspection, db_introspection_map)
+      |> DatabaseQuery.put(:introspection_minor, db_introspection_minor_map)
 
     DatabaseQuery.call!(db_client, device_update_query)
 
