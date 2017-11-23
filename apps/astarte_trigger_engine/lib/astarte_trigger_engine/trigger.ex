@@ -83,10 +83,17 @@ defmodule Astarte.TriggerEngine.Trigger do
   end
 
   def to_simple_triggers(%{"interface" => interface} = map) do
-    %{
-      interface: interface,
-      path: Map.get(map, "path"),
-      event: data_trigger_event_type_to_atom(map["event"])
+    #TODO: error checking
+    {:ok,
+      %{
+        interface: interface,
+        path: Map.get(map, "path"),
+        event: data_trigger_event_type_to_atom(map["event"])
+      }
     }
+  end
+
+  def to_simple_triggers(_) do
+    {:error, :invalid_trigger}
   end
 end
