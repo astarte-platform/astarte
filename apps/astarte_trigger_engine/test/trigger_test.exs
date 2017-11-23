@@ -84,4 +84,83 @@ defmodule Astarte.TriggerEngine.TriggerTest do
 
     assert Trigger.from_json(doc) == {:ok, expected_value}
   end
+
+  test "invalid JSON deserialization" do
+    invalid_doc = """
+        "name": "missing_opening_bracket",
+        "description": "this is a test trigger.",
+
+        "interface": "com.example.array",
+        "path": "/sensor/0/values",
+        "event": "incoming_data",
+
+        "queue": "my_queue_for_http_200",
+
+        "action": {
+          "type": "push_to_http",
+          "method": "POST",
+          "url": "http://www.astarte-example.com/push_event.php?device=%{device_id}",
+          "headers": ["Interface: %{interface_name}"],
+          "body_type": "json",
+          "body": {
+            "type": "astarte.templates.for_each",
+            "var": "value.example_array",
+            "current_item_var_name": "current_item",
+            "repeat":  {"example_value": {"type": "astarte.templates.text", "var": "current_item"}}
+          }
+        }
+      }
+    """
+
+    assert Trigger.from_json(invalid_doc) == {:error, :invalid_json}
+  end
+
+  test "invalid action" do
+    invalid_action_doc = """
+      {
+        "name": "invalid_action",
+        "description": "this is a test trigger.",
+
+        "interface": "com.example.array",
+        "path": "/sensor/0/values",
+        "event": "incoming_data",
+
+        "queue": "my_queue_for_http_200",
+
+        "action": {
+          "type": "invalid_action"
+        }
+      }
+    """
+    assert Trigger.from_json(invalid_action_doc) == {:error, :invalid_action}
+  end
+
+  test "invalid trigger" do
+    invalid_trigger_doc = """
+      {
+        "name": "invalid_trigger",
+        "description": "this is a test trigger.",
+
+        "invalid_trigger": "invalid",
+
+        "queue": "my_queue_for_http_200",
+
+        "action": {
+          "type": "push_to_http",
+          "method": "POST",
+          "url": "http://www.astarte-example.com/push_event.php?device=%{device_id}",
+          "headers": ["Interface: %{interface_name}"],
+          "body_type": "json",
+          "body": {
+            "type": "astarte.templates.for_each",
+            "var": "value.example_array",
+            "current_item_var_name": "current_item",
+            "repeat":  {"example_value": {"type": "astarte.templates.text", "var": "current_item"}}
+          }
+        }
+      }
+    """
+
+    assert Trigger.from_json(invalid_trigger_doc) == {:error, :invalid_trigger}
+  end
 end
