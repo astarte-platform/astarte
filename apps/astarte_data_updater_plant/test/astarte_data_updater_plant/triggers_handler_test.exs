@@ -49,7 +49,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     end
   end
 
-  test "on_device_connected AMQPTarget handling" do
+  test "device_connected AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_connected"
@@ -64,7 +64,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_device_connected(target, @realm, @device_id, @ip_address)
+    TriggersHandler.device_connected(target, @realm, @device_id, @ip_address)
 
     assert_receive {:event, payload, meta}
 
@@ -88,7 +88,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_device_disconnected AMQPTarget handling" do
+  test "device_disconnected AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_disconnected"
@@ -103,7 +103,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_device_disconnected(target, @realm, @device_id)
+    TriggersHandler.device_disconnected(target, @realm, @device_id)
 
     assert_receive {:event, payload, meta}
 
@@ -126,7 +126,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_incoming_data AMQPTarget handling" do
+  test "incoming_data AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata"
@@ -141,7 +141,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_incoming_data(target, @realm, @device_id, @interface, @path, @bson_value)
+    TriggersHandler.incoming_data(target, @realm, @device_id, @interface, @path, @bson_value)
 
     assert_receive {:event, payload, meta}
 
@@ -169,7 +169,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_incoming_introspection AMQPTarget handling" do
+  test "incoming_introspection AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_incoming_introspection"
@@ -184,7 +184,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_incoming_introspection(target, @realm, @device_id, @introspection)
+    TriggersHandler.incoming_introspection(target, @realm, @device_id, @introspection)
 
     assert_receive {:event, payload, meta}
 
@@ -208,7 +208,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_interface_added AMQPTarget handling" do
+  test "interface_added AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_interface_added"
@@ -223,7 +223,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_interface_added(target, @realm, @device_id, @interface, @major_version, @minor_version)
+    TriggersHandler.interface_added(target, @realm, @device_id, @interface, @major_version, @minor_version)
 
     assert_receive {:event, payload, meta}
 
@@ -249,7 +249,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_interface_minor_updated AMQPTarget handling" do
+  test "interface_minor_updated AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_interface_minor_updated"
@@ -267,7 +267,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     old_minor_version = @minor_version
     new_minor_version = @minor_version + 2
 
-    TriggersHandler.on_interface_minor_updated(target, @realm, @device_id, @interface, @major_version, old_minor_version, new_minor_version)
+    TriggersHandler.interface_minor_updated(target, @realm, @device_id, @interface, @major_version, old_minor_version, new_minor_version)
 
     assert_receive {:event, payload, meta}
 
@@ -296,7 +296,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
 
 
-  test "on_interface_removed AMQPTarget handling" do
+  test "interface_removed AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_interface_removed"
@@ -311,7 +311,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_interface_removed(target, @realm, @device_id, @interface, @major_version)
+    TriggersHandler.interface_removed(target, @realm, @device_id, @interface, @major_version)
 
     assert_receive {:event, payload, meta}
 
@@ -336,7 +336,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_path_created AMQPTarget handling" do
+  test "path_created AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_path_created"
@@ -351,7 +351,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_path_created(target, @realm, @device_id, @interface, @path, @bson_value)
+    TriggersHandler.path_created(target, @realm, @device_id, @interface, @path, @bson_value)
 
     assert_receive {:event, payload, meta}
 
@@ -379,7 +379,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_path_removed AMQPTarget handling" do
+  test "path_removed AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_path_removed"
@@ -394,7 +394,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_path_removed(target, @realm, @device_id, @interface, @path)
+    TriggersHandler.path_removed(target, @realm, @device_id, @interface, @path)
 
     assert_receive {:event, payload, meta}
 
@@ -421,7 +421,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_value_change AMQPTarget handling" do
+  test "value_change AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_value_change"
@@ -438,7 +438,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_value_change(target, @realm, @device_id, @interface, @path, old_bson_value, new_bson_value)
+    TriggersHandler.value_change(target, @realm, @device_id, @interface, @path, old_bson_value, new_bson_value)
 
     assert_receive {:event, payload, meta}
 
@@ -467,7 +467,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
-  test "on_value_change_applied AMQPTarget handling" do
+  test "value_change_applied AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()
     static_header_key = "important_metadata_value_change_applied"
@@ -484,7 +484,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-    TriggersHandler.on_value_change_applied(target, @realm, @device_id, @interface, @path, old_bson_value, new_bson_value)
+    TriggersHandler.value_change_applied(target, @realm, @device_id, @interface, @path, old_bson_value, new_bson_value)
 
     assert_receive {:event, payload, meta}
 
