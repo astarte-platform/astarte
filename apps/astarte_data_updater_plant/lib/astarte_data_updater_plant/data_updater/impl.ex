@@ -96,7 +96,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
     device_id_string = pretty_device_id(state.device_id)
-    TriggersHandler.on_device_connected(trigger_targets, state.realm, device_id_string, ip_address)
+    TriggersHandler.device_connected(trigger_targets, state.realm, device_id_string, ip_address)
 
     %{state |
       connected: true
@@ -120,7 +120,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
     device_id_string = pretty_device_id(state.device_id)
-    TriggersHandler.on_device_disconnected(trigger_targets, state.realm, device_id_string)
+    TriggersHandler.device_disconnected(trigger_targets, state.realm, device_id_string)
 
     %{state |
       connected: false
@@ -178,17 +178,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           any_interface_triggers = get_on_data_triggers(new_state, :on_incoming_data, :any_interface, :any_endpoint)
           Enum.each(any_interface_triggers, fn(trigger) ->
-            TriggersHandler.on_incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
+            TriggersHandler.incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
           end)
 
           any_endpoint_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, :any_endpoint )
           Enum.each(any_endpoint_triggers, fn(trigger) ->
-            TriggersHandler.on_incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
+            TriggersHandler.incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
           end)
 
           incoming_data_triggers = get_on_data_triggers(new_state, :on_incoming_data, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
           Enum.each(incoming_data_triggers, fn(trigger) ->
-            TriggersHandler.on_incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
+            TriggersHandler.incoming_data(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
           end)
 
           value_change_triggers = get_on_data_triggers(new_state, :on_value_change, interface_descriptor.interface_id, endpoint.endpoint_id, path, value)
@@ -214,7 +214,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           if old_bson_value != payload do
             Enum.each(value_change_triggers, fn(trigger) ->
-              TriggersHandler.on_value_change(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
+              TriggersHandler.value_change(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
             end)
           end
 
@@ -222,19 +222,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           if old_bson_value == <<>> and payload != <<>> do
             Enum.each(path_created_triggers, fn(trigger) ->
-              TriggersHandler.on_path_created(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
+              TriggersHandler.path_created(trigger.trigger_targets, realm, device_id_string, interface_name, path, payload)
             end)
           end
 
           if old_bson_value != <<>> and payload == <<>> do
             Enum.each(path_removed_triggers, fn(trigger) ->
-              TriggersHandler.on_path_removed(trigger.trigger_targets, realm, device_id_string, interface_name, path)
+              TriggersHandler.path_removed(trigger.trigger_targets, realm, device_id_string, interface_name, path)
             end)
           end
 
           if old_bson_value != payload do
             Enum.each(value_change_applied_triggers, fn(trigger) ->
-              TriggersHandler.on_value_change_applied(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
+              TriggersHandler.value_change_applied(trigger.trigger_targets, realm, device_id_string, interface_name, path, old_bson_value, payload)
             end)
           end
 
@@ -282,7 +282,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     realm = state.realm
     device_id_string = pretty_device_id(state.device_id)
     on_introspection_targets = Map.get(introspection_triggers, {:on_incoming_introspection, :any_interface}, [])
-    TriggersHandler.on_incoming_introspection(on_introspection_targets, realm, device_id_string, payload)
+    TriggersHandler.incoming_introspection(on_introspection_targets, realm, device_id_string, payload)
 
     #TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
 
@@ -304,14 +304,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
             minor = Map.get(db_introspection_minor_map, interface_name)
             interface_added_targets = Map.get(introspection_triggers, {:on_interface_added, :any_interface}, [])
-            TriggersHandler.on_interface_added(interface_added_targets, realm, device_id_string, interface_name, interface_major, minor)
+            TriggersHandler.interface_added(interface_added_targets, realm, device_id_string, interface_name, interface_major, minor)
           end)
 
         :del ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been removed from #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
             interface_removed_targets = Map.get(introspection_triggers, {:on_interface_deleted, :any_interface}, [])
-            TriggersHandler.on_interface_removed(interface_removed_targets, realm, device_id_string, interface_name, interface_major)
+            TriggersHandler.interface_removed(interface_removed_targets, realm, device_id_string, interface_name, interface_major)
           end)
 
         :eq ->
@@ -663,7 +663,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                 delete_property_from_db(new_state, db_client, interface_descriptor, endpoint_id, path)
                 path_removed_triggers = get_on_data_triggers(new_state, :on_path_removed, interface_descriptor.interface_id, endpoint_id, path)
                 Enum.each(path_removed_triggers, fn(trigger) ->
-                  TriggersHandler.on_path_removed(trigger.trigger_targets, state.realm, device_id_string, interface_descriptor.name, path)
+                  TriggersHandler.path_removed(trigger.trigger_targets, state.realm, device_id_string, interface_descriptor.name, path)
                 end)
               end
             end)

@@ -28,133 +28,133 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
 
-  def on_device_connected(targets, realm, device_id, ip_address) when is_list(targets) do
+  def device_connected(targets, realm, device_id, ip_address) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_device_connected(target, realm, device_id, ip_address)
+      device_connected(target, realm, device_id, ip_address)
     end)
   end
 
-  def on_device_connected(target, realm, device_id, ip_address) do
+  def device_connected(target, realm, device_id, ip_address) do
     %DeviceConnectedEvent{device_ip_address: ip_address}
     |> make_simple_event(:device_connected_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_device_disconnected(targets, realm, device_id) when is_list(targets) do
+  def device_disconnected(targets, realm, device_id) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_device_disconnected(target, realm, device_id)
+      device_disconnected(target, realm, device_id)
     end)
   end
 
-  def on_device_disconnected(target, realm, device_id) do
+  def device_disconnected(target, realm, device_id) do
     %DeviceDisconnectedEvent{}
     |> make_simple_event(:device_disconnected_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_incoming_data(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
+  def incoming_data(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_incoming_data(target, realm, device_id, interface, path, bson_value)
+      incoming_data(target, realm, device_id, interface, path, bson_value)
     end)
   end
 
-  def on_incoming_data(target, realm, device_id, interface, path, bson_value) do
+  def incoming_data(target, realm, device_id, interface, path, bson_value) do
     %IncomingDataEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(:incoming_data_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_incoming_introspection(targets, realm, device_id, introspection) when is_list(targets) do
+  def incoming_introspection(targets, realm, device_id, introspection) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_incoming_introspection(target, realm, device_id, introspection)
+      incoming_introspection(target, realm, device_id, introspection)
     end)
   end
 
-  def on_incoming_introspection(target, realm, device_id, introspection) do
+  def incoming_introspection(target, realm, device_id, introspection) do
     %IncomingIntrospectionEvent{introspection: introspection}
     |> make_simple_event(:incoming_introspection_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_interface_added(targets, realm, device_id, interface, major_version, minor_version) when is_list(targets) do
+  def interface_added(targets, realm, device_id, interface, major_version, minor_version) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_interface_added(target, realm, device_id, interface, major_version, minor_version)
+      interface_added(target, realm, device_id, interface, major_version, minor_version)
     end)
   end
 
-  def on_interface_added(target, realm, device_id, interface, major_version, minor_version) do
+  def interface_added(target, realm, device_id, interface, major_version, minor_version) do
     %InterfaceAddedEvent{interface: interface, major_version: major_version, minor_version: minor_version}
     |> make_simple_event(:interface_added_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_interface_minor_updated(targets, realm, device_id, interface, major_version, old_minor, new_minor) when is_list(targets) do
+  def interface_minor_updated(targets, realm, device_id, interface, major_version, old_minor, new_minor) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor)
+      interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor)
     end)
   end
 
-  def on_interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor) do
+  def interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor) do
     %InterfaceMinorUpdatedEvent{interface: interface, major_version: major_version, old_minor_version: old_minor, new_minor_version: new_minor}
     |> make_simple_event(:interface_minor_updated_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_interface_removed(targets, realm, device_id, interface, major_version) when is_list(targets) do
+  def interface_removed(targets, realm, device_id, interface, major_version) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_interface_removed(target, realm, device_id, interface, major_version)
+      interface_removed(target, realm, device_id, interface, major_version)
     end)
   end
 
-  def on_interface_removed(target, realm, device_id, interface, major_version) do
+  def interface_removed(target, realm, device_id, interface, major_version) do
     %InterfaceRemovedEvent{interface: interface, major_version: major_version}
     |> make_simple_event(:interface_removed_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_path_created(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
+  def path_created(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_path_created(target, realm, device_id, interface, path, bson_value)
+      path_created(target, realm, device_id, interface, path, bson_value)
     end)
   end
 
-  def on_path_created(target, realm, device_id, interface, path, bson_value) do
+  def path_created(target, realm, device_id, interface, path, bson_value) do
     %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(:path_created_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_path_removed(targets, realm, device_id, interface, path) when is_list(targets) do
+  def path_removed(targets, realm, device_id, interface, path) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_path_removed(target, realm, device_id, interface, path)
+      path_removed(target, realm, device_id, interface, path)
     end)
   end
 
-  def on_path_removed(target, realm, device_id, interface, path) do
+  def path_removed(target, realm, device_id, interface, path) do
     %PathRemovedEvent{interface: interface, path: path}
     |> make_simple_event(:path_removed_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_value_change(targets, realm, device_id, interface, path, old_bson_value, new_bson_value) when is_list(targets) do
+  def value_change(targets, realm, device_id, interface, path, old_bson_value, new_bson_value) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
+      value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
     end)
   end
 
-  def on_value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
+  def value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
     %ValueChangeEvent{interface: interface, path: path, old_bson_value: old_bson_value, new_bson_value: new_bson_value}
     |> make_simple_event(:value_change_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
   end
 
-  def on_value_change_applied(targets, realm, device_id, interface, path, old_bson_value, new_bson_value) when is_list(targets) do
+  def value_change_applied(targets, realm, device_id, interface, path, old_bson_value, new_bson_value) when is_list(targets) do
     Enum.each(targets, fn target ->
-      on_value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
+      value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
     end)
   end
 
-  def on_value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
+  def value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
     %ValueChangeAppliedEvent{interface: interface, path: path, old_bson_value: old_bson_value, new_bson_value: new_bson_value}
     |> make_simple_event(:value_change_applied_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
     |> dispatch_event(target)
