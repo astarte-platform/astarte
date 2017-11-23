@@ -82,6 +82,6 @@ defmodule Astarte.TriggerEngine.TriggerTest do
       }
     }
 
-    assert Trigger.from_json(doc) == expected_value
+    assert Trigger.from_json(doc) == {:ok, expected_value}
   end
 end
