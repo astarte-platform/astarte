@@ -65,14 +65,30 @@ defmodule Astarte.TriggerEngine.Trigger do
   end
 
   def from_json(json_document) do
-    json_obj = Poison.decode!(json_document)
+    json_decode_result =
+      case Poison.decode(json_document) do
+        {:ok, json_obj} ->
+          {:ok, json_obj}
 
-    %Trigger{
-      name: json_obj["name"],
-      queue: json_obj["queue"],
-      simple_triggers: to_simple_triggers(json_obj),
-      action: action_from_map(json_obj["action"])
-    }
+        {:error, reason} ->
+          {:error, :invalid_json}
+      end
+
+    with {:ok, json_obj} <- json_decode_result,
+         name = json_obj["name"],
+         queue = json_obj["queue"],
+         {:ok, simple_triggers} <- to_simple_triggers(json_obj),
+         {:ok, action} <- action_from_map(json_obj["action"]) do
+
+      {:ok,
+        %Trigger{
+          name: name,
+          queue: queue,
+          simple_triggers: simple_triggers,
+          action: action,
+        }
+      }
+    end
   end
 
   def data_trigger_event_type_to_atom(event) do
