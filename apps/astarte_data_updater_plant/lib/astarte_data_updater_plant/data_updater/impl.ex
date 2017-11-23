@@ -25,7 +25,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
@@ -257,19 +256,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_introspection_list = String.split(payload, ";")
 
-    db_introspection_map =
-      List.foldl(new_introspection_list, %{}, fn(introspection_item, introspection_map) ->
-        [interface_name, major_version_string, _minor_version] = String.split(introspection_item, ":")
+    {db_introspection_map, db_introspection_minor_map} =
+      List.foldl(new_introspection_list, {%{}, %{}}, fn(introspection_item, {introspection_map, introspection_minor_map}) ->
+        [interface_name, major_version_string, minor_version_string] = String.split(introspection_item, ":")
         {major_version, garbage} = Integer.parse(major_version_string)
 
         if garbage != "" do
-          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage: #{garbage}."
+          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage in major version: #{garbage}."
         end
 
-        Map.put(introspection_map, interface_name, major_version)
+        {minor_version, garbage} = Integer.parse(minor_version_string)
+
+        if garbage != "" do
+          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage in minor version: #{garbage}."
+        end
+
+        introspection_map = Map.put(introspection_map, interface_name, major_version)
+        introspection_minor_map = Map.put(introspection_minor_map, interface_name, minor_version)
+
+        {introspection_map, introspection_minor_map}
       end)
 
-    will_be_discarded_state = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
+    %{introspection_triggers: introspection_triggers} = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
+
+    realm = state.realm
+    device_id_string = pretty_device_id(state.device_id)
+    on_introspection_targets = Map.get(introspection_triggers, {:on_incoming_introspection, :any_interface}, [])
+    TriggersHandler.on_incoming_introspection(on_introspection_targets, realm, device_id_string, payload)
 
     #TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
 
@@ -289,19 +302,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ins ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been added to #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(will_be_discarded_state.introspection_triggers, {:on_interface_added, :any_interface}, [])
-            Enum.each(introspection_triggers, fn(trigger_target) ->
-              push_event_on_target(will_be_discarded_state, trigger_target, delivery_tag, {:added_interface, interface_name, interface_major})
-            end)
+            minor = Map.get(db_introspection_minor_map, interface_name)
+            interface_added_targets = Map.get(introspection_triggers, {:on_interface_added, :any_interface}, [])
+            TriggersHandler.on_interface_added(interface_added_targets, realm, device_id_string, interface_name, interface_major, minor)
           end)
 
         :del ->
           Logger.debug "#{state.realm}: Interfaces #{inspect changed_interfaces} have been removed from #{pretty_device_id(state.device_id)} ."
           Enum.each(changed_interfaces, fn({interface_name, interface_major}) ->
-            introspection_triggers = Map.get(will_be_discarded_state.introspection_triggers, {:on_interface_deleted, :any_interface}, [])
-            Enum.each(introspection_triggers, fn(trigger_target) ->
-              push_event_on_target(will_be_discarded_state, trigger_target, delivery_tag, {:deleted_interface, interface_name, interface_major})
-            end)
+            interface_removed_targets = Map.get(introspection_triggers, {:on_interface_deleted, :any_interface}, [])
+            TriggersHandler.on_interface_removed(interface_removed_targets, realm, device_id_string, interface_name, interface_major)
           end)
 
         :eq ->
@@ -309,11 +319,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
     end)
 
+    #TODO: handle triggers for interface minor updates
+
     device_update_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("UPDATE devices SET introspection=:introspection WHERE device_id=:device_id")
+      |> DatabaseQuery.statement("UPDATE devices SET introspection=:introspection, introspection_minor=:introspection_minor WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, state.device_id)
       |> DatabaseQuery.put(:introspection, db_introspection_map)
+      |> DatabaseQuery.put(:introspection_minor, db_introspection_minor_map)
 
     DatabaseQuery.call!(db_client, device_update_query)
 
@@ -674,13 +687,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     DatabaseQuery.call!(db_client, delete_query)
     :ok
-  end
-
-  defp push_event_on_target(state, %AMQPTriggerTarget{} = trigger_target, delivery_tag, payload) do
-    event_id = delivery_tag
-
-    Logger.debug "#{state.realm}: Going to push event for trigger id #{:uuid.uuid_to_string(trigger_target.parent_trigger_id)}/#{:uuid.uuid_to_string(trigger_target.simple_trigger_id)} on #{pretty_device_id(state.device_id)} " <>
-            "with routing key #{inspect trigger_target.routing_key}. Payload #{inspect payload}. event id: #{inspect event_id}"
   end
 
   defp get_on_data_triggers(state, event, interface_id, endpoint_id) do
