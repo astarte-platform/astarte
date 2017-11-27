@@ -820,11 +820,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         |> Map.put(:simple_trigger_id, trigger_id)
         |> Map.put(:parent_trigger_id, parent_trigger_id)
 
-      load_trigger(state_acc, object_id, object_type, simple_trigger, trigger_target)
+      load_trigger(state_acc, simple_trigger, trigger_target)
     end)
   end
 
-  defp load_trigger(state, object_id, _object_type, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
+  defp load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
     data_trigger = SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
     data_triggers = state.data_triggers
 
@@ -853,16 +853,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           :on_value_stored
       end
 
+    interface_id = data_trigger.interface_id
+
     endpoint =
-      if proto_buf_data_trigger.match_path != :any_endpoint do
-        interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, object_id))
+      if proto_buf_data_trigger.match_path != :any_endpoint and interface_id != :any_interface do
+        interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, interface_id))
         {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(proto_buf_data_trigger.match_path, interface_descriptor.automaton)
         endpoint_id
       else
         :any_endpoint
       end
 
-    data_trigger_key = {event_type, object_id, endpoint}
+    data_trigger_key = {event_type, interface_id, endpoint}
 
     candidate_triggers = Map.get(data_triggers, data_trigger_key)
     existing_trigger =
@@ -899,7 +901,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :data_triggers, next_data_triggers)
   end
 
-  defp load_trigger(state, _object_id, _object_type, {:introspection_trigger, proto_buf_introspection_trigger}, trigger_target) do
+  defp load_trigger(state, {:introspection_trigger, proto_buf_introspection_trigger}, trigger_target) do
     introspection_triggers = state.introspection_triggers
 
     event_type =
@@ -929,7 +931,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :introspection_triggers, next_introspection_triggers)
   end
 
-  defp load_trigger(state, _object_id, _object_type, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
+  defp load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
     device_triggers = state.device_triggers
 
     event_type =
