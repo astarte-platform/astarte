@@ -853,16 +853,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           :on_value_stored
       end
 
+    interface_id = data_trigger.interface_id
+
     endpoint =
-      if proto_buf_data_trigger.match_path != :any_endpoint do
-        interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, object_id))
+      if proto_buf_data_trigger.match_path != :any_endpoint and interface_id != :any_interface do
+        interface_descriptor = Map.get(state.interfaces, Map.get(state.interface_ids_to_name, interface_id))
         {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(proto_buf_data_trigger.match_path, interface_descriptor.automaton)
         endpoint_id
       else
         :any_endpoint
       end
 
-    data_trigger_key = {event_type, object_id, endpoint}
+    data_trigger_key = {event_type, interface_id, endpoint}
 
     candidate_triggers = Map.get(data_triggers, data_trigger_key)
     existing_trigger =
