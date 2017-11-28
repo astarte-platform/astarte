@@ -35,7 +35,7 @@ defmodule Astarte.TriggerEngine.Templating.TextTemplate do
   end
 
   def put(template, var_key, var_value) do
-    replaced_text = String.replace(template.text, "%{#{var_key}}", var_value)
+    replaced_text = String.replace(template.text, "{{#{var_key}}}", var_value)
     Map.put(template, :text, replaced_text)
   end
 
