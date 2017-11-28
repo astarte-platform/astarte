@@ -33,8 +33,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
-  @any_device_object_id <<140, 77, 4, 17, 75, 202, 11, 92, 131, 72, 15, 167, 65, 149, 191, 244>>
-  @any_interface_object_id <<247, 238, 60, 243, 184, 175, 236, 43, 25, 242, 126, 91, 253, 141, 17, 119>>
   @max_uncompressed_payload_size 10485760
 
   def init_state(realm, device_id) do
@@ -66,6 +64,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           Enum.into(result, %{})
       end
 
+    any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
+
     %{new_state |
       connected: true,
       total_received_msgs: device_row[:total_received_msgs],
@@ -78,7 +78,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       data_triggers: %{},
       introspection_triggers: %{}
     }
-    |> populate_triggers_for_object!(db_client, @any_device_object_id, :any_device)
+    |> populate_triggers_for_object!(db_client, any_device_id, :any_device)
     |> populate_triggers_for_object!(db_client, device_id, :device)
   end
 
@@ -277,7 +277,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         {introspection_map, introspection_minor_map}
       end)
 
-    %{introspection_triggers: introspection_triggers} = populate_triggers_for_object!(state, db_client, @any_interface_object_id, :any_interface)
+    any_interface_id = SimpleTriggersProtobufUtils.any_interface_object_id()
+    %{introspection_triggers: introspection_triggers} = populate_triggers_for_object!(state, db_client, any_interface_id, :any_interface)
 
     realm = state.realm
     device_id_string = pretty_device_id(state.device_id)
