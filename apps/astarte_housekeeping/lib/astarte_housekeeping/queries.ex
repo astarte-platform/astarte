@@ -31,6 +31,15 @@ defmodule Astarte.Housekeeping.Queries do
           durable_writes = true;
     """,
     """
+      CREATE TABLE :realm_name.kv_store (
+        group varchar,
+        key varchar,
+        value blob,
+
+        PRIMARY KEY ((group), key)
+      );
+    """,
+    """
       CREATE TABLE :realm_name.devices (
         device_id uuid,
         extended_id ascii,
