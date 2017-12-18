@@ -43,5 +43,7 @@ release :astarte_realm_management do
   set applications: [
     :runtime_tools
   ]
+
+  plugin Conform.ReleasePlugin
 end
 
