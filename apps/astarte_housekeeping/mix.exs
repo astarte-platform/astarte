@@ -40,6 +40,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   defp deps do
     [
       {:cqex, github: "ispirata/cqex"},
+      {:conform, "~> 2.2"},
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
     ]
