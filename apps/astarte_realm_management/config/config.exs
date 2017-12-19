@@ -21,4 +21,7 @@ use Mix.Config
 #     config :logger, level: :info
 #
 
+config :astarte_rpc, :amqp_queue,
+  "realm_management_rpc"
+
 import_config "#{Mix.env}.exs"
