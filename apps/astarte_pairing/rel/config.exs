@@ -49,5 +49,7 @@ release :astarte_pairing do
   set applications: [
     :runtime_tools
   ]
+
+  plugin Conform.ReleasePlugin
 end
 

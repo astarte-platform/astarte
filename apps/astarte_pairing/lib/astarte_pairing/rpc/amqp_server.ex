@@ -23,9 +23,7 @@ defmodule Astarte.Pairing.RPC.AMQPServer do
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.Engine
 
-  use Astarte.RPC.AMQPServer,
-    queue: Config.rpc_queue!(),
-    amqp_options: Config.amqp_options()
+  use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.Pairing
 
   def process_rpc(payload) do

@@ -5,4 +5,7 @@ use Mix.Config
 config :astarte_pairing, :secret_key_base,
   "42WxT+9X+hKbTlv3n7cmzCrlzO2NpCVjRUlpfPYdWt627wetvY4il7Qpq6RRqeNk"
 
+config :astarte_rpc, :amqp_queue,
+  "pairing_rpc"
+
 import_config "#{Mix.env}.exs"

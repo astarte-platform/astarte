@@ -23,12 +23,14 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_rpc, in_umbrella: true}
+      {:astarte_rpc, in_umbrella: true},
+      {:astarte_data_access, in_umbrella: true}
     ]
   end
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"}
+      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"},
+      {:astarte_data_access, git: "https://git.ispirata.com/Astarte-NG/astarte_data_access"}
     ]
   end
 
@@ -39,6 +41,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:plug, "~> 1.4.0"},
       {:uuid, "~> 1.7", hex: :uuid_erl},
       {:cfxxl, "~> 0.3.0"},
+      {:conform, "~> 2.2"},
 
       {:excoveralls, "~> 0.7.3", only: :test},
       {:distillery, "~> 1.5", runtime: false}
