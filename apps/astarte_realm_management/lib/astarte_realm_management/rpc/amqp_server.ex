@@ -18,9 +18,7 @@
 #
 
 defmodule Astarte.RealmManagement.RPC.AMQPServer do
-  use Astarte.RPC.AMQPServer,
-    queue: Application.fetch_env!(:astarte_realm_management, :rpc_queue),
-    amqp_options: Application.get_env(:astarte_realm_management, :amqp_connection, [])
+  use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.RealmManagement
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
