@@ -18,13 +18,6 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
   url: [host: "example.com", port: 80],
   cache_static_manifest: "priv/static/cache_manifest.json"
 
-config :astarte_realm_management_api, :amqp_connection,
-  username: "guest",
-  password: "guest",
-  host: System.get_env("RABBITMQ_HOST") || "localhost",
-  virtual_host: "/",
-  port: 5672
-
 # Do not print debug messages in production
 config :logger, level: :info
 
@@ -71,6 +64,3 @@ config :logger, level: :info
 
 # TODO: handle secret configuration with Conform
 # import_config "prod.secret.exs"
-
-config :astarte_realm_management_api, :rpc_queue,
-  "realm_management_rpc"

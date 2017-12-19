@@ -18,9 +18,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
-  use Astarte.RPC.AMQPClient,
-    rpc_queue: Application.fetch_env!(:astarte_realm_management_api, :rpc_queue),
-    amqp_options: Application.get_env(:astarte_realm_management_api, :amqp_connection, [])
+  use Astarte.RPC.AMQPClient
   use Astarte.RPC.Protocol.RealmManagement
 
   alias Astarte.RealmManagement.API.AlreadyInstalledInterfaceError
