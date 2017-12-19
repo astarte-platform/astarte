@@ -9,6 +9,3 @@ config :astarte_housekeeping, :amqp_connection,
   host: "localhost",
   virtual_host: "/",
   port: 5672
-
-config :astarte_housekeeping, :rpc_queue,
-  "housekeeping_rpc"
