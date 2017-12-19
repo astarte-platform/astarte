@@ -1,5 +1,6 @@
 %{"astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "7c19c6f28b9c78b40261b910873f078f5e8e507e", []},
   "bson": {:hex, :bson, "0.4.4", "175ad645cc492349a4cefa0bdff612178a0db611adf38dabe2bbfad2aa25627a", [], [], "hexpm"},
+  "astarte_data_access": {:git, "https://git.ispirata.com/Astarte-NG/astarte_data_access", "b86f99f7f54ce0298ba9394844c03f12d8655ca8", []},
   "certifi": {:hex, :certifi, "2.0.0", "a0c0e475107135f76b8c1d5bc7efb33cd3815cb3cf3dea7aefdd174dabead064", [:rebar3], [], "hexpm"},
   "cors_plug": {:hex, :cors_plug, "1.4.0", "c1c4fb68adf2fd1b4caccee978663edd58f62881627ab65b52ff56146945687f", [:mix], [{:plug, "> 0.14.0", [hex: :plug, repo: "hexpm", optional: false]}], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
