@@ -1,14 +1,7 @@
 use Mix.Config
 
 config :astarte_rpc, :amqp_connection,
-  username: "guest",
-  password: "guest",
-  host: "rabbitmq",
-  virtual_host: "/",
-  port: 5672
-
-config :astarte_rpc, :amqp_queue,
-  "pairing_rpc"
+  host: "rabbitmq"
 
 config :astarte_pairing, :broker_url,
   "ssl://broker.beta.astarte.cloud:8883/"
