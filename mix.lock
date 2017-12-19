@@ -1,0 +1,2 @@
+%{"conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
+  "neotoma": {:hex, :neotoma, "1.7.3", "d8bd5404b73273989946e4f4f6d529e5c2088f5fa1ca790b4dbe81f4be408e61", [], [], "hexpm"}}
