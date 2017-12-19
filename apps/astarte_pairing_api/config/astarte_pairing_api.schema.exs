@@ -49,66 +49,12 @@ but should be brought to the users attention, or `{:error, message}` if it is in
 See the moduledoc for `Conform.Schema.Validator` for more details and examples.
 """
 [
-  extends: [],
+  extends: [:astarte_rpc],
   import: [],
   mappings: [
     # Available options
-    "rpc_queue": [
-      commented: false,
-      datatype: :binary,
-      default: "pairing_rpc",
-      env_var: "PAIRING_API_RPC_QUEUE",
-      doc: "The AMQP queue used to send RPC to astarte_pairing.",
-      hidden: false,
-      to: "astarte_pairing_api.rpc_queue"
-    ],
-    "amqp.username": [
-      commented: true,
-      datatype: :binary,
-      default: "guest",
-      env_var: "PAIRING_API_AMQP_USERNAME",
-      doc: "AMQP username.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.username"
-    ],
-    "amqp.password": [
-      commented: true,
-      datatype: :binary,
-      default: "guest",
-      env_var: "PAIRING_API_AMQP_PASSWORD",
-      doc: "AMQP password.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.password"
-    ],
-    "amqp.host": [
-      commented: true,
-      datatype: :binary,
-      default: "localhost",
-      env_var: "PAIRING_API_AMQP_HOST",
-      doc: "AMQP host.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.host"
-    ],
-    "amqp.virtual_host": [
-      commented: true,
-      datatype: :binary,
-      default: "/",
-      env_var: "PAIRING_API_AMQP_VIRTUAL_HOST",
-      doc: "AMQP virtual host.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.virtual_host"
-    ],
-    "amqp.port": [
-      commented: true,
-      datatype: :integer,
-      default: 5672,
-      env_var: "PAIRING_API_AMQP_PORT",
-      doc: "AMQP port.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.port"
-    ],
     "jwt_public_key_path": [
-      commented: false,
+      commented: true,
       datatype: :binary,
       env_var: "PAIRING_API_JWT_PUBLIC_KEY_PATH",
       doc: "The path to the public key used to verify the Agent JWT.",
@@ -117,7 +63,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       to: "astarte_pairing_api.jwt_public_key_path"
     ],
     "port": [
-      commented: false,
+      commented: true,
       datatype: :integer,
       default: 4003,
       env_var: "PAIRING_API_PORT",

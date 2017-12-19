@@ -4,20 +4,6 @@ defmodule Astarte.Pairing.API.Config do
   """
 
   @doc """
-  Returns the AMQP queue for the RPC
-  """
-  def rpc_queue do
-    Application.get_env(:astarte_pairing_api, :rpc_queue)
-  end
-
-  @doc """
-  Returns the AMQP connection options
-  """
-  def amqp_options do
-    Application.get_env(:astarte_pairing_api, :amqp_options, [])
-  end
-
-  @doc """
   Returns the JWT public key
   """
   def jwt_public_key do
