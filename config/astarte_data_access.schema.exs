@@ -54,7 +54,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   mappings: [
     "astarte_data_access.cassandra_nodes": [
       commented: true,
-      datatype: :string,
+      datatype: :binary,
       default: "localhost:9042",
       doc: "A comma separated list of <host>:<port> values of accessible Cassandra nodes",
       env_var: "ASTARTE_CASSANDRA_NODES",
