@@ -53,7 +53,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   import: [],
   mappings: [
     "port": [
-      commented: false,
+      commented: true,
       datatype: :integer,
       default: 4001,
       env_var: "HOUSEKEEPING_API_PORT",
