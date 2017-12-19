@@ -18,9 +18,7 @@
 #
 
 defmodule Astarte.Housekeeping.RPC.AMQPServer do
-  use Astarte.RPC.AMQPServer,
-    queue: Application.fetch_env!(:astarte_housekeeping, :rpc_queue),
-    amqp_options: Application.get_env(:astarte_housekeeping, :amqp_connection, [])
+  use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.Housekeeping
 
   def process_rpc(payload) do
