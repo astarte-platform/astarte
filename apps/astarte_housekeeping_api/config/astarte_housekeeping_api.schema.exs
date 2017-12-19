@@ -56,6 +56,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :integer,
       default: 4001,
+      env_var: "HOUSEKEEPING_API_PORT",
       doc: "The port used from the Phoenix server.",
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.port"
@@ -63,6 +64,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "bind_address": [
       commented: true,
       datatype: :binary,
+      env_var: "HOUSEKEEPING_API_BIND_ADDRESS",
       doc: "The bind address for the Phoenix server.",
       default: "0.0.0.0",
       hidden: false,
