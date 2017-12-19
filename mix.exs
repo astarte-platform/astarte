@@ -21,7 +21,9 @@ defmodule Astarte.DataAccess.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:conform, "~> 2.2"}
+      {:conform, "~> 2.2"},
+
+      {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 end
