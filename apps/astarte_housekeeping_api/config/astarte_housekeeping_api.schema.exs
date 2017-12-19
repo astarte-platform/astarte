@@ -49,17 +49,9 @@ but should be brought to the users attention, or `{:error, message}` if it is in
 See the moduledoc for `Conform.Schema.Validator` for more details and examples.
 """
 [
-  extends: [],
+  extends: [:astarte_rpc],
   import: [],
   mappings: [
-    "astarte_rpc.amqp_queue": [
-      commented: false,
-      datatype: :binary,
-      default: "housekeeping_rpc",
-      doc: "Provide documentation for astarte_rpc.amqp_queue here.",
-      hidden: false,
-      to: "astarte_rpc.amqp_queue"
-    ],
     "astarte_housekeeping_api.namespace": [
       commented: false,
       datatype: :atom,
