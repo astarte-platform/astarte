@@ -52,12 +52,29 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [:astarte_rpc],
   import: [],
   mappings: [
+    "port": [
+      commented: false,
+      datatype: :integer,
+      default: 4001,
+      doc: "The port used from the Phoenix server.",
+      hidden: false,
+      to: "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.port"
+    ],
+    "bind_address": [
+      commented: true,
+      datatype: :binary,
+      doc: "The bind address for the Phoenix server.",
+      default: "0.0.0.0",
+      hidden: false,
+      to: "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip"
+    ],
+    # Hidden options
     "astarte_housekeeping_api.namespace": [
       commented: false,
       datatype: :atom,
       default: Astarte.Housekeeping.API,
       doc: "Provide documentation for astarte_housekeeping_api.namespace here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.namespace"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.url.host": [
@@ -65,7 +82,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "localhost",
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.url.host here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.url.host"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.secret_key_base": [
@@ -73,7 +90,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "Nxme5JSsvLykfa6sSoC+7cy9f3ycI8No2T1pwqFpB47KAt6tK/61jGpB+TIhNdjl",
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.secret_key_base here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.secret_key_base"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.render_errors.view": [
@@ -81,7 +98,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: Astarte.Housekeeping.APIWeb.ErrorView,
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.render_errors.view here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.render_errors.view"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.render_errors.accepts": [
@@ -93,7 +110,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
         "json"
       ],
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.render_errors.accepts here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.render_errors.accepts"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.pubsub.name": [
@@ -101,7 +118,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: Astarte.Housekeeping.API.PubSub,
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.pubsub.name here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.pubsub.name"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.pubsub.adapter": [
@@ -109,23 +126,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: Phoenix.PubSub.PG2,
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.pubsub.adapter here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.pubsub.adapter"
-    ],
-    "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.port": [
-      commented: false,
-      datatype: :integer,
-      default: 4001,
-      doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.port here.",
-      hidden: false,
-      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.port"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.debug_errors": [
       commented: false,
       datatype: :atom,
       default: true,
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.debug_errors here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.debug_errors"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.code_reloader": [
@@ -133,7 +142,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: true,
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.code_reloader here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.code_reloader"
     ],
     "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.check_origin": [
@@ -141,7 +150,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :atom,
       default: false,
       doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.check_origin here.",
-      hidden: false,
+      hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.check_origin"
     ],
     "logger.console.metadata": [
@@ -153,7 +162,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
         :request_id
       ],
       doc: "Provide documentation for logger.console.metadata here.",
-      hidden: false,
+      hidden: true,
       to: "logger.console.metadata"
     ],
     "logger.console.format": [
@@ -163,7 +172,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       [$level] $message
       """,
       doc: "Provide documentation for logger.console.format here.",
-      hidden: false,
+      hidden: true,
       to: "logger.console.format"
     ],
     "phoenix.stacktrace_depth": [
@@ -171,10 +180,21 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :integer,
       default: 20,
       doc: "Provide documentation for phoenix.stacktrace_depth here.",
-      hidden: false,
+      hidden: true,
       to: "phoenix.stacktrace_depth"
     ]
   ],
-  transforms: [],
+  transforms: [
+    "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip": fn conf ->
+      [{_, ip}] = Conform.Conf.get(conf, "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip")
+
+      charlist_ip = to_charlist(ip)
+
+      case :inet.parse_address(charlist_ip) do
+        {:ok, tuple_ip} -> tuple_ip
+        _ -> raise "Invalid IP address in bind_address"
+      end
+    end
+  ],
   validators: []
 ]
