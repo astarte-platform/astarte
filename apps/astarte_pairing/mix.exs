@@ -39,6 +39,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:plug, "~> 1.4.0"},
       {:uuid, "~> 1.7", hex: :uuid_erl},
       {:cfxxl, "~> 0.3.0"},
+      {:conform, "~> 2.2"},
 
       {:excoveralls, "~> 0.7.3", only: :test},
       {:distillery, "~> 1.5", runtime: false}
