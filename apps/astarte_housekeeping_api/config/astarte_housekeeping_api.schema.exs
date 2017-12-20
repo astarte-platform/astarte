@@ -131,29 +131,30 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.pubsub.adapter"
     ],
-    "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.debug_errors": [
+    "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.server": [
       commented: false,
       datatype: :atom,
       default: true,
-      doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.debug_errors here.",
+      doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.server here.",
       hidden: true,
-      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.debug_errors"
+      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.server"
     ],
-    "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.code_reloader": [
+    "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.version": [
       commented: false,
       datatype: :atom,
-      default: true,
-      doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.code_reloader here.",
+      doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.version here.",
       hidden: true,
-      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.code_reloader"
+      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.version"
     ],
-    "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.check_origin": [
+    "logger.console.format": [
       commented: false,
-      datatype: :atom,
-      default: false,
-      doc: "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.check_origin here.",
+      datatype: :binary,
+      default: """
+      $time $metadata[$level] $message
+      """,
+      doc: "Provide documentation for logger.console.format here.",
       hidden: true,
-      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.check_origin"
+      to: "logger.console.format"
     ],
     "logger.console.metadata": [
       commented: false,
@@ -167,23 +168,13 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: true,
       to: "logger.console.metadata"
     ],
-    "logger.console.format": [
+    "logger.level": [
       commented: false,
-      datatype: :binary,
-      default: """
-      [$level] $message
-      """,
-      doc: "Provide documentation for logger.console.format here.",
+      datatype: :atom,
+      default: :info,
+      doc: "Provide documentation for logger.level here.",
       hidden: true,
-      to: "logger.console.format"
-    ],
-    "phoenix.stacktrace_depth": [
-      commented: false,
-      datatype: :integer,
-      default: 20,
-      doc: "Provide documentation for phoenix.stacktrace_depth here.",
-      hidden: true,
-      to: "phoenix.stacktrace_depth"
+      to: "logger.level"
     ]
   ],
   transforms: [
