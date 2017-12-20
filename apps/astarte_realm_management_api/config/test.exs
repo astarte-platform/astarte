@@ -6,15 +6,8 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
   http: [port: 4001],
   server: false
 
-config :astarte_realm_management_api, :amqp_connection,
-  username: "guest",
-  password: "guest",
-  host: System.get_env("RABBITMQ_HOST") || "rabbitmq",
-  virtual_host: "/",
-  port: 5672
+config :astarte_rpc, :amqp_connection,
+  host: "rabbitmq"
 
 # Print only warnings and errors during test
 config :logger, level: :warn
-
-config :astarte_realm_management_api, :rpc_queue,
-  "realm_management_rpc"

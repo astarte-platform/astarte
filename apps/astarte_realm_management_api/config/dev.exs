@@ -13,14 +13,6 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
   check_origin: false,
   watchers: []
 
-config :astarte_realm_management_api, :amqp_connection,
-  username: "guest",
-  password: "guest",
-  host: System.get_env("RABBITMQ_HOST") || "localhost",
-  virtual_host: "/",
-  port: 5672
-
-
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
@@ -43,6 +35,3 @@ config :logger, :console, format: "[$level] $message\n"
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
-
-config :astarte_realm_management_api, :rpc_queue,
-  "realm_management_rpc"
