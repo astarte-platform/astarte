@@ -59,7 +59,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       env_var: "HOUSEKEEPING_API_PORT",
       doc: "The port used from the Phoenix server.",
       hidden: false,
-      to: "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.port"
+      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.port"
     ],
     "bind_address": [
       commented: true,
@@ -68,7 +68,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       doc: "The bind address for the Phoenix server.",
       default: "0.0.0.0",
       hidden: false,
-      to: "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip"
+      to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip"
     ],
     # Hidden options
     "astarte_housekeeping_api.namespace": [
@@ -178,8 +178,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     ]
   ],
   transforms: [
-    "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip": fn conf ->
-      [{_, ip}] = Conform.Conf.get(conf, "astarte_pairing_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip")
+    "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip": fn conf ->
+      [{_, ip}] = Conform.Conf.get(conf, "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip")
 
       charlist_ip = to_charlist(ip)
 
