@@ -1,7 +1,5 @@
 defmodule Astarte.Housekeeping.Mock do
-  use Astarte.RPC.AMQPServer,
-    queue: Application.fetch_env!(:astarte_housekeeping_api, :rpc_queue),
-    amqp_options: Application.get_env(:astarte_housekeeping_api, :amqp_connection, [])
+  use Astarte.RPC.AMQPServer
 
   use Astarte.RPC.Protocol.Housekeeping
 

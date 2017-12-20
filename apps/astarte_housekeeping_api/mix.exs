@@ -42,6 +42,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:conform, "~> 2.2"},
       {:ecto, "~> 2.1"},
       {:phoenix, "~> 1.3.0-rc"},
       {:phoenix_pubsub, "~> 1.0"},
