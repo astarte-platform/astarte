@@ -12,9 +12,7 @@ defmodule Astarte.Pairing.Mock do
   @valid_crt "validcrt"
   @ms_in_a_month 2628000000
 
-  use Astarte.RPC.AMQPServer,
-    queue: Config.rpc_queue(),
-    amqp_options: Config.amqp_options()
+  use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.Pairing
 
   def broker_url do

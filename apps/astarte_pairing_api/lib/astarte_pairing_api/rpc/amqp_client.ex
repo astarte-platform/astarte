@@ -6,9 +6,7 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
   alias Astarte.Pairing.API.Config
 
   use Astarte.RPC.Protocol.Pairing
-  use Astarte.RPC.AMQPClient,
-    rpc_queue: Config.rpc_queue(),
-    amqp_options: Config.amqp_options()
+  use Astarte.RPC.AMQPClient
 
   def get_info do
     %GetInfo{}

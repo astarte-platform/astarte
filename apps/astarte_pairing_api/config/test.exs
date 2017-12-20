@@ -9,7 +9,7 @@ config :astarte_pairing_api, Astarte.Pairing.APIWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
-config :astarte_pairing_api, :amqp_options,
+config :astarte_rpc, :amqp_connection,
   host: "rabbitmq"
 
 config :astarte_pairing_api, :jwt_public_key,

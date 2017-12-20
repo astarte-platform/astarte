@@ -49,70 +49,24 @@ but should be brought to the users attention, or `{:error, message}` if it is in
 See the moduledoc for `Conform.Schema.Validator` for more details and examples.
 """
 [
-  extends: [],
+  extends: [:astarte_rpc],
   import: [],
   mappings: [
     # Available options
-    "rpc_queue": [
-      commented: false,
-      datatype: :binary,
-      default: "pairing_rpc",
-      doc: "The AMQP queue used to send RPC to astarte_pairing.",
-      hidden: false,
-      to: "astarte_pairing_api.rpc_queue"
-    ],
-    "amqp.username": [
-      commented: true,
-      datatype: :binary,
-      default: "guest",
-      doc: "AMQP username.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.username"
-    ],
-    "amqp.password": [
-      commented: true,
-      datatype: :binary,
-      default: "guest",
-      doc: "AMQP password.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.password"
-    ],
-    "amqp.host": [
-      commented: true,
-      datatype: :binary,
-      default: "localhost",
-      doc: "AMQP host.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.host"
-    ],
-    "amqp.virtual_host": [
-      commented: true,
-      datatype: :binary,
-      default: "/",
-      doc: "AMQP virtual host.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.virtual_host"
-    ],
-    "amqp.port": [
-      commented: true,
-      datatype: :integer,
-      default: 5672,
-      doc: "AMQP port.",
-      hidden: false,
-      to: "astarte_pairing_api.amqp_options.port"
-    ],
     "jwt_public_key_path": [
-      commented: false,
+      commented: true,
       datatype: :binary,
+      env_var: "PAIRING_API_JWT_PUBLIC_KEY_PATH",
       doc: "The path to the public key used to verify the Agent JWT.",
       hidden: false,
       required: true,
       to: "astarte_pairing_api.jwt_public_key_path"
     ],
     "port": [
-      commented: false,
+      commented: true,
       datatype: :integer,
       default: 4003,
+      env_var: "PAIRING_API_PORT",
       doc: "The port used from the Phoenix server.",
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port"
@@ -120,6 +74,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "bind_address": [
       commented: true,
       datatype: :binary,
+      env_var: "PAIRING_API_BIND_ADDRESS",
       doc: "The bind address for the Phoenix server.",
       default: "0.0.0.0",
       hidden: false,

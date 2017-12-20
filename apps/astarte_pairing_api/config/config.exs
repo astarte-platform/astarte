@@ -22,15 +22,8 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-config :astarte_pairing_api, :rpc_queue,
+config :astarte_rpc, :amqp_queue,
   "pairing_rpc"
-
-config :astarte_pairing_api, :amqp_options,
-  username: "guest",
-  password: "guest",
-  host: "localhost",
-  virtual_host: "/",
-  port: 5672
 
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.AgentGuardian,
   allowed_algos: ["RS256"],
