@@ -49,5 +49,7 @@ release :astarte_data_updater_plant do
   set applications: [
     :runtime_tools
   ]
+
+  plugin Conform.ReleasePlugin
 end
 

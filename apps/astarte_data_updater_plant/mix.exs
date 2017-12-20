@@ -47,7 +47,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"}
+      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
+      {:astarte_data_access, git: "https://git.ispirata.com/Astarte-NG/astarte_data_access"}
     ]
   end
 
@@ -56,6 +57,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:amqp, "~> 1.0.0-pre.2"},
       {:cqex, github: "ispirata/cqex"},
       {:bson, "~> 0.4.4"},
+      {:conform, "~> 2.2"},
 
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test},
