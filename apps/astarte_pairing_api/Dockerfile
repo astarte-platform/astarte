@@ -27,4 +27,4 @@ RUN apt-get -qq install libssl1.0.0
 WORKDIR /app
 COPY --from=builder /app/_build/prod/rel/astarte_pairing_api .
 
-CMD ["./bin/astarte_realm_management_api", "foreground"]
+CMD ["./bin/astarte_pairing_api", "foreground"]
