@@ -56,6 +56,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: true,
       datatype: :binary,
       doc: "Provide documentation for astarte_pairing.secret_key_base here.",
+      env_var: "PAIRING_SECRET_KEY_BASE",
       hidden: false,
       required: true,
       to: "astarte_pairing.secret_key_base"
@@ -64,7 +65,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: true,
       datatype: :binary,
       default: "ssl://broker.beta.astarte.cloud:8883/",
-      doc: "Provide documentation for astarte_pairing.broker_url here.",
+      doc: "The external broker URL which should be used by devices.",
+      env_var: "PAIRING_BROKER_URL",
       hidden: false,
       to: "astarte_pairing.broker_url"
     ],
@@ -72,7 +74,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: true,
       datatype: :binary,
       default: "http://localhost:8888",
-      doc: "Provide documentation for astarte_pairing.cfssl_url here.",
+      doc: "URL to the running CFSSL instance for device certificate generation.",
+      env_var: "PAIRING_CFSSL_URL",
       hidden: false,
       to: "astarte_pairing.cfssl_url"
     ]
