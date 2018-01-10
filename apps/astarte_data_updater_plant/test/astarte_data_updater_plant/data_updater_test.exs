@@ -34,7 +34,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     db_client = connect_to_db(realm)
 
-    DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds)*10000)
+    DataUpdater.handle_connection(realm, device_id, "10.0.0.1", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds)*10000)
     DataUpdater.dump_state(realm, device_id)
 
     device_query =
@@ -263,7 +263,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     db_client = connect_to_db(realm)
 
-    DataUpdater.handle_connection(realm, device_id, '10.0.0.1', nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-12-09T14:00:32+00:00"), 1), :milliseconds)*10000)
+    DataUpdater.handle_connection(realm, device_id, "10.0.0.1", nil, DateTime.to_unix(elem(DateTime.from_iso8601("2017-12-09T14:00:32+00:00"), 1), :milliseconds)*10000)
     DataUpdater.dump_state(realm, device_id)
 
     device_introspection_query =
