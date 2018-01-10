@@ -82,8 +82,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> populate_triggers_for_object!(db_client, device_id, :device)
   end
 
-  def handle_connection(state, ip_address, delivery_tag, timestamp) do
+  def handle_connection(state, ip_address_string, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
+
+    ip_address_result =
+      ip_address_string
+      |> to_charlist()
+      |> :inet.parse_address()
+
+    ip_address =
+      case ip_address_result do
+        {:ok, ip_address} ->
+          ip_address
+
+        _ ->
+          Logger.warn "#{state.realm}: Device #{pretty_device_id(state.device_id)}: received invalid IP address #{ip_address_string}."
+          {0, 0, 0, 0}
+      end
 
     device_update_query =
       DatabaseQuery.new()
@@ -96,7 +111,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
     device_id_string = pretty_device_id(state.device_id)
-    TriggersHandler.device_connected(trigger_targets, state.realm, device_id_string, ip_address)
+    TriggersHandler.device_connected(trigger_targets, state.realm, device_id_string, ip_address_string)
 
     %{state |
       connected: true
