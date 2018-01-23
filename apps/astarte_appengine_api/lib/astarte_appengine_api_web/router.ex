@@ -24,10 +24,29 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :swagger do
+    plug :maybe_halt_swagger
+  end
+
   scope "/v1", Astarte.AppEngine.APIWeb do
     pipe_through :api
 
     resources "/:realm_name/devices", DeviceStatusController, except: [:new, :edit]
     resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
+  end
+
+  scope "/swagger" do
+    pipe_through :swagger
+
+    forward "/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :astarte_appengine_api, swagger_file: "astarte_appengine_api.yaml", disable_validator: true
+  end
+
+  defp maybe_halt_swagger(conn, _opts) do
+    if Application.get_env(:astarte_appengine_api, :swagger_ui, false) do
+      conn
+    else
+      conn
+      |> send_resp(404, "Swagger UI isn't enabled on this installation")
+    end
   end
 end
