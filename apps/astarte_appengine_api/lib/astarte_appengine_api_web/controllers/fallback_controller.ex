@@ -36,4 +36,17 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> put_status(:not_found)
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404")
   end
+
+  def call(conn, {:error, :unauthorized}) do
+    conn
+    |> put_status(:unauthorized)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"401")
+  end
+
+  # This is the final call made by EnsureAuthenticated
+  def auth_error(conn, _reason, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"401")
+  end
 end
