@@ -30,12 +30,12 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
   end
 
   defp build_auth_path(conn) do
-    %{"realm_name" => realm} = conn.path_params
-
-    case Enum.drop_while(conn.path_info, fn token -> token != realm end) do
-      [^realm | rest] ->
-        {:ok, Enum.join(rest, "/")}
-
+    with %{"realm_name" => realm} <- conn.path_params,
+         %{"path" => path_suffix} <- conn.query_params,
+         [^realm | rest] <- Enum.drop_while(conn.path_info, fn token -> token != realm end),
+          path_prefix = Enum.join(rest, "/") do
+     {:ok, "#{path_prefix}/#{path_suffix}"}
+    else
       _ ->
         {:error, :invalid_auth_path}
     end
@@ -53,14 +53,18 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
   end
 
   defp get_auth_regex(authorization_string) do
-    [method_auth, _opts, path_auth] = String.split(authorization_string, ":", parts: 3)
-
     # TODO: right now regex have to be terminated with $ manually, otherwise they also match prefix.
     # We can think about always terminating them here appending a $ to the string
-    with {:ok, method_regex} <- Regex.compile(method_auth),
+    with [method_auth, _opts, path_auth] <- String.split(authorization_string, ":", parts: 3),
+         {:ok, method_regex} <- Regex.compile(method_auth),
          {:ok, path_regex} <- Regex.compile(path_auth) do
 
       {:ok, {method_regex, path_regex}}
+    else
+      [] ->
+        {:error, :invalid_authorization_string}
+      _ ->
+        {:error, :invalid_regex}
     end
   end
 end
