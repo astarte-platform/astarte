@@ -39,6 +39,18 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
     assert Reply.decode(reply) == generic_error("empty_name", "empty realm name")
   end
 
+  test "CreateRealm call with nil public key" do
+
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm)})
+      |> Call.encode()
+
+    expected = generic_error("empty_public_key", "empty jwt public key pem")
+
+    {:ok, reply} = AMQPServer.process_rpc(encoded)
+
+    assert Reply.decode(reply) == expected
+  end
+
   test "valid call, invalid realm_name" do
 
     encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @invalid_test_realm)})
