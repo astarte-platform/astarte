@@ -36,11 +36,11 @@ defmodule Astarte.Housekeeping.Engine do
     {:ok, client}
   end
 
-  def create_realm(realm, opts \\ []) do
+  def create_realm(realm, public_key_pem, opts \\ []) do
     if opts[:async] do
-      GenServer.cast(:astarte_housekeeping_engine, {:create_realm, realm})
+      GenServer.cast(:astarte_housekeeping_engine, {:create_realm, realm, public_key_pem})
     else
-      GenServer.call(:astarte_housekeeping_engine, {:create_realm, realm}, @timeout)
+      GenServer.call(:astarte_housekeeping_engine, {:create_realm, realm, public_key_pem}, @timeout)
     end
   end
 
@@ -56,13 +56,13 @@ defmodule Astarte.Housekeeping.Engine do
     GenServer.call(:astarte_housekeeping_engine, {:get_realm, realm})
   end
 
-  def handle_cast({:create_realm, realm}, client) do
-    Astarte.Housekeeping.Queries.create_realm(client, realm)
+  def handle_cast({:create_realm, realm, public_key_pem}, client) do
+    Astarte.Housekeeping.Queries.create_realm(client, realm, public_key_pem)
     {:noreply, client}
   end
 
-  def handle_call({:create_realm, realm}, _from, client) do
-    reply = Astarte.Housekeeping.Queries.create_realm(client, realm)
+  def handle_call({:create_realm, realm, public_key_pem}, _from, client) do
+    reply = Astarte.Housekeeping.Queries.create_realm(client, realm, public_key_pem)
     {:reply, reply, client}
   end
 
