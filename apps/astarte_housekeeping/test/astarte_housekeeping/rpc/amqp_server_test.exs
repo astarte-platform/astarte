@@ -8,6 +8,8 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   @test_realm "newtestrealm"
   @another_test_realm "anothertestrealm"
 
+  @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
+
   defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
     %Reply{reply: {:generic_error_reply, %GenericErrorReply{error_name: error_name,
                                                             user_readable_message: user_readable_message,
@@ -53,7 +55,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
   test "valid call, invalid realm_name" do
 
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @invalid_test_realm)})
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @invalid_test_realm, jwt_public_key_pem: @public_key_pem)})
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
@@ -62,7 +64,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "realm creation and DoesRealmExist successful call" do
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm)})
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)})
       |> Call.encode()
 
     {:ok, create_reply} = AMQPServer.process_rpc(encoded)
@@ -101,7 +103,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
   test "GetRealm successful call" do
     # We create another realm to avoid test ordering problems
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @another_test_realm)})
+    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @another_test_realm, jwt_public_key_pem: @public_key_pem)})
       |> Call.encode()
 
     {:ok, create_reply} = AMQPServer.process_rpc(encoded)
@@ -113,7 +115,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-    expected = %Reply{reply: {:get_realm_reply, %GetRealmReply{realm_name: @another_test_realm}}}
+    expected = %Reply{reply: {:get_realm_reply, %GetRealmReply{realm_name: @another_test_realm, jwt_public_key_pem: @public_key_pem}}}
 
     assert Reply.decode(reply) == expected
   end
