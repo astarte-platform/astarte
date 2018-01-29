@@ -166,6 +166,12 @@ defmodule Astarte.Housekeeping.Queries do
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
+  @get_public_key_query """
+    SELECT blobAsVarchar(value)
+    FROM :realm_name.kv_store
+    WHERE group='auth' AND key='jwt_public_key_pem';
+  """
+
   def create_realm(client, realm_name, public_key_pem) do
     if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
       initialization_queries =
@@ -218,13 +224,24 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def get_realm(client, realm_name) do
-    query = DatabaseQuery.new
+    realm_query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@get_realm_query)
       |> DatabaseQuery.put(:realm_name, realm_name)
 
-    case DatabaseQuery.call!(client, query)[0] do
-      nil -> {:error, :realm_not_found}
-      record -> Enum.into(record, %{})
+    public_key_statement = String.replace(@get_public_key_query, ":realm_name", realm_name)
+    public_key_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(public_key_statement)
+
+    with {:ok, realm_result} <- DatabaseQuery.call(client, realm_query),
+         [realm_name: ^realm_name] <- DatabaseResult.head(realm_result),
+         {:ok, public_key_result} <- DatabaseQuery.call(client, public_key_query),
+         ["system.blobasvarchar(value)": public_key] <- DatabaseResult.head(public_key_result) do
+      %{realm_name: realm_name, jwt_public_key_pem: public_key}
+    else
+      _ ->
+        {:error, :realm_not_found}
     end
   end
 
