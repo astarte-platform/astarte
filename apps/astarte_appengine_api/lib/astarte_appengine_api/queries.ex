@@ -16,7 +16,7 @@ defmodule Astarte.AppEngine.API.Queries do
         {:ok, public_key}
 
       :empty_dataset ->
-        :error
+        {:error, :public_key_not_found}
     end
   end
 end
