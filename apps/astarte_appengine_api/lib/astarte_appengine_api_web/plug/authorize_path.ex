@@ -31,10 +31,17 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
 
   defp build_auth_path(conn) do
     with %{"realm_name" => realm} <- conn.path_params,
-         %{"path" => path_suffix} <- conn.query_params,
          [^realm | rest] <- Enum.drop_while(conn.path_info, fn token -> token != realm end),
-          path_prefix = Enum.join(rest, "/") do
-     {:ok, "#{path_prefix}/#{path_suffix}"}
+
+      path_prefix = Enum.join(rest, "/") do
+      path_suffix =
+        if Map.has_key?(conn.query_params, "path") do
+          "/#{Map.get(conn.query_params, "path")}"
+        else
+          ""
+        end
+
+      {:ok, "#{path_prefix}#{path_suffix}"}
     else
       _ ->
         {:error, :invalid_auth_path}
