@@ -21,7 +21,7 @@ defmodule Astarte.Housekeeping.Engine do
   use GenServer
   require Logger
 
-  @timeout 10000
+  @timeout 20000
 
   def start_link do
     GenServer.start_link(__MODULE__, [], name: :astarte_housekeeping_engine)
