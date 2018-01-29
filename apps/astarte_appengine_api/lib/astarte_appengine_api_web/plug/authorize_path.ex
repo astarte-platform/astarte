@@ -57,7 +57,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations) do
+  defp is_path_authorized?(method, auth_path, authorizations) when is_list(authorizations) do
     authorized =
       Enum.any?(authorizations, fn auth_string ->
         case get_auth_regex(auth_string) do
@@ -74,6 +74,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
       {:error, {:unauthorized, method, auth_path, authorizations}}
     end
   end
+
+  defp is_path_authorized?(method, auth_path, authorizations), do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do
     # TODO: right now regex have to be terminated with $ manually, otherwise they also match prefix.
