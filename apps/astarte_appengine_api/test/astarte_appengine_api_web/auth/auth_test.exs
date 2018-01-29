@@ -51,12 +51,12 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
-    test "token for another device returns 401", %{conn: conn} do
+    test "token for another device returns 403", %{conn: conn} do
       conn =
         put_req_header(conn, "authorization", "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@other_device_auth_path}"])}")
         |> get(@request_path)
 
-      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
     test "token for both devices returns the data", %{conn: conn} do
@@ -68,12 +68,12 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
-    test "token for another method returns 401", %{conn: conn} do
+    test "token for another method returns 403", %{conn: conn} do
       conn =
         put_req_header(conn, "authorization", "bearer #{JWTTestHelper.gen_jwt_token(["POST::#{@valid_auth_path}"])}")
         |> get(@request_path)
 
-      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
     test "token with generic matching regexp returns the data", %{conn: conn} do
