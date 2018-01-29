@@ -75,8 +75,8 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
 
   defp call_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do
     case Astarte.Housekeeping.Engine.get_realm(realm_name) do
-      %{realm_name: realm_name_reply} ->
-        %GetRealmReply{realm_name: realm_name_reply}
+      %{realm_name: realm_name_reply, jwt_public_key_pem: public_key} ->
+        %GetRealmReply{realm_name: realm_name_reply, jwt_public_key_pem: public_key}
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
 
