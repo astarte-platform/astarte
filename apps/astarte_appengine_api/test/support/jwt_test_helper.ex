@@ -32,7 +32,7 @@ defmodule Astarte.AppEngine.API.JWTTestHelper do
 
     {:ok, jwt, _claims} =
       %User{id: "testuser"}
-      |> AuthGuardian.encode_and_sign(%{"a_ae": authorization_paths}, secret: jwk)
+      |> AuthGuardian.encode_and_sign(%{"a_aea": authorization_paths}, secret: jwk)
 
     jwt
   end
