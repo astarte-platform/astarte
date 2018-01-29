@@ -8,6 +8,11 @@ defmodule Astarte.AppEngine.APIWeb.AuthGuardian do
   end
 
   def resource_from_claims(claims) do
-    {:ok, %User{id: claims["sub"], authorizations: claims["a_aea"]}}
+    {:ok,
+      %User{
+        id: claims["sub"],
+        authorizations: Map.get(claims, "a_aea", [])
+      }
+    }
   end
 end
