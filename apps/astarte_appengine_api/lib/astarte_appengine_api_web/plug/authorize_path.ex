@@ -3,6 +3,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
 
   import Plug.Conn
 
+  require Logger
+
   alias Astarte.AppEngine.API.Auth.User
   alias Astarte.AppEngine.APIWeb.AuthGuardian
   alias Astarte.AppEngine.APIWeb.FallbackController
@@ -19,12 +21,19 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
   defp authorize(conn, opts) do
     with %User{authorizations: authorizations} <- AuthGuardian.Plug.current_resource(conn),
          {:ok, auth_path} <- build_auth_path(conn),
-         true <- is_path_authorized?(conn.method, auth_path, authorizations) do
+         :ok <- is_path_authorized?(conn.method, auth_path, authorizations) do
       conn
     else
-      _ ->
+      {:error, :invalid_auth_path} ->
+        Logger.warn("Can't build auth_path with path_params: #{inspect conn.path_params} path_info: #{inspect conn.path_info} query_params: #{inspect conn.query_params}")
         conn
-        |> FallbackController.auth_error({:unauthorized, :authorized_path_not_matched}, opts)
+        |> FallbackController.auth_error({:unauthorized, :invalid_auth_path}, opts)
+        |> halt()
+
+      {:error, {:unauthorized, method, auth_path, authorizations}} ->
+        Logger.info("Unauthorized request: #{method} #{auth_path} failed with authorizations #{inspect authorizations}")
+        conn
+        |> FallbackController.auth_error({:unauthorized, :authorization_path_not_matched}, opts)
         |> halt()
     end
   end
@@ -49,14 +58,21 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
   end
 
   defp is_path_authorized?(method, auth_path, authorizations) do
-    Enum.any?(authorizations, fn auth_string ->
-      case get_auth_regex(auth_string) do
-        {:ok, {method_regex, path_regex}} ->
-          Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)
-        _ ->
-          false
-      end
-    end)
+    authorized =
+      Enum.any?(authorizations, fn auth_string ->
+        case get_auth_regex(auth_string) do
+          {:ok, {method_regex, path_regex}} ->
+            Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)
+          _ ->
+            false
+        end
+      end)
+
+    if authorized do
+      :ok
+    else
+      {:error, {:unauthorized, method, auth_path, authorizations}}
+    end
   end
 
   defp get_auth_regex(authorization_string) do
