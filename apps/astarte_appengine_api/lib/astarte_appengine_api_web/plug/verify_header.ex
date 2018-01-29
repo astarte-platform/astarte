@@ -5,9 +5,11 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
   """
 
   alias Astarte.AppEngine.API.Auth
+  alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader
+  alias JOSE.JWK
 
   def init(opts) do
-    Guardian.Plug.VerifyHeader.init(opts)
+    GuardianVerifyHeader.init(opts)
   end
 
   def call(conn, opts) do
@@ -17,13 +19,13 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
       opts
       |> Keyword.merge([secret: secret])
 
-    Guardian.Plug.VerifyHeader.call(conn, merged_opts)
+    GuardianVerifyHeader.call(conn, merged_opts)
   end
 
   defp get_secret(conn) do
     with %{"realm_name" => realm} <- conn.path_params,
          {:ok, public_key_pem} <- Auth.fetch_public_key(realm),
-         %JOSE.JWK{} = jwk <- JOSE.JWK.from_pem(public_key_pem) do
+         %JWK{} = jwk <- JWK.from_pem(public_key_pem) do
       jwk
     else
       _ ->
