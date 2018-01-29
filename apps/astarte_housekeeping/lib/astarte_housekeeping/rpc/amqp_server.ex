@@ -41,11 +41,16 @@ defmodule Astarte.Housekeeping.RPC.AMQPServer do
     generic_error(:empty_name, "empty realm name")
   end
 
-  defp call_rpc({:create_realm, %CreateRealm{realm: realm, async_operation: async}}) do
+  defp call_rpc({:create_realm, %CreateRealm{jwt_public_key_pem: nil}}) do
+    Logger.warn "CreateRealm with jwt_public_key_pem == nil"
+    generic_error(:empty_public_key, "empty jwt public key pem")
+  end
+
+  defp call_rpc({:create_realm, %CreateRealm{realm: realm, jwt_public_key_pem: pub_key, async_operation: async}}) do
     if Astarte.Housekeeping.Engine.realm_exists?(realm) do
       generic_error(:existing_realm, "realm already exists")
     else
-      case Astarte.Housekeeping.Engine.create_realm(realm, async: async) do
+      case Astarte.Housekeeping.Engine.create_realm(realm, pub_key, async: async) do
         {:error, reason} -> generic_error(reason)
         :ok -> generic_ok(async)
       end
