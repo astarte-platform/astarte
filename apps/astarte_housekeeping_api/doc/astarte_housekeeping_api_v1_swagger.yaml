@@ -96,7 +96,11 @@ definitions:
     type: "object"
     required:
       - "realm_name"
+      - "jwt_public_key_pem"
     properties:
       realm_name:
         type: "string"
         example: "myrealm"
+      realm_name:
+        type: "string"
+        example: "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE\neTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo\n1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY\n4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm\nhtGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4\nf9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ\nVwIDAQAB\n-----END PUBLIC KEY-----\n"
