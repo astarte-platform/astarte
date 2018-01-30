@@ -14,8 +14,8 @@ defmodule Astarte.Housekeeping.Mock do
     call_tuple
   end
 
-  defp execute_rpc({:create_realm, %CreateRealm{realm: realm, async_operation: async}}) do
-    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{realm_name: realm})
+  defp execute_rpc({:create_realm, %CreateRealm{realm: realm, async_operation: async, jwt_public_key_pem: pem}}) do
+    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{realm_name: realm, jwt_public_key_pem: pem})
 
     %GenericOkReply{async_operation: async}
     |> encode_reply(:generic_ok_reply)
@@ -42,8 +42,8 @@ defmodule Astarte.Housekeeping.Mock do
     case Astarte.Housekeeping.Mock.DB.get_realm(realm_name) do
       nil ->
         generic_error(:realm_not_found)
-      realm ->
-        %GetRealmReply{realm_name: realm_name}
+      %Realm{realm_name: ^realm_name, jwt_public_key_pem: pem} ->
+        %GetRealmReply{realm_name: realm_name, jwt_public_key_pem: pem}
         |> encode_reply(:get_realm_reply)
     end
     |> ok_wrap
