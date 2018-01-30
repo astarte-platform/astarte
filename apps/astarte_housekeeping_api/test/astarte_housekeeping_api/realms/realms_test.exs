@@ -6,10 +6,25 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   describe "realms" do
     alias Astarte.Housekeeping.API.Realms.Realm
 
-    @valid_attrs %{realm_name: "mytestrealm"}
+    @pubkey """
+-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE6ssZpULEsn+wSQdc+DI2+4aj98a1hDKM
++bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
+-----END PUBLIC KEY-----
+"""
+    @malformed_pubkey """
+-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
+  +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
+-----END PUBLIC KEY-----
+"""
+    @valid_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey}
     @update_attrs %{}
-    @invalid_attrs %{realm_name: "0invalid"}
-    @empty_attrs %{realm_name: ""}
+    @invalid_name_attrs %{realm_name: "0invalid", jwt_public_key_pem: @pubkey}
+    @invalid_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: "invalid"}
+    @malformed_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: @malformed_pubkey}
+    @empty_name_attrs %{realm_name: "", jwt_public_key_pem: @pubkey}
+    @empty_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: nil}
     @non_existing "non_existing_realm"
 
     def realm_fixture(attrs \\ %{}) do
@@ -22,8 +37,8 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     end
 
     test "list_realms/0 returns all realms" do
-      realm = realm_fixture()
-      assert Realms.list_realms() == [realm]
+      %Realm{realm_name: realm_name} = realm_fixture()
+      assert Realms.list_realms() == [%Realm{realm_name: realm_name}]
     end
 
     test "get_realm/1 returns the realm with given id" do
@@ -40,11 +55,14 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     end
 
     test "create_realm/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_name_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_pubkey_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@malformed_pubkey_attrs)
     end
 
     test "create_realm/1 with empty required data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_name_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_pubkey_attrs)
     end
 
     @tag :wip
