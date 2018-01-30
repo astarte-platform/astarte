@@ -70,12 +70,12 @@ docker:snapshot-container:
     image: docker:latest
     before_script:
         - docker info
-        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     services:
         - docker:stable-dind
     stage: deploy
     only:
         - master@Astarte-NG/astarte_data_updater_plant
     script:
-        - docker build -t registry.ispirata.com/astarte-ng/astarte_data_updater_plant:snapshot .
-        - docker push registry.ispirata.com/astarte-ng/astarte_data_updater_plant:snapshot
+        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_data_updater_plant:snapshot .
+        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_data_updater_plant:snapshot
