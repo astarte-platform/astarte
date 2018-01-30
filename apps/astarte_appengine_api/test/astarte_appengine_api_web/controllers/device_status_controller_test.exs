@@ -1,6 +1,8 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
   use Astarte.AppEngine.APIWeb.ConnCase
 
+  alias Astarte.AppEngine.API.JWTTestHelper
+
   setup %{conn: conn} do
     {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()
 
@@ -8,7 +10,12 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
       Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
     end
 
-    {:ok, conn: put_req_header(conn, "accept", "application/json")}
+    authorized_conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("authorization", "bearer #{JWTTestHelper.gen_jwt_all_access_token()}")
+
+    {:ok, conn: authorized_conn}
   end
 
   describe "show" do

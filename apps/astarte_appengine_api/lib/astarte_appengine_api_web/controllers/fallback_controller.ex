@@ -36,4 +36,24 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> put_status(:not_found)
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404")
   end
+
+  def call(conn, {:error, :unauthorized}) do
+    conn
+    |> put_status(:unauthorized)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"401")
+  end
+
+  # This is called when no JWT token is present
+  def auth_error(conn, {:unauthenticated, _reason}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"401")
+  end
+
+  # In all other cases, we reply with 403
+  def auth_error(conn, _reason, _opts) do
+    conn
+    |> put_status(:forbidden)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"403")
+  end
 end

@@ -20,12 +20,23 @@
 defmodule Astarte.RealmManagement.DatabaseTestHelper do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
+  alias Astarte.AppEngine.API.JWTTestHelper
 
   @create_autotestrealm """
     CREATE KEYSPACE autotestrealm
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
+  """
+
+  @create_kv_store """
+    CREATE TABLE autotestrealm.kv_store (
+      group varchar,
+      key varchar,
+      value blob,
+
+      PRIMARY KEY ((group), key)
+    );
   """
 
   @create_devices_table """
@@ -45,6 +56,11 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
         PRIMARY KEY (device_id)
     );
+  """
+
+  @insert_pubkey_pem """
+    INSERT INTO autotestrealm.kv_store (group, key, value)
+    VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
   @insert_device """
@@ -301,6 +317,12 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_devices_table)
         DatabaseQuery.call!(client, @insert_device)
+        DatabaseQuery.call!(client, @create_kv_store)
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_pubkey_pem)
+          |> DatabaseQuery.put(:pem, JWTTestHelper.public_key_pem())
+        DatabaseQuery.call!(client, query)
         DatabaseQuery.call!(client, @create_endpoints_table)
         Enum.each(@insert_endpoints, fn(query) ->
           DatabaseQuery.call!(client, query)

@@ -22,6 +22,26 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
+  allowed_algos: [
+    "ES256",
+    "ES384",
+    "ES512",
+    "Ed25519",
+    "Ed25519ph",
+    "Ed448",
+    "Ed448ph",
+    "HS256",
+    "HS384",
+    "HS512",
+    "PS256",
+    "PS384",
+    "PS512",
+    "Poly1305",
+    "RS256",
+    "RS384",
+    "RS512"]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env}.exs"
