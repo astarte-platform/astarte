@@ -2,13 +2,14 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @required_fields [:realm_name]
+  @required_fields [:realm_name, :jwt_public_key_pem]
 
   @primary_key false
   @derive {Phoenix.Param, key: :realm_name}
 
   embedded_schema do
     field :realm_name
+    field :jwt_public_key_pem
   end
 
   def changeset(realm, params \\ %{}) do
