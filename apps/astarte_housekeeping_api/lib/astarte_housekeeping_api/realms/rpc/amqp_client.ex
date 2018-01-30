@@ -4,8 +4,8 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   use Astarte.RPC.Protocol.Housekeeping
   alias Astarte.Housekeeping.API.Realms.Realm
 
-  def create_realm(%Realm{realm_name: realm_name}) do
-    %CreateRealm{realm: realm_name, async_operation: true}
+  def create_realm(%Realm{realm_name: realm_name, jwt_public_key_pem: pem}) do
+    %CreateRealm{realm: realm_name, async_operation: true, jwt_public_key_pem: pem}
     |> encode_call(:create_realm)
     |> rpc_call()
     |> decode_reply()
@@ -54,8 +54,8 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
     Enum.map(realms_list, fn(realm_name) -> %Realm{realm_name: realm_name} end)
   end
 
-  defp extract_reply({:get_realm_reply, %GetRealmReply{realm_name: realm_name}}) do
-    {:ok, %Realm{realm_name: realm_name}}
+  defp extract_reply({:get_realm_reply, %GetRealmReply{realm_name: realm_name, jwt_public_key_pem: pem}}) do
+    {:ok, %Realm{realm_name: realm_name, jwt_public_key_pem: pem}}
   end
 
   defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
