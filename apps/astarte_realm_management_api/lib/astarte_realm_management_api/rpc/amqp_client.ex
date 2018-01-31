@@ -17,7 +17,7 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient do
+defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   use Astarte.RPC.AMQPClient
   use Astarte.RPC.Protocol.RealmManagement
 
