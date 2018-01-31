@@ -19,7 +19,7 @@
 
 defmodule Astarte.RealmManagement.API.Interfaces do
 
-  alias Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient
+  alias Astarte.RealmManagement.API.RPC.AMQPClient
 
   require Logger
 
