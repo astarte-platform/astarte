@@ -90,6 +90,16 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def get_jwt_public_key_pem(realm_name) do
+    {:ok, payload} =
+      %GetJWTPublicKeyPEM{
+        realm_name: realm_name
+      }
+      |> encode_and_call(:get_jwt_public_key_pem)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
@@ -129,6 +139,14 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
 
   defp extract_result({:get_interface_source_reply, get_interface_source_reply}) do
     get_interface_source_reply.source
+  end
+
+  defp extract_result({:get_jwt_public_key_pem_reply, get_jwt_public_key_pem_reply}) do
+    {:ok, get_jwt_public_key_pem_reply.jwt_public_key_pem}
+  end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "public_key_not_found"}}) do
+    {:error, :public_key_not_found}
   end
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}) do
