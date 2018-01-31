@@ -22,6 +22,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
+  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
+
   def index(conn, %{"realm_name" => realm_name}) do
     interfaces = Astarte.RealmManagement.API.Interfaces.list_interfaces!(realm_name)
     render(conn, "index.json", interfaces: interfaces)

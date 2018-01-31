@@ -20,6 +20,8 @@
 defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionController do
   use Astarte.RealmManagement.APIWeb, :controller
 
+  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
+
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name, "id" => id}) do
