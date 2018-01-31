@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.API.Application do
 
     children = [
       supervisor(Astarte.RealmManagement.APIWeb.Endpoint, []),
-      worker(Astarte.RealmManagement.API.Interfaces.RPC.AMQPClient, [])
+      worker(Astarte.RealmManagement.API.RPC.AMQPClient, [])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
