@@ -1,6 +1,8 @@
 defmodule Astarte.Pairing.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_pairing_api
 
+  plug RemoteIp
+
   socket "/socket", Astarte.Pairing.APIWeb.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
