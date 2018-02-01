@@ -70,6 +70,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_realm_management_api.Elixir.Astarte.RealmManagement.APIWeb.Endpoint.http.ip"
     ],
+    "disable_authentication": [
+      commented: true,
+      datatype: :atom,
+      env_var: "REALM_MANAGEMENT_API_DISABLE_AUTHENTICATION",
+      doc: "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
+      default: false,
+      hidden: false,
+      to: "astarte_realm_management_api.disable_authentication"
+    ],
     # Hidden options
     "astarte_realm_management_api.namespace": [
       commented: false,
