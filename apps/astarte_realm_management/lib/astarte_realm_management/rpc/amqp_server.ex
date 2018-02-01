@@ -57,6 +57,10 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_jwt_public_key_pem_reply, msg}})}
   end
 
+  def encode_reply(:update_jwt_public_key_pem, :ok) do
+    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
+  end
+
   def encode_reply(_call_atom, {:ok, :started}) do
     msg = %GenericOkReply {
       async_operation: true
@@ -109,6 +113,9 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
 
           {:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}} ->
             encode_reply(:get_jwt_public_key_pem, Engine.get_jwt_public_key_pem(realm_name))
+
+          {:update_jwt_public_key_pem, %UpdateJWTPublicKeyPEM{realm_name: realm_name, jwt_public_key_pem: pem}} ->
+            encode_reply(:update_jwt_public_key_pem, Engine.update_jwt_public_key_pem(realm_name, pem))
 
         invalid_call ->
           Logger.warn "Received unexpected call: #{inspect invalid_call}"
