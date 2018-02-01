@@ -156,4 +156,13 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, :realm_not_found}
     end
   end
+
+  def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      Astarte.RealmManagement.Queries.update_jwt_public_key_pem(client, jwt_public_key_pem)
+    else
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+    end
+  end
 end
