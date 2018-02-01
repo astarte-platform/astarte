@@ -1,4 +1,4 @@
-defmodule Astarte.RealmManagement.APIWeb.Plug.AuthorizePath do
+defmodule Astarte.RealmManagement.APIWeb.Plug.GuardianAuthorizePath do
   use Plug.Builder
 
   import Plug.Conn
