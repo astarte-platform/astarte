@@ -160,4 +160,18 @@ defmodule Astarte.RealmManagement.EngineTest do
   test "get JWT public key PEM with unexisting realm" do
     assert Engine.get_jwt_public_key_pem("notexisting") == {:error, :realm_not_found}
   end
+
+  test "update JWT public key PEM" do
+    DatabaseTestHelper.connect_to_test_database()
+
+    new_pem = "not_exactly_a_PEM_but_will_do"
+    assert Engine.update_jwt_public_key_pem("autotestrealm", new_pem) == :ok
+    assert Engine.get_jwt_public_key_pem("autotestrealm") == {:ok, new_pem}
+
+    Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+  end
+
+  test "update JWT public key PEM with unexisting realm" do
+    assert Engine.get_jwt_public_key_pem("notexisting") == {:error, :realm_not_found}
+  end
 end
