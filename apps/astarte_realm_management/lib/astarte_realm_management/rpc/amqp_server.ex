@@ -21,6 +21,8 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.RealmManagement
 
+  alias Astarte.RealmManagement.Engine
+
   def encode_reply(:get_interface_source, {:ok, reply}) do
     msg = %GetInterfaceSourceReply{
       source: reply
@@ -45,6 +47,14 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_interfaces_list_reply, msg}})}
+  end
+
+  def encode_reply(:get_jwt_public_key_pem, {:ok, reply}) do
+    msg = %GetJWTPublicKeyPEMReply{
+      jwt_public_key_pem: reply
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_jwt_public_key_pem_reply, msg}})}
   end
 
   def encode_reply(_call_atom, {:ok, :started}) do
@@ -96,6 +106,9 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
 
           {:delete_interface, %DeleteInterface{realm_name: realm_name, interface_name: interface_name, interface_major_version: interface_major_version, async_operation: async_operation}} ->
             encode_reply(:delete_interface, Astarte.RealmManagement.Engine.delete_interface(realm_name, interface_name, interface_major_version, async: async_operation))
+
+          {:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}} ->
+            encode_reply(:get_jwt_public_key_pem, Engine.get_jwt_public_key_pem(realm_name))
 
         invalid_call ->
           Logger.warn "Received unexpected call: #{inspect invalid_call}"

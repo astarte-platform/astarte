@@ -1,6 +1,8 @@
 defmodule Astarte.RealmManagement.EngineTest do
   use ExUnit.Case
   require Logger
+  alias Astarte.RealmManagement.DatabaseTestHelper
+  alias Astarte.RealmManagement.Engine
 
   @test_interface_a_0 """
   {
@@ -149,4 +151,13 @@ defmodule Astarte.RealmManagement.EngineTest do
     end
   end
 
+  test "get JWT public key PEM with existing realm" do
+    DatabaseTestHelper.connect_to_test_database()
+    assert Engine.get_jwt_public_key_pem("autotestrealm") == {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
+    Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+  end
+
+  test "get JWT public key PEM with unexisting realm" do
+    assert Engine.get_jwt_public_key_pem("notexisting") == {:error, :realm_not_found}
+  end
 end

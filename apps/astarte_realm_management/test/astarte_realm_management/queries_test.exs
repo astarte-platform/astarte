@@ -2,6 +2,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
   alias CQEx.Query, as: DatabaseQuery
+  alias Astarte.RealmManagement.DatabaseTestHelper
+  alias Astarte.RealmManagement.Queries
 
   @object_datastream_interface_json """
 {
@@ -376,4 +378,12 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {length(timestamps), timestamps == sorted_timestamps}
   end
 
+  test "get JWT public key PEM" do
+    DatabaseTestHelper.connect_to_test_database()
+    client = connect_to_test_realm("autotestrealm")
+
+    assert Queries.get_jwt_public_key_pem(client) == {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
+
+    Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+  end
 end
