@@ -54,6 +54,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:ecto, "~> 2.1"},
       {:conform, "~> 2.2"},
       {:guardian, "~> 1.0-beta"},
+      {:remote_ip, "~> 0.1.0"},
 
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
