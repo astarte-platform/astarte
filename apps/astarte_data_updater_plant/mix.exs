@@ -41,7 +41,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_core, in_umbrella: true}
+      {:astarte_core, in_umbrella: true},
+      {:astarte_data_access, in_umbrella: true}
     ]
   end
 
