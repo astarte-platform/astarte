@@ -1,4 +1,4 @@
-defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
+defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
   use Plug.Builder
 
   import Plug.Conn
