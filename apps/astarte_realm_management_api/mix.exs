@@ -52,6 +52,8 @@ defmodule Astarte.RealmManagement.API.Mixfile do
      {:cowboy, "~> 1.0"},
      {:conform, "~> 2.2"},
      {:ecto, "~> 2.1"},
+     {:guardian, github: "ispirata/guardian"},
+
      {:distillery, "~> 1.4", runtime: false},
      {:excoveralls, "~> 0.6", only: :test}
     ]

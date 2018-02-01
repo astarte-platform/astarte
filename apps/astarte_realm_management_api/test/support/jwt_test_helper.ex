@@ -17,28 +17,27 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.RealmManagement.APIWeb.ErrorView do
-  use Astarte.RealmManagement.APIWeb, :view
+defmodule Astarte.RealmManagement.API.JWTTestHelper do
+  alias Astarte.RealmManagement.API.Auth.User
+  alias Astarte.RealmManagement.APIWeb.AuthGuardian
 
-  def render("404.json", _assigns) do
-    %{errors: %{detail: "Page not found"}}
+  def public_key_pem do
+    Application.get_env(:astarte_realm_management_api, :test_pub_key_pem)
   end
 
-  def render("500.json", _assigns) do
-    %{errors: %{detail: "Internal server error"}}
+  def gen_jwt_token(authorization_paths) do
+    jwk =
+      Application.get_env(:astarte_realm_management_api, :test_priv_key)
+      |> JOSE.JWK.from_map()
+
+    {:ok, jwt, _claims} =
+      %User{id: "testuser"}
+      |> AuthGuardian.encode_and_sign(%{"a_rma": authorization_paths}, secret: jwk, allowed_algos: ["RS256"])
+
+    jwt
   end
 
-  def render("401.json", _assigns) do
-    %{errors: %{detail: "Unauthorized"}}
-  end
-
-  def render("403.json", _assigns) do
-    %{errors: %{detail: "Forbidden"}}
-  end
-
-  # In case no render clause matches or no
-  # template is found, let's render it as 500
-  def template_not_found(_template, assigns) do
-    render "500.json", assigns
+  def gen_jwt_all_access_token do
+    gen_jwt_token([".*::.*"])
   end
 end
