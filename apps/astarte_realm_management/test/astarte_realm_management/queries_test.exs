@@ -386,4 +386,13 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
   end
+
+  test "update JWT public key PEM" do
+    DatabaseTestHelper.connect_to_test_database()
+    client = connect_to_test_realm("autotestrealm")
+
+    new_pem = "not_exactly_a_PEM_but_will_do"
+    assert Queries.update_jwt_public_key_pem(client, new_pem) == :ok
+    assert Queries.get_jwt_public_key_pem(client) == {:ok, new_pem}
+  end
 end

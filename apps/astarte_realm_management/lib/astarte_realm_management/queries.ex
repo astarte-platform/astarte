@@ -127,6 +127,11 @@ defmodule Astarte.RealmManagement.Queries do
     WHERE group='auth' AND key='jwt_public_key_pem';
   """
 
+  @query_insert_jwt_public_key_pem """
+  INSERT INTO kv_store (group, key, value)
+  VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
+  """
+
   defp create_interface_table(:individual, :multi, interface_descriptor, _mappings) do
     {table_type, suffix, value_timestamp, key_timestamp} =
       case interface_descriptor.type do
@@ -357,6 +362,21 @@ defmodule Astarte.RealmManagement.Queries do
     else
       _ ->
         {:error, :public_key_not_found}
+    end
+  end
+
+  def update_jwt_public_key_pem(client, jwt_public_key_pem) do
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@query_insert_jwt_public_key_pem)
+      |> DatabaseQuery.put(:pem, jwt_public_key_pem)
+
+    case DatabaseQuery.call(client, query) do
+      {:ok, _res} ->
+        :ok
+
+      _ ->
+        {:error, :cant_update_public_key}
     end
   end
 end
