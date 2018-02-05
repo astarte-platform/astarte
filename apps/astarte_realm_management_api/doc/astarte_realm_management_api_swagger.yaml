@@ -8,6 +8,11 @@ info:
 host: "realmmanagement.api.astarte.cloud"
 basePath: "/v1"
 tags:
+- name: "config"
+  description: "Configuration management"
+  externalDocs:
+    description: "Find out more"
+    url: "http://www.astarte.cloud/"
 - name: "interface"
   description: "Interface management"
   externalDocs:
@@ -21,6 +26,55 @@ tags:
 schemes:
 - "http"
 paths:
+  /{realm_name}/config/auth:
+    get:
+      tags:
+      - "config"
+      summary: "Get auth configuration"
+      description: "Get a JSON that describes the auth configuration of the realm"
+      operationId: "getAuthConfiguration"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the configuration belongs to"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            $ref: "#/definitions/AuthConfigBody"
+
+    put:
+      tags:
+      - "config"
+      summary: "Install a new auth configuration for the realm"
+      description: "Install a auth configuration for the realm. The body must contain the full configuration. Validation is performed, and an error is returned if the configuration cannot be installed."
+      operationId: "putAuthConfiguration"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The realm which the configuration belongs to"
+        required: true
+        type: "string"
+      - in: "body"
+        name: "body"
+        description: "AuthConfig object with the new configuration"
+        required: true
+        schema:
+          $ref: '#/definitions/AuthConfigBody'
+      responses:
+        204:
+          description: "Success"
+        422:
+          description: "Bad request"
+
   /{realm_name}/interfaces:
     get:
       tags:
@@ -262,3 +316,14 @@ paths:
 definitions:
   Interface:
     type: "object"
+  AuthConfigBody:
+    type: "object"
+    required:
+      - "data"
+    properties:
+      data:
+        type: "object"
+        properties:
+          jwt_public_key_pem:
+            type: "string"
+            example: "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE\neTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo\n1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY\n4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm\nhtGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4\nf9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ\nVwIDAQAB\n-----END PUBLIC KEY-----\n"
