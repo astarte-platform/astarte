@@ -16,7 +16,7 @@ defmodule Astarte.RealmManagement.Mock do
   end
 
   defp execute_rpc({:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}}) do
-    list = DB.interfaces_list(realm_name)
+    list = DB.get_interfaces_list(realm_name)
 
     %GetInterfacesListReply{interfaces_names: list}
     |> encode_reply(:get_interfaces_list_reply)
@@ -24,7 +24,7 @@ defmodule Astarte.RealmManagement.Mock do
   end
 
   defp execute_rpc({:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}}) do
-    pem = DB.jwt_public_key_pem(realm_name)
+    pem = DB.get_jwt_public_key_pem(realm_name)
 
     %GetJWTPublicKeyPEMReply{jwt_public_key_pem: pem}
     |> encode_reply(:get_jwt_public_key_pem_reply)
