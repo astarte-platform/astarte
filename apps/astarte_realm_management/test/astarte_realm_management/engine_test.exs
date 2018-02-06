@@ -168,6 +168,10 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.update_jwt_public_key_pem("autotestrealm", new_pem) == :ok
     assert Engine.get_jwt_public_key_pem("autotestrealm") == {:ok, new_pem}
 
+    # Put the PEM fixture back
+    assert Engine.update_jwt_public_key_pem("autotestrealm", DatabaseTestHelper.jwt_public_key_pem_fixture()) == :ok
+    assert Engine.get_jwt_public_key_pem("autotestrealm") == {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
+
     Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
