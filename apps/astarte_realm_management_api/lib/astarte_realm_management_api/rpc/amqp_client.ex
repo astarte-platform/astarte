@@ -100,6 +100,17 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    {:ok, payload} =
+      %UpdateJWTPublicKeyPEM{
+        realm_name: realm_name,
+        jwt_public_key_pem: jwt_public_key_pem
+      }
+      |> encode_and_call(:update_jwt_public_key_pem)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
