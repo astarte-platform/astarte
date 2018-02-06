@@ -31,6 +31,18 @@ defmodule Astarte.RealmManagement.Mock do
     |> ok_wrap
   end
 
+  defp execute_rpc({:update_jwt_public_key_pem, %UpdateJWTPublicKeyPEM{realm_name: realm_name, jwt_public_key_pem: pem}}) do
+    :ok = DB.put_jwt_public_key_pem(realm_name, pem)
+
+    generic_ok()
+    |> ok_wrap
+  end
+
+  defp generic_ok do
+    %GenericOkReply{async_operation: false}
+    |> encode_reply(:generic_ok_reply)
+  end
+
   defp generic_error(error_name) do
     %GenericErrorReply{error_name: to_string(error_name)}
     |> encode_reply(:generic_error_reply)
