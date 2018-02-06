@@ -49,6 +49,14 @@ MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
     realm
   end
 
+  setup_all do
+    Application.put_env(:astarte_housekeeping_api, :disable_authentication, true)
+
+    on_exit fn ->
+      Application.put_env(:astarte_housekeeping_api, :disable_authentication, false)
+    end
+  end
+
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
