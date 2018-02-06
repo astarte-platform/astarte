@@ -25,11 +25,11 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
   """
   use Astarte.RealmManagement.APIWeb, :controller
 
-  #def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
-  #  conn
-  #  |> put_status(:unprocessable_entity)
-  #  |> render(Astarte.RealmManagement.APIWeb.ChangesetView, "error.json", changeset: changeset)
-  #end
+  def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> render(Astarte.RealmManagement.APIWeb.ChangesetView, "error.json", changeset: changeset)
+  end
 
   def call(conn, {:error, :not_found}) do
     conn
