@@ -48,6 +48,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:phoenix_pubsub, "~> 1.0"},
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
+      {:guardian, github: "ispirata/guardian"},
 
       {:distillery, "~> 1.4", runtime: false},
       {:excoveralls, "~> 0.6", only: :test},
