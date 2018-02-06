@@ -32,5 +32,7 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
     get "/:realm_name/interfaces/:id/:major_version", InterfaceController, :show
     put "/:realm_name/interfaces/:id/:major_version", InterfaceController, :update
     delete "/:realm_name/interfaces/:id/:major_version", InterfaceController, :delete
+    get "/:realm_name/config/:group", RealmConfigController, :show
+    put "/:realm_name/config/:group", RealmConfigController, :update
   end
 end
