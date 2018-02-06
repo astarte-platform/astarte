@@ -132,8 +132,12 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     extract_error(reply)
   end
 
-  defp extract_result({:generic_ok_reply, _generic_reply}) do
+  defp extract_result({:generic_ok_reply, %GenericOkReply{async_operation: true}}) do
     {:ok, :started}
+  end
+
+  defp extract_result({:generic_ok_reply, _generic_reply}) do
+    :ok
   end
 
   defp extract_result({:get_interface_versions_list_reply, get_interface_versions_list_reply}) do
