@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.API.Device do
   @moduledoc """
   The Device context.
   """
+  alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
@@ -464,13 +465,15 @@ defmodule Astarte.AppEngine.API.Device do
         {"", nil}
       end
 
+    query_limit = min(opts.limit, Config.max_results_limit())
     {limit_statement, limit_value} =
       cond do
-        (opts.limit != nil) and (since_value != nil) ->
-          {"LIMIT :limit_nrows", opts.limit}
+        (query_limit != nil) and (since_value != nil) ->
+          {"LIMIT :limit_nrows", query_limit}
 
+        # Check the explicit user defined limit to know if we have to reorder data
         (opts.limit != nil) and (since_value == nil) ->
-          {"ORDER BY endpoint_id DESC, path DESC, value_timestamp DESC LIMIT :limit_nrows", opts.limit}
+          {"ORDER BY endpoint_id DESC, path DESC, value_timestamp DESC LIMIT :limit_nrows", query_limit}
 
         true ->
           {"", nil}
@@ -556,13 +559,15 @@ defmodule Astarte.AppEngine.API.Device do
         {"", nil}
       end
 
+    query_limit = min(opts.limit, Config.max_results_limit())
     {limit_statement, limit_value} =
       cond do
-        (opts.limit != nil) and (since_value != nil) ->
-          {"LIMIT :limit_nrows", opts.limit}
+        (query_limit != nil) and (since_value != nil) ->
+          {"LIMIT :limit_nrows", query_limit}
 
+        # Check the explicit user defined limit to know if we have to reorder data
         (opts.limit != nil) and (since_value == nil) ->
-          {"ORDER BY reception_timestamp DESC LIMIT :limit_nrows", opts.limit}
+          {"ORDER BY reception_timestamp DESC LIMIT :limit_nrows", query_limit}
 
         true ->
           {"", nil}
