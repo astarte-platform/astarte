@@ -52,6 +52,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [:astarte_data_access],
   import: [],
   mappings: [
+    "max_results_limit": [
+      commented: true,
+      datatype: :integer,
+      default: 10000,
+      env_var: "APPENGINE_MAX_RESULTS_LIMIT",
+      doc: "The max number of data points returned by AppEngine API with a single call. Defaults to 10000",
+      hidden: false,
+      to: "astarte_appengine_api.max_results_limit"
+    ],
     "astarte_appengine_api.mqtt_options.username": [
       commented: true,
       datatype: :binary,
