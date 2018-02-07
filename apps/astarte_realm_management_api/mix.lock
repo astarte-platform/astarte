@@ -1,7 +1,8 @@
-%{"amqp": {:hex, :amqp, "1.0.0-pre.1", "65eda2b04dfe9e18cd3e81a0715cf40d7fecf284a1aa93eca5a187cf9bbea10a", [], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
+%{
+  "amqp": {:hex, :amqp, "1.0.0-pre.1", "65eda2b04dfe9e18cd3e81a0715cf40d7fecf284a1aa93eca5a187cf9bbea10a", [], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.6.12", "dfdfe7be661feb96ece404092a47431a73797ad412959732d940f96f80290da0", [], [{:rabbit_common, "3.6.12", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "5aafbe16c843f4bf694bfd10fd78d667d669eea4", []},
-  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "606005e01e871fd352d4e8847215e4eac06b4ba2", []},
+  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "b8340ea5d71118f4447005c3067b92b91d45f304", []},
   "base64url": {:hex, :base64url, "0.0.1", "36a90125f5948e3afd7be97662a1504b934dd5dac78451ca6e9abf85a10286be", [:rebar], [], "hexpm"},
   "certifi": {:hex, :certifi, "2.0.0", "a0c0e475107135f76b8c1d5bc7efb33cd3815cb3cf3dea7aefdd174dabead064", [], [], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
@@ -34,4 +35,5 @@
   "ranch": {:hex, :ranch, "1.3.2", "e4965a144dc9fbe70e5c077c65e73c57165416a901bd02ea899cfd95aa890986", [], [], "hexpm"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.1", "28a4d65b7f59893bc2c7de786dec1e1555bd742d336043fe644ae956c3497fbe", [], [], "hexpm"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.3.1", "a1f612a7b512638634a603c8f401892afbf99b8ce93a45041f8aaca99cadb85e", [], [], "hexpm"},
-  "uuid": {:hex, :uuid_erl, "1.7.2", "d596c8dd01a4ae48b9d8d51832ccc8f8302bf67acd01336aec3fcfae6b9d2bc2", [:rebar3], [{:quickrand, "~> 1.7.2", [hex: :quickrand, repo: "hexpm", optional: false]}], "hexpm"}}
+  "uuid": {:hex, :uuid_erl, "1.7.2", "d596c8dd01a4ae48b9d8d51832ccc8f8302bf67acd01336aec3fcfae6b9d2bc2", [:rebar3], [{:quickrand, "~> 1.7.2", [hex: :quickrand, repo: "hexpm", optional: false]}], "hexpm"},
+}

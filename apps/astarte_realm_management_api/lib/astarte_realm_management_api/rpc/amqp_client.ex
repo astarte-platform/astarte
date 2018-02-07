@@ -100,6 +100,17 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    {:ok, payload} =
+      %UpdateJWTPublicKeyPEM{
+        realm_name: realm_name,
+        jwt_public_key_pem: jwt_public_key_pem
+      }
+      |> encode_and_call(:update_jwt_public_key_pem)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
@@ -121,8 +132,12 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     extract_error(reply)
   end
 
-  defp extract_result({:generic_ok_reply, _generic_reply}) do
+  defp extract_result({:generic_ok_reply, %GenericOkReply{async_operation: true}}) do
     {:ok, :started}
+  end
+
+  defp extract_result({:generic_ok_reply, _generic_reply}) do
+    :ok
   end
 
   defp extract_result({:get_interface_versions_list_reply, get_interface_versions_list_reply}) do
