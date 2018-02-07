@@ -71,6 +71,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [:astarte_rpc],
   import: [],
   mappings: [
+    "jwt_public_key_path": [
+      commented: true,
+      datatype: :binary,
+      env_var: "HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH",
+      doc: "The path to the public key used to verify the JWT auth.",
+      default: "",
+      hidden: false,
+      to: "astarte_housekeeping_api.jwt_public_key_path"
+    ],
     "port": [
       commented: true,
       datatype: :integer,
@@ -88,6 +97,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       default: "0.0.0.0",
       hidden: false,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.http.ip"
+    ],
+    "disable_authentication": [
+      commented: true,
+      datatype: :atom,
+      env_var: "HOUSEKEEPING_API_DISABLE_AUTHENTICATION",
+      doc: "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
+      default: false,
+      hidden: false,
+      to: "astarte_housekeeping_api.disable_authentication"
     ],
     # Hidden options
     "astarte_housekeeping_api.namespace": [
@@ -205,6 +223,21 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       case :inet.parse_address(charlist_ip) do
         {:ok, tuple_ip} -> tuple_ip
         _ -> raise "Invalid IP address in bind_address"
+      end
+    end,
+    "astarte_housekeeping_api.jwt_public_key_pem": fn conf ->
+      [{_, public_key_path}] = Conform.Conf.get(conf, "astarte_housekeeping_api.jwt_public_key_path")
+      [{_, auth_disabled}] = Conform.Conf.get(conf, "astarte_housekeeping_api.disable_authentication")
+
+      cond do
+        auth_disabled ->
+          ""
+
+        public_key_path == "" ->
+          raise "No JWT public key path configured"
+
+        true ->
+          File.read!(public_key_path)
       end
     end
   ],

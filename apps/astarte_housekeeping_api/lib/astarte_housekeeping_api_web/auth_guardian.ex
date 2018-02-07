@@ -14,20 +14,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Router do
-  use Astarte.Housekeeping.APIWeb, :router
+defmodule Astarte.Housekeeping.APIWeb.AuthGuardian do
+  use Guardian, otp_app: :astarte_housekeeping_api
 
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
+  alias Astarte.Housekeeping.API.Auth.User
+
+  def subject_for_token(%User{id: id}, _claims) do
+    {:ok, to_string(id)}
   end
 
-  scope "/v1", Astarte.Housekeeping.APIWeb do
-    pipe_through :api
-
-    resources "/realms", RealmController, except: [:new, :edit, :delete]
+  def resource_from_claims(claims) do
+    {:ok,
+      %User{
+        id: claims["sub"],
+        authorizations: Map.get(claims, "a_ha", [])
+      }
+    }
   end
 end

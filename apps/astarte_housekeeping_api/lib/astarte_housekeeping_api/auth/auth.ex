@@ -14,20 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Router do
-  use Astarte.Housekeeping.APIWeb, :router
+defmodule Astarte.Housekeeping.API.Auth do
+  alias Astarte.Housekeeping.API.Config
 
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
-  end
-
-  scope "/v1", Astarte.Housekeeping.APIWeb do
-    pipe_through :api
-
-    resources "/realms", RealmController, except: [:new, :edit, :delete]
+  def fetch_public_key do
+    case Config.jwt_public_key_pem() do
+      nil ->
+        {:error, :no_jwt_public_key_pem_configured}
+      pem ->
+        {:ok, pem}
+    end
   end
 end

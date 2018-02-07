@@ -14,20 +14,26 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Router do
-  use Astarte.Housekeeping.APIWeb, :router
+defmodule Astarte.Housekeeping.API.JWTTestHelper do
+  alias Astarte.Housekeeping.API.Auth.User
+  alias Astarte.Housekeeping.APIWeb.AuthGuardian
 
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
+  def gen_jwt_token(authorization_paths) do
+    jwk =
+      Application.get_env(:astarte_housekeeping_api, :test_priv_key)
+      |> JOSE.JWK.from_map()
+
+    {:ok, jwt, _claims} =
+      %User{id: "testuser"}
+      |> AuthGuardian.encode_and_sign(%{"a_ha": authorization_paths}, secret: jwk, allowed_algos: ["RS256"])
+
+    jwt
   end
 
-  scope "/v1", Astarte.Housekeeping.APIWeb do
-    pipe_through :api
-
-    resources "/realms", RealmController, except: [:new, :edit, :delete]
+  def gen_jwt_all_access_token do
+    gen_jwt_token([".*::.*"])
   end
 end
