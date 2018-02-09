@@ -3,7 +3,7 @@ defmodule Astarte.Pairing.Mock do
 
   @test_broker_url "ssl://broker.example.com:9000"
   @test_version "1"
-  @existing_hw_id "existing"
+  @existing_hw_id "yaLu85t5SmWPC-ALn5g-_Q"
   @test_api_key_prefix "testapikeyprefix"
 
   @certificate_base "I hereby certify that you're really you: "

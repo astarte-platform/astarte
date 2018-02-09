@@ -8,7 +8,7 @@ defmodule Astarte.Pairing.API.AgentTest do
     alias Astarte.Pairing.API.Agent.APIKey
 
     @test_realm "testrealm"
-    @test_hw_id "testhwid"
+    @test_hw_id "PDL3KNj7RVifHZD-1w_6wA"
 
     @valid_attrs %{"realm" => @test_realm, "hw_id" => @test_hw_id}
     @no_hw_id_attrs %{"realm" => @test_realm}

@@ -6,7 +6,7 @@ defmodule Astarte.Pairing.APIWeb.APIKeyControllerTest do
   alias Astarte.Pairing.Mock
 
   @test_realm "testrealm"
-  @test_hw_id "testhwid"
+  @test_hw_id "2imLILqtRP2vq0ZVy-TGRQ"
   @invalid_hw_id ""
 
   @create_attrs %{"hwId" => @test_hw_id}
