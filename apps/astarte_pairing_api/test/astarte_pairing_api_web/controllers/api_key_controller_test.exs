@@ -7,10 +7,18 @@ defmodule Astarte.Pairing.APIWeb.APIKeyControllerTest do
 
   @test_realm "testrealm"
   @test_hw_id "2imLILqtRP2vq0ZVy-TGRQ"
-  @invalid_hw_id ""
+  @test_hw_id_256 "ova1YgZZZo3p_2m8UjJ_c3sOOmpLh3GOc0CARFwE-V4"
+  @empty_invalid_hw_id ""
+  @short_invalid_hw_id "YQ"
+  @toolong_invalid_hw_id "y8wj2_k9juwgfF4_ir1sd8gUzR4V8MFnpap2ks73sniR"
+  @invalid_hw_id "5GGciygQUcHZqXyc1BNeC%"
 
   @create_attrs %{"hwId" => @test_hw_id}
-  @invalid_attrs %{"hwId" => @invalid_hw_id}
+  @create_attrs_256 %{"hwId" => @test_hw_id_256}
+  @invalid_attrs %{"hwId" => @empty_invalid_hw_id}
+  @short_invalid_attrs %{"hwId" => @short_invalid_hw_id}
+  @toolong_invalid_attrs %{"hwId" => @toolong_invalid_hw_id}
+  @bad_encoding_invalid_attrs %{"hwId" => @invalid_hw_id}
   @existing_attrs %{"hwId" => Mock.existing_hw_id()}
 
   describe "create api_key" do
@@ -33,8 +41,29 @@ defmodule Astarte.Pairing.APIWeb.APIKeyControllerTest do
       assert api_key == Mock.api_key(@test_realm, @test_hw_id)
     end
 
+    test "renders api_key when data is valid and hardware id is 256 bits long", %{conn: conn} do
+      conn = post conn, api_key_path(conn, :create), @create_attrs_256
+      assert %{"apiKey" => api_key} = json_response(conn, 201)
+      assert api_key == Mock.api_key(@test_realm, @test_hw_id_256)
+    end
+
     test "renders errors when data is invalid", %{conn: conn} do
       conn = post conn, api_key_path(conn, :create), @invalid_attrs
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "renders errors when hardware id is too short", %{conn: conn} do
+      conn = post conn, api_key_path(conn, :create), @short_invalid_attrs
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "renders errors when hardware id is too long", %{conn: conn} do
+      conn = post conn, api_key_path(conn, :create), @toolong_invalid_attrs
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "renders errors when hardware id is not valid base64", %{conn: conn} do
+      conn = post conn, api_key_path(conn, :create), @bad_encoding_invalid_attrs
       assert json_response(conn, 422)["errors"] != %{}
     end
 
