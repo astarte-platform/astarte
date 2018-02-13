@@ -115,6 +115,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_appengine_api.disable_authentication"
     ],
+    "swagger_ui": [
+      commented: true,
+      datatype: :boolean,
+      default: true,
+      env_var: "SWAGGER_UI",
+      doc: "Whether to install Swagger UI and expose API documentation on /swagger.",
+      hidden: false,
+      to: "astarte_appengine_api.swagger_ui"
+    ],
     # Hidden options
     "astarte_appengine_api.namespace": [
       commented: false,

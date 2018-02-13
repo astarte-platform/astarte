@@ -5,16 +5,16 @@ info:
   title: "Astarte App Engine API"
   contact:
     email: "info@ispirata.com"
-host: "api.astarte.cloud"
 basePath: "/v1"
 tags:
 - name: "device"
   description: "Device data status retrival and publish"
   externalDocs:
-    description: "Find out more"
-    url: "http://www.astarte.cloud/"
+    description: "Complete documentation"
+    url: "http://docs.astarte-platform.org/snapshot"
 schemes:
-- "http"
+- https
+- http
 paths:
   /{realm_name}/devices/{device_id}:
     get:
