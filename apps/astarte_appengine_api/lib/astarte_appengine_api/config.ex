@@ -16,4 +16,17 @@ defmodule Astarte.AppEngine.API.Config do
   def authentication_disabled? do
     Application.get_env(:astarte_appengine_api, :disable_authentication, false)
   end
+
+  @doc """
+  Returns the max query limit that is configured or nil if there's no limit
+  """
+  def max_results_limit do
+    limit = Application.get_env(:astarte_appengine_api, :max_results_limit)
+    if limit > 0 do
+      limit
+    else
+      # If limit <= 0, no limit
+      nil
+    end
+  end
 end

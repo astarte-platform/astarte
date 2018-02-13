@@ -52,6 +52,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [:astarte_data_access],
   import: [],
   mappings: [
+    "max_results_limit": [
+      commented: true,
+      datatype: :integer,
+      default: 10000,
+      env_var: "APPENGINE_MAX_RESULTS_LIMIT",
+      doc: "The max number of data points returned by AppEngine API with a single call. Defaults to 10000. If <= 0, results are unlimited.",
+      hidden: false,
+      to: "astarte_appengine_api.max_results_limit"
+    ],
     "astarte_appengine_api.mqtt_options.username": [
       commented: true,
       datatype: :binary,
@@ -249,6 +258,16 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       case :inet.parse_address(charlist_ip) do
         {:ok, tuple_ip} -> tuple_ip
         _ -> raise "Invalid IP address in bind_address"
+      end
+    end,
+    "astarte_appengine_api.max_results_limit": fn conf ->
+      [{_, results}] = Conform.Conf.get(conf, "astarte_appengine_api.max_results_limit")
+
+      if results > 0 do
+        results
+      else
+        # If <= 0 we fix it to 0 to indicate no limit
+        0
       end
     end
   ],
