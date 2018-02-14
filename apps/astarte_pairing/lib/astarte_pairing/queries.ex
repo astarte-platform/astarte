@@ -52,7 +52,7 @@ defmodule Astarte.Pairing.Queries do
   """
 
   def insert_device(client, device_uuid, extended_id) do
-    #TODO: use IF NOT EXISTS as soon as Scylla supports it
+    # TODO: use IF NOT EXISTS as soon as Scylla supports it
     device_exists_query =
       Query.new()
       |> Query.statement(@select_device)
@@ -65,6 +65,7 @@ defmodule Astarte.Pairing.Queries do
         else
           insert_not_existing_device(client, device_uuid, extended_id)
         end
+
       error ->
         Logger.warn("DB error: #{inspect(error)}")
         {:error, :db_error}
@@ -96,9 +97,22 @@ defmodule Astarte.Pairing.Queries do
       DateTime.utc_now()
       |> DateTime.to_unix(:milliseconds)
 
-    update_device_after_pairing(client, device_uuid, cert_data, device_ip, first_pairing_timestamp)
+    update_device_after_pairing(
+      client,
+      device_uuid,
+      cert_data,
+      device_ip,
+      first_pairing_timestamp
+    )
   end
-  def update_device_after_pairing(client, device_uuid, %{serial: serial, aki: aki} = _cert_data, device_ip, first_pairing_timestamp) do
+
+  def update_device_after_pairing(
+        client,
+        device_uuid,
+        %{serial: serial, aki: aki} = _cert_data,
+        device_ip,
+        first_pairing_timestamp
+      ) do
     query =
       Query.new()
       |> Query.statement(@update_device_after_pairing)
@@ -132,6 +146,7 @@ defmodule Astarte.Pairing.Queries do
     case Query.call(client, query) do
       {:ok, _res} ->
         :ok
+
       error ->
         Logger.warn("DB error: #{inspect(error)}")
         {:error, :db_error}

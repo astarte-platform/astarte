@@ -31,7 +31,8 @@ defmodule Astarte.Pairing.APIKeyTest do
     {:ok, device_uuid} = Utils.extended_id_to_uuid(@test_hw_id)
     {:ok, api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
 
-    assert APIKey.verify(api_key, "api_salt") == {:ok, %{realm: @test_realm, device_uuid: device_uuid}}
+    assert APIKey.verify(api_key, "api_salt") ==
+             {:ok, %{realm: @test_realm, device_uuid: device_uuid}}
   end
 
   test "APIKey fails to verify if tampered" do
@@ -41,7 +42,7 @@ defmodule Astarte.Pairing.APIKeyTest do
     [prefix, _payload, postfix] = String.split(api_key, ".")
 
     tampered_payload =
-      device_uuid <> "otherrealm"
+      (device_uuid <> "otherrealm")
       |> Base.url_encode64(padding: false)
 
     tampered_api_key = "#{prefix}.#{tampered_payload}.#{postfix}"
@@ -50,13 +51,17 @@ defmodule Astarte.Pairing.APIKeyTest do
   end
 
   test "APIKey fallback verify" do
-    Application.put_env(:astarte_pairing, :fallback_api_key_verify_fun, {Astarte.Pairing.TestHelper, :fallback_verify_key})
+    Application.put_env(
+      :astarte_pairing,
+      :fallback_api_key_verify_fun,
+      {Astarte.Pairing.TestHelper, :fallback_verify_key}
+    )
 
     assert {:ok, _realm, _uuid} = APIKey.verify(TestHelper.valid_fallback_api_key(), "api_salt")
     assert {:error, :invalid_api_key} = APIKey.verify("invalid", "api_salt")
 
-    on_exit fn ->
+    on_exit(fn ->
       Application.delete_env(:astarte_pairing, :fallback_api_key_verify_fun)
-    end
+    end)
   end
 end

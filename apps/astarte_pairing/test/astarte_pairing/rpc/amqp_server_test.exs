@@ -93,15 +93,16 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
   setup_all do
     DatabaseTestHelper.seed_db()
 
-    on_exit fn ->
+    on_exit(fn ->
       DatabaseTestHelper.drop_db()
-    end
+    end)
   end
 
   test "invalid empty message" do
     encoded =
       %Call{}
-      |> Call.encode
+      |> Call.encode()
+
     assert AMQPServer.process_rpc(encoded) == {:error, :empty_call}
   end
 
@@ -112,9 +113,11 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-    expected_reply =
-      %Reply{reply:
-        {:get_info_reply, %GetInfoReply{url: Config.broker_url!(), version: Mix.Project.config[:version]}}}
+    expected_reply = %Reply{
+      reply:
+        {:get_info_reply,
+         %GetInfoReply{url: Config.broker_url!(), version: Mix.Project.config()[:version]}}
+    }
 
     assert Reply.decode(reply) == expected_reply
   end
@@ -129,9 +132,9 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
     {:ok, device_uuid} = Utils.extended_id_to_uuid(@test_hw_id_1)
     {:ok, expected_api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
 
-    expected_reply =
-      %Reply{reply:
-        {:generate_api_key_reply, %GenerateAPIKeyReply{api_key: expected_api_key}}}
+    expected_reply = %Reply{
+      reply: {:generate_api_key_reply, %GenerateAPIKeyReply{api_key: expected_api_key}}
+    }
 
     assert Reply.decode(reply) == expected_reply
   end
@@ -146,30 +149,36 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
     {:ok, device_uuid} = Utils.extended_id_to_uuid(@test_hw_id_2)
     {:ok, expected_api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
 
-    expected_reply =
-      %Reply{reply:
-        {:generate_api_key_reply, %GenerateAPIKeyReply{api_key: expected_api_key}}}
+    expected_reply = %Reply{
+      reply: {:generate_api_key_reply, %GenerateAPIKeyReply{api_key: expected_api_key}}
+    }
 
     assert Reply.decode(reply) == expected_reply
 
     # Try to generate the APIKey again
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-    expected_err_reply =
-      %Reply{error: true, reply: {:generic_error_reply, %GenericErrorReply{error_name: "device_exists"}}}
+    expected_err_reply = %Reply{
+      error: true,
+      reply: {:generic_error_reply, %GenericErrorReply{error_name: "device_exists"}}
+    }
 
     assert expected_err_reply == Reply.decode(reply)
   end
 
   test "GenerateAPIKey fails with invalid hw_id" do
     encoded =
-      %Call{call: {:generate_api_key, %GenerateAPIKey{realm: @test_realm, hw_id: "invalid_hw_id"}}}
+      %Call{
+        call: {:generate_api_key, %GenerateAPIKey{realm: @test_realm, hw_id: "invalid_hw_id"}}
+      }
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-    expected_err_reply =
-      %Reply{error: true, reply: {:generic_error_reply, %GenericErrorReply{error_name: "id_decode_failed"}}}
+    expected_err_reply = %Reply{
+      error: true,
+      reply: {:generic_error_reply, %GenericErrorReply{error_name: "id_decode_failed"}}
+    }
 
     assert expected_err_reply == Reply.decode(reply)
   end
@@ -184,12 +193,15 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
     test "valid call with VerifyCertificate", %{api_key: api_key} do
       encoded =
-        %Call{call: {:do_pairing, %DoPairing{api_key: api_key, csr: @test_csr, device_ip: "2.3.4.5"}}}
+        %Call{
+          call: {:do_pairing, %DoPairing{api_key: api_key, csr: @test_csr, device_ip: "2.3.4.5"}}
+        }
         |> Call.encode()
 
       {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-      assert %Reply{reply: {:do_pairing_reply, %DoPairingReply{client_crt: client_crt}}} = Reply.decode(reply)
+      assert %Reply{reply: {:do_pairing_reply, %DoPairingReply{client_crt: client_crt}}} =
+               Reply.decode(reply)
 
       encoded_verify =
         %Call{call: {:verify_certificate, %VerifyCertificate{crt: client_crt}}}
@@ -197,21 +209,31 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
       {:ok, verify_reply} = AMQPServer.process_rpc(encoded_verify)
 
-      assert match?(%Reply{reply: {:verify_certificate_reply, %VerifyCertificateReply{valid: true, timestamp: _ts, until: _until}}},
-                    Reply.decode(verify_reply))
+      assert match?(
+               %Reply{
+                 reply:
+                   {:verify_certificate_reply,
+                    %VerifyCertificateReply{valid: true, timestamp: _ts, until: _until}}
+               },
+               Reply.decode(verify_reply)
+             )
     end
 
     test "invalid call", %{api_key: api_key} do
       invalid_ip = "300.3.4.5"
 
       encoded =
-        %Call{call: {:do_pairing, %DoPairing{api_key: api_key, csr: @test_csr, device_ip: invalid_ip}}}
+        %Call{
+          call: {:do_pairing, %DoPairing{api_key: api_key, csr: @test_csr, device_ip: invalid_ip}}
+        }
         |> Call.encode()
 
       {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-      expected_err_reply =
-        %Reply{error: true, reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_ip"}}}
+      expected_err_reply = %Reply{
+        error: true,
+        reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_ip"}}
+      }
 
       assert expected_err_reply == Reply.decode(reply)
     end
@@ -224,6 +246,10 @@ defmodule Astarte.Pairing.RPC.AMQPServerTest do
 
     {:ok, verify_reply} = AMQPServer.process_rpc(encoded)
 
-    assert %Reply{reply: {:verify_certificate_reply, %VerifyCertificateReply{valid: false, cause: :INVALID_ISSUER}}} == Reply.decode(verify_reply)
+    assert %Reply{
+             reply:
+               {:verify_certificate_reply,
+                %VerifyCertificateReply{valid: false, cause: :INVALID_ISSUER}}
+           } == Reply.decode(verify_reply)
   end
 end

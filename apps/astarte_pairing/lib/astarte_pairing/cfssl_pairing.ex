@@ -43,9 +43,7 @@ defmodule Astarte.Pairing.CFSSLPairing do
         cn = CertUtils.common_name!(cert)
 
         if cn == device_common_name do
-          {:ok, %{cert: cert,
-                  aki: aki,
-                  serial: serial}}
+          {:ok, %{cert: cert, aki: aki, serial: serial}}
         else
           {:error, :invalid_common_name}
         end
@@ -57,14 +55,19 @@ defmodule Astarte.Pairing.CFSSLPairing do
 
   # If it was not present in the DB, no need to revoke it
   def revoke(:null, :null), do: :ok
+
   def revoke(serial, aki) do
     case CFXXL.revoke(client(), serial, aki, "superseded") do
       # Don't fail even if we couldn't revoke, just warn
       {:error, reason} ->
-        Logger.warn("Failed to revoke certificate with serial #{serial} and AKI #{aki}: #{inspect(reason)}")
+        Logger.warn(
+          "Failed to revoke certificate with serial #{serial} and AKI #{aki}: #{inspect(reason)}"
+        )
+
         :ok
 
-      :ok -> :ok
+      :ok ->
+        :ok
     end
   end
 
