@@ -15,4 +15,7 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
 config :astarte_data_updater_plant, :amqp_events_exchange_name,
   "astarte_events"
 
+config :astarte_data_updater_plant, :amqp_consumer_prefetch_count,
+  300
+
 import_config "#{Mix.env}.exs"
