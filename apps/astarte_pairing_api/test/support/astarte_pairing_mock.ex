@@ -29,7 +29,7 @@ defmodule Astarte.Pairing.Mock do
   @valid_api_key "validapikey"
 
   @valid_crt "validcrt"
-  @ms_in_a_month 2628000000
+  @ms_in_a_month 2_628_000_000
 
   use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.Pairing
@@ -88,13 +88,17 @@ defmodule Astarte.Pairing.Mock do
     |> ok_wrap()
   end
 
-  defp execute_rpc({:do_pairing, %DoPairing{csr: csr, api_key: @valid_api_key, device_ip: device_ip}}) do
+  defp execute_rpc(
+         {:do_pairing, %DoPairing{csr: csr, api_key: @valid_api_key, device_ip: device_ip}}
+       ) do
     %DoPairingReply{client_crt: @certificate_base <> csr <> device_ip}
     |> encode_reply(:do_pairing_reply)
     |> ok_wrap()
   end
 
-  defp execute_rpc({:do_pairing, %DoPairing{csr: _csr, api_key: _valid_api_key, device_ip: _device_ip}}) do
+  defp execute_rpc(
+         {:do_pairing, %DoPairing{csr: _csr, api_key: _valid_api_key, device_ip: _device_ip}}
+       ) do
     generic_error(:invalid_api_key)
     |> ok_wrap()
   end
@@ -103,6 +107,7 @@ defmodule Astarte.Pairing.Mock do
     now_ms =
       DateTime.utc_now()
       |> DateTime.to_unix(:milliseconds)
+
     one_month_from_now = now_ms + @ms_in_a_month
 
     %VerifyCertificateReply{valid: true, timestamp: now_ms, until: one_month_from_now}
@@ -115,7 +120,12 @@ defmodule Astarte.Pairing.Mock do
       DateTime.utc_now()
       |> DateTime.to_unix(:milliseconds)
 
-    %VerifyCertificateReply{valid: false, timestamp: now_ms, cause: :INVALID, details: "invalid_certificate"}
+    %VerifyCertificateReply{
+      valid: false,
+      timestamp: now_ms,
+      cause: :INVALID,
+      details: "invalid_certificate"
+    }
     |> encode_reply(:verify_certificate_reply)
     |> ok_wrap()
   end
@@ -127,7 +137,7 @@ defmodule Astarte.Pairing.Mock do
 
   defp encode_reply(reply, reply_type) do
     %Reply{reply: {reply_type, reply}}
-    |> Reply.encode
+    |> Reply.encode()
   end
 
   defp ok_wrap(result) do

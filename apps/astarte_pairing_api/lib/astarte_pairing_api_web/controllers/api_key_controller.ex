@@ -38,7 +38,8 @@ defmodule Astarte.Pairing.APIWeb.APIKeyController do
   def create(conn, %{"hwId" => hw_id}) do
     # hwId is spelled this way to preserve backwards compatibility
     with %Realm{realm_name: realm} <- AgentGuardian.Plug.current_resource(conn),
-         {:ok, %APIKey{} = api_key} <- Agent.generate_api_key(%{"hw_id" => hw_id, "realm" => realm}) do
+         {:ok, %APIKey{} = api_key} <-
+           Agent.generate_api_key(%{"hw_id" => hw_id, "realm" => realm}) do
       conn
       |> put_status(:created)
       |> render("show.json", api_key)

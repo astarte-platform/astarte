@@ -33,6 +33,7 @@ defmodule Astarte.Pairing.APIWeb.EndpointTest do
         |> put_req_header("content-type", "application/json")
         |> put_req_header("x-api-key", Mock.valid_api_key())
         |> put_resp_header("accept", "application/json")
+
       {:ok, conn: conn}
     end
 

@@ -29,7 +29,11 @@ defmodule Astarte.Pairing.APIWeb.BrokerInfoControllerTest do
   describe "get info" do
     test "returns the correct info", %{conn: conn} do
       conn = get conn, broker_info_path(conn, :show)
-      assert json_response(conn, 200) == %{"url" => Mock.broker_url(), "version" => Mock.version()}
+
+      assert json_response(conn, 200) == %{
+               "url" => Mock.broker_url(),
+               "version" => Mock.version()
+             }
     end
   end
 end

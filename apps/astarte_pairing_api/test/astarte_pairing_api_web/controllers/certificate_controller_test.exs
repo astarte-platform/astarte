@@ -33,9 +33,9 @@ defmodule Astarte.Pairing.APIWeb.CertificateControllerTest do
         |> put_req_header("content-type", "application/json")
         |> put_req_header("x-api-key", Mock.valid_api_key())
         |> put_resp_header("accept", "application/json")
+
       {:ok, conn: conn}
     end
-
 
     test "renders certificate when data is valid", %{conn: conn} do
       conn = post conn, certificate_path(conn, :create), @create_attrs
@@ -79,14 +79,15 @@ defmodule Astarte.Pairing.APIWeb.CertificateControllerTest do
         conn
         |> put_req_header("content-type", "application/json")
         |> put_req_header("x-api-key", Mock.valid_api_key())
+
       {:ok, conn: conn}
     end
 
     test "renders certificate status when data is valid", %{conn: conn} do
       conn = post conn, certificate_path(conn, :verify), @verify_attrs
-      assert %{"valid" => true,
-               "timestamp" => _timestamp,
-               "until" => _until} = json_response(conn, 201)
+
+      assert %{"valid" => true, "timestamp" => _timestamp, "until" => _until} =
+               json_response(conn, 201)
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
@@ -96,10 +97,13 @@ defmodule Astarte.Pairing.APIWeb.CertificateControllerTest do
 
     test "renders certificate status when certificate is invalid", %{conn: conn} do
       conn = post conn, certificate_path(conn, :verify), @invalid_crt_attrs
-      assert %{"valid" => false,
+
+      assert %{
+               "valid" => false,
                "timestamp" => _timestamp,
                "cause" => _cause,
-               "details" => _details} = json_response(conn, 201)
+               "details" => _details
+             } = json_response(conn, 201)
     end
   end
 end

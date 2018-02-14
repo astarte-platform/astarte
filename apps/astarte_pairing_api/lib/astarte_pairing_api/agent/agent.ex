@@ -34,6 +34,7 @@ defmodule Astarte.Pairing.API.Agent do
 
     if changeset.valid? do
       %APIKeyRequest{hw_id: hw_id, realm: realm} = Ecto.Changeset.apply_changes(changeset)
+
       case AMQPClient.generate_api_key(realm, hw_id) do
         {:ok, api_key} ->
           {:ok, %APIKey{api_key: api_key}}
@@ -44,7 +45,6 @@ defmodule Astarte.Pairing.API.Agent do
         _other ->
           {:error, :rpc_error}
       end
-
     else
       {:error, %{changeset | action: :create}}
     end

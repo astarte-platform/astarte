@@ -33,7 +33,11 @@ defmodule Astarte.Pairing.API.PairingTest do
 
     @valid_attrs %{"csr" => @csr, "api_key" => @valid_api_key, "device_ip" => @device_ip}
     @no_csr_attrs %{"api_key" => @valid_api_key, "device_ip" => @device_ip}
-    @invalid_api_key_attrs %{"csr" => @csr, "api_key" => @invalid_api_key, "device_ip" => @device_ip}
+    @invalid_api_key_attrs %{
+      "csr" => @csr,
+      "api_key" => @invalid_api_key,
+      "device_ip" => @device_ip
+    }
 
     test "pair/1 with valid data returns a Certificate" do
       assert {:ok, %Certificate{client_crt: crt}} = Pairing.pair(@valid_attrs)
@@ -60,11 +64,8 @@ defmodule Astarte.Pairing.API.PairingTest do
     @invalid_crt_attrs %{certificate: "invalid"}
 
     test "verify_certificate/1 with valid certificate returns a CertificateStatus" do
-      assert {:ok,
-        %CertificateStatus{
-          valid: true,
-          until: _until,
-          timestamp: _timestamp}} = Pairing.verify_certificate(@valid_attrs)
+      assert {:ok, %CertificateStatus{valid: true, until: _until, timestamp: _timestamp}} =
+               Pairing.verify_certificate(@valid_attrs)
     end
 
     test "verify_certificate/1 with malformed attrs returns an error changeset" do
@@ -74,10 +75,12 @@ defmodule Astarte.Pairing.API.PairingTest do
 
     test "verify_certificate/1 with invalid crt returns an invalid CertificateStatus" do
       assert {:ok,
-        %CertificateStatus{valid: false,
-          timestamp: _timestamp,
-          cause: _cause,
-          details: _details}} = Pairing.verify_certificate(@invalid_crt_attrs)
+              %CertificateStatus{
+                valid: false,
+                timestamp: _timestamp,
+                cause: _cause,
+                details: _details
+              }} = Pairing.verify_certificate(@invalid_crt_attrs)
     end
   end
 end

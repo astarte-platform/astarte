@@ -37,7 +37,7 @@ defmodule Astarte.Pairing.API.Info do
 
   """
   def get_broker_info! do
-    case AMQPClient.get_info do
+    case AMQPClient.get_info() do
       {:ok, %{url: url, version: version}} ->
         %BrokerInfo{url: url, version: version}
 

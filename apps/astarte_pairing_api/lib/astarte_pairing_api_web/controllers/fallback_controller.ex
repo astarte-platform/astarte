@@ -49,6 +49,7 @@ defmodule Astarte.Pairing.APIWeb.FallbackController do
     |> put_status(:unauthorized)
     |> render(Astarte.Pairing.APIWeb.ErrorView, :"401")
   end
+
   # We don't care about intermediate errors
   def auth_error(conn, _reason, _opts), do: conn
 end

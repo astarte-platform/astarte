@@ -82,12 +82,14 @@ defmodule Astarte.Pairing.API.RPC.AMQPClient do
   end
 
   defp extract_reply({:verify_certificate_reply, %VerifyCertificateReply{} = reply_struct}) do
-    reply =
-      %{valid: reply_struct.valid,
-        timestamp: reply_struct.timestamp,
-        until: reply_struct.until,
-        cause: reply_struct.cause,
-        details: reply_struct.details}
+    reply = %{
+      valid: reply_struct.valid,
+      timestamp: reply_struct.timestamp,
+      until: reply_struct.until,
+      cause: reply_struct.cause,
+      details: reply_struct.details
+    }
+
     {:ok, reply}
   end
 
