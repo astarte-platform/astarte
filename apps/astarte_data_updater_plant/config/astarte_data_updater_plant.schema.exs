@@ -57,7 +57,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "localhost",
       env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_HOST",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_consumer_options.host here.",
+      doc: "The host for the AMQP consumer connection.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_consumer_options.host"
     ],
@@ -66,7 +66,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "guest",
       env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_USERNAME",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_consumer_options.username here.",
+      doc: "The username for the AMQP consumer connection.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_consumer_options.username"
     ],
@@ -75,7 +75,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "guest",
       env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_PASSWORD",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_consumer_options.password here.",
+      doc: "The password for the AMQP consumer connection.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_consumer_options.password"
     ],
@@ -84,7 +84,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "/",
       env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_VIRTUAL_HOST",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_consumer_options.virtual_host here.",
+      doc: "The virtual_host for the AMQP consumer connection.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_consumer_options.virtual_host"
     ],
@@ -93,7 +93,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :integer,
       default: 5672,
       env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_PORT",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_consumer_options.port here.",
+      doc: "The port for the AMQP consumer connection.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_consumer_options.port"
     ],
@@ -102,7 +102,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_producer_options.host here.",
+      doc: "The host for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.host"
     ],
@@ -111,7 +111,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_USERNAME",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_producer_options.username here.",
+      doc: "The username for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.username"
     ],
@@ -120,7 +120,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_PASSWORD",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_producer_options.password here.",
+      doc: "The password for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.password"
     ],
@@ -129,7 +129,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_VIRTUAL_HOST",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_producer_options.virtual_host here.",
+      doc: "The virtual_host for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.virtual_host"
     ],
@@ -138,7 +138,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :integer,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_PORT",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_producer_options.port here.",
+      doc: "The port for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.port"
     ],
@@ -147,7 +147,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "astarte_events",
       env_var: "DATA_UPDATER_PLANT_AMQP_EVENTS_EXCHANGE_NAME",
-      doc: "Provide documentation for astarte_data_updater_plant.amqp_events_exchange_name here.",
+      doc: "The exchange used by the AMQP producer to publish events.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_events_exchange_name"
     ],
@@ -156,9 +156,18 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       default: "vmq_all",
       env_var: "DATA_UPDATER_PLANT_AMQP_QUEUE_NAME",
-      doc: "Provide documentation for astarte_data_updater_plant.queue_name here.",
+      doc: "The queue used by the AMQP consumer to consume data.",
       hidden: false,
       to: "astarte_data_updater_plant.queue_name"
+    ],
+    "amqp_consumer.prefetch_count": [
+      commented: true,
+      datatype: :integer,
+      default: 300,
+      env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_PREFETCH_COUNT",
+      doc: "The prefetch count of the AMQP consumer connection. A prefetch count of 0 means unlimited (not recommended).",
+      hidden: false,
+      to: "astarte_data_updater_plant.amqp_consumer_prefetch_count"
     ]
   ],
   transforms: [

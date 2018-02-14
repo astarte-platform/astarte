@@ -30,4 +30,11 @@ defmodule Astarte.DataUpdaterPlant.Config do
   def queue_name do
     Application.get_env(:astarte_data_updater_plant, :queue_name)
   end
+
+  @doc """
+  Returns the AMQP consumer prefetch count for the consumer. Defaults to 300.
+  """
+  def amqp_consumer_prefetch_count do
+    Application.get_env(:astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300)
+  end
 end
