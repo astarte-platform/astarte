@@ -159,6 +159,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       doc: "The queue used by the AMQP consumer to consume data.",
       hidden: false,
       to: "astarte_data_updater_plant.queue_name"
+    ],
+    "amqp_consumer.prefetch_count": [
+      commented: true,
+      datatype: :integer,
+      default: 300,
+      env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_PREFETCH_COUNT",
+      doc: "The prefetch count of the AMQP consumer connection. A prefetch count of 0 means unlimited (not recommended).",
+      hidden: false,
+      to: "astarte_data_updater_plant.amqp_consumer_prefetch_count"
     ]
   ],
   transforms: [
