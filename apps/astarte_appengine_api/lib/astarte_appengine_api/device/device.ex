@@ -468,12 +468,12 @@ defmodule Astarte.AppEngine.API.Device do
     query_limit = min(opts.limit, Config.max_results_limit())
     {limit_statement, limit_value} =
       cond do
-        (query_limit != nil) and (since_value != nil) ->
-          {"LIMIT :limit_nrows", query_limit}
-
         # Check the explicit user defined limit to know if we have to reorder data
         (opts.limit != nil) and (since_value == nil) ->
           {"ORDER BY endpoint_id DESC, path DESC, value_timestamp DESC LIMIT :limit_nrows", query_limit}
+
+        (query_limit != nil) ->
+          {"LIMIT :limit_nrows", query_limit}
 
         true ->
           {"", nil}
@@ -562,12 +562,12 @@ defmodule Astarte.AppEngine.API.Device do
     query_limit = min(opts.limit, Config.max_results_limit())
     {limit_statement, limit_value} =
       cond do
-        (query_limit != nil) and (since_value != nil) ->
-          {"LIMIT :limit_nrows", query_limit}
-
         # Check the explicit user defined limit to know if we have to reorder data
         (opts.limit != nil) and (since_value == nil) ->
           {"ORDER BY reception_timestamp DESC LIMIT :limit_nrows", query_limit}
+
+        (query_limit != nil) ->
+          {"LIMIT :limit_nrows", query_limit}
 
         true ->
           {"", nil}
