@@ -98,6 +98,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
+         :ok <- Basic.qos(chan, prefetch_count: Config.amqp_consumer_prefetch_count()),
          {:ok, _queue} <- Queue.declare(chan, Config.queue_name(), durable: true),
          {:ok, _consumer_tag} <- Basic.consume(chan, Config.queue_name()) do
 
