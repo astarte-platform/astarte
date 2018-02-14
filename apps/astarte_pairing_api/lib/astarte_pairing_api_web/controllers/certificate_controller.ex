@@ -39,7 +39,8 @@ defmodule Astarte.Pairing.APIWeb.CertificateController do
   end
 
   def verify(conn, %{"data" => certificate}) do
-    with {:ok, %CertificateStatus{} = status} <- Pairing.verify_certificate(%{"certificate" => certificate}) do
+    with {:ok, %CertificateStatus{} = status} <-
+           Pairing.verify_certificate(%{"certificate" => certificate}) do
       conn
       |> put_status(:created)
       |> render(CertificateStatusView, "show.json", certificate_status: status)

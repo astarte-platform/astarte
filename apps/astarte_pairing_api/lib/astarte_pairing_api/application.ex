@@ -26,7 +26,7 @@ defmodule Astarte.Pairing.API.Application do
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.Pairing.APIWeb.Endpoint,
-      Astarte.Pairing.API.RPC.AMQPClient,
+      Astarte.Pairing.API.RPC.AMQPClient
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

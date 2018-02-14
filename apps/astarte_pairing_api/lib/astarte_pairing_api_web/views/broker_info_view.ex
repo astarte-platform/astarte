@@ -26,7 +26,6 @@ defmodule Astarte.Pairing.APIWeb.BrokerInfoView do
   end
 
   def render("broker_info.json", %{broker_info: broker_info}) do
-    %{url: broker_info.url,
-      version: broker_info.version}
+    %{url: broker_info.url, version: broker_info.version}
   end
 end

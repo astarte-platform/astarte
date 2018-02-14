@@ -25,4 +25,3 @@ defmodule Astarte.Pairing.API.DataCase do
     :ok
   end
 end
-

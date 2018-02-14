@@ -42,8 +42,8 @@ defmodule Astarte.Pairing.API.Agent.APIKeyRequest do
     valid =
       if is_binary(hw_id) do
         case Base.url_decode64(hw_id, padding: false) do
-          {:ok, << _device_id :: binary-size(16), _extended_id :: binary-size(16) >>} -> true
-          {:ok, << _device_id :: binary-size(16) >>} -> true
+          {:ok, <<_device_id::binary-size(16), _extended_id::binary-size(16)>>} -> true
+          {:ok, <<_device_id::binary-size(16)>>} -> true
           _ -> false
         end
       else

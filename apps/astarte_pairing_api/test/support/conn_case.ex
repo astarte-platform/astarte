@@ -53,5 +53,4 @@ defmodule Astarte.Pairing.APIWeb.ConnCase do
   setup _tags do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
-
 end

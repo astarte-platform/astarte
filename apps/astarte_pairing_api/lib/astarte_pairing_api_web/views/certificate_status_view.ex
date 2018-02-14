@@ -27,16 +27,20 @@ defmodule Astarte.Pairing.APIWeb.CertificateStatusView do
 
   def render("certificate.json", %{certificate_status: %{valid: true} = certificate_status}) do
     # clientCrt is spelled this way for backwards compatibility
-    %{valid: certificate_status.valid,
+    %{
+      valid: certificate_status.valid,
       timestamp: certificate_status.timestamp,
-      until: certificate_status.until}
+      until: certificate_status.until
+    }
   end
 
   def render("certificate.json", %{certificate_status: %{valid: false} = certificate_status}) do
     # clientCrt is spelled this way for backwards compatibility
-    %{valid: certificate_status.valid,
+    %{
+      valid: certificate_status.valid,
       timestamp: certificate_status.timestamp,
       cause: certificate_status.cause,
-      details: certificate_status.details}
+      details: certificate_status.details
+    }
   end
 end

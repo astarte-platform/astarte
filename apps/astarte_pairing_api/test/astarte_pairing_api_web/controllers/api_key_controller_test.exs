@@ -50,9 +50,9 @@ defmodule Astarte.Pairing.APIWeb.APIKeyControllerTest do
         conn
         |> put_req_header("accept", "application/json")
         |> put_req_header("authorization", jwt)
+
       {:ok, conn: conn}
     end
-
 
     test "renders api_key when data is valid", %{conn: conn} do
       conn = post conn, api_key_path(conn, :create), @create_attrs
