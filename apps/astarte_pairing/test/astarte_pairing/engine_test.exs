@@ -56,9 +56,9 @@ defmodule Astarte.Pairing.EngineTest do
   setup_all do
     DatabaseTestHelper.seed_db()
 
-    on_exit fn ->
+    on_exit(fn ->
       DatabaseTestHelper.drop_db()
-    end
+    end)
   end
 
   setup do

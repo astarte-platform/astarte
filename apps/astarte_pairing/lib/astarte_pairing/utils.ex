@@ -30,7 +30,7 @@ defmodule Astarte.Pairing.Utils do
   """
   def extended_id_to_uuid(extended_id) do
     case Base.url_decode64(extended_id, padding: false) do
-      {:ok, <<device_uuid :: binary-size(16), _rest :: binary>>} -> {:ok, device_uuid}
+      {:ok, <<device_uuid::binary-size(16), _rest::binary>>} -> {:ok, device_uuid}
       _ -> {:error, :id_decode_failed}
     end
   end

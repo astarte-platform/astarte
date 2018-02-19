@@ -30,7 +30,7 @@ defmodule Astarte.Pairing.Engine do
   alias Astarte.Pairing.Utils
   alias CQEx.Client
 
-  @version Mix.Project.config[:version]
+  @version Mix.Project.config()[:version]
 
   def do_pairing(csr, api_key, device_ip) do
     with {:ok, %{realm: realm, device_uuid: device_uuid}} <- APIKey.verify(api_key, "api_salt"),
@@ -38,21 +38,26 @@ defmodule Astarte.Pairing.Engine do
          {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
          {:ok, device} <- Queries.select_device_for_pairing(client, device_uuid),
          _ <- CFSSLPairing.revoke(device[:cert_serial], device[:cert_aki]),
-         {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <- CFSSLPairing.pair(csr, realm, device[:extended_id]),
-         :ok <- Queries.update_device_after_pairing(client, device_uuid, cert_data, ip_tuple, device[:first_pairing]) do
-
+         {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
+           CFSSLPairing.pair(csr, realm, device[:extended_id]),
+         :ok <-
+           Queries.update_device_after_pairing(
+             client,
+             device_uuid,
+             cert_data,
+             ip_tuple,
+             device[:first_pairing]
+           ) do
       {:ok, cert}
     end
   end
 
   def get_info do
-    %{version: @version,
-      url: Config.broker_url!()}
+    %{version: @version, url: Config.broker_url!()}
   end
 
   def generate_api_key(realm, hardware_id) do
     with {:ok, device_uuid_bytes} <- Utils.extended_id_to_uuid(hardware_id) do
-
       device_uuid_string = :uuid.uuid_to_string(device_uuid_bytes)
 
       client =

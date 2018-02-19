@@ -39,7 +39,7 @@ defmodule Astarte.Pairing.APIKey do
     secret = get_secret(salt)
 
     api_key =
-      device_uuid <> realm
+      (device_uuid <> realm)
       |> MessageVerifier.sign(secret)
 
     {:ok, api_key}
@@ -61,11 +61,12 @@ defmodule Astarte.Pairing.APIKey do
     secret = get_secret(salt)
 
     case MessageVerifier.verify(api_key, secret) do
-      {:ok, <<device_uuid :: binary-size(16), realm :: binary>>} ->
+      {:ok, <<device_uuid::binary-size(16), realm::binary>>} ->
         {:ok, %{realm: realm, device_uuid: device_uuid}}
 
       :error ->
         fallback_verify = Config.fallback_api_key_verify_fun()
+
         if fallback_verify do
           {module, fun} = fallback_verify
           apply(module, fun, [api_key, salt])

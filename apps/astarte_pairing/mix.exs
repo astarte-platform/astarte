@@ -6,9 +6,14 @@ defmodule Astarte.Pairing.Mixfile do
       app: :astarte_pairing,
       version: "0.1.0",
       elixir: "~> 1.5",
-      start_permanent: Mix.env == :prod,
+      start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -27,6 +32,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:astarte_data_access, in_umbrella: true}
     ]
   end
+
   defp astarte_required_modules(_) do
     [
       {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"},
@@ -42,7 +48,6 @@ defmodule Astarte.Pairing.Mixfile do
       {:uuid, "~> 1.7", hex: :uuid_erl},
       {:cfxxl, "~> 0.3.0"},
       {:conform, "~> 2.2"},
-
       {:excoveralls, "~> 0.7.3", only: :test},
       {:distillery, "~> 1.5", runtime: false}
     ]

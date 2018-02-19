@@ -29,7 +29,7 @@ defmodule Astarte.Pairing do
     Config.init!()
 
     children = [
-      AMQPServer,
+      AMQPServer
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
