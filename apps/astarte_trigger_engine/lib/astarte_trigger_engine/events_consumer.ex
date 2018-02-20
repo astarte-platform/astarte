@@ -29,11 +29,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   def handle_simple_event(realm, device_id, headers_map, event_type, event) do
-    {:ok, trigger_id} = Map.fetch(headers_map, "x_astarte_parent_trigger_id")
-
-    {:ok, action} = retrieve_trigger_configuration(realm, trigger_id)
-
-    process_simple_event(realm, device_id, event_type, event, action)
+    with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
+         {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id) do
+      process_simple_event(realm, device_id, event_type, event, action)
+    else
+      error ->
+        Logger.warn("Error while processing event: #{inspect(error)}")
+        error
+    end
   end
 
   def process_simple_event(realm, device_id, :value_change_event, event, action) do
@@ -46,12 +49,17 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "old_value" => decode_bson_value(event.old_bson_value)
     }
 
-    {:ok, json_payload} = Poison.encode(generated_payload)
+    with {:ok, json_payload} = Poison.encode(generated_payload),
+         {:ok, url} <- Map.fetch(action, "http_post_url") do
+      {status, response} = HTTPoison.post(url, json_payload, ["Astarte-Realm": realm])
+      Logger.debug("http request status: #{inspect status}, got response: #{inspect response} from #{url}")
+      :ok
+    else
+      error ->
+        Logger.warn("Error while processing event: #{inspect(error)}")
+        error
+    end
 
-    {:ok, url} = Map.fetch(action, "http_post_url")
-    {status, response} = HTTPoison.post(url, json_payload, ["Astarte-Realm": realm])
-
-    Logger.debug "http request status: #{inspect status}, got response: #{inspect response} from #{url}"
   end
 
   def decode_bson_value(encoded) do
@@ -79,7 +87,8 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          {:ok, action} <- Poison.decode(trigger.action) do
       {:ok, action}
     else
-      _ ->
+      error ->
+        Logger.warn("Error while processing event: #{inspect(error)}")
         {:error, :trigger_not_found}
     end
   end
