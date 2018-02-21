@@ -27,6 +27,7 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
   alias AMQP.Exchange
   alias AMQP.Queue
   alias Astarte.TriggerEngine.Config
+  alias Astarte.TriggerEngine.EventsConsumer
 
   @connection_backoff 10000
 
@@ -76,7 +77,8 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
     {headers, other_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
 
-    Logger.debug("Consumed event, payload: #{inspect(payload)}, headers: #{inspect(headers_map)}, meta: #{inspect(other_meta)}")
+    Logger.debug("got event, payload: #{inspect(payload)}, headers: #{inspect(headers_map)}, meta: #{inspect(other_meta)}")
+    EventsConsumer.consume(payload, headers_map)
 
     # TODO: should we ack manually?
     Basic.ack(chan, meta.delivery_tag)
