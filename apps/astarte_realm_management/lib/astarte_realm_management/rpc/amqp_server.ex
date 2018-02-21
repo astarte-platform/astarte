@@ -94,22 +94,22 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
       %Call{call: call_tuple} when call_tuple != nil ->
         case call_tuple do
           {:install_interface, %InstallInterface{realm_name: realm_name, interface_json: interface_json, async_operation: async_operation}} ->
-            encode_reply(:install_interface, Astarte.RealmManagement.Engine.install_interface(realm_name, interface_json, async: async_operation))
+            encode_reply(:install_interface, Engine.install_interface(realm_name, interface_json, async: async_operation))
 
           {:get_interface_source, %GetInterfaceSource{realm_name: realm_name, interface_name: interface_name, interface_major_version: interface_major_version}} ->
-            encode_reply(:get_interface_source, Astarte.RealmManagement.Engine.interface_source(realm_name, interface_name, interface_major_version))
+            encode_reply(:get_interface_source, Engine.interface_source(realm_name, interface_name, interface_major_version))
 
           {:get_interface_versions_list, %GetInterfaceVersionsList{realm_name: realm_name, interface_name: interface_name}} ->
-            encode_reply(:get_interface_versions_list, Astarte.RealmManagement.Engine.list_interface_versions(realm_name, interface_name))
+            encode_reply(:get_interface_versions_list, Engine.list_interface_versions(realm_name, interface_name))
 
           {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
-            encode_reply(:get_interfaces_list, Astarte.RealmManagement.Engine.get_interfaces_list(realm_name))
+            encode_reply(:get_interfaces_list, Engine.get_interfaces_list(realm_name))
 
           {:update_interface, %UpdateInterface{realm_name: realm_name, interface_json: interface_json, async_operation: async_operation}} ->
-            encode_reply(:update_interface, Astarte.RealmManagement.Engine.update_interface(realm_name, interface_json, async: async_operation))
+            encode_reply(:update_interface, Engine.update_interface(realm_name, interface_json, async: async_operation))
 
           {:delete_interface, %DeleteInterface{realm_name: realm_name, interface_name: interface_name, interface_major_version: interface_major_version, async_operation: async_operation}} ->
-            encode_reply(:delete_interface, Astarte.RealmManagement.Engine.delete_interface(realm_name, interface_name, interface_major_version, async: async_operation))
+            encode_reply(:delete_interface, Engine.delete_interface(realm_name, interface_name, interface_major_version, async: async_operation))
 
           {:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}} ->
             encode_reply(:get_jwt_public_key_pem, Engine.get_jwt_public_key_pem(realm_name))
