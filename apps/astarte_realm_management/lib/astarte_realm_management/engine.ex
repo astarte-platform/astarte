@@ -19,6 +19,11 @@
 
 defmodule Astarte.RealmManagement.Engine do
   require Logger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.Trigger
+  alias Astarte.RealmManagement.Queries
   alias CQEx.Client, as: DatabaseClient
 
   def install_interface(realm_name, interface_json, opts \\ []) do
@@ -165,4 +170,89 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, :realm_not_found}
     end
   end
+
+  # InstallTrigger
+  def install_trigger(realm_name, trigger_data, simple_trigger_data_containers) do
+    with {:ok, client} <- get_database_client(realm_name) do
+
+      trigger = Trigger.decode(trigger_data)
+
+      simple_triggers =
+        for simple_trigger_data_container <- simple_trigger_data_containers do
+          %{
+            object_id: simple_trigger_data_container.object_id,
+            object_type: simple_trigger_data_container.object_type,
+            simple_trigger_uuid: :uuid.get_v4(),
+            simple_trigger: SimpleTriggerContainer.decode(simple_trigger_data_container.data)
+          }
+        end
+
+      simple_trigger_uuids =
+        for simple_trigger <- simple_triggers do
+          simple_trigger[:simple_trigger_uuid]
+        end
+
+      trigger =
+        %{ trigger |
+          trigger_uuid: trigger.trigger_uuid || :uuid.get_v4(),
+          simple_triggers_uuids: simple_trigger_uuids
+        }
+
+      # TODO: they should be batched together
+      with :ok <- Queries.install_trigger(client, trigger) do
+        target =
+          %TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %AMQPTriggerTarget{
+                routing_key: "trigger_engine",
+                parent_trigger_id: trigger.trigger_uuid
+              }
+            }
+          }
+
+        simple_trigger_install_success =
+          Enum.all?(simple_triggers, fn simple_trigger ->
+            Queries.install_simple_trigger(
+              client,
+              simple_trigger[:object_id],
+              simple_trigger[:object_type],
+              trigger.trigger_uuid,
+              simple_trigger[:simple_trigger_uuid],
+              simple_trigger[:simple_trigger],
+              target
+            ) == :ok
+          end)
+
+        if simple_trigger_install_success do
+          :ok
+        else
+          {:error, :failed_simple_trigger_install}
+        end
+      end
+    end
+  end
+
+  # GetTrigger
+  def get_trigger(realm_name, trigger_name) do
+    with {:ok, client} <- get_database_client(realm_name) do
+    end
+  end
+
+  # GetTriggersList
+  def get_triggers_list(realm_name) do
+    with {:ok, client} <- get_database_client(realm_name) do
+    end
+  end
+
+  # DeleteTrigger
+  def delete_trigger(realm_name, trigger_name) do
+    with {:ok, client} <- get_database_client(realm_name) do
+    end
+  end
+
+  defp get_database_client(realm_name) do
+    DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+  end
+
 end

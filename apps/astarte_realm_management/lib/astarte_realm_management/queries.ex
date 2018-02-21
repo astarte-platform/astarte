@@ -21,6 +21,9 @@ defmodule Astarte.RealmManagement.Queries do
 
   require Logger
   alias Astarte.Core.StorageType
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.Trigger
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
@@ -379,4 +382,65 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :cant_update_public_key}
     end
   end
+
+  def install_trigger(client, trigger) do
+    # TODO: use IF NOT EXISTS
+    insert_by_name_query_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('triggers-by-name', :trigger_name, uuidAsBlob(:trigger_uuid));"
+
+    insert_by_name_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_by_name_query_statement)
+      |> DatabaseQuery.put(:trigger_name, trigger.name)
+      |> DatabaseQuery.put(:trigger_uuid, trigger.trigger_uuid)
+
+    # TODO: use IF NOT EXISTS
+    insert_query_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('triggers', :trigger_uuid, :trigger_data);"
+
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_query_statement)
+      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger.trigger_uuid))
+      |> DatabaseQuery.put(:trigger_data, Trigger.encode(trigger))
+
+    # TODO: Batch queries
+    with {:ok, _res} <- DatabaseQuery.call(client, insert_by_name_query),
+         {:ok, _res} <- DatabaseQuery.call(client, insert_query) do
+      :ok
+    else
+      not_ok ->
+        Logger.warn("Database error: #{inspect(not_ok)}")
+        {:error, :cannot_install_trigger}
+    end
+  end
+
+  def install_simple_trigger(client, object_id, object_type, parent_trigger_id, simple_trigger_id, simple_trigger, trigger_target) do
+    insert_simple_trigger_statement =
+      """
+      INSERT INTO simple_triggers
+      (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target)
+      VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :simple_trigger_data, :trigger_target_data);
+      """
+
+    insert_simple_trigger_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_simple_trigger_statement)
+      |> DatabaseQuery.put(:object_id, object_id)
+      |> DatabaseQuery.put(:object_type, object_type)
+      |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_id)
+      |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_id)
+      |> DatabaseQuery.put(:simple_trigger_data, SimpleTriggerContainer.encode(simple_trigger))
+      |> DatabaseQuery.put(:trigger_target_data, TriggerTargetContainer.encode(trigger_target))
+
+    case DatabaseQuery.call(client, insert_simple_trigger_query) do
+      {:ok, _res} ->
+        :ok
+
+      not_ok ->
+        Logger.warn("Database error: #{inspect(not_ok)}")
+        {:error, :cannot_install_simple_trigger}
+    end
+  end
+
 end
