@@ -517,4 +517,27 @@ defmodule Astarte.RealmManagement.Queries do
     {:ok, query_result}
   end
 
+  def retrieve_trigger(client, trigger_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
+      retrieve_trigger_statement = "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+
+      retrieve_trigger_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(retrieve_trigger_statement)
+        |> DatabaseQuery.put(:trigger_uuid, trigger_uuid)
+
+      with {:ok, result} <- DatabaseQuery.call(client, retrieve_trigger_query),
+           [value: trigger_data] <- DatabaseResult.head(result) do
+        Trigger.decode(trigger_data)
+      else
+        :empty_dataset ->
+          {:error, :trigger_not_found}
+
+        not_ok ->
+          Logger.warn("Queries.retrieve_trigger: database error: #{inspect(not_ok)}")
+          {:error, :cannot_retrieve_trigger}
+      end
+    end
+  end
+
 end
