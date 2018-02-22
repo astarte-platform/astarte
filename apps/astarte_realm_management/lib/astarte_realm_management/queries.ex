@@ -443,4 +443,59 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  def retrieve_trigger_uuid(client, trigger_name, format \\ :string) do
+    trigger_uuid_query_statement = "SELECT value FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+
+    trigger_uuid_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(trigger_uuid_query_statement)
+      |> DatabaseQuery.put(:trigger_name, trigger_name)
+
+    with {:ok, result} <- DatabaseQuery.call(client, trigger_uuid_query),
+         ["value": trigger_uuid] <- DatabaseResult.head(result) do
+      case format do
+        :string ->
+          {:ok, :uuid.uuid_to_string(trigger_uuid)}
+
+        :bytes ->
+          {:ok, trigger_uuid}
+      end
+
+    else
+      :empty_dataset ->
+        {:error, :trigger_not_found}
+
+      not_ok ->
+        Logger.warn("Queries.retrieve_trigger_uuid: database error: #{inspect(not_ok)}")
+        {:error, :cannot_retrieve_trigger_uuid}
+    end
+  end
+
+  def delete_trigger(client, trigger_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
+      delete_trigger_by_name_statement = "DELETE FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+
+      delete_trigger_by_name_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_trigger_by_name_statement)
+        |> DatabaseQuery.put(:trigger_name, trigger_name)
+
+      delete_trigger_statement = "DELETE FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+
+      delete_trigger_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_trigger_statement)
+        |> DatabaseQuery.put(:trigger_uuid, trigger_uuid)
+
+      with {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_query),
+           {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_by_name_query) do
+        :ok
+      else
+        not_ok ->
+          Logger.warn("Queries.delete_trigger: database error: #{inspect(not_ok)}")
+          {:error, :cannot_delete_trigger}
+      end
+    end
+  end
+
 end

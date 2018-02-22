@@ -248,6 +248,8 @@ defmodule Astarte.RealmManagement.Engine do
   # DeleteTrigger
   def delete_trigger(realm_name, trigger_name) do
     with {:ok, client} <- get_database_client(realm_name) do
+      Queries.delete_trigger(client, trigger_name)
+      # TODO: delete also all child simple triggers
     end
   end
 
