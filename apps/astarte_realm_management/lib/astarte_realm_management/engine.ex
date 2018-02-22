@@ -242,6 +242,7 @@ defmodule Astarte.RealmManagement.Engine do
   # GetTriggersList
   def get_triggers_list(realm_name) do
     with {:ok, client} <- get_database_client(realm_name) do
+      Queries.get_triggers_list(client)
     end
   end
 

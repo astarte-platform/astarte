@@ -498,4 +498,23 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  def get_triggers_list(client) do
+    triggers_list_statement = "SELECT key FROM kv_store WHERE group = 'triggers-by-name';"
+
+    query_result =
+      with {:ok, result} <- DatabaseQuery.call(client, triggers_list_statement),
+           triggers_rows <- Enum.to_list(result) do
+
+        for trigger <- triggers_rows do
+          trigger[:key]
+        end
+      else
+        not_ok ->
+          Logger.warn("Queries.get_triggers_list: database error: #{inspect(not_ok)}")
+          {:error, :cannot_list_triggers}
+      end
+
+    {:ok, query_result}
+  end
+
 end
