@@ -594,6 +594,8 @@ defmodule Astarte.RealmManagement.Queries do
         {
           :ok,
           %{
+            object_id: object_id,
+            object_type: object_type,
             simple_trigger: SimpleTriggerContainer.decode(trigger_data),
             trigger_target: TriggerTargetContainer.decode(trigger_target_data)
           }
