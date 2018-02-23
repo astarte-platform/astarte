@@ -171,7 +171,6 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  # InstallTrigger
   def install_trigger(realm_name, trigger_data, simple_trigger_data_containers) do
     with {:ok, client} <- get_database_client(realm_name) do
 
@@ -233,7 +232,6 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  # GetTrigger
   def get_trigger(realm_name, trigger_name) do
     with {:ok, client} <- get_database_client(realm_name),
          {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
@@ -265,14 +263,12 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  # GetTriggersList
   def get_triggers_list(realm_name) do
     with {:ok, client} <- get_database_client(realm_name) do
       Queries.get_triggers_list(client)
     end
   end
 
-  # DeleteTrigger
   def delete_trigger(realm_name, trigger_name) do
     with {:ok, client} <- get_database_client(realm_name) do
       Queries.delete_trigger(client, trigger_name)

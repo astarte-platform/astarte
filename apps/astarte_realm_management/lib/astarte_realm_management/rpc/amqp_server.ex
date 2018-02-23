@@ -21,6 +21,8 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.RealmManagement
 
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.Engine
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
@@ -62,6 +64,40 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   end
 
   def encode_reply(:update_jwt_public_key_pem, :ok) do
+    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
+  end
+
+  def encode_reply(:install_trigger, :ok) do
+    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
+  end
+
+  def encode_reply(:get_trigger, {:ok, reply}) do
+    msg =
+      %GetTriggerReply{
+        trigger_data:  Trigger.encode(reply[:trigger]),
+        simple_triggers_data_container:
+          for simple_trigger <- reply[:simple_triggers] do
+            %GetTriggerReply.SimpleTriggerDataContainer{
+              object_id: nil, #TODO
+              object_type: nil, #TODO
+              data: SimpleTriggerContainer.encode(simple_trigger.simple_trigger)
+            }
+          end
+        }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_reply, msg}})}
+  end
+
+  def encode_reply(:get_triggers_list, {:ok, reply}) do
+    msg =
+      %GetTriggersListReply{
+        triggers_names: reply
+      }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_triggers_list_reply, msg}})}
+  end
+
+  def encode_reply(:delete_trigger, :ok) do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
@@ -166,6 +202,26 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
               :update_jwt_public_key_pem,
               Engine.update_jwt_public_key_pem(realm_name, pem)
             )
+
+          {:install_trigger,
+           %InstallTrigger{
+             realm_name: realm_name,
+             trigger_data: trigger_data,
+             simple_triggers_data_container: simple_triggers_data_container
+           }} ->
+            encode_reply(
+              :install_trigger,
+              Engine.install_trigger(realm_name, trigger_data, simple_triggers_data_container)
+            )
+
+          {:get_trigger, %GetTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
+            encode_reply(:get_trigger, Engine.get_trigger(realm_name, trigger_name))
+
+          {:get_triggers_list, %GetTriggersList{realm_name: realm_name}} ->
+            encode_reply(:get_triggers_list, Engine.get_triggers_list(realm_name))
+
+          {:delete_trigger, %DeleteTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
+            encode_reply(:delete_trigger, Engine.get_trigger(realm_name, trigger_name))
 
           invalid_call ->
             Logger.warn("Received unexpected call: #{inspect(invalid_call)}")
