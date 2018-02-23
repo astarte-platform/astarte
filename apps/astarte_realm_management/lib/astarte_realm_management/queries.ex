@@ -20,7 +20,11 @@
 defmodule Astarte.RealmManagement.Queries do
 
   require Logger
+  alias Astarte.Core.AstarteReference
   alias Astarte.Core.StorageType
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.Trigger
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
@@ -379,4 +383,237 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :cant_update_public_key}
     end
   end
+
+  def install_trigger(client, trigger) do
+    # TODO: use IF NOT EXISTS
+    insert_by_name_query_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('triggers-by-name', :trigger_name, uuidAsBlob(:trigger_uuid));"
+
+    insert_by_name_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_by_name_query_statement)
+      |> DatabaseQuery.put(:trigger_name, trigger.name)
+      |> DatabaseQuery.put(:trigger_uuid, trigger.trigger_uuid)
+
+    # TODO: use IF NOT EXISTS
+    insert_query_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('triggers', :trigger_uuid, :trigger_data);"
+
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_query_statement)
+      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger.trigger_uuid))
+      |> DatabaseQuery.put(:trigger_data, Trigger.encode(trigger))
+
+    # TODO: Batch queries
+    with {:ok, _res} <- DatabaseQuery.call(client, insert_by_name_query),
+         {:ok, _res} <- DatabaseQuery.call(client, insert_query) do
+      :ok
+    else
+      not_ok ->
+        Logger.warn("Database error: #{inspect(not_ok)}")
+        {:error, :cannot_install_trigger}
+    end
+  end
+
+  def install_simple_trigger(client, object_id, object_type, parent_trigger_id, simple_trigger_id, simple_trigger, trigger_target) do
+    insert_simple_trigger_statement =
+      """
+      INSERT INTO simple_triggers
+      (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target)
+      VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :simple_trigger_data, :trigger_target_data);
+      """
+
+    insert_simple_trigger_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_simple_trigger_statement)
+      |> DatabaseQuery.put(:object_id, object_id)
+      |> DatabaseQuery.put(:object_type, object_type)
+      |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_id)
+      |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_id)
+      |> DatabaseQuery.put(:simple_trigger_data, SimpleTriggerContainer.encode(simple_trigger))
+      |> DatabaseQuery.put(:trigger_target_data, TriggerTargetContainer.encode(trigger_target))
+
+    astarte_ref =
+      %AstarteReference{
+        object_type: object_type,
+        object_uuid: object_id
+      }
+
+    insert_simple_trigger_by_uuid_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('simple-triggers-by-uuid', :simple_trigger_id, :astarte_ref);"
+
+    insert_simple_trigger_by_uuid_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_simple_trigger_by_uuid_statement)
+      |> DatabaseQuery.put(:simple_trigger_id, :uuid.uuid_to_string(simple_trigger_id))
+      |> DatabaseQuery.put(:astarte_ref, AstarteReference.encode(astarte_ref))
+
+    with {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_query),
+         {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_by_uuid_query) do
+      :ok
+
+    else
+      not_ok ->
+        Logger.warn("Database error: #{inspect(not_ok)}")
+        {:error, :cannot_install_simple_trigger}
+    end
+  end
+
+  def retrieve_trigger_uuid(client, trigger_name, format \\ :string) do
+    trigger_uuid_query_statement = "SELECT value FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+
+    trigger_uuid_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(trigger_uuid_query_statement)
+      |> DatabaseQuery.put(:trigger_name, trigger_name)
+
+    with {:ok, result} <- DatabaseQuery.call(client, trigger_uuid_query),
+         ["value": trigger_uuid] <- DatabaseResult.head(result) do
+      case format do
+        :string ->
+          {:ok, :uuid.uuid_to_string(trigger_uuid)}
+
+        :bytes ->
+          {:ok, trigger_uuid}
+      end
+
+    else
+      :empty_dataset ->
+        {:error, :trigger_not_found}
+
+      not_ok ->
+        Logger.warn("Queries.retrieve_trigger_uuid: database error: #{inspect(not_ok)}")
+        {:error, :cannot_retrieve_trigger_uuid}
+    end
+  end
+
+  def delete_trigger(client, trigger_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
+      delete_trigger_by_name_statement = "DELETE FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+
+      delete_trigger_by_name_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_trigger_by_name_statement)
+        |> DatabaseQuery.put(:trigger_name, trigger_name)
+
+      delete_trigger_statement = "DELETE FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+
+      delete_trigger_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_trigger_statement)
+        |> DatabaseQuery.put(:trigger_uuid, trigger_uuid)
+
+      with {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_query),
+           {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_by_name_query) do
+        :ok
+      else
+        not_ok ->
+          Logger.warn("Queries.delete_trigger: database error: #{inspect(not_ok)}")
+          {:error, :cannot_delete_trigger}
+      end
+    end
+  end
+
+  def get_triggers_list(client) do
+    triggers_list_statement = "SELECT key FROM kv_store WHERE group = 'triggers-by-name';"
+
+    query_result =
+      with {:ok, result} <- DatabaseQuery.call(client, triggers_list_statement),
+           triggers_rows <- Enum.to_list(result) do
+
+        for trigger <- triggers_rows do
+          trigger[:key]
+        end
+      else
+        not_ok ->
+          Logger.warn("Queries.get_triggers_list: database error: #{inspect(not_ok)}")
+          {:error, :cannot_list_triggers}
+      end
+
+    {:ok, query_result}
+  end
+
+  def retrieve_trigger(client, trigger_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
+      retrieve_trigger_statement = "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+
+      retrieve_trigger_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(retrieve_trigger_statement)
+        |> DatabaseQuery.put(:trigger_uuid, trigger_uuid)
+
+      with {:ok, result} <- DatabaseQuery.call(client, retrieve_trigger_query),
+           [value: trigger_data] <- DatabaseResult.head(result) do
+        {:ok, Trigger.decode(trigger_data)}
+      else
+        :empty_dataset ->
+          {:error, :trigger_not_found}
+
+        not_ok ->
+          Logger.warn("Queries.retrieve_trigger: database error: #{inspect(not_ok)}")
+          {:error, :cannot_retrieve_trigger}
+      end
+    end
+  end
+
+  # TODO: simple_trigger_uuid is required due how we made the compound key
+  # should we move simple_trigger_uuid to the first part of the key?
+  def retrieve_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+    retrieve_astarte_ref_statement =
+      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+
+    retrieve_astarte_ref_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
+      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
+         [value: astarte_ref_blob] <- DatabaseResult.head(result),
+         %{object_uuid: object_id, object_type: object_type} <- AstarteReference.decode(astarte_ref_blob) do
+
+      retrieve_simple_trigger_statement =
+        """
+        SELECT trigger_data, trigger_target
+        FROM simple_triggers
+        WHERE object_id=:object_id AND object_type=:object_type AND
+              parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
+        """
+
+      retrieve_simple_trigger_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(retrieve_simple_trigger_statement)
+        |> DatabaseQuery.put(:object_id, object_id)
+        |> DatabaseQuery.put(:object_type, object_type)
+        |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_uuid)
+        |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
+
+      with {:ok, result} <- DatabaseQuery.call(client, retrieve_simple_trigger_query),
+           [trigger_data: trigger_data, trigger_target: trigger_target_data] <- DatabaseResult.head(result) do
+
+        {
+          :ok,
+          %{
+            object_id: object_id,
+            object_type: object_type,
+            simple_trigger: SimpleTriggerContainer.decode(trigger_data),
+            trigger_target: TriggerTargetContainer.decode(trigger_target_data)
+          }
+        }
+      else
+        not_ok ->
+          Logger.warn("Queries.retrieve_simple_trigger: possible inconsistency found: database error: #{inspect(not_ok)}")
+          {:error, :cannot_retrieve_simple_trigger}
+      end
+
+    else
+      :empty_dataset ->
+        {:error, :simple_trigger_not_found}
+
+      not_ok ->
+        Logger.warn("Queries.retrieve_trigger: database error: #{inspect(not_ok)}")
+        {:error, :cannot_retrieve_simple_trigger}
+    end
+  end
+
 end
