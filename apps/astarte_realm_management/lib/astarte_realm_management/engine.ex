@@ -235,8 +235,33 @@ defmodule Astarte.RealmManagement.Engine do
 
   # GetTrigger
   def get_trigger(realm_name, trigger_name) do
-    with {:ok, client} <- get_database_client(realm_name) do
-      Queries.retrieve_trigger(client, trigger_name)
+    with {:ok, client} <- get_database_client(realm_name),
+         {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
+
+      simple_triggers =
+        for simple_trigger_uuid <- trigger.simple_triggers_uuids do
+          Queries.retrieve_simple_trigger(client, trigger.trigger_uuid, simple_trigger_uuid)
+        end
+
+      everything_ok =
+        Enum.all?(simple_triggers, fn simple_trigger ->
+          match?({:ok, _}, simple_trigger)
+        end)
+
+        if everything_ok do
+          simple_triggers_list =
+            Enum.into(simple_triggers, [], fn item -> elem(item, 1) end)
+
+          {
+            :ok,
+            %{
+              trigger: trigger,
+              simple_triggers: simple_triggers_list
+            }
+          }
+      else
+        {:error, :cannot_retrieve_simple_trigger}
+      end
     end
   end
 

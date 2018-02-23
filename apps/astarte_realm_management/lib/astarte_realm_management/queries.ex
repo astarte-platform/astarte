@@ -545,7 +545,7 @@ defmodule Astarte.RealmManagement.Queries do
 
       with {:ok, result} <- DatabaseQuery.call(client, retrieve_trigger_query),
            [value: trigger_data] <- DatabaseResult.head(result) do
-        Trigger.decode(trigger_data)
+        {:ok, Trigger.decode(trigger_data)}
       else
         :empty_dataset ->
           {:error, :trigger_not_found}
