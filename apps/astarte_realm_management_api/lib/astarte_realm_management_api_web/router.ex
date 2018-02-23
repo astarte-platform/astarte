@@ -34,5 +34,7 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
     delete "/:realm_name/interfaces/:id/:major_version", InterfaceController, :delete
     get "/:realm_name/config/:group", RealmConfigController, :show
     put "/:realm_name/config/:group", RealmConfigController, :update
+
+    resources "/triggers", TriggerController, except: [:new, :edit]
   end
 end
