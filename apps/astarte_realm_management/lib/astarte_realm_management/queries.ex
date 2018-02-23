@@ -557,4 +557,61 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  # TODO: simple_trigger_uuid is required due how we made the compound key
+  # should we move simple_trigger_uuid to the first part of the key?
+  def retrieve_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+    retrieve_astarte_ref_statement =
+      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+
+    retrieve_astarte_ref_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
+      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
+         [value: astarte_ref_blob] <- DatabaseResult.head(result),
+         %{object_uuid: object_id, object_type: object_type} <- AstarteReference.decode(astarte_ref_blob) do
+
+      retrieve_simple_trigger_statement =
+        """
+        SELECT trigger_data, trigger_target
+        FROM simple_triggers
+        WHERE object_id=:object_id AND object_type=:object_type AND
+              parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
+        """
+
+      retrieve_simple_trigger_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(retrieve_simple_trigger_statement)
+        |> DatabaseQuery.put(:object_id, object_id)
+        |> DatabaseQuery.put(:object_type, object_type)
+        |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_uuid)
+        |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
+
+      with {:ok, result} <- DatabaseQuery.call(client, retrieve_simple_trigger_query),
+           [trigger_data: trigger_data, trigger_target: trigger_target_data] <- DatabaseResult.head(result) do
+
+        {
+          :ok,
+          %{
+            simple_trigger: SimpleTriggerContainer.decode(trigger_data),
+            trigger_target: TriggerTargetContainer.decode(trigger_target_data)
+          }
+        }
+      else
+        not_ok ->
+          Logger.warn("Queries.retrieve_simple_trigger: possible inconsistency found: database error: #{inspect(not_ok)}")
+          {:error, :cannot_retrieve_simple_trigger}
+      end
+
+    else
+      :empty_dataset ->
+        {:error, :simple_trigger_not_found}
+
+      not_ok ->
+        Logger.warn("Queries.retrieve_trigger: database error: #{inspect(not_ok)}")
+        {:error, :cannot_retrieve_simple_trigger}
+    end
+  end
+
 end
