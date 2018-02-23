@@ -20,6 +20,7 @@
 defmodule Astarte.RealmManagement.Queries do
 
   require Logger
+  alias Astarte.Core.AstarteReference
   alias Astarte.Core.StorageType
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
@@ -433,10 +434,26 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:simple_trigger_data, SimpleTriggerContainer.encode(simple_trigger))
       |> DatabaseQuery.put(:trigger_target_data, TriggerTargetContainer.encode(trigger_target))
 
-    case DatabaseQuery.call(client, insert_simple_trigger_query) do
-      {:ok, _res} ->
-        :ok
+    astarte_ref =
+      %AstarteReference{
+        object_type: object_type,
+        object_uuid: object_id
+      }
 
+    insert_simple_trigger_by_uuid_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('simple-triggers-by-uuid', :simple_trigger_id, :astarte_ref);"
+
+    insert_simple_trigger_by_uuid_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_simple_trigger_by_uuid_statement)
+      |> DatabaseQuery.put(:simple_trigger_id, :uuid.uuid_to_string(simple_trigger_id))
+      |> DatabaseQuery.put(:astarte_ref, AstarteReference.encode(astarte_ref))
+
+    with {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_query),
+         {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_by_uuid_query) do
+      :ok
+
+    else
       not_ok ->
         Logger.warn("Database error: #{inspect(not_ok)}")
         {:error, :cannot_install_simple_trigger}
