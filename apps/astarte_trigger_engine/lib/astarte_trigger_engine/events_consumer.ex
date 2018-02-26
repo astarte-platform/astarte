@@ -31,7 +31,8 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   def handle_simple_event(realm, device_id, headers_map, event_type, event) do
     with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
          {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id) do
-      process_simple_event(realm, device_id, event_type, event, action)
+      event_to_payload(realm, device_id, event_type, event, action)
+      |> execute_action(realm, action)
     else
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
@@ -39,8 +40,8 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     end
   end
 
-  def process_simple_event(realm, device_id, :value_change_event, event, action) do
-    generated_payload =  %{
+  def event_to_payload(_realm, device_id, :value_change_event, event, _action) do
+    %{
       "event_type" => "value_change",
       "device_id" => device_id,
       "interface" => event.interface,
@@ -48,8 +49,10 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "new_value" => decode_bson_value(event.new_bson_value),
       "old_value" => decode_bson_value(event.old_bson_value)
     }
+  end
 
-    with {:ok, json_payload} = Poison.encode(generated_payload),
+  def execute_action(payload, realm, action) do
+    with {:ok, json_payload} = Poison.encode(payload),
          {:ok, url} <- Map.fetch(action, "http_post_url") do
       {status, response} = HTTPoison.post(url, json_payload, ["Astarte-Realm": realm])
       Logger.debug("http request status: #{inspect status}, got response: #{inspect response} from #{url}")
@@ -59,7 +62,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
         Logger.warn("Error while processing event: #{inspect(error)}")
         error
     end
-
   end
 
   def decode_bson_value(encoded) do
