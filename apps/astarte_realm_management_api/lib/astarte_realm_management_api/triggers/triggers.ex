@@ -131,8 +131,26 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
     operator_type =
       case simple_trigger["value_match_operator"] do
+        "ANY" ->
+          :ANY
+
+        "EQUAL_TO" ->
+          :EQUAL_TO
+
+        "NOT_EQUAL_TO" ->
+          :NOT_EQUAL_TO
+
         "GREATER_THAN" ->
           :GREATER_THAN
+
+        "GREATER_OR_EQUAL_TO" ->
+          :GREATER_OR_EQUAL_TO
+
+        "LESS_THAN" ->
+          :LESS_THAN
+
+        "LESS_OR_EQUAL_TO" ->
+          :LESS_OR_EQUAL_TO
       end
 
     %SimpleTriggerContainer{
