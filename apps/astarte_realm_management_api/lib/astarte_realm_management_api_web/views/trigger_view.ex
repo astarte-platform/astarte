@@ -20,6 +20,8 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   use Astarte.RealmManagement.APIWeb, :view
   alias Astarte.RealmManagement.APIWeb.TriggerView
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
 
   def render("index.json", %{triggers: triggers}) do
     %{data: render_many(triggers, TriggerView, "trigger_name_only.json")}
@@ -30,11 +32,45 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   end
 
   def render("trigger.json", %{trigger: trigger}) do
-    %{id: trigger.id}
+    simple_triggers =
+      for item <- trigger.simple_triggers do
+        %{
+          object_id: object_id,
+          object_type: object_type,
+          simple_trigger: %SimpleTriggerContainer{simple_trigger: {:data_trigger, simple_trigger}}
+        } = item
+
+        %{
+          object_id: to_string(:uuid.uuid_to_string(object_id)),
+          object_type: object_type,
+          simple_trigger: simple_trigger
+        }
+      end
+
+    %{
+      id: trigger.name,
+      action: Poison.decode!(trigger.action),
+      simple_triggers: simple_triggers
+    }
   end
 
   def render("trigger_name_only.json", %{trigger: trigger}) do
     trigger
+  end
+
+  defimpl Poison.Encoder, for: DataTrigger do
+    def encode(data_trigger, options) do
+      %{v: known_value} = Bson.decode(data_trigger.known_value)
+
+      %{
+        "type" => data_trigger.data_trigger_type,
+        "interface_id" => data_trigger.interface_id,
+        "known_value" => known_value,
+        "match_path" => data_trigger.match_path,
+        "value_match_operator" => data_trigger.value_match_operator
+      }
+      |> Poison.Encoder.Map.encode(options)
+    end
   end
 
 end
