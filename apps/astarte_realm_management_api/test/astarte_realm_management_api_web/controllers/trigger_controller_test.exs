@@ -27,70 +27,52 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   @update_attrs %{}
   @invalid_attrs %{}
 
-  def fixture(:trigger) do
-    {:ok, trigger} = RealmManagement.API.Triggers.create_trigger(@create_attrs)
-    trigger
-  end
+  @test_realm "test"
 
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
+  @tag :wip
   describe "index" do
     test "lists all triggers", %{conn: conn} do
-      conn = get conn, trigger_path(conn, :index)
+      conn = get conn, trigger_path(conn, :index, @test_realm)
       assert json_response(conn, 200)["data"] == []
     end
   end
 
+  @tag :wip
   describe "create trigger" do
     test "renders trigger when data is valid", %{conn: conn} do
-      conn = post conn, trigger_path(conn, :create), trigger: @create_attrs
+      conn = post conn, trigger_path(conn, :create, @test_realm), trigger: @create_attrs
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
-      conn = get conn, trigger_path(conn, :show, id)
+      conn = get conn, trigger_path(conn, :show, id, @test_realm)
       assert json_response(conn, 200)["data"] == %{
         "id" => id}
     end
 
-    test "renders errors when data is invalid", %{conn: conn} do
-      conn = post conn, trigger_path(conn, :create), trigger: @invalid_attrs
-      assert json_response(conn, 422)["errors"] != %{}
-    end
   end
 
+  @tag :wip
   describe "update trigger" do
-    setup [:create_trigger]
-
-    test "renders trigger when data is valid", %{conn: conn, trigger: %Trigger{id: id} = trigger} do
-      conn = put conn, trigger_path(conn, :update, trigger), trigger: @update_attrs
-      assert %{"id" => ^id} = json_response(conn, 200)["data"]
-
-      conn = get conn, trigger_path(conn, :show, id)
-      assert json_response(conn, 200)["data"] == %{
-        "id" => id}
-    end
 
     test "renders errors when data is invalid", %{conn: conn, trigger: trigger} do
-      conn = put conn, trigger_path(conn, :update, trigger), trigger: @invalid_attrs
+      conn = put conn, trigger_path(conn, :update, trigger, @test_realm), trigger: @invalid_attrs
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
 
+  @tag :wip
   describe "delete trigger" do
-    setup [:create_trigger]
 
     test "deletes chosen trigger", %{conn: conn, trigger: trigger} do
-      conn = delete conn, trigger_path(conn, :delete, trigger)
+      conn = delete conn, trigger_path(conn, :delete, trigger, @test_realm)
       assert response(conn, 204)
       assert_error_sent 404, fn ->
-        get conn, trigger_path(conn, :show, trigger)
+        get conn, trigger_path(conn, :show, trigger, @test_realm)
       end
     end
   end
 
-  defp create_trigger(_) do
-    trigger = fixture(:trigger)
-    {:ok, trigger: trigger}
-  end
 end

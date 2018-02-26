@@ -38,42 +38,50 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       trigger
     end
 
+    @tag :wip
     test "list_triggers/0 returns all triggers" do
       trigger = trigger_fixture()
       assert RealmManagement.API.Triggers.list_triggers() == [trigger]
     end
 
+    @tag :wip
     test "get_trigger!/1 returns the trigger with given id" do
       trigger = trigger_fixture()
       assert RealmManagement.API.Triggers.get_trigger!(trigger.id) == trigger
     end
 
+    @tag :wip
     test "create_trigger/1 with valid data creates a trigger" do
       assert {:ok, %Trigger{} = trigger} = RealmManagement.API.Triggers.create_trigger(@valid_attrs)
     end
 
+    @tag :wip
     test "create_trigger/1 with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = RealmManagement.API.Triggers.create_trigger(@invalid_attrs)
     end
 
+    @tag :wip
     test "update_trigger/2 with valid data updates the trigger" do
       trigger = trigger_fixture()
       assert {:ok, trigger} = RealmManagement.API.Triggers.update_trigger(trigger, @update_attrs)
       assert %Trigger{} = trigger
     end
 
+    @tag :wip
     test "update_trigger/2 with invalid data returns error changeset" do
       trigger = trigger_fixture()
       assert {:error, %Ecto.Changeset{}} = RealmManagement.API.Triggers.update_trigger(trigger, @invalid_attrs)
       assert trigger == RealmManagement.API.Triggers.get_trigger!(trigger.id)
     end
 
+    @tag :wip
     test "delete_trigger/1 deletes the trigger" do
       trigger = trigger_fixture()
       assert {:ok, %Trigger{}} = RealmManagement.API.Triggers.delete_trigger(trigger)
       assert_raise Ecto.NoResultsError, fn -> RealmManagement.API.Triggers.get_trigger!(trigger.id) end
     end
 
+    @tag :wip
     test "change_trigger/1 returns a trigger changeset" do
       trigger = trigger_fixture()
       assert %Ecto.Changeset{} = RealmManagement.API.Triggers.change_trigger(trigger)
