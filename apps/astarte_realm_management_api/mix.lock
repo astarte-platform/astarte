@@ -1,8 +1,8 @@
 %{
   "amqp": {:hex, :amqp, "1.0.0-pre.1", "65eda2b04dfe9e18cd3e81a0715cf40d7fecf284a1aa93eca5a187cf9bbea10a", [], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.6.12", "dfdfe7be661feb96ece404092a47431a73797ad412959732d940f96f80290da0", [], [{:rabbit_common, "3.6.12", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
-  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "5aafbe16c843f4bf694bfd10fd78d667d669eea4", []},
-  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "b8340ea5d71118f4447005c3067b92b91d45f304", []},
+  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "ef272128da673fa6e28a07c44d6a72d3972b0537", []},
+  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "06400f4908921065622325204c9013146ba098c5", []},
   "base64url": {:hex, :base64url, "0.0.1", "36a90125f5948e3afd7be97662a1504b934dd5dac78451ca6e9abf85a10286be", [:rebar], [], "hexpm"},
   "certifi": {:hex, :certifi, "2.0.0", "a0c0e475107135f76b8c1d5bc7efb33cd3815cb3cf3dea7aefdd174dabead064", [], [], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},

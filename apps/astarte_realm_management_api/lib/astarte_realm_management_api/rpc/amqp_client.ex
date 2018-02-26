@@ -21,6 +21,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   use Astarte.RPC.AMQPClient
   use Astarte.RPC.Protocol.RealmManagement
 
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.API.AlreadyInstalledInterfaceError
   alias Astarte.RealmManagement.API.InterfaceNotFoundError
   alias Astarte.RealmManagement.API.RealmNotFoundError
@@ -111,6 +113,61 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
+  def install_trigger(realm_name, trigger, simple_triggers) do
+    trigger_data = Trigger.encode(trigger)
+
+    simple_triggers_containers =
+      for simple_trigger <- simple_triggers do
+        %InstallTrigger.SimpleTriggerDataContainer {
+          object_id: simple_trigger[:object_id],
+          object_type: simple_trigger[:object_type],
+          data: SimpleTriggerContainer.encode(simple_trigger[:simple_trigger])
+        }
+      end
+
+    {:ok, payload} =
+      %InstallTrigger{
+        realm_name: realm_name,
+        trigger_data: trigger_data,
+        simple_triggers_data_container: simple_triggers_containers
+      }
+      |> encode_and_call(:install_trigger)
+
+    payload_to_result(payload)
+  end
+
+  def get_trigger(realm_name, trigger_name) do
+    {:ok, payload} =
+      %GetTrigger{
+        realm_name: realm_name,
+        trigger_name: trigger_name
+      }
+      |> encode_and_call(:get_trigger)
+
+    payload_to_result(payload)
+  end
+
+  def get_triggers_list(realm_name) do
+    {:ok, payload} =
+      %GetTriggersList{
+        realm_name: realm_name
+      }
+      |> encode_and_call(:get_triggers_list)
+
+    payload_to_result(payload)
+  end
+
+  def delete_trigger(realm_name, trigger_name) do
+    {:ok, payload} =
+      %DeleteTrigger{
+        realm_name: realm_name,
+        trigger_name: trigger_name
+      }
+      |> encode_and_call(:delete_trigger)
+
+    payload_to_result(payload)
+  end
+
   defp encode_and_call(call, call_name) do
     %Call{
       call: {call_name, call}
@@ -158,6 +215,31 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
 
   defp extract_result({:get_jwt_public_key_pem_reply, get_jwt_public_key_pem_reply}) do
     {:ok, get_jwt_public_key_pem_reply.jwt_public_key_pem}
+  end
+
+  defp extract_result({:get_trigger_reply, get_trigger_reply}) do
+    trigger = Trigger.decode(get_trigger_reply.trigger_data)
+
+    simple_triggers =
+      for simple_triggers_data_container <- get_trigger_reply.simple_triggers_data_container do
+        %{
+          object_id: simple_triggers_data_container.object_id,
+          object_type: simple_triggers_data_container.object_type,
+          simple_trigger: SimpleTriggerContainer.decode(simple_triggers_data_container.data)
+        }
+      end
+
+    {
+      :ok,
+      %{
+        trigger: trigger,
+        simple_triggers: simple_triggers
+      }
+    }
+  end
+
+  defp extract_result({:get_triggers_list_reply, get_triggers_list_reply}) do
+    {:ok, get_triggers_list_reply.triggers_names}
   end
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "public_key_not_found"}}) do

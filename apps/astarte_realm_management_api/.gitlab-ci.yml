@@ -19,7 +19,7 @@ mix:test-ci:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix coveralls --exclude cassandra_only
+        - mix coveralls --exclude wip
     cache:
         paths:
             - deps
@@ -36,7 +36,7 @@ mix:build:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix coveralls --exclude cassandra_only
+        - mix coveralls --exclude wip
         - export MIX_ENV=dev
         - mix release
         #- mkdir $APPLICATION_NAME
@@ -61,7 +61,7 @@ mix:release-build:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix test --exclude cassandra_only
+        - mix test --exclude wip
         - mix release --env=prod
         #- mkdir $APPLICATION_NAME
         #- export RELEASE_NAME=$(echo $CI_BUILD_TAG | sed 's/v//g')
