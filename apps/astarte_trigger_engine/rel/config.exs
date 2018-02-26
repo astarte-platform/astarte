@@ -49,5 +49,7 @@ release :astarte_trigger_engine do
   set applications: [
     :runtime_tools
   ]
+
+  plugin Conform.ReleasePlugin
 end
 
