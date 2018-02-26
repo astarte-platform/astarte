@@ -22,16 +22,18 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   import Ecto.Changeset
   alias Astarte.RealmManagement.API.Triggers.Trigger
 
-
-  schema "triggers" do
-
-    timestamps()
+  @primary_key false
+  embedded_schema do
+    field :id, :string
+    field :name, :string
+    field :action, :string, default: "{}"
+    field :simple_triggers, {:array, :map}
   end
 
   @doc false
   def changeset(%Trigger{} = trigger, attrs) do
     trigger
-    |> cast(attrs, [])
+    |> cast(attrs, [:name, :action, :simple_triggers])
     |> validate_required([])
   end
 end
