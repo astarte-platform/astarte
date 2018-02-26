@@ -29,6 +29,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersUtils
   alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Ecto.Changeset
 
   require Logger
@@ -96,7 +97,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
             # 2 is interface object type
             object_type: 2,
             object_id: CQLUtils.interface_id(item["interface_name"], item["interface_major"]),
-            simple_trigger: %SimpleTriggerContainer{}
+            simple_trigger: decode_simple_trigger(item["simple_trigger"])
           }
         end
 
@@ -104,6 +105,32 @@ defmodule Astarte.RealmManagement.API.Triggers do
         {:ok, %Trigger{id: options.name}}
       end
     end
+  end
+
+  def decode_simple_trigger(%{"type" => "DataTrigger"} = simple_trigger) do
+    data_trigger_type =
+      case simple_trigger["on"] do
+        "INCOMING_DATA" ->
+          :INCOMING_DATA
+      end
+
+    operator_type =
+      case simple_trigger["value_match_operator"] do
+        "GREATER_THAN" ->
+          :GREATER_THAN
+      end
+
+    %SimpleTriggerContainer{
+      simple_trigger: {
+        :data_trigger,
+        %DataTrigger{
+          known_value: Bson.encode(%{v: simple_trigger["known_value"]}),
+          match_path: simple_trigger["match_path"],
+          data_trigger_type: data_trigger_type,
+          value_match_operator: operator_type
+        }
+      }
+    }
   end
 
   @doc """
