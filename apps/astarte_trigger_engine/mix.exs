@@ -35,13 +35,15 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_core, in_umbrella: true}
+      {:astarte_core, in_umbrella: true},
+      {:astarte_data_access, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"}
+      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
+      {:astarte_data_access, git: "https://git.ispirata.com/Astarte-NG/astarte_data_access"}
     ]
   end
 
@@ -56,6 +58,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       {:amqp, "~> 1.0.0-pre.2"},
       {:bson, "~> 0.4.4"},
+      {:conform, "~> 2.2"},
       {:cqex, github: "ispirata/cqex"},
       {:httpoison, "~> 1.0"},
       {:poison, "~> 3.1"},
