@@ -23,23 +23,23 @@ defmodule Astarte.RealmManagement.API.Triggers do
   """
 
   import Ecto.Query, warn: false
-  alias Astarte.RealmManagement.API.Repo
+  alias Astarte.RealmManagement.API.RPC.AMQPClient
 
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersUtils
   alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Ecto.Changeset
 
   require Logger
 
   @doc """
   Returns the list of triggers.
-
-  ## Examples
-
-      iex> list_triggers()
-      [%Trigger{}, ...]
-
   """
   def list_triggers(realm_name) do
-    ["mock_trigger_1", "mock_trigger_2", "mock_trigger_3"]
+    with {:ok, triggers_list} <- AMQPClient.get_triggers_list(realm_name) do
+      triggers_list
+    end
   end
 
   @doc """
@@ -56,10 +56,14 @@ defmodule Astarte.RealmManagement.API.Triggers do
       ** (Ecto.NoResultsError)
 
   """
-  def get_trigger!(realm_name, id) do
-    %Trigger{
-      id: id
-    }
+  def get_trigger!(realm_name, trigger_name) do
+    with {:ok, trigger} <- AMQPClient.get_trigger(realm_name, trigger_name) do
+      %Trigger{
+        name: trigger[:trigger].name,
+        action: trigger[:trigger].action,
+        simple_triggers: trigger[:simple_triggers]
+      }
+    end
   end
 
   @doc """
@@ -75,11 +79,31 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   """
   def create_trigger(realm_name, attrs \\ %{}) do
-    Logger.debug("Create: #{inspect(attrs)}")
-    %Trigger{}
-    |> Trigger.changeset(attrs)
+    changeset =
+      %Trigger{}
+      |> Trigger.changeset(attrs)
 
-    {:ok, %Trigger{id: "mock_trigger_4"}}
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
+      trigger =
+        %Astarte.Core.Triggers.Trigger{
+          name: options.name,
+          action: options.action
+        }
+
+      simple_triggers =
+        for item <- options.simple_triggers do
+          %{
+            # 2 is interface object type
+            object_type: 2,
+            object_id: CQLUtils.interface_id(item["interface_name"], item["interface_major"]),
+            simple_trigger: %SimpleTriggerContainer{}
+          }
+        end
+
+      with :ok <- AMQPClient.install_trigger(realm_name, trigger, simple_triggers) do
+        {:ok, %Trigger{id: options.name}}
+      end
+    end
   end
 
   @doc """
@@ -115,8 +139,9 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   """
   def delete_trigger(realm_name, %Trigger{} = trigger) do
-    Logger.debug("Delete: #{inspect(trigger)}")
-    {:ok, %Trigger{id: "mock_trigger_4"}}
+    with :ok <- AMQPClient.delete_trigger(realm_name, trigger.name) do
+      {:ok, trigger}
+    end
   end
 
   @doc """
