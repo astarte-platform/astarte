@@ -65,3 +65,17 @@ mix:release-build:
             - deps
     only:
         - tags@Astarte-NG/astarte_trigger_engine
+
+docker:snapshot-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
+    services:
+        - docker:stable-dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte_trigger_engine
+    script:
+        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_trigger_engine:snapshot .
+        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_trigger_engine:snapshot
