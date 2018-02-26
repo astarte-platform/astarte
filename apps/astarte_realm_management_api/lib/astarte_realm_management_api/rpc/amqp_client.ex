@@ -223,7 +223,7 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     simple_triggers =
       for simple_triggers_data_container <- get_trigger_reply.simple_triggers_data_container do
         %{
-          object_id: simple_triggers_data_container.object_id,
+          object_id: to_string(:uuid.uuid_to_string(simple_triggers_data_container.object_id)),
           object_type: simple_triggers_data_container.object_type,
           simple_trigger: SimpleTriggerContainer.decode(simple_triggers_data_container.data)
         }
