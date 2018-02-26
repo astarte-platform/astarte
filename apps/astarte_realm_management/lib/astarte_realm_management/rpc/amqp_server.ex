@@ -78,8 +78,8 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
         simple_triggers_data_container:
           for simple_trigger <- reply[:simple_triggers] do
             %GetTriggerReply.SimpleTriggerDataContainer{
-              object_id: nil, #TODO
-              object_type: nil, #TODO
+              object_id: simple_trigger[:object_id],
+              object_type: simple_trigger[:object_type],
               data: SimpleTriggerContainer.encode(simple_trigger.simple_trigger)
             }
           end
@@ -221,7 +221,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
             encode_reply(:get_triggers_list, Engine.get_triggers_list(realm_name))
 
           {:delete_trigger, %DeleteTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
-            encode_reply(:delete_trigger, Engine.get_trigger(realm_name, trigger_name))
+            encode_reply(:delete_trigger, Engine.delete_trigger(realm_name, trigger_name))
 
           invalid_call ->
             Logger.warn("Received unexpected call: #{inspect(invalid_call)}")
