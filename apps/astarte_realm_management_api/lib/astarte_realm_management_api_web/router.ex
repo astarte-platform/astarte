@@ -35,6 +35,6 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
     get "/:realm_name/config/:group", RealmConfigController, :show
     put "/:realm_name/config/:group", RealmConfigController, :update
 
-    resources "/triggers", TriggerController, except: [:new, :edit]
+    resources "/:realm_name/triggers", TriggerController, except: [:new, :edit]
   end
 end

@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   alias Astarte.RealmManagement.APIWeb.TriggerView
 
   def render("index.json", %{triggers: triggers}) do
-    %{data: render_many(triggers, TriggerView, "trigger.json")}
+    %{data: render_many(triggers, TriggerView, "trigger_name_only.json")}
   end
 
   def render("show.json", %{trigger: trigger}) do
@@ -32,4 +32,9 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   def render("trigger.json", %{trigger: trigger}) do
     %{id: trigger.id}
   end
+
+  def render("trigger_name_only.json", %{trigger: trigger}) do
+    trigger
+  end
+
 end

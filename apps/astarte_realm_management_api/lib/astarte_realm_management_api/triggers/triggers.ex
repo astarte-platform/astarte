@@ -27,6 +27,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   alias Astarte.RealmManagement.API.Triggers.Trigger
 
+  require Logger
+
   @doc """
   Returns the list of triggers.
 
@@ -36,8 +38,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
       [%Trigger{}, ...]
 
   """
-  def list_triggers do
-    Repo.all(Trigger)
+  def list_triggers(realm_name) do
+    ["mock_trigger_1", "mock_trigger_2", "mock_trigger_3"]
   end
 
   @doc """
@@ -54,7 +56,11 @@ defmodule Astarte.RealmManagement.API.Triggers do
       ** (Ecto.NoResultsError)
 
   """
-  def get_trigger!(id), do: Repo.get!(Trigger, id)
+  def get_trigger!(realm_name, id) do
+    %Trigger{
+      id: id
+    }
+  end
 
   @doc """
   Creates a trigger.
@@ -68,10 +74,12 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_trigger(attrs \\ %{}) do
+  def create_trigger(realm_name, attrs \\ %{}) do
+    Logger.debug("Create: #{inspect(attrs)}")
     %Trigger{}
     |> Trigger.changeset(attrs)
-    |> Repo.insert()
+
+    {:ok, %Trigger{id: "mock_trigger_4"}}
   end
 
   @doc """
@@ -86,10 +94,12 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_trigger(%Trigger{} = trigger, attrs) do
+  def update_trigger(realm_name, %Trigger{} = trigger, attrs) do
+    Logger.debug("Update: #{inspect(trigger)}")
     trigger
     |> Trigger.changeset(attrs)
-    |> Repo.update()
+
+    {:ok, %Trigger{id: "mock_trigger_4"}}
   end
 
   @doc """
@@ -104,8 +114,9 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:error, %Ecto.Changeset{}}
 
   """
-  def delete_trigger(%Trigger{} = trigger) do
-    Repo.delete(trigger)
+  def delete_trigger(realm_name, %Trigger{} = trigger) do
+    Logger.debug("Delete: #{inspect(trigger)}")
+    {:ok, %Trigger{id: "mock_trigger_4"}}
   end
 
   @doc """
@@ -117,7 +128,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       %Ecto.Changeset{source: %Trigger{}}
 
   """
-  def change_trigger(%Trigger{} = trigger) do
+  def change_trigger(realm_name, %Trigger{} = trigger) do
     Trigger.changeset(trigger, %{})
   end
 end
