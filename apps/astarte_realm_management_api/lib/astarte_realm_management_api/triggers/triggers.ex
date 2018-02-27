@@ -93,11 +93,13 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
       simple_triggers =
         for item <- options.simple_triggers do
+          interface_id = CQLUtils.interface_id(item["interface_name"], item["interface_major"])
+
           %{
             # 2 is interface object type
             object_type: 2,
-            object_id: CQLUtils.interface_id(item["interface_name"], item["interface_major"]),
-            simple_trigger: decode_simple_trigger(item["simple_trigger"])
+            object_id: interface_id,
+            simple_trigger: decode_simple_trigger(item["simple_trigger"], interface_id)
           }
         end
 
@@ -107,7 +109,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
     end
   end
 
-  def decode_simple_trigger(%{"type" => "DataTrigger"} = simple_trigger) do
+  def decode_simple_trigger(%{"type" => "DataTrigger"} = simple_trigger, interface_id) do
     data_trigger_type =
       case simple_trigger["on"] do
         "INCOMING_DATA" ->
@@ -124,6 +126,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       simple_trigger: {
         :data_trigger,
         %DataTrigger{
+          interface_id: interface_id,
           known_value: Bson.encode(%{v: simple_trigger["known_value"]}),
           match_path: simple_trigger["match_path"],
           data_trigger_type: data_trigger_type,
