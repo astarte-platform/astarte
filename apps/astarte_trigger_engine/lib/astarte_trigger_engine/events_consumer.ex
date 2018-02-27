@@ -157,7 +157,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   def execute_action(payload, realm, action) do
     with {:ok, json_payload} = Poison.encode(payload),
          {:ok, url} <- Map.fetch(action, "http_post_url") do
-      {status, response} = HTTPoison.post(url, json_payload, ["Astarte-Realm": realm])
+      {status, response} = HTTPoison.post(url, json_payload, ["Astarte-Realm": realm, "Content-Type": "application/json"])
       Logger.debug("http request status: #{inspect status}, got response: #{inspect response} from #{url}")
       :ok
     else
