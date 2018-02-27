@@ -171,6 +171,41 @@ defmodule Astarte.RealmManagement.API.Triggers do
     }
   end
 
+  def decode_simple_trigger(%{"type" => "device_trigger", "on" => condition, "device_id" => encoded_device_id} = simple_trigger) do
+    device_event_type =
+      case condition do
+        "device_connected" ->
+          :DEVICE_CONNECTED
+
+        "device_disconnected" ->
+          :DEVICE_DISCONNECTED
+
+        "device_empty_cache_received" ->
+          :DEVICE_EMPTY_CACHE_RECEIVED
+
+        "device_error" ->
+          :DEVICE_ERROR
+      end
+
+    # TODO: handle :any_device_id
+    device_object_id = decode_device_id(encoded_device_id)
+
+    %{
+      # TODO: object_type 1 is device, it should be a constant
+      object_type: 1,
+      object_id: device_object_id,
+      simple_trigger:
+        %SimpleTriggerContainer{
+          simple_trigger: {
+            :device_trigger,
+            %DeviceTrigger{
+              device_event_type: device_event_type,
+            }
+          }
+        }
+    }
+  end
+
   @doc """
   Updates a trigger.
 
