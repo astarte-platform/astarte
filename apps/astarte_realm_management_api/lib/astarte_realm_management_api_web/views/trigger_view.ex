@@ -53,7 +53,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
       %{
         object_id: object_id,
         object_type: object_type,
-        simple_trigger: %SimpleTriggerContainer{simple_trigger: {:data_trigger, simple_trigger}}
+        simple_trigger: %SimpleTriggerContainer{simple_trigger: {_, simple_trigger}}
       } = item
 
       %{
