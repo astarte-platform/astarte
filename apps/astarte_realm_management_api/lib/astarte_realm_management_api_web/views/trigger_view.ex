@@ -70,7 +70,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
       %{
         "type" => "DataTrigger",
         "on" => data_trigger.data_trigger_type,
-        "interface_id" => data_trigger.interface_id,
+        "interface_id" => to_string(:uuid.uuid_to_string(data_trigger.interface_id)),
         "known_value" => known_value,
         "match_path" => data_trigger.match_path,
         "value_match_operator" => data_trigger.value_match_operator
