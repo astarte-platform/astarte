@@ -102,7 +102,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
     end
   end
 
-  def decode_simple_trigger(%{"type" => "DataTrigger"} = simple_trigger) do
+  def decode_simple_trigger(%{"type" => "data_trigger"} = simple_trigger) do
     interface_id = CQLUtils.interface_id(simple_trigger["interface_name"], simple_trigger["interface_major"])
 
     data_trigger_type =
