@@ -88,7 +88,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       trigger =
         %Astarte.Core.Triggers.Trigger{
           name: options.name,
-          action: options.action
+          action: Poison.encode!(options.action)
         }
 
       simple_triggers =

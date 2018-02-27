@@ -26,7 +26,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   embedded_schema do
     field :id, :string
     field :name, :string
-    field :action, :string, default: "{}"
+    field :action, :map
     field :simple_triggers, {:array, :map}
   end
 
@@ -34,6 +34,6 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   def changeset(%Trigger{} = trigger, attrs) do
     trigger
     |> cast(attrs, [:name, :action, :simple_triggers])
-    |> validate_required([])
+    |> validate_required([:name, :action, :simple_triggers])
   end
 end
