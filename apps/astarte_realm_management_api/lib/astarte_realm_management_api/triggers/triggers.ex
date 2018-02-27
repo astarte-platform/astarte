@@ -93,14 +93,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
       simple_triggers =
         for item <- options.simple_triggers do
-          interface_id = CQLUtils.interface_id(item["interface_name"], item["interface_major"])
-
-          %{
-            # 2 is interface object type
-            object_type: 2,
-            object_id: interface_id,
-            simple_trigger: decode_simple_trigger(item["simple_trigger"], interface_id)
-          }
+          decode_simple_trigger(item)
         end
 
       with :ok <- AMQPClient.install_trigger(realm_name, trigger, simple_triggers) do
@@ -109,7 +102,9 @@ defmodule Astarte.RealmManagement.API.Triggers do
     end
   end
 
-  def decode_simple_trigger(%{"type" => "DataTrigger"} = simple_trigger, interface_id) do
+  def decode_simple_trigger(%{"type" => "DataTrigger"} = simple_trigger) do
+    interface_id = CQLUtils.interface_id(simple_trigger["interface_name"], simple_trigger["interface_major"])
+
     data_trigger_type =
       case simple_trigger["on"] do
         "INCOMING_DATA" ->
@@ -155,17 +150,23 @@ defmodule Astarte.RealmManagement.API.Triggers do
           :LESS_OR_EQUAL_TO
       end
 
-    %SimpleTriggerContainer{
-      simple_trigger: {
-        :data_trigger,
-        %DataTrigger{
-          interface_id: interface_id,
-          known_value: Bson.encode(%{v: simple_trigger["known_value"]}),
-          match_path: simple_trigger["match_path"],
-          data_trigger_type: data_trigger_type,
-          value_match_operator: operator_type
+    %{
+      # TODO: object_type 2 is interface, it should be a constant
+      object_type: 2,
+      object_id: interface_id,
+      simple_trigger:
+        %SimpleTriggerContainer{
+          simple_trigger: {
+            :data_trigger,
+            %DataTrigger{
+              interface_id: interface_id,
+              known_value: Bson.encode(%{v: simple_trigger["known_value"]}),
+              match_path: simple_trigger["match_path"],
+              data_trigger_type: data_trigger_type,
+              value_match_operator: operator_type
+            }
+          }
         }
-      }
     }
   end
 
