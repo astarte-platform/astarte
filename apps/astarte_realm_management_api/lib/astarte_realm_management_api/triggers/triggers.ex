@@ -220,4 +220,11 @@ defmodule Astarte.RealmManagement.API.Triggers do
   def change_trigger(realm_name, %Trigger{} = trigger) do
     Trigger.changeset(trigger, %{})
   end
+
+  # TODO: put this in Astarte Core since we need it in a lot of places
+  defp decode_device_id(encoded_device_id) do
+    <<device_uuid::binary-size(16), _extended_id::binary>> = Base.url_decode64!(encoded_device_id, padding: false)
+
+    device_uuid
+  end
 end
