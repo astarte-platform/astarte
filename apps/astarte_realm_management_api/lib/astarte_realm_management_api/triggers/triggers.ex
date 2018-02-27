@@ -29,8 +29,9 @@ defmodule Astarte.RealmManagement.API.Triggers do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersUtils
   alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Ecto.Changeset
+
+  use Astarte.Core.Triggers.SimpleTriggersProtobuf
 
   require Logger
 
@@ -102,7 +103,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
     end
   end
 
-  def decode_simple_trigger(%{"type" => "DataTrigger"} = simple_trigger) do
+  def decode_simple_trigger(%{"type" => "data_trigger"} = simple_trigger) do
     interface_id = CQLUtils.interface_id(simple_trigger["interface_name"], simple_trigger["interface_major"])
 
     data_trigger_type =
@@ -170,6 +171,41 @@ defmodule Astarte.RealmManagement.API.Triggers do
     }
   end
 
+  def decode_simple_trigger(%{"type" => "device_trigger", "on" => condition, "device_id" => encoded_device_id} = simple_trigger) do
+    device_event_type =
+      case condition do
+        "device_connected" ->
+          :DEVICE_CONNECTED
+
+        "device_disconnected" ->
+          :DEVICE_DISCONNECTED
+
+        "device_empty_cache_received" ->
+          :DEVICE_EMPTY_CACHE_RECEIVED
+
+        "device_error" ->
+          :DEVICE_ERROR
+      end
+
+    # TODO: handle :any_device_id
+    device_object_id = decode_device_id(encoded_device_id)
+
+    %{
+      # TODO: object_type 1 is device, it should be a constant
+      object_type: 1,
+      object_id: device_object_id,
+      simple_trigger:
+        %SimpleTriggerContainer{
+          simple_trigger: {
+            :device_trigger,
+            %DeviceTrigger{
+              device_event_type: device_event_type,
+            }
+          }
+        }
+    }
+  end
+
   @doc """
   Updates a trigger.
 
@@ -219,5 +255,12 @@ defmodule Astarte.RealmManagement.API.Triggers do
   """
   def change_trigger(realm_name, %Trigger{} = trigger) do
     Trigger.changeset(trigger, %{})
+  end
+
+  # TODO: put this in Astarte Core since we need it in a lot of places
+  defp decode_device_id(encoded_device_id) do
+    <<device_uuid::binary-size(16), _extended_id::binary>> = Base.url_decode64!(encoded_device_id, padding: false)
+
+    device_uuid
   end
 end

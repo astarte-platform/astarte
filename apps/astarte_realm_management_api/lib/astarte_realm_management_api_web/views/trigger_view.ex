@@ -21,7 +21,8 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   use Astarte.RealmManagement.APIWeb, :view
   alias Astarte.RealmManagement.APIWeb.TriggerView
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+
+  use Astarte.Core.Triggers.SimpleTriggersProtobuf
 
   def render("index.json", %{triggers: triggers}) do
     %{data: render_many(triggers, TriggerView, "trigger_name_only.json")}
@@ -52,7 +53,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
       %{
         object_id: object_id,
         object_type: object_type,
-        simple_trigger: %SimpleTriggerContainer{simple_trigger: {:data_trigger, simple_trigger}}
+        simple_trigger: %SimpleTriggerContainer{simple_trigger: {_, simple_trigger}}
       } = item
 
       %{
@@ -79,4 +80,13 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
     end
   end
 
+  defimpl Poison.Encoder, for: DeviceTrigger do
+    def encode(device_trigger, options) do
+      %{
+        "type" => "DeviceTrigger",
+        "on" => device_trigger.device_event_type,
+      }
+      |> Poison.Encoder.Map.encode(options)
+    end
+  end
 end
