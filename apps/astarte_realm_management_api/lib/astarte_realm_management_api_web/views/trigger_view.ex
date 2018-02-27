@@ -34,7 +34,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   def render("trigger.json", %{trigger: trigger}) do
     %{
       id: trigger.name,
-      action: Poison.decode!(trigger.action),
+      action: trigger.action,
       simple_triggers: transform_simple_triggers(trigger.simple_triggers)
     }
   end
