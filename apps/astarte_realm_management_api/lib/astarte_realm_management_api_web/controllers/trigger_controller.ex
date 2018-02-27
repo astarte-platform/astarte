@@ -25,6 +25,8 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerController do
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
+  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
+
   def index(conn, %{"realm_name" => realm_name}) do
     triggers = Astarte.RealmManagement.API.Triggers.list_triggers(realm_name)
     render(conn, "index.json", triggers: triggers)
