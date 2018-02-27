@@ -107,46 +107,46 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
     data_trigger_type =
       case simple_trigger["on"] do
-        "INCOMING_DATA" ->
+        "incoming_data" ->
           :INCOMING_DATA
 
-        "VALUE_CHANGE" ->
+        "value_change" ->
           :VALUE_CHANGE
 
-        "VALUE_CHANGE_APPLIED" ->
+        "value_change_applied" ->
           :VALUE_CHANGE_APPLIED
 
-        "PATH_CREATED" ->
+        "path_created" ->
           :PATH_CREATED
 
-        "PATH_REMOVED" ->
+        "path_removed" ->
           :PATH_REMOVED
 
-        "VALUE_STORED" ->
+        "value_stored" ->
           :VALUE_STORED
       end
 
     operator_type =
       case simple_trigger["value_match_operator"] do
-        "ANY" ->
+        "*" ->
           :ANY
 
-        "EQUAL_TO" ->
+        "==" ->
           :EQUAL_TO
 
-        "NOT_EQUAL_TO" ->
+        "!=" ->
           :NOT_EQUAL_TO
 
-        "GREATER_THAN" ->
+        ">" ->
           :GREATER_THAN
 
-        "GREATER_OR_EQUAL_TO" ->
+        ">=" ->
           :GREATER_OR_EQUAL_TO
 
-        "LESS_THAN" ->
+        "<" ->
           :LESS_THAN
 
-        "LESS_OR_EQUAL_TO" ->
+        "<=" ->
           :LESS_OR_EQUAL_TO
       end
 
