@@ -72,26 +72,26 @@ docker:snapshot-container:
     image: docker:latest
     before_script:
         - docker info
-        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     services:
         - docker:stable-dind
     stage: deploy
     only:
         - master@Astarte-NG/astarte_appengine_api
     script:
-        - docker build -t registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot .
-        - docker push registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot
+        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:snapshot .
+        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:snapshot
 
 docker:testing-container:
     image: docker:latest
     before_script:
         - docker info
-        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     services:
         - docker:stable-dind
     stage: deploy
     only:
         - testing@Astarte-NG/astarte_appengine_api
     script:
-        - docker build -t registry.ispirata.com/astarte-ng/astarte_appengine_api:testing .
-        - docker push registry.ispirata.com/astarte-ng/astarte_appengine_api:testing
+        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:testing .
+        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:testing
