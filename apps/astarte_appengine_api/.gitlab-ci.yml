@@ -81,3 +81,17 @@ docker:snapshot-container:
     script:
         - docker build -t registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot .
         - docker push registry.ispirata.com/astarte-ng/astarte_appengine_api:snapshot
+
+docker:testing-container:
+    image: docker:latest
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+    services:
+        - docker:stable-dind
+    stage: deploy
+    only:
+        - testing@Astarte-NG/astarte_appengine_api
+    script:
+        - docker build -t registry.ispirata.com/astarte-ng/astarte_appengine_api:testing .
+        - docker push registry.ispirata.com/astarte-ng/astarte_appengine_api:testing
