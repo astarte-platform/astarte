@@ -84,29 +84,29 @@ docker:snapshot-container:
     image: docker:latest
     before_script:
         - docker info
-        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     services:
         - docker:stable-dind
     stage: deploy
     only:
         - master@Astarte-NG/astarte_housekeeping
     script:
-        - docker build -t registry.ispirata.com/astarte-ng/astarte_housekeeping:snapshot .
-        - docker push registry.ispirata.com/astarte-ng/astarte_housekeeping:snapshot
+        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_housekeeping:snapshot .
+        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_housekeeping:snapshot
 
 docker:testing-container:
     image: docker:latest
     before_script:
         - docker info
-        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.ispirata.com
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     services:
         - docker:stable-dind
     stage: deploy
     only:
         - testing@Astarte-NG/astarte_housekeeping
     script:
-        - docker build -t registry.ispirata.com/astarte-ng/astarte_housekeeping:testing .
-        - docker push registry.ispirata.com/astarte-ng/astarte_housekeeping:testing
+        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_housekeeping:testing .
+        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_housekeeping:testing
 
 #s3:upload-snapshot:
     #image: debian:jessie
