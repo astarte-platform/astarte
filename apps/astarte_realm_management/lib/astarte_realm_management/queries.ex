@@ -616,4 +616,51 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+    retrieve_astarte_ref_statement =
+      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+
+    retrieve_astarte_ref_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
+      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
+         [value: astarte_ref_blob] <- DatabaseResult.head(result),
+         %{object_uuid: object_id, object_type: object_type} <- AstarteReference.decode(astarte_ref_blob) do
+
+
+      delete_simple_trigger_statement =
+        """
+        DELETE FROM simple_triggers
+        WHERE object_id=:object_id AND object_type=:object_type AND
+              parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
+        """
+      delete_simple_trigger_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_simple_trigger_statement)
+        |> DatabaseQuery.put(:object_id, object_id)
+        |> DatabaseQuery.put(:object_type, object_type)
+        |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_uuid)
+        |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
+
+      delete_astarte_ref_statement =
+        "DELETE FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+
+      delete_astarte_ref_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_astarte_ref_statement)
+        |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+
+      with {:ok, _result} <- DatabaseQuery.call(client, delete_simple_trigger_query),
+           {:ok, _result} <- DatabaseQuery.call(client, delete_astarte_ref_query) do
+        :ok
+      else
+        not_ok ->
+          Logger.warn("Queries.delete_simple_trigger: database error: #{inspect(not_ok)}")
+          {:error, :cannot_delete_simple_trigger}
+      end
+    end
+  end
+
 end
