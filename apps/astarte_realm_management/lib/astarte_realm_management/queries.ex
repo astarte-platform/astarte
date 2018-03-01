@@ -560,17 +560,7 @@ defmodule Astarte.RealmManagement.Queries do
   # TODO: simple_trigger_uuid is required due how we made the compound key
   # should we move simple_trigger_uuid to the first part of the key?
   def retrieve_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
-    retrieve_astarte_ref_statement =
-      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
-
-    retrieve_astarte_ref_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
-      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
-
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
-         [value: astarte_ref_blob] <- DatabaseResult.head(result),
-         %{object_uuid: object_id, object_type: object_type} <- AstarteReference.decode(astarte_ref_blob) do
+    with %{object_uuid: object_id, object_type: object_type} <- retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
 
       retrieve_simple_trigger_statement =
         """
@@ -617,18 +607,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
-    retrieve_astarte_ref_statement =
-      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
-
-    retrieve_astarte_ref_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
-      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
-
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
-         [value: astarte_ref_blob] <- DatabaseResult.head(result),
-         %{object_uuid: object_id, object_type: object_type} <- AstarteReference.decode(astarte_ref_blob) do
-
+    with %{object_uuid: object_id, object_type: object_type} <- retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
 
       delete_simple_trigger_statement =
         """
@@ -663,4 +642,25 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  defp retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
+    retrieve_astarte_ref_statement =
+      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+
+    retrieve_astarte_ref_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
+      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
+         [value: astarte_ref_blob] <- DatabaseResult.head(result) do
+      AstarteReference.decode(astarte_ref_blob)
+    else
+      :empty_dataset ->
+        {:error, :trigger_not_found}
+
+      not_ok ->
+        Logger.warn("Queries.retrieve_simple_trigger_astarte_ref: database error: #{inspect(not_ok)}")
+        {:error, :cannot_retrieve_simple_trigger}
+    end
+  end
 end
