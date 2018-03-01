@@ -32,12 +32,66 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
          {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id) do
       event_to_payload(realm, device_id, event_type, event, action)
-      |> execute_action(realm, action)
+      |> event_to_headers(realm, device_id, event_type, event, action)
+      |> execute_action(action)
     else
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
         error
     end
+  end
+
+  def build_values_map(realm, device_id, event_type, event) do
+    base_values = %{
+      "realm" => realm,
+      "device_id" => device_id,
+      "event_type" => to_string(event_type),
+    }
+
+    # TODO: check this with object aggregations
+    Map.from_struct(event)
+    |> Enum.reduce(base_values, fn {item_key, item_value}, acc ->
+      case item_key do
+        :bson_value ->
+          %{v: decoded_value} = Bson.decode(item_value)
+          Map.put(acc, "value", decoded_value)
+
+        :old_bson_value ->
+          %{v: decoded_value} = Bson.decode(item_value)
+          Map.put(acc, "old_value", decoded_value)
+
+        :new_bson_value ->
+          %{v: decoded_value} = Bson.decode(item_value)
+          Map.put(acc, "new_value", decoded_value)
+
+        _ ->
+          Map.put(acc, to_string(item_key), item_value)
+      end
+    end)
+  end
+
+  def event_to_headers({:ok, payload},
+        realm,
+        _device_id,
+        _event_type,
+        _event,
+        %{"template" => _template, "template_type" => "mustache"}
+      ) do
+    {:ok, payload, ["Astarte-Realm": realm]}
+  end
+
+  def event_to_headers({:ok, payload}, realm, _device_id, _event_type, _event, _action) do
+    {:ok, payload, ["Astarte-Realm": realm, "Content-Type": "application/json"]}
+  end
+
+  def event_to_headers(payload_result, _realm, _device_id, _event_type, _event, _action) do
+    payload_result
+  end
+
+  def event_to_payload(realm, device_id, event_type, event, %{"template" => template, "template_type" => "mustache"}) do
+    values = build_values_map(realm, device_id, event_type, event)
+
+    {:ok, :bbmustache.render(template, values, [key_type: :binary])}
   end
 
   def event_to_payload(_realm, device_id, :device_connected_event, event, _action) do
@@ -46,6 +100,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "device_id" => device_id,
       "device_ip_address" => event.device_ip_address
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :device_disconnected_event, _event, _action) do
@@ -53,6 +108,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "event_type" => "device_disconnected",
       "device_id" => device_id,
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :incoming_data_event, event, _action) do
@@ -63,6 +119,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "path" => event.path,
       "value" => decode_bson_value(event.bson_value)
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :incoming_introspection_event, event, _action) do
@@ -71,6 +128,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "device_id" => device_id,
       "introspection" => event.introspection
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :interface_added_event, event, _action) do
@@ -81,6 +139,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "major_version" => event.major_version,
       "minor_version" => event.minor_version
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :interface_minor_updated_event, event, _action) do
@@ -92,6 +151,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "old_minor_version" => event.old_minor_version,
       "new_minor_version" => event.new_minor_version
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :interface_removed_event, event, _action) do
@@ -101,6 +161,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "interface" => event.interface,
       "major_version" => event.major_version
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :path_created_event, event, _action) do
@@ -111,6 +172,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "path" => event.path,
       "value" => decode_bson_value(event.bson_value)
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :path_removed_event, event, _action) do
@@ -120,6 +182,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "interface" => event.interface,
       "path" => event.path
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :value_change_applied_event, event, _action) do
@@ -131,6 +194,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "new_value" => decode_bson_value(event.new_bson_value),
       "old_value" => decode_bson_value(event.old_bson_value)
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :value_change_event, event, _action) do
@@ -142,6 +206,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "new_value" => decode_bson_value(event.new_bson_value),
       "old_value" => decode_bson_value(event.old_bson_value)
     }
+    |> Poison.encode()
   end
 
   def event_to_payload(_realm, device_id, :value_stored_event, event, _action) do
@@ -152,12 +217,13 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "path" => event.path,
       "value" => decode_bson_value(event.bson_value)
     }
+    |> Poison.encode()
   end
 
-  def execute_action(payload, realm, action) do
-    with {:ok, json_payload} = Poison.encode(payload),
+  def execute_action(payload_and_headers, action) do
+    with {:ok, payload, headers} <- payload_and_headers,
          {:ok, url} <- Map.fetch(action, "http_post_url") do
-      {status, response} = HTTPoison.post(url, json_payload, ["Astarte-Realm": realm, "Content-Type": "application/json"])
+      {status, response} = HTTPoison.post(url, payload, headers)
       Logger.debug("http request status: #{inspect status}, got response: #{inspect response} from #{url}")
       :ok
     else
