@@ -57,6 +57,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
   defp deps do
     [
       {:amqp, "~> 1.0.0-pre.2"},
+      {:bbmustache, "~> 1.5"},
       {:bson, "~> 0.4.4"},
       {:conform, "~> 2.2"},
       {:cqex, github: "ispirata/cqex"},
