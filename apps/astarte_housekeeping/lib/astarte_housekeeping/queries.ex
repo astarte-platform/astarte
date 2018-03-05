@@ -40,6 +40,15 @@ defmodule Astarte.Housekeeping.Queries do
       );
     """,
     """
+      CREATE TABLE :realm_name.names (
+        object_name varchar,
+        object_type int,
+        object_uuid uuid,
+
+        PRIMARY KEY ((object_name), object_type)
+      );
+    """,
+    """
       CREATE TABLE :realm_name.devices (
         device_id uuid,
         extended_id ascii,
