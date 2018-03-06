@@ -16,6 +16,71 @@ schemes:
 - https
 - http
 paths:
+  /{realm_name}/devices:
+    get:
+      tags:
+      - "devices"
+      summary: "Get devices list"
+      description: "A paged list of all devices is returned. By default the device ID string is returned for each already (agent) paired device. The complete device status can be optionally retrieved rather than device ID string using details option."
+      operationId: "getDevicesList"
+      produces:
+      - "application/json"
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "The name of the realm the device list will be returned from."
+        required: true
+        type: "string"
+      - name: "from_token"
+        in: "query"
+        description: "Opaque devices list page pointer: it basically points to the beginning of a devices page. If not specified the devices list is displayed from the beginning. This format might change in future versions so it should be passed without any furhter assumption about type, format or its value."
+        required: false
+        type: "integer"
+      - name: "limit"
+        in: "query"
+        description: "Maximum number of devices that will be returned for each page."
+        required: false
+        default: 1000
+        minimum: 1
+        type: "integer"
+      - name: "details"
+        in: "query"
+        description: "If true detailed device status for all devices is returned rather than the device id."
+        required: false
+        default: false
+        type: "boolean"
+      responses:
+        200:
+          description: "Devices list"
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+              links:
+                type: object
+                properties:
+                  self:
+                    type: "string"
+                    format: "uri"
+                    description: "A relative link to this response."
+                  next:
+                    type: "string"
+                    format: "uri"
+                    description: "A relative link to next devices list page."
+          examples:
+            DevicesList:
+              self: "/v1/example/devices?limit=3"
+              next: "/v1/example/devices?from_token=-2128516163519372076&limit=3"
+              data: [
+                "hjnD0GrEP3o9ED1SUuL4QQ",
+                "8ZxuSGkU7pggwoomJeXo9g",
+                "k-IFKDPoVzIXUcFkF7U80A"
+              ]
+        403:
+          description: "Forbidden"
   /{realm_name}/devices/{device_id}:
     get:
       tags:
