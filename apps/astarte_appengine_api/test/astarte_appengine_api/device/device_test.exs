@@ -2,6 +2,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   use ExUnit.Case
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
@@ -203,6 +204,50 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   test "list_devices/1 returns all devices" do
+    expected_devices =
+      [
+        "4UQbIokuRufdtbVZt9AsLg",
+        "DKxaeZ9LzUZLz7WPTTAEAA",
+        "aWag-VlVKC--1S-vfzZ9uQ",
+        "f0VMRgIBAQAAAAAAAAAAAA",
+        "olFkumNuZ_J0f_d6-8XCDg"
+      ]
+
+    assert Enum.sort(retrieve_next_devices_list(false)) == expected_devices
+
+    devices_with_details = retrieve_next_devices_list(true)
+    for device <- devices_with_details do
+      case device.id do
+        "4UQbIokuRufdtbVZt9AsLg" ->
+          assert device.total_received_bytes == 22
+
+        "DKxaeZ9LzUZLz7WPTTAEAA" ->
+          assert device.total_received_bytes == 300
+
+        "aWag-VlVKC--1S-vfzZ9uQ" ->
+          assert device.total_received_bytes == 0
+
+        "f0VMRgIBAQAAAAAAAAAAAA" ->
+          assert device.total_received_bytes == 4500000
+
+        "olFkumNuZ_J0f_d6-8XCDg" ->
+          assert device.total_received_bytes == 10
+      end
+    end
+
+    assert length(devices_with_details) == 5
+  end
+
+  defp retrieve_next_devices_list({:ok, %DevicesList{devices: devices, last_token: nil}}, _details) do
+    devices
+  end
+
+  defp retrieve_next_devices_list({:ok, %DevicesList{devices: devices, last_token: last_token}}, details) do
+    retrieve_next_devices_list(Device.list_devices!("autotestrealm", %{"limit" => 2, "from_token" => last_token, "details" => details}), details) ++ devices
+  end
+
+  defp retrieve_next_devices_list(details) do
+    retrieve_next_devices_list(Device.list_devices!("autotestrealm", %{"limit" => 2, "details" => details}), details)
   end
 
   test "get_device_status!/2 returns the device_status with given id" do
