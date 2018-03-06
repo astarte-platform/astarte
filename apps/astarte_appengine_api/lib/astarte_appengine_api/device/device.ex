@@ -65,7 +65,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     device_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes FROM devices WHERE device_id=:device_id")
+      |> DatabaseQuery.statement("SELECT connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes FROM devices WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, device_id)
 
     device_row =
@@ -73,7 +73,7 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseResult.head()
 
     %DeviceStatus{
-      id: device_row[:extended_id],
+      id: Base.url_encode64(device_id, padding: false),
       connected: device_row[:connected],
       last_connection: millis_or_null_to_datetime!(device_row[:last_connection]),
       last_disconnection: millis_or_null_to_datetime!(device_row[:last_disconnection]),

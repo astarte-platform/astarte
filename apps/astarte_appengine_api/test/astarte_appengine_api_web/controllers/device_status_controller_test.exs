@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
     test "get device_status", %{conn: conn} do
       expected_device_status = %{
         "connected" => false,
-        "id" => "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "id" => "f0VMRgIBAQAAAAAAAAAAAA",
         "last_connection" => "2017-09-28T03:45:00.000Z",
         "last_disconnection" => "2017-09-29T18:25:00.000Z",
         "first_pairing" => "2016-08-20T09:44:00.000Z",
