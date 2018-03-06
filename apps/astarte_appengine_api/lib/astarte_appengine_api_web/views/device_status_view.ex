@@ -21,6 +21,34 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   use Astarte.AppEngine.APIWeb, :view
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
+  def render("index.json", %{devices_list_result: result, request: %{"realm_name" => realm} = params}) do
+    {request_params, _} = Map.split(params, ["limit", "details", "from_token"])
+
+    links =
+      case result do
+        %{last_token: last_token} ->
+          self_query_string = URI.encode_query(request_params)
+
+          next_query_string =
+            Map.put(request_params, "from_token", last_token)
+            |> URI.encode_query()
+
+          %{
+            "self": "/v1/#{realm}/devices?#{self_query_string}",
+            next: "/v1/#{realm}/devices?#{next_query_string}",
+          }
+
+        _ ->
+          self_query_string = URI.encode_query(request_params)
+          %{"self": "/v1/#{realm}/devices?#{self_query_string}"}
+      end
+
+    %{
+      links: links,
+      data: result[:devices]
+    }
+  end
+
   def render("index.json", %{devices: devices}) do
     %{data: render_many(devices, DeviceStatusView, "device_status.json")}
   end

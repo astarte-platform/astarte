@@ -3,7 +3,6 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
-  alias Astarte.AppEngine.API.Device.DevicesListingNotAllowedError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceValues
@@ -204,9 +203,6 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   test "list_devices/1 returns all devices" do
-    assert_raise DevicesListingNotAllowedError, fn ->
-      Device.list_devices!("autotestrealm")
-    end
   end
 
   test "get_device_status!/2 returns the device_status with given id" do

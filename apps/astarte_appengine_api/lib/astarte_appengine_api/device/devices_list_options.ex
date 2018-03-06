@@ -14,17 +14,31 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.API.Device.DevicesListingNotAllowedError do
+defmodule Astarte.AppEngine.API.Device.DevicesListOptions  do
+  use Ecto.Schema
+  import Ecto.Changeset
+  alias Astarte.AppEngine.API.Device.DevicesListOptions
 
-  defexception plug_status: 404,
-    message: "Devices Listing Not Allowed"
+  @primary_key false
+  embedded_schema do
+    field :from_token, :integer, default: nil
+    field :limit, :integer, default: 1000
+    field :details, :boolean, default: false
+  end
 
-    def exception(_opts) do
-      %Astarte.AppEngine.API.Device.DevicesListingNotAllowedError{
-      }
-    end
+  @doc false
+  def changeset(%DevicesListOptions{} = devices_list_request, attrs) do
+    cast_attrs = [
+      :from_token,
+      :limit,
+      :details
+    ]
+
+    devices_list_request
+    |> cast(attrs, cast_attrs)
+    |> validate_number(:limit, greater_than: 0)
+  end
 end
-

@@ -25,7 +25,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
-  alias Astarte.AppEngine.API.Device.DevicesListingNotAllowedError
+  alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceValues
@@ -44,13 +44,13 @@ defmodule Astarte.AppEngine.API.Device do
   alias Ecto.Changeset
   require Logger
 
-  @doc """
-  Intentionally not implemented.
-  """
-  def list_devices!(_realm_name) do
-    #TODO: It should list available devices, but it doesn't scale well. It must be implemented in a meaningful way.
-    # Possible implementations: raise Forbidden, show some stats, list all devices only if configured on small installations.
-    raise DevicesListingNotAllowedError
+  def list_devices!(realm_name, params) do
+    changeset = DevicesListOptions.changeset(%DevicesListOptions{}, params)
+
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert),
+         {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      retrieve_devices_list(client, options.limit, options.details, options.from_token)
+    end
   end
 
   @doc """
@@ -776,6 +776,107 @@ defmodule Astarte.AppEngine.API.Device do
       end
 
     {:ok, %InterfaceValues{data: values_list}}
+  end
+
+  @device_status_columns_without_device_id """
+    , connected
+    , last_connection
+    , last_disconnection
+    , first_pairing
+    , last_pairing_ip
+    , last_seen_ip
+    , total_received_msgs
+    , total_received_bytes
+  """
+
+  defp device_status_row_to_device_status(row) do
+    [
+      device_id: device_id,
+      connected: connected,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_pairing: first_pairing,
+      last_pairing_ip: last_pairing_ip,
+      last_seen_ip: last_seen_ip,
+      total_received_msgs:  total_received_msgs,
+      total_received_bytes: total_received_bytes
+    ] = row
+
+    %DeviceStatus{
+      id: Base.url_encode64(device_id, padding: false),
+      connected: connected,
+      last_connection: millis_or_null_to_datetime!(last_connection),
+      last_disconnection: millis_or_null_to_datetime!(last_disconnection),
+      first_pairing: millis_or_null_to_datetime!(first_pairing),
+      last_pairing_ip: ip_or_null_to_string(last_pairing_ip),
+      last_seen_ip: ip_or_null_to_string(last_seen_ip),
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes
+    }
+  end
+
+  # TODO: move to a different context?
+  defp execute_devices_list_query(client, limit, retrieve_details, previous_token) do
+    retrieve_details_string =
+      if retrieve_details do
+        @device_status_columns_without_device_id
+      else
+        ""
+      end
+
+    previous_token =
+      case previous_token do
+        nil ->
+            # This is -2^63, that is the lowest 64 bit integer
+            -9223372036854775808
+
+        first ->
+            first + 1
+      end
+
+    devices_list_statement =
+      """
+        SELECT TOKEN(device_id), device_id #{retrieve_details_string}
+        FROM devices
+        WHERE TOKEN(device_id) >= :previous_token LIMIT #{Integer.to_string(limit)};
+      """
+
+    devices_list_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(devices_list_statement)
+      |> DatabaseQuery.put(:previous_token, previous_token)
+
+    DatabaseQuery.call(client, devices_list_query)
+  end
+
+  # TODO: move to a different context?
+  defp retrieve_devices_list(client, limit, retrieve_details, previous_token) do
+    with {:ok, result} <- execute_devices_list_query(client, limit, retrieve_details, previous_token) do
+      {devices_list, count, last_token} =
+        Enum.reduce(result, {[], 0, nil}, fn row, {devices_acc, count, _last_seen_token} ->
+          {device, token} =
+            if retrieve_details do
+              [{:"system.token(device_id)", token} | device_status_row] = row
+              {device_status_row_to_device_status(device_status_row), token}
+            else
+              ["system.token(device_id)": token, device_id: device_id] = row
+              {Base.url_encode64(device_id, padding: false), token}
+            end
+
+          {[device | devices_acc], count + 1, token}
+        end)
+
+      if count < limit do
+        {:ok, %{devices: Enum.reverse(devices_list)}}
+      else
+        {:ok, %{devices: Enum.reverse(devices_list), last_token: last_token}}
+      end
+
+    else
+      not_ok ->
+        Logger.warn("Device.retrieve_devices_list: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
   end
 
   #TODO Copy&pasted from data updater plant, make it a library
