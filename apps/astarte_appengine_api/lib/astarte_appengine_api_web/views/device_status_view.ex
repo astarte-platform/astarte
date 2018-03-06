@@ -21,12 +21,18 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   use Astarte.AppEngine.APIWeb, :view
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
-  def render("index.json", %{devices_list_result: result, request: %{"realm_name" => realm} = params}) do
+  def render("index.json", %{devices_list: devices_list, request: %{"realm_name" => realm} = params}) do
     {request_params, _} = Map.split(params, ["limit", "details", "from_token"])
 
+    last_token = devices_list.last_token
+
     links =
-      case result do
-        %{last_token: last_token} ->
+      case last_token do
+        nil ->
+          self_query_string = URI.encode_query(request_params)
+          %{"self": "/v1/#{realm}/devices?#{self_query_string}"}
+
+        last_token ->
           self_query_string = URI.encode_query(request_params)
 
           next_query_string =
@@ -37,15 +43,11 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
             "self": "/v1/#{realm}/devices?#{self_query_string}",
             next: "/v1/#{realm}/devices?#{next_query_string}",
           }
-
-        _ ->
-          self_query_string = URI.encode_query(request_params)
-          %{"self": "/v1/#{realm}/devices?#{self_query_string}"}
       end
 
     %{
       links: links,
-      data: result[:devices]
+      data: devices_list.devices
     }
   end
 

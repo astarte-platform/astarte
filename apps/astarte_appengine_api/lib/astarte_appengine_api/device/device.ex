@@ -25,6 +25,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
+  alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
@@ -867,9 +868,9 @@ defmodule Astarte.AppEngine.API.Device do
         end)
 
       if count < limit do
-        {:ok, %{devices: Enum.reverse(devices_list)}}
+        {:ok, %DevicesList{devices: Enum.reverse(devices_list)}}
       else
-        {:ok, %{devices: Enum.reverse(devices_list), last_token: last_token}}
+        {:ok, %DevicesList{devices: Enum.reverse(devices_list), last_token: last_token}}
       end
 
     else

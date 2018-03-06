@@ -21,14 +21,15 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
   use Astarte.AppEngine.APIWeb, :controller
 
   alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.DevicesList
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name} = params) do
-    with {:ok, devices_result} <- Device.list_devices!(realm_name, params) do
-      render(conn, "index.json", %{devices_list_result: devices_result, request: params})
+    with {:ok, %DevicesList{} = devices_list} <- Device.list_devices!(realm_name, params) do
+      render(conn, "index.json", %{devices_list: devices_list, request: params})
     end
   end
 
