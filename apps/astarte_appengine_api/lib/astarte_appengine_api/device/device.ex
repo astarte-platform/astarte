@@ -59,30 +59,10 @@ defmodule Astarte.AppEngine.API.Device do
   Device status returns information such as connected, last_connection and last_disconnection.
   """
   def get_device_status!(realm_name, encoded_device_id) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
-
-    device_id = decode_device_id(encoded_device_id)
-
-    device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes FROM devices WHERE device_id=:device_id")
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    device_row =
-      DatabaseQuery.call!(client, device_query)
-      |> DatabaseResult.head()
-
-    %DeviceStatus{
-      id: Base.url_encode64(device_id, padding: false),
-      connected: device_row[:connected],
-      last_connection: millis_or_null_to_datetime!(device_row[:last_connection]),
-      last_disconnection: millis_or_null_to_datetime!(device_row[:last_disconnection]),
-      first_pairing: millis_or_null_to_datetime!(device_row[:first_pairing]),
-      last_pairing_ip: ip_or_null_to_string(device_row[:last_pairing_ip]),
-      last_seen_ip: ip_or_null_to_string(device_row[:last_seen_ip]),
-      total_received_msgs: device_row[:total_received_msgs],
-      total_received_bytes: device_row[:total_received_bytes]
-    }
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      device_id = decode_device_id(encoded_device_id)
+      retrieve_device_status(client, device_id)
+    end
   end
 
   @doc """
@@ -876,6 +856,32 @@ defmodule Astarte.AppEngine.API.Device do
     else
       not_ok ->
         Logger.warn("Device.retrieve_devices_list: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp retrieve_device_status(client, device_id) do
+    device_statement =
+      """
+        SELECT device_id #{@device_status_columns_without_device_id}
+        FROM devices
+        WHERE device_id=:device_id
+      """
+
+    device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(device_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    with {:ok, result} <- DatabaseQuery.call(client, device_query),
+         device_row when is_list(device_row) <- DatabaseResult.head(result) do
+      {:ok, device_status_row_to_device_status(device_row)}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      not_ok ->
+        Logger.warn("Device.retrieve_device_status: database error: #{inspect(not_ok)}")
         {:error, :database_error}
     end
   end

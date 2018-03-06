@@ -22,6 +22,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
 
@@ -34,8 +35,9 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => id}) do
-    device_status = Device.get_device_status!(realm_name, id)
-    render(conn, "show.json", device_status: device_status)
+    with {:ok, %DeviceStatus{} = device_status} <- Device.get_device_status!(realm_name, id) do
+      render(conn, "show.json", device_status: device_status)
+    end
   end
 
   def update(_conn, %{"id" => _id, "device_status" => _device_status_params}) do

@@ -218,7 +218,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       total_received_msgs: 45000
     }
 
-    assert Device.get_device_status!("autotestrealm", expected_device_status.id) == expected_device_status
+    assert Device.get_device_status!("autotestrealm", expected_device_status.id) == {:ok, expected_device_status}
   end
 
   defp unpack_interface_values({:ok, %InterfaceValues{data: values}}) do
