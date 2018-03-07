@@ -40,9 +40,19 @@ defmodule Astarte.Housekeeping.Queries do
       );
     """,
     """
+      CREATE TABLE :realm_name.names (
+        object_name varchar,
+        object_type int,
+        object_uuid uuid,
+
+        PRIMARY KEY ((object_name), object_type)
+      );
+    """,
+    """
       CREATE TABLE :realm_name.devices (
         device_id uuid,
         extended_id ascii,
+        aliases map<ascii, varchar>,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
         protocol_revision int,
