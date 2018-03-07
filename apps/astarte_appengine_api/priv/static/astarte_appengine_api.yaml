@@ -45,7 +45,7 @@ paths:
         type: "integer"
       - name: "details"
         in: "query"
-        description: "If true detailed device status for all devices is returned rather than the device id."
+        description: "If true detailed device status for all devices is returned rather than the device id. See also DeviceStatus example."
         required: false
         default: false
         type: "boolean"
@@ -104,8 +104,11 @@ paths:
       responses:
         200:
           description: "Success"
-          examples:
-            text/json: { "status": "online", "introspection": [{"interface": "com.test.foo", "major_version": 1}, {"interface": "com.test.bar", "major_version": 1}]}
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/DeviceStatus"
         404:
           description: "Device Not found"
   /{realm_name}/devices/{device_id}/interfaces:
@@ -383,3 +386,48 @@ paths:
       responses:
         404:
           description: "Interface, Device or Timestamp Not found"
+
+definitions:
+  DeviceStatus:
+    type: object
+    properties:
+      id:
+        type: "string"
+        description: "The device ID."
+      connected:
+        type: "boolean"
+        description: "True if the device is connected to the broker."
+      last_connection:
+        type: "string"
+        format: "date-time"
+        description: "Last connection to the broker timestamp."
+      last_disconnection:
+        type: "string"
+        format: "date-time"
+        description: "Last device disconnection timestamp."
+      first_pairing:
+        type: "string"
+        format: "date-time"
+        description: "First device pairing timestamp."
+      last_seen_ip:
+        type: "string"
+        description: "Last known device IP address."
+      last_pairing_ip:
+        type: "string"
+        description: "Last known device IP address used during a pairing."
+      total_received_bytes:
+        type: "integer"
+        description: "Total ammount of received payload bytes."
+      total_received_msgs:
+        type: "integer"
+        description: "Total ammount of received messages."
+    example:
+      id: "hm8AjtbN5P2mxo_gfXSfvQ"
+      connected: false
+      last_connection: "2017-09-28T03:45:00.000Z"
+      last_disconnection: "2017-09-29T18:25:00.000Z"
+      first_pairing: "2016-08-20T09:44:00.000Z"
+      last_seen_ip: "1.2.3.4"
+      last_pairing_ip: "5.6.7.8"
+      total_received_bytes: 10240
+      total_received_msgs: 10
