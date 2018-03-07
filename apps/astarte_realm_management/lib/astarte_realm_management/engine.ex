@@ -270,9 +270,19 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def delete_trigger(realm_name, trigger_name) do
-    with {:ok, client} <- get_database_client(realm_name) do
-      Queries.delete_trigger(client, trigger_name)
-      # TODO: delete also all child simple triggers
+    with {:ok, client} <- get_database_client(realm_name),
+         {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
+
+      delete_all_succeeded =
+        Enum.all?(trigger.simple_triggers_uuids, fn simple_trigger_uuid ->
+          Queries.delete_simple_trigger(client, trigger.trigger_uuid, simple_trigger_uuid) == :ok
+        end)
+
+      if delete_all_succeeded do
+        Queries.delete_trigger(client, trigger_name)
+      else
+        {:error, :cannot_delete_simple_trigger}
+      end
     end
   end
 
