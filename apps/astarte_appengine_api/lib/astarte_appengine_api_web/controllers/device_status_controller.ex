@@ -21,19 +21,23 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
   use Astarte.AppEngine.APIWeb, :controller
 
   alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
-  def index(conn, %{"realm_name" => realm_name}) do
-    devices = Device.list_devices!(realm_name)
-    render(conn, "index.json", devices: devices)
+  def index(conn, %{"realm_name" => realm_name} = params) do
+    with {:ok, %DevicesList{} = devices_list} <- Device.list_devices!(realm_name, params) do
+      render(conn, "index.json", %{devices_list: devices_list, request: params})
+    end
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => id}) do
-    device_status = Device.get_device_status!(realm_name, id)
-    render(conn, "show.json", device_status: device_status)
+    with {:ok, %DeviceStatus{} = device_status} <- Device.get_device_status!(realm_name, id) do
+      render(conn, "show.json", device_status: device_status)
+    end
   end
 
   def update(_conn, %{"id" => _id, "device_status" => _device_status_params}) do

@@ -63,10 +63,10 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
-  @insert_device """
+  @insert_device_statement """
         INSERT INTO autotestrealm.devices (device_id, extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
-          VALUES (7f454c46-0201-0100-0000-000000000000, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
-          '8.8.8.8', '4.4.4.4', 45000, 4500000, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1, 'com.example.TestObject': 1});
+          VALUES (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
+          '8.8.8.8', '4.4.4.4', 45000, :total_received_bytes, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1, 'com.example.TestObject': 1});
   """
 
   @create_interfaces_table """
@@ -316,7 +316,29 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_devices_table)
-        DatabaseQuery.call!(client, @insert_device)
+
+        insert_device_query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_device_statement)
+
+        devices_list = [
+          {"f0VMRgIBAQAAAAAAAAAAAA", 4500000},
+          {"olFkumNuZ_J0f_d6-8XCDg", 10},
+          {"4UQbIokuRufdtbVZt9AsLg", 22},
+          {"aWag-VlVKC--1S-vfzZ9uQ", 0},
+          {"DKxaeZ9LzUZLz7WPTTAEAA", 300}
+        ]
+
+        for {encoded_device_id, total_received_bytes} <- devices_list do
+          device_id = Base.url_decode64!(encoded_device_id, padding: false)
+
+          insert_device_query =
+            insert_device_query
+            |> DatabaseQuery.put(:device_id, device_id)
+            |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+          DatabaseQuery.call!(client, insert_device_query)
+        end
+
         DatabaseQuery.call!(client, @create_kv_store)
         query =
           DatabaseQuery.new()
