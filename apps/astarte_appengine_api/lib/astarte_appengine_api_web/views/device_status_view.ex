@@ -20,6 +20,7 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   use Astarte.AppEngine.APIWeb, :view
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
+  alias Astarte.AppEngine.APIWeb.Router.Helpers, as: RouterHelpers
 
   def render("index.json", %{devices_list: devices_list, request: %{"realm_name" => realm} = params}) do
     {request_params, _} = Map.split(params, ["limit", "details", "from_token"])
@@ -29,19 +30,13 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
     links =
       case last_token do
         nil ->
-          self_query_string = URI.encode_query(request_params)
-          %{"self": "/v1/#{realm}/devices?#{self_query_string}"}
+          %{"self": RouterHelpers.device_status_path(%URI{}, :index, realm, request_params)}
 
         last_token ->
-          self_query_string = URI.encode_query(request_params)
-
-          next_query_string =
-            Map.put(request_params, "from_token", last_token)
-            |> URI.encode_query()
-
+          next_request_params = Map.put(request_params, "from_token", last_token)
           %{
-            "self": "/v1/#{realm}/devices?#{self_query_string}",
-            next: "/v1/#{realm}/devices?#{next_query_string}",
+            "self": RouterHelpers.device_status_path(%URI{}, :index, realm, request_params),
+            next: RouterHelpers.device_status_path(%URI{}, :index, realm, next_request_params)
           }
       end
 
