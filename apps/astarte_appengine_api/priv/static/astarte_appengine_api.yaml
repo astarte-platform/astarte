@@ -394,6 +394,9 @@ definitions:
       id:
         type: "string"
         description: "The device ID."
+      aliases:
+        type: "object"
+        description: "A set of aliases and their tags. Each alias has an unique tag that identifies its purpose."
       connected:
         type: "boolean"
         description: "True if the device is connected to the broker."
@@ -423,6 +426,9 @@ definitions:
         description: "Total ammount of received messages."
     example:
       id: "hm8AjtbN5P2mxo_gfXSfvQ"
+      aliases:
+        serial_number: "1234567"
+        display_name: "my_device_name"
       connected: false
       last_connection: "2017-09-28T03:45:00.000Z"
       last_disconnection: "2017-09-29T18:25:00.000Z"
