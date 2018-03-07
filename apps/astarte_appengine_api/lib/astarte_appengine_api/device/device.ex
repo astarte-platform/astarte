@@ -164,8 +164,7 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseResult.head()
       |> Mapping.from_db_result!()
 
-    #TODO: just get encoded_device_id
-    extended_device_id = get_device_status!(realm_name, encoded_device_id).id
+    {:ok, extended_device_id} = retrieve_extended_id(client, device_id)
 
     insert_value_into_db(client, interface_descriptor.storage_type, device_id, interface_descriptor, endpoint_id, mapping, path, value, timestamp)
 
@@ -882,6 +881,27 @@ defmodule Astarte.AppEngine.API.Device do
 
       not_ok ->
         Logger.warn("Device.retrieve_device_status: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
+  def retrieve_extended_id(client, device_id) do
+    extended_id_statement = "SELECT extended_id FROM devices WHERE device_id=:device_id"
+
+    extended_id_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(extended_id_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    with {:ok, result} <- DatabaseQuery.call(client, extended_id_query),
+         [extended_id: extended_id] <- DatabaseResult.head(result) do
+      {:ok, extended_id}
+    else
+       :empty_dataset ->
+        {:error, :device_not_found}
+
+      not_ok ->
+        Logger.warn("Device.retrieve_extended_id: database error: #{inspect(not_ok)}")
         {:error, :database_error}
     end
   end
