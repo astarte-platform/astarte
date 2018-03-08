@@ -254,6 +254,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     expected_device_status = %DeviceStatus{
       connected: false,
       id: "f0VMRgIBAQAAAAAAAAAAAA",
+      aliases: %{"display_name" => "device_a"},
       last_connection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 28, hour: 3, minute: 45, month: 9, year: 2017},
       last_disconnection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC", day: 29, hour: 18, minute: 25},
       first_pairing: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 20, hour: 9, minute: 44, month: 8, year: 2016},

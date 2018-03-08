@@ -863,6 +863,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   @device_status_columns_without_device_id """
+    , aliases
     , connected
     , last_connection
     , last_disconnection
@@ -876,6 +877,7 @@ defmodule Astarte.AppEngine.API.Device do
   defp device_status_row_to_device_status(row) do
     [
       device_id: device_id,
+      aliases: aliases,
       connected: connected,
       last_connection: last_connection,
       last_disconnection: last_disconnection,
@@ -888,6 +890,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     %DeviceStatus{
       id: Base.url_encode64(device_id, padding: false),
+      aliases: Enum.into(aliases || [], %{}),
       connected: connected,
       last_connection: millis_or_null_to_datetime!(last_connection),
       last_disconnection: millis_or_null_to_datetime!(last_disconnection),
