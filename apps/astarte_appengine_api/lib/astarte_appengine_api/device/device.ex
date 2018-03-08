@@ -1012,22 +1012,22 @@ defmodule Astarte.AppEngine.API.Device do
     value
   end
 
+  defp millis_or_null_to_datetime!(nil) do
+    nil
+  end
+
   defp millis_or_null_to_datetime!(millis) do
-    if millis == :null do
-      nil
-    else
-      DateTime.from_unix!(millis, :millisecond)
-    end
+    DateTime.from_unix!(millis, :millisecond)
+  end
+
+  defp ip_or_null_to_string(nil) do
+    nil
   end
 
   defp ip_or_null_to_string(ip) do
-    if ip == :null do
-      nil
-    else
-      ip
-      |> :inet_parse.ntoa
-      |> to_string
-    end
+    ip
+    |> :inet_parse.ntoa()
+    |> to_string()
   end
 
 end
