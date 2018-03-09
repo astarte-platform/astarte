@@ -65,6 +65,27 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  def merge_device_status!(realm_name, encoded_device_id, device_status_merge) do
+    device_id = decode_device_id(encoded_device_id)
+
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      Enum.find_value(Map.get(device_status_merge, "aliases", %{}), :ok, fn {alias_upd_key, alias_upd_value} ->
+        result =
+          if alias_upd_value do
+            insert_alias(client, device_id, alias_upd_key, alias_upd_value)
+          else
+            delete_alias(client, device_id, alias_upd_key)
+          end
+
+        if match?({:error, _}, result) do
+          result
+        else
+          nil
+        end
+      end)
+    end
+  end
+
   @doc """
   Returns the list of interfaces.
   """
