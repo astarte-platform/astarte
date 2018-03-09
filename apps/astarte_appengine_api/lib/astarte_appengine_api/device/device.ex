@@ -1013,6 +1013,104 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp delete_alias(client, device_id, alias_tag) do
+    retrieve_aliases_statement = "SELECT aliases FROM devices WHERE device_id = :device_id;"
+
+    retrieve_aliases_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(retrieve_aliases_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
+         [aliases: aliases] <- DatabaseResult.head(result),
+         {^alias_tag, alias_value} <- Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end) do
+
+      # TODO: Add IF EXISTS and batch
+      delete_alias_from_device_statement = "DELETE aliases[:alias_tag] FROM devices WHERE device_id = :device_id;"
+
+      delete_alias_from_device_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_alias_from_device_statement)
+        |> DatabaseQuery.put(:alias_tag, alias_tag)
+        |> DatabaseQuery.put(:device_id, device_id)
+
+      delete_alias_from_names_statement = "DELETE FROM names WHERE object_name = :alias AND object_type = 1;"
+
+      delete_alias_from_names_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_alias_from_names_statement)
+        |> DatabaseQuery.put(:alias, alias_value)
+        |> DatabaseQuery.put(:device_id, device_id)
+
+      with {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_device_query),
+           {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_names_query) do
+        :ok
+      else
+        not_ok ->
+          Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+          {:error, :database_error}
+      end
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      nil ->
+        {:error, :alias_tag_not_found}
+
+      not_ok ->
+        Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp try_delete_alias(client, device_id, alias_tag) do
+    case delete_alias(client, device_id, alias_tag) do
+      :ok ->
+        :ok
+
+      {:error, :alias_tag_not_found} ->
+        :ok
+
+      not_ok ->
+        not_ok
+    end
+  end
+
+  defp insert_alias(client, device_id, alias_tag, alias_value) do
+    # TODO: Add  IF NOT EXISTS and batch queries together
+    insert_alias_to_names_statement =
+      "INSERT INTO names (object_name, object_type, object_uuid) VALUES (:alias, 1, :device_id);"
+
+    insert_alias_to_names_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_alias_to_names_statement)
+      |> DatabaseQuery.put(:alias, alias_value)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    insert_alias_to_device_statement = "UPDATE devices SET aliases[:alias_tag] = :alias WHERE device_id = :device_id;"
+
+    insert_alias_to_device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_alias_to_device_statement)
+      |> DatabaseQuery.put(:alias_tag, alias_tag)
+      |> DatabaseQuery.put(:alias, alias_value)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    # TODO: avoid to delete and insert again the same alias if it didn't change
+    with :ok <- try_delete_alias(client, device_id, alias_tag),
+         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_names_query),
+         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_device_query) do
+      :ok
+    else
+      {:error, :device_not_found} ->
+        {:error, :device_not_found}
+
+      not_ok ->
+        Logger.warn("Device.insert_alias: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
   #TODO Copy&pasted from data updater plant, make it a library
   defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
