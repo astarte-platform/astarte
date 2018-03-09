@@ -49,6 +49,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
      {:phoenix, "~> 1.3.0-rc"},
      {:phoenix_pubsub, "~> 1.0"},
      {:gettext, "~> 0.11"},
+     {:cors_plug, "~> 1.2"},
      {:cowboy, "~> 1.0"},
      {:conform, "~> 2.2"},
      {:ecto, "~> 2.1"},
