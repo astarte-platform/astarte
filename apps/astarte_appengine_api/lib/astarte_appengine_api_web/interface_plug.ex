@@ -8,8 +8,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfacePlug do
   Rewrites any request to "/v1/:realm_name/devices/:device_id/interfaces/:interface/PATH" to "/v1/:realm_name/devices/:device_id/interfaces/:interface".
   Everything will be handled by phoenix router later.
   """
-  def call(conn, _opts) do
-      if match?(["v1", _realm_name, "devices", _device_id, "interfaces", _interface, _path_component_1 | _], conn.path_info) do
+  def call(%Plug.Conn{path_info: ["v1", _realm_name, "devices", _device_id, "interfaces", _interface, _path_component_1 | _]} = conn, _opts) do
         ["v1", realm_name, "devices", device_id, "interfaces", interface | subpath] = conn.path_info
 
         joined_path = Enum.join(subpath, "/")
@@ -34,8 +33,10 @@ defmodule Astarte.AppEngine.APIWeb.InterfacePlug do
           query_string: new_query_string,
           request_path: "/v1/#{realm_name}/devices/#{device_id}/interfaces/#{interface}?#{new_query_string}"
         }
-      else
-        conn
-      end
   end
+
+  def call(conn, _opts) do
+    conn
+  end
+
 end
