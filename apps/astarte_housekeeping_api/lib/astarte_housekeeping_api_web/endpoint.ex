@@ -55,6 +55,7 @@ defmodule Astarte.Housekeeping.APIWeb.Endpoint do
     key: "_astarte_housekeeping_api_key",
     signing_salt: "DtYzPxzr"
 
+  plug CORSPlug
   plug Astarte.Housekeeping.APIWeb.Router
 
   @doc """
