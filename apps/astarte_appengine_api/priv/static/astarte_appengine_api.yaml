@@ -82,15 +82,7 @@ paths:
         403:
           description: "Forbidden"
   /{realm_name}/devices/{device_id}:
-    get:
-      tags:
-      - "device"
-      summary: "Get device general status"
-      description: "A device overview status is returned. Overview includes an array of reported interfaces (introspection), offline/online status, etc..."
-      operationId: "getDeviceStatus"
-      produces:
-      - "application/json"
-      parameters:
+    parameters:
       - name: "realm_name"
         in: "path"
         description: "Name of the realm which the device belongs to."
@@ -101,6 +93,34 @@ paths:
         description: "Device ID"
         required: true
         type: "string"
+    get:
+      tags:
+      - "device"
+      summary: "Get device general status"
+      description: "A device overview status is returned. Overview includes an array of reported interfaces (introspection), offline/online status, etc..."
+      operationId: "getDeviceStatus"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/DeviceStatus"
+        404:
+          description: "Device Not found"
+    patch:
+      tags:
+      - "device"
+      summary: "Update a device writeable property"
+      description: "Update any of the writeable device properties such as device aliases."
+      operationId: "updateDeviceStatus"
+      consumes:
+      - "application/merge-patch+json"
+      produces:
+      - "application/json"
       responses:
         200:
           description: "Success"
