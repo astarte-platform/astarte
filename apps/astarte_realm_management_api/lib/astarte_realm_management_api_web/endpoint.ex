@@ -55,6 +55,7 @@ defmodule Astarte.RealmManagement.APIWeb.Endpoint do
     key: "_astarte_realm_management_api_key",
     signing_salt: "5VDxq45D"
 
+  plug CORSPlug
   plug Astarte.RealmManagement.APIWeb.Router
 
   @doc """
