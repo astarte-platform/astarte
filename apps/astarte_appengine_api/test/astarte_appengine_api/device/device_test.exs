@@ -270,4 +270,62 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   defp unpack_interface_values({:ok, %InterfaceValues{data: values}}) do
     values
   end
+
+  describe "interfaces_by_device_alias" do
+    alias Astarte.AppEngine.API.Device.InterfaceValuesByDeviceAlias
+
+    @valid_attrs %{}
+    @update_attrs %{}
+    @invalid_attrs %{}
+
+    def interface_values_by_device_alias_fixture(attrs \\ %{}) do
+      {:ok, interface_values_by_device_alias} =
+        attrs
+        |> Enum.into(@valid_attrs)
+        |> AppEngine.API.Device.create_interface_values_by_device_alias()
+
+      interface_values_by_device_alias
+    end
+
+    test "list_interfaces_by_device_alias/0 returns all interfaces_by_device_alias" do
+      interface_values_by_device_alias = interface_values_by_device_alias_fixture()
+      assert AppEngine.API.Device.list_interfaces_by_device_alias() == [interface_values_by_device_alias]
+    end
+
+    test "get_interface_values_by_device_alias!/1 returns the interface_values_by_device_alias with given id" do
+      interface_values_by_device_alias = interface_values_by_device_alias_fixture()
+      assert AppEngine.API.Device.get_interface_values_by_device_alias!(interface_values_by_device_alias.id) == interface_values_by_device_alias
+    end
+
+    test "create_interface_values_by_device_alias/1 with valid data creates a interface_values_by_device_alias" do
+      assert {:ok, %InterfaceValuesByDeviceAlias{} = interface_values_by_device_alias} = AppEngine.API.Device.create_interface_values_by_device_alias(@valid_attrs)
+    end
+
+    test "create_interface_values_by_device_alias/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = AppEngine.API.Device.create_interface_values_by_device_alias(@invalid_attrs)
+    end
+
+    test "update_interface_values_by_device_alias/2 with valid data updates the interface_values_by_device_alias" do
+      interface_values_by_device_alias = interface_values_by_device_alias_fixture()
+      assert {:ok, interface_values_by_device_alias} = AppEngine.API.Device.update_interface_values_by_device_alias(interface_values_by_device_alias, @update_attrs)
+      assert %InterfaceValuesByDeviceAlias{} = interface_values_by_device_alias
+    end
+
+    test "update_interface_values_by_device_alias/2 with invalid data returns error changeset" do
+      interface_values_by_device_alias = interface_values_by_device_alias_fixture()
+      assert {:error, %Ecto.Changeset{}} = AppEngine.API.Device.update_interface_values_by_device_alias(interface_values_by_device_alias, @invalid_attrs)
+      assert interface_values_by_device_alias == AppEngine.API.Device.get_interface_values_by_device_alias!(interface_values_by_device_alias.id)
+    end
+
+    test "delete_interface_values_by_device_alias/1 deletes the interface_values_by_device_alias" do
+      interface_values_by_device_alias = interface_values_by_device_alias_fixture()
+      assert {:ok, %InterfaceValuesByDeviceAlias{}} = AppEngine.API.Device.delete_interface_values_by_device_alias(interface_values_by_device_alias)
+      assert_raise Ecto.NoResultsError, fn -> AppEngine.API.Device.get_interface_values_by_device_alias!(interface_values_by_device_alias.id) end
+    end
+
+    test "change_interface_values_by_device_alias/1 returns a interface_values_by_device_alias changeset" do
+      interface_values_by_device_alias = interface_values_by_device_alias_fixture()
+      assert %Ecto.Changeset{} = AppEngine.API.Device.change_interface_values_by_device_alias(interface_values_by_device_alias)
+    end
+  end
 end
