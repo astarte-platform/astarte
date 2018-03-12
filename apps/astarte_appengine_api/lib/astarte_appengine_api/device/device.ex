@@ -1132,6 +1132,27 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  def device_alias_to_device_id(client, device_alias) do
+    device_id_statement = "SELECT object_uuid FROM names WHERE object_name = :device_alias AND object_type = 1;"
+
+    device_id_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(device_id_statement)
+      |> DatabaseQuery.put(:device_alias, device_alias)
+
+    with {:ok, result} <- DatabaseQuery.call(client, device_id_query),
+         [object_uuid: device_id] <- DatabaseResult.head(result) do
+      {:ok, device_id}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      not_ok ->
+        Logger.warn("Device.device_alias_to_device_id: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
   #TODO Copy&pasted from data updater plant, make it a library
   defp insert_value_into_db(db_client, :multi_interface_individual_properties_dbtable, device_id, interface_descriptor, endpoint_id, endpoint, path, value, timestamp) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -1254,95 +1275,5 @@ defmodule Astarte.AppEngine.API.Device do
     ip
     |> :inet_parse.ntoa()
     |> to_string()
-  end
-
-
-  alias Astarte.AppEngine.API.Device.DeviceStatusByAlias
-
-  @doc """
-  Returns the list of devices_by_alias.
-
-  ## Examples
-
-      iex> list_devices_by_alias()
-      [%DeviceStatusByAlias{}, ...]
-
-  """
-  def list_devices_by_alias do
-    raise "TODO"
-  end
-
-  @doc """
-  Gets a single device_status_by_alias.
-
-  Raises if the Device status by alias does not exist.
-
-  ## Examples
-
-      iex> get_device_status_by_alias!(123)
-      %DeviceStatusByAlias{}
-
-  """
-  def get_device_status_by_alias!(id), do: raise "TODO"
-
-  @doc """
-  Creates a device_status_by_alias.
-
-  ## Examples
-
-      iex> create_device_status_by_alias(%{field: value})
-      {:ok, %DeviceStatusByAlias{}}
-
-      iex> create_device_status_by_alias(%{field: bad_value})
-      {:error, ...}
-
-  """
-  def create_device_status_by_alias(attrs \\ %{}) do
-    raise "TODO"
-  end
-
-  @doc """
-  Updates a device_status_by_alias.
-
-  ## Examples
-
-      iex> update_device_status_by_alias(device_status_by_alias, %{field: new_value})
-      {:ok, %DeviceStatusByAlias{}}
-
-      iex> update_device_status_by_alias(device_status_by_alias, %{field: bad_value})
-      {:error, ...}
-
-  """
-  def update_device_status_by_alias(%DeviceStatus{} = device_status_by_alias, attrs) do
-    raise "TODO"
-  end
-
-  @doc """
-  Deletes a DeviceStatusByAlias.
-
-  ## Examples
-
-      iex> delete_device_status_by_alias(device_status_by_alias)
-      {:ok, %DeviceStatusByAlias{}}
-
-      iex> delete_device_status_by_alias(device_status_by_alias)
-      {:error, ...}
-
-  """
-  def delete_device_status_by_alias(%DeviceStatus{} = device_status_by_alias) do
-    raise "TODO"
-  end
-
-  @doc """
-  Returns a datastructure for tracking device_status_by_alias changes.
-
-  ## Examples
-
-      iex> change_device_status_by_alias(device_status_by_alias)
-      %Todo{...}
-
-  """
-  def change_device_status_by_alias(%DeviceStatus{} = device_status_by_alias) do
-    raise "TODO"
   end
 end
