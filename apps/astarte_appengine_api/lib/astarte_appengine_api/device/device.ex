@@ -1256,4 +1256,93 @@ defmodule Astarte.AppEngine.API.Device do
     |> to_string()
   end
 
+
+  alias Astarte.AppEngine.API.Device.DeviceStatusByAlias
+
+  @doc """
+  Returns the list of devices_by_alias.
+
+  ## Examples
+
+      iex> list_devices_by_alias()
+      [%DeviceStatusByAlias{}, ...]
+
+  """
+  def list_devices_by_alias do
+    raise "TODO"
+  end
+
+  @doc """
+  Gets a single device_status_by_alias.
+
+  Raises if the Device status by alias does not exist.
+
+  ## Examples
+
+      iex> get_device_status_by_alias!(123)
+      %DeviceStatusByAlias{}
+
+  """
+  def get_device_status_by_alias!(id), do: raise "TODO"
+
+  @doc """
+  Creates a device_status_by_alias.
+
+  ## Examples
+
+      iex> create_device_status_by_alias(%{field: value})
+      {:ok, %DeviceStatusByAlias{}}
+
+      iex> create_device_status_by_alias(%{field: bad_value})
+      {:error, ...}
+
+  """
+  def create_device_status_by_alias(attrs \\ %{}) do
+    raise "TODO"
+  end
+
+  @doc """
+  Updates a device_status_by_alias.
+
+  ## Examples
+
+      iex> update_device_status_by_alias(device_status_by_alias, %{field: new_value})
+      {:ok, %DeviceStatusByAlias{}}
+
+      iex> update_device_status_by_alias(device_status_by_alias, %{field: bad_value})
+      {:error, ...}
+
+  """
+  def update_device_status_by_alias(%DeviceStatusByAlias{} = device_status_by_alias, attrs) do
+    raise "TODO"
+  end
+
+  @doc """
+  Deletes a DeviceStatusByAlias.
+
+  ## Examples
+
+      iex> delete_device_status_by_alias(device_status_by_alias)
+      {:ok, %DeviceStatusByAlias{}}
+
+      iex> delete_device_status_by_alias(device_status_by_alias)
+      {:error, ...}
+
+  """
+  def delete_device_status_by_alias(%DeviceStatusByAlias{} = device_status_by_alias) do
+    raise "TODO"
+  end
+
+  @doc """
+  Returns a datastructure for tracking device_status_by_alias changes.
+
+  ## Examples
+
+      iex> change_device_status_by_alias(device_status_by_alias)
+      %Todo{...}
+
+  """
+  def change_device_status_by_alias(%DeviceStatusByAlias{} = device_status_by_alias) do
+    raise "TODO"
+  end
 end

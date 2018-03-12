@@ -32,6 +32,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     pipe_through :api
 
     resources "/:realm_name/devices", DeviceStatusController, except: [:new, :edit]
+    resources "/:realm_name/devices-by-alias", DeviceStatusByAliasController, except: [:new, :edit]
     resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
   end
 
