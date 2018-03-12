@@ -1,4 +1,5 @@
 defmodule Astarte.AppEngine.APIWeb.InterfacePlug do
+  alias Plug.Conn
 
   def init(options) do
     options
@@ -10,6 +11,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfacePlug do
   """
   def call(%Plug.Conn{path_info: ["v1", _realm_name, "devices", _device_id, "interfaces", _interface, _path_component_1 | _]} = conn, _opts) do
         ["v1", realm_name, "devices", device_id, "interfaces", interface | subpath] = conn.path_info
+        original_path_info = conn.path_info
 
         joined_path = Enum.join(subpath, "/")
         query_encoded_path = Enum.join(subpath, "%2F")
@@ -33,6 +35,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfacePlug do
           query_string: new_query_string,
           request_path: "/v1/#{realm_name}/devices/#{device_id}/interfaces/#{interface}?#{new_query_string}"
         }
+        |> Conn.assign(:original_path_info, original_path_info)
   end
 
   def call(conn, _opts) do
