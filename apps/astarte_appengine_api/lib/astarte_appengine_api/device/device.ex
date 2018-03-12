@@ -1313,7 +1313,7 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, ...}
 
   """
-  def update_device_status_by_alias(%DeviceStatusByAlias{} = device_status_by_alias, attrs) do
+  def update_device_status_by_alias(%DeviceStatus{} = device_status_by_alias, attrs) do
     raise "TODO"
   end
 
@@ -1329,7 +1329,7 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, ...}
 
   """
-  def delete_device_status_by_alias(%DeviceStatusByAlias{} = device_status_by_alias) do
+  def delete_device_status_by_alias(%DeviceStatus{} = device_status_by_alias) do
     raise "TODO"
   end
 
@@ -1342,7 +1342,7 @@ defmodule Astarte.AppEngine.API.Device do
       %Todo{...}
 
   """
-  def change_device_status_by_alias(%DeviceStatusByAlias{} = device_status_by_alias) do
+  def change_device_status_by_alias(%DeviceStatus{} = device_status_by_alias) do
     raise "TODO"
   end
 end
