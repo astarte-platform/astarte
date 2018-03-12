@@ -22,40 +22,38 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias CQEx.Client, as: DatabaseClient
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
-  def index(conn, _params) do
-    devices_by_alias = Astarte.AppEngine.API.Device.list_devices_by_alias()
-    render(conn, "index.json", devices_by_alias: devices_by_alias)
+  # TODO: should we allow to POST/create device aliases here by posting something like a DeviceAlias JSON object?
+  # def create(conn, %{"device_status_by_alias" => device_status_by_alias_params})
+
+  def index(_conn, _params) do
+    {:error, :devices_listing_by_alias_not_allowed}
   end
 
-  def create(conn, %{"device_status_by_alias" => device_status_by_alias_params}) do
-    with {:ok, %DeviceStatus{} = device_status_by_alias} <- Astarte.AppEngine.API.Device.create_device_status_by_alias(device_status_by_alias_params) do
-      conn
-      |> put_status(:created)
-      |> put_resp_header("location", device_status_by_alias_path(conn, :show, device_status_by_alias))
-      |> render("show.json", device_status_by_alias: device_status_by_alias)
-    end
-  end
-
-  def show(conn, %{"id" => id}) do
-    device_status_by_alias = Astarte.AppEngine.API.Device.get_device_status_by_alias!(id)
-    render(conn, "show.json", device_status_by_alias: device_status_by_alias)
-  end
-
-  def update(conn, %{"id" => id, "device_status_by_alias" => device_status_by_alias_params}) do
-    device_status_by_alias = Astarte.AppEngine.API.Device.get_device_status_by_alias!(id)
-
-    with {:ok, %DeviceStatus{} = device_status_by_alias} <- AppEngine.API.Device.update_device_status_by_alias(device_status_by_alias, device_status_by_alias_params) do
+  def show(conn, %{"realm_name" => realm_name, "id" => device_alias}) do
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+         {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
+         encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         {:ok, device_status_by_alias} <- Device.get_device_status!(realm_name, encoded_device_id) do
       render(conn, "show.json", device_status_by_alias: device_status_by_alias)
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    device_status_by_alias = Astarte.AppEngine.API.Device.get_device_status_by_alias!(id)
-    with {:ok, %DeviceStatus{}} <- Astarte.AppEngine.API.Device.delete_device_status_by_alias(device_status_by_alias) do
-      send_resp(conn, :no_content, "")
+  def update(%Plug.Conn{method: "PATCH"} = conn, %{"realm_name" => realm_name, "id" => device_alias, "data" => data}) do
+    # Here we handle merge/patch as described here https://tools.ietf.org/html/rfc7396
+    if get_req_header(conn, "content-type") == ["application/merge-patch+json"] do
+      with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+           {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
+           encoded_device_id <- Base.url_encode64(device_id, padding: false),
+           :ok <- Device.merge_device_status!(realm_name, encoded_device_id, data),
+           {:ok, %DeviceStatus{} = device_status} <- Device.get_device_status!(realm_name, encoded_device_id) do
+        render(conn, "show.json", device_status_by_alias: device_status)
+      end
+    else
+      {:error, :patch_mimetype_not_supported}
     end
   end
 end

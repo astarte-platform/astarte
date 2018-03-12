@@ -20,13 +20,14 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasView do
   use Astarte.AppEngine.APIWeb, :view
   alias Astarte.AppEngine.APIWeb.DeviceStatusByAliasView
+  alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
   def render("index.json", %{devices_by_alias: devices_by_alias}) do
     %{data: render_many(devices_by_alias, DeviceStatusByAliasView, "device_status_by_alias.json")}
   end
 
   def render("show.json", %{device_status_by_alias: device_status_by_alias}) do
-    %{data: render_one(device_status_by_alias, DeviceStatusByAliasView, "device_status_by_alias.json")}
+    DeviceStatusView.render("show.json", %{device_status: device_status_by_alias})
   end
 
   def render("device_status_by_alias.json", %{device_status_by_alias: device_status_by_alias}) do
