@@ -511,15 +511,21 @@ defmodule Astarte.AppEngine.API.Device do
   defp retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, _endpoint_id, endpoint_rows, "/", opts) do
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
-    {columns, column_atom_to_pretty_name} =
-      Enum.reduce(endpoint_rows, {"", %{}}, fn(endpoint, {query_acc, atoms_map}) ->
+    {columns, column_atom_to_pretty_name, downsample_column_atom} =
+      Enum.reduce(endpoint_rows, {"", %{}, nil}, fn(endpoint, {query_acc, atoms_map, prev_downsample_column_atom}) ->
         endpoint_name = endpoint[:endpoint]
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
 
         next_query_acc = "#{query_acc} #{column_name}, "
-        next_atom_map = Map.put(atoms_map, String.to_atom(column_name), column_pretty_name(endpoint_name))
+        column_atom = String.to_atom(column_name)
+        pretty_name = column_pretty_name(endpoint_name)
+        next_atom_map = Map.put(atoms_map, column_atom, pretty_name)
 
-        {next_query_acc, next_atom_map}
+        if (opts.downsample_key == pretty_name) do
+          {next_query_acc, next_atom_map, column_atom}
+        else
+          {next_query_acc, next_atom_map, prev_downsample_column_atom}
+        end
       end)
 
     {since_statement, since_value} =
@@ -556,37 +562,49 @@ defmodule Astarte.AppEngine.API.Device do
           {"", nil}
       end
 
-    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id #{since_statement} #{to_statement} #{limit_statement} ;"
-    query =
+    where_clause = "WHERE device_id=:device_id #{since_statement} #{to_statement} #{limit_statement} ;"
+    values_query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} #{where_clause};"
+
+    values_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.statement(values_query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
 
-    query =
+    values_query =
       if since_statement != "" do
-        query
+        values_query
         |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :milliseconds))
       else
-        query
+        values_query
       end
 
-    query =
+    values_query =
       if to_statement != "" do
-        query
+        values_query
         |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
       else
-        query
+        values_query
       end
 
-    query =
+    values_query =
       if limit_statement != "" do
-        query
+        values_query
         |> DatabaseQuery.put(:limit_nrows, limit_value)
       else
-        query
+        values_query
       end
 
-    DatabaseQuery.call!(client, query)
+    values = DatabaseQuery.call!(client, values_query)
+
+    count_query_statement = "SELECT count(reception_timestamp) FROM #{interface_row[:storage]} #{where_clause} ;"
+    count_query =
+      values_query
+      |> DatabaseQuery.statement(count_query_statement)
+
+    count = get_results_count(client, count_query, opts)
+
+    values
+    |> maybe_downsample_to(count, :object, %InterfaceValuesOptions{opts | downsample_key: downsample_column_atom})
     |> pack_result(:object, :datastream, column_atom_to_pretty_name, opts)
   end
 
