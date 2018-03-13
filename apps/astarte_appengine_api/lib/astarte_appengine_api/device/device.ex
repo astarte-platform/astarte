@@ -629,6 +629,33 @@ defmodule Astarte.AppEngine.API.Device do
     values
   end
 
+  defp maybe_downsample_to(values, _count, _aggregation, %InterfaceValuesOptions{downsample_to: nil}) do
+    values
+  end
+
+  defp maybe_downsample_to(values, nil, _aggregation, _opts) do
+    # TODO: we can't downsample an object without a valid count, propagate an error changeset
+    # when we start using changeset consistently here
+    Logger.warn("No valid count in maybe_downsample_to")
+    values
+  end
+
+  defp maybe_downsample_to(values, count, :individual, %InterfaceValuesOptions{downsample_to: downsampled_size}) when downsampled_size > 2 do
+    avg_bucket_size = max(1, ((count - 2) / (downsampled_size - 2)))
+
+    sample_to_x_fun = fn sample -> Keyword.get(sample, :value_timestamp) end
+    sample_to_y_fun = fn [{:value_timestamp, _timestamp}, {_key, value}] -> value end
+    xy_to_sample_fun = fn x, y -> [{:value_timestamp, x}, {:generic_key, y}] end
+
+    ExLTTB.Stream.downsample(
+      values,
+      avg_bucket_size,
+      sample_to_x_fun: sample_to_x_fun,
+      sample_to_y_fun: sample_to_y_fun,
+      xy_to_sample_fun: xy_to_sample_fun
+    )
+  end
+
   defp pack_result(values, :individual, :datastream, endpoint_row, _path, %{format: "structured"} = opts) do
     values_array =
       for value <- values do
