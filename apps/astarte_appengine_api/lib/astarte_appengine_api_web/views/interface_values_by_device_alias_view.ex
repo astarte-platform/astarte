@@ -19,17 +19,17 @@
 
 defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasView do
   use Astarte.AppEngine.APIWeb, :view
-  alias Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasView
+  alias Astarte.AppEngine.APIWeb.InterfaceValuesView
 
   def render("index.json", %{interfaces_by_device_alias: interfaces_by_device_alias}) do
-    %{data: render_many(interfaces_by_device_alias, InterfaceValuesByDeviceAliasView, "interface_values_by_device_alias.json")}
+    InterfaceValuesView.render("index.json", %{interfaces: interfaces_by_device_alias})
   end
 
   def render("show.json", %{interface_values_by_device_alias: interface_values_by_device_alias}) do
-    %{data: render_one(interface_values_by_device_alias, InterfaceValuesByDeviceAliasView, "interface_values_by_device_alias.json")}
+    InterfaceValuesView.render("show.json", %{interface_values: interface_values_by_device_alias})
   end
 
   def render("interface_values_by_device_alias.json", %{interface_values_by_device_alias: interface_values_by_device_alias}) do
-    %{id: interface_values_by_device_alias.id}
+    InterfaceValuesView.render("interface_values.json", %{interface_values: interface_values_by_device_alias})
   end
 end

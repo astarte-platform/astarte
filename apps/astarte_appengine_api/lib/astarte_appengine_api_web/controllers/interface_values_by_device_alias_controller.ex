@@ -21,41 +21,46 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
   use Astarte.AppEngine.APIWeb, :controller
 
   alias Astarte.AppEngine.API.Device
-  alias Astarte.AppEngine.API.Device.InterfaceValuesByDeviceAlias
+  alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias CQEx.Client, as: DatabaseClient
+
+  plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
-  def index(conn, _params) do
-    interfaces_by_device_alias = AppEngine.API.Device.list_interfaces_by_device_alias()
-    render(conn, "index.json", interfaces_by_device_alias: interfaces_by_device_alias)
-  end
-
-  def create(conn, %{"interface_values_by_device_alias" => interface_values_by_device_alias_params}) do
-    with {:ok, %InterfaceValuesByDeviceAlias{} = interface_values_by_device_alias} <- AppEngine.API.Device.create_interface_values_by_device_alias(interface_values_by_device_alias_params) do
-      conn
-      |> put_status(:created)
-      |> put_resp_header("location", interface_values_by_device_alias_path(conn, :show, interface_values_by_device_alias))
-      |> render("show.json", interface_values_by_device_alias: interface_values_by_device_alias)
+  def index(conn, %{"realm_name" => realm_name, "device_alias" => device_alias}) do
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+         {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias) do
+      encoded_device_id = Base.url_encode64(device_id, padding: false)
+      interfaces_by_device_alias = Device.list_interfaces!(realm_name, encoded_device_id)
+      render(conn, "index.json", interfaces_by_device_alias: interfaces_by_device_alias)
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    interface_values_by_device_alias = AppEngine.API.Device.get_interface_values_by_device_alias!(id)
-    render(conn, "show.json", interface_values_by_device_alias: interface_values_by_device_alias)
-  end
-
-  def update(conn, %{"id" => id, "interface_values_by_device_alias" => interface_values_by_device_alias_params}) do
-    interface_values_by_device_alias = AppEngine.API.Device.get_interface_values_by_device_alias!(id)
-
-    with {:ok, %InterfaceValuesByDeviceAlias{} = interface_values_by_device_alias} <- AppEngine.API.Device.update_interface_values_by_device_alias(interface_values_by_device_alias, interface_values_by_device_alias_params) do
-      render(conn, "show.json", interface_values_by_device_alias: interface_values_by_device_alias)
+  def show(conn, %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface, "path" => path} = parameters) do
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+         {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
+         encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         {:ok, %InterfaceValues{} = interface_values} <- Device.get_interface_values!(realm_name, encoded_device_id, interface, path, parameters) do
+      render(conn, "show.json", interface_values_by_device_alias: interface_values)
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    interface_values_by_device_alias = AppEngine.API.Device.get_interface_values_by_device_alias!(id)
-    with {:ok, %InterfaceValuesByDeviceAlias{}} <- AppEngine.API.Device.delete_interface_values_by_device_alias(interface_values_by_device_alias) do
-      send_resp(conn, :no_content, "")
+  def show(conn, %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface} = parameters) do
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+         {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
+         encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         {:ok, %InterfaceValues{} = interface_values} <- Device.get_interface_values!(realm_name, encoded_device_id, interface, parameters) do
+      render(conn, "show.json", interface_values_by_device_alias: interface_values)
+    end
+  end
+
+  def update(conn, %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface, "path" => path, "value" => value} = parameters) do
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+         {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
+         encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         {:ok, %InterfaceValues{} = interface_values} <- Device.update_interface_values!(realm_name, encoded_device_id, interface, path, value, parameters) do
+      render(conn, "show.json", interface_values_by_device_alias: interface_values)
     end
   end
 end
