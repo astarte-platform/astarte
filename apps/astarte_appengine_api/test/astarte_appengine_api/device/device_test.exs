@@ -8,6 +8,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.PathNotFoundError
+  alias CQEx.Client, as: DatabaseClient
 
   setup do
     {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()
@@ -201,6 +202,17 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     }
     opts = %{"format" => "disjoint_tables"}
     assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
+  end
+
+  test "device_alias_to_device_id/2 returns device IDs (uuid)" do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: "autotestrealm"])
+
+    assert Device.device_alias_to_device_id(client, "device_a") == {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
+    assert Device.device_alias_to_device_id(client, "device_b") == {:ok, <<225, 68, 27, 34, 137, 46, 70, 231, 221, 181, 181, 89, 183, 208, 44, 46>>}
+    assert Device.device_alias_to_device_id(client, "1234") == {:ok, <<225, 68, 27, 34, 137, 46, 70, 231, 221, 181, 181, 89, 183, 208, 44, 46>>}
+    assert Device.device_alias_to_device_id(client, "device_c") == {:ok, <<105, 102, 160, 249, 89, 85, 40, 47, 190, 213, 47, 175, 127, 54, 125, 185>>}
+    assert Device.device_alias_to_device_id(client, "device_d") == {:ok, <<12, 172, 90, 121, 159, 75, 205, 70, 75, 207, 181, 143, 77, 48, 4, 0>>}
+    assert Device.device_alias_to_device_id(client, "device_e") == {:error, :device_not_found}
   end
 
   test "list_devices/1 returns all devices" do
