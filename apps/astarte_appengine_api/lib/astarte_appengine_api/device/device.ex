@@ -482,9 +482,12 @@ defmodule Astarte.AppEngine.API.Device do
         query
       end
 
+    where_clause =
+        " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}"
+
     {
-      "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
-        " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}",
+      "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} #{where_clause}",
+      "SELECT count(value_timestamp) FROM #{table_name} #{where_clause}",
       query
     }
   end
@@ -588,17 +591,33 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts) do
-    {query_statement, q_params} = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]), opts)
-    query =
+    {values_query_statement, count_query_statement, q_params} =
+      prepare_get_individual_datastream_statement(
+        Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]),
+        false,
+        interface_row[:storage],
+        StorageType.from_int(interface_row[:storage_type]),
+        opts
+      )
+    values_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.statement(values_query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.merge(q_params)
 
-    DatabaseQuery.call!(client, query)
+    values = DatabaseQuery.call!(client, values_query)
+
+    count_query =
+      values_query
+      |> DatabaseQuery.statement(count_query_statement)
+
+    count = get_results_count(client, count_query, opts)
+
+    values
+    |> maybe_downsample_to(count, :individual, opts)
     |> pack_result(:individual, :datastream, endpoint_row, path, opts)
   end
 
