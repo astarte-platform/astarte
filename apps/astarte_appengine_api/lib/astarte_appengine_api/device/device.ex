@@ -640,6 +640,30 @@ defmodule Astarte.AppEngine.API.Device do
     values
   end
 
+  defp maybe_downsample_to(values, _count, :object, %InterfaceValuesOptions{downsample_key: nil}) do
+    # TODO: we can't downsample an object without downsample_key, propagate an error changeset
+    # when we start using changeset consistently here
+    Logger.warn("No valid downsample_key found in maybe_downsample_to")
+    values
+  end
+
+  defp maybe_downsample_to(values, count, :object, %InterfaceValuesOptions{downsample_to: downsampled_size, downsample_key: downsample_key})
+      when downsampled_size > 2 do
+    avg_bucket_size = max(1, ((count - 2) / (downsampled_size - 2)))
+
+    sample_to_x_fun = fn sample -> Keyword.get(sample, :reception_timestamp) end
+    sample_to_y_fun = fn sample -> Keyword.get(sample, downsample_key) end
+    xy_to_sample_fun = fn x, y -> [{:reception_timestamp, x}, {downsample_key, y}] end
+
+    ExLTTB.Stream.downsample(
+      values,
+      avg_bucket_size,
+      sample_to_x_fun: sample_to_x_fun,
+      sample_to_y_fun: sample_to_y_fun,
+      xy_to_sample_fun: xy_to_sample_fun
+    )
+  end
+
   defp maybe_downsample_to(values, count, :individual, %InterfaceValuesOptions{downsample_to: downsampled_size}) when downsampled_size > 2 do
     avg_bucket_size = max(1, ((count - 2) / (downsampled_size - 2)))
 
