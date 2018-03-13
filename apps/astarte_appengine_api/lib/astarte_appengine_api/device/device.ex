@@ -629,6 +629,22 @@ defmodule Astarte.AppEngine.API.Device do
     values
   end
 
+  defp get_results_count(_client, _count_query, %InterfaceValuesOptions{downsample_to: nil}) do
+    # Count will be ignored since there's no downsample_to
+    nil
+  end
+
+  defp get_results_count(client, count_query, opts) do
+    with {:ok, result} <- DatabaseQuery.call(client, count_query),
+         [{_count_key, count}] <- DatabaseResult.head(result) do
+      min(count, opts.limit)
+    else
+      error ->
+        Logger.warn("Can't retrieve count for #{inspect count_query}: #{inspect error}")
+        nil
+    end
+  end
+
   defp maybe_downsample_to(values, _count, _aggregation, %InterfaceValuesOptions{downsample_to: nil}) do
     values
   end
