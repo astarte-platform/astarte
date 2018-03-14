@@ -22,6 +22,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.APIWeb.DeviceStatusView
   alias CQEx.Client, as: DatabaseClient
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
@@ -40,7 +41,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
          {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
          {:ok, device_status_by_alias} <- Device.get_device_status!(realm_name, encoded_device_id) do
-      render(conn, "show.json", device_status_by_alias: device_status_by_alias)
+      render(conn, DeviceStatusView, "show.json", device_status: device_status_by_alias)
     end
   end
 
@@ -52,7 +53,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
            encoded_device_id <- Base.url_encode64(device_id, padding: false),
            :ok <- Device.merge_device_status!(realm_name, encoded_device_id, data),
            {:ok, %DeviceStatus{} = device_status} <- Device.get_device_status!(realm_name, encoded_device_id) do
-        render(conn, "show.json", device_status_by_alias: device_status)
+        render(conn, DeviceStatusView, "show.json", device_status: device_status)
       end
     else
       {:error, :patch_mimetype_not_supported}
