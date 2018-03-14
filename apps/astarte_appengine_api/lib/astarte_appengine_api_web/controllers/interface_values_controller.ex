@@ -31,20 +31,46 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
     render(conn, "index.json", interfaces: interfaces)
   end
 
-  def show(conn, %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface, "path" => path} = parameters) do
-    with {:ok, %InterfaceValues{} = interface_values} <- Device.get_interface_values!(realm_name, device_id, interface, path, parameters) do
+  def show(
+        conn,
+        %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface, "path" => path} =
+          parameters
+      ) do
+    with {:ok, %InterfaceValues{} = interface_values} <-
+           Device.get_interface_values!(realm_name, device_id, interface, path, parameters) do
       render(conn, "show.json", interface_values: interface_values)
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface} = parameters) do
-    with {:ok, %InterfaceValues{} = interface_values} <- Device.get_interface_values!(realm_name, device_id, interface, parameters) do
+  def show(
+        conn,
+        %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface} = parameters
+      ) do
+    with {:ok, %InterfaceValues{} = interface_values} <-
+           Device.get_interface_values!(realm_name, device_id, interface, parameters) do
       render(conn, "show.json", interface_values: interface_values)
     end
   end
 
-  def update(conn, %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface, "path" => path, "value" => value} = parameters) do
-    with {:ok, %InterfaceValues{} = interface_values} <- Device.update_interface_values!(realm_name, device_id, interface, path, value, parameters) do
+  def update(
+        conn,
+        %{
+          "realm_name" => realm_name,
+          "device_id" => device_id,
+          "id" => interface,
+          "path" => path,
+          "value" => value
+        } = parameters
+      ) do
+    with {:ok, %InterfaceValues{} = interface_values} <-
+           Device.update_interface_values!(
+             realm_name,
+             device_id,
+             interface,
+             path,
+             value,
+             parameters
+           ) do
       render(conn, "show.json", interface_values: interface_values)
     end
   end

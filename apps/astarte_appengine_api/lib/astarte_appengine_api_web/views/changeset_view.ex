@@ -17,7 +17,7 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-#TODO: what should we do here?
+# TODO: what should we do here?
 defmodule Astarte.AppEngine.APIWeb.ChangesetView do
   use Astarte.AppEngine.APIWeb, :view
 

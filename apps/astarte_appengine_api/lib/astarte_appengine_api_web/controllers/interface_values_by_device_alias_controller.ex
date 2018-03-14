@@ -36,26 +36,63 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface, "path" => path} = parameters) do
+  def show(
+        conn,
+        %{
+          "realm_name" => realm_name,
+          "device_alias" => device_alias,
+          "id" => interface,
+          "path" => path
+        } = parameters
+      ) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
-         {:ok, %InterfaceValues{} = interface_values} <- Device.get_interface_values!(realm_name, encoded_device_id, interface, path, parameters) do
+         {:ok, %InterfaceValues{} = interface_values} <-
+           Device.get_interface_values!(
+             realm_name,
+             encoded_device_id,
+             interface,
+             path,
+             parameters
+           ) do
       render(conn, InterfaceValuesView, "show.json", interface_values: interface_values)
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface} = parameters) do
+  def show(
+        conn,
+        %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface} =
+          parameters
+      ) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
-         {:ok, %InterfaceValues{} = interface_values} <- Device.get_interface_values!(realm_name, encoded_device_id, interface, parameters) do
+         {:ok, %InterfaceValues{} = interface_values} <-
+           Device.get_interface_values!(realm_name, encoded_device_id, interface, parameters) do
       render(conn, InterfaceValuesView, "show.json", interface_values: interface_values)
     end
   end
 
-  def update(conn, %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface, "path" => path, "value" => value} = parameters) do
+  def update(
+        conn,
+        %{
+          "realm_name" => realm_name,
+          "device_alias" => device_alias,
+          "id" => interface,
+          "path" => path,
+          "value" => value
+        } = parameters
+      ) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
-         {:ok, %InterfaceValues{} = interface_values} <- Device.update_interface_values!(realm_name, encoded_device_id, interface, path, value, parameters) do
+         {:ok, %InterfaceValues{} = interface_values} <-
+           Device.update_interface_values!(
+             realm_name,
+             encoded_device_id,
+             interface,
+             path,
+             value,
+             parameters
+           ) do
       render(conn, InterfaceValuesView, "show.json", interface_values: interface_values)
     end
   end

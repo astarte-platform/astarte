@@ -28,8 +28,9 @@ defmodule Astarte.AppEngine.APIWeb do
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/astarte_appengine_api_web/templates",
-                        namespace: Astarte.AppEngine.APIWeb
+      use Phoenix.View,
+        root: "lib/astarte_appengine_api_web/templates",
+        namespace: Astarte.AppEngine.APIWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]

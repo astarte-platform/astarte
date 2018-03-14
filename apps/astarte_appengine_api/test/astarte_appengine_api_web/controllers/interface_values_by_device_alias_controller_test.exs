@@ -25,9 +25,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
   setup %{conn: conn} do
     {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()
 
-    on_exit fn ->
+    on_exit(fn ->
       Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
-    end
+    end)
 
     authorized_conn =
       conn
@@ -39,16 +39,50 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
 
   describe "index" do
     test "lists all interfaces", %{conn: conn} do
-      conn = get conn, interface_values_by_device_alias_path(conn, :index, "autotestrealm", "device_a")
-      assert json_response(conn, 200)["data"] == ["com.example.TestObject", "com.test.LCDMonitor", "com.test.SimpleStreamTest"]
+      conn =
+        get(
+          conn,
+          interface_values_by_device_alias_path(conn, :index, "autotestrealm", "device_a")
+        )
+
+      assert json_response(conn, 200)["data"] == [
+               "com.example.TestObject",
+               "com.test.LCDMonitor",
+               "com.test.SimpleStreamTest"
+             ]
     end
 
     test "get interface values", %{conn: conn} do
-      expected_reply = %{"time" => %{"from" => 8, "to" => 20}, "lcdCommand" => "SWITCH_ON", "weekSchedule" => %{"2" => %{"start" => 12, "stop" => 15}, "3" => %{"start" => 15, "stop" => 16}, "4" => %{"start" => 16, "stop" => 18}}}
-      from_path_conn = get conn, interface_values_by_device_alias_path(conn, :show, "autotestrealm", "device_a", "com.test.LCDMonitor")
+      expected_reply = %{
+        "time" => %{"from" => 8, "to" => 20},
+        "lcdCommand" => "SWITCH_ON",
+        "weekSchedule" => %{
+          "2" => %{"start" => 12, "stop" => 15},
+          "3" => %{"start" => 15, "stop" => 16},
+          "4" => %{"start" => 16, "stop" => 18}
+        }
+      }
+
+      from_path_conn =
+        get(
+          conn,
+          interface_values_by_device_alias_path(
+            conn,
+            :show,
+            "autotestrealm",
+            "device_a",
+            "com.test.LCDMonitor"
+          )
+        )
+
       assert json_response(from_path_conn, 200)["data"] == expected_reply
 
-      property_conn = get conn, "/v1/autotestrealm/devices-by-alias/device_a/interfaces/com.test.LCDMonitor/time/to"
+      property_conn =
+        get(
+          conn,
+          "/v1/autotestrealm/devices-by-alias/device_a/interfaces/com.test.LCDMonitor/time/to"
+        )
+
       assert json_response(property_conn, 200)["data"] == 20
 
       expected_reply = [
@@ -58,7 +92,13 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
         %{"timestamp" => "2017-09-29T05:07:00.000Z", "value" => 3},
         %{"timestamp" => "2017-09-30T07:10:00.000Z", "value" => 4}
       ]
-      datastream_conn = get conn, "/v1/autotestrealm/devices-by-alias/device_a/interfaces/com.test.SimpleStreamTest/0/value"
+
+      datastream_conn =
+        get(
+          conn,
+          "/v1/autotestrealm/devices-by-alias/device_a/interfaces/com.test.SimpleStreamTest/0/value"
+        )
+
       assert json_response(datastream_conn, 200)["data"] == expected_reply
 
       expected_reply = [
@@ -66,7 +106,13 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
         %{"string" => "bbb", "timestamp" => "2017-09-30T07:12:00.000Z", "value" => 2.2},
         %{"string" => "ccc", "timestamp" => "2017-09-30T07:13:00.000Z", "value" => 3.3}
       ]
-      object_conn = get conn, "/v1/autotestrealm/devices-by-alias/device_a/interfaces/com.example.TestObject/"
+
+      object_conn =
+        get(
+          conn,
+          "/v1/autotestrealm/devices-by-alias/device_a/interfaces/com.example.TestObject/"
+        )
+
       assert json_response(object_conn, 200)["data"] == expected_reply
     end
   end

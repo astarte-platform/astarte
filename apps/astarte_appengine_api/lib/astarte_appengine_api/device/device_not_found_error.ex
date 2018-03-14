@@ -18,13 +18,10 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.DeviceNotFoundError do
-
   defexception plug_status: 404,
-    message: "Device Not Found"
+               message: "Device Not Found"
 
-    def exception(_opts) do
-      %Astarte.AppEngine.API.Device.DeviceNotFoundError{
-      }
-    end
+  def exception(_opts) do
+    %Astarte.AppEngine.API.Device.DeviceNotFoundError{}
+  end
 end
-

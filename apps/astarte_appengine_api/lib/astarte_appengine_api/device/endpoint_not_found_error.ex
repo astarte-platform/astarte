@@ -18,13 +18,10 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.EndpointNotFoundError do
-
   defexception plug_status: 404,
-    message: "Endpoint Not Found"
+               message: "Endpoint Not Found"
 
-    def exception(_opts) do
-      %Astarte.AppEngine.API.Device.EndpointNotFoundError{
-      }
-    end
+  def exception(_opts) do
+    %Astarte.AppEngine.API.Device.EndpointNotFoundError{}
+  end
 end
-

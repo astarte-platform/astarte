@@ -40,7 +40,11 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
     end
   end
 
-  def update(%Plug.Conn{method: "PATCH"} = conn, %{"realm_name" => realm_name, "id" => id, "data" => data}) do
+  def update(%Plug.Conn{method: "PATCH"} = conn, %{
+        "realm_name" => realm_name,
+        "id" => id,
+        "data" => data
+      }) do
     # Here we handle merge/patch as described here https://tools.ietf.org/html/rfc7396
     if get_req_header(conn, "content-type") == ["application/merge-patch+json"] do
       with :ok <- Device.merge_device_status!(realm_name, id, data),

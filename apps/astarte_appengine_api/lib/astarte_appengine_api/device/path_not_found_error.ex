@@ -18,13 +18,10 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.PathNotFoundError do
-
   defexception plug_status: 404,
-    message: "Path Not Found"
+               message: "Path Not Found"
 
-    def exception(_opts) do
-      %Astarte.AppEngine.API.Device.PathNotFoundError{
-      }
-    end
+  def exception(_opts) do
+    %Astarte.AppEngine.API.Device.PathNotFoundError{}
+  end
 end
-

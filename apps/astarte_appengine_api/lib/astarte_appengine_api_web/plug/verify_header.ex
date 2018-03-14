@@ -17,7 +17,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
 
     merged_opts =
       opts
-      |> Keyword.merge([secret: secret])
+      |> Keyword.merge(secret: secret)
 
     GuardianVerifyHeader.call(conn, merged_opts)
   end
