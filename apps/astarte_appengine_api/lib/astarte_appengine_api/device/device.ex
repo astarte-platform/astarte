@@ -482,9 +482,12 @@ defmodule Astarte.AppEngine.API.Device do
         query
       end
 
+    where_clause =
+        " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}"
+
     {
-      "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} " <>
-        " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}",
+      "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} #{where_clause}",
+      "SELECT count(value_timestamp) FROM #{table_name} #{where_clause}",
       query
     }
   end
@@ -508,15 +511,21 @@ defmodule Astarte.AppEngine.API.Device do
   defp retrieve_endpoint_values(client, device_id, :object, :datastream, interface_row, _endpoint_id, endpoint_rows, "/", opts) do
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
-    {columns, column_atom_to_pretty_name} =
-      Enum.reduce(endpoint_rows, {"", %{}}, fn(endpoint, {query_acc, atoms_map}) ->
+    {columns, column_atom_to_pretty_name, downsample_column_atom} =
+      Enum.reduce(endpoint_rows, {"", %{}, nil}, fn(endpoint, {query_acc, atoms_map, prev_downsample_column_atom}) ->
         endpoint_name = endpoint[:endpoint]
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
 
         next_query_acc = "#{query_acc} #{column_name}, "
-        next_atom_map = Map.put(atoms_map, String.to_atom(column_name), column_pretty_name(endpoint_name))
+        column_atom = String.to_atom(column_name)
+        pretty_name = column_pretty_name(endpoint_name)
+        next_atom_map = Map.put(atoms_map, column_atom, pretty_name)
 
-        {next_query_acc, next_atom_map}
+        if (opts.downsample_key == pretty_name) do
+          {next_query_acc, next_atom_map, column_atom}
+        else
+          {next_query_acc, next_atom_map, prev_downsample_column_atom}
+        end
       end)
 
     {since_statement, since_value} =
@@ -553,52 +562,80 @@ defmodule Astarte.AppEngine.API.Device do
           {"", nil}
       end
 
-    query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} WHERE device_id=:device_id #{since_statement} #{to_statement} #{limit_statement} ;"
-    query =
+    where_clause = "WHERE device_id=:device_id #{since_statement} #{to_statement} #{limit_statement} ;"
+    values_query_statement = "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} #{where_clause};"
+
+    values_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.statement(values_query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
 
-    query =
+    values_query =
       if since_statement != "" do
-        query
+        values_query
         |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :milliseconds))
       else
-        query
+        values_query
       end
 
-    query =
+    values_query =
       if to_statement != "" do
-        query
+        values_query
         |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
       else
-        query
+        values_query
       end
 
-    query =
+    values_query =
       if limit_statement != "" do
-        query
+        values_query
         |> DatabaseQuery.put(:limit_nrows, limit_value)
       else
-        query
+        values_query
       end
 
-    DatabaseQuery.call!(client, query)
+    values = DatabaseQuery.call!(client, values_query)
+
+    count_query_statement = "SELECT count(reception_timestamp) FROM #{interface_row[:storage]} #{where_clause} ;"
+    count_query =
+      values_query
+      |> DatabaseQuery.statement(count_query_statement)
+
+    count = get_results_count(client, count_query, opts)
+
+    values
+    |> maybe_downsample_to(count, :object, %InterfaceValuesOptions{opts | downsample_key: downsample_column_atom})
     |> pack_result(:object, :datastream, column_atom_to_pretty_name, opts)
   end
 
   defp retrieve_endpoint_values(client, device_id, :individual, :datastream, interface_row, endpoint_id, endpoint_row, path, opts) do
-    {query_statement, q_params} = prepare_get_individual_datastream_statement(Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]), false, interface_row[:storage], StorageType.from_int(interface_row[:storage_type]), opts)
-    query =
+    {values_query_statement, count_query_statement, q_params} =
+      prepare_get_individual_datastream_statement(
+        Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]),
+        false,
+        interface_row[:storage],
+        StorageType.from_int(interface_row[:storage_type]),
+        opts
+      )
+    values_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.statement(values_query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.merge(q_params)
 
-    DatabaseQuery.call!(client, query)
+    values = DatabaseQuery.call!(client, values_query)
+
+    count_query =
+      values_query
+      |> DatabaseQuery.statement(count_query_statement)
+
+    count = get_results_count(client, count_query, opts)
+
+    values
+    |> maybe_downsample_to(count, :individual, opts)
     |> pack_result(:individual, :datastream, endpoint_row, path, opts)
   end
 
@@ -627,6 +664,73 @@ defmodule Astarte.AppEngine.API.Device do
       end)
 
     values
+  end
+
+  defp get_results_count(_client, _count_query, %InterfaceValuesOptions{downsample_to: nil}) do
+    # Count will be ignored since there's no downsample_to
+    nil
+  end
+
+  defp get_results_count(client, count_query, opts) do
+    with {:ok, result} <- DatabaseQuery.call(client, count_query),
+         [{_count_key, count}] <- DatabaseResult.head(result) do
+      min(count, opts.limit)
+    else
+      error ->
+        Logger.warn("Can't retrieve count for #{inspect count_query}: #{inspect error}")
+        nil
+    end
+  end
+
+  defp maybe_downsample_to(values, _count, _aggregation, %InterfaceValuesOptions{downsample_to: nil}) do
+    values
+  end
+
+  defp maybe_downsample_to(values, nil, _aggregation, _opts) do
+    # TODO: we can't downsample an object without a valid count, propagate an error changeset
+    # when we start using changeset consistently here
+    Logger.warn("No valid count in maybe_downsample_to")
+    values
+  end
+
+  defp maybe_downsample_to(values, _count, :object, %InterfaceValuesOptions{downsample_key: nil}) do
+    # TODO: we can't downsample an object without downsample_key, propagate an error changeset
+    # when we start using changeset consistently here
+    Logger.warn("No valid downsample_key found in maybe_downsample_to")
+    values
+  end
+
+  defp maybe_downsample_to(values, count, :object, %InterfaceValuesOptions{downsample_to: downsampled_size, downsample_key: downsample_key})
+      when downsampled_size > 2 do
+    avg_bucket_size = max(1, ((count - 2) / (downsampled_size - 2)))
+
+    sample_to_x_fun = fn sample -> Keyword.get(sample, :reception_timestamp) end
+    sample_to_y_fun = fn sample -> Keyword.get(sample, downsample_key) end
+    xy_to_sample_fun = fn x, y -> [{:reception_timestamp, x}, {downsample_key, y}] end
+
+    ExLTTB.Stream.downsample(
+      values,
+      avg_bucket_size,
+      sample_to_x_fun: sample_to_x_fun,
+      sample_to_y_fun: sample_to_y_fun,
+      xy_to_sample_fun: xy_to_sample_fun
+    )
+  end
+
+  defp maybe_downsample_to(values, count, :individual, %InterfaceValuesOptions{downsample_to: downsampled_size}) when downsampled_size > 2 do
+    avg_bucket_size = max(1, ((count - 2) / (downsampled_size - 2)))
+
+    sample_to_x_fun = fn sample -> Keyword.get(sample, :value_timestamp) end
+    sample_to_y_fun = fn [{:value_timestamp, _timestamp}, {_key, value}] -> value end
+    xy_to_sample_fun = fn x, y -> [{:value_timestamp, x}, {:generic_key, y}] end
+
+    ExLTTB.Stream.downsample(
+      values,
+      avg_bucket_size,
+      sample_to_x_fun: sample_to_x_fun,
+      sample_to_y_fun: sample_to_y_fun,
+      xy_to_sample_fun: xy_to_sample_fun
+    )
   end
 
   defp pack_result(values, :individual, :datastream, endpoint_row, _path, %{format: "structured"} = opts) do

@@ -75,6 +75,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:conform, "~> 2.2"},
       {:cqex, github: "matehat/cqex"},
       {:cors_plug, "~> 1.2"},
+      {:ex_lttb, "~> 0.2"},
       {:gen_mqtt, "~> 0.4.0"},
       {:bson, "~> 0.4.4"},
       {:guardian, github: "ispirata/guardian"},

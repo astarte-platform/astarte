@@ -28,6 +28,8 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions  do
     field :since_after, :utc_datetime
     field :to, :utc_datetime
     field :limit, :integer
+    field :downsample_to, :integer
+    field :downsample_key, :string
     field :retrieve_metadata, :boolean
     field :allow_bigintegers, :boolean
     field :allow_safe_bigintegers, :boolean
@@ -42,6 +44,8 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions  do
       :since_after,
       :to,
       :limit,
+      :downsample_to,
+      :downsample_key,
       :retrieve_metadata,
       :allow_bigintegers,
       :allow_safe_bigintegers,
@@ -53,6 +57,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions  do
     |> cast(attrs, cast_attrs)
     |> validate_mutual_exclusion(:since, :since_after)
     |> validate_number(:limit, greater_than_or_equal_to: 0)
+    |> validate_number(:downsample_to, greater_than: 2)
     |> validate_inclusion(:format, ["structured", "table", "disjoint_tables"])
   end
 
