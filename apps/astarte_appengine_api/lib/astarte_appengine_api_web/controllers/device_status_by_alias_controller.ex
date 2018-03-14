@@ -23,7 +23,6 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
-  alias CQEx.Client, as: DatabaseClient
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
 
@@ -37,8 +36,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => device_alias}) do
-    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
-         {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
+    with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
          {:ok, device_status_by_alias} <- Device.get_device_status!(realm_name, encoded_device_id) do
       render(conn, DeviceStatusView, "show.json", device_status: device_status_by_alias)
@@ -48,8 +46,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
   def update(%Plug.Conn{method: "PATCH"} = conn, %{"realm_name" => realm_name, "id" => device_alias, "data" => data}) do
     # Here we handle merge/patch as described here https://tools.ietf.org/html/rfc7396
     if get_req_header(conn, "content-type") == ["application/merge-patch+json"] do
-      with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
-           {:ok, device_id} <- Device.device_alias_to_device_id(client, device_alias),
+      with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
            encoded_device_id <- Base.url_encode64(device_id, padding: false),
            :ok <- Device.merge_device_status!(realm_name, encoded_device_id, data),
            {:ok, %DeviceStatus{} = device_status} <- Device.get_device_status!(realm_name, encoded_device_id) do

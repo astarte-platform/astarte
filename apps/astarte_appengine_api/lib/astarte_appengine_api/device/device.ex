@@ -1132,7 +1132,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  def device_alias_to_device_id(client, device_alias) do
+  def device_alias_to_device_id(realm_name, device_alias) do
     device_id_statement = "SELECT object_uuid FROM names WHERE object_name = :device_alias AND object_type = 1;"
 
     device_id_query =
@@ -1140,7 +1140,8 @@ defmodule Astarte.AppEngine.API.Device do
       |> DatabaseQuery.statement(device_id_statement)
       |> DatabaseQuery.put(:device_alias, device_alias)
 
-    with {:ok, result} <- DatabaseQuery.call(client, device_id_query),
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+         {:ok, result} <- DatabaseQuery.call(client, device_id_query),
          [object_uuid: device_id] <- DatabaseResult.head(result) do
       {:ok, device_id}
     else
