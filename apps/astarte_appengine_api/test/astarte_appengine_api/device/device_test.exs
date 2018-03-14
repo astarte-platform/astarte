@@ -9,6 +9,20 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.PathNotFoundError
 
+    @expected_device_status %DeviceStatus{
+      connected: false,
+      id: "f0VMRgIBAQAAAAAAAAAAAA",
+      aliases: %{"display_name" => "device_a"},
+      last_connection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 28, hour: 3, minute: 45, month: 9, year: 2017},
+      last_disconnection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC", day: 29, hour: 18, minute: 25},
+      first_pairing: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 20, hour: 9, minute: 44, month: 8, year: 2016},
+      last_pairing_ip: "4.4.4.4",
+      last_seen_ip: "8.8.8.8",
+      total_received_bytes: 4500000,
+      total_received_msgs: 45000
+    }
+
+
   setup do
     {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()
 
@@ -203,6 +217,69 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)) == expected_reply
   end
 
+  test "device_alias_to_device_id/2 returns device IDs (uuid)" do
+    assert Device.device_alias_to_device_id("autotestrealm", "device_a") == {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_b") == {:ok, <<225, 68, 27, 34, 137, 46, 70, 231, 221, 181, 181, 89, 183, 208, 44, 46>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "1234") == {:ok, <<225, 68, 27, 34, 137, 46, 70, 231, 221, 181, 181, 89, 183, 208, 44, 46>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_c") == {:ok, <<105, 102, 160, 249, 89, 85, 40, 47, 190, 213, 47, 175, 127, 54, 125, 185>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_d") == {:ok, <<12, 172, 90, 121, 159, 75, 205, 70, 75, 207, 181, 143, 77, 48, 4, 0>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_e") == {:error, :device_not_found}
+  end
+
+  test "update device aliases using merge_device_status!/3" do
+    set_again_display_name =
+      %{
+        "aliases" => %{
+          "display_name" => "device_a"
+        }
+      }
+
+    assert Device.merge_device_status!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", set_again_display_name) == :ok
+    assert Device.device_alias_to_device_id("autotestrealm", "device_a") == {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
+    assert Device.get_device_status!("autotestrealm", @expected_device_status.id) == {:ok, @expected_device_status}
+
+    change_display_name =
+      %{
+        "aliases" => %{
+          "display_name" => "device_z"
+        }
+      }
+
+    assert Device.merge_device_status!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", change_display_name) == :ok
+    assert Device.device_alias_to_device_id("autotestrealm", "device_z") == {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_a") == {:error, :device_not_found}
+
+    change_and_add_aliases =
+      %{
+        "aliases" => %{
+          "display_name" => "device_x",
+          "serial" => "7890"
+        }
+      }
+    assert Device.merge_device_status!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", change_and_add_aliases) == :ok
+    assert Device.device_alias_to_device_id("autotestrealm", "device_x") == {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "7890") == {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_z") == {:error, :device_not_found}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_a") == {:error, :device_not_found}
+
+    unset_and_change_aliases =
+      %{
+        "aliases" => %{
+          "display_name" => "device_a",
+          "serial" => nil
+        }
+      }
+    assert Device.merge_device_status!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", unset_and_change_aliases) == :ok
+    assert Device.merge_device_status!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", unset_and_change_aliases) == {:error, :alias_tag_not_found}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_a") == {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
+    assert Device.device_alias_to_device_id("autotestrealm", "7890") == {:error, :device_not_found}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_z") == {:error, :device_not_found}
+    assert Device.device_alias_to_device_id("autotestrealm", "device_x") == {:error, :device_not_found}
+
+    assert Device.merge_device_status!("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAQ", unset_and_change_aliases) == {:error, :device_not_found}
+    assert Device.get_device_status!("autotestrealm", @expected_device_status.id) == {:ok, @expected_device_status}
+  end
+
   test "list_devices/1 returns all devices" do
     expected_devices =
       [
@@ -251,19 +328,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   test "get_device_status!/2 returns the device_status with given id" do
-    expected_device_status = %DeviceStatus{
-      connected: false,
-      id: "f0VMRgIBAQAAAAAAAAAAAA",
-      last_connection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 28, hour: 3, minute: 45, month: 9, year: 2017},
-      last_disconnection: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, month: 9, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, year: 2017, zone_abbr: "UTC", day: 29, hour: 18, minute: 25},
-      first_pairing: %DateTime{calendar: Calendar.ISO, microsecond: {0, 3}, second: 0, std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC", day: 20, hour: 9, minute: 44, month: 8, year: 2016},
-      last_pairing_ip: "4.4.4.4",
-      last_seen_ip: "8.8.8.8",
-      total_received_bytes: 4500000,
-      total_received_msgs: 45000
-    }
 
-    assert Device.get_device_status!("autotestrealm", expected_device_status.id) == {:ok, expected_device_status}
+    assert Device.get_device_status!("autotestrealm", @expected_device_status.id) == {:ok, @expected_device_status}
   end
 
   defp unpack_interface_values({:ok, %InterfaceValues{data: values}}) do

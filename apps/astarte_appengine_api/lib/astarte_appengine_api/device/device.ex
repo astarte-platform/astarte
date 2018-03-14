@@ -65,6 +65,27 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  def merge_device_status!(realm_name, encoded_device_id, device_status_merge) do
+    device_id = decode_device_id(encoded_device_id)
+
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
+      Enum.find_value(Map.get(device_status_merge, "aliases", %{}), :ok, fn {alias_upd_key, alias_upd_value} ->
+        result =
+          if alias_upd_value do
+            insert_alias(client, device_id, alias_upd_key, alias_upd_value)
+          else
+            delete_alias(client, device_id, alias_upd_key)
+          end
+
+        if match?({:error, _}, result) do
+          result
+        else
+          nil
+        end
+      end)
+    end
+  end
+
   @doc """
   Returns the list of interfaces.
   """
@@ -863,6 +884,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   @device_status_columns_without_device_id """
+    , aliases
     , connected
     , last_connection
     , last_disconnection
@@ -876,6 +898,7 @@ defmodule Astarte.AppEngine.API.Device do
   defp device_status_row_to_device_status(row) do
     [
       device_id: device_id,
+      aliases: aliases,
       connected: connected,
       last_connection: last_connection,
       last_disconnection: last_disconnection,
@@ -888,6 +911,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     %DeviceStatus{
       id: Base.url_encode64(device_id, padding: false),
+      aliases: Enum.into(aliases || [], %{}),
       connected: connected,
       last_connection: millis_or_null_to_datetime!(last_connection),
       last_disconnection: millis_or_null_to_datetime!(last_disconnection),
@@ -1006,6 +1030,126 @@ defmodule Astarte.AppEngine.API.Device do
 
       not_ok ->
         Logger.warn("Device.retrieve_extended_id: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp delete_alias(client, device_id, alias_tag) do
+    retrieve_aliases_statement = "SELECT aliases FROM devices WHERE device_id = :device_id;"
+
+    retrieve_aliases_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(retrieve_aliases_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
+         [aliases: aliases] <- DatabaseResult.head(result),
+         {^alias_tag, alias_value} <- Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end) do
+
+      # TODO: Add IF EXISTS and batch
+      delete_alias_from_device_statement = "DELETE aliases[:alias_tag] FROM devices WHERE device_id = :device_id;"
+
+      delete_alias_from_device_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_alias_from_device_statement)
+        |> DatabaseQuery.put(:alias_tag, alias_tag)
+        |> DatabaseQuery.put(:device_id, device_id)
+
+      delete_alias_from_names_statement = "DELETE FROM names WHERE object_name = :alias AND object_type = 1;"
+
+      delete_alias_from_names_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_alias_from_names_statement)
+        |> DatabaseQuery.put(:alias, alias_value)
+        |> DatabaseQuery.put(:device_id, device_id)
+
+      with {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_device_query),
+           {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_names_query) do
+        :ok
+      else
+        not_ok ->
+          Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+          {:error, :database_error}
+      end
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      nil ->
+        {:error, :alias_tag_not_found}
+
+      not_ok ->
+        Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp try_delete_alias(client, device_id, alias_tag) do
+    case delete_alias(client, device_id, alias_tag) do
+      :ok ->
+        :ok
+
+      {:error, :alias_tag_not_found} ->
+        :ok
+
+      not_ok ->
+        not_ok
+    end
+  end
+
+  defp insert_alias(client, device_id, alias_tag, alias_value) do
+    # TODO: Add  IF NOT EXISTS and batch queries together
+    insert_alias_to_names_statement =
+      "INSERT INTO names (object_name, object_type, object_uuid) VALUES (:alias, 1, :device_id);"
+
+    insert_alias_to_names_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_alias_to_names_statement)
+      |> DatabaseQuery.put(:alias, alias_value)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    insert_alias_to_device_statement = "UPDATE devices SET aliases[:alias_tag] = :alias WHERE device_id = :device_id;"
+
+    insert_alias_to_device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_alias_to_device_statement)
+      |> DatabaseQuery.put(:alias_tag, alias_tag)
+      |> DatabaseQuery.put(:alias, alias_value)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    # TODO: avoid to delete and insert again the same alias if it didn't change
+    with :ok <- try_delete_alias(client, device_id, alias_tag),
+         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_names_query),
+         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_device_query) do
+      :ok
+    else
+      {:error, :device_not_found} ->
+        {:error, :device_not_found}
+
+      not_ok ->
+        Logger.warn("Device.insert_alias: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
+  def device_alias_to_device_id(realm_name, device_alias) do
+    device_id_statement = "SELECT object_uuid FROM names WHERE object_name = :device_alias AND object_type = 1;"
+
+    device_id_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(device_id_statement)
+      |> DatabaseQuery.put(:device_alias, device_alias)
+
+    with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]),
+         {:ok, result} <- DatabaseQuery.call(client, device_id_query),
+         [object_uuid: device_id] <- DatabaseResult.head(result) do
+      {:ok, device_id}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      not_ok ->
+        Logger.warn("Device.device_alias_to_device_id: database error: #{inspect(not_ok)}")
         {:error, :database_error}
     end
   end
@@ -1133,5 +1277,4 @@ defmodule Astarte.AppEngine.API.Device do
     |> :inet_parse.ntoa()
     |> to_string()
   end
-
 end

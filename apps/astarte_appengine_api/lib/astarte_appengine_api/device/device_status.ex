@@ -18,5 +18,16 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.DeviceStatus do
-  defstruct [:id, :connected, :last_connection, :last_disconnection, :first_pairing, :last_pairing_ip, :last_seen_ip, :total_received_msgs, :total_received_bytes]
+  defstruct [
+    :id,
+    :aliases,
+    :connected,
+    :last_connection,
+    :last_disconnection,
+    :first_pairing,
+    :last_pairing_ip,
+    :last_seen_ip,
+    :total_received_msgs,
+    :total_received_bytes
+  ]
 end

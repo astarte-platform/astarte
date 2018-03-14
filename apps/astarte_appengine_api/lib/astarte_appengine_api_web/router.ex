@@ -31,8 +31,10 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   scope "/v1", Astarte.AppEngine.APIWeb do
     pipe_through :api
 
-    resources "/:realm_name/devices", DeviceStatusController, except: [:new, :edit]
+    resources "/:realm_name/devices", DeviceStatusController, only: [:index, :show, :update]
+    resources "/:realm_name/devices-by-alias", DeviceStatusByAliasController, only: [:index, :show, :update]
     resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
+    resources "/:realm_name/devices-by-alias/:device_alias/interfaces", InterfaceValuesByDeviceAliasController, except: [:new, :edit]
   end
 
   scope "/swagger" do

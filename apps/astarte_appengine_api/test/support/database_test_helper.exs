@@ -39,10 +39,21 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     );
   """
 
+  @create_names_table """
+    CREATE TABLE autotestrealm.names (
+      object_name varchar,
+      object_type int,
+      object_uuid uuid,
+
+      PRIMARY KEY ((object_name), object_type)
+    );
+  """
+
   @create_devices_table """
       CREATE TABLE autotestrealm.devices (
         device_id uuid,
         extended_id ascii,
+        aliases map<ascii, varchar>,
         introspection map<ascii, int>,
         metadata map<ascii, text>,
         first_pairing timestamp,
@@ -64,9 +75,13 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @insert_device_statement """
-        INSERT INTO autotestrealm.devices (device_id, extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
-          VALUES (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
+        INSERT INTO autotestrealm.devices (device_id, extended_id, aliases, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
+          VALUES (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
           '8.8.8.8', '4.4.4.4', 45000, :total_received_bytes, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1, 'com.example.TestObject': 1});
+  """
+
+  @insert_alias_statement """
+    INSERT INTO autotestrealm.names (object_name, object_type, object_uuid) VALUES (:alias, 1, :device_id);
   """
 
   @create_interfaces_table """
@@ -317,26 +332,38 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_devices_table)
 
+        DatabaseQuery.call!(client, @create_names_table)
+
         insert_device_query =
           DatabaseQuery.new()
           |> DatabaseQuery.statement(@insert_device_statement)
 
         devices_list = [
-          {"f0VMRgIBAQAAAAAAAAAAAA", 4500000},
-          {"olFkumNuZ_J0f_d6-8XCDg", 10},
-          {"4UQbIokuRufdtbVZt9AsLg", 22},
-          {"aWag-VlVKC--1S-vfzZ9uQ", 0},
-          {"DKxaeZ9LzUZLz7WPTTAEAA", 300}
+          {"f0VMRgIBAQAAAAAAAAAAAA", 4500000, %{"display_name" => "device_a"}},
+          {"olFkumNuZ_J0f_d6-8XCDg", 10, nil},
+          {"4UQbIokuRufdtbVZt9AsLg", 22, %{"display_name" => "device_b", "serial" => "1234"}},
+          {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{"display_name" => "device_c"}},
+          {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{"display_name" => "device_d"}}
         ]
 
-        for {encoded_device_id, total_received_bytes} <- devices_list do
+        for {encoded_device_id, total_received_bytes, aliases} <- devices_list do
           device_id = Base.url_decode64!(encoded_device_id, padding: false)
 
           insert_device_query =
             insert_device_query
             |> DatabaseQuery.put(:device_id, device_id)
+            |> DatabaseQuery.put(:aliases, aliases)
             |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
           DatabaseQuery.call!(client, insert_device_query)
+
+          for {_key, device_alias} <- (aliases || %{}) do
+            insert_alias_query =
+              DatabaseQuery.new()
+              |> DatabaseQuery.statement(@insert_alias_statement)
+              |> DatabaseQuery.put(:device_id, device_id)
+              |> DatabaseQuery.put(:alias, device_alias)
+            DatabaseQuery.call!(client, insert_alias_query)
+          end
         end
 
         DatabaseQuery.call!(client, @create_kv_store)

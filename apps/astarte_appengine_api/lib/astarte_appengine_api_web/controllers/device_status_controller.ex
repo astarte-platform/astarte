@@ -40,13 +40,15 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
     end
   end
 
-  def update(_conn, %{"id" => _id, "device_status" => _device_status_params}) do
-    #TODO: Astarte.AppEngine.APIWeb.DeviceStatusController.update not implemented
-    #device_status = AppEngine.API.Device.get_device_status!(id)
-
-    #with {:ok, %DeviceStatus{} = device_status} <- AppEngine.API.Device.update_device_status(device_status, device_status_params) do
-    #  render(conn, "show.json", device_status: device_status)
-    #end
-    raise "TODO"
+  def update(%Plug.Conn{method: "PATCH"} = conn, %{"realm_name" => realm_name, "id" => id, "data" => data}) do
+    # Here we handle merge/patch as described here https://tools.ietf.org/html/rfc7396
+    if get_req_header(conn, "content-type") == ["application/merge-patch+json"] do
+      with :ok <- Device.merge_device_status!(realm_name, id, data),
+           {:ok, %DeviceStatus{} = device_status} <- Device.get_device_status!(realm_name, id) do
+        render(conn, "show.json", device_status: device_status)
+      end
+    else
+      {:error, :patch_mimetype_not_supported}
+    end
   end
 end

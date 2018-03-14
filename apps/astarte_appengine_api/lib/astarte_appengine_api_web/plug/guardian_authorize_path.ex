@@ -25,7 +25,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
       conn
     else
       {:error, :invalid_auth_path} ->
-        Logger.warn("Can't build auth_path with path_params: #{inspect conn.path_params} path_info: #{inspect conn.path_info} query_params: #{inspect conn.query_params}")
+        authorize_path_info = Map.get(conn.assigns, :original_path_info, conn.path_info)
+        Logger.warn("Can't build auth_path with path_params: #{inspect conn.path_params} path_info: #{inspect authorize_path_info} query_params: #{inspect conn.query_params}")
         conn
         |> FallbackController.auth_error({:unauthorized, :invalid_auth_path}, opts)
         |> halt()
@@ -40,9 +41,9 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
 
   defp build_auth_path(conn) do
     with %{"realm_name" => realm} <- conn.path_params,
-         [^realm | rest] <- Enum.drop_while(conn.path_info, fn token -> token != realm end),
-
-      path_prefix = Enum.join(rest, "/") do
+         authorize_path_info <- Map.get(conn.assigns, :original_path_info, conn.path_info),
+         [^realm | rest] <- Enum.drop_while(authorize_path_info, fn token -> token != realm end),
+         path_prefix <- Enum.join(rest, "/") do
       path_suffix =
         if Map.has_key?(conn.query_params, "path") do
           "/#{Map.get(conn.query_params, "path")}"
