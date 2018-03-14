@@ -20,11 +20,13 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
   use Astarte.AppEngine.APIWeb.ConnCase
 
+  alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.JWTTestHelper
 
+  @expected_device_id "f0VMRgIBAQAAAAAAAAAAAA"
   @expected_device_status %{
         "connected" => false,
-        "id" => "f0VMRgIBAQAAAAAAAAAAAA",
+        "id" => @expected_device_id,
         "aliases" => %{"display_name" => "device_a"},
         "last_connection" => "2017-09-28T03:45:00.000Z",
         "last_disconnection" => "2017-09-29T18:25:00.000Z",
@@ -54,6 +56,66 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
     test "get device_status", %{conn: conn} do
       conn = get conn, device_status_by_alias_path(conn, :show, "autotestrealm", "device_a")
       assert json_response(conn, 200)["data"] == @expected_device_status
+    end
+  end
+
+  describe "update" do
+    test "add alias to device", %{conn: conn} do
+      set_device_alias_payload =
+        %{
+          "data" => %{
+            "aliases" => %{
+              "test_tag" => "test_alias"
+            }
+          }
+        }
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> put_req_header("accept", "application/json")
+        |> put_req_header("authorization", "bearer #{JWTTestHelper.gen_jwt_all_access_token()}")
+        |> patch(device_status_path(conn, :update, "autotestrealm", @expected_device_id), set_device_alias_payload)
+
+      assert json_response(conn, 200)["data"] == Map.put(
+        @expected_device_status,
+        "aliases",
+        %{"display_name" => "device_a", "test_tag" => "test_alias"}
+      )
+
+      unset_alias =
+        %{
+          "aliases" => %{
+            "test_tag" => nil
+          }
+        }
+      assert Device.merge_device_status!("autotestrealm", @expected_device_id, unset_alias) == :ok
+    end
+
+    test "remove device alias", %{conn: conn} do
+      set_alias =
+        %{
+          "aliases" => %{
+            "test_tag" => "test_alias"
+          }
+        }
+      assert Device.merge_device_status!("autotestrealm", @expected_device_id, set_alias) == :ok
+
+      unset_device_alias_payload =
+        %{
+          "data" => %{
+            "aliases" => %{
+              "test_tag" => nil
+            }
+          }
+        }
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> put_req_header("accept", "application/json")
+        |> put_req_header("authorization", "bearer #{JWTTestHelper.gen_jwt_all_access_token()}")
+        |> patch(device_status_path(conn, :update, "autotestrealm", @expected_device_id), unset_device_alias_payload)
+
+      assert json_response(conn, 200)["data"] == Map.put(@expected_device_status, "aliases", %{"display_name" => "device_a"})
     end
   end
 end
