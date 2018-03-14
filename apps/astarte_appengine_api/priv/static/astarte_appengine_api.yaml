@@ -8,7 +8,7 @@ info:
 basePath: "/v1"
 tags:
 - name: "device"
-  description: "Device data status retrival and publish"
+  description: "Device data status retrival and publish. All operations on a device can be done using both the device id or any of its aliases."
   externalDocs:
     description: "Complete documentation"
     url: "http://docs.astarte-platform.org/snapshot"
@@ -117,6 +117,57 @@ paths:
       summary: "Update a device writeable property"
       description: "Update any of the writeable device properties such as device aliases."
       operationId: "updateDeviceStatus"
+      consumes:
+      - "application/merge-patch+json"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/DeviceStatus"
+        404:
+          description: "Device Not found"
+
+  /{realm_name}/devices-by-alias/{device_alias}:
+    parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm which the device belongs to."
+        required: true
+        type: "string"
+      - name: "device_alias"
+        in: "path"
+        description: "One of the device aliases"
+        required: true
+        type: "string"
+    get:
+      tags:
+      - "device"
+      summary: "Get device general status"
+      description: "A device overview status is returned. Overview includes an array of reported interfaces (introspection), offline/online status, etc..."
+      operationId: "getDeviceStatusByAlias"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/definitions/DeviceStatus"
+        404:
+          description: "Device Not found"
+    patch:
+      tags:
+      - "device"
+      summary: "Update a device writeable property"
+      description: "Update any of the writeable device properties such as device aliases."
+      operationId: "updateDeviceStatusByAlias"
       consumes:
       - "application/merge-patch+json"
       produces:
