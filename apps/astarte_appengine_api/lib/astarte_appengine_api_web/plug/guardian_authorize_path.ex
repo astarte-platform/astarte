@@ -26,13 +26,24 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     else
       {:error, :invalid_auth_path} ->
         authorize_path_info = Map.get(conn.assigns, :original_path_info, conn.path_info)
-        Logger.warn("Can't build auth_path with path_params: #{inspect conn.path_params} path_info: #{inspect authorize_path_info} query_params: #{inspect conn.query_params}")
+
+        Logger.warn(
+          "Can't build auth_path with path_params: #{inspect(conn.path_params)} path_info: #{
+            inspect(authorize_path_info)
+          } query_params: #{inspect(conn.query_params)}"
+        )
+
         conn
         |> FallbackController.auth_error({:unauthorized, :invalid_auth_path}, opts)
         |> halt()
 
       {:error, {:unauthorized, method, auth_path, authorizations}} ->
-        Logger.info("Unauthorized request: #{method} #{auth_path} failed with authorizations #{inspect authorizations}")
+        Logger.info(
+          "Unauthorized request: #{method} #{auth_path} failed with authorizations #{
+            inspect(authorizations)
+          }"
+        )
+
         conn
         |> FallbackController.auth_error({:unauthorized, :authorization_path_not_matched}, opts)
         |> halt()
@@ -64,6 +75,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
         case get_auth_regex(auth_string) do
           {:ok, {method_regex, path_regex}} ->
             Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)
+
           _ ->
             false
         end
@@ -76,7 +88,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations), do: {:error, {:unauthorized, method, auth_path, authorizations}}
+  defp is_path_authorized?(method, auth_path, authorizations),
+    do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do
     # TODO: right now regex have to be terminated with $ manually, otherwise they also match prefix.
@@ -84,11 +97,11 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     with [method_auth, _opts, path_auth] <- String.split(authorization_string, ":", parts: 3),
          {:ok, method_regex} <- Regex.compile(method_auth),
          {:ok, path_regex} <- Regex.compile(path_auth) do
-
       {:ok, {method_regex, path_regex}}
     else
       [] ->
         {:error, :invalid_authorization_string}
+
       _ ->
         {:error, :invalid_regex}
     end

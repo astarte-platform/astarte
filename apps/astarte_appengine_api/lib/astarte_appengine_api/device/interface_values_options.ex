@@ -17,7 +17,7 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions  do
+defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions do
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions

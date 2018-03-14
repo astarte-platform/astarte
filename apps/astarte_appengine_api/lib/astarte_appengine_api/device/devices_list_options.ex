@@ -17,7 +17,7 @@
 # Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.API.Device.DevicesListOptions  do
+defmodule Astarte.AppEngine.API.Device.DevicesListOptions do
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.AppEngine.API.Device.DevicesListOptions

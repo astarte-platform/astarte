@@ -30,7 +30,7 @@ defmodule Astarte.AppEngine.API.Application do
     # Define workers and child supervisors to be supervised
     children = [
       worker(Astarte.AppEngine.API.DataTransmitter.MQTTClient, [Config.mqtt_options()]),
-      supervisor(Astarte.AppEngine.APIWeb.Endpoint, []),
+      supervisor(Astarte.AppEngine.APIWeb.Endpoint, [])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

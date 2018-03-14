@@ -22,6 +22,7 @@ defmodule Astarte.AppEngine.API.Config do
   """
   def max_results_limit do
     limit = Application.get_env(:astarte_appengine_api, :max_results_limit)
+
     if limit > 0 do
       limit
     else

@@ -22,7 +22,10 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
   alias Astarte.AppEngine.APIWeb.Router.Helpers, as: RouterHelpers
 
-  def render("index.json", %{devices_list: devices_list, request: %{"realm_name" => realm} = params}) do
+  def render("index.json", %{
+        devices_list: devices_list,
+        request: %{"realm_name" => realm} = params
+      }) do
     {request_params, _} = Map.split(params, ["limit", "details", "from_token"])
 
     last_token = devices_list.last_token
