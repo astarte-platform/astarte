@@ -45,7 +45,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
           interface_values_by_device_alias_path(conn, :index, "autotestrealm", "device_a")
         )
 
-      assert json_response(conn, 200)["data"] == [
+      assert Enum.sort(json_response(conn, 200)["data"]) == [
+               "com.example.PixelsConfiguration",
                "com.example.TestObject",
                "com.test.LCDMonitor",
                "com.test.SimpleStreamTest"
