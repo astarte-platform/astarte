@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmView do
   alias Astarte.Housekeeping.APIWeb.RealmView
 
   def render("index.json", %{realms: realms}) do
-    render_many(realms, RealmView, "realm_name_only.json")
+    %{data: render_many(realms, RealmView, "realm_name_only.json")}
   end
 
   def render("show.json", %{realm: realm}) do
@@ -34,7 +34,10 @@ defmodule Astarte.Housekeeping.APIWeb.RealmView do
   end
 
   def render("realm.json", %{realm: realm}) do
-    %{realm_name: realm.realm_name,
-      jwt_public_key_pem: realm.jwt_public_key_pem}
+    %{data: %{
+        realm_name: realm.realm_name,
+        jwt_public_key_pem: realm.jwt_public_key_pem
+      }
+    }
   end
 end
