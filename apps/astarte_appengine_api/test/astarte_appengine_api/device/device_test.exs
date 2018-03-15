@@ -876,6 +876,39 @@ defmodule Astarte.AppEngine.API.DeviceTest do
            ) == expected_reply
   end
 
+  test "update_interface_values!/6" do
+    test_realm = "autotestrealm"
+    missing_id = "f0VMRgIBAQAAAAAAAAAAAQ"
+    test_interface = "com.example.PixelsConfiguration"
+    value = "#ff00ff"
+    path = "/1/2/color"
+    par = %{}
+
+    assert_raise DeviceNotFoundError, fn ->
+      Device.update_interface_values!(test_realm, missing_id, test_interface, path, value, par)
+    end
+
+    device_id = "f0VMRgIBAQAAAAAAAAAAAA"
+    short_path = "/something"
+
+    assert_raise EndpointNotFoundError, fn ->
+      Device.update_interface_values!(test_realm, device_id, test_interface, short_path, value, par)
+    end
+
+    ro_interface = "com.test.SimpleStreamTest"
+    ro_path = "/0/value"
+
+    assert_raise RuntimeError, fn ->
+      Device.update_interface_values!(test_realm, device_id, ro_interface, ro_path, value, par)
+    end
+
+    missing_interface = "com.test.Missing"
+
+    assert_raise InterfaceNotFoundError, fn ->
+      Device.update_interface_values!(test_realm, device_id, missing_interface, ro_path, value, par)
+    end
+  end
+
   test "device_alias_to_device_id/2 returns device IDs (uuid)" do
     assert Device.device_alias_to_device_id("autotestrealm", "device_a") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
