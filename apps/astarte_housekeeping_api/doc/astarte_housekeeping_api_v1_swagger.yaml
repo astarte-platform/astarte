@@ -42,7 +42,9 @@ paths:
         description: "Realm JSON configuration object."
         required: true
         schema:
-          $ref: '#/definitions/Realm'
+          properties:
+            data:
+              $ref: '#/definitions/Realm'
       responses:
         200:
           description: "Success"
@@ -88,7 +90,9 @@ paths:
         description: "Realm JSON configuration object."
         required: true
         schema:
-          $ref: '#/definitions/Realm'
+          properties:
+            data:
+              $ref: '#/definitions/Realm'
       responses:
         200:
           description: "Success"
