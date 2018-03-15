@@ -8,7 +8,7 @@ defmodule Astarte.Housekeeping.APIWeb.AuthTest do
   @non_exact_match_valid_auth_path "^rea.*$"
   @non_matching_auth_path "^stats.*$"
 
-  @expected_data []
+  @expected_data %{"data" => []}
 
   require Logger
 
