@@ -46,7 +46,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
             conn,
             :index,
             "autotestrealm",
-            "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
+            "f0VMRgIBAQAAAAAAAAAAAA"
           )
         )
 
@@ -75,7 +75,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
             conn,
             :show,
             "autotestrealm",
-            "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+            "f0VMRgIBAQAAAAAAAAAAAA",
             "com.test.LCDMonitor"
           )
         )
@@ -85,7 +85,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
       property_conn =
         get(
           conn,
-          "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.test.LCDMonitor/time/to"
+          "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.test.LCDMonitor/time/to"
         )
 
       assert json_response(property_conn, 200)["data"] == 20
@@ -101,7 +101,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
       datastream_conn =
         get(
           conn,
-          "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.test.SimpleStreamTest/0/value"
+          "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.test.SimpleStreamTest/0/value"
         )
 
       assert json_response(datastream_conn, 200)["data"] == expected_reply
@@ -115,7 +115,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
       object_conn =
         get(
           conn,
-          "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ/interfaces/com.example.TestObject/"
+          "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestObject/"
         )
 
       assert json_response(object_conn, 200)["data"] == expected_reply

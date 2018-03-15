@@ -91,7 +91,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   test "list_interfaces!/2 returns all interfaces" do
     assert Device.list_interfaces!(
              "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
+             "f0VMRgIBAQAAAAAAAAAAAA"
            ) == ["com.example.TestObject", "com.test.LCDMonitor", "com.test.SimpleStreamTest"]
   end
 
@@ -109,7 +109,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.LCDMonitor",
                %{}
              )
@@ -118,7 +118,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.LCDMonitor",
                "time",
                %{}
@@ -128,7 +128,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.LCDMonitor",
                "time/from",
                %{}
@@ -138,7 +138,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise DeviceNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "g0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAQ",
         "com.test.LCDMonitor",
         "time/from",
         %{}
@@ -148,7 +148,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise InterfaceNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAA",
         "com.test.Missing",
         "weekSchedule/3/start",
         %{}
@@ -158,7 +158,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise EndpointNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAA",
         "com.test.LCDMonitor",
         "time/missing",
         %{}
@@ -168,7 +168,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise PathNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAA",
         "com.test.LCDMonitor",
         "weekSchedule/9/start",
         %{}
@@ -268,7 +268,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.SimpleStreamTest",
                "0/value",
                %{}
@@ -315,7 +315,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.SimpleStreamTest",
                "0/value",
                %{"limit" => 2}
@@ -381,7 +381,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.SimpleStreamTest",
                "0/value",
                opts
@@ -434,7 +434,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.SimpleStreamTest",
                "0/value",
                opts
@@ -470,7 +470,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.SimpleStreamTest",
                "0/value",
                opts
@@ -580,7 +580,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     assert Device.get_interface_values!(
              "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+             "f0VMRgIBAQAAAAAAAAAAAA",
              "com.test.SimpleStreamTest",
              "0/value",
              opts
@@ -681,7 +681,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(
                "autotestrealm",
-               "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+               "f0VMRgIBAQAAAAAAAAAAAA",
                "com.test.SimpleStreamTest",
                "0/value",
                opts
@@ -693,7 +693,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise DeviceNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "g0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAQ",
         "com.test.SimpleStreamTest",
         "0/value",
         %{}
@@ -703,7 +703,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise InterfaceNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAA",
         "com.test.Missing",
         "0/value",
         %{}
@@ -713,7 +713,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise EndpointNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAA",
         "com.test.SimpleStreamTest",
         "missing/endpoint/test",
         %{}
@@ -723,7 +723,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert_raise PathNotFoundError, fn ->
       Device.get_interface_values!(
         "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ",
+        "f0VMRgIBAQAAAAAAAAAAAA",
         "com.test.SimpleStreamTest",
         "100/value",
         %{}
@@ -733,7 +733,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
   test "get_interface_values! returns interfaces values on object datastream interface" do
     test = "autotestrealm"
-    device_id = "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
+    device_id = "f0VMRgIBAQAAAAAAAAAAAA"
 
     expected_reply = [
       %{
