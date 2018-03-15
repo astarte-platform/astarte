@@ -36,12 +36,16 @@ MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
 -----END PUBLIC KEY-----
 """
 
-  @create_attrs %{"realm_name" => "testrealm", "jwt_public_key_pem" => @pubkey}
-  @update_attrs %{}
-  @invalid_name_attrs %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}
-  @no_pubkey_attrs %{"realm_name" => "valid"}
-  @invalid_pubkey_attrs %{"realm_name" => "valid", "jwt_public_key_pem" => "invalid"}
-  @malformed_pubkey_attrs %{"realm_name" => "valid", "jwt_public_key_pem" => @malformed_pubkey}
+  @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => @pubkey}}
+  @update_attrs %{"data" => %{}}
+  @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}}
+  @no_pubkey_attrs %{"data" => %{"realm_name" => "valid"}}
+  @invalid_pubkey_attrs %{"data" => %{"realm_name" => "valid", "jwt_public_key_pem" => "invalid"}}
+  @malformed_pubkey_attrs %{"data" => %{
+    "realm_name" => "valid",
+    "jwt_public_key_pem" => @malformed_pubkey
+    }
+  }
   @non_existing_realm_name "nonexistingrealm"
 
   def fixture(:realm) do
@@ -72,11 +76,11 @@ MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
     conn = post conn, realm_path(conn, :create), @create_attrs
     assert response(conn, 201)
 
-    conn = get conn, realm_path(conn, :show, @create_attrs["realm_name"])
+    conn = get conn, realm_path(conn, :show, @create_attrs["data"]["realm_name"])
     assert json_response(conn, 200) == %{
       "data" => %{
-        "realm_name" => @create_attrs["realm_name"],
-        "jwt_public_key_pem" => @create_attrs["jwt_public_key_pem"]
+        "realm_name" => @create_attrs["data"]["realm_name"],
+        "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"]
       }
     }
   end
