@@ -1,4 +1,4 @@
-%{"astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "64e954ad18d60abab12fa6bf8a3706d7b1750f8e", []},
+%{"astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "4489c5ef9574762fdbb5176f0e04cf4c00ea3aba", []},
   "astarte_data_access": {:git, "https://git.ispirata.com/Astarte-NG/astarte_data_access", "b86f99f7f54ce0298ba9394844c03f12d8655ca8", []},
   "base64url": {:hex, :base64url, "0.0.1", "36a90125f5948e3afd7be97662a1504b934dd5dac78451ca6e9abf85a10286be", [:rebar], [], "hexpm"},
   "certifi": {:hex, :certifi, "2.0.0", "a0c0e475107135f76b8c1d5bc7efb33cd3815cb3cf3dea7aefdd174dabead064", [:rebar3], [], "hexpm"},
