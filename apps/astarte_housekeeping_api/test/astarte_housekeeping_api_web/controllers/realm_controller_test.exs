@@ -63,7 +63,9 @@ MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
 
   test "lists all entries on index", %{conn: conn} do
     conn = get conn, realm_path(conn, :index)
-    assert json_response(conn, 200) == [] || json_response(conn, 200) == ["testrealm"]
+    resp1 = %{"data" => []}
+    resp2 = %{"data" => ["testrealm"]}
+    assert json_response(conn, 200) == resp1 || json_response(conn, 200) == resp2
   end
 
   test "creates realm and renders realm when data is valid", %{conn: conn} do
@@ -71,7 +73,12 @@ MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
     assert response(conn, 201)
 
     conn = get conn, realm_path(conn, :show, @create_attrs["realm_name"])
-    assert json_response(conn, 200) == %{"realm_name" => @create_attrs["realm_name"], "jwt_public_key_pem" => @create_attrs["jwt_public_key_pem"]}
+    assert json_response(conn, 200) == %{
+      "data" => %{
+        "realm_name" => @create_attrs["realm_name"],
+        "jwt_public_key_pem" => @create_attrs["jwt_public_key_pem"]
+      }
+    }
   end
 
   test "returns a 404 on show non-existing realm", %{conn: conn} do
