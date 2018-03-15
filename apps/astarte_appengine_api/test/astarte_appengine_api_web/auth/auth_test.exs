@@ -23,7 +23,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   alias Astarte.AppEngine.API.JWTTestHelper
 
   @realm "autotestrealm"
-  @device_id "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
+  @device_id "f0VMRgIBAQAAAAAAAAAAAA"
   @interface "com.test.LCDMonitor"
   @escaped_interface "com\\.test\\.LCDMonitor"
   @path "/time/to"

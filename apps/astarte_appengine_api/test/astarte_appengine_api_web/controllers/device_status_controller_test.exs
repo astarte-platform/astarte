@@ -61,7 +61,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
             conn,
             :show,
             "autotestrealm",
-            "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
+            "f0VMRgIBAQAAAAAAAAAAAA"
           )
         )
 
