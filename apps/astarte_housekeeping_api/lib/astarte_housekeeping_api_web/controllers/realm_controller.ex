@@ -30,7 +30,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
     render(conn, "index.json", realms: realms)
   end
 
-  def create(conn, realm_params = %{}) do
+  def create(conn, %{ "data" => realm_params}) do
     with {:ok, %Realm{} = realm} <- Realms.create_realm(realm_params) do
       conn
       |> put_resp_header("location", realm_path(conn, :show, realm))
@@ -44,7 +44,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
     end
   end
 
-  def update(conn, %{"id" => id, "realm" => realm_params}) do
+  def update(conn, %{"id" => id, "data" => realm_params}) do
     with {:ok, %Realm{} = realm} <- Realms.get_realm(id),
          {:ok, %Realm{} = realm} <- Realms.update_realm(realm, realm_params) do
 
