@@ -37,6 +37,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
   alias CQEx.Client, as: DatabaseClient
@@ -213,13 +214,22 @@ defmodule Astarte.AppEngine.API.Device do
     major_version = interface_version!(client, device_id, interface)
     interface_row = retrieve_interface_row!(client, interface, major_version)
 
-    {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
+    automaton = {
+      :erlang.binary_to_term(interface_row[:automaton_transitions]),
+      :erlang.binary_to_term(interface_row[:automaton_accepting_states])
+    }
 
-    if status == :error and endpoint_ids == :not_found do
-      raise EndpointNotFoundError
-    end
+    endpoint_id =
+      case EndpointsAutomaton.resolve_path(path, automaton) do
+        {:ok, endpoint_id} ->
+          endpoint_id
 
-    [endpoint_id] = endpoint_ids
+        {:guessed, endpoint_ids} ->
+          raise EndpointNotFoundError
+
+        {:error, :not_found} ->
+          raise EndpointNotFoundError
+      end
 
     timestamp =
       DateTime.utc_now()
