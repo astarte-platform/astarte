@@ -10,7 +10,7 @@ variables:
     APPLICATION_NAME: astarte_data_updater_plant
 
 mix:test-ci:
-    image: elixir:1.5
+    image: elixir:1.6
     stage: build
     services:
         - scylladb/scylla:latest
@@ -28,7 +28,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_data_updater_plant
 
 mix:build:
-    image: elixir:1.5
+    image: elixir:1.6
     stage: build
     services:
         - scylladb/scylla:latest
@@ -48,7 +48,7 @@ mix:build:
         - master@Astarte-NG/astarte_data_updater_plant
 
 mix:release-build:
-    image: elixir:1.5
+    image: elixir:1.6
     stage: build
     services:
         - scylladb/scylla:latest
