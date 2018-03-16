@@ -82,7 +82,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cors_plug, "~> 1.2"},
       {:ex_lttb, "~> 0.2"},
       {:gen_mqtt, "~> 0.4.0"},
-      {:bson, "~> 0.4.4"},
+      {:cyanide, "~> 0.5.0"},
       {:guardian, github: "ispirata/guardian"},
       {:phoenix_swagger, "~> 0.7.0"},
       {:distillery, "~> 1.4", runtime: false},
