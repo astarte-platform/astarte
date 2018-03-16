@@ -7,6 +7,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   alias AMQP.Connection
   alias AMQP.Queue
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater
 
   @connection_backoff 10000
 
@@ -131,7 +132,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
             @ip_header => ip_address
           } <- headers do
 
-      Astarte.DataUpdaterPlant.DataUpdater.handle_connection(realm, device_id, ip_address, meta.delivery_tag, timestamp)
+      DataUpdater.handle_connection(realm, device_id, ip_address, meta.delivery_tag, timestamp)
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -143,7 +144,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
             @device_id_header => device_id
           } <- headers do
 
-      Astarte.DataUpdaterPlant.DataUpdater.handle_disconnection(realm, device_id, meta.delivery_tag, timestamp)
+      DataUpdater.handle_disconnection(realm, device_id, meta.delivery_tag, timestamp)
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -155,7 +156,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
             @device_id_header => device_id
           } <- headers do
 
-      Astarte.DataUpdaterPlant.DataUpdater.handle_introspection(realm, device_id, payload, meta.delivery_tag, timestamp)
+      DataUpdater.handle_introspection(realm, device_id, payload, meta.delivery_tag, timestamp)
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -169,7 +170,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
             @path_header => path
           } <- headers do
 
-      Astarte.DataUpdaterPlant.DataUpdater.handle_data(realm, device_id, interface, path, payload, meta.delivery_tag, timestamp)
+      DataUpdater.handle_data(realm, device_id, interface, path, payload, meta.delivery_tag, timestamp)
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -182,7 +183,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
             @control_path_header => control_path
           } <- headers do
 
-      Astarte.DataUpdaterPlant.DataUpdater.handle_control(realm, device_id, control_path, payload, meta.delivery_tag, timestamp)
+      DataUpdater.handle_control(realm, device_id, control_path, payload, meta.delivery_tag, timestamp)
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end

@@ -18,6 +18,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater do
+  alias Astarte.DataUpdaterPlant.DataUpdater.Server
 
   def handle_connection(realm, encoded_device_id, ip_address, delivery_tag, timestamp) do
     get_data_updater_process(realm, encoded_device_id)
@@ -55,7 +56,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     case Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
       [] ->
         name = {:via, Registry, {Registry.DataUpdater, {realm, device_id}}}
-        {:ok, pid} = Astarte.DataUpdaterPlant.DataUpdater.Server.start(realm, device_id, name: name)
+        {:ok, pid} = Server.start(realm, device_id, name: name)
         pid
 
       [{pid, nil}] -> pid
