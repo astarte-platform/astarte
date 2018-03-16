@@ -77,7 +77,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   @insert_device_statement """
         INSERT INTO autotestrealm.devices (device_id, extended_id, aliases, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
           VALUES (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
-          '8.8.8.8', '4.4.4.4', 45000, :total_received_bytes, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1, 'com.example.TestObject': 1});
+          '8.8.8.8', '4.4.4.4', 45000, :total_received_bytes, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1, 'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1});
   """
 
   @insert_alias_statement """
@@ -170,6 +170,10 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
         (e7f6d126-ae91-9689-2dba-71a0be336507, aae432cf-b8c3-34a1-33c1-082ed93c8b2a, False, '/value', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 1);
+    """,
+    """
+    INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
+        (298f83b4-2120-da3e-4ac3-f695c59630a6, 75f3122c-3f0e-888b-425f-72d8d6e3ef70, True, '/%{x}/%{y}/color', 0, 1, 0, 'com.example.PixelsConfiguration', 1, 1, 1, 7);
     """
   ]
 
@@ -326,6 +330,11 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     ('com.example.TestObject', 1, 2, e7f6d126-ae91-9689-2dba-71a0be336507, 5, 1, 'com_example_testobject_v1', 5, 2)
   """
 
+  @insert_into_interface_3 """
+  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, quality, storage, storage_type, type) VALUES
+    ('com.example.PixelsConfiguration', 1, :automaton_accepting_states, :automaton_transitions, 1, 298f83b4-2120-da3e-4ac3-f695c59630a6, 0, 2, 'individual_property', 1, 1)
+  """
+
   def create_test_keyspace do
     {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
 
@@ -432,6 +441,20 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         query =
           DatabaseQuery.new()
           |> DatabaseQuery.statement(@insert_into_interface_2)
+
+        DatabaseQuery.call!(client, query)
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_interface_3)
+          |> DatabaseQuery.put(
+            :automaton_accepting_states,
+            Base.decode64!("g3QAAAABYQNtAAAAEHXzEiw/DoiLQl9y2Nbj73A=")
+          )
+          |> DatabaseQuery.put(
+            :automaton_transitions,
+            Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAABhAmgCYQJtAAAABWNvbG9yYQM=")
+          )
 
         DatabaseQuery.call!(client, query)
 

@@ -50,7 +50,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
           )
         )
 
-      assert json_response(conn, 200)["data"] == [
+      assert Enum.sort(json_response(conn, 200)["data"]) == [
+               "com.example.PixelsConfiguration",
                "com.example.TestObject",
                "com.test.LCDMonitor",
                "com.test.SimpleStreamTest"
