@@ -36,7 +36,13 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def device_connected(target, realm, device_id, ip_address) do
     %DeviceConnectedEvent{device_ip_address: ip_address}
-    |> make_simple_event(:device_connected_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> make_simple_event(
+      :device_connected_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
@@ -48,11 +54,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def device_disconnected(target, realm, device_id) do
     %DeviceDisconnectedEvent{}
-    |> make_simple_event(:device_disconnected_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> make_simple_event(
+      :device_disconnected_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  def incoming_data(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
+  def incoming_data(targets, realm, device_id, interface, path, bson_value)
+      when is_list(targets) do
     Enum.each(targets, fn target ->
       incoming_data(target, realm, device_id, interface, path, bson_value)
     end)
@@ -60,7 +73,13 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def incoming_data(target, realm, device_id, interface, path, bson_value) do
     %IncomingDataEvent{interface: interface, path: path, bson_value: bson_value}
-    |> make_simple_event(:incoming_data_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> make_simple_event(
+      :incoming_data_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
@@ -72,35 +91,89 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def incoming_introspection(target, realm, device_id, introspection) do
     %IncomingIntrospectionEvent{introspection: introspection}
-    |> make_simple_event(:incoming_introspection_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> make_simple_event(
+      :incoming_introspection_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  def interface_added(targets, realm, device_id, interface, major_version, minor_version) when is_list(targets) do
+  def interface_added(targets, realm, device_id, interface, major_version, minor_version)
+      when is_list(targets) do
     Enum.each(targets, fn target ->
       interface_added(target, realm, device_id, interface, major_version, minor_version)
     end)
   end
 
   def interface_added(target, realm, device_id, interface, major_version, minor_version) do
-    %InterfaceAddedEvent{interface: interface, major_version: major_version, minor_version: minor_version}
-    |> make_simple_event(:interface_added_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    %InterfaceAddedEvent{
+      interface: interface,
+      major_version: major_version,
+      minor_version: minor_version
+    }
+    |> make_simple_event(
+      :interface_added_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  def interface_minor_updated(targets, realm, device_id, interface, major_version, old_minor, new_minor) when is_list(targets) do
+  def interface_minor_updated(
+        targets,
+        realm,
+        device_id,
+        interface,
+        major_version,
+        old_minor,
+        new_minor
+      )
+      when is_list(targets) do
     Enum.each(targets, fn target ->
-      interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor)
+      interface_minor_updated(
+        target,
+        realm,
+        device_id,
+        interface,
+        major_version,
+        old_minor,
+        new_minor
+      )
     end)
   end
 
-  def interface_minor_updated(target, realm, device_id, interface, major_version, old_minor, new_minor) do
-    %InterfaceMinorUpdatedEvent{interface: interface, major_version: major_version, old_minor_version: old_minor, new_minor_version: new_minor}
-    |> make_simple_event(:interface_minor_updated_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+  def interface_minor_updated(
+        target,
+        realm,
+        device_id,
+        interface,
+        major_version,
+        old_minor,
+        new_minor
+      ) do
+    %InterfaceMinorUpdatedEvent{
+      interface: interface,
+      major_version: major_version,
+      old_minor_version: old_minor,
+      new_minor_version: new_minor
+    }
+    |> make_simple_event(
+      :interface_minor_updated_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  def interface_removed(targets, realm, device_id, interface, major_version) when is_list(targets) do
+  def interface_removed(targets, realm, device_id, interface, major_version)
+      when is_list(targets) do
     Enum.each(targets, fn target ->
       interface_removed(target, realm, device_id, interface, major_version)
     end)
@@ -108,11 +181,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def interface_removed(target, realm, device_id, interface, major_version) do
     %InterfaceRemovedEvent{interface: interface, major_version: major_version}
-    |> make_simple_event(:interface_removed_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> make_simple_event(
+      :interface_removed_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  def path_created(targets, realm, device_id, interface, path, bson_value) when is_list(targets) do
+  def path_created(targets, realm, device_id, interface, path, bson_value)
+      when is_list(targets) do
     Enum.each(targets, fn target ->
       path_created(target, realm, device_id, interface, path, bson_value)
     end)
@@ -120,7 +200,13 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def path_created(target, realm, device_id, interface, path, bson_value) do
     %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
-    |> make_simple_event(:path_created_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> make_simple_event(
+      :path_created_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
@@ -132,35 +218,96 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def path_removed(target, realm, device_id, interface, path) do
     %PathRemovedEvent{interface: interface, path: path}
-    |> make_simple_event(:path_removed_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    |> make_simple_event(
+      :path_removed_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  def value_change(targets, realm, device_id, interface, path, old_bson_value, new_bson_value) when is_list(targets) do
+  def value_change(targets, realm, device_id, interface, path, old_bson_value, new_bson_value)
+      when is_list(targets) do
     Enum.each(targets, fn target ->
       value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
     end)
   end
 
   def value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
-    %ValueChangeEvent{interface: interface, path: path, old_bson_value: old_bson_value, new_bson_value: new_bson_value}
-    |> make_simple_event(:value_change_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+    %ValueChangeEvent{
+      interface: interface,
+      path: path,
+      old_bson_value: old_bson_value,
+      new_bson_value: new_bson_value
+    }
+    |> make_simple_event(
+      :value_change_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  def value_change_applied(targets, realm, device_id, interface, path, old_bson_value, new_bson_value) when is_list(targets) do
+  def value_change_applied(
+        targets,
+        realm,
+        device_id,
+        interface,
+        path,
+        old_bson_value,
+        new_bson_value
+      )
+      when is_list(targets) do
     Enum.each(targets, fn target ->
-      value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
+      value_change_applied(
+        target,
+        realm,
+        device_id,
+        interface,
+        path,
+        old_bson_value,
+        new_bson_value
+      )
     end)
   end
 
-  def value_change_applied(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
-    %ValueChangeAppliedEvent{interface: interface, path: path, old_bson_value: old_bson_value, new_bson_value: new_bson_value}
-    |> make_simple_event(:value_change_applied_event, target.simple_trigger_id, target.parent_trigger_id, realm, device_id)
+  def value_change_applied(
+        target,
+        realm,
+        device_id,
+        interface,
+        path,
+        old_bson_value,
+        new_bson_value
+      ) do
+    %ValueChangeAppliedEvent{
+      interface: interface,
+      path: path,
+      old_bson_value: old_bson_value,
+      new_bson_value: new_bson_value
+    }
+    |> make_simple_event(
+      :value_change_applied_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id
+    )
     |> dispatch_event(target)
   end
 
-  defp make_simple_event(event, event_type, simple_trigger_id, parent_trigger_id, realm, device_id) do
+  defp make_simple_event(
+         event,
+         event_type,
+         simple_trigger_id,
+         parent_trigger_id,
+         realm,
+         device_id
+       ) do
     %SimpleEvent{
       simple_trigger_id: simple_trigger_id,
       parent_trigger_id: parent_trigger_id,
@@ -170,7 +317,10 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     }
   end
 
-  defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{routing_key: routing_key, static_headers: static_headers}) do
+  defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
+         routing_key: routing_key,
+         static_headers: static_headers
+       }) do
     {event_type, _event_struct} = simple_event.event
 
     simple_trigger_id_str =
@@ -183,13 +333,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       |> :uuid.uuid_to_string()
       |> to_string()
 
-    headers =
-      [{"x_astarte_realm", simple_event.realm},
-       {"x_astarte_device_id", simple_event.device_id},
-       {"x_astarte_simple_trigger_id", simple_trigger_id_str},
-       {"x_astarte_parent_trigger_id", parent_trigger_id_str},
-       {"x_astarte_event_type", to_string(event_type)}
-       | static_headers]
+    headers = [
+      {"x_astarte_realm", simple_event.realm},
+      {"x_astarte_device_id", simple_event.device_id},
+      {"x_astarte_simple_trigger_id", simple_trigger_id_str},
+      {"x_astarte_parent_trigger_id", parent_trigger_id_str},
+      {"x_astarte_event_type", to_string(event_type)}
+      | static_headers
+    ]
 
     SimpleEvent.encode(simple_event)
     |> AMQPEventsProducer.publish(routing_key, headers)

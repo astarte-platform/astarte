@@ -59,15 +59,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         {:ok, pid} = Server.start(realm, device_id, name: name)
         pid
 
-      [{pid, nil}] -> pid
+      [{pid, nil}] ->
+        pid
     end
   end
 
   defp decode_device_id(encoded_device_id) do
-    #TODO: if we cannot decode the device_id we should instead discard the message, there is no way it can be recovered.
-    << device_uuid :: binary-size(16), _extended_id :: binary >> = Base.url_decode64!(encoded_device_id, padding: false)
+    # TODO: if we cannot decode the device_id we should instead discard the message, there is no way it can be recovered.
+    <<device_uuid::binary-size(16), _extended_id::binary>> =
+      Base.url_decode64!(encoded_device_id, padding: false)
 
     device_uuid
   end
-
 end

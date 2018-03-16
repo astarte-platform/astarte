@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.ValueMatchOperators do
-
   def value_matches?(_received_value, :ANY, _known_value) do
     true
   end
@@ -46,5 +45,4 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperators do
   def value_matches?(received_value, :LESS_OR_EQUAL_TO, known_value) do
     received_value <= known_value
   end
-
 end
