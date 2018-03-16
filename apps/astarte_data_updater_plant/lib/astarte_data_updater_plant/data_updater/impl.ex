@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias CQEx.Client, as: DatabaseClient
@@ -176,19 +177,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, %Mapping{}}
       end
 
-    value =
-      if byte_size(payload) != 0 do
-        # TODO: use different BSON library
-        decoded_payload = Bson.decode(payload)
-
-        case decoded_payload do
-          %{v: bson_value} -> bson_value
-          %{} = bson_value -> bson_value
-          _ -> :error
-        end
-      else
-        nil
-      end
+    {value, value_timestamp, metadata} = PayloadsDecoder.decode_bson_payload(payload, timestamp)
 
     result =
       cond do
