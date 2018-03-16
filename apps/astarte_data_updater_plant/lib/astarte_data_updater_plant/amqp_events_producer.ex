@@ -32,7 +32,9 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   def handle_call({:publish, payload, routing_key, headers}, _from, chan) do
-    reply = Basic.publish(chan, Config.events_exchange_name(), routing_key, payload, headers: headers)
+    reply =
+      Basic.publish(chan, Config.events_exchange_name(), routing_key, payload, headers: headers)
+
     {:reply, reply, chan}
   end
 
@@ -53,13 +55,12 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
          Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
          :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true) do
-
       {:ok, chan}
-
     else
       {:error, reason} ->
         Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
         maybe_retry(retry)
+
       :error ->
         Logger.warn("Unknown RabbitMQ connection error")
         maybe_retry(retry)

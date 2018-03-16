@@ -24,10 +24,15 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       app: :astarte_data_updater_plant,
       version: "0.1.0",
       elixir: "~> 1.5",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -59,9 +64,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cqex, github: "ispirata/cqex"},
       {:cyanide, "~> 0.5.0"},
       {:conform, "~> 2.2"},
-
       {:distillery, "~> 1.4", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test},
+      {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 end

@@ -14,7 +14,11 @@ defmodule Astarte.DataUpdaterPlant.Config do
   Returns the AMQP trigger producer connection options
   """
   def amqp_producer_options do
-    Application.get_env(:astarte_data_updater_plant, :amqp_producer_options, amqp_consumer_options())
+    Application.get_env(
+      :astarte_data_updater_plant,
+      :amqp_producer_options,
+      amqp_consumer_options()
+    )
   end
 
   @doc """
