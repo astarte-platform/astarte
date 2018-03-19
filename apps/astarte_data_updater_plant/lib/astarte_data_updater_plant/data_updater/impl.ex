@@ -179,6 +179,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     {value, value_timestamp, metadata} = PayloadsDecoder.decode_bson_payload(payload, timestamp)
 
+    # TODO: here we need to set value_timestamp to reception_timestamp if custom timestamp
+    # is not allowed
+
     result =
       cond do
         interface_descriptor.ownership == :server ->
@@ -349,6 +352,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               endpoint,
               path,
               value,
+              value_timestamp,
               timestamp
             )
 
@@ -719,7 +723,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          endpoint,
          path,
          nil,
-         _timestamp
+         _value_timestamp,
+         _reception_timestamp
        ) do
     if endpoint.allow_unset == false do
       Logger.warn("Tried to unset value on allow_unset=false mapping.")
@@ -751,7 +756,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          endpoint,
          path,
          value,
-         timestamp
+         _value_timestamp,
+         reception_timestamp
        ) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
@@ -767,8 +773,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 10000))
+      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -785,7 +791,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          endpoint,
          path,
          value,
-         timestamp
+         value_timestamp,
+         reception_timestamp
        ) do
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -802,9 +809,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, div(timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 10000))
+      |> DatabaseQuery.put(:value_timestamp, value_timestamp)
+      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -821,7 +828,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          _endpoint,
          _path,
          value,
-         timestamp
+         value_timestamp,
+         reception_timestamp
        ) do
     # TODO: we should cache endpoints by interface_id
     endpoint_query =
@@ -875,8 +883,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "VALUES (:device_id, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
       )
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 10000))
+      |> DatabaseQuery.put(:value_timestamp, value_timestamp)
+      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.merge(query_values)
 
     DatabaseQuery.call!(db_client, insert_query)
