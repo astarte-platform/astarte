@@ -130,7 +130,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       ip_address_string
     )
 
-    %{state | connected: true}
+    %{state | connected: true, last_seen_message: timestamp}
   end
 
   def handle_disconnection(state, delivery_tag, timestamp) do
@@ -154,14 +154,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     device_id_string = pretty_device_id(state.device_id)
     TriggersHandler.device_disconnected(trigger_targets, state.realm, device_id_string)
 
-    %{state | connected: false}
+    %{state | connected: false, last_seen_message: timestamp}
   end
 
   def handle_data(state, interface, path, payload, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
+    new_state = %{state | last_seen_message: timestamp}
+
     {interface_descriptor, new_state} =
-      maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
+      maybe_handle_cache_miss(
+        Map.get(new_state.interfaces, interface),
+        interface,
+        new_state,
+        db_client
+      )
 
     {resolve_result, endpoint} =
       case interface_descriptor.aggregation do
