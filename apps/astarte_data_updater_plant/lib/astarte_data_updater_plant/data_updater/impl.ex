@@ -35,6 +35,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   require Logger
 
   @max_uncompressed_payload_size 10_485_760
+  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id) do
     new_state = %State{
@@ -77,6 +78,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         introspection: introspection_map,
         interfaces: %{},
         interface_ids_to_name: %{},
+        interfaces_by_expiry: [],
         mappings: %{},
         device_triggers: %{},
         data_triggers: %{},
@@ -160,7 +162,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_data(state, interface, path, payload, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
-    new_state = %{state | last_seen_message: timestamp}
+    new_state =
+      %{state | last_seen_message: timestamp}
+      |> purge_expired_interfaces(timestamp)
 
     {interface_descriptor, new_state} =
       maybe_handle_cache_miss(
@@ -670,6 +674,69 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     output_acc
   end
 
+  defp purge_expired_interfaces(state, timestamp) do
+    expired =
+      Enum.take_while(state.interfaces_by_expiry, fn {expiry, _interface} ->
+        expiry <= timestamp
+      end)
+
+    new_interfaces_by_expiry = Enum.drop(state.interfaces_by_expiry, length(expired))
+
+    interfaces_to_drop_list =
+      for {_exp, iface} <- expired do
+        iface
+      end
+
+    state
+    |> forget_interfaces(interfaces_to_drop_list)
+    |> Map.put(:interfaces_by_expiry, new_interfaces_by_expiry)
+  end
+
+  defp forget_interfaces(state, []) do
+    state
+  end
+
+  defp forget_interfaces(state, interfaces_to_drop) do
+    updated_triggers =
+      Enum.reduce(interfaces_to_drop, state.data_triggers, fn iface, data_triggers ->
+        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+
+        Enum.reject(data_triggers, fn {{event_type, iface_id, endpoint}, val} ->
+          iface_id == interface_id
+        end)
+        |> Enum.into(%{})
+      end)
+
+    updated_mappings =
+      Enum.reduce(interfaces_to_drop, state.mappings, fn iface, mappings ->
+        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+
+        Enum.reject(mappings, fn {endpoint_id, mapping} ->
+          mapping.interface_id == interface_id
+        end)
+        |> Enum.into(%{})
+      end)
+
+    updated_ids =
+      Enum.reduce(interfaces_to_drop, state.interface_ids_to_name, fn iface, ids ->
+        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+        Map.delete(ids, interface_id)
+      end)
+
+    updated_interfaces =
+      Enum.reduce(interfaces_to_drop, state.interfaces, fn iface, ifaces ->
+        Map.delete(ifaces, iface)
+      end)
+
+    %{
+      state
+      | interfaces: updated_interfaces,
+        interface_ids_to_name: updated_ids,
+        mappings: updated_mappings,
+        data_triggers: updated_triggers
+    }
+  end
+
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
     major_version = interface_version!(db_client, state.device_id, interface_name)
     interface_row = retrieve_interface_row!(db_client, interface_name, major_version)
@@ -690,11 +757,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Map.put(acc, mapping.endpoint_id, mapping)
       end)
 
+    new_interfaces_by_expiry =
+      state.interfaces_by_expiry ++
+        [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}]
+
     new_state = %State{
       state
       | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
         interface_ids_to_name:
           Map.put(state.interface_ids_to_name, interface_descriptor.interface_id, interface_name),
+        interfaces_by_expiry: new_interfaces_by_expiry,
         mappings: mappings
     }
 

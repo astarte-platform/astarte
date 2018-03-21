@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :introspection,
     :interfaces,
     :interface_ids_to_name,
+    :interfaces_by_expiry,
     :mappings,
     :device_triggers,
     :data_triggers,
