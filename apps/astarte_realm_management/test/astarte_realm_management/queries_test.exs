@@ -110,7 +110,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND reception_timestamp <= '2011-02-03 04:05+0000';
   """
 
-  @individual_property_thing_owned_interface """
+  @individual_property_device_owned_interface """
   {
        "interface_name": "com.ispirata.Hemera.DeviceLog.Status",
        "version_major": 2,
