@@ -1,22 +1,24 @@
 defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
+  alias Astarte.RealmManagement.RPC.AMQPServer
+  use Astarte.RPC.Protocol.RealmManagement
   use ExUnit.Case
   require Logger
 
   test "process_rpc invalid messages and calls" do
-    assert_raise FunctionClauseError, fn -> Astarte.RealmManagement.RPC.AMQPServer.process_rpc(nil) end
-    assert_raise FunctionClauseError, fn -> assert Astarte.RealmManagement.RPC.AMQPServer.process_rpc([]) end
-    assert Astarte.RealmManagement.RPC.AMQPServer.process_rpc("") == {:error, :unexpected_message}
+    assert_raise FunctionClauseError, fn -> AMQPServer.process_rpc(nil) end
+    assert_raise FunctionClauseError, fn -> assert AMQPServer.process_rpc([]) end
+    assert AMQPServer.process_rpc("") == {:error, :unexpected_message}
   end
 
   test "encode error reply" do
-    assert Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:test, {:error, :retry}) == {:error, :retry}
+    assert AMQPServer.encode_reply(:test, {:error, :retry}) == {:error, :retry}
 
 
-    assert Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:test, {:error, "some random string"}) == {:error, "some random string"}
+    assert AMQPServer.encode_reply(:test, {:error, "some random string"}) == {:error, "some random string"}
 
-    expectedReply = %Astarte.RPC.Protocol.RealmManagement.Reply {
+    expectedReply = %Reply {
       error: true,
-      reply: {:generic_error_reply, %Astarte.RPC.Protocol.RealmManagement.GenericErrorReply {
+      reply: {:generic_error_reply, %GenericErrorReply {
         error_data: nil,
         error_name: "fake_error",
         user_readable_error_name: nil,
@@ -24,29 +26,29 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
       }
     }, version: 1}
 
-    {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:test, {:error, :fake_error})
-    assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
+    {:ok, buf} = AMQPServer.encode_reply(:test, {:error, :fake_error})
+    assert Reply.decode(buf) == expectedReply
   end
 
   test "decode replies" do
-    expectedReply = %Astarte.RPC.Protocol.RealmManagement.Reply {
+    expectedReply = %Reply {
       error: false,
-      reply: {:get_interface_source_reply, %Astarte.RPC.Protocol.RealmManagement.GetInterfaceSourceReply {
+      reply: {:get_interface_source_reply, %GetInterfaceSourceReply {
         source: "this_is_the_source"
       }}
     }
-    {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:get_interface_source, {:ok, "this_is_the_source"})
-    assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
+    {:ok, buf} = AMQPServer.encode_reply(:get_interface_source, {:ok, "this_is_the_source"})
+    assert Reply.decode(buf) == expectedReply
 
-    expectedReply = %Astarte.RPC.Protocol.RealmManagement.Reply {
+    expectedReply = %Reply {
       error: false,
-      reply: {:get_interface_versions_list_reply, %Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReply {
+      reply: {:get_interface_versions_list_reply, %GetInterfaceVersionsListReply {
         versions: [
-          %Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReplyVersionTuple {
+          %GetInterfaceVersionsListReplyVersionTuple {
             major_version: 1,
             minor_version: 2
           },
-          %Astarte.RPC.Protocol.RealmManagement.GetInterfaceVersionsListReplyVersionTuple {
+          %GetInterfaceVersionsListReplyVersionTuple {
             major_version: 2,
             minor_version: 0
           }
@@ -54,20 +56,20 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
       }}
     }
 
-    {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:get_interface_versions_list, {:ok, [[major_version: 1, minor_version: 2], [major_version: 2, minor_version: 0]]})
-    assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
+    {:ok, buf} = AMQPServer.encode_reply(:get_interface_versions_list, {:ok, [[major_version: 1, minor_version: 2], [major_version: 2, minor_version: 0]]})
+    assert Reply.decode(buf) == expectedReply
 
-    expectedReply = %Astarte.RPC.Protocol.RealmManagement.Reply {
+    expectedReply = %Reply {
       error: false,
-      reply: {:get_interfaces_list_reply, %Astarte.RPC.Protocol.RealmManagement.GetInterfacesListReply {
+      reply: {:get_interfaces_list_reply, %GetInterfacesListReply {
         interfaces_names: [
           "interface.a", "interface.b"
         ]
       }}
     }
 
-    {:ok, buf} = Astarte.RealmManagement.RPC.AMQPServer.encode_reply(:get_interfaces_list, {:ok, ["interface.a", "interface.b"]})
-    assert Astarte.RPC.Protocol.RealmManagement.Reply.decode(buf) == expectedReply
+    {:ok, buf} = AMQPServer.encode_reply(:get_interfaces_list, {:ok, ["interface.a", "interface.b"]})
+    assert Reply.decode(buf) == expectedReply
   end
 
 end

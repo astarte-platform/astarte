@@ -196,26 +196,26 @@ defmodule Astarte.RealmManagement.QueriesTest do
   end
 
   test "object interface install" do
-    case Astarte.RealmManagement.DatabaseTestHelper.connect_to_test_database() do
+    case DatabaseTestHelper.connect_to_test_database() do
       {:ok, _} ->
         client = connect_to_test_realm("autotestrealm")
 
         {:ok, intdoc} = Astarte.Core.InterfaceDocument.from_json(@object_datastream_interface_json)
         {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
-        assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == []
-        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
-        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == []
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
+        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
+        assert Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
+        assert Queries.get_interfaces_list(client) == []
 
-        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc, automaton)
+        Queries.install_new_interface(client, intdoc, automaton)
 
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
-        assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
-        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:ok, intdoc.source}
-        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
+        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
+        assert Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:ok, intdoc.source}
+        assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
 
         DatabaseQuery.call!(client, @insert_log_line0_device_a)
         DatabaseQuery.call!(client, @insert_log_line1_device_a)
@@ -243,33 +243,33 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
         assert an_older_log_entry == [[device_id: <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>, reception_timestamp: 1265256300000, reception_timestamp_submillis: 0, applicationid: "com.test", cmdline: "/bin/test", message: "test", monotonictimestamp: 9123456789012345678, pid: 5, timestamp: 1265169900000]]
 
-        Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+        DatabaseTestHelper.destroy_local_test_keyspace()
 
       {:error, msg} -> Logger.warn "Skipped 'object interface install' test, database engine says: " <> msg
     end
   end
 
   test "individual interface install" do
-    case Astarte.RealmManagement.DatabaseTestHelper.connect_to_test_database() do
+    case DatabaseTestHelper.connect_to_test_database() do
       {:ok, _} ->
         client = connect_to_test_realm("autotestrealm")
 
         {:ok, intdoc} = Astarte.Core.InterfaceDocument.from_json(@individual_property_thing_owned_interface )
         {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
-        assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == []
-        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
-        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == []
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == false
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
+        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
+        assert Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:error, :interface_not_found}
+        assert Queries.get_interfaces_list(client) == []
 
-        Astarte.RealmManagement.Queries.install_new_interface(client, intdoc, automaton)
+        Queries.install_new_interface(client, intdoc, automaton)
 
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
-        assert Astarte.RealmManagement.Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
-        assert Astarte.RealmManagement.Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
-        assert Astarte.RealmManagement.Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:ok, intdoc.source}
-        assert Astarte.RealmManagement.Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == true
+        assert Queries.is_interface_major_available?(client, intdoc.descriptor.name, intdoc.descriptor.major_version - 1) == false
+        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [[major_version: intdoc.descriptor.major_version, minor_version: intdoc.descriptor.minor_version]]
+        assert Queries.interface_source(client, intdoc.descriptor.name, intdoc.descriptor.major_version) == {:ok, intdoc.source}
+        assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
 
         endpoint = find_endpoint(client, "com.ispirata.Hemera.DeviceLog.Status", 2, "/filterRules/%{ruleId}/%{filterKey}/value")
         endpoint_id = endpoint[:endpoint_id]
@@ -312,20 +312,20 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
         assert entries == [[path: "/filterRules/0/testKey/value"], [path: "/filterRules/1/testKey2/value"]];
 
-        Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+        DatabaseTestHelper.destroy_local_test_keyspace()
 
       {:error, msg} -> Logger.warn "Skipped 'individual interface install' test, database engine says: " <> msg
     end
   end
 
   test "timestamp handling" do
-     case Astarte.RealmManagement.DatabaseTestHelper.connect_to_test_database() do
+     case DatabaseTestHelper.connect_to_test_database() do
       {:ok, _} ->
         client = connect_to_test_realm("autotestrealm")
 
         {:ok, doc} = Astarte.Core.InterfaceDocument.from_json(@individual_datastream_with_explicit_timestamp_interface_json)
         {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
-        Astarte.RealmManagement.Queries.install_new_interface(client, doc, automaton)
+        Queries.install_new_interface(client, doc, automaton)
 
         endpoint_id = retrieve_endpoint_id(client, "com.timestamp.Test", 1, "/test/0/v")
 
@@ -337,7 +337,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         assert timestamp_handling_check_order(client, endpoint_id, 1) == {20, true}
         assert timestamp_handling_check_order(client, endpoint_id, 2) == {10, true}
 
-        Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+        DatabaseTestHelper.destroy_local_test_keyspace()
 
       {:error, msg} -> Logger.warn "Skipped 'individual interface install' test, database engine says: " <> msg
     end
@@ -384,7 +384,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_jwt_public_key_pem(client) == {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
 
-    Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   test "update JWT public key PEM" do
