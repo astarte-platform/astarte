@@ -3,10 +3,10 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   alias CQEx.Client, as: DatabaseClient
 
   @jwt_public_key_pem """
------BEGIN PUBLIC KEY-----
-MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE7u5hHn9oE9uy5JoUjwNU6rSEgRlAFh5e
-u9/f1dNImWDuIPeLu8nEiuHlCMy02+YDu0wN2U1psPC7w6AFjv4uTg==
------END PUBLIC KEY-----
+  -----BEGIN PUBLIC KEY-----
+  MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE7u5hHn9oE9uy5JoUjwNU6rSEgRlAFh5e
+  u9/f1dNImWDuIPeLu8nEiuHlCMy02+YDu0wN2U1psPC7w6AFjv4uTg==
+  -----END PUBLIC KEY-----
   """
 
   @create_autotestrealm """
@@ -71,18 +71,23 @@ u9/f1dNImWDuIPeLu8nEiuHlCMy02+YDu0wN2U1psPC7w6AFjv4uTg==
 
   def connect_to_test_database do
     {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_interfaces_table)
         DatabaseQuery.call!(client, @create_endpoints_table)
         DatabaseQuery.call!(client, @create_kv_store_table)
+
         query =
           DatabaseQuery.new()
           |> DatabaseQuery.statement(@insert_public_key)
           |> DatabaseQuery.put(:pem, @jwt_public_key_pem)
+
         DatabaseQuery.call!(client, query)
         {:ok, client}
-      %{msg: msg} -> {:error, msg}
+
+      %{msg: msg} ->
+        {:error, msg}
     end
   end
 

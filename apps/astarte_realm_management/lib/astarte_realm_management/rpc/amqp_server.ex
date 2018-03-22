@@ -72,27 +72,25 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   end
 
   def encode_reply(:get_trigger, {:ok, reply}) do
-    msg =
-      %GetTriggerReply{
-        trigger_data:  Trigger.encode(reply[:trigger]),
-        simple_triggers_data_container:
-          for simple_trigger <- reply[:simple_triggers] do
-            %GetTriggerReply.SimpleTriggerDataContainer{
-              object_id: simple_trigger[:object_id],
-              object_type: simple_trigger[:object_type],
-              data: SimpleTriggerContainer.encode(simple_trigger.simple_trigger)
-            }
-          end
-        }
+    msg = %GetTriggerReply{
+      trigger_data: Trigger.encode(reply[:trigger]),
+      simple_triggers_data_container:
+        for simple_trigger <- reply[:simple_triggers] do
+          %GetTriggerReply.SimpleTriggerDataContainer{
+            object_id: simple_trigger[:object_id],
+            object_type: simple_trigger[:object_type],
+            data: SimpleTriggerContainer.encode(simple_trigger.simple_trigger)
+          }
+        end
+    }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_reply, msg}})}
   end
 
   def encode_reply(:get_triggers_list, {:ok, reply}) do
-    msg =
-      %GetTriggersListReply{
-        triggers_names: reply
-      }
+    msg = %GetTriggersListReply{
+      triggers_names: reply
+    }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_triggers_list_reply, msg}})}
   end
