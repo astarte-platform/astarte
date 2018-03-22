@@ -19,6 +19,8 @@
 
 defmodule Astarte.RealmManagement.Engine do
   require Logger
+  alias Astarte.Core.InterfaceDocument
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
@@ -33,7 +35,7 @@ defmodule Astarte.RealmManagement.Engine do
       Logger.warn "Found possible CQL command in JSON interface: #{inspect interface_json}"
     end
 
-    interface_result = Astarte.Core.InterfaceDocument.from_json(interface_json)
+    interface_result = InterfaceDocument.from_json(interface_json)
 
     cond do
       interface_result == :error ->
@@ -43,13 +45,13 @@ defmodule Astarte.RealmManagement.Engine do
       {connection_status, connection_result} == {:error, :shutdown} ->
         {:error, :realm_not_found}
 
-      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, elem(interface_result, 1).descriptor.name, elem(interface_result, 1).descriptor.major_version) == true ->
+      Queries.is_interface_major_available?(connection_result, elem(interface_result, 1).descriptor.name, elem(interface_result, 1).descriptor.major_version) == true ->
         {:error, :already_installed_interface}
 
       true ->
         {:ok, interface_document} = interface_result
 
-        automaton_build_result = Astarte.Core.Mapping.EndpointsAutomaton.build(interface_document.mappings)
+        automaton_build_result = EndpointsAutomaton.build(interface_document.mappings)
 
         cond do
           match?({:error, _}, automaton_build_result) ->
@@ -57,12 +59,12 @@ defmodule Astarte.RealmManagement.Engine do
 
           opts[:async] ->
             {:ok, automaton} = automaton_build_result
-            Task.start_link(Astarte.RealmManagement.Queries, :install_new_interface, [connection_result, interface_document, automaton])
+            Task.start_link(Queries, :install_new_interface, [connection_result, interface_document, automaton])
             {:ok, :started}
 
           true ->
             {:ok, automaton} = automaton_build_result
-            Astarte.RealmManagement.Queries.install_new_interface(connection_result, interface_document, automaton)
+            Queries.install_new_interface(connection_result, interface_document, automaton)
         end
     end
   end
@@ -74,7 +76,7 @@ defmodule Astarte.RealmManagement.Engine do
       Logger.warn "Found possible CQL command in JSON interface: #{inspect interface_json}"
     end
 
-    interface_result = Astarte.Core.InterfaceDocument.from_json(interface_json)
+    interface_result = InterfaceDocument.from_json(interface_json)
 
     cond do
       interface_result == :error ->
@@ -84,17 +86,17 @@ defmodule Astarte.RealmManagement.Engine do
       {connection_status, connection_result} == {:error, :shutdown} ->
         {:error, :realm_not_found}
 
-      Astarte.RealmManagement.Queries.is_interface_major_available?(connection_result, elem(interface_result, 1).descriptor.name, elem(interface_result, 1).descriptor.major_version) != true ->
+      Queries.is_interface_major_available?(connection_result, elem(interface_result, 1).descriptor.name, elem(interface_result, 1).descriptor.major_version) != true ->
         {:error, :interface_major_version_does_not_exist}
 
       true ->
         {:ok, interface_document} = interface_result
 
         if (opts[:async]) do
-          Task.start_link(Astarte.RealmManagement.Queries, :update_interface, [connection_result, interface_document])
+          Task.start_link(Queries, :update_interface, [connection_result, interface_document])
           {:ok, :started}
         else
-          Astarte.RealmManagement.Queries.update_interface(connection_result, interface_document)
+          Queries.update_interface(connection_result, interface_document)
         end
     end
   end
@@ -103,15 +105,15 @@ defmodule Astarte.RealmManagement.Engine do
     client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
 
     cond do
-      Astarte.RealmManagement.Queries.is_interface_major_available?(client, interface_name, interface_major_version) == false ->
+      Queries.is_interface_major_available?(client, interface_name, interface_major_version) == false ->
         {:error, :interface_major_version_does_not_exist}
 
       true ->
         if (opts[:async]) do
-          Task.start_link(Astarte.RealmManagement.Queries, :delete_interface, [client, interface_name, interface_major_version])
+          Task.start_link(Queries, :delete_interface, [client, interface_name, interface_major_version])
           {:ok, :started}
         else
-          Astarte.RealmManagement.Queries.delete_interface(client, interface_name, interface_major_version)
+          Queries.delete_interface(client, interface_name, interface_major_version)
         end
     end
   end
@@ -122,7 +124,7 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, :realm_not_found}
 
       {:ok, client} ->
-        Astarte.RealmManagement.Queries.interface_source(client, interface_name, interface_major_version)
+        Queries.interface_source(client, interface_name, interface_major_version)
     end
   end
 
@@ -132,7 +134,7 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, :realm_not_found}
 
       {:ok, client} ->
-        result = Astarte.RealmManagement.Queries.interface_available_versions(client, interface_name)
+        result = Queries.interface_available_versions(client, interface_name)
 
         if result != [] do
           {:ok, result}
@@ -148,14 +150,14 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, :realm_not_found}
 
       {:ok, client} ->
-        result = Astarte.RealmManagement.Queries.get_interfaces_list(client)
+        result = Queries.get_interfaces_list(client)
         {:ok, result}
     end
   end
 
   def get_jwt_public_key_pem(realm_name) do
     with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
-      Astarte.RealmManagement.Queries.get_jwt_public_key_pem(client)
+      Queries.get_jwt_public_key_pem(client)
     else
       {:error, :shutdown} ->
         {:error, :realm_not_found}
@@ -164,7 +166,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
     with {:ok, client} <- DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name]) do
-      Astarte.RealmManagement.Queries.update_jwt_public_key_pem(client, jwt_public_key_pem)
+      Queries.update_jwt_public_key_pem(client, jwt_public_key_pem)
     else
       {:error, :shutdown} ->
         {:error, :realm_not_found}

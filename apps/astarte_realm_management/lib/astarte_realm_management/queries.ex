@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   require Logger
   alias Astarte.Core.AstarteReference
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.StorageType
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
@@ -157,10 +158,10 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp create_interface_table(:individual, :one, interface_descriptor, mappings) do
-    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+    table_name = CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
 
     mappings_cql = for mapping <- mappings do
-        "#{Astarte.Core.CQLUtils.type_to_db_column_name(mapping.value_type)} #{Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
+        "#{CQLUtils.type_to_db_column_name(mapping.value_type)} #{CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
     end
 
     columns = mappings_cql
@@ -187,10 +188,10 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp create_interface_table(:object, :one, interface_descriptor, mappings) do
-    table_name = Astarte.Core.CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+    table_name = CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
 
     mappings_cql = for mapping <- mappings do
-      "#{Astarte.Core.CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{Astarte.Core.CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
+      "#{CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
     end
 
     columns = mappings_cql
@@ -221,13 +222,13 @@ defmodule Astarte.RealmManagement.Queries do
     {storage_type, table_name, create_table_statement} = create_interface_table(interface_document.descriptor.aggregation, table_type, interface_document.descriptor, interface_document.mappings)
     {:ok, _} = DatabaseQuery.call(client, create_table_statement)
 
-    interface_id = Astarte.Core.CQLUtils.interface_id(interface_document.descriptor.name, interface_document.descriptor.major_version)
+    interface_id = CQLUtils.interface_id(interface_document.descriptor.name, interface_document.descriptor.major_version)
 
     {transitions, accepting_states} = automaton
 
     accepting_states = Enum.reduce(accepting_states, %{}, fn(state, new_states) ->
       {state_index, endpoint} = state
-      Map.put(new_states, state_index, Astarte.Core.CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, endpoint))
+      Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, endpoint))
     end)
 
     query = DatabaseQuery.new
@@ -256,7 +257,7 @@ defmodule Astarte.RealmManagement.Queries do
     for mapping <- interface_document.mappings do
       query = base_query
         |> DatabaseQuery.put(:interface_id, interface_id)
-        |> DatabaseQuery.put(:endpoint_id, Astarte.Core.CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, mapping.endpoint))
+        |> DatabaseQuery.put(:endpoint_id, CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, mapping.endpoint))
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
         |> DatabaseQuery.put(:value_type, Astarte.Core.Mapping.ValueType.to_int(mapping.value_type))
         |> DatabaseQuery.put(:reliability, Astarte.Core.Mapping.Reliability.to_int(mapping.reliability))
@@ -283,7 +284,7 @@ defmodule Astarte.RealmManagement.Queries do
     else
       Logger.info "delete interface: #{interface_name}"
 
-      interface_id = Astarte.Core.CQLUtils.interface_id(interface_name, interface_major_version)
+      interface_id = CQLUtils.interface_id(interface_name, interface_major_version)
 
       query = DatabaseQuery.new
         |> DatabaseQuery.statement(@delete_interface_from_interfaces)
@@ -297,7 +298,7 @@ defmodule Astarte.RealmManagement.Queries do
 
       #TODO: no need to delete a table for the multi interface approach
       #drop_table_statement = @drop_interface_table
-      #  |> String.replace(":table_name", Astarte.Core.CQLUtils.interface_name_to_table_name(interface_name, 0))
+      #  |> String.replace(":table_name", CQLUtils.interface_name_to_table_name(interface_name, 0))
       #DatabaseQuery.call!(client, drop_table_statement)
 
       :ok
