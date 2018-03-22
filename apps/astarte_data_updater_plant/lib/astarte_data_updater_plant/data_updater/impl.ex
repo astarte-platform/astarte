@@ -945,7 +945,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       interface_descriptor.type != :properties ->
         {:ok, state}
 
-      interface_descriptor.ownership != :thing ->
+      interface_descriptor.ownership != :device ->
         Logger.warn(
           "#{state.realm}: Device #{pretty_device_id(state.device_id)} tried to write on server owned interface: #{
             interface
