@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.RealmManagement.Queries do
-
   require Logger
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
@@ -108,7 +107,7 @@ defmodule Astarte.RealmManagement.Queries do
   # TODO: disable DROP TABLE
   #  @drop_interface_table """
   #   DROP TABLE :table_name;
-  #"""
+  # """
 
   @query_interface_versions """
     SELECT major_version, minor_version FROM interfaces WHERE name=:interface_name;
@@ -141,7 +140,8 @@ defmodule Astarte.RealmManagement.Queries do
     {table_type, suffix, value_timestamp, key_timestamp} =
       case interface_descriptor.type do
         :datastream ->
-          {:multi_interface_individual_datastream_dbtable, "datastream", "value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
+          {:multi_interface_individual_datastream_dbtable, "datastream",
+           "value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
 
         :properties ->
           {:multi_interface_individual_properties_dbtable, "property", "", ""}
@@ -149,7 +149,8 @@ defmodule Astarte.RealmManagement.Queries do
 
     table_name = "individual_#{suffix}"
 
-    create_table_statement = @create_individual_multiinterface_table
+    create_table_statement =
+      @create_individual_multiinterface_table
       |> String.replace(":table_name", table_name)
       |> String.replace(":value_timestamp", value_timestamp)
       |> String.replace(":key_timestamp", key_timestamp)
@@ -158,52 +159,72 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp create_interface_table(:individual, :one, interface_descriptor, mappings) do
-    table_name = CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+    table_name =
+      CQLUtils.interface_name_to_table_name(
+        interface_descriptor.name,
+        interface_descriptor.major_version
+      )
 
-    mappings_cql = for mapping <- mappings do
-        "#{CQLUtils.type_to_db_column_name(mapping.value_type)} #{CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
-    end
+    mappings_cql =
+      for mapping <- mappings do
+        "#{CQLUtils.type_to_db_column_name(mapping.value_type)} #{
+          CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+        }"
+      end
 
-    columns = mappings_cql
-      |> Enum.uniq
-      |> Enum.sort
+    columns =
+      mappings_cql
+      |> Enum.uniq()
+      |> Enum.sort()
       |> Enum.join(~s(,\n))
 
     {table_type, value_timestamp, key_timestamp} =
       case interface_descriptor.type do
         :datastream ->
-          {:one_individual_datastream_dbtable, "value_timestamp timestamp, ", ", value_timestamp, reception_timestamp, reception_timestamp_submillis"}
+          {:one_individual_datastream_dbtable, "value_timestamp timestamp, ",
+           ", value_timestamp, reception_timestamp, reception_timestamp_submillis"}
 
         :properties ->
           {:one_individual_properties_dbtable, "", ""}
       end
 
-    create_table_statement = @create_interface_table_with_individual_aggregation
-    |> String.replace(":interface_name", table_name)
-    |> String.replace(":value_timestamp", value_timestamp)
-    |> String.replace(":columns", columns)
-    |> String.replace(":key_timestamp", key_timestamp)
+    create_table_statement =
+      @create_interface_table_with_individual_aggregation
+      |> String.replace(":interface_name", table_name)
+      |> String.replace(":value_timestamp", value_timestamp)
+      |> String.replace(":columns", columns)
+      |> String.replace(":key_timestamp", key_timestamp)
 
     {table_type, table_name, create_table_statement}
   end
 
   defp create_interface_table(:object, :one, interface_descriptor, mappings) do
-    table_name = CQLUtils.interface_name_to_table_name(interface_descriptor.name, interface_descriptor.major_version)
+    table_name =
+      CQLUtils.interface_name_to_table_name(
+        interface_descriptor.name,
+        interface_descriptor.major_version
+      )
 
-    mappings_cql = for mapping <- mappings do
-      "#{CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{CQLUtils.mapping_value_type_to_db_type(mapping.value_type)}"
-    end
+    mappings_cql =
+      for mapping <- mappings do
+        "#{CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{
+          CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
+        }"
+      end
 
-    columns = mappings_cql
+    columns =
+      mappings_cql
       |> Enum.join(~s(,\n))
 
-    {value_timestamp, key_timestamp} = if interface_descriptor.explicit_timestamp do
-      {"value_timestamp timestamp,", "value_timestamp,"}
-    else
-      {"", ""}
-    end
+    {value_timestamp, key_timestamp} =
+      if interface_descriptor.explicit_timestamp do
+        {"value_timestamp timestamp,", "value_timestamp,"}
+      else
+        {"", ""}
+      end
 
-    create_table_statement = @create_interface_table_with_object_aggregation
+    create_table_statement =
+      @create_interface_table_with_object_aggregation
       |> String.replace(":interface_name", table_name)
       |> String.replace(":value_timestamp", value_timestamp)
       |> String.replace(":columns", columns)
@@ -213,25 +234,48 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def install_new_interface(client, interface_document, automaton) do
-    table_type = if interface_document.descriptor.aggregation == :individual do
-      :multi
-    else
-      :one
-    end
+    table_type =
+      if interface_document.descriptor.aggregation == :individual do
+        :multi
+      else
+        :one
+      end
 
-    {storage_type, table_name, create_table_statement} = create_interface_table(interface_document.descriptor.aggregation, table_type, interface_document.descriptor, interface_document.mappings)
+    {storage_type, table_name, create_table_statement} =
+      create_interface_table(
+        interface_document.descriptor.aggregation,
+        table_type,
+        interface_document.descriptor,
+        interface_document.mappings
+      )
+
     {:ok, _} = DatabaseQuery.call(client, create_table_statement)
 
-    interface_id = CQLUtils.interface_id(interface_document.descriptor.name, interface_document.descriptor.major_version)
+    interface_id =
+      CQLUtils.interface_id(
+        interface_document.descriptor.name,
+        interface_document.descriptor.major_version
+      )
 
     {transitions, accepting_states} = automaton
 
-    accepting_states = Enum.reduce(accepting_states, %{}, fn(state, new_states) ->
-      {state_index, endpoint} = state
-      Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, endpoint))
-    end)
+    accepting_states =
+      Enum.reduce(accepting_states, %{}, fn state, new_states ->
+        {state_index, endpoint} = state
 
-    query = DatabaseQuery.new
+        Map.put(
+          new_states,
+          state_index,
+          CQLUtils.endpoint_id(
+            interface_document.descriptor.name,
+            interface_document.descriptor.major_version,
+            endpoint
+          )
+        )
+      end)
+
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_interfaces)
       |> DatabaseQuery.put(:name, interface_document.descriptor.name)
       |> DatabaseQuery.put(:major_version, interface_document.descriptor.major_version)
@@ -239,31 +283,60 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:interface_id, interface_id)
       |> DatabaseQuery.put(:storage_type, StorageType.to_int(storage_type))
       |> DatabaseQuery.put(:storage, table_name)
-      |> DatabaseQuery.put(:type, Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type))
-      |> DatabaseQuery.put(:ownership, Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership))
-      |> DatabaseQuery.put(:aggregation, Astarte.Core.Interface.Aggregation.to_int(interface_document.descriptor.aggregation))
+      |> DatabaseQuery.put(
+        :type,
+        Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type)
+      )
+      |> DatabaseQuery.put(
+        :ownership,
+        Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership)
+      )
+      |> DatabaseQuery.put(
+        :aggregation,
+        Astarte.Core.Interface.Aggregation.to_int(interface_document.descriptor.aggregation)
+      )
       |> DatabaseQuery.put(:source, interface_document.source)
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
+
     {:ok, _} = DatabaseQuery.call(client, query)
 
-    base_query = DatabaseQuery.new
+    base_query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_endpoints)
       |> DatabaseQuery.put(:interface_name, interface_document.descriptor.name)
       |> DatabaseQuery.put(:interface_major_version, interface_document.descriptor.major_version)
       |> DatabaseQuery.put(:interface_minor_version, interface_document.descriptor.minor_version)
-      |> DatabaseQuery.put(:interface_type, Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type))
+      |> DatabaseQuery.put(
+        :interface_type,
+        Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type)
+      )
 
     for mapping <- interface_document.mappings do
-      query = base_query
+      query =
+        base_query
         |> DatabaseQuery.put(:interface_id, interface_id)
-        |> DatabaseQuery.put(:endpoint_id, CQLUtils.endpoint_id(interface_document.descriptor.name, interface_document.descriptor.major_version, mapping.endpoint))
+        |> DatabaseQuery.put(
+          :endpoint_id,
+          CQLUtils.endpoint_id(
+            interface_document.descriptor.name,
+            interface_document.descriptor.major_version,
+            mapping.endpoint
+          )
+        )
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
-        |> DatabaseQuery.put(:value_type, Astarte.Core.Mapping.ValueType.to_int(mapping.value_type))
-        |> DatabaseQuery.put(:reliability, Astarte.Core.Mapping.Reliability.to_int(mapping.reliability))
+        |> DatabaseQuery.put(
+          :value_type,
+          Astarte.Core.Mapping.ValueType.to_int(mapping.value_type)
+        )
+        |> DatabaseQuery.put(
+          :reliability,
+          Astarte.Core.Mapping.Reliability.to_int(mapping.reliability)
+        )
         |> DatabaseQuery.put(:retention, Astarte.Core.Mapping.Retention.to_int(mapping.retention))
         |> DatabaseQuery.put(:expiry, mapping.expiry)
         |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
+
       {:ok, _} = DatabaseQuery.call(client, query)
     end
 
@@ -271,8 +344,8 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def update_interface(client, interface_document) do
-    Logger.warn "update_interface: #{inspect interface_document}"
-    Logger.warn "client: #{inspect client}"
+    Logger.warn("update_interface: #{inspect(interface_document)}")
+    Logger.warn("client: #{inspect(client)}")
 
     {:error, :not_implemented}
   end
@@ -280,61 +353,70 @@ defmodule Astarte.RealmManagement.Queries do
   def delete_interface(client, interface_name, interface_major_version) do
     if interface_major_version != 0 do
       {:error, :forbidden}
-
     else
-      Logger.info "delete interface: #{interface_name}"
+      Logger.info("delete interface: #{interface_name}")
 
       interface_id = CQLUtils.interface_id(interface_name, interface_major_version)
 
-      query = DatabaseQuery.new
+      query =
+        DatabaseQuery.new()
         |> DatabaseQuery.statement(@delete_interface_from_interfaces)
         |> DatabaseQuery.put(:name, interface_name)
+
       DatabaseQuery.call!(client, query)
 
-      delete_query = DatabaseQuery.new
+      delete_query =
+        DatabaseQuery.new()
         |> DatabaseQuery.statement(@delete_interface_endpoints)
         |> DatabaseQuery.put(:interface_id, interface_id)
+
       DatabaseQuery.call!(client, delete_query)
 
-      #TODO: no need to delete a table for the multi interface approach
-      #drop_table_statement = @drop_interface_table
+      # TODO: no need to delete a table for the multi interface approach
+      # drop_table_statement = @drop_interface_table
       #  |> String.replace(":table_name", CQLUtils.interface_name_to_table_name(interface_name, 0))
-      #DatabaseQuery.call!(client, drop_table_statement)
+      # DatabaseQuery.call!(client, drop_table_statement)
 
       :ok
     end
   end
 
   def interface_available_versions(client, interface_name) do
-    query = DatabaseQuery.new
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@query_interface_versions)
       |> DatabaseQuery.put(:interface_name, interface_name)
 
     DatabaseQuery.call!(client, query)
-    |> Enum.to_list
+    |> Enum.to_list()
   end
 
   def is_interface_major_available?(client, interface_name, interface_major) do
-    query = DatabaseQuery.new
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@query_interface_available_major)
       |> DatabaseQuery.put(:interface_name, interface_name)
       |> DatabaseQuery.put(:interface_major, interface_major)
-    count = DatabaseQuery.call!(client, query)
-      |> Enum.to_list
-      |> List.first
+
+    count =
+      DatabaseQuery.call!(client, query)
+      |> Enum.to_list()
+      |> List.first()
 
     count != [count: 0]
   end
 
   def interface_source(client, interface_name, interface_major) do
-    query = DatabaseQuery.new
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@query_interface_source)
       |> DatabaseQuery.put(:interface_name, interface_name)
       |> DatabaseQuery.put(:interface_major, interface_major)
 
-    result_row = DatabaseQuery.call!(client, query)
-      |> Enum.to_list
-      |> List.first
+    result_row =
+      DatabaseQuery.call!(client, query)
+      |> Enum.to_list()
+      |> List.first()
 
     if result_row != nil do
       {:ok, result_row[:source]}
@@ -344,11 +426,13 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def get_interfaces_list(client) do
-    query = DatabaseQuery.new
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@query_interfaces)
 
-    rows = DatabaseQuery.call!(client, query)
-      |> Enum.to_list
+    rows =
+      DatabaseQuery.call!(client, query)
+      |> Enum.to_list()
 
     for result <- rows do
       result[:name]
@@ -362,7 +446,6 @@ defmodule Astarte.RealmManagement.Queries do
 
     with {:ok, result} <- DatabaseQuery.call(client, query),
          ["system.blobasvarchar(value)": pem] <- DatabaseResult.head(result) do
-
       {:ok, pem}
     else
       _ ->
@@ -417,13 +500,20 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def install_simple_trigger(client, object_id, object_type, parent_trigger_id, simple_trigger_id, simple_trigger, trigger_target) do
-    insert_simple_trigger_statement =
-      """
-      INSERT INTO simple_triggers
-      (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target)
-      VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :simple_trigger_data, :trigger_target_data);
-      """
+  def install_simple_trigger(
+        client,
+        object_id,
+        object_type,
+        parent_trigger_id,
+        simple_trigger_id,
+        simple_trigger,
+        trigger_target
+      ) do
+    insert_simple_trigger_statement = """
+    INSERT INTO simple_triggers
+    (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target)
+    VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :simple_trigger_data, :trigger_target_data);
+    """
 
     insert_simple_trigger_query =
       DatabaseQuery.new()
@@ -435,11 +525,10 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:simple_trigger_data, SimpleTriggerContainer.encode(simple_trigger))
       |> DatabaseQuery.put(:trigger_target_data, TriggerTargetContainer.encode(trigger_target))
 
-    astarte_ref =
-      %AstarteReference{
-        object_type: object_type,
-        object_uuid: object_id
-      }
+    astarte_ref = %AstarteReference{
+      object_type: object_type,
+      object_uuid: object_id
+    }
 
     insert_simple_trigger_by_uuid_statement =
       "INSERT INTO kv_store (group, key, value) VALUES ('simple-triggers-by-uuid', :simple_trigger_id, :astarte_ref);"
@@ -453,7 +542,6 @@ defmodule Astarte.RealmManagement.Queries do
     with {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_query),
          {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_by_uuid_query) do
       :ok
-
     else
       not_ok ->
         Logger.warn("Database error: #{inspect(not_ok)}")
@@ -462,7 +550,8 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_trigger_uuid(client, trigger_name, format \\ :string) do
-    trigger_uuid_query_statement = "SELECT value FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+    trigger_uuid_query_statement =
+      "SELECT value FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
 
     trigger_uuid_query =
       DatabaseQuery.new()
@@ -470,7 +559,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:trigger_name, trigger_name)
 
     with {:ok, result} <- DatabaseQuery.call(client, trigger_uuid_query),
-         ["value": trigger_uuid] <- DatabaseResult.head(result) do
+         [value: trigger_uuid] <- DatabaseResult.head(result) do
       case format do
         :string ->
           {:ok, :uuid.uuid_to_string(trigger_uuid)}
@@ -478,7 +567,6 @@ defmodule Astarte.RealmManagement.Queries do
         :bytes ->
           {:ok, trigger_uuid}
       end
-
     else
       :empty_dataset ->
         {:error, :trigger_not_found}
@@ -491,14 +579,16 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_trigger(client, trigger_name) do
     with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
-      delete_trigger_by_name_statement = "DELETE FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+      delete_trigger_by_name_statement =
+        "DELETE FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
 
       delete_trigger_by_name_query =
         DatabaseQuery.new()
         |> DatabaseQuery.statement(delete_trigger_by_name_statement)
         |> DatabaseQuery.put(:trigger_name, trigger_name)
 
-      delete_trigger_statement = "DELETE FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+      delete_trigger_statement =
+        "DELETE FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
 
       delete_trigger_query =
         DatabaseQuery.new()
@@ -522,7 +612,6 @@ defmodule Astarte.RealmManagement.Queries do
     query_result =
       with {:ok, result} <- DatabaseQuery.call(client, triggers_list_statement),
            triggers_rows <- Enum.to_list(result) do
-
         for trigger <- triggers_rows do
           trigger[:key]
         end
@@ -537,7 +626,8 @@ defmodule Astarte.RealmManagement.Queries do
 
   def retrieve_trigger(client, trigger_name) do
     with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
-      retrieve_trigger_statement = "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+      retrieve_trigger_statement =
+        "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
 
       retrieve_trigger_query =
         DatabaseQuery.new()
@@ -561,15 +651,14 @@ defmodule Astarte.RealmManagement.Queries do
   # TODO: simple_trigger_uuid is required due how we made the compound key
   # should we move simple_trigger_uuid to the first part of the key?
   def retrieve_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
-    with %{object_uuid: object_id, object_type: object_type} <- retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
-
-      retrieve_simple_trigger_statement =
-        """
-        SELECT trigger_data, trigger_target
-        FROM simple_triggers
-        WHERE object_id=:object_id AND object_type=:object_type AND
-              parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
-        """
+    with %{object_uuid: object_id, object_type: object_type} <-
+           retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
+      retrieve_simple_trigger_statement = """
+      SELECT trigger_data, trigger_target
+      FROM simple_triggers
+      WHERE object_id=:object_id AND object_type=:object_type AND
+            parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
+      """
 
       retrieve_simple_trigger_query =
         DatabaseQuery.new()
@@ -580,8 +669,8 @@ defmodule Astarte.RealmManagement.Queries do
         |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
 
       with {:ok, result} <- DatabaseQuery.call(client, retrieve_simple_trigger_query),
-           [trigger_data: trigger_data, trigger_target: trigger_target_data] <- DatabaseResult.head(result) do
-
+           [trigger_data: trigger_data, trigger_target: trigger_target_data] <-
+             DatabaseResult.head(result) do
         {
           :ok,
           %{
@@ -593,10 +682,14 @@ defmodule Astarte.RealmManagement.Queries do
         }
       else
         not_ok ->
-          Logger.warn("Queries.retrieve_simple_trigger: possible inconsistency found: database error: #{inspect(not_ok)}")
+          Logger.warn(
+            "Queries.retrieve_simple_trigger: possible inconsistency found: database error: #{
+              inspect(not_ok)
+            }"
+          )
+
           {:error, :cannot_retrieve_simple_trigger}
       end
-
     else
       :empty_dataset ->
         {:error, :simple_trigger_not_found}
@@ -608,14 +701,14 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
-    with %{object_uuid: object_id, object_type: object_type} <- retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
+    with %{object_uuid: object_id, object_type: object_type} <-
+           retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
+      delete_simple_trigger_statement = """
+      DELETE FROM simple_triggers
+      WHERE object_id=:object_id AND object_type=:object_type AND
+            parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
+      """
 
-      delete_simple_trigger_statement =
-        """
-        DELETE FROM simple_triggers
-        WHERE object_id=:object_id AND object_type=:object_type AND
-              parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
-        """
       delete_simple_trigger_query =
         DatabaseQuery.new()
         |> DatabaseQuery.statement(delete_simple_trigger_statement)
@@ -660,7 +753,10 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :trigger_not_found}
 
       not_ok ->
-        Logger.warn("Queries.retrieve_simple_trigger_astarte_ref: database error: #{inspect(not_ok)}")
+        Logger.warn(
+          "Queries.retrieve_simple_trigger_astarte_ref: database error: #{inspect(not_ok)}"
+        )
+
         {:error, :cannot_retrieve_simple_trigger}
     end
   end
