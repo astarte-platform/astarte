@@ -52,18 +52,26 @@ defmodule Astarte.RealmManagement.API.RealmConfigTest do
     end
 
     test "get_auth_config/1 returns the auth config for the given realm" do
-      assert RealmConfig.get_auth_config(@realm) == {:ok, %AuthConfig{jwt_public_key_pem: JWTTestHelper.public_key_pem()}}
+      assert RealmConfig.get_auth_config(@realm) ==
+               {:ok, %AuthConfig{jwt_public_key_pem: JWTTestHelper.public_key_pem()}}
     end
 
     test "update_auth_config/2 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = RealmConfig.update_auth_config(@realm, @empty_pubkey_attrs)
-      assert {:error, %Ecto.Changeset{}} = RealmConfig.update_auth_config(@realm, @invalid_pubkey_attrs)
-      assert {:error, %Ecto.Changeset{}} = RealmConfig.update_auth_config(@realm, @malformed_pubkey_attrs)
+      assert {:error, %Ecto.Changeset{}} =
+               RealmConfig.update_auth_config(@realm, @empty_pubkey_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               RealmConfig.update_auth_config(@realm, @invalid_pubkey_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               RealmConfig.update_auth_config(@realm, @malformed_pubkey_attrs)
     end
 
     test "update_auth_config/2 with valid data returns :ok and changes the data" do
       assert :ok = RealmConfig.update_auth_config(@realm, @update_attrs)
-      assert RealmConfig.get_auth_config(@realm) == {:ok, %AuthConfig{jwt_public_key_pem: @pubkey}}
+
+      assert RealmConfig.get_auth_config(@realm) ==
+               {:ok, %AuthConfig{jwt_public_key_pem: @pubkey}}
     end
   end
 end

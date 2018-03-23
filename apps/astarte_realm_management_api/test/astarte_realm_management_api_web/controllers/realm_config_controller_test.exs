@@ -52,10 +52,10 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
     # Disable the auth since we will mess with the public key
     Application.put_env(:astarte_realm_management_api, :disable_authentication, true)
 
-    on_exit fn ->
+    on_exit(fn ->
       # Restore auth on exit
       Application.put_env(:astarte_realm_management_api, :disable_authentication, false)
-    end
+    end)
   end
 
   setup %{conn: conn} do
@@ -64,33 +64,45 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
   end
 
   test "returns the auth config on show", %{conn: conn} do
-    conn = get conn, realm_config_path(conn, :show, @realm, "auth")
-    assert json_response(conn, 200)["data"]["jwt_public_key_pem"] == JWTTestHelper.public_key_pem()
+    conn = get(conn, realm_config_path(conn, :show, @realm, "auth"))
+
+    assert json_response(conn, 200)["data"]["jwt_public_key_pem"] ==
+             JWTTestHelper.public_key_pem()
   end
 
-  test "does not update auth config and renders errors when no public key is provided", %{conn: conn} do
-    conn = put conn, realm_config_path(conn, :update, @realm, "auth"), data: %{}
+  test "does not update auth config and renders errors when no public key is provided", %{
+    conn: conn
+  } do
+    conn = put(conn, realm_config_path(conn, :update, @realm, "auth"), data: %{})
     assert json_response(conn, 422)["errors"] != %{}
   end
 
   test "does not update auth config and renders errors when public key is invalid", %{conn: conn} do
-    conn = put conn, realm_config_path(conn, :update, @realm, "auth"), data: @invalid_pubkey_attrs
+    conn =
+      put(conn, realm_config_path(conn, :update, @realm, "auth"), data: @invalid_pubkey_attrs)
+
     assert json_response(conn, 422)["errors"] != %{}
   end
 
-  test "does not update auth config and renders errors when public key is malformed", %{conn: conn} do
-    conn = put conn, realm_config_path(conn, :update, @realm, "auth"), data: @malformed_pubkey_attrs
+  test "does not update auth config and renders errors when public key is malformed", %{
+    conn: conn
+  } do
+    conn =
+      put(conn, realm_config_path(conn, :update, @realm, "auth"), data: @malformed_pubkey_attrs)
+
     assert json_response(conn, 422)["errors"] != %{}
   end
 
   test "updates and renders auth config when data is valid", %{conn: conn} do
-    conn = get conn, realm_config_path(conn, :show, @realm, "auth")
-    assert json_response(conn, 200)["data"]["jwt_public_key_pem"] == JWTTestHelper.public_key_pem()
+    conn = get(conn, realm_config_path(conn, :show, @realm, "auth"))
 
-    conn = put conn, realm_config_path(conn, :update, @realm, "auth"), data: @update_attrs
+    assert json_response(conn, 200)["data"]["jwt_public_key_pem"] ==
+             JWTTestHelper.public_key_pem()
+
+    conn = put(conn, realm_config_path(conn, :update, @realm, "auth"), data: @update_attrs)
     assert response(conn, 204)
 
-    conn = get conn, realm_config_path(conn, :show, @realm, "auth")
+    conn = get(conn, realm_config_path(conn, :show, @realm, "auth"))
     assert json_response(conn, 200)["data"]["jwt_public_key_pem"] == @new_pubkey
   end
 end
