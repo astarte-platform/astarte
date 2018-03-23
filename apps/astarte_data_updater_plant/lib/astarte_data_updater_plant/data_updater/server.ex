@@ -55,6 +55,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:noreply, new_state}
   end
 
+  def handle_cast(
+        {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
+         simple_trigger, trigger_target},
+        state
+      ) do
+    new_state =
+      Impl.handle_install_volatile_trigger(
+        state,
+        object_id,
+        object_type,
+        parent_id,
+        trigger_id,
+        simple_trigger,
+        trigger_target
+      )
+
+    {:noreply, new_state}
+  end
+
   def handle_call({:dump_state}, _from, state) do
     {:reply, state, state}
   end
