@@ -29,10 +29,11 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     render(conn, "index.json", interfaces: interfaces)
   end
 
-  def create(conn, %{"realm_name" => realm_name, "data" => interface_source}) when is_map(interface_source) do
+  def create(conn, %{"realm_name" => realm_name, "data" => interface_source})
+      when is_map(interface_source) do
     source_as_string = Poison.encode!(interface_source, pretty: true)
 
-    create(conn,  %{"realm_name" => realm_name, "data" => source_as_string})
+    create(conn, %{"realm_name" => realm_name, "data" => source_as_string})
   end
 
   def create(conn, %{"realm_name" => realm_name, "data" => interface_source}) do
@@ -41,10 +42,22 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
         {:error, :invalid}
 
       {:ok, doc} ->
-
-        with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.create_interface!(realm_name, interface_source) do
+        with {:ok, :started} <-
+               Astarte.RealmManagement.API.Interfaces.create_interface!(
+                 realm_name,
+                 interface_source
+               ) do
           conn
-          |> put_resp_header("location", interface_path(conn, :show, realm_name, doc.descriptor.name, Integer.to_string(doc.descriptor.major_version)))
+          |> put_resp_header(
+            "location",
+            interface_path(
+              conn,
+              :show,
+              realm_name,
+              doc.descriptor.name,
+              Integer.to_string(doc.descriptor.major_version)
+            )
+          )
           |> send_resp(:created, "")
         end
     end
@@ -52,7 +65,9 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
 
   def show(conn, %{"realm_name" => realm_name, "id" => id, "major_version" => major_version}) do
     {parsed_major, ""} = Integer.parse(major_version)
-    interface_source = Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, parsed_major)
+
+    interface_source =
+      Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, parsed_major)
 
     # do not use render here, just return a raw json, render would escape this and ecapsulate it inside an outer JSON object
     conn
@@ -60,7 +75,12 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     |> send_resp(200, interface_source)
   end
 
-  def update(conn, %{"realm_name" => realm_name, "id" => interface_name, "major_version" => major_version, "data" => interface_source}) do
+  def update(conn, %{
+        "realm_name" => realm_name,
+        "id" => interface_name,
+        "major_version" => major_version,
+        "data" => interface_source
+      }) do
     doc_result = Astarte.Core.InterfaceDocument.from_json(interface_source)
 
     cond do
@@ -74,16 +94,29 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
         {:error, :conflict}
 
       true ->
-        with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.update_interface!(realm_name, interface_source) do
+        with {:ok, :started} <-
+               Astarte.RealmManagement.API.Interfaces.update_interface!(
+                 realm_name,
+                 interface_source
+               ) do
           send_resp(conn, :no_content, "")
         end
     end
   end
 
-  def delete(conn, %{"realm_name" => realm_name, "id" => interface_name, "major_version" => major_version}) do
+  def delete(conn, %{
+        "realm_name" => realm_name,
+        "id" => interface_name,
+        "major_version" => major_version
+      }) do
     {parsed_major, ""} = Integer.parse(major_version)
 
-    with {:ok, :started} <- Astarte.RealmManagement.API.Interfaces.delete_interface!(realm_name, interface_name, parsed_major) do
+    with {:ok, :started} <-
+           Astarte.RealmManagement.API.Interfaces.delete_interface!(
+             realm_name,
+             interface_name,
+             parsed_major
+           ) do
       send_resp(conn, :no_content, "")
     end
   end

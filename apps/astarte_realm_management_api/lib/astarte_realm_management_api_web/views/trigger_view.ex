@@ -84,7 +84,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
     def encode(device_trigger, options) do
       %{
         "type" => "DeviceTrigger",
-        "on" => device_trigger.device_event_type,
+        "on" => device_trigger.device_event_type
       }
       |> Poison.Encoder.Map.encode(options)
     end

@@ -41,6 +41,7 @@ defmodule Astarte.RealmManagement.API.RealmConfig.AuthConfig do
 
   defp validate_pem_public_key(changeset, field) do
     pem = get_field(changeset, field, "")
+
     try do
       case :public_key.pem_decode(pem) do
         [{:SubjectPublicKeyInfo, _, _}] ->

@@ -26,7 +26,6 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
     end
   end
 
-
   setup _tags do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
@@ -36,5 +35,4 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
     Astarte.RealmManagement.Mock.DB.start_link()
     :ok
   end
-
 end

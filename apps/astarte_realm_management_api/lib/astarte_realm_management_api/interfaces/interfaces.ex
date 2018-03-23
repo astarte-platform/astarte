@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces do
-
   alias Astarte.RealmManagement.API.RPC.AMQPClient
 
   require Logger
@@ -48,5 +47,4 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   def delete_interface!(realm_name, interface_name, interface_major_version, _attrs \\ %{}) do
     AMQPClient.delete_interface(realm_name, interface_name, interface_major_version)
   end
-
 end

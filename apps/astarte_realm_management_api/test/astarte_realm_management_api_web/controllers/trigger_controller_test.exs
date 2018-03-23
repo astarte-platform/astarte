@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   @tag :wip
   describe "index" do
     test "lists all triggers", %{conn: conn} do
-      conn = get conn, trigger_path(conn, :index, @test_realm)
+      conn = get(conn, trigger_path(conn, :index, @test_realm))
       assert json_response(conn, 200)["data"] == []
     end
   end
@@ -44,35 +44,31 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   @tag :wip
   describe "create trigger" do
     test "renders trigger when data is valid", %{conn: conn} do
-      conn = post conn, trigger_path(conn, :create, @test_realm), trigger: @create_attrs
+      conn = post(conn, trigger_path(conn, :create, @test_realm), trigger: @create_attrs)
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
-      conn = get conn, trigger_path(conn, :show, id, @test_realm)
-      assert json_response(conn, 200)["data"] == %{
-        "id" => id}
+      conn = get(conn, trigger_path(conn, :show, id, @test_realm))
+      assert json_response(conn, 200)["data"] == %{"id" => id}
     end
-
   end
 
   @tag :wip
   describe "update trigger" do
-
     test "renders errors when data is invalid", %{conn: conn, trigger: trigger} do
-      conn = put conn, trigger_path(conn, :update, trigger, @test_realm), trigger: @invalid_attrs
+      conn = put(conn, trigger_path(conn, :update, trigger, @test_realm), trigger: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
 
   @tag :wip
   describe "delete trigger" do
-
     test "deletes chosen trigger", %{conn: conn, trigger: trigger} do
-      conn = delete conn, trigger_path(conn, :delete, trigger, @test_realm)
+      conn = delete(conn, trigger_path(conn, :delete, trigger, @test_realm))
       assert response(conn, 204)
-      assert_error_sent 404, fn ->
-        get conn, trigger_path(conn, :show, trigger, @test_realm)
-      end
+
+      assert_error_sent(404, fn ->
+        get(conn, trigger_path(conn, :show, trigger, @test_realm))
+      end)
     end
   end
-
 end
