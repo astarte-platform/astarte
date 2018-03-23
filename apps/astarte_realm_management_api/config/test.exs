@@ -7,7 +7,7 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
   server: false
 
 config :astarte_rpc, :amqp_connection,
-  host: "rabbitmq"
+  host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 
 # Print only warnings and errors during test
 config :logger, level: :warn
