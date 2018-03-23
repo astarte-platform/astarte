@@ -24,12 +24,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :introspection,
     :interfaces,
     :interface_ids_to_name,
+    :interfaces_by_expiry,
     :mappings,
     :device_triggers,
     :data_triggers,
     :introspection_triggers,
     :connected,
     :total_received_msgs,
-    :total_received_bytes
+    :total_received_bytes,
+    :last_seen_message,
+    :last_device_triggers_refresh
   ]
 end

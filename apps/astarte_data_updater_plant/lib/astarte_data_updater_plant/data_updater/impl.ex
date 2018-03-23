@@ -35,6 +35,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   require Logger
 
   @max_uncompressed_payload_size 10_485_760
+  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id) do
     new_state = %State{
@@ -77,17 +79,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         introspection: introspection_map,
         interfaces: %{},
         interface_ids_to_name: %{},
+        interfaces_by_expiry: [],
         mappings: %{},
         device_triggers: %{},
         data_triggers: %{},
-        introspection_triggers: %{}
+        introspection_triggers: %{},
+        last_seen_message: 0,
+        last_device_triggers_refresh: 0
     }
-    |> populate_triggers_for_object!(db_client, any_device_id, :any_device)
-    |> populate_triggers_for_object!(db_client, device_id, :device)
   end
 
   def handle_connection(state, ip_address_string, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
+
+    new_state = execute_time_based_actions(state, timestamp, db_client)
 
     ip_address_result =
       ip_address_string
@@ -101,7 +106,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         _ ->
           Logger.warn(
-            "#{state.realm}: Device #{pretty_device_id(state.device_id)}: received invalid IP address #{
+            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)}: received invalid IP address #{
               ip_address_string
             }."
           )
@@ -114,27 +119,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> DatabaseQuery.statement(
         "UPDATE devices SET connected=true, last_connection=:last_connection, last_seen_ip=:last_seen_ip WHERE device_id=:device_id"
       )
-      |> DatabaseQuery.put(:device_id, state.device_id)
+      |> DatabaseQuery.put(:device_id, new_state.device_id)
       |> DatabaseQuery.put(:last_connection, div(timestamp, 10000))
       |> DatabaseQuery.put(:last_seen_ip, ip_address)
 
     DatabaseQuery.call!(db_client, device_update_query)
 
-    trigger_targets = Map.get(state.device_triggers, :on_device_connection, [])
-    device_id_string = pretty_device_id(state.device_id)
+    trigger_targets = Map.get(new_state.device_triggers, :on_device_connection, [])
+    device_id_string = pretty_device_id(new_state.device_id)
 
     TriggersHandler.device_connected(
       trigger_targets,
-      state.realm,
+      new_state.realm,
       device_id_string,
       ip_address_string
     )
 
-    %{state | connected: true}
+    %{new_state | connected: true, last_seen_message: timestamp}
   end
 
   def handle_disconnection(state, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
+
+    new_state = execute_time_based_actions(state, timestamp, db_client)
 
     device_update_query =
       DatabaseQuery.new()
@@ -143,25 +150,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "total_received_msgs=:total_received_msgs, total_received_bytes=:total_received_bytes " <>
           "WHERE device_id=:device_id"
       )
-      |> DatabaseQuery.put(:device_id, state.device_id)
+      |> DatabaseQuery.put(:device_id, new_state.device_id)
       |> DatabaseQuery.put(:last_disconnection, div(timestamp, 10000))
-      |> DatabaseQuery.put(:total_received_msgs, state.total_received_msgs)
-      |> DatabaseQuery.put(:total_received_bytes, state.total_received_bytes)
+      |> DatabaseQuery.put(:total_received_msgs, new_state.total_received_msgs)
+      |> DatabaseQuery.put(:total_received_bytes, new_state.total_received_bytes)
 
     DatabaseQuery.call!(db_client, device_update_query)
 
-    trigger_targets = Map.get(state.device_triggers, :on_device_disconnection, [])
-    device_id_string = pretty_device_id(state.device_id)
-    TriggersHandler.device_disconnected(trigger_targets, state.realm, device_id_string)
+    trigger_targets = Map.get(new_state.device_triggers, :on_device_disconnection, [])
+    device_id_string = pretty_device_id(new_state.device_id)
+    TriggersHandler.device_disconnected(trigger_targets, new_state.realm, device_id_string)
 
-    %{state | connected: false}
+    %{new_state | connected: false, last_seen_message: timestamp}
   end
 
   def handle_data(state, interface, path, payload, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
 
+    new_state = execute_time_based_actions(state, timestamp, db_client)
+
     {interface_descriptor, new_state} =
-      maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
+      maybe_handle_cache_miss(
+        Map.get(new_state.interfaces, interface),
+        interface,
+        new_state,
+        db_client
+      )
 
     {resolve_result, endpoint} =
       case interface_descriptor.aggregation do
@@ -186,7 +200,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       cond do
         interface_descriptor.ownership == :server ->
           Logger.warn(
-            "#{state.realm}: Device #{pretty_device_id(state.device_id)} tried to write on server owned interface: #{
+            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} tried to write on server owned interface: #{
               interface
             }."
           )
@@ -194,12 +208,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :maybe_outdated_introspection}
 
         resolve_result != :ok ->
-          Logger.warn("#{state.realm}: Cannot resolve #{path} to #{interface} endpoint.")
+          Logger.warn("#{new_state.realm}: Cannot resolve #{path} to #{interface} endpoint.")
           {:error, :maybe_outdated_introspection}
 
         value == :error ->
           Logger.warn(
-            "#{state.realm}: Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}."
+            "#{new_state.realm}: Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{
+              path
+            }."
           )
 
           {:error, :invalid_message}
@@ -309,7 +325,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                 db_client,
                 interface_descriptor.aggregation,
                 interface_descriptor.type,
-                state.device_id,
+                new_state.device_id,
                 interface_descriptor,
                 endpoint.endpoint_id,
                 endpoint,
@@ -346,7 +362,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             insert_value_into_db(
               db_client,
               interface_descriptor.storage_type,
-              state.device_id,
+              new_state.device_id,
               interface_descriptor,
               endpoint.endpoint_id,
               endpoint,
@@ -411,8 +427,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_introspection(state, payload, delivery_tag, _timestamp) do
+  def handle_introspection(state, payload, delivery_tag, timestamp) do
     db_client = connect_to_db(state)
+
+    new_state = execute_time_based_actions(state, timestamp, db_client)
 
     new_introspection_list = String.split(payload, ";")
 
@@ -427,7 +445,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         if garbage != "" do
           Logger.warn(
-            "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage in major version: #{
+            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} sent malformed introspection entry, found garbage in major version: #{
               garbage
             }."
           )
@@ -437,7 +455,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         if garbage != "" do
           Logger.warn(
-            "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent malformed introspection entry, found garbage in minor version: #{
+            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} sent malformed introspection entry, found garbage in minor version: #{
               garbage
             }."
           )
@@ -452,10 +470,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     any_interface_id = SimpleTriggersProtobufUtils.any_interface_object_id()
 
     %{introspection_triggers: introspection_triggers} =
-      populate_triggers_for_object!(state, db_client, any_interface_id, :any_interface)
+      populate_triggers_for_object!(new_state, db_client, any_interface_id, :any_interface)
 
-    realm = state.realm
-    device_id_string = pretty_device_id(state.device_id)
+    realm = new_state.realm
+    device_id_string = pretty_device_id(new_state.device_id)
 
     on_introspection_targets =
       Map.get(introspection_triggers, {:on_incoming_introspection, :any_interface}, [])
@@ -470,7 +488,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     # TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
 
     current_sorted_introspection =
-      state.introspection
+      new_state.introspection
       |> Enum.map(fn x -> x end)
       |> Enum.sort()
 
@@ -485,8 +503,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       case change_type do
         :ins ->
           Logger.debug(
-            "#{state.realm}: Interfaces #{inspect(changed_interfaces)} have been added to #{
-              pretty_device_id(state.device_id)
+            "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have been added to #{
+              pretty_device_id(new_state.device_id)
             } ."
           )
 
@@ -508,8 +526,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         :del ->
           Logger.debug(
-            "#{state.realm}: Interfaces #{inspect(changed_interfaces)} have been removed from #{
-              pretty_device_id(state.device_id)
+            "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have been removed from #{
+              pretty_device_id(new_state.device_id)
             } ."
           )
 
@@ -528,8 +546,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         :eq ->
           Logger.debug(
-            "#{state.realm}: Interfaces #{inspect(changed_interfaces)} have not changed on #{
-              pretty_device_id(state.device_id)
+            "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have not changed on #{
+              pretty_device_id(new_state.device_id)
             } ."
           )
       end
@@ -542,22 +560,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> DatabaseQuery.statement(
         "UPDATE devices SET introspection=:introspection, introspection_minor=:introspection_minor WHERE device_id=:device_id"
       )
-      |> DatabaseQuery.put(:device_id, state.device_id)
+      |> DatabaseQuery.put(:device_id, new_state.device_id)
       |> DatabaseQuery.put(:introspection, db_introspection_map)
       |> DatabaseQuery.put(:introspection_minor, db_introspection_minor_map)
 
     DatabaseQuery.call!(db_client, device_update_query)
 
     %{
-      state
+      new_state
       | introspection: db_introspection_map,
-        total_received_msgs: state.total_received_msgs + 1,
-        total_received_bytes: state.total_received_bytes + byte_size(payload)
+        total_received_msgs: new_state.total_received_msgs + 1,
+        total_received_bytes: new_state.total_received_bytes + byte_size(payload)
     }
   end
 
-  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, delivery_tag, _timestamp) do
-    operation_result = prune_device_properties(state, "", delivery_tag)
+  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, delivery_tag, timestamp) do
+    db_client = connect_to_db(state)
+
+    new_state = execute_time_based_actions(state, timestamp, db_client)
+
+    operation_result = prune_device_properties(new_state, "", delivery_tag)
 
     if operation_result != :ok do
       Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
@@ -566,15 +588,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     # TODO: ACK here
 
     %{
-      state
-      | total_received_msgs: state.total_received_msgs + 1,
+      new_state
+      | total_received_msgs: new_state.total_received_msgs + 1,
         total_received_bytes:
-          state.total_received_bytes + byte_size(<<0, 0, 0, 0>>) +
+          new_state.total_received_bytes + byte_size(<<0, 0, 0, 0>>) +
             byte_size("/producer/properties")
     }
   end
 
-  def handle_control(state, "/producer/properties", payload, delivery_tag, _timestamp) do
+  def handle_control(state, "/producer/properties", payload, delivery_tag, timestamp) do
+    db_client = connect_to_db(state)
+
+    new_state = execute_time_based_actions(state, timestamp, db_client)
+
     # TODO: check payload size, to avoid anoying crashes
 
     <<_size_header::size(32), zlib_payload::binary>> = payload
@@ -582,7 +608,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     decoded_payload = safe_deflate(zlib_payload)
 
     if decoded_payload != :error do
-      operation_result = prune_device_properties(state, decoded_payload, delivery_tag)
+      operation_result = prune_device_properties(new_state, decoded_payload, delivery_tag)
 
       if operation_result != :ok do
         Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
@@ -592,10 +618,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
 
     %{
-      state
-      | total_received_msgs: state.total_received_msgs + 1,
+      new_state
+      | total_received_msgs: new_state.total_received_msgs + 1,
         total_received_bytes:
-          state.total_received_bytes + byte_size(payload) + byte_size("/producer/properties")
+          new_state.total_received_bytes + byte_size(payload) + byte_size("/producer/properties")
     }
   end
 
@@ -663,6 +689,91 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     output_acc
   end
 
+  defp reload_device_triggers_on_expiry(state, timestamp, db_client) do
+    if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
+         timestamp do
+      any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
+
+      state
+      |> Map.put(:last_device_triggers_refresh, timestamp)
+      |> Map.put(:device_triggers, %{})
+      |> populate_triggers_for_object!(db_client, any_device_id, :any_device)
+      |> populate_triggers_for_object!(db_client, state.device_id, :device)
+    else
+      state
+    end
+  end
+
+  defp execute_time_based_actions(state, timestamp, db_client) do
+    state
+    |> Map.put(:last_seen_message, timestamp)
+    |> purge_expired_interfaces(timestamp)
+    |> reload_device_triggers_on_expiry(timestamp, db_client)
+  end
+
+  defp purge_expired_interfaces(state, timestamp) do
+    expired =
+      Enum.take_while(state.interfaces_by_expiry, fn {expiry, _interface} ->
+        expiry <= timestamp
+      end)
+
+    new_interfaces_by_expiry = Enum.drop(state.interfaces_by_expiry, length(expired))
+
+    interfaces_to_drop_list =
+      for {_exp, iface} <- expired do
+        iface
+      end
+
+    state
+    |> forget_interfaces(interfaces_to_drop_list)
+    |> Map.put(:interfaces_by_expiry, new_interfaces_by_expiry)
+  end
+
+  defp forget_interfaces(state, []) do
+    state
+  end
+
+  defp forget_interfaces(state, interfaces_to_drop) do
+    updated_triggers =
+      Enum.reduce(interfaces_to_drop, state.data_triggers, fn iface, data_triggers ->
+        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+
+        Enum.reject(data_triggers, fn {{event_type, iface_id, endpoint}, val} ->
+          iface_id == interface_id
+        end)
+        |> Enum.into(%{})
+      end)
+
+    updated_mappings =
+      Enum.reduce(interfaces_to_drop, state.mappings, fn iface, mappings ->
+        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+
+        Enum.reject(mappings, fn {endpoint_id, mapping} ->
+          mapping.interface_id == interface_id
+        end)
+        |> Enum.into(%{})
+      end)
+
+    updated_ids =
+      Enum.reduce(interfaces_to_drop, state.interface_ids_to_name, fn iface, ids ->
+        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+        Map.delete(ids, interface_id)
+      end)
+
+    updated_interfaces =
+      Enum.reduce(interfaces_to_drop, state.interfaces, fn iface, ifaces ->
+        Map.delete(ifaces, iface)
+      end)
+
+    %{
+      state
+      | interfaces: updated_interfaces,
+        interface_ids_to_name: updated_ids,
+        mappings: updated_mappings,
+        data_triggers: updated_triggers
+    }
+  end
+
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
     major_version = interface_version!(db_client, state.device_id, interface_name)
     interface_row = retrieve_interface_row!(db_client, interface_name, major_version)
@@ -683,11 +794,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Map.put(acc, mapping.endpoint_id, mapping)
       end)
 
+    new_interfaces_by_expiry =
+      state.interfaces_by_expiry ++
+        [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}]
+
     new_state = %State{
       state
       | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
         interface_ids_to_name:
           Map.put(state.interface_ids_to_name, interface_descriptor.interface_id, interface_name),
+        interfaces_by_expiry: new_interfaces_by_expiry,
         mappings: mappings
     }
 

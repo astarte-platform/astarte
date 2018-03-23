@@ -401,6 +401,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             simple_trigger: {
               :data_trigger,
               %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
+                interface_id: :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"),
                 data_trigger_type: :INCOMING_DATA,
                 match_path: "/weekSchedule/%{weekDay}/start",
                 value_match_operator: :GREATER_THAN,
@@ -510,6 +511,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             simple_trigger: {
               :data_trigger,
               %DataTrigger{
+                interface_id: :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"),
                 data_trigger_type: :PATH_REMOVED,
                 match_path: "/time/from"
               }
