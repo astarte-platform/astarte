@@ -29,7 +29,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   alias Astarte.RealmManagement.API.InvalidInterfaceDocumentError
 
   def get_interface_versions_list(realm_name, interface_name) do
-    {:ok, payload} = %GetInterfaceVersionsList{
+    {:ok, payload} =
+      %GetInterfaceVersionsList{
         realm_name: realm_name,
         interface_name: interface_name
       }
@@ -39,7 +40,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   def get_interfaces_list(realm_name) do
-    {:ok, payload} = %GetInterfacesList{
+    {:ok, payload} =
+      %GetInterfacesList{
         realm_name: realm_name
       }
       |> encode_and_call(:get_interfaces_list)
@@ -48,7 +50,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   def get_interface(realm_name, interface_name, interface_major_version) do
-    {:ok, payload} = %GetInterfaceSource{
+    {:ok, payload} =
+      %GetInterfaceSource{
         realm_name: realm_name,
         interface_name: interface_name,
         interface_major_version: interface_major_version
@@ -59,7 +62,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   def install_interface(realm_name, interface_json) do
-    {:ok, payload} = %InstallInterface{
+    {:ok, payload} =
+      %InstallInterface{
         realm_name: realm_name,
         interface_json: interface_json,
         async_operation: true
@@ -70,7 +74,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   def update_interface(realm_name, interface_json) do
-    {:ok, payload} = %UpdateInterface{
+    {:ok, payload} =
+      %UpdateInterface{
         realm_name: realm_name,
         interface_json: interface_json,
         async_operation: true
@@ -81,7 +86,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   def delete_interface(realm_name, interface_name, interface_major_version) do
-    {:ok, payload} = %DeleteInterface{
+    {:ok, payload} =
+      %DeleteInterface{
         realm_name: realm_name,
         interface_name: interface_name,
         interface_major_version: interface_major_version,
@@ -118,7 +124,7 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
 
     simple_triggers_containers =
       for simple_trigger <- simple_triggers do
-        %InstallTrigger.SimpleTriggerDataContainer {
+        %InstallTrigger.SimpleTriggerDataContainer{
           object_id: simple_trigger[:object_id],
           object_type: simple_trigger[:object_type],
           data: SimpleTriggerContainer.encode(simple_trigger[:simple_trigger])
@@ -172,7 +178,7 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     %Call{
       call: {call_name, call}
     }
-    |> Call.encode
+    |> Call.encode()
     |> rpc_call
   end
 
@@ -182,7 +188,7 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   defp unpack_reply(%Reply{error: false, reply: reply}) do
-     extract_result(reply)
+    extract_result(reply)
   end
 
   defp unpack_reply(%Reply{error: true, reply: reply}) do
@@ -242,11 +248,15 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     {:ok, get_triggers_list_reply.triggers_names}
   end
 
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "public_key_not_found"}}) do
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "public_key_not_found"}}
+       ) do
     {:error, :public_key_not_found}
   end
 
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}) do
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}
+       ) do
     raise InterfaceNotFoundError
   end
 
@@ -254,12 +264,15 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     raise RealmNotFoundError
   end
 
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "already_installed_interface"}}) do
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "already_installed_interface"}}
+       ) do
     raise AlreadyInstalledInterfaceError
   end
 
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "invalid_interface_document"}}) do
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "invalid_interface_document"}}
+       ) do
     raise InvalidInterfaceDocumentError
   end
-
 end

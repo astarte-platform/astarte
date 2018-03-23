@@ -86,11 +86,10 @@ defmodule Astarte.RealmManagement.API.Triggers do
       |> Trigger.changeset(attrs)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
-      trigger =
-        %Astarte.Core.Triggers.Trigger{
-          name: options.name,
-          action: Poison.encode!(options.action)
-        }
+      trigger = %Astarte.Core.Triggers.Trigger{
+        name: options.name,
+        action: Poison.encode!(options.action)
+      }
 
       simple_triggers =
         for item <- options.simple_triggers do
@@ -104,7 +103,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
   end
 
   def decode_simple_trigger(%{"type" => "data_trigger"} = simple_trigger) do
-    interface_id = CQLUtils.interface_id(simple_trigger["interface_name"], simple_trigger["interface_major"])
+    interface_id =
+      CQLUtils.interface_id(simple_trigger["interface_name"], simple_trigger["interface_major"])
 
     data_trigger_type =
       case simple_trigger["on"] do
@@ -155,23 +155,25 @@ defmodule Astarte.RealmManagement.API.Triggers do
       # TODO: object_type 2 is interface, it should be a constant
       object_type: 2,
       object_id: interface_id,
-      simple_trigger:
-        %SimpleTriggerContainer{
-          simple_trigger: {
-            :data_trigger,
-            %DataTrigger{
-              interface_id: interface_id,
-              known_value: Bson.encode(%{v: simple_trigger["known_value"]}),
-              match_path: simple_trigger["match_path"],
-              data_trigger_type: data_trigger_type,
-              value_match_operator: operator_type
-            }
+      simple_trigger: %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_id: interface_id,
+            known_value: Bson.encode(%{v: simple_trigger["known_value"]}),
+            match_path: simple_trigger["match_path"],
+            data_trigger_type: data_trigger_type,
+            value_match_operator: operator_type
           }
         }
+      }
     }
   end
 
-  def decode_simple_trigger(%{"type" => "device_trigger", "on" => condition, "device_id" => encoded_device_id} = simple_trigger) do
+  def decode_simple_trigger(
+        %{"type" => "device_trigger", "on" => condition, "device_id" => encoded_device_id} =
+          simple_trigger
+      ) do
     device_event_type =
       case condition do
         "device_connected" ->
@@ -194,15 +196,14 @@ defmodule Astarte.RealmManagement.API.Triggers do
       # TODO: object_type 1 is device, it should be a constant
       object_type: 1,
       object_id: device_object_id,
-      simple_trigger:
-        %SimpleTriggerContainer{
-          simple_trigger: {
-            :device_trigger,
-            %DeviceTrigger{
-              device_event_type: device_event_type,
-            }
+      simple_trigger: %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: device_event_type
           }
         }
+      }
     }
   end
 
@@ -220,6 +221,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
   """
   def update_trigger(realm_name, %Trigger{} = trigger, attrs) do
     Logger.debug("Update: #{inspect(trigger)}")
+
     trigger
     |> Trigger.changeset(attrs)
 
@@ -259,7 +261,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   # TODO: put this in Astarte Core since we need it in a lot of places
   defp decode_device_id(encoded_device_id) do
-    <<device_uuid::binary-size(16), _extended_id::binary>> = Base.url_decode64!(encoded_device_id, padding: false)
+    <<device_uuid::binary-size(16), _extended_id::binary>> =
+      Base.url_decode64!(encoded_device_id, padding: false)
 
     device_uuid
   end

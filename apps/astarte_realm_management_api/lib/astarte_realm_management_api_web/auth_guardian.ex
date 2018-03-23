@@ -9,10 +9,9 @@ defmodule Astarte.RealmManagement.APIWeb.AuthGuardian do
 
   def resource_from_claims(claims) do
     {:ok,
-      %User{
-        id: claims["sub"],
-        authorizations: Map.get(claims, "a_rma", [])
-      }
-    }
+     %User{
+       id: claims["sub"],
+       authorizations: Map.get(claims, "a_rma", [])
+     }}
   end
 end

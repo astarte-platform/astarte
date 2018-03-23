@@ -22,7 +22,9 @@ defmodule Astarte.RealmManagement.APIWeb.RealmConfigView do
   alias Astarte.RealmManagement.APIWeb.RealmConfigView
 
   def render("show.json", %{auth_config: auth_config}) do
-    %{data: render_one(auth_config, RealmConfigView, "auth_config.json", auth_config: auth_config)}
+    %{
+      data: render_one(auth_config, RealmConfigView, "auth_config.json", auth_config: auth_config)
+    }
   end
 
   def render("auth_config.json", %{auth_config: auth_config}) do
