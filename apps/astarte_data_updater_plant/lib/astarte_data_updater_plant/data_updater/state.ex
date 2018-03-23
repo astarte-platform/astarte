@@ -32,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :connected,
     :total_received_msgs,
     :total_received_bytes,
-    :last_seen_message
+    :last_seen_message,
+    :last_device_triggers_refresh
   ]
 end

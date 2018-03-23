@@ -36,6 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   @max_uncompressed_payload_size 10_485_760
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id) do
     new_state = %State{
@@ -672,6 +673,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp safe_deflate_loop(_z, output_acc, _size_acc, :finished) do
     output_acc
+  end
+
+  defp reload_device_triggers_on_expiry(state, timestamp, db_client) do
+    if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
+         timestamp do
+      any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
+
+      state
+      |> Map.put(:last_device_triggers_refresh, timestamp)
+      |> Map.put(:device_triggers, %{})
+      |> populate_triggers_for_object!(db_client, any_device_id, :any_device)
+      |> populate_triggers_for_object!(db_client, state.device_id, :device)
+    else
+      state
+    end
+  end
+
+  defp execute_time_based_actions(state, timestamp, db_client) do
+    state
+    |> Map.put(:last_seen_message, timestamp)
+    |> purge_expired_interfaces(timestamp)
+    |> reload_device_triggers_on_expiry(timestamp, db_client)
   end
 
   defp purge_expired_interfaces(state, timestamp) do
