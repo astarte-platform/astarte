@@ -355,7 +355,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
         client = connect_to_test_realm("autotestrealm")
 
         {:ok, intdoc} =
-          Astarte.Core.InterfaceDocument.from_json(@individual_property_thing_owned_interface)
+          Astarte.Core.InterfaceDocument.from_json(@individual_property_device_owned_interface)
 
         {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
