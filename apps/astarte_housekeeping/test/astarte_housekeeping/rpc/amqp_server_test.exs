@@ -29,13 +29,23 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
   @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
 
-  defp generic_error(error_name, user_readable_message \\ nil, user_readable_error_name \\ nil, error_data \\ nil) do
-    %Reply{reply: {:generic_error_reply, %GenericErrorReply{error_name: error_name,
-                                                            user_readable_message: user_readable_message,
-                                                            user_readable_error_name: user_readable_error_name,
-                                                            error_data: error_data
-                                                           }},
-           error: true }
+  defp generic_error(
+         error_name,
+         user_readable_message \\ nil,
+         user_readable_error_name \\ nil,
+         error_data \\ nil
+       ) do
+    %Reply{
+      reply:
+        {:generic_error_reply,
+         %GenericErrorReply{
+           error_name: error_name,
+           user_readable_message: user_readable_message,
+           user_readable_error_name: user_readable_error_name,
+           error_data: error_data
+         }},
+      error: true
+    }
   end
 
   defp generic_ok(async \\ false) do
@@ -43,14 +53,16 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "invalid empty message" do
-    encoded = Call.new
-      |> Call.encode
+    encoded =
+      Call.new()
+      |> Call.encode()
+
     assert AMQPServer.process_rpc(encoded) == {:error, :empty_call}
   end
 
   test "CreateRealm call with nil realm" do
-
-    encoded = Call.new(call: {:create_realm, CreateRealm.new})
+    encoded =
+      Call.new(call: {:create_realm, CreateRealm.new()})
       |> Call.encode()
 
     expected = generic_error("empty_name", "empty realm name")
@@ -61,8 +73,8 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "CreateRealm call with nil public key" do
-
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm)})
+    encoded =
+      Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm)})
       |> Call.encode()
 
     expected = generic_error("empty_public_key", "empty jwt public key pem")
@@ -73,8 +85,12 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "valid call, invalid realm_name" do
-
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @invalid_test_realm, jwt_public_key_pem: @public_key_pem)})
+    encoded =
+      Call.new(
+        call:
+          {:create_realm,
+           CreateRealm.new(realm: @invalid_test_realm, jwt_public_key_pem: @public_key_pem)}
+      )
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
@@ -83,14 +99,20 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "realm creation and DoesRealmExist successful call" do
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)})
+    encoded =
+      Call.new(
+        call:
+          {:create_realm,
+           CreateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)}
+      )
       |> Call.encode()
 
     {:ok, create_reply} = AMQPServer.process_rpc(encoded)
 
     assert Reply.decode(create_reply) == generic_ok()
 
-    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
+    encoded =
+      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
       |> Call.encode()
 
     expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}}}
@@ -101,7 +123,8 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "DoesRealmExist non-existing realm" do
-    encoded = %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @not_existing_realm}}}
+    encoded =
+      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @not_existing_realm}}}
       |> Call.encode()
 
     expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: false}}}
@@ -112,35 +135,50 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
   end
 
   test "GetRealmsList successful call" do
-    encoded = %Call{call: {:get_realms_list, %GetRealmsList{}}}
+    encoded =
+      %Call{call: {:get_realms_list, %GetRealmsList{}}}
       |> Call.encode()
 
     {:ok, list_reply} = AMQPServer.process_rpc(encoded)
 
-    assert match?(%Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: names}}}, Reply.decode(list_reply))
+    assert match?(
+             %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: names}}},
+             Reply.decode(list_reply)
+           )
   end
 
   test "GetRealm successful call" do
     # We create another realm to avoid test ordering problems
-    encoded = Call.new(call: {:create_realm, CreateRealm.new(realm: @another_test_realm, jwt_public_key_pem: @public_key_pem)})
+    encoded =
+      Call.new(
+        call:
+          {:create_realm,
+           CreateRealm.new(realm: @another_test_realm, jwt_public_key_pem: @public_key_pem)}
+      )
       |> Call.encode()
 
     {:ok, create_reply} = AMQPServer.process_rpc(encoded)
 
     assert Reply.decode(create_reply) == generic_ok()
 
-    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @another_test_realm}}}
+    encoded =
+      %Call{call: {:get_realm, %GetRealm{realm_name: @another_test_realm}}}
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
 
-    expected = %Reply{reply: {:get_realm_reply, %GetRealmReply{realm_name: @another_test_realm, jwt_public_key_pem: @public_key_pem}}}
+    expected = %Reply{
+      reply:
+        {:get_realm_reply,
+         %GetRealmReply{realm_name: @another_test_realm, jwt_public_key_pem: @public_key_pem}}
+    }
 
     assert Reply.decode(reply) == expected
   end
 
   test "GetRealm failed call" do
-    encoded = %Call{call: {:get_realm, %GetRealm{realm_name: @not_existing_realm}}}
+    encoded =
+      %Call{call: {:get_realm, %GetRealm{realm_name: @not_existing_realm}}}
       |> Call.encode()
 
     {:ok, reply} = AMQPServer.process_rpc(encoded)
@@ -149,5 +187,4 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     assert Reply.decode(reply) == expected
   end
-
 end

@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.Housekeeping.Queries do
-
   require Logger
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
@@ -189,7 +188,9 @@ defmodule Astarte.Housekeeping.Queries do
           String.replace(query, ":realm_name", realm_name)
         end
 
-      insert_pubkey_statement = String.replace(@insert_public_key_query, ":realm_name", realm_name)
+      insert_pubkey_statement =
+        String.replace(@insert_public_key_query, ":realm_name", realm_name)
+
       insert_pubkey_query =
         DatabaseQuery.new()
         |> DatabaseQuery.statement(insert_pubkey_statement)
@@ -200,7 +201,6 @@ defmodule Astarte.Housekeeping.Queries do
       Logger.warn("HouseKeeping.Queries: " <> realm_name <> " is not an allowed realm name.")
       {:error, :realm_not_allowed}
     end
-
   end
 
   def create_astarte_keyspace(client) do
@@ -208,7 +208,8 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def realm_exists?(client, realm_name) do
-    query = DatabaseQuery.new
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@realm_exists_query)
       |> DatabaseQuery.put(:realm_name, realm_name)
 
@@ -217,7 +218,8 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def astarte_keyspace_exists?(client) do
-    query = DatabaseQuery.new
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@astarte_keyspace_exists_query)
 
     # Try the query, if it returns an error we assume it doesn't exist
@@ -226,11 +228,12 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def realms_list(client) do
-    query = DatabaseQuery.new
+    query =
+      DatabaseQuery.new()
       |> DatabaseQuery.statement(@realms_list_query)
 
     DatabaseQuery.call!(client, query)
-    |> Enum.map(fn(row) -> row[:realm_name] end)
+    |> Enum.map(fn row -> row[:realm_name] end)
   end
 
   def get_realm(client, realm_name) do
@@ -240,6 +243,7 @@ defmodule Astarte.Housekeeping.Queries do
       |> DatabaseQuery.put(:realm_name, realm_name)
 
     public_key_statement = String.replace(@get_public_key_query, ":realm_name", realm_name)
+
     public_key_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(public_key_statement)
@@ -265,5 +269,4 @@ defmodule Astarte.Housekeeping.Queries do
   defp exec_queries(_client, _queries = []) do
     :ok
   end
-
 end
