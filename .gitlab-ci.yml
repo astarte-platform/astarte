@@ -10,7 +10,7 @@ variables:
     APPLICATION_NAME: astarte_data_access
 
 mix:test-ci:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
     stage: build
@@ -27,7 +27,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_data_access
 
 mix:build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
     stage: build
@@ -52,7 +52,7 @@ mix:build:
         - master@Astarte-NG/astarte_data_access
 
 mix:release-build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - rabbitmq:3.6
     stage: build
