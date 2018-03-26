@@ -29,7 +29,7 @@ config :astarte_pairing_api, Astarte.Pairing.APIWeb.Endpoint,
 config :logger, level: :warn
 
 config :astarte_rpc, :amqp_connection,
-  host: "rabbitmq"
+  host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 
 config :astarte_pairing_api, :jwt_public_key,
   # The public key for the private key found below
