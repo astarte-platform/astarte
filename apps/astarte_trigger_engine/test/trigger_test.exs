@@ -132,6 +132,7 @@ defmodule Astarte.TriggerEngine.TriggerTest do
         }
       }
     """
+
     assert Trigger.from_json(invalid_action_doc) == {:error, :invalid_action}
   end
 

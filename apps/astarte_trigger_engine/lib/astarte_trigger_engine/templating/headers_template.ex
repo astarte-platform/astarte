@@ -33,22 +33,21 @@ defmodule Astarte.TriggerEngine.Templating.HeadersTemplate do
   end
 
   def merge(template, vars) do
-    Enum.reduce(vars, template, fn({var_key, var_value}, template_acc) ->
+    Enum.reduce(vars, template, fn {var_key, var_value}, template_acc ->
       put(template_acc, var_key, var_value)
     end)
   end
 
   def put(template, var_key, var_value) when is_binary(var_value) do
     new_headers =
-      Enum.map(template.headers, fn(entry) ->
+      Enum.map(template.headers, fn entry ->
         String.replace(entry, "%{#{var_key}}", var_value)
       end)
+
     Map.put(template, :headers, new_headers)
   end
 
   def put(template, var_key, var_value) do
     template
   end
-
 end
-

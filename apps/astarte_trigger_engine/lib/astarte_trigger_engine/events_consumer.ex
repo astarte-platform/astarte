@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumer do
-
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
   alias CQEx.Client, as: DatabaseClient
@@ -64,7 +63,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     base_values = %{
       "realm" => realm,
       "device_id" => device_id,
-      "event_type" => to_string(event_type),
+      "event_type" => to_string(event_type)
     }
 
     # TODO: check this with object aggregations
@@ -89,13 +88,10 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     end)
   end
 
-  def event_to_headers({:ok, payload},
-        realm,
-        _device_id,
-        _event_type,
-        _event,
-        %{"template" => _template, "template_type" => "mustache"}
-      ) do
+  def event_to_headers({:ok, payload}, realm, _device_id, _event_type, _event, %{
+        "template" => _template,
+        "template_type" => "mustache"
+      }) do
     {:ok, payload, ["Astarte-Realm": realm]}
   end
 
@@ -107,10 +103,13 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     payload_result
   end
 
-  def event_to_payload(realm, device_id, event_type, event, %{"template" => template, "template_type" => "mustache"}) do
+  def event_to_payload(realm, device_id, event_type, event, %{
+        "template" => template,
+        "template_type" => "mustache"
+      }) do
     values = build_values_map(realm, device_id, event_type, event)
 
-    {:ok, :bbmustache.render(template, values, [key_type: :binary])}
+    {:ok, :bbmustache.render(template, values, key_type: :binary)}
   end
 
   def event_to_payload(_realm, device_id, :device_connected_event, event, _action) do
@@ -125,7 +124,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   def event_to_payload(_realm, device_id, :device_disconnected_event, _event, _action) do
     %{
       "event_type" => "device_disconnected",
-      "device_id" => device_id,
+      "device_id" => device_id
     }
     |> Poison.encode()
   end
@@ -243,7 +242,11 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     with {:ok, payload, headers} <- payload_and_headers,
          {:ok, url} <- Map.fetch(action, "http_post_url") do
       {status, response} = HTTPoison.post(url, payload, headers)
-      Logger.debug("http request status: #{inspect status}, got response: #{inspect response} from #{url}")
+
+      Logger.debug(
+        "http request status: #{inspect(status)}, got response: #{inspect(response)} from #{url}"
+      )
+
       :ok
     else
       error ->
@@ -264,16 +267,21 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   def retrieve_trigger_configuration(realm_name, trigger_id) do
     client =
-      DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), [keyspace: realm_name])
+      DatabaseClient.new!(
+        List.first(Application.get_env(:cqerl, :cassandra_nodes)),
+        keyspace: realm_name
+      )
 
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_id;")
+      |> DatabaseQuery.statement(
+        "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_id;"
+      )
       |> DatabaseQuery.put(:trigger_id, trigger_id)
 
     with {:ok, result} <- DatabaseQuery.call(client, query),
-         ["value": trigger_data] <- DatabaseResult.head(result),
-         trigger  <- Trigger.decode(trigger_data),
+         [value: trigger_data] <- DatabaseResult.head(result),
+         trigger <- Trigger.decode(trigger_data),
          {:ok, action} <- Poison.decode(trigger.action) do
       {:ok, action}
     else
@@ -282,5 +290,4 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
         {:error, :trigger_not_found}
     end
   end
-
 end
