@@ -1,5 +1,9 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   use ExUnit.Case
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.Core.CQLUtils
@@ -93,6 +97,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> Enum.into(%{})
 
     assert existing_introspection_map == device_introspection
+
+    # Install a volatile test trigger
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_id: :uuid.string_to_uuid("d2d90d55-a779-b988-9db4-15284b04f2e9"),
+            data_trigger_type: :INCOMING_DATA,
+            match_path: "/0/value",
+            value_match_operator: :LESS_THAN,
+            known_value: Bson.encode(%{v: 100})
+          }
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: "rt_lt10"
+          }
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+
+    DataUpdater.handle_install_volatile_trigger(
+      realm,
+      device_id,
+      :uuid.string_to_uuid("d2d90d55-a779-b988-9db4-15284b04f2e9"),
+      :interface,
+      :uuid.get_v4_urandom(),
+      :uuid.get_v4_urandom(),
+      simple_trigger_data,
+      trigger_target_data
+    )
 
     # Incoming data sub-test
     DataUpdater.handle_data(
