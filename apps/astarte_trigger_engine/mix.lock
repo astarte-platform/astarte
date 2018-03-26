@@ -1,13 +1,14 @@
-%{"amqp": {:hex, :amqp, "1.0.0-pre.2", "952180aac9b3a1faea96522f589327e8286457b8bd0fd84bf0560e06d02f5a5a", [:mix], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
+%{
+  "amqp": {:hex, :amqp, "1.0.0-pre.2", "952180aac9b3a1faea96522f589327e8286457b8bd0fd84bf0560e06d02f5a5a", [:mix], [{:amqp_client, "~> 3.6.8", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.6.8", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.6.12", "dfdfe7be661feb96ece404092a47431a73797ad412959732d940f96f80290da0", [:make, :rebar3], [{:rabbit_common, "3.6.12", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
-  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "ef272128da673fa6e28a07c44d6a72d3972b0537", []},
+  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "4489c5ef9574762fdbb5176f0e04cf4c00ea3aba", []},
   "astarte_data_access": {:git, "https://git.ispirata.com/Astarte-NG/astarte_data_access", "f7068703ab479eed97775cae1055e0f061cc11d3", []},
   "bbmustache": {:hex, :bbmustache, "1.5.0", "8cfde0602e90a4057e161bf5288ade854b4e511e2e8924966a8438730e958381", [:rebar3], [], "hexpm"},
-  "bson": {:hex, :bson, "0.4.4", "175ad645cc492349a4cefa0bdff612178a0db611adf38dabe2bbfad2aa25627a", [:mix], [], "hexpm"},
   "certifi": {:hex, :certifi, "2.0.0", "a0c0e475107135f76b8c1d5bc7efb33cd3815cb3cf3dea7aefdd174dabead064", [:rebar3], [], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
   "cqerl": {:git, "https://github.com/ispirata/cqerl.git", "ecc0c4e62e8bf49bcf9e1639699289a6561612e3", []},
   "cqex": {:git, "https://github.com/ispirata/cqex.git", "982b92634926fd271e184d25935fb853215f6ca1", []},
+  "cyanide": {:hex, :cyanide, "0.5.0", "b72422623ce84baa19f96498e18f15f46c4dcac8359d484c9a8c0e3836cb629b", [:mix], [], "hexpm"},
   "distillery": {:hex, :distillery, "1.5.2", "eec18b2d37b55b0bcb670cf2bcf64228ed38ce8b046bb30a9b636a6f5a4c0080", [:mix], [], "hexpm"},
   "excoveralls": {:hex, :excoveralls, "0.7.5", "339e433e5d3bce09400dc8de7b9040741a409c93917849916c136a0f51fdc183", [:mix], [{:exjsx, ">= 3.0.0", [hex: :exjsx, repo: "hexpm", optional: false]}, {:hackney, ">= 0.12.0", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm"},
   "exjsx": {:hex, :exjsx, "4.0.0", "60548841e0212df401e38e63c0078ec57b33e7ea49b032c796ccad8cde794b5c", [:mix], [{:jsx, "~> 2.8.0", [hex: :jsx, repo: "hexpm", optional: false]}], "hexpm"},
@@ -30,4 +31,5 @@
   "snappy": {:git, "https://github.com/fdmanana/snappy-erlang-nif.git", "4e3b8611b6a1ff85a417b0f2fad8886c9485810e", [ref: "4e3b861"]},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.1", "28a4d65b7f59893bc2c7de786dec1e1555bd742d336043fe644ae956c3497fbe", [:make, :rebar], [], "hexpm"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.3.1", "a1f612a7b512638634a603c8f401892afbf99b8ce93a45041f8aaca99cadb85e", [:rebar3], [], "hexpm"},
-  "uuid": {:hex, :uuid_erl, "1.7.2", "d596c8dd01a4ae48b9d8d51832ccc8f8302bf67acd01336aec3fcfae6b9d2bc2", [:rebar3], [{:quickrand, "~> 1.7.2", [hex: :quickrand, repo: "hexpm", optional: false]}], "hexpm"}}
+  "uuid": {:hex, :uuid_erl, "1.7.2", "d596c8dd01a4ae48b9d8d51832ccc8f8302bf67acd01336aec3fcfae6b9d2bc2", [:rebar3], [{:quickrand, "~> 1.7.2", [hex: :quickrand, repo: "hexpm", optional: false]}], "hexpm"},
+}
