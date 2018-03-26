@@ -11,7 +11,7 @@ variables:
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -30,7 +30,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_pairing
 
 mix:build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
@@ -51,7 +51,7 @@ mix:build:
         - master@Astarte-NG/astarte_pairing
 
 mix:release-build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
         - rabbitmq:3.6
