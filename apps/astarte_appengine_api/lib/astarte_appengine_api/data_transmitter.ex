@@ -25,12 +25,12 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   alias Astarte.AppEngine.API.DataTransmitter.MQTTClient
 
   @doc false
-  defimpl Bson.Encoder.Protocol, for: DateTime do
+  defimpl Cyanide.Encoder, for: DateTime do
     def encode(datetime) do
       ms = DateTime.to_unix(datetime, :milliseconds)
 
       %Bson.UTC{ms: ms}
-      |> Bson.Encoder.Protocol.encode()
+      |> Cyanide.Encoder.encode()
     end
   end
 

@@ -12,7 +12,7 @@ variables:
     DOCKER_VERNEMQ_USER_AUTOTEST: 'autotest'
 
 mix:test-ci:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
         - erlio/docker-vernemq:1.2.0
@@ -30,7 +30,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_appengine_api
 
 mix:build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
         - erlio/docker-vernemq:1.2.0
@@ -50,7 +50,7 @@ mix:build:
         - master@Astarte-NG/astarte_appengine_api
 
 mix:release-build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - scylladb/scylla:latest
         - erlio/docker-vernemq:1.2.0
