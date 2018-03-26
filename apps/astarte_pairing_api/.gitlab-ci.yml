@@ -10,7 +10,7 @@ variables:
     APPLICATION_NAME: astarte_pairing_api
 
 mix:test-ci:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - rabbitmq:3.6
     stage: build
@@ -27,7 +27,7 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_pairing_api
 
 mix:build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - rabbitmq:3.6
     stage: build
@@ -47,7 +47,7 @@ mix:build:
         - master@Astarte-NG/astarte_pairing_api
 
 mix:release-build:
-    image: elixir:1.5
+    image: elixir:1.6
     services:
         - rabbitmq:3.6
     stage: build
