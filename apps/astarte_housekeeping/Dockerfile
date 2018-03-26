@@ -1,4 +1,4 @@
-FROM elixir:1.5-slim as builder
+FROM elixir:1.6-slim as builder
 
 RUN apt-get -qq update
 RUN apt-get -qq install git build-essential
