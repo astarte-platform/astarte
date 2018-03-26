@@ -29,10 +29,12 @@ defmodule Astarte.Housekeeping.Engine do
 
   def init(_opts) do
     client = CQEx.Client.new!()
+
     unless Astarte.Housekeeping.Queries.astarte_keyspace_exists?(client) do
       Logger.info("Astarte keyspace not found, creating it")
       Astarte.Housekeeping.Queries.create_astarte_keyspace(client)
     end
+
     {:ok, client}
   end
 
@@ -40,7 +42,11 @@ defmodule Astarte.Housekeeping.Engine do
     if opts[:async] do
       GenServer.cast(:astarte_housekeeping_engine, {:create_realm, realm, public_key_pem})
     else
-      GenServer.call(:astarte_housekeeping_engine, {:create_realm, realm, public_key_pem}, @timeout)
+      GenServer.call(
+        :astarte_housekeeping_engine,
+        {:create_realm, realm, public_key_pem},
+        @timeout
+      )
     end
   end
 
