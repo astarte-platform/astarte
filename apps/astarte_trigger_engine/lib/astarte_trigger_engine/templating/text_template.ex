@@ -29,7 +29,7 @@ defmodule Astarte.TriggerEngine.Templating.TextTemplate do
   end
 
   def merge(template, vars) do
-    Enum.reduce(vars, template, fn({var_key, var_value}, template_acc) ->
+    Enum.reduce(vars, template, fn {var_key, var_value}, template_acc ->
       put(template_acc, var_key, var_value)
     end)
   end
@@ -43,4 +43,3 @@ defmodule Astarte.TriggerEngine.Templating.TextTemplate do
     template.text
   end
 end
-

@@ -18,13 +18,9 @@
 #
 
 defmodule Astarte.TriggerEngine.HttpRequestTemplate do
-
-  defstruct [
-    method: "GET",
-    url: "",
-    headers: [],
-    body_type: :no_body,
-    body: nil
-  ]
-
+  defstruct method: "GET",
+            url: "",
+            headers: [],
+            body_type: :no_body,
+            body: nil
 end

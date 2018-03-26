@@ -40,7 +40,15 @@ defmodule Astarte.TriggerEngine.Templating.StructTemplate do
     template.struct_template
   end
 
-  defp replace_block(%{"type" => "astarte.templates.for_each", "var" => var_key, "current_item_var_name" => current_item_var_name, "repeat" => repeat_block} = block, key_values) do
+  defp replace_block(
+         %{
+           "type" => "astarte.templates.for_each",
+           "var" => var_key,
+           "current_item_var_name" => current_item_var_name,
+           "repeat" => repeat_block
+         } = block,
+         key_values
+       ) do
     if Map.has_key?(key_values, var_key) do
       values_list = Map.fetch!(key_values, var_key)
 
@@ -64,7 +72,7 @@ defmodule Astarte.TriggerEngine.Templating.StructTemplate do
   end
 
   defp replace_block(block, key_values) when is_map(block) do
-    Enum.reduce(block, %{}, fn({k, v}, acc) ->
+    Enum.reduce(block, %{}, fn {k, v}, acc ->
       Map.put(acc, k, replace_block(v, key_values))
     end)
   end
@@ -72,5 +80,4 @@ defmodule Astarte.TriggerEngine.Templating.StructTemplate do
   defp replace_block(block, _key_values) do
     block
   end
-
 end

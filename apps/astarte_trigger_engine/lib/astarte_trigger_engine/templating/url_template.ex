@@ -33,7 +33,7 @@ defmodule Astarte.TriggerEngine.Templating.URLTemplate do
   end
 
   def merge(template, vars) do
-    Enum.reduce(vars, template, fn({var_key, var_value}, template_acc) ->
+    Enum.reduce(vars, template, fn {var_key, var_value}, template_acc ->
       put(template_acc, var_key, var_value)
     end)
   end
@@ -46,6 +46,4 @@ defmodule Astarte.TriggerEngine.Templating.URLTemplate do
   def put(template, _var_key, _var_value) do
     template
   end
-
 end
-

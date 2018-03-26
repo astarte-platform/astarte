@@ -35,14 +35,13 @@ defmodule Astarte.TriggerEngine.Trigger do
   def action_from_map(%{"type" => "push_to_http"} = map) do
     # TODO: error checking
     {:ok,
-      %HttpRequestTemplate{
-        method: map["method"],
-        url: URLTemplate.new(map["url"]),
-        headers: HeadersTemplate.new(map["headers"]),
-        body_type: body_type_string_to_atom(map["body_type"]),
-        body: body_map_to_body_template(map["body"], map["body_type"])
-      }
-    }
+     %HttpRequestTemplate{
+       method: map["method"],
+       url: URLTemplate.new(map["url"]),
+       headers: HeadersTemplate.new(map["headers"]),
+       body_type: body_type_string_to_atom(map["body_type"]),
+       body: body_map_to_body_template(map["body"], map["body_type"])
+     }}
   end
 
   def action_from_map(_) do
@@ -79,15 +78,13 @@ defmodule Astarte.TriggerEngine.Trigger do
          queue = json_obj["queue"],
          {:ok, simple_triggers} <- to_simple_triggers(json_obj),
          {:ok, action} <- action_from_map(json_obj["action"]) do
-
       {:ok,
-        %Trigger{
-          name: name,
-          queue: queue,
-          simple_triggers: simple_triggers,
-          action: action,
-        }
-      }
+       %Trigger{
+         name: name,
+         queue: queue,
+         simple_triggers: simple_triggers,
+         action: action
+       }}
     end
   end
 
@@ -99,14 +96,13 @@ defmodule Astarte.TriggerEngine.Trigger do
   end
 
   def to_simple_triggers(%{"interface" => interface} = map) do
-    #TODO: error checking
+    # TODO: error checking
     {:ok,
-      %{
-        interface: interface,
-        path: Map.get(map, "path"),
-        event: data_trigger_event_type_to_atom(map["event"])
-      }
-    }
+     %{
+       interface: interface,
+       path: Map.get(map, "path"),
+       event: data_trigger_event_type_to_atom(map["event"])
+     }}
   end
 
   def to_simple_triggers(_) do

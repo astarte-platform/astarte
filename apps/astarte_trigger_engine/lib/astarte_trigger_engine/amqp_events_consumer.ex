@@ -77,7 +77,12 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
     {headers, other_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
 
-    Logger.debug("got event, payload: #{inspect(payload)}, headers: #{inspect(headers_map)}, meta: #{inspect(other_meta)}")
+    Logger.debug(
+      "got event, payload: #{inspect(payload)}, headers: #{inspect(headers_map)}, meta: #{
+        inspect(other_meta)
+      }"
+    )
+
     EventsConsumer.consume(payload, headers_map)
 
     # TODO: should we ack manually?
@@ -104,15 +109,20 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
          {:ok, chan} <- Channel.open(conn),
          :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.events_queue_name(), durable: true),
-         :ok <- Queue.bind(chan, Config.events_queue_name(), Config.events_exchange_name(), routing_key: Config.events_routing_key()),
+         :ok <-
+           Queue.bind(
+             chan,
+             Config.events_queue_name(),
+             Config.events_exchange_name(),
+             routing_key: Config.events_routing_key()
+           ),
          {:ok, _consumer_tag} <- Basic.consume(chan, Config.events_queue_name()) do
-
       {:ok, chan}
-
     else
       {:error, reason} ->
         Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
         maybe_retry(retry)
+
       :error ->
         Logger.warn("Unknown RabbitMQ connection error")
         maybe_retry(retry)

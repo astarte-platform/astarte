@@ -32,7 +32,7 @@ defmodule Astarte.TriggerEngine.HttpRequest do
   ]
 
   def build_http_request(template, vars) do
-    IO.puts inspect  template.url
+    IO.puts(inspect(template.url))
 
     %HttpRequest{
       method: template.method,
@@ -58,5 +58,4 @@ defmodule Astarte.TriggerEngine.HttpRequest do
   defp build_body(_template, _vars, :no_body) do
     nil
   end
-
 end
