@@ -24,9 +24,14 @@ defmodule Astarte.DataAccess.Mixfile do
       app: :astarte_data_access,
       version: "0.1.0",
       elixir: "~> 1.5",
-      start_permanent: Mix.env == :prod,
+      start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ],
       deps: deps()
     ]
   end
@@ -42,7 +47,6 @@ defmodule Astarte.DataAccess.Mixfile do
   defp deps do
     [
       {:conform, "~> 2.2"},
-
       {:excoveralls, "~> 0.6", only: :test}
     ]
   end
