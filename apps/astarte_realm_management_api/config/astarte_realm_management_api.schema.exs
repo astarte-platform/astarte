@@ -55,7 +55,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "port": [
       commented: true,
       datatype: :integer,
-      default: 4001,
+      default: 4000,
       env_var: "REALM_MANAGEMENT_API_PORT",
       doc: "The port used by the Phoenix server.",
       hidden: false,
