@@ -45,6 +45,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     |> GenServer.cast({:handle_control, path, payload, delivery_tag, timestamp})
   end
 
+  def handle_install_volatile_trigger(
+        realm,
+        encoded_device_id,
+        object_id,
+        object_type,
+        parent_id,
+        trigger_id,
+        simple_trigger,
+        trigger_target
+      ) do
+    get_data_updater_process(realm, encoded_device_id)
+    |> GenServer.cast(
+      {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
+       simple_trigger, trigger_target}
+    )
+  end
+
   def dump_state(realm, encoded_device_id) do
     get_data_updater_process(realm, encoded_device_id)
     |> GenServer.call({:dump_state})

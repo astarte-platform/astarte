@@ -28,6 +28,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :mappings,
     :device_triggers,
     :data_triggers,
+    :volatile_triggers,
     :introspection_triggers,
     :connected,
     :total_received_msgs,

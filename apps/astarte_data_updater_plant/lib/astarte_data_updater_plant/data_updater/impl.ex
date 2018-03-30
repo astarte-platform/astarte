@@ -83,6 +83,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         mappings: %{},
         device_triggers: %{},
         data_triggers: %{},
+        volatile_triggers: %{},
         introspection_triggers: %{},
         last_seen_message: 0,
         last_device_triggers_refresh: 0
@@ -634,6 +635,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     IO.puts("Control on #{path}, payload: #{inspect(payload)}")
 
     raise "TODO or unexpected"
+  end
+
+  def handle_install_volatile_trigger(
+        state,
+        object_id,
+        object_type,
+        parent_id,
+        trigger_id,
+        simple_trigger,
+        trigger_target
+      ) do
+    trigger = SimpleTriggersProtobufUtils.deserialize_simple_trigger(simple_trigger)
+
+    target =
+      SimpleTriggersProtobufUtils.deserialize_trigger_target(trigger_target)
+      |> Map.put(:simple_trigger_id, trigger_id)
+      |> Map.put(:parent_trigger_id, parent_id)
+
+    volatile_triggers_map =
+      Map.put(state.volatile_triggers, {object_id, object_type}, {trigger, target})
+
+    new_state = Map.put(state, :volatile_triggers, volatile_triggers_map)
+
+    if Map.get(new_state.interface_ids_to_name, object_id) do
+      load_trigger(new_state, trigger, target)
+    else
+      new_state
+    end
   end
 
   defp safe_deflate(zlib_payload) do
@@ -1282,17 +1311,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     simple_triggers_rows = DatabaseQuery.call!(client, simple_triggers_query)
 
-    Enum.reduce(simple_triggers_rows, state, fn row, state_acc ->
-      trigger_id = row[:simple_trigger_id]
-      parent_trigger_id = row[:parent_trigger_id]
-      simple_trigger = SimpleTriggersProtobufUtils.deserialize_simple_trigger(row[:trigger_data])
+    new_state =
+      Enum.reduce(simple_triggers_rows, state, fn row, state_acc ->
+        trigger_id = row[:simple_trigger_id]
+        parent_trigger_id = row[:parent_trigger_id]
 
-      trigger_target =
-        SimpleTriggersProtobufUtils.deserialize_trigger_target(row[:trigger_target])
-        |> Map.put(:simple_trigger_id, trigger_id)
-        |> Map.put(:parent_trigger_id, parent_trigger_id)
+        simple_trigger =
+          SimpleTriggersProtobufUtils.deserialize_simple_trigger(row[:trigger_data])
 
-      load_trigger(state_acc, simple_trigger, trigger_target)
+        trigger_target =
+          SimpleTriggersProtobufUtils.deserialize_trigger_target(row[:trigger_target])
+          |> Map.put(:simple_trigger_id, trigger_id)
+          |> Map.put(:parent_trigger_id, parent_trigger_id)
+
+        load_trigger(state_acc, simple_trigger, trigger_target)
+      end)
+
+    Enum.reduce(new_state.volatile_triggers, new_state, fn {{obj_id, obj_type},
+                                                            {simple_trigger, trigger_target}},
+                                                           state_acc ->
+      if obj_id == object_id and obj_type == object_type_int do
+        load_trigger(state_acc, simple_trigger, trigger_target)
+      else
+        state_acc
+      end
     end)
   end
 
