@@ -32,7 +32,21 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.AuthGuardian,
     "PS512",
     "RS256",
     "RS384",
-    "RS512"]
+    "RS512"
+  ]
+
+config :astarte_appengine_api, Astarte.AppEngine.APIWeb.SocketGuardian,
+  allowed_algos: [
+    "ES256",
+    "ES384",
+    "ES512",
+    "PS256",
+    "PS384",
+    "PS512",
+    "RS256",
+    "RS384",
+    "RS512"
+  ]
 
 # Enable Swagger by default (if we're here, we're not on distillery)
 config :astarte_appengine_api,
