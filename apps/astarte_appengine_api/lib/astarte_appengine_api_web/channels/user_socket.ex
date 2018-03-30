@@ -19,6 +19,12 @@
 
 defmodule Astarte.AppEngine.APIWeb.UserSocket do
   use Phoenix.Socket
+  alias Astarte.AppEngine.API.Auth
+  alias Astarte.AppEngine.API.Auth.RoomsUser
+  alias Astarte.AppEngine.APIWeb.SocketGuardian
+  alias JOSE.JWK
+
+  require Logger
 
   ## Channels
   channel "rooms:*", Astarte.AppEngine.APIWeb.RoomsChannel
@@ -38,8 +44,25 @@ defmodule Astarte.AppEngine.APIWeb.UserSocket do
   #
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
-  def connect(_params, socket) do
-    {:ok, socket}
+  def connect(%{"realm" => realm, "token" => token}, socket) do
+    with {:ok, public_key} <- Auth.fetch_public_key(realm),
+         %JWK{} = jwk <- JWK.from_pem(public_key),
+         {:ok, %RoomsUser{} = user, _claims} <- SocketGuardian.resource_from_token(token, %{}, secret: jwk) do
+      authorized_socket =
+        socket
+        |> assign(:user, user)
+        |> assign(:realm, realm)
+
+      {:ok, authorized_socket}
+    else
+      error ->
+        Logger.debug("Channels auth error: #{inspect(error)}")
+        :error
+    end
+  end
+
+  def connect(_params, _socket) do
+    :error
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:
