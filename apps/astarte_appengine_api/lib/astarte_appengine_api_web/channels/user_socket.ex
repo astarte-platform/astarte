@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.APIWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", Astarte.AppEngine.APIWeb.RoomChannel
+  channel "rooms:*", Astarte.AppEngine.APIWeb.RoomsChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
