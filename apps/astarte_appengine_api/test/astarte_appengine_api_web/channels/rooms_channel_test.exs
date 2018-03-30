@@ -20,8 +20,13 @@
 defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   use Astarte.AppEngine.APIWeb.ChannelCase
 
+  alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.DatabaseTestHelper
+  alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.APIWeb.RoomsChannel
+  alias Astarte.AppEngine.APIWeb.UserSocket
+
+  @all_access_regex ".*"
 
   setup_all do
     DatabaseTestHelper.create_public_key_only_keyspace()
@@ -31,5 +36,28 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end)
 
     :ok
+  end
+
+  describe "authentication" do
+    test "connection with empty params fails" do
+      assert :error = connect(UserSocket, %{})
+    end
+
+    test "connection with non-existing realm fails" do
+      token = JWTTestHelper.gen_channels_jwt_all_access_token()
+
+      assert :error = connect(UserSocket, %{"realm" => "nonexisting", "token" => token})
+    end
+
+    test "connection with valid realm and token succeeds" do
+      token = JWTTestHelper.gen_channels_jwt_all_access_token()
+
+      assert {:ok, socket} = connect(UserSocket, %{"realm" => "autotestrealm", "token" => token})
+
+      assert %RoomsUser{
+               join_authorizations: [@all_access_regex],
+               watch_authorizations: [@all_access_regex]
+             } = socket.assigns[:user]
+    end
   end
 end
