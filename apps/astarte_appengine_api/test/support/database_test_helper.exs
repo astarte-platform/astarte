@@ -17,7 +17,7 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.RealmManagement.DatabaseTestHelper do
+defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
   alias Astarte.AppEngine.API.JWTTestHelper

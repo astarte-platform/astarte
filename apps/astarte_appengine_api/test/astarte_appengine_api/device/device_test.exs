@@ -19,6 +19,7 @@
 
 defmodule Astarte.AppEngine.API.DeviceTest do
   use ExUnit.Case
+  alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
@@ -81,10 +82,10 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   }
 
   setup do
-    {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()
+    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
-      Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+      DatabaseTestHelper.destroy_local_test_keyspace()
     end)
   end
 

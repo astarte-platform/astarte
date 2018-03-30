@@ -20,13 +20,14 @@
 defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
   use Astarte.AppEngine.APIWeb.ConnCase
 
+  alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.JWTTestHelper
 
   setup %{conn: conn} do
-    {:ok, _client} = Astarte.RealmManagement.DatabaseTestHelper.create_test_keyspace()
+    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
-      Astarte.RealmManagement.DatabaseTestHelper.destroy_local_test_keyspace()
+      DatabaseTestHelper.destroy_local_test_keyspace()
     end)
 
     authorized_conn =
