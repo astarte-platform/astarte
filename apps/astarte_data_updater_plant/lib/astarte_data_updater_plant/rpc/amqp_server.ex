@@ -48,27 +48,23 @@ defmodule Astarte.DataUpdaterPlant.RPC.AMQPServer do
             object_id: object_id,
             object_type: object_type,
             parent_id: parent_id,
+            simple_trigger_id: simple_trigger_id,
             simple_trigger: simple_trigger,
             trigger_target: trigger_target
           }}
        ) do
-    # TODO: use faster random generator
-    trigger_id = :uuid.get_v4()
-
     DataUpdater.handle_install_volatile_trigger(
       realm_name,
       device_id,
       object_id,
       object_type,
       parent_id,
-      trigger_id,
+      simple_trigger_id,
       simple_trigger,
       trigger_target
     )
 
-    %InstallVolatileTriggerReply{
-      trigger_id: trigger_id
-    }
+    %GenericOkReply{}
     |> encode_reply()
     |> ok_wrap()
   end
@@ -115,11 +111,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.AMQPServer do
 
   defp encode_reply(%GenericErrorReply{} = reply, _reply_type) do
     %Reply{reply: {:generic_error_reply, reply}, error: true}
-    |> Reply.encode()
-  end
-
-  defp encode_reply(%InstallVolatileTriggerReply{} = reply) do
-    %Reply{reply: {:install_volatile_trigger_reply, reply}, error: false}
     |> Reply.encode()
   end
 
