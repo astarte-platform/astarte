@@ -125,16 +125,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       }
       |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
 
-    DataUpdater.handle_install_volatile_trigger(
+    volatile_trigger_id = :uuid.get_v4_urandom()
+
+    assert DataUpdater.handle_install_volatile_trigger(
       realm,
       device_id,
       :uuid.string_to_uuid("d2d90d55-a779-b988-9db4-15284b04f2e9"),
       :interface,
       :uuid.get_v4_urandom(),
-      :uuid.get_v4_urandom(),
+      volatile_trigger_id,
       simple_trigger_data,
       trigger_target_data
-    )
+    ) == :ok
 
     # Incoming data sub-test
     DataUpdater.handle_data(
@@ -507,6 +509,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              total_received_msgs: 45013,
              total_received_bytes: 4_500_692
            ]
+
+    assert DataUpdater.handle_delete_volatile_trigger(realm, device_id, volatile_trigger_id) == :ok
   end
 
   test "empty introspection is updated correctly" do
