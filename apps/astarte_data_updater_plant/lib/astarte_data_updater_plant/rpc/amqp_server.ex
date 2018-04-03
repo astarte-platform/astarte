@@ -52,7 +52,8 @@ defmodule Astarte.DataUpdaterPlant.RPC.AMQPServer do
             trigger_target: trigger_target
           }}
        ) do
-    trigger_id = :uuid.get_v4_urandom()
+    # TODO: use faster random generator
+    trigger_id = :uuid.get_v4()
 
     DataUpdater.handle_install_volatile_trigger(
       realm_name,
@@ -68,6 +69,25 @@ defmodule Astarte.DataUpdaterPlant.RPC.AMQPServer do
     %InstallVolatileTriggerReply{
       trigger_id: trigger_id
     }
+    |> encode_reply()
+    |> ok_wrap()
+  end
+
+  defp call_rpc(
+         {:delete_volatile_trigger,
+          %DeleteVolatileTrigger{
+            realm_name: realm_name,
+            device_id: device_id,
+            trigger_id: trigger_id
+          }}
+       ) do
+    DataUpdater.handle_delete_volatile_trigger(
+      realm_name,
+      device_id,
+      trigger_id
+    )
+
+    %GenericOkReply{}
     |> encode_reply()
     |> ok_wrap()
   end

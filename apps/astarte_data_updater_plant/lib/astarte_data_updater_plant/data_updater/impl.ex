@@ -665,6 +665,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
+  # it takes some time before a trigger is not notified anymore
+  # the data updater needs to forget the interface before.
+  # Some spurious events might be sent afterwards, so the receiver needs to
+  # deal with this issue and discard those events.
+  # TODO: future version should completely forget it.
+  def handle_delete_volatile_trigger(state, trigger_id) do
+    updated_volatile_triggers =
+      Enum.reject(state.volatile_triggers, fn {{obj_id, obj_type},
+                                               {simple_trigger, trigger_target}} ->
+        trigger_target.simple_trigger_id == trigger_id
+      end)
+
+    {:ok, Map.put(state, :volatile_triggers, updated_volatile_triggers)}
+  end
+
   defp safe_deflate(zlib_payload) do
     z = :zlib.open()
     :ok = :zlib.inflateInit(z)

@@ -75,6 +75,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:reply, :ok, new_state}
   end
 
+  def handle_call({:handle_delete_volatile_trigger, trigger_id}, _from, state) do
+    {result, new_state} = Impl.handle_delete_volatile_trigger(state, trigger_id)
+
+    {:reply, result, new_state}
+  end
+
   def handle_call({:dump_state}, _from, state) do
     {:reply, state, state}
   end
