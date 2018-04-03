@@ -1,0 +1,99 @@
+version: '2'
+services:
+  # Astarte main services
+  astarte-standalone:
+    image: astarte/astarte:snapshot
+    env_file:
+     - ./compose.env
+     - ./compose_generated.env
+    environment:
+      ASTARTE_CASSANDRA_NODES: "cassandra:9042"
+      APPENGINE_API_MQTT_HOST: "vernemq"
+      APPENGINE_API_MQTT_USERNAME: "appengine"
+      APPENGINE_API_MQTT_PASSWORD: "appengine"
+      DATA_UPDATER_PLANT_AMQP_CONSUMER_HOST: "rabbitmq"
+      DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST: "rabbitmq"
+      DATA_UPDATER_PLANT_AMQP_PRODUCER_PORT: "5672"
+      DATA_UPDATER_PLANT_AMQP_PRODUCER_USERNAME: "guest"
+      DATA_UPDATER_PLANT_AMQP_PRODUCER_PASSWORD: "guest"
+      DATA_UPDATER_PLANT_AMQP_PRODUCER_VIRTUAL_HOST: "/"
+      TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
+      ASTARTE_RPC_AMQP_CONNECTION_HOST: "rabbitmq"
+      HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/tlscert/housekeeping.crt"
+      PAIRING_CFSSL_URL: "http://cfssl:8080"
+      PAIRING_API_JWT_PUBLIC_KEY_PATH: "/tlscert/pairing.crt"
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+      - "4002:4002"
+      - "4003:4003"
+    volumes:
+      - ./compose/astarte-certs/housekeeping.crt:/tlscert/housekeeping.crt
+      - ./compose/astarte-certs/pairing.crt:/tlscert/pairing.crt
+    depends_on:
+      - "rabbitmq"
+      - "cassandra"
+      - "vernemq"
+    # We don't wait for anything, as supervisord will restart stuff until it hits.
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.7
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  # CFSSL
+  postgresql:
+    image: postgres:9.6
+    environment:
+      POSTGRES_USER: "astarte"
+      POSTGRES_PASSWORD: "astarte"
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+  cfssl:
+    image: astarte/cfssl
+    depends_on:
+      - "postgresql"
+    volumes:
+      - ./compose/cfssl-config:/config
+    # Ensure we wait for pg
+    command: wait-for postgresql:5432 -t 90 -- cfssl serve -address=0.0.0.0 -ca=/data/ca.pem -ca-key=/data/ca-key.pem -port=8080 -config=/etc/cfssl/ca_root_config.json -db-config=/etc/cfssl/db_config.json
+
+  # Cassandra
+  cassandra:
+    image: cassandra:3.11
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+
+  # VerneMQ
+  vernemq:
+    image: astarte/vernemq
+    env_file:
+     - ./compose.env
+    environment:
+      DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__USERNAME: "guest"
+      DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__PASSWORD: "guest"
+      DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__HOST: "rabbitmq"
+      DOCKER_VERNEMQ_USER_appengine: "appengine"
+      CFSSL_URL: "http://cfssl:8080"
+    ports:
+      # 1883 is used internally and isn't exposed
+      # Used with HAProxy only
+      - "1885:1885"
+      # Used with SSL Listener only
+      - "8883:8883"
+      # You can comment this out if you don't need Let's Encrypt
+      - "80:80"
+    volumes:
+      - vernemq-data:/opt/vernemq/data
+      - ./compose/vernemq-certs:/etc/ssl/vernemq-certs
+    depends_on:
+      - "cfssl"
+      - "rabbitmq"
+    # Ensure we wait for rabbit and cfssl
+    command: wait-for rabbitmq:5672 -t 90 -- wait-for cfssl:8080 -t 90 -- /opt/vernemq/bin/vernemq.sh
+volumes:
+  rabbitmq-data:
+  postgresql-data:
+  cassandra-data:
+  vernemq-data:

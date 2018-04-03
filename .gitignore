@@ -1,0 +1,5 @@
+compose/astarte-certs/*
+compose/vernemq-certs/*
+compose/cfssl-config/*.pem
+compose/cfssl-config/*.csr
+compose_generated.env
