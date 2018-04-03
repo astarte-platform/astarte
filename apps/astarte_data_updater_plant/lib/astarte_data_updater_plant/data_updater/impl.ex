@@ -83,7 +83,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         mappings: %{},
         device_triggers: %{},
         data_triggers: %{},
-        volatile_triggers: %{},
+        volatile_triggers: [],
         introspection_triggers: %{},
         last_seen_message: 0,
         last_device_triggers_refresh: 0
@@ -653,10 +653,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> Map.put(:simple_trigger_id, trigger_id)
       |> Map.put(:parent_trigger_id, parent_id)
 
-    volatile_triggers_map =
-      Map.put(state.volatile_triggers, {object_id, object_type}, {trigger, target})
+    volatile_triggers_list = [
+      {{object_id, object_type}, {trigger, target}} | state.volatile_triggers
+    ]
 
-    new_state = Map.put(state, :volatile_triggers, volatile_triggers_map)
+    new_state = Map.put(state, :volatile_triggers, volatile_triggers_list)
 
     if Map.get(new_state.interface_ids_to_name, object_id) do
       load_trigger(new_state, trigger, target)
