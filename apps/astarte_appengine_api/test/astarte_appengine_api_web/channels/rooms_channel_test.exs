@@ -27,6 +27,10 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.AppEngine.APIWeb.UserSocket
 
   @all_access_regex ".*"
+  @realm "autotestrealm"
+  @authorized_room_name "letmein"
+
+  @unauthorized_reason %{reason: "unauthorized"}
 
   setup_all do
     DatabaseTestHelper.create_public_key_only_keyspace()
@@ -52,12 +56,52 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     test "connection with valid realm and token succeeds" do
       token = JWTTestHelper.gen_channels_jwt_all_access_token()
 
-      assert {:ok, socket} = connect(UserSocket, %{"realm" => "autotestrealm", "token" => token})
+      assert {:ok, socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
 
       assert %RoomsUser{
                join_authorizations: [@all_access_regex],
                watch_authorizations: [@all_access_regex]
              } = socket.assigns[:user]
     end
+  end
+
+  describe "join authorization" do
+    setup [:room_join_authorized_socket]
+
+    test "fails with different realm", %{socket: socket} do
+      assert {:error, @unauthorized_reason} =
+               join(socket, "rooms:otherrealm:#{@authorized_room_name}")
+    end
+
+    test "fails with unauthorized room", %{socket: socket} do
+      assert {:error, @unauthorized_reason} =
+               join(socket, "rooms:#{@realm}:unauthorized_room_name")
+    end
+
+    test "fails with empty auth token" do
+      token = JWTTestHelper.gen_channels_jwt_token([])
+      {:ok, socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
+
+      assert {:error, @unauthorized_reason} =
+               join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
+    end
+
+    test "succeeds with correct realm and room name", %{socket: socket} do
+      assert {:ok, _reply, _socket} = join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
+    end
+
+    test "succeeds with all access token" do
+      token = JWTTestHelper.gen_channels_jwt_all_access_token()
+      {:ok, socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
+
+      assert {:ok, _reply, _socket} = join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
+    end
+  end
+
+  defp room_join_authorized_socket(_context) do
+    token = JWTTestHelper.gen_channels_jwt_token(["JOIN::#{@authorized_room_name}"])
+    {:ok, socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
+
+    {:ok, socket: socket}
   end
 end
