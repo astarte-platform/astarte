@@ -62,6 +62,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     )
   end
 
+  def handle_delete_volatile_trigger(realm, encoded_device_id, trigger_id) do
+    get_data_updater_process(realm, encoded_device_id)
+    |> GenServer.call({:handle_delete_volatile_trigger, trigger_id})
+  end
+
   def dump_state(realm, encoded_device_id) do
     get_data_updater_process(realm, encoded_device_id)
     |> GenServer.call({:dump_state})
