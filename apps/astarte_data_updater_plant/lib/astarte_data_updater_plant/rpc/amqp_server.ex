@@ -52,18 +52,22 @@ defmodule Astarte.DataUpdaterPlant.RPC.AMQPServer do
             trigger_target: trigger_target
           }}
        ) do
+    trigger_id = :uuid.get_v4_urandom()
+
     DataUpdater.handle_install_volatile_trigger(
       realm_name,
       device_id,
       object_id,
       object_type,
       parent_id,
-      :uuid.get_v4_urandom(),
+      trigger_id,
       simple_trigger,
       trigger_target
     )
 
-    %GenericOkReply{}
+    %InstallVolatileTriggerReply{
+      trigger_id: trigger_id
+    }
     |> encode_reply()
     |> ok_wrap()
   end
@@ -91,6 +95,11 @@ defmodule Astarte.DataUpdaterPlant.RPC.AMQPServer do
 
   defp encode_reply(%GenericErrorReply{} = reply, _reply_type) do
     %Reply{reply: {:generic_error_reply, reply}, error: true}
+    |> Reply.encode()
+  end
+
+  defp encode_reply(%InstallVolatileTriggerReply{} = reply) do
+    %Reply{reply: {:install_volatile_trigger_reply, reply}, error: false}
     |> Reply.encode()
   end
 

@@ -56,7 +56,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         trigger_target
       ) do
     get_data_updater_process(realm, encoded_device_id)
-    |> GenServer.cast(
+    |> GenServer.call(
       {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
        simple_trigger, trigger_target}
     )

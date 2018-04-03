@@ -55,9 +55,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:noreply, new_state}
   end
 
-  def handle_cast(
+  def handle_call(
         {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
          simple_trigger, trigger_target},
+        _from,
         state
       ) do
     new_state =
@@ -71,7 +72,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
         trigger_target
       )
 
-    {:noreply, new_state}
+    {:reply, :ok, new_state}
   end
 
   def handle_call({:dump_state}, _from, state) do
