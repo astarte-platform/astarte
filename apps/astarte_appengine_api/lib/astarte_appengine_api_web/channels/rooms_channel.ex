@@ -20,8 +20,13 @@
 defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
   use Astarte.AppEngine.APIWeb, :channel
 
-  def join("rooms:lobby", payload, socket) do
-    if authorized?(payload) do
+  alias Astarte.AppEngine.API.Auth.RoomsUser
+
+  def join("rooms:" <> room_name, _payload, socket) do
+    user = socket.assigns[:user]
+    realm = socket.assigns[:realm]
+
+    if join_authorized?(room_name, user, realm) do
       {:ok, socket}
     else
       {:error, %{reason: "unauthorized"}}
@@ -41,8 +46,21 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
     {:noreply, socket}
   end
 
-  # Add authorization logic here as required.
-  defp authorized?(_payload) do
-    true
+  defp join_authorized?(room_name, %RoomsUser{join_authorizations: authorizations}, realm)
+       when is_list(authorizations) and is_binary(realm) do
+    Enum.any?(authorizations, fn auth_regex ->
+      can_join_room?(room_name, realm, auth_regex)
+    end)
+  end
+
+  defp can_join_room?(room_name, realm, room_regex) do
+    case Regex.compile("^#{realm}:#{room_regex}$") do
+      {:ok, join_regex} ->
+        Regex.match?(join_regex, room_name)
+
+      _ ->
+        # If we're here we failed to compile a regex
+        false
+    end
   end
 end
