@@ -416,7 +416,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
-                routing_key: "rt_gt9"
+                routing_key: "test_events"
               }
             }
           }
@@ -451,7 +451,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: "test_interface_added"
+                routing_key: "test_events"
               }
             }
           }
@@ -487,7 +487,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: "test_device_connected"
+                routing_key: "test_events"
               }
             }
           }
@@ -524,7 +524,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: "path_removed"
+                routing_key: "test_events"
               }
             }
           }
