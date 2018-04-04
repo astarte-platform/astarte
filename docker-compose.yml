@@ -19,17 +19,17 @@ services:
       DATA_UPDATER_PLANT_AMQP_PRODUCER_VIRTUAL_HOST: "/"
       TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
       ASTARTE_RPC_AMQP_CONNECTION_HOST: "rabbitmq"
-      HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/tlscert/housekeeping.crt"
+      HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping.pub"
       PAIRING_CFSSL_URL: "http://cfssl:8080"
-      PAIRING_API_JWT_PUBLIC_KEY_PATH: "/tlscert/pairing.crt"
+      PAIRING_API_JWT_PUBLIC_KEY_PATH: "/keys/pairing.pub"
     ports:
       - "4000:4000"
       - "4001:4001"
       - "4002:4002"
       - "4003:4003"
     volumes:
-      - ./compose/astarte-certs/housekeeping.crt:/tlscert/housekeeping.crt
-      - ./compose/astarte-certs/pairing.crt:/tlscert/pairing.crt
+      - ./compose/astarte-keys/housekeeping.pub:/keys/housekeeping.pub
+      - ./compose/astarte-keys/pairing.pub:/keys/pairing.pub
     depends_on:
       - "rabbitmq"
       - "cassandra"
