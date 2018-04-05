@@ -1,4 +1,4 @@
-compose/astarte-certs/*
+compose/astarte-keys/*
 compose/vernemq-certs/*
 compose/cfssl-config/*.pem
 compose/cfssl-config/*.csr
