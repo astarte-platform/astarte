@@ -326,7 +326,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @insert_into_simple_triggers """
-  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target) VALUES (:object_id, :object_type, Uuid(), Uuid(), :trigger_data, :trigger_target);
+  INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target)
+  VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :trigger_data, :trigger_target);
   """
 
   def create_test_keyspace do
@@ -430,6 +431,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa")
           )
           |> DatabaseQuery.put(:object_type, 2)
+          |> DatabaseQuery.put(:simple_trigger_id, greater_than_incoming_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
 
@@ -466,6 +469,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :uuid.string_to_uuid("f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177")
           )
           |> DatabaseQuery.put(:object_type, 3)
+          |> DatabaseQuery.put(:simple_trigger_id, interface_added_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
 
@@ -501,6 +506,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :uuid.string_to_uuid("7f454c46-0201-0100-0000-000000000000")
           )
           |> DatabaseQuery.put(:object_type, 1)
+          |> DatabaseQuery.put(:simple_trigger_id, device_connected_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
 
@@ -538,6 +545,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa")
           )
           |> DatabaseQuery.put(:object_type, 2)
+          |> DatabaseQuery.put(:simple_trigger_id, path_removed_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
 
@@ -593,5 +602,25 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       Base.url_decode64!(extended_id, padding: false)
 
     device_uuid
+  end
+
+  def fake_parent_trigger_id() do
+    <<252, 187, 176, 47, 156, 161, 74, 169, 161, 197, 180, 56, 7, 115, 128, 207>>
+  end
+
+  def device_connected_trigger_id() do
+    <<216, 12, 133, 232, 80, 173, 169, 7, 46, 113, 239, 216, 165, 193, 220, 33>>
+  end
+
+  def interface_added_trigger_id() do
+    <<29, 75, 194, 112, 8, 190, 133, 129, 152, 38, 51, 180, 37, 93, 103, 33>>
+  end
+
+  def path_removed_trigger_id() do
+    <<8, 107, 10, 96, 174, 205, 127, 187, 26, 141, 199, 195, 211, 61, 148, 174>>
+  end
+
+  def greater_than_incoming_trigger_id() do
+    <<173, 82, 46, 100, 127, 143, 79, 136, 37, 210, 111, 73, 7, 24, 69, 130>>
   end
 end
