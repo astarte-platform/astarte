@@ -71,6 +71,9 @@ services:
     env_file:
      - ./compose.env
     environment:
+      DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CAFILE: "/opt/vernemq/etc/ca.pem"
+      DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CERTFILE: "/opt/vernemq/etc/cert.pem"
+      DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__KEYFILE: "/opt/vernemq/etc/privkey.pem"
       DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__USERNAME: "guest"
       DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__PASSWORD: "guest"
       DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__HOST: "rabbitmq"
