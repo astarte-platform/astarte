@@ -9,7 +9,7 @@ fi
 
 # Generate housekeeping & pairing keypairs
 for f in "housekeeping" "pairing"; do
-	if [ ! -f ./compose/astarte-certs/$f.crt ] ; then
+	if [ ! -f ./compose/astarte-keys/$f.pub ] ; then
 		cd compose/astarte-keys/
 		openssl genrsa -out $f.key 2048
 		openssl rsa -in $f.key -out $f.pub -pubout
