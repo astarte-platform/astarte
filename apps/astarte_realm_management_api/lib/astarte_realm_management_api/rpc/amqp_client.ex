@@ -119,9 +119,7 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
-  def install_trigger(realm_name, trigger, simple_triggers) do
-    trigger_data = Trigger.encode(trigger)
-
+  def install_trigger(realm_name, trigger_name, action, simple_triggers) do
     simple_triggers_containers =
       for simple_trigger <- simple_triggers do
         %InstallTrigger.SimpleTriggerDataContainer{
@@ -134,7 +132,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     {:ok, payload} =
       %InstallTrigger{
         realm_name: realm_name,
-        trigger_data: trigger_data,
+        trigger_name: trigger_name,
+        action: action,
         simple_triggers_data_container: simple_triggers_containers
       }
       |> encode_and_call(:install_trigger)
