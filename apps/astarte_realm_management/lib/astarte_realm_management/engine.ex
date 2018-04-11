@@ -236,10 +236,8 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def install_trigger(realm_name, trigger_data, simple_trigger_data_containers) do
+  def install_trigger(realm_name, trigger_name, action, simple_trigger_data_containers) do
     with {:ok, client} <- get_database_client(realm_name) do
-      trigger = Trigger.decode(trigger_data)
-
       simple_triggers =
         for simple_trigger_data_container <- simple_trigger_data_containers do
           %{
@@ -255,10 +253,11 @@ defmodule Astarte.RealmManagement.Engine do
           simple_trigger[:simple_trigger_uuid]
         end
 
-      trigger = %{
-        trigger
-        | trigger_uuid: trigger.trigger_uuid || :uuid.get_v4(),
-          simple_triggers_uuids: simple_trigger_uuids
+      trigger = %Trigger{
+        trigger_uuid: :uuid.get_v4(),
+        simple_triggers_uuids: simple_trigger_uuids,
+        action: action,
+        name: trigger_name
       }
 
       # TODO: they should be batched together
