@@ -204,12 +204,13 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
           {:install_trigger,
            %InstallTrigger{
              realm_name: realm_name,
-             trigger_data: trigger_data,
+             trigger_name: trigger_name,
+             action: action,
              simple_triggers_data_container: simple_triggers_data_container
            }} ->
             encode_reply(
               :install_trigger,
-              Engine.install_trigger(realm_name, trigger_data, simple_triggers_data_container)
+              Engine.install_trigger(realm_name, trigger_name, action, simple_triggers_data_container)
             )
 
           {:get_trigger, %GetTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
