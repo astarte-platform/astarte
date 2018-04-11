@@ -153,7 +153,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: "test_events"
+            routing_key: AMQPTestHelper.events_routing_key()
           }
         }
       }

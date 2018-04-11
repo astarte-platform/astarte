@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.IntrospectionTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
 
@@ -417,7 +418,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
-                routing_key: "test_events"
+                routing_key: AMQPTestHelper.events_routing_key()
               }
             }
           }
@@ -454,7 +455,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: "test_events"
+                routing_key: AMQPTestHelper.events_routing_key()
               }
             }
           }
@@ -492,7 +493,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: "test_events"
+                routing_key: AMQPTestHelper.events_routing_key()
               }
             }
           }
@@ -531,7 +532,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: "test_events"
+                routing_key: AMQPTestHelper.events_routing_key()
               }
             }
           }
