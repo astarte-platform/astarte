@@ -1,9 +1,15 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   use ExUnit.Case
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.Core.CQLUtils
@@ -13,6 +19,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   setup_all do
     {:ok, _client} = Astarte.DataUpdaterPlant.DatabaseTestHelper.create_test_keyspace()
+    {:ok, _pid} = AMQPTestHelper.start_link()
 
     on_exit(fn ->
       Astarte.DataUpdaterPlant.DatabaseTestHelper.destroy_local_test_keyspace()
@@ -20,9 +27,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   end
 
   test "simple flow" do
+    AMQPTestHelper.clean_queue()
+
     realm = "autotestrealm"
     device_id = "f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
     device_id_uuid = DatabaseTestHelper.extended_id_to_uuid(device_id)
+    short_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
 
     received_msgs = 45000
     received_bytes = 4_500_000
@@ -49,6 +59,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, device_id)
+    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    assert conn_headers["x_astarte_event_type"] == "device_connected_event"
+    assert conn_headers["x_astarte_realm"] == realm
+    assert conn_headers["x_astarte_device_id"] == short_device_id
+
+    assert :uuid.string_to_uuid(conn_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(conn_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.device_connected_trigger_id()
+
+    assert SimpleEvent.decode(conn_event) == %SimpleEvent{
+             device_id: short_device_id,
+             event: {
+               :device_connected_event,
+               %DeviceConnectedEvent{
+                 device_ip_address: "10.0.0.1"
+               }
+             },
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.device_connected_trigger_id(),
+             version: 1
+           }
 
     device_query =
       DatabaseQuery.new()
@@ -112,31 +146,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
           }
         }
       }
-      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+      |> SimpleTriggerContainer.encode()
 
     trigger_target_data =
       %TriggerTargetContainer{
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: "rt_lt10"
+            routing_key: AMQPTestHelper.events_routing_key()
           }
         }
       }
-      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+      |> TriggerTargetContainer.encode()
 
-    volatile_trigger_id = :uuid.get_v4_urandom()
+    volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
     assert DataUpdater.handle_install_volatile_trigger(
-      realm,
-      device_id,
-      :uuid.string_to_uuid("d2d90d55-a779-b988-9db4-15284b04f2e9"),
-      :interface,
-      :uuid.get_v4_urandom(),
-      volatile_trigger_id,
-      simple_trigger_data,
-      trigger_target_data
-    ) == :ok
+             realm,
+             device_id,
+             :uuid.string_to_uuid("d2d90d55-a779-b988-9db4-15284b04f2e9"),
+             2,
+             volatile_trigger_parent_id,
+             volatile_trigger_id,
+             simple_trigger_data,
+             trigger_target_data
+           ) == :ok
 
     # Incoming data sub-test
     DataUpdater.handle_data(
@@ -172,6 +207,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         10000
     )
 
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "incoming_data_event"
+    assert incoming_headers["x_astarte_device_id"] == short_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.greater_than_incoming_trigger_id()
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: short_device_id,
+             event: {
+               :incoming_data_event,
+               %IncomingDataEvent{
+                 bson_value: Bson.encode(%{"v" => 10}),
+                 interface: "com.test.LCDMonitor",
+                 path: "/weekSchedule/10/start"
+               }
+             },
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.greater_than_incoming_trigger_id(),
+             version: 1
+           }
+
     DataUpdater.handle_data(
       realm,
       device_id,
@@ -184,6 +246,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, device_id)
+
+    {incoming_volatile_event, incoming_volatile_headers, _meta} =
+      AMQPTestHelper.wait_and_get_message()
+
+    assert incoming_volatile_headers["x_astarte_event_type"] == "incoming_data_event"
+    assert incoming_volatile_headers["x_astarte_device_id"] == short_device_id
+    assert incoming_volatile_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_volatile_headers["x_astarte_parent_trigger_id"]) ==
+             volatile_trigger_parent_id
+
+    assert :uuid.string_to_uuid(incoming_volatile_headers["x_astarte_simple_trigger_id"]) ==
+             volatile_trigger_id
+
+    assert SimpleEvent.decode(incoming_volatile_event) == %SimpleEvent{
+             device_id: short_device_id,
+             event:
+               {:incoming_data_event,
+                %IncomingDataEvent{
+                  bson_value: Bson.encode(%{"v" => 5}),
+                  interface: "com.test.SimpleStreamTest",
+                  path: "/0/value"
+                }},
+             parent_trigger_id: volatile_trigger_parent_id,
+             realm: realm,
+             simple_trigger_id: volatile_trigger_id,
+             version: 1
+           }
 
     endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/time/from")
 
@@ -231,6 +321,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
         10000
     )
+
+    {introspection_event, introspection_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert introspection_headers["x_astarte_event_type"] == "interface_added_event"
+    assert introspection_headers["x_astarte_realm"] == realm
+    assert introspection_headers["x_astarte_device_id"] == short_device_id
+
+    assert :uuid.string_to_uuid(introspection_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(introspection_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.interface_added_trigger_id()
+
+    assert SimpleEvent.decode(introspection_event) == %SimpleEvent{
+             device_id: short_device_id,
+             event: {
+               :interface_added_event,
+               %InterfaceAddedEvent{
+                 interface: "com.example.TestObject",
+                 major_version: 1,
+                 minor_version: 5
+               }
+             },
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.interface_added_trigger_id(),
+             version: 1
+           }
 
     # Incoming object aggregation subtest
     payload0 = Bson.encode(%{"value" => 1.9, "string" => "Astarteです"})
@@ -380,6 +497,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, device_id)
+    {remove_event, remove_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert remove_headers["x_astarte_event_type"] == "path_removed_event"
+    assert remove_headers["x_astarte_device_id"] == short_device_id
+    assert remove_headers["x_astarte_realm"] == "autotestrealm"
+
+    assert :uuid.string_to_uuid(remove_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(remove_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.path_removed_trigger_id()
+
+    assert SimpleEvent.decode(remove_event) == %SimpleEvent{
+             device_id: short_device_id,
+             event:
+               {:path_removed_event,
+                %PathRemovedEvent{interface: "com.test.LCDMonitor", path: "/time/from"}},
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: "autotestrealm",
+             simple_trigger_id: DatabaseTestHelper.path_removed_trigger_id(),
+             version: 1
+           }
 
     endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/time/from")
 
@@ -510,14 +648,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              total_received_bytes: 4_500_692
            ]
 
-    assert DataUpdater.handle_delete_volatile_trigger(realm, device_id, volatile_trigger_id) == :ok
+    assert DataUpdater.handle_delete_volatile_trigger(realm, device_id, volatile_trigger_id) ==
+             :ok
+
+    assert AMQPTestHelper.awaiting_messages_count() == 0
   end
 
   test "empty introspection is updated correctly" do
+    AMQPTestHelper.clean_queue()
+
     realm = "autotestrealm"
 
     device_id =
-      :crypto.strong_rand_bytes(32)
+      :crypto.strong_rand_bytes(16)
       |> Base.url_encode64(padding: false)
 
     device_id_uuid = DatabaseTestHelper.extended_id_to_uuid(device_id)
@@ -561,6 +704,59 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, device_id)
+    {event_data1, event_headers1, _metadata} = AMQPTestHelper.wait_and_get_message()
+    assert event_headers1["x_astarte_event_type"] == "interface_added_event"
+    assert event_headers1["x_astarte_realm"] == realm
+    assert event_headers1["x_astarte_device_id"] == device_id
+
+    assert :uuid.string_to_uuid(event_headers1["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(event_headers1["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.interface_added_trigger_id()
+
+    assert SimpleEvent.decode(event_data1) == %SimpleEvent{
+             device_id: device_id,
+             event: {
+               :interface_added_event,
+               %InterfaceAddedEvent{
+                 interface: "com.test.LCDMonitor",
+                 major_version: 1,
+                 minor_version: 0
+               }
+             },
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.interface_added_trigger_id(),
+             version: 1
+           }
+
+    {event_data2, event_headers2, _metadata} = AMQPTestHelper.wait_and_get_message()
+    assert event_headers2["x_astarte_event_type"] == "interface_added_event"
+    assert event_headers2["x_astarte_realm"] == realm
+    assert event_headers2["x_astarte_device_id"] == device_id
+
+    assert :uuid.string_to_uuid(event_headers2["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(event_headers2["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.interface_added_trigger_id()
+
+    assert SimpleEvent.decode(event_data2) == %SimpleEvent{
+             device_id: device_id,
+             event: {
+               :interface_added_event,
+               %InterfaceAddedEvent{
+                 interface: "com.test.SimpleStreamTest",
+                 major_version: 1,
+                 minor_version: 0
+               }
+             },
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.interface_added_trigger_id(),
+             version: 1
+           }
 
     new_device_introspection =
       DatabaseQuery.call!(db_client, device_introspection_query)
@@ -569,6 +765,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> Enum.into(%{})
 
     assert new_device_introspection == new_introspection_map
+
+    assert AMQPTestHelper.awaiting_messages_count() == 0
   end
 
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
