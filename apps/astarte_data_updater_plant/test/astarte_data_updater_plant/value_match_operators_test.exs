@@ -151,4 +151,25 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(true, :NOT_EQUAL_TO, true) == false
     assert ValueMatchOperators.value_matches?(true, :NOT_EQUAL_TO, false) == true
   end
+
+  test "contains match operator" do
+    # String contains
+    assert ValueMatchOperators.value_matches?("Hello World", :CONTAINS, "World") == true
+    assert ValueMatchOperators.value_matches?("Hello World", :CONTAINS, "Mondo") == false
+    assert ValueMatchOperators.value_matches?(5, :CONTAINS, 0) == false
+    assert ValueMatchOperators.value_matches?(nil, :CONTAINS, "World") == false
+
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :CONTAINS, 2) == true
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :CONTAINS, 5) == false
+  end
+
+  test "not contains match operator" do
+    assert ValueMatchOperators.value_matches?("Hello World", :NOT_CONTAINS, "World") == false
+    assert ValueMatchOperators.value_matches?("Hello World", :NOT_CONTAINS, "Mondo") == true
+    assert ValueMatchOperators.value_matches?(5, :NOT_CONTAINS, 0) == false
+    assert ValueMatchOperators.value_matches?(nil, :NOT_CONTAINS, "World") == false
+
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :NOT_CONTAINS, 2) == false
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :NOT_CONTAINS, 5) == true
+  end
 end
