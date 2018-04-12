@@ -116,16 +116,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {0, 0, 0, 0}
       end
 
-    device_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "UPDATE devices SET connected=true, last_connection=:last_connection, last_seen_ip=:last_seen_ip WHERE device_id=:device_id"
-      )
-      |> DatabaseQuery.put(:device_id, new_state.device_id)
-      |> DatabaseQuery.put(:last_connection, div(timestamp, 10000))
-      |> DatabaseQuery.put(:last_seen_ip, ip_address)
-
-    DatabaseQuery.call!(db_client, device_update_query)
+    Queries.set_device_connected!(
+      db_client,
+      new_state.device_id,
+      div(timestamp, 10000),
+      ip_address
+    )
 
     trigger_targets = Map.get(new_state.device_triggers, :on_device_connection, [])
     device_id_string = pretty_device_id(new_state.device_id)
@@ -145,19 +141,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    device_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "UPDATE devices SET connected=false, last_disconnection=:last_disconnection, " <>
-          "total_received_msgs=:total_received_msgs, total_received_bytes=:total_received_bytes " <>
-          "WHERE device_id=:device_id"
-      )
-      |> DatabaseQuery.put(:device_id, new_state.device_id)
-      |> DatabaseQuery.put(:last_disconnection, div(timestamp, 10000))
-      |> DatabaseQuery.put(:total_received_msgs, new_state.total_received_msgs)
-      |> DatabaseQuery.put(:total_received_bytes, new_state.total_received_bytes)
-
-    DatabaseQuery.call!(db_client, device_update_query)
+    Queries.set_device_disconnected!(
+      db_client,
+      new_state.device_id,
+      div(timestamp, 10000),
+      new_state.total_received_msgs,
+      new_state.total_received_bytes
+    )
 
     trigger_targets = Map.get(new_state.device_triggers, :on_device_disconnection, [])
     device_id_string = pretty_device_id(new_state.device_id)

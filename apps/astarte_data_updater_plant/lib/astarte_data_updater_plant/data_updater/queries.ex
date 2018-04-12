@@ -297,6 +297,50 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     nil
   end
 
+  def set_device_connected!(db_client, device_id, timestamp_ms, ip_address) do
+    device_update_statement = """
+    UPDATE devices
+    SET connected=true, last_connection=:last_connection, last_seen_ip=:last_seen_ip
+    WHERE device_id=:device_id
+    """
+
+    device_update_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(device_update_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:last_connection, timestamp_ms)
+      |> DatabaseQuery.put(:last_seen_ip, ip_address)
+
+    DatabaseQuery.call!(db_client, device_update_query)
+  end
+
+  def set_device_disconnected!(
+        db_client,
+        device_id,
+        timestamp_ms,
+        total_received_msgs,
+        total_received_bytes
+      ) do
+    device_update_statement = """
+    UPDATE devices
+    SET connected=false,
+        last_disconnection=:last_disconnection,
+        total_received_msgs=:total_received_msgs,
+        total_received_bytes=:total_received_bytes
+    WHERE device_id=:device_id
+    """
+
+    device_update_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(device_update_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:last_disconnection, timestamp_ms)
+      |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
+      |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+
+    DatabaseQuery.call!(db_client, device_update_query)
+  end
+
   def connect_to_db(state) do
     DatabaseClient.new!(
       List.first(Application.get_env(:cqerl, :cassandra_nodes)),
