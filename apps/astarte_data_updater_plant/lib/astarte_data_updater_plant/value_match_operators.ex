@@ -49,4 +49,28 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperators do
   def value_matches?(received_value, :LESS_OR_EQUAL_TO, known_value) do
     received_value <= known_value
   end
+
+  def value_matches?(received_value, :CONTAINS, known_value) when is_binary(received_value) do
+    String.contains?(received_value, known_value)
+  end
+
+  def value_matches?(received_value, :CONTAINS, known_value) when is_list(received_value) do
+    Enum.member?(received_value, known_value)
+  end
+
+  def value_matches?(_received_value, :CONTAINS, _known_value) do
+    false
+  end
+
+  def value_matches?(received_value, :NOT_CONTAINS, known_value) when is_binary(received_value) do
+    not String.contains?(received_value, known_value)
+  end
+
+  def value_matches?(received_value, :NOT_CONTAINS, known_value) when is_list(received_value) do
+    not Enum.member?(received_value, known_value)
+  end
+
+  def value_matches?(_received_value, :NOT_CONTAINS, _known_value) do
+    false
+  end
 end

@@ -27,6 +27,8 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(true, :ANY, false) == true
     assert ValueMatchOperators.value_matches?(0, :ANY, 0) == true
     assert ValueMatchOperators.value_matches?(1, :ANY, 0) == true
+
+    assert ValueMatchOperators.value_matches?("test", :ANY, nil) == true
   end
 
   test "greater than operator" do
@@ -36,6 +38,18 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(5, :GREATER_THAN, 6) == false
     assert ValueMatchOperators.value_matches?(5, :GREATER_THAN, nil) == false
     assert ValueMatchOperators.value_matches?(nil, :GREATER_THAN, 5) == false
+
+    # Lexical ordering
+    assert ValueMatchOperators.value_matches?("test", :GREATER_THAN, "test") == false
+    assert ValueMatchOperators.value_matches?("hello", :GREATER_THAN, "world") == false
+    assert ValueMatchOperators.value_matches?("z", :GREATER_THAN, "a") == true
+    assert ValueMatchOperators.value_matches?(nil, :GREATER_THAN, "a") == false
+
+    # Booleans ordering
+    assert ValueMatchOperators.value_matches?(true, :GREATER_THAN, true) == false
+    assert ValueMatchOperators.value_matches?(false, :GREATER_THAN, false) == false
+    assert ValueMatchOperators.value_matches?(true, :GREATER_THAN, false) == true
+    assert ValueMatchOperators.value_matches?(false, :GREATER_THAN, true) == false
   end
 
   test "greater than or equal to operator" do
@@ -45,6 +59,18 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(5, :GREATER_OR_EQUAL_TO, 6) == false
     assert ValueMatchOperators.value_matches?(5, :GREATER_OR_EQUAL_TO, nil) == false
     assert ValueMatchOperators.value_matches?(nil, :GREATER_OR_EQUAL_TO, 5) == false
+
+    # Lexical ordering
+    assert ValueMatchOperators.value_matches?("test", :GREATER_OR_EQUAL_TO, "test") == true
+    assert ValueMatchOperators.value_matches?("hello", :GREATER_OR_EQUAL_TO, "world") == false
+    assert ValueMatchOperators.value_matches?("z", :GREATER_OR_EQUAL_TO, "a") == true
+    assert ValueMatchOperators.value_matches?(nil, :GREATER_OR_EQUAL_TO, "a") == false
+
+    # Booleans ordering
+    assert ValueMatchOperators.value_matches?(true, :GREATER_OR_EQUAL_TO, true) == true
+    assert ValueMatchOperators.value_matches?(false, :GREATER_OR_EQUAL_TO, false) == true
+    assert ValueMatchOperators.value_matches?(true, :GREATER_OR_EQUAL_TO, false) == true
+    assert ValueMatchOperators.value_matches?(false, :GREATER_OR_EQUAL_TO, true) == false
   end
 
   test "less than operator" do
@@ -54,6 +80,18 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(5, :LESS_THAN, 6) == true
     assert ValueMatchOperators.value_matches?(5, :LESS_THAN, 5.1) == true
     assert ValueMatchOperators.value_matches?(nil, :LESS_THAN, 5) == false
+
+    # Lexical ordering
+    assert ValueMatchOperators.value_matches?("test", :LESS_THAN, "test") == false
+    assert ValueMatchOperators.value_matches?("hello", :LESS_THAN, "world") == true
+    assert ValueMatchOperators.value_matches?("z", :LESS_THAN, "a") == false
+    assert ValueMatchOperators.value_matches?(nil, :LESS_THAN, "a") == false
+
+    # Booleans ordering
+    assert ValueMatchOperators.value_matches?(true, :LESS_THAN, true) == false
+    assert ValueMatchOperators.value_matches?(false, :LESS_THAN, false) == false
+    assert ValueMatchOperators.value_matches?(true, :LESS_THAN, false) == false
+    assert ValueMatchOperators.value_matches?(false, :LESS_THAN, true) == true
   end
 
   test "less than or equal to operator" do
@@ -63,6 +101,18 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(5, :LESS_OR_EQUAL_TO, 6) == true
     assert ValueMatchOperators.value_matches?(6, :LESS_OR_EQUAL_TO, 6.1) == true
     assert ValueMatchOperators.value_matches?(nil, :LESS_OR_EQUAL_TO, 5) == false
+
+    # Lexical ordering
+    assert ValueMatchOperators.value_matches?("test", :LESS_OR_EQUAL_TO, "test") == true
+    assert ValueMatchOperators.value_matches?("hello", :LESS_OR_EQUAL_TO, "world") == true
+    assert ValueMatchOperators.value_matches?("z", :LESS_OR_EQUAL_TO, "a") == false
+    assert ValueMatchOperators.value_matches?(nil, :LESS_OR_EQUAL_TO, "a") == false
+
+    # Booleans ordering
+    assert ValueMatchOperators.value_matches?(true, :LESS_OR_EQUAL_TO, true) == true
+    assert ValueMatchOperators.value_matches?(false, :LESS_OR_EQUAL_TO, false) == true
+    assert ValueMatchOperators.value_matches?(true, :LESS_OR_EQUAL_TO, false) == false
+    assert ValueMatchOperators.value_matches?(false, :LESS_OR_EQUAL_TO, true) == true
   end
 
   test "equal to operator" do
@@ -75,6 +125,12 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(nil, :EQUAL_TO, 5) == false
     assert ValueMatchOperators.value_matches?(6.0, :EQUAL_TO, 6) == true
     # known_value nil doesn't matter for any operator different than any
+
+    assert ValueMatchOperators.value_matches?("test", :EQUAL_TO, "test") == true
+    assert ValueMatchOperators.value_matches?("hello", :EQUAL_TO, "world") == false
+
+    assert ValueMatchOperators.value_matches?(true, :EQUAL_TO, true) == true
+    assert ValueMatchOperators.value_matches?(true, :EQUAL_TO, false) == false
   end
 
   test "not equal to operator" do
@@ -88,5 +144,32 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     # so false is a valid answer for "does nil NOT_EQUAL_TO 5 matches 5"
     assert ValueMatchOperators.value_matches?(nil, :NOT_EQUAL_TO, 5) == false
     # known_value nil doesn't matter for any operator different than any
+
+    assert ValueMatchOperators.value_matches?("test", :NOT_EQUAL_TO, "test") == false
+    assert ValueMatchOperators.value_matches?("hello", :NOT_EQUAL_TO, "world") == true
+
+    assert ValueMatchOperators.value_matches?(true, :NOT_EQUAL_TO, true) == false
+    assert ValueMatchOperators.value_matches?(true, :NOT_EQUAL_TO, false) == true
+  end
+
+  test "contains match operator" do
+    # String contains
+    assert ValueMatchOperators.value_matches?("Hello World", :CONTAINS, "World") == true
+    assert ValueMatchOperators.value_matches?("Hello World", :CONTAINS, "Mondo") == false
+    assert ValueMatchOperators.value_matches?(5, :CONTAINS, 0) == false
+    assert ValueMatchOperators.value_matches?(nil, :CONTAINS, "World") == false
+
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :CONTAINS, 2) == true
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :CONTAINS, 5) == false
+  end
+
+  test "not contains match operator" do
+    assert ValueMatchOperators.value_matches?("Hello World", :NOT_CONTAINS, "World") == false
+    assert ValueMatchOperators.value_matches?("Hello World", :NOT_CONTAINS, "Mondo") == true
+    assert ValueMatchOperators.value_matches?(5, :NOT_CONTAINS, 0) == false
+    assert ValueMatchOperators.value_matches?(nil, :NOT_CONTAINS, "World") == false
+
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :NOT_CONTAINS, 2) == false
+    assert ValueMatchOperators.value_matches?([1, 2, 3], :NOT_CONTAINS, 5) == true
   end
 end
