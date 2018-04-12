@@ -519,16 +519,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     # TODO: handle triggers for interface minor updates
 
-    device_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "UPDATE devices SET introspection=:introspection, introspection_minor=:introspection_minor WHERE device_id=:device_id"
-      )
-      |> DatabaseQuery.put(:device_id, new_state.device_id)
-      |> DatabaseQuery.put(:introspection, db_introspection_map)
-      |> DatabaseQuery.put(:introspection_minor, db_introspection_minor_map)
-
-    DatabaseQuery.call!(db_client, device_update_query)
+    Queries.update_device_introspection!(
+      db_client,
+      new_state.device_id,
+      db_introspection_map,
+      db_introspection_minor_map
+    )
 
     %{
       new_state

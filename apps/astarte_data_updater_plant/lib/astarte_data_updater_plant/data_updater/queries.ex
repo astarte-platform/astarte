@@ -376,6 +376,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, device_update_query)
   end
 
+  def update_device_introspection!(db_client, device_id, introspection, introspection_minor) do
+    introspection_update_statement = """
+    UPDATE devices
+    SET introspection=:introspection, introspection_minor=:introspection_minor
+    WHERE device_id=:device_id
+    """
+
+    introspection_update_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(introspection_update_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:introspection, introspection)
+      |> DatabaseQuery.put(:introspection_minor, introspection_minor)
+
+    DatabaseQuery.call!(db_client, introspection_update_query)
+  end
+
   def connect_to_db(state) do
     DatabaseClient.new!(
       List.first(Application.get_env(:cqerl, :cassandra_nodes)),
