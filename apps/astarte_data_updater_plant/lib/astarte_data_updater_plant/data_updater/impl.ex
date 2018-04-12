@@ -42,53 +42,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def init_state(realm, device_id) do
     new_state = %State{
       realm: realm,
-      device_id: device_id
+      device_id: device_id,
+      connected: true,
+      interfaces: %{},
+      interface_ids_to_name: %{},
+      interfaces_by_expiry: [],
+      mappings: %{},
+      device_triggers: %{},
+      data_triggers: %{},
+      volatile_triggers: [],
+      introspection_triggers: %{},
+      last_seen_message: 0,
+      last_device_triggers_refresh: 0
     }
 
-    db_client = Queries.connect_to_db(new_state)
+    stats_and_introspection =
+      Queries.connect_to_db(new_state)
+      |> Queries.retrieve_device_stats_and_introspection!(device_id)
 
-    device_row_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT total_received_msgs, total_received_bytes, introspection FROM devices WHERE device_id=:device_id"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    device_row =
-      DatabaseQuery.call!(db_client, device_row_query)
-      |> DatabaseResult.head()
-
-    introspection_map =
-      case device_row[:introspection] do
-        :null ->
-          %{}
-
-        nil ->
-          %{}
-
-        result ->
-          Enum.into(result, %{})
-      end
-
-    any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
-
-    %{
-      new_state
-      | connected: true,
-        total_received_msgs: device_row[:total_received_msgs],
-        total_received_bytes: device_row[:total_received_bytes],
-        introspection: introspection_map,
-        interfaces: %{},
-        interface_ids_to_name: %{},
-        interfaces_by_expiry: [],
-        mappings: %{},
-        device_triggers: %{},
-        data_triggers: %{},
-        volatile_triggers: [],
-        introspection_triggers: %{},
-        last_seen_message: 0,
-        last_device_triggers_refresh: 0
-    }
+    Map.merge(new_state, stats_and_introspection)
   end
 
   def handle_connection(state, ip_address_string, delivery_tag, timestamp) do

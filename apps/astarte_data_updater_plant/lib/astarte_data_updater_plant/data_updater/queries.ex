@@ -297,6 +297,41 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     nil
   end
 
+  def retrieve_device_stats_and_introspection!(db_client, device_id) do
+    stats_and_introspection_statement = """
+    SELECT total_received_msgs, total_received_bytes, introspection
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    device_row_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(stats_and_introspection_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    device_row =
+      DatabaseQuery.call!(db_client, device_row_query)
+      |> DatabaseResult.head()
+
+    introspection_map =
+      case device_row[:introspection] do
+        :null ->
+          %{}
+
+        nil ->
+          %{}
+
+        result ->
+          Enum.into(result, %{})
+      end
+
+    %{
+      introspection: introspection_map,
+      total_received_msgs: device_row[:total_received_msgs],
+      total_received_bytes: device_row[:total_received_bytes]
+    }
+  end
+
   def set_device_connected!(db_client, device_id, timestamp_ms, ip_address) do
     device_update_statement = """
     UPDATE devices
