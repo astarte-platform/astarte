@@ -5,7 +5,7 @@ defmodule Doc.MixProject do
     [
       app: :doc,
       version: "0.9.0",
-      elixir: "~> 1.6",
+      elixir: "~> 1.4",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Astarte",
