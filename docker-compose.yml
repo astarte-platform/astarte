@@ -58,6 +58,8 @@ services:
       - ./compose/cfssl-config:/config
     # Ensure we wait for pg
     command: wait-for postgresql:5432 -t 90 -- cfssl serve -address=0.0.0.0 -ca=/data/ca.pem -ca-key=/data/ca-key.pem -port=8080 -config=/etc/cfssl/ca_root_config.json -db-config=/etc/cfssl/db_config.json
+    # Restart if we fail
+    restart: on-failure
 
   # Cassandra
   cassandra:
@@ -95,6 +97,8 @@ services:
       - "rabbitmq"
     # Ensure we wait for rabbit and cfssl
     command: wait-for rabbitmq:5672 -t 90 -- wait-for cfssl:8080 -t 90 -- /opt/vernemq/bin/vernemq.sh
+    # Restart if we fail
+    restart: on-failure
 volumes:
   rabbitmq-data:
   postgresql-data:
