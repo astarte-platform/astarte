@@ -44,6 +44,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end)
   end
 
+  def query_simple_triggers!(db_client, object_id, object_type_int) do
+    simple_triggers_statement = """
+    SELECT simple_trigger_id, parent_trigger_id, trigger_data, trigger_target
+    FROM simple_triggers
+    WHERE object_id=:object_id AND object_type=:object_type_int
+    """
+
+    simple_triggers_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(simple_triggers_statement)
+      |> DatabaseQuery.put(:object_id, object_id)
+      |> DatabaseQuery.put(:object_type_int, object_type_int)
+
+    DatabaseQuery.call!(db_client, simple_triggers_query)
+  end
+
   def insert_value_into_db(
         db_client,
         :multi_interface_individual_properties_dbtable,

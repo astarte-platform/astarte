@@ -983,15 +983,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :any_device -> 4
       end
 
-    simple_triggers_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT simple_trigger_id, parent_trigger_id, trigger_data, trigger_target FROM simple_triggers WHERE object_id=:object_id AND object_type=:object_type_int"
-      )
-      |> DatabaseQuery.put(:object_id, object_id)
-      |> DatabaseQuery.put(:object_type_int, object_type_int)
-
-    simple_triggers_rows = DatabaseQuery.call!(client, simple_triggers_query)
+    simple_triggers_rows = Queries.query_simple_triggers!(client, object_id, object_type_int)
 
     new_state =
       Enum.reduce(simple_triggers_rows, state, fn row, state_acc ->
