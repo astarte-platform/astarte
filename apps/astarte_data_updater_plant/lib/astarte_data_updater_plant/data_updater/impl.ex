@@ -30,9 +30,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
-  alias CQEx.Client, as: DatabaseClient
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
   require Logger
 
   @max_uncompressed_payload_size 10_485_760
@@ -878,16 +875,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       true ->
         Enum.each(new_state.mappings, fn {endpoint_id, mapping} ->
           if mapping.interface_id == interface_descriptor.interface_id do
-            all_paths_query =
-              DatabaseQuery.new()
-              |> DatabaseQuery.statement(
-                "SELECT path FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id"
-              )
-              |> DatabaseQuery.put(:device_id, state.device_id)
-              |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-              |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-            DatabaseQuery.call!(db_client, all_paths_query)
+            Queries.query_all_endpoint_paths!(
+              db_client,
+              state.device_id,
+              interface_descriptor,
+              endpoint_id
+            )
             |> Enum.each(fn path_row ->
               path = path_row[:path]
 

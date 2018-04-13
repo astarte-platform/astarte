@@ -60,6 +60,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, simple_triggers_query)
   end
 
+  def query_all_endpoint_paths!(db_client, device_id, interface_descriptor, endpoint_id) do
+    all_paths_statement = """
+    SELECT path FROM #{interface_descriptor.storage}
+    WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id
+    """
+
+    all_paths_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(all_paths_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+    DatabaseQuery.call!(db_client, all_paths_query)
+  end
+
   def insert_value_into_db(
         db_client,
         :multi_interface_individual_properties_dbtable,
