@@ -19,10 +19,30 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Mapping
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
+
+  def retrieve_interface_mappings!(db_client, interface_id) do
+    mappings_statement = """
+    SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id, interface_id
+    FROM endpoints
+    WHERE interface_id=:interface_id
+    """
+
+    mappings_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(mappings_statement)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+
+    DatabaseQuery.call!(db_client, mappings_query)
+    |> Enum.reduce(%{}, fn endpoint_row, acc ->
+      mapping = Mapping.from_db_result!(endpoint_row)
+      Map.put(acc, mapping.endpoint_id, mapping)
+    end)
+  end
 
   def insert_value_into_db(
         db_client,

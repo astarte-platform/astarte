@@ -784,19 +784,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     interface_descriptor = InterfaceDescriptor.from_db_result!(interface_row)
 
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id, interface_id FROM endpoints WHERE interface_id=:interface_id"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-
-    mappings =
-      DatabaseQuery.call!(db_client, endpoint_query)
-      |> Enum.reduce(state.mappings, fn endpoint_row, acc ->
-        mapping = Mapping.from_db_result!(endpoint_row)
-        Map.put(acc, mapping.endpoint_id, mapping)
-      end)
+    mappings = Queries.retrieve_interface_mappings!(db_client, interface_descriptor.interface_id)
 
     new_interfaces_by_expiry =
       state.interfaces_by_expiry ++
@@ -808,7 +796,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         interface_ids_to_name:
           Map.put(state.interface_ids_to_name, interface_descriptor.interface_id, interface_name),
         interfaces_by_expiry: new_interfaces_by_expiry,
-        mappings: mappings
+        mappings: Map.merge(state.mappings, mappings)
     }
 
     new_state =
