@@ -1,6 +1,6 @@
 # Astarte: An Open Source IoT Platform
 
-<img src="https://hs.ispirata.com/hubfs/mascotte_svg/2.svg?t=1522417773601" align="left" width="160px" />Astarte is an Open Source IoT platform written in [Elixir](https://github.com/elixir-lang/elixir) and [Phoenix](https://github.com/phoenixframework/phoenix). It is a turnkey solution which packs in everything you need for connecting a device fleet to a set of remote applications. It performs automated data modeling, data reduction, real-time events, and provides you with any feature you might expect in a modern IoT platform.
+<img src="https://hs.ispirata.com/hubfs/mascotte_svg/2.svg?t=1522417773601" align="left" width="160px" />Astarte is an Open Source IoT platform written in [Elixir](https://github.com/elixir-lang/elixir). It is a turnkey solution which packs in everything you need for connecting a device fleet to a set of remote applications. It performs data modeling, automated data reduction, real-time events, and provides you with any feature you might expect in a modern IoT platform.
 
 Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https://www.rabbitmq.com/) and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.com/).
 
@@ -27,20 +27,20 @@ So, if you're serious about getting Astarte in your production environment, you 
 
 Good question. This repository is a collection of utilities, home to Astarte's documentation and architecture decisions, and acts as an umbrella for the project. Astarte is a distributed system made up of several microservices, [which can all be found in Github](https://github.com/astarte-platform). Its core components are:
 
-* [Data Updater Plant](https://github.com/astarte-platform/astarte_data_updater_plant): Takes care of ingesting data into Cassandra and routing it to other Astarte components.
-* [Trigger Engine](https://github.com/astarte-platform/astarte_trigger_engine): Manages triggers, rules and push events - it is the component that delivers data to your application.
+* [Data Updater Plant](https://github.com/astarte-platform/astarte_data_updater_plant): Takes care of ingesting data into the database, filtering and routing it to other Astarte components.
+* [Trigger Engine](https://github.com/astarte-platform/astarte_trigger_engine): Processes incoming events, applies rules, prepares payloads and performs actions - it is the component that delivers data to your application.
 * [AppEngine API](https://github.com/astarte-platform/astarte_appengine_api): If you are building an application on top of Astarte's APIs, you will most likely call into it.
-* [Pairing](https://github.com/astarte-platform/astarte_pairing) & [Pairing API](https://github.com/astarte-platform/astarte_pairing_api): Keeps your device safe and secure. Device authentication and certificate orchestration happen here.
-* [Realm Management](https://github.com/astarte-platform/astarte_realm_management) & [Realm Management API](https://github.com/astarte-platform/astarte_realm_management_api): Where configuration happens. Manage your triggers, interfaces and more from here.
-* [Housekeeping](https://github.com/astarte-platform/astarte_housekeeping) & [Housekeeping API](https://github.com/astarte-platform/astarte_housekeeping_api): The *"superadmin"* component of Astarte: configure your global instance, manage realms and more.
+* [Pairing](https://github.com/astarte-platform/astarte_pairing) & [Pairing API](https://github.com/astarte-platform/astarte_pairing_api): Provides all the information required to successfully communicate with Astarte, including the SSL certificate.
+* [Realm Management](https://github.com/astarte-platform/astarte_realm_management) & [Realm Management API](https://github.com/astarte-platform/astarte_realm_management_api): Where realm configuration happens. Manage your triggers, interfaces and more from here.
+* [Housekeeping](https://github.com/astarte-platform/astarte_housekeeping) & [Housekeeping API](https://github.com/astarte-platform/astarte_housekeeping_api): The *"superadmin"* component of Astarte: configure your global instance, create realms and more.
 
 All of them build on some common libraries:
 
 * [Astarte Core](https://github.com/astarte-platform/astarte_core): All common functions and anything useful to Astarte's services go here.
-* [Astarte RPC](https://github.com/astarte-platform/astarte_rpc): Defines a common ground to allow all of Astarte's services to talk together.
+* [Astarte RPC](https://github.com/astarte-platform/astarte_rpc): Defines [protobuf](https://developers.google.com/protocol-buffers/) messages to allow all of Astarte's services to talk together.
 * [Astarte Data Access](https://github.com/astarte-platform/astarte_data_access): Commodity component which abstracts data access for services which need it.
 
-And there's also some popular addons:
+Astarte also needs a transport to communicate with devices:
 
 * [Astarte's VerneMQ plugin](https://github.com/astarte-platform/astarte_vmq_plugin): Turns the amazing [VerneMQ](https://github.com/erlio/vernemq) into a full fledged Astarte Transport.
 
