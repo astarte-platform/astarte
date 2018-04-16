@@ -26,6 +26,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
   alias Astarte.RealmManagement.API.RPC.AMQPClient
 
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersUtils
   alias Astarte.RealmManagement.API.Triggers.Trigger
@@ -85,20 +86,21 @@ defmodule Astarte.RealmManagement.API.Triggers do
       %Trigger{}
       |> Trigger.changeset(attrs)
 
-    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
-      trigger = %Astarte.Core.Triggers.Trigger{
-        name: options.name,
-        action: Poison.encode!(options.action)
-      }
-
-      simple_triggers =
-        for item <- options.simple_triggers do
-          decode_simple_trigger(item)
-        end
-
-      with :ok <- AMQPClient.install_trigger(realm_name, trigger, simple_triggers) do
-        {:ok, %Trigger{id: options.name}}
-      end
+    with {:ok, trigger_params} <- Changeset.apply_action(changeset, :insert),
+         {:ok, encoded_action} <- Poison.encode(trigger_params.action),
+         tagged_simple_triggers <-
+           Enum.map(
+             trigger_params.simple_triggers,
+             &SimpleTriggerConfig.to_tagged_simple_trigger/1
+           ),
+         :ok <-
+           AMQPClient.install_trigger(
+             realm_name,
+             trigger_params.name,
+             encoded_action,
+             tagged_simple_triggers
+           ) do
+      {:ok, %{trigger_params | id: trigger_params.name}}
     end
   end
 
