@@ -193,6 +193,44 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     assert PayloadsDecoder.safe_inflate(compressed) == :error
   end
 
+  test "device properties paths payload decode" do
+    payload = "com.test.LCDMonitor/time/to;com.test.LCDMonitor/weekSchedule/10/start"
+    introspection = %{"com.test.LCDMonitor" => 1}
+
+    keep_paths =
+      MapSet.new([
+        {"com.test.LCDMonitor", "/time/to"},
+        {"com.test.LCDMonitor", "/weekSchedule/10/start"}
+      ])
+
+    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection) == keep_paths
+
+    introspection2 = %{"com.test.LCDMonitor" => 1, "com.example.A" => 2}
+    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection2) == keep_paths
+
+    payload2 = "com.test.LCDMonitor/time/to"
+
+    keep_paths2 =
+      MapSet.new([
+        {"com.test.LCDMonitor", "/time/to"}
+      ])
+
+    assert PayloadsDecoder.parse_device_properties_payload(payload2, introspection2) ==
+             keep_paths2
+
+    # TODO: probably here would be a good idea to fail
+    assert PayloadsDecoder.parse_device_properties_payload(payload, %{}) == MapSet.new()
+
+    assert PayloadsDecoder.parse_device_properties_payload("", introspection) == MapSet.new()
+
+    assert PayloadsDecoder.parse_device_properties_payload("", %{}) == MapSet.new()
+
+    invalid = "com.test.LCDMonitor;com.test.LCDMonitor"
+
+    assert PayloadsDecoder.parse_device_properties_payload(invalid, introspection2) ==
+             MapSet.new()
+  end
+
   defp simple_deflate(data) do
     zstream = :zlib.open()
     :ok = :zlib.deflateInit(zstream)
