@@ -203,10 +203,13 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
         {"com.test.LCDMonitor", "/weekSchedule/10/start"}
       ])
 
-    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection) == keep_paths
+    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection) ==
+             {:ok, keep_paths}
 
     introspection2 = %{"com.test.LCDMonitor" => 1, "com.example.A" => 2}
-    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection2) == keep_paths
+
+    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection2) ==
+             {:ok, keep_paths}
 
     payload2 = "com.test.LCDMonitor/time/to"
 
@@ -216,31 +219,35 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
       ])
 
     assert PayloadsDecoder.parse_device_properties_payload(payload2, introspection2) ==
-             keep_paths2
+             {:ok, keep_paths2}
 
     # TODO: probably here would be a good idea to fail
-    assert PayloadsDecoder.parse_device_properties_payload(payload, %{}) == MapSet.new()
+    assert PayloadsDecoder.parse_device_properties_payload(payload, %{}) == {:ok, MapSet.new()}
 
-    assert PayloadsDecoder.parse_device_properties_payload("", introspection) == MapSet.new()
+    assert PayloadsDecoder.parse_device_properties_payload("", introspection) ==
+             {:ok, MapSet.new()}
 
-    assert PayloadsDecoder.parse_device_properties_payload("", %{}) == MapSet.new()
+    assert PayloadsDecoder.parse_device_properties_payload("", %{}) == {:ok, MapSet.new()}
 
     invalid = "com.test.LCDMonitor;com.test.LCDMonitor"
 
     assert PayloadsDecoder.parse_device_properties_payload(invalid, introspection2) ==
-             MapSet.new()
+             {:ok, MapSet.new()}
+
+    assert PayloadsDecoder.parse_device_properties_payload(<<0xFFFF::16>>, %{"something" => 1}) ==
+             {:error, :invalid_properties}
   end
 
   test "valid introspection parsing" do
     parsed1 = [{"good.introspection", 1, 0}]
     introspection1 = "good.introspection:1:0"
-    assert PayloadsDecoder.parse_introspection(introspection1) == parsed1
+    assert PayloadsDecoder.parse_introspection(introspection1) == {:ok, parsed1}
 
     parsed2 = [{"good.introspection", 1, 0}, {"other.good.introspection", 0, 3}]
     introspection2 = "good.introspection:1:0;other.good.introspection:0:3"
-    assert PayloadsDecoder.parse_introspection(introspection2) == parsed2
+    assert PayloadsDecoder.parse_introspection(introspection2) == {:ok, parsed2}
 
-    assert PayloadsDecoder.parse_introspection("") == []
+    assert PayloadsDecoder.parse_introspection("") == {:ok, []}
   end
 
   test "invalid introspection strings" do

@@ -392,7 +392,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    new_introspection_list = PayloadsDecoder.parse_introspection(payload)
+    {:ok, new_introspection_list} = PayloadsDecoder.parse_introspection(payload)
 
     {db_introspection_map, db_introspection_minor_map} =
       List.foldl(new_introspection_list, {%{}, %{}}, fn {interface, major, minor},
@@ -735,7 +735,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp prune_device_properties(state, decoded_payload, delivery_tag) do
-    paths_set =
+    {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
     db_client = Queries.connect_to_db(state)

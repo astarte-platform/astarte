@@ -118,46 +118,60 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   @doc """
   Decodes a properties paths list and returning a MapSet with them.
   """
-  @spec parse_device_properties_payload(String.t(), map) :: MapSet.t(String.t())
+  @spec parse_device_properties_payload(String.t(), map) ::
+          {:ok, MapSet.t(String.t())} | {:error, :invalid_properties}
+
   def parse_device_properties_payload("", _introspection) do
-    MapSet.new()
+    {:ok, MapSet.new()}
   end
 
   def parse_device_properties_payload(decoded_payload, introspection) do
-    decoded_payload
-    |> String.split(";")
-    |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
-      with [interface, path] <- String.split(property_full_path, "/", parts: 2) do
-        if Map.has_key?(introspection, interface) do
-          MapSet.put(paths_acc, {interface, "/" <> path})
+    if String.valid?(decoded_payload) do
+      parse_device_properties_string(decoded_payload, introspection)
+    else
+      {:error, :invalid_properties}
+    end
+  end
+
+  def parse_device_properties_string(decoded_payload, introspection) do
+    paths_list =
+      decoded_payload
+      |> String.split(";")
+      |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
+        with [interface, path] <- String.split(property_full_path, "/", parts: 2) do
+          if Map.has_key?(introspection, interface) do
+            MapSet.put(paths_acc, {interface, "/" <> path})
+          else
+            paths_acc
+          end
         else
-          paths_acc
+          _ ->
+            # TODO: we should print a warning, or return a :issues_found status
+            paths_acc
         end
-      else
-        _ ->
-          # TODO: we should print a warning, or return a :issues_found status
-          paths_acc
-      end
-    end)
+      end)
+
+    {:ok, paths_list}
   end
 
   @doc """
   Decodes introspection string into a list of tuples
   """
-  @spec parse_introspection(String.t()) :: list({String.t(), integer, integer})
+  @spec parse_introspection(String.t()) ::
+          {:ok, list({String.t(), integer, integer})} | {:error, :invalid_introspection}
   def parse_introspection("") do
-    []
+    {:ok, []}
   end
 
   def parse_introspection(introspection_payload) do
     if String.valid?(introspection_payload) do
-      parse_valid_string_introspection(introspection_payload)
+      parse_introspection_string(introspection_payload)
     else
       {:error, :invalid_introspection}
     end
   end
 
-  defp parse_valid_string_introspection(introspection_payload) do
+  defp parse_introspection_string(introspection_payload) do
     introspection_tokens = String.split(introspection_payload, ";")
 
     all_tokens_are_good =
@@ -180,20 +194,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
               true
           end
         else
-          not_expected ->
+          _not_expected ->
             false
         end
       end)
 
     if all_tokens_are_good do
-      for token <- introspection_tokens do
-        [interface_name, major_version_string, minor_version_string] = String.split(token, ":")
+      parsed_introspection =
+        for token <- introspection_tokens do
+          [interface_name, major_version_string, minor_version_string] = String.split(token, ":")
 
-        {major_version, ""} = Integer.parse(major_version_string)
-        {minor_version, ""} = Integer.parse(minor_version_string)
+          {major_version, ""} = Integer.parse(major_version_string)
+          {minor_version, ""} = Integer.parse(minor_version_string)
 
-        {interface_name, major_version, minor_version}
-      end
+          {interface_name, major_version, minor_version}
+        end
+
+      {:ok, parsed_introspection}
     else
       {:error, :invalid_introspection}
     end
