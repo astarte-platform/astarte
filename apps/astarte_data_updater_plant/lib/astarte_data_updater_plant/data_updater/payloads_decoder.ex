@@ -18,6 +18,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
+  @max_uncompressed_payload_size 10_485_760
+
   @doc """
   Decode a BSON payload a returns a tuple containing the decoded value, the timestamp and metadata.
   reception_timestamp is used if no timestamp has been sent with the payload.
@@ -53,5 +55,63 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
     else
       {nil, nil, nil}
     end
+  end
+
+  @doc """
+  Safely decodes a zlib deflated binary and inflates it.
+  This function avoids zip bomb vulnerabilities, and it decodes up to 10_485_760 bytes.
+  """
+  @spec safe_inflate(binary) :: binary
+  def safe_inflate(zlib_payload) do
+    z = :zlib.open()
+    :ok = :zlib.inflateInit(z)
+
+    {continue_flag, output_list} = :zlib.safeInflate(z, zlib_payload)
+
+    uncompressed_size =
+      List.foldl(output_list, 0, fn output_block, acc ->
+        acc + byte_size(output_block)
+      end)
+
+    deflated_payload =
+      if uncompressed_size < @max_uncompressed_payload_size do
+        output_acc =
+          List.foldl(output_list, <<>>, fn output_block, acc ->
+            acc <> output_block
+          end)
+
+        safe_inflate_loop(z, output_acc, uncompressed_size, continue_flag)
+      else
+        :error
+      end
+
+    :zlib.inflateEnd(z)
+    :zlib.close(z)
+
+    deflated_payload
+  end
+
+  defp safe_inflate_loop(z, output_acc, size_acc, :continue) do
+    {continue_flag, output_list} = :zlib.safeInflate(z, [])
+
+    uncompressed_size =
+      List.foldl(output_list, size_acc, fn output_block, acc ->
+        acc + byte_size(output_block)
+      end)
+
+    if uncompressed_size < @max_uncompressed_payload_size do
+      output_acc =
+        List.foldl(output_list, output_acc, fn output_block, acc ->
+          acc <> output_block
+        end)
+
+      safe_inflate_loop(z, output_acc, uncompressed_size, continue_flag)
+    else
+      :error
+    end
+  end
+
+  defp safe_inflate_loop(_z, output_acc, _size_acc, :finished) do
+    output_acc
   end
 end

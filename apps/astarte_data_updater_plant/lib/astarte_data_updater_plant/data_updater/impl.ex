@@ -32,7 +32,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   require Logger
 
-  @max_uncompressed_payload_size 10_485_760
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
@@ -562,7 +561,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     <<_size_header::size(32), zlib_payload::binary>> = payload
 
-    decoded_payload = safe_deflate(zlib_payload)
+    decoded_payload = PayloadsDecoder.safe_inflate(zlib_payload)
 
     if decoded_payload != :error do
       operation_result = prune_device_properties(new_state, decoded_payload, delivery_tag)
@@ -635,59 +634,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end)
 
     {:ok, Map.put(state, :volatile_triggers, updated_volatile_triggers)}
-  end
-
-  defp safe_deflate(zlib_payload) do
-    z = :zlib.open()
-    :ok = :zlib.inflateInit(z)
-
-    {continue_flag, output_list} = :zlib.safeInflate(z, zlib_payload)
-
-    uncompressed_size =
-      List.foldl(output_list, 0, fn output_block, acc ->
-        acc + byte_size(output_block)
-      end)
-
-    deflated_payload =
-      if uncompressed_size < @max_uncompressed_payload_size do
-        output_acc =
-          List.foldl(output_list, <<>>, fn output_block, acc ->
-            acc <> output_block
-          end)
-
-        safe_deflate_loop(z, output_acc, uncompressed_size, continue_flag)
-      else
-        :error
-      end
-
-    :zlib.inflateEnd(z)
-    :zlib.close(z)
-
-    deflated_payload
-  end
-
-  defp safe_deflate_loop(z, output_acc, size_acc, :continue) do
-    {continue_flag, output_list} = :zlib.safeInflate(z, [])
-
-    uncompressed_size =
-      List.foldl(output_list, size_acc, fn output_block, acc ->
-        acc + byte_size(output_block)
-      end)
-
-    if uncompressed_size < @max_uncompressed_payload_size do
-      output_acc =
-        List.foldl(output_list, output_acc, fn output_block, acc ->
-          acc <> output_block
-        end)
-
-      safe_deflate_loop(z, output_acc, uncompressed_size, continue_flag)
-    else
-      :error
-    end
-  end
-
-  defp safe_deflate_loop(_z, output_acc, _size_acc, :finished) do
-    output_acc
   end
 
   defp reload_device_triggers_on_expiry(state, timestamp, db_client) do
