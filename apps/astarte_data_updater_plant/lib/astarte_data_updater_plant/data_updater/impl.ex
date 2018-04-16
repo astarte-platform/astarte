@@ -392,37 +392,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    new_introspection_list = String.split(payload, ";")
+    new_introspection_list = PayloadsDecoder.parse_introspection(payload)
 
     {db_introspection_map, db_introspection_minor_map} =
-      List.foldl(new_introspection_list, {%{}, %{}}, fn introspection_item,
+      List.foldl(new_introspection_list, {%{}, %{}}, fn {interface, major, minor},
                                                         {introspection_map,
                                                          introspection_minor_map} ->
-        [interface_name, major_version_string, minor_version_string] =
-          String.split(introspection_item, ":")
-
-        {major_version, garbage} = Integer.parse(major_version_string)
-
-        if garbage != "" do
-          Logger.warn(
-            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} sent malformed introspection entry, found garbage in major version: #{
-              garbage
-            }."
-          )
-        end
-
-        {minor_version, garbage} = Integer.parse(minor_version_string)
-
-        if garbage != "" do
-          Logger.warn(
-            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} sent malformed introspection entry, found garbage in minor version: #{
-              garbage
-            }."
-          )
-        end
-
-        introspection_map = Map.put(introspection_map, interface_name, major_version)
-        introspection_minor_map = Map.put(introspection_minor_map, interface_name, minor_version)
+        introspection_map = Map.put(introspection_map, interface, major)
+        introspection_minor_map = Map.put(introspection_minor_map, interface, minor)
 
         {introspection_map, introspection_minor_map}
       end)

@@ -140,4 +140,62 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
       end
     end)
   end
+
+  @doc """
+  Decodes introspection string into a list of tuples
+  """
+  @spec parse_introspection(String.t()) :: list({String.t(), integer, integer})
+  def parse_introspection("") do
+    []
+  end
+
+  def parse_introspection(introspection_payload) do
+    if String.valid?(introspection_payload) do
+      parse_valid_string_introspection(introspection_payload)
+    else
+      {:error, :invalid_introspection}
+    end
+  end
+
+  defp parse_valid_string_introspection(introspection_payload) do
+    introspection_tokens = String.split(introspection_payload, ";")
+
+    all_tokens_are_good =
+      Enum.all?(introspection_tokens, fn token ->
+        with [interface_name, major_version_string, minor_version_string] <-
+               String.split(token, ":"),
+             {major_version, ""} <- Integer.parse(major_version_string),
+             {minor_version, ""} <- Integer.parse(minor_version_string) do
+          cond do
+            String.match?(interface_name, ~r/^[a-zA-Z]+(\.[a-zA-Z0-9]+)*$/) == false ->
+              false
+
+            major_version < 0 ->
+              false
+
+            minor_version < 0 ->
+              false
+
+            true ->
+              true
+          end
+        else
+          not_expected ->
+            false
+        end
+      end)
+
+    if all_tokens_are_good do
+      for token <- introspection_tokens do
+        [interface_name, major_version_string, minor_version_string] = String.split(token, ":")
+
+        {major_version, ""} = Integer.parse(major_version_string)
+        {minor_version, ""} = Integer.parse(minor_version_string)
+
+        {interface_name, major_version, minor_version}
+      end
+    else
+      {:error, :invalid_introspection}
+    end
+  end
 end
