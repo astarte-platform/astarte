@@ -157,7 +157,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
               }, expected_timestamp, %{meta: 2}}
   end
 
-  test "payload deflate" do
+  test "zlib compressed payload inflate" do
     short_message = "SHORT MESSAGE"
     compressed = simple_deflate(short_message)
 
