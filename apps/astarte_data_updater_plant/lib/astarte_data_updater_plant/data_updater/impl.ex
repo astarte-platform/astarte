@@ -392,37 +392,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    new_introspection_list = String.split(payload, ";")
+    {:ok, new_introspection_list} = PayloadsDecoder.parse_introspection(payload)
 
     {db_introspection_map, db_introspection_minor_map} =
-      List.foldl(new_introspection_list, {%{}, %{}}, fn introspection_item,
+      List.foldl(new_introspection_list, {%{}, %{}}, fn {interface, major, minor},
                                                         {introspection_map,
                                                          introspection_minor_map} ->
-        [interface_name, major_version_string, minor_version_string] =
-          String.split(introspection_item, ":")
-
-        {major_version, garbage} = Integer.parse(major_version_string)
-
-        if garbage != "" do
-          Logger.warn(
-            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} sent malformed introspection entry, found garbage in major version: #{
-              garbage
-            }."
-          )
-        end
-
-        {minor_version, garbage} = Integer.parse(minor_version_string)
-
-        if garbage != "" do
-          Logger.warn(
-            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} sent malformed introspection entry, found garbage in minor version: #{
-              garbage
-            }."
-          )
-        end
-
-        introspection_map = Map.put(introspection_map, interface_name, major_version)
-        introspection_minor_map = Map.put(introspection_minor_map, interface_name, minor_version)
+        introspection_map = Map.put(introspection_map, interface, major)
+        introspection_minor_map = Map.put(introspection_minor_map, interface, minor)
 
         {introspection_map, introspection_minor_map}
       end)
@@ -757,40 +734,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {interface_descriptor, state}
   end
 
-  defp parse_device_properties_payload(_state, "") do
-    MapSet.new()
-  end
-
-  defp parse_device_properties_payload(state, decoded_payload) do
-    decoded_payload
-    |> String.split(";")
-    |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
-      if property_full_path != nil do
-        case String.split(property_full_path, "/", parts: 2) do
-          [interface, path] ->
-            if Map.has_key?(state.introspection, interface) do
-              MapSet.put(paths_acc, {interface, "/" <> path})
-            else
-              paths_acc
-            end
-
-          _ ->
-            Logger.warn(
-              "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent a malformed entry in device properties control message: #{
-                inspect(property_full_path)
-              }."
-            )
-
-            paths_acc
-        end
-      else
-        paths_acc
-      end
-    end)
-  end
-
   defp prune_device_properties(state, decoded_payload, delivery_tag) do
-    paths_set = parse_device_properties_payload(state, decoded_payload)
+    {:ok, paths_set} =
+      PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
     db_client = Queries.connect_to_db(state)
 
