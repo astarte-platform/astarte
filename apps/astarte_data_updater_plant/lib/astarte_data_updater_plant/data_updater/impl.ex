@@ -757,40 +757,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {interface_descriptor, state}
   end
 
-  defp parse_device_properties_payload(_state, "") do
-    MapSet.new()
-  end
-
-  defp parse_device_properties_payload(state, decoded_payload) do
-    decoded_payload
-    |> String.split(";")
-    |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
-      if property_full_path != nil do
-        case String.split(property_full_path, "/", parts: 2) do
-          [interface, path] ->
-            if Map.has_key?(state.introspection, interface) do
-              MapSet.put(paths_acc, {interface, "/" <> path})
-            else
-              paths_acc
-            end
-
-          _ ->
-            Logger.warn(
-              "#{state.realm}: Device #{pretty_device_id(state.device_id)} sent a malformed entry in device properties control message: #{
-                inspect(property_full_path)
-              }."
-            )
-
-            paths_acc
-        end
-      else
-        paths_acc
-      end
-    end)
-  end
-
   defp prune_device_properties(state, decoded_payload, delivery_tag) do
-    paths_set = parse_device_properties_payload(state, decoded_payload)
+    paths_set =
+      PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
     db_client = Queries.connect_to_db(state)
 

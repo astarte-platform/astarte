@@ -114,4 +114,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   defp safe_inflate_loop(_z, output_acc, _size_acc, :finished) do
     output_acc
   end
+
+  @doc """
+  Decodes a properties paths list and returning a MapSet with them.
+  """
+  @spec parse_device_properties_payload(String.t(), map) :: MapSet.t(String.t())
+  def parse_device_properties_payload("", _introspection) do
+    MapSet.new()
+  end
+
+  def parse_device_properties_payload(decoded_payload, introspection) do
+    decoded_payload
+    |> String.split(";")
+    |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
+      if property_full_path != nil do
+        case String.split(property_full_path, "/", parts: 2) do
+          [interface, path] ->
+            if Map.has_key?(introspection, interface) do
+              MapSet.put(paths_acc, {interface, "/" <> path})
+            else
+              paths_acc
+            end
+
+          _ ->
+            # TODO: we should print a warning, or return a :issues_found status
+
+            paths_acc
+        end
+      else
+        paths_acc
+      end
+    end)
+  end
 end
