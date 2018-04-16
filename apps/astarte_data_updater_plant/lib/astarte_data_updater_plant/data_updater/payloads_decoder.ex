@@ -127,22 +127,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
     decoded_payload
     |> String.split(";")
     |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
-      if property_full_path != nil do
-        case String.split(property_full_path, "/", parts: 2) do
-          [interface, path] ->
-            if Map.has_key?(introspection, interface) do
-              MapSet.put(paths_acc, {interface, "/" <> path})
-            else
-              paths_acc
-            end
-
-          _ ->
-            # TODO: we should print a warning, or return a :issues_found status
-
-            paths_acc
+      with [interface, path] <- String.split(property_full_path, "/", parts: 2) do
+        if Map.has_key?(introspection, interface) do
+          MapSet.put(paths_acc, {interface, "/" <> path})
+        else
+          paths_acc
         end
       else
-        paths_acc
+        _ ->
+          # TODO: we should print a warning, or return a :issues_found status
+          paths_acc
       end
     end)
   end
