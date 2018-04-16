@@ -156,4 +156,54 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
                 bin: Bson.Bin.new(<<0, 1, 2, 3>>, 0)
               }, expected_timestamp, %{meta: 2}}
   end
+
+  test "payload deflate" do
+    short_message = "SHORT MESSAGE"
+    compressed = simple_deflate(short_message)
+
+    assert PayloadsDecoder.safe_inflate(compressed) == short_message
+
+    empty_message = ""
+    compressed = simple_deflate(empty_message)
+
+    assert PayloadsDecoder.safe_inflate(compressed) == empty_message
+
+    rand_bytes = :crypto.strong_rand_bytes(10_485_760 - 1)
+    compressed = simple_deflate(rand_bytes)
+
+    assert PayloadsDecoder.safe_inflate(compressed) == rand_bytes
+
+    rand_bytes_bigger = :crypto.strong_rand_bytes(10_485_760)
+    compressed = simple_deflate(rand_bytes_bigger)
+
+    assert PayloadsDecoder.safe_inflate(compressed) == :error
+
+    zeroed_bytes =
+      Enum.reduce(0..10_485_758, <<>>, fn _i, acc ->
+        [0 | acc]
+      end)
+      |> :erlang.list_to_binary()
+
+    compressed = simple_deflate(zeroed_bytes)
+
+    assert PayloadsDecoder.safe_inflate(compressed) == zeroed_bytes
+
+    compressed = simple_deflate(zeroed_bytes <> <<0>>)
+
+    assert PayloadsDecoder.safe_inflate(compressed) == :error
+  end
+
+  defp simple_deflate(data) do
+    zstream = :zlib.open()
+    :ok = :zlib.deflateInit(zstream)
+
+    compressed =
+      :zlib.deflate(zstream, data, :finish)
+      |> :erlang.list_to_binary()
+
+    :ok = :zlib.deflateEnd(zstream)
+    :ok = :zlib.close(zstream)
+
+    compressed
+  end
 end
