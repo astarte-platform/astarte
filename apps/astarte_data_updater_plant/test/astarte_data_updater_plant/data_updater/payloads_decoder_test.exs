@@ -231,6 +231,29 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
              MapSet.new()
   end
 
+  test "valid introspection parsing" do
+    parsed1 = [{"good.introspection", 1, 0}]
+    introspection1 = "good.introspection:1:0"
+    assert PayloadsDecoder.parse_introspection(introspection1) == parsed1
+
+    parsed2 = [{"good.introspection", 1, 0}, {"other.good.introspection", 0, 3}]
+    introspection2 = "good.introspection:1:0;other.good.introspection:0:3"
+    assert PayloadsDecoder.parse_introspection(introspection2) == parsed2
+
+    assert PayloadsDecoder.parse_introspection("") == []
+  end
+
+  test "invalid introspection strings" do
+    invalid = {:error, :invalid_introspection}
+
+    assert PayloadsDecoder.parse_introspection("a;b;c") == invalid
+    assert PayloadsDecoder.parse_introspection("a:0:1;b:1:0;c") == invalid
+    assert PayloadsDecoder.parse_introspection("a:0:1z;b:1:0") == invalid
+    assert PayloadsDecoder.parse_introspection("a:0:1z:b:1:0") == invalid
+    assert PayloadsDecoder.parse_introspection("a:0:-1:b:1:0") == invalid
+    assert PayloadsDecoder.parse_introspection(<<0xFFFF::16>>) == invalid
+  end
+
   defp simple_deflate(data) do
     zstream = :zlib.open()
     :ok = :zlib.deflateInit(zstream)
