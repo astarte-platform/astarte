@@ -217,22 +217,22 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   defp extract_result({:get_trigger_reply, get_trigger_reply}) do
-    trigger = Trigger.decode(get_trigger_reply.trigger_data)
+    %Trigger{
+      name: trigger_name,
+      action: trigger_action
+    } = Trigger.decode(get_trigger_reply.trigger_data)
 
-    simple_triggers =
-      for simple_triggers_data_container <- get_trigger_reply.simple_triggers_data_container do
-        %{
-          object_id: simple_triggers_data_container.object_id,
-          object_type: simple_triggers_data_container.object_type,
-          simple_trigger: SimpleTriggerContainer.decode(simple_triggers_data_container.data)
-        }
+    tagged_simple_triggers =
+      for serialized_tagged_simple_trigger <- get_trigger_reply.serialized_tagged_simple_triggers do
+        TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
       end
 
     {
       :ok,
       %{
-        trigger: trigger,
-        simple_triggers: simple_triggers
+        trigger_name: trigger_name,
+        trigger_action: trigger_action,
+        tagged_simple_triggers: tagged_simple_triggers
       }
     }
   end
