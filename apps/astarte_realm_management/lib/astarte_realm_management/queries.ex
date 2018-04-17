@@ -23,6 +23,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.StorageType
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
   alias CQEx.Query, as: DatabaseQuery
@@ -650,11 +651,11 @@ defmodule Astarte.RealmManagement.Queries do
 
   # TODO: simple_trigger_uuid is required due how we made the compound key
   # should we move simple_trigger_uuid to the first part of the key?
-  def retrieve_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+  def retrieve_tagged_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
     with %{object_uuid: object_id, object_type: object_type} <-
            retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
       retrieve_simple_trigger_statement = """
-      SELECT trigger_data, trigger_target
+      SELECT trigger_data
       FROM simple_triggers
       WHERE object_id=:object_id AND object_type=:object_type AND
             parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
@@ -669,15 +670,13 @@ defmodule Astarte.RealmManagement.Queries do
         |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
 
       with {:ok, result} <- DatabaseQuery.call(client, retrieve_simple_trigger_query),
-           [trigger_data: trigger_data, trigger_target: trigger_target_data] <-
-             DatabaseResult.head(result) do
+           [trigger_data: trigger_data] <- DatabaseResult.head(result) do
         {
           :ok,
-          %{
+          %TaggedSimpleTrigger{
             object_id: object_id,
             object_type: object_type,
-            simple_trigger: SimpleTriggerContainer.decode(trigger_data),
-            trigger_target: TriggerTargetContainer.decode(trigger_target_data)
+            simple_trigger_container: SimpleTriggerContainer.decode(trigger_data)
           }
         }
       else
