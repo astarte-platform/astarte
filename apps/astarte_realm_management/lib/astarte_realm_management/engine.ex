@@ -236,15 +236,21 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def install_trigger(realm_name, trigger_name, action, simple_trigger_data_containers) do
+  def install_trigger(realm_name, trigger_name, action, serialized_tagged_simple_triggers) do
     with {:ok, client} <- get_database_client(realm_name) do
       simple_triggers =
-        for simple_trigger_data_container <- simple_trigger_data_containers do
+        for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
+          %TaggedSimpleTrigger{
+            object_id: object_id,
+            object_type: object_type,
+            simple_trigger_container: simple_trigger_container
+          } = TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
+
           %{
-            object_id: simple_trigger_data_container.object_id,
-            object_type: simple_trigger_data_container.object_type,
+            object_id: object_id,
+            object_type: object_type,
             simple_trigger_uuid: :uuid.get_v4(),
-            simple_trigger: SimpleTriggerContainer.decode(simple_trigger_data_container.data)
+            simple_trigger: simple_trigger_container
           }
         end
 
