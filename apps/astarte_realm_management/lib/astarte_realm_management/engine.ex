@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.InterfaceDocument
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.Queries
@@ -296,25 +296,35 @@ defmodule Astarte.RealmManagement.Engine do
 
   def get_trigger(realm_name, trigger_name) do
     with {:ok, client} <- get_database_client(realm_name),
-         {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
-      simple_triggers =
-        for simple_trigger_uuid <- trigger.simple_triggers_uuids do
-          Queries.retrieve_simple_trigger(client, trigger.trigger_uuid, simple_trigger_uuid)
-        end
+         {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(client, trigger_name) do
+      %Trigger{
+        trigger_uuid: parent_uuid,
+        simple_triggers_uuids: simple_triggers_uuids
+      } = trigger
 
-      everything_ok =
-        Enum.all?(simple_triggers, fn simple_trigger ->
-          match?({:ok, _}, simple_trigger)
+      # TODO: use batch
+      {everything_ok?, serialized_tagged_simple_triggers} =
+        Enum.reduce(simple_triggers_uuids, {true, []}, fn
+          _uuid, {false, _triggers_acc} ->
+            # Avoid DB calls if we're not ok
+            {false, []}
+
+          uuid, {true, acc} ->
+            case Queries.retrieve_tagged_simple_trigger(client, parent_uuid, uuid) do
+              {:ok, %TaggedSimpleTrigger{} = result} ->
+                {true, [TaggedSimpleTrigger.encode(result) | acc]}
+
+              {:error, _reason} ->
+                {false, []}
+            end
         end)
 
-      if everything_ok do
-        simple_triggers_list = Enum.into(simple_triggers, [], fn item -> elem(item, 1) end)
-
+      if everything_ok? do
         {
           :ok,
           %{
             trigger: trigger,
-            simple_triggers: simple_triggers_list
+            serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
           }
         }
       else
