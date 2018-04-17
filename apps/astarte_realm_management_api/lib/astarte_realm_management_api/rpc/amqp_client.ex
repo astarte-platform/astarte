@@ -268,4 +268,8 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
        ) do
     raise InvalidInterfaceDocumentError
   end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "trigger_not_found"}}) do
+    {:error, :not_found}
+  end
 end
