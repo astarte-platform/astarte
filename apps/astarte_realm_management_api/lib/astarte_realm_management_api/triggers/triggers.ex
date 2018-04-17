@@ -46,24 +46,35 @@ defmodule Astarte.RealmManagement.API.Triggers do
   @doc """
   Gets a single trigger.
 
-  Raises `Ecto.NoResultsError` if the Trigger does not exist.
+  Returns {:ok, %Trigger{}} or {:error, reason} if there's an error.
 
   ## Examples
 
-      iex> get_trigger!(123)
-      %Trigger{}
+      iex> get_trigger(123)
+      {:ok, %Trigger{}}
 
-      iex> get_trigger!(456)
-      ** (Ecto.NoResultsError)
+      iex> get_trigger(45)
+      {:error, :not_found}
 
   """
-  def get_trigger!(realm_name, trigger_name) do
-    with {:ok, trigger} <- AMQPClient.get_trigger(realm_name, trigger_name) do
-      %Trigger{
-        name: trigger[:trigger].name,
-        action: trigger[:trigger].action,
-        simple_triggers: trigger[:simple_triggers]
-      }
+  def get_trigger(realm_name, trigger_name) do
+    with {:ok,
+          %{
+            trigger_name: name,
+            trigger_action: action,
+            tagged_simple_triggers: tagged_simple_triggers
+          }} <- AMQPClient.get_trigger(realm_name, trigger_name),
+         {:ok, action_map} <- Poison.decode(action) do
+      simple_triggers_configs =
+        Enum.map(tagged_simple_triggers, &SimpleTriggerConfig.from_tagged_simple_trigger/1)
+
+      {:ok,
+       %Trigger{
+         id: name,
+         name: name,
+         action: action_map,
+         simple_triggers: simple_triggers_configs
+       }}
     end
   end
 
