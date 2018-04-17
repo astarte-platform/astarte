@@ -43,27 +43,27 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerController do
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => id}) do
-    trigger = Astarte.RealmManagement.API.Triggers.get_trigger!(realm_name, id)
-    render(conn, "show.json", trigger: trigger)
+    with {:ok, trigger} <- Astarte.RealmManagement.API.Triggers.get_trigger(realm_name, id) do
+      render(conn, "show.json", trigger: trigger)
+    end
   end
 
   def update(conn, %{"realm_name" => realm_name, "id" => id, "data" => trigger_params}) do
-    trigger = Astarte.RealmManagement.API.Triggers.get_trigger!(realm_name, id)
-
-    with {:ok, %Trigger{} = trigger} <-
+    with {:ok, trigger} <- Astarte.RealmManagement.API.Triggers.get_trigger(realm_name, id),
+         {:ok, %Trigger{} = updated_trigger} <-
            Astarte.RealmManagement.API.Triggers.update_trigger(
              realm_name,
              trigger,
              trigger_params
            ) do
-      render(conn, "show.json", trigger: trigger)
+      render(conn, "show.json", trigger: updated_trigger)
     end
   end
 
   def delete(conn, %{"realm_name" => realm_name, "id" => id}) do
-    trigger = Astarte.RealmManagement.API.Triggers.get_trigger!(realm_name, id)
-
-    with {:ok, %Trigger{}} <-
+    with {:ok, %Trigger{} = trigger} <-
+           Astarte.RealmManagement.API.Triggers.get_trigger(realm_name, id),
+         {:ok, %Trigger{}} <-
            Astarte.RealmManagement.API.Triggers.delete_trigger(realm_name, trigger) do
       send_resp(conn, :no_content, "")
     end
