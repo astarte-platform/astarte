@@ -21,7 +21,7 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   use Astarte.RPC.AMQPClient
   use Astarte.RPC.Protocol.RealmManagement
 
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.API.AlreadyInstalledInterfaceError
   alias Astarte.RealmManagement.API.InterfaceNotFoundError
@@ -119,23 +119,16 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
     payload_to_result(payload)
   end
 
-  def install_trigger(realm_name, trigger, simple_triggers) do
-    trigger_data = Trigger.encode(trigger)
-
-    simple_triggers_containers =
-      for simple_trigger <- simple_triggers do
-        %InstallTrigger.SimpleTriggerDataContainer{
-          object_id: simple_trigger[:object_id],
-          object_type: simple_trigger[:object_type],
-          data: SimpleTriggerContainer.encode(simple_trigger[:simple_trigger])
-        }
-      end
+  def install_trigger(realm_name, trigger_name, action, tagged_simple_triggers) do
+    serialized_tagged_simple_triggers =
+      Enum.map(tagged_simple_triggers, &TaggedSimpleTrigger.encode/1)
 
     {:ok, payload} =
       %InstallTrigger{
         realm_name: realm_name,
-        trigger_data: trigger_data,
-        simple_triggers_data_container: simple_triggers_containers
+        trigger_name: trigger_name,
+        action: action,
+        serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
       }
       |> encode_and_call(:install_trigger)
 
@@ -224,22 +217,22 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   end
 
   defp extract_result({:get_trigger_reply, get_trigger_reply}) do
-    trigger = Trigger.decode(get_trigger_reply.trigger_data)
+    %Trigger{
+      name: trigger_name,
+      action: trigger_action
+    } = Trigger.decode(get_trigger_reply.trigger_data)
 
-    simple_triggers =
-      for simple_triggers_data_container <- get_trigger_reply.simple_triggers_data_container do
-        %{
-          object_id: simple_triggers_data_container.object_id,
-          object_type: simple_triggers_data_container.object_type,
-          simple_trigger: SimpleTriggerContainer.decode(simple_triggers_data_container.data)
-        }
+    tagged_simple_triggers =
+      for serialized_tagged_simple_trigger <- get_trigger_reply.serialized_tagged_simple_triggers do
+        TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
       end
 
     {
       :ok,
       %{
-        trigger: trigger,
-        simple_triggers: simple_triggers
+        trigger_name: trigger_name,
+        trigger_action: trigger_action,
+        tagged_simple_triggers: tagged_simple_triggers
       }
     }
   end
@@ -274,5 +267,9 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
          {:generic_error_reply, %GenericErrorReply{error_name: "invalid_interface_document"}}
        ) do
     raise InvalidInterfaceDocumentError
+  end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "trigger_not_found"}}) do
+    {:error, :not_found}
   end
 end

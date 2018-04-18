@@ -20,20 +20,22 @@
 defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   use Ecto.Schema
   import Ecto.Changeset
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.RealmManagement.API.Triggers.Trigger
 
+  @derive {Phoenix.Param, key: :name}
   @primary_key false
   embedded_schema do
-    field :id, :string
     field :name, :string
     field :action, :map
-    field :simple_triggers, {:array, :map}
+    embeds_many :simple_triggers, SimpleTriggerConfig
   end
 
   @doc false
   def changeset(%Trigger{} = trigger, attrs) do
     trigger
-    |> cast(attrs, [:name, :action, :simple_triggers])
-    |> validate_required([:name, :action, :simple_triggers])
+    |> cast(attrs, [:name, :action])
+    |> validate_required([:name, :action])
+    |> cast_embed(:simple_triggers, required: true)
   end
 end

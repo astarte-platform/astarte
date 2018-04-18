@@ -34,59 +34,13 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
 
   def render("trigger.json", %{trigger: trigger}) do
     %{
-      id: trigger.name,
+      name: trigger.name,
       action: trigger.action,
-      simple_triggers: transform_simple_triggers(trigger.simple_triggers)
+      simple_triggers: trigger.simple_triggers
     }
   end
 
   def render("trigger_name_only.json", %{trigger: trigger}) do
     trigger
-  end
-
-  def transform_simple_triggers(nil) do
-    nil
-  end
-
-  def transform_simple_triggers(simple_triggers) do
-    for item <- simple_triggers do
-      %{
-        object_id: object_id,
-        object_type: object_type,
-        simple_trigger: %SimpleTriggerContainer{simple_trigger: {_, simple_trigger}}
-      } = item
-
-      %{
-        object_id: to_string(:uuid.uuid_to_string(object_id)),
-        object_type: object_type,
-        simple_trigger: simple_trigger
-      }
-    end
-  end
-
-  defimpl Poison.Encoder, for: DataTrigger do
-    def encode(data_trigger, options) do
-      %{v: known_value} = Bson.decode(data_trigger.known_value)
-
-      %{
-        "type" => "DataTrigger",
-        "on" => data_trigger.data_trigger_type,
-        "interface_id" => to_string(:uuid.uuid_to_string(data_trigger.interface_id)),
-        "known_value" => known_value,
-        "match_path" => data_trigger.match_path,
-        "value_match_operator" => data_trigger.value_match_operator
-      }
-      |> Poison.Encoder.Map.encode(options)
-    end
-  end
-
-  defimpl Poison.Encoder, for: DeviceTrigger do
-    def encode(device_trigger, options) do
-      %{
-        "type" => "DeviceTrigger",
-        "on" => device_trigger.device_event_type
-      }
-      |> Poison.Encoder.Map.encode(options)
-    end
   end
 end

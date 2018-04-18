@@ -21,7 +21,7 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
   use Astarte.RealmManagement.APIWeb, :view
 
   def render("404.json", _assigns) do
-    %{errors: %{detail: "Page not found"}}
+    %{errors: %{detail: "Not found"}}
   end
 
   def render("500.json", _assigns) do
