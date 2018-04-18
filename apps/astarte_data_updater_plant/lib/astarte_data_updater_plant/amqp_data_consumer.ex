@@ -70,15 +70,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
     case handle_consume(msg_type, payload, headers_map, timestamp, clean_meta) do
       :ok ->
-        # TODO: this should be done asynchronously by Data Updater
-        Basic.ack(chan, meta.delivery_tag)
+        :ok
 
       :invalid_msg ->
         # ACK invalid msg to discard them
-        Basic.ack(chan, meta.delivery_tag)
-
-      _ ->
-        # ACK everything else for now, TODO: add other handle_consume return values
         Basic.ack(chan, meta.delivery_tag)
     end
 
