@@ -27,6 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -898,36 +899,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
+  # TODO: implement: on_value_change, on_value_changed, on_path_created, on_value_stored
   defp load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
     data_trigger =
       SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
 
     data_triggers = state.data_triggers
 
-    event_type =
-      case proto_buf_data_trigger.data_trigger_type do
-        :INCOMING_DATA ->
-          :on_incoming_data
-
-        # TODO: implement :on_value_change
-        :VALUE_CHANGE ->
-          :on_value_change
-
-        # TODO: implement :on_value_changed
-        :VALUE_CHANGE_APPLIED ->
-          :on_value_change_applied
-
-        # TODO: implement :on_path_created
-        :PATH_CREATED ->
-          :on_path_created
-
-        :PATH_REMOVED ->
-          :on_path_removed
-
-        # TODO: implement :on_value_stored
-        :VALUE_STORED ->
-          :on_value_stored
-      end
+    event_type = EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
 
     interface_id = data_trigger.interface_id
 
@@ -987,6 +966,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :data_triggers, next_data_triggers)
   end
 
+  # TODO: implement on_incoming_introspection, on_interface_minor_updated
   defp load_trigger(
          state,
          {:introspection_trigger, proto_buf_introspection_trigger},
@@ -994,22 +974,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
        ) do
     introspection_triggers = state.introspection_triggers
 
-    event_type =
-      case proto_buf_introspection_trigger.change_type do
-        # TODO: implement :on_incoming_introspection
-        :INCOMING_INTROSPECTION ->
-          :on_incoming_introspection
-
-        :INTERFACE_ADDED ->
-          :on_interface_added
-
-        :INTERFACE_REMOVED ->
-          :on_interface_removed
-
-        # TODO: implement :on_interface_minor_updated
-        :INTERFACE_MINOR_UPDATED ->
-          :on_interface_minor_updated
-      end
+    event_type = EventTypeUtils.pretty_change_type(proto_buf_introspection_trigger.change_type)
 
     introspection_trigger_key =
       {event_type, proto_buf_introspection_trigger.match_interface || :any_interface}
@@ -1024,25 +989,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :introspection_triggers, next_introspection_triggers)
   end
 
+  # TODO: implement on_empty_cache_received, on_device_error
   defp load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
     device_triggers = state.device_triggers
 
     event_type =
-      case proto_buf_device_trigger.device_event_type do
-        :DEVICE_CONNECTED ->
-          :on_device_connection
-
-        :DEVICE_DISCONNECTED ->
-          :on_device_disconnection
-
-        # TODO: implement :on_empty_cache_received
-        :DEVICE_EMPTY_CACHE_RECEIVED ->
-          :on_empty_cache_received
-
-        # TODO: implement :on_device_error
-        :DEVICE_ERROR ->
-          :on_device_error
-      end
+      EventTypeUtils.pretty_device_event_type(proto_buf_device_trigger.device_event_type)
 
     existing_trigger_targets = Map.get(device_triggers, event_type, [])
 
