@@ -20,30 +20,47 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Server
+  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.MessageTracker.Server, as: MessageTrackerServer
   require Logger
 
   def handle_connection(realm, encoded_device_id, ip_address, delivery_tag, timestamp) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+    MessageTracker.track_delivery(message_tracker, delivery_tag)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.cast({:handle_connection, ip_address, delivery_tag, timestamp})
   end
 
   def handle_disconnection(realm, encoded_device_id, delivery_tag, timestamp) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+    MessageTracker.track_delivery(message_tracker, delivery_tag)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.cast({:handle_disconnection, delivery_tag, timestamp})
   end
 
   def handle_data(realm, encoded_device_id, interface, path, payload, delivery_tag, timestamp) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+    MessageTracker.track_delivery(message_tracker, delivery_tag)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.cast({:handle_data, interface, path, payload, delivery_tag, timestamp})
   end
 
   def handle_introspection(realm, encoded_device_id, payload, delivery_tag, timestamp) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+    MessageTracker.track_delivery(message_tracker, delivery_tag)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.cast({:handle_introspection, payload, delivery_tag, timestamp})
   end
 
   def handle_control(realm, encoded_device_id, path, payload, delivery_tag, timestamp) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+    MessageTracker.track_delivery(message_tracker, delivery_tag)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.cast({:handle_control, path, payload, delivery_tag, timestamp})
   end
 
@@ -57,7 +74,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         simple_trigger,
         trigger_target
       ) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.call(
       {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
        simple_trigger, trigger_target}
@@ -65,21 +84,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   def handle_delete_volatile_trigger(realm, encoded_device_id, trigger_id) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.call({:handle_delete_volatile_trigger, trigger_id})
   end
 
   def dump_state(realm, encoded_device_id) do
-    get_data_updater_process(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.call({:dump_state})
   end
 
-  defp get_data_updater_process(realm, encoded_device_id) do
+  defp get_data_updater_process(realm, encoded_device_id, message_tracker) do
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id, allow_extended_id: true) do
       case Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
         [] ->
           name = {:via, Registry, {Registry.DataUpdater, {realm, device_id}}}
-          {:ok, pid} = Server.start(realm, device_id, name: name)
+          {:ok, pid} = Server.start(realm, device_id, message_tracker, name: name)
+          pid
+
+        [{pid, nil}] ->
+          pid
+      end
+    else
+      {:error, :invalid_device_id} ->
+        Logger.info("Received invalid device id: #{encoded_device_id}")
+        # TODO: unrecoverable error, discard the message here
+    end
+  end
+
+  defp get_message_tracker(realm, encoded_device_id) do
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id, allow_extended_id: true) do
+      case Registry.lookup(Registry.MessageTracker, {realm, device_id}) do
+        [] ->
+          name = {:via, Registry, {Registry.MessageTracker, {realm, device_id}}}
+          {:ok, pid} = MessageTrackerServer.start(name: name)
           pid
 
         [{pid, nil}] ->

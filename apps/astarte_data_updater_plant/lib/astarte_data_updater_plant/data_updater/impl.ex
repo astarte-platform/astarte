@@ -19,6 +19,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   use GenServer
+  alias AMQP.Basic
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
@@ -30,6 +31,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   require Logger
@@ -37,10 +39,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
-  def init_state(realm, device_id) do
+  def init_state(realm, device_id, message_tracker) do
+    MessageTracker.register_data_updater(message_tracker)
+
     new_state = %State{
       realm: realm,
       device_id: device_id,
+      message_tracker: message_tracker,
       connected: true,
       interfaces: %{},
       interface_ids_to_name: %{},
@@ -98,6 +103,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       ip_address_string
     )
 
+    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
@@ -118,6 +124,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     device_id_string = Device.encode_device_id(new_state.device_id)
     TriggersHandler.device_disconnected(trigger_targets, new_state.realm, device_id_string)
 
+    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
     %{new_state | connected: false, last_seen_message: timestamp}
   end
 
@@ -365,6 +372,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Logger.debug("result is #{inspect(result)} further actions should be required.")
     end
 
+    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+
     %{
       new_state
       | total_received_msgs: new_state.total_received_msgs + 1,
@@ -486,6 +495,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       db_introspection_minor_map
     )
 
+    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+
     %{
       new_state
       | introspection: db_introspection_map,
@@ -505,7 +516,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
     end
 
-    # TODO: ACK here
+    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
 
     %{
       new_state
@@ -533,9 +544,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       if operation_result != :ok do
         Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
       end
-
-      # TODO: ACK here
     end
+
+    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
 
     %{
       new_state

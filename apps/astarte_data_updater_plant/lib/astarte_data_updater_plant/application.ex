@@ -32,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
     # List all child processes to be supervised
     children = [
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
+      {Registry, [keys: :unique, name: Registry.MessageTracker]},
       AMQPDataConsumer,
       AMQPEventsProducer,
       AMQPServer

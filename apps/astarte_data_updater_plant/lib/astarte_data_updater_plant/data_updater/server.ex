@@ -21,12 +21,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   use GenServer
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
 
-  def start(realm, device_id, opts \\ []) do
-    GenServer.start(__MODULE__, {realm, device_id}, opts)
+  def start(realm, device_id, message_tracker, opts \\ []) do
+    GenServer.start(__MODULE__, {realm, device_id, message_tracker}, opts)
   end
 
-  def init({realm, device_id}) do
-    new_state = Impl.init_state(realm, device_id)
+  def init({realm, device_id, message_tracker}) do
+    new_state = Impl.init_state(realm, device_id, message_tracker)
     {:ok, new_state}
   end
 
