@@ -77,12 +77,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           ip_address
 
         _ ->
-          Logger.warn(
-            "#{new_state.realm}: Device #{Device.encode_device_id(new_state.device_id)}: received invalid IP address #{
-              ip_address_string
-            }."
-          )
-
+          warn(new_state, "received invalid IP address #{ip_address_string}.")
           {0, 0, 0, 0}
       end
 
@@ -161,25 +156,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     result =
       cond do
         interface_descriptor.ownership == :server ->
-          Logger.warn(
-            "#{new_state.realm}: Device #{Device.encode_device_id(new_state.device_id)} tried to write on server owned interface: #{
-              interface
-            }."
-          )
-
+          warn(new_state, "tried to write on server owned interface: #{interface}.")
           {:error, :maybe_outdated_introspection}
 
         resolve_result != :ok ->
-          Logger.warn("#{new_state.realm}: Cannot resolve #{path} to #{interface} endpoint.")
+          warn(new_state, "cannot resolve #{path} to #{interface} endpoint.")
           {:error, :maybe_outdated_introspection}
 
         value == :error ->
-          Logger.warn(
-            "#{new_state.realm}: Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{
-              path
-            }."
-          )
-
+          warn(state, "invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
           {:error, :invalid_message}
 
         true ->
@@ -758,12 +743,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         {:ok, state}
 
       interface_descriptor.ownership != :device ->
-        Logger.warn(
-          "#{state.realm}: Device #{Device.encode_device_id(state.device_id)} tried to write on server owned interface: #{
-            interface
-          }."
-        )
-
+        warn(state, "tried to write on server owned interface: #{interface}.")
         {:error, :maybe_outdated_introspection}
 
       true ->
@@ -1002,5 +982,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     next_device_triggers = Map.put(device_triggers, event_type, new_targets)
     Map.put(state, :device_triggers, next_device_triggers)
+  end
+
+  def warn(state, msg) do
+    Logger.warn("#{state.realm}/#{Device.encode_device_id(state.device_id)}: #{msg}")
   end
 end
