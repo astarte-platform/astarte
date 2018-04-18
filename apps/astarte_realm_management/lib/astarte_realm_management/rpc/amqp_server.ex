@@ -21,7 +21,6 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   use Astarte.RPC.AMQPServer
   use Astarte.RPC.Protocol.RealmManagement
 
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.Engine
 
@@ -72,16 +71,14 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
   end
 
   def encode_reply(:get_trigger, {:ok, reply}) do
+    %{
+      trigger: trigger,
+      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+    } = reply
+
     msg = %GetTriggerReply{
-      trigger_data: Trigger.encode(reply[:trigger]),
-      simple_triggers_data_container:
-        for simple_trigger <- reply[:simple_triggers] do
-          %GetTriggerReply.SimpleTriggerDataContainer{
-            object_id: simple_trigger[:object_id],
-            object_type: simple_trigger[:object_type],
-            data: SimpleTriggerContainer.encode(simple_trigger.simple_trigger)
-          }
-        end
+      trigger_data: Trigger.encode(trigger),
+      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_reply, msg}})}
@@ -206,11 +203,16 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
              realm_name: realm_name,
              trigger_name: trigger_name,
              action: action,
-             simple_triggers_data_container: simple_triggers_data_container
+             serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
            }} ->
             encode_reply(
               :install_trigger,
-              Engine.install_trigger(realm_name, trigger_name, action, simple_triggers_data_container)
+              Engine.install_trigger(
+                realm_name,
+                trigger_name,
+                action,
+                serialized_tagged_simple_triggers
+              )
             )
 
           {:get_trigger, %GetTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
