@@ -24,4 +24,17 @@ defmodule Astarte.AppEngine.API.Auth.RoomsUser do
     :join_authorizations,
     :watch_authorizations
   ]
+
+  alias Astarte.AppEngine.API.Auth.RoomsUser
+  alias Astarte.AppEngine.API.Utils
+
+  def all_access_user() do
+    %RoomsUser{
+      id:
+        Utils.get_uuid()
+        |> Utils.uuid_to_string(),
+      join_authorizations: [".*"],
+      watch_authorizations: [".*"]
+    }
+  end
 end
