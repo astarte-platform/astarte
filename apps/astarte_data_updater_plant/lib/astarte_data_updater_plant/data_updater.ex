@@ -18,7 +18,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater do
+  alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Server
+  require Logger
 
   def handle_connection(realm, encoded_device_id, ip_address, delivery_tag, timestamp) do
     get_data_updater_process(realm, encoded_device_id)
@@ -73,24 +75,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   defp get_data_updater_process(realm, encoded_device_id) do
-    device_id = decode_device_id(encoded_device_id)
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id, allow_extended_id: true) do
+      case Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
+        [] ->
+          name = {:via, Registry, {Registry.DataUpdater, {realm, device_id}}}
+          {:ok, pid} = Server.start(realm, device_id, name: name)
+          pid
 
-    case Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
-      [] ->
-        name = {:via, Registry, {Registry.DataUpdater, {realm, device_id}}}
-        {:ok, pid} = Server.start(realm, device_id, name: name)
-        pid
-
-      [{pid, nil}] ->
-        pid
+        [{pid, nil}] ->
+          pid
+      end
+    else
+      {:error, :invalid_device_id} ->
+        Logger.info("Received invalid device id: #{encoded_device_id}")
+        # TODO: unrecoverable error, discard the message here
     end
-  end
-
-  defp decode_device_id(encoded_device_id) do
-    # TODO: if we cannot decode the device_id we should instead discard the message, there is no way it can be recovered.
-    <<device_uuid::binary-size(16), _extended_id::binary>> =
-      Base.url_decode64!(encoded_device_id, padding: false)
-
-    device_uuid
   end
 end

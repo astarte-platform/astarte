@@ -20,6 +20,7 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   use GenServer
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
@@ -76,7 +77,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         _ ->
           Logger.warn(
-            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)}: received invalid IP address #{
+            "#{new_state.realm}: Device #{Device.encode_device_id(new_state.device_id)}: received invalid IP address #{
               ip_address_string
             }."
           )
@@ -92,7 +93,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     trigger_targets = Map.get(new_state.device_triggers, :on_device_connection, [])
-    device_id_string = pretty_device_id(new_state.device_id)
+    device_id_string = Device.encode_device_id(new_state.device_id)
 
     TriggersHandler.device_connected(
       trigger_targets,
@@ -118,7 +119,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     trigger_targets = Map.get(new_state.device_triggers, :on_device_disconnection, [])
-    device_id_string = pretty_device_id(new_state.device_id)
+    device_id_string = Device.encode_device_id(new_state.device_id)
     TriggersHandler.device_disconnected(trigger_targets, new_state.realm, device_id_string)
 
     %{new_state | connected: false, last_seen_message: timestamp}
@@ -160,7 +161,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       cond do
         interface_descriptor.ownership == :server ->
           Logger.warn(
-            "#{new_state.realm}: Device #{pretty_device_id(new_state.device_id)} tried to write on server owned interface: #{
+            "#{new_state.realm}: Device #{Device.encode_device_id(new_state.device_id)} tried to write on server owned interface: #{
               interface
             }."
           )
@@ -182,7 +183,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         true ->
           realm = new_state.realm
-          device_id_string = pretty_device_id(new_state.device_id)
+          device_id_string = Device.encode_device_id(new_state.device_id)
           interface_name = interface_descriptor.name
 
           any_interface_triggers =
@@ -410,7 +411,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       populate_triggers_for_object!(new_state, db_client, any_interface_id, :any_interface)
 
     realm = new_state.realm
-    device_id_string = pretty_device_id(new_state.device_id)
+    device_id_string = Device.encode_device_id(new_state.device_id)
 
     on_introspection_targets =
       Map.get(introspection_triggers, {:on_incoming_introspection, :any_interface}, [])
@@ -441,7 +442,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ins ->
           Logger.debug(
             "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have been added to #{
-              pretty_device_id(new_state.device_id)
+              Device.encode_device_id(new_state.device_id)
             } ."
           )
 
@@ -464,7 +465,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :del ->
           Logger.debug(
             "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have been removed from #{
-              pretty_device_id(new_state.device_id)
+              Device.encode_device_id(new_state.device_id)
             } ."
           )
 
@@ -484,7 +485,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :eq ->
           Logger.debug(
             "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have not changed on #{
-              pretty_device_id(new_state.device_id)
+              Device.encode_device_id(new_state.device_id)
             } ."
           )
       end
@@ -757,7 +758,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       interface_descriptor.ownership != :device ->
         Logger.warn(
-          "#{state.realm}: Device #{pretty_device_id(state.device_id)} tried to write on server owned interface: #{
+          "#{state.realm}: Device #{Device.encode_device_id(state.device_id)} tried to write on server owned interface: #{
             interface
           }."
         )
@@ -777,7 +778,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               path = path_row[:path]
 
               if not MapSet.member?(all_paths_set, {interface, path}) do
-                device_id_string = pretty_device_id(state.device_id)
+                device_id_string = Device.encode_device_id(state.device_id)
 
                 {:ok, endpoint_id} =
                   EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
@@ -1049,9 +1050,5 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     next_device_triggers = Map.put(device_triggers, event_type, new_targets)
     Map.put(state, :device_triggers, next_device_triggers)
-  end
-
-  defp pretty_device_id(device_id) do
-    Base.url_encode64(device_id, padding: false)
   end
 end
