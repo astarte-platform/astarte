@@ -23,9 +23,9 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.RealmManagement.API.Triggers.Trigger
 
+  @derive {Phoenix.Param, key: :name}
   @primary_key false
   embedded_schema do
-    field :id, :string
     field :name, :string
     field :action, :map
     embeds_many :simple_triggers, SimpleTriggerConfig
