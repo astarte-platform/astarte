@@ -70,7 +70,6 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
       {:ok,
        %Trigger{
-         id: name,
          name: name,
          action: action_map,
          simple_triggers: simple_triggers_configs
@@ -109,7 +108,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
              encoded_action,
              tagged_simple_triggers
            ) do
-      {:ok, %{trigger_params | id: trigger_params.name}}
+      {:ok, trigger_params}
     end
   end
 
@@ -131,7 +130,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
     trigger
     |> Trigger.changeset(attrs)
 
-    {:ok, %Trigger{id: "mock_trigger_4"}}
+    {:ok, %Trigger{name: "mock_trigger_4"}}
   end
 
   @doc """
