@@ -35,18 +35,13 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:track_delivery, delivery_tag, redelivered}, _from, state) do
-    cond do
-      not redelivered ->
-        new_state = :queue.in(delivery_tag, state)
-        {:reply, :ok, new_state}
+  def handle_call({:can_process_message, delivery_tag}, _from, state) do
+    case :queue.peek(state) do
+      {:value, ^delivery_tag} ->
+        {:reply, true, state}
 
-      :queue.member(delivery_tag, state) ->
-        {:reply, :ignore, state}
-
-      true ->
-        new_state = :queue.in(delivery_tag, state)
-        {:reply, :ok, new_state}
+      {:value, {:duplicated_delivery, ^delivery_tag}} ->
+        {:reply, false, state}
     end
   end
 
@@ -58,6 +53,22 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     end
 
     {:reply, :ok, new_state}
+  end
+
+  def handle_cast({:track_delivery, delivery_tag, redelivered}, state) do
+    cond do
+      not redelivered ->
+        new_state = :queue.in(delivery_tag, state)
+        {:noreply, new_state}
+
+      :queue.member(delivery_tag, state) ->
+        new_state = :queue.in({:duplicated_delivery, delivery_tag}, state)
+        {:noreply, new_state}
+
+      true ->
+        new_state = :queue.in(delivery_tag, state)
+        {:noreply, new_state}
+    end
   end
 
   def handle_info({:DOWN, _, :process, _pid, _reason}, state) do
