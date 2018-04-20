@@ -20,6 +20,7 @@
 defmodule Astarte.DataUpdaterPlant.MessageTracker do
   def register_data_updater(message_tracker) do
     GenServer.call(message_tracker, :register_data_updater)
+    Process.monitor(message_tracker)
   end
 
   def track_delivery(message_tracker, delivery_tag, redelivered) do

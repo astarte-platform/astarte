@@ -84,4 +84,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   def handle_call({:dump_state}, _from, state) do
     {:reply, state, state}
   end
+
+  def handle_info({:DOWN, _, :process, _pid, _reason}, state) do
+    {:stop, :monitored_process_died, state}
+  end
 end
