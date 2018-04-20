@@ -35,9 +35,19 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:track_delivery, delivery_tag}, _from, state) do
-    new_state = :queue.in(delivery_tag, state)
-    {:reply, :ok, new_state}
+  def handle_call({:track_delivery, delivery_tag, redelivered}, _from, state) do
+    cond do
+      not redelivered ->
+        new_state = :queue.in(delivery_tag, state)
+        {:reply, :ok, new_state}
+
+      :queue.member(delivery_tag, state) ->
+        {:reply, :ignore, state}
+
+      true ->
+        new_state = :queue.in(delivery_tag, state)
+        {:reply, :ok, new_state}
+    end
   end
 
   def handle_call({:ack_delivery, delivery_tag}, _from, state) do

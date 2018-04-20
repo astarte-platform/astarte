@@ -136,7 +136,14 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @ip_header => ip_address
          } <- headers do
-      DataUpdater.handle_connection(realm, device_id, ip_address, meta.delivery_tag, timestamp)
+      DataUpdater.handle_connection(
+        realm,
+        device_id,
+        ip_address,
+        meta.delivery_tag,
+        meta.redelivered,
+        timestamp
+      )
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -147,7 +154,13 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      DataUpdater.handle_disconnection(realm, device_id, meta.delivery_tag, timestamp)
+      DataUpdater.handle_disconnection(
+        realm,
+        device_id,
+        meta.delivery_tag,
+        meta.redelivered,
+        timestamp
+      )
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -158,7 +171,14 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      DataUpdater.handle_introspection(realm, device_id, payload, meta.delivery_tag, timestamp)
+      DataUpdater.handle_introspection(
+        realm,
+        device_id,
+        payload,
+        meta.delivery_tag,
+        meta.redelivered,
+        timestamp
+      )
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -178,6 +198,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         path,
         payload,
         meta.delivery_tag,
+        meta.redelivered,
         timestamp
       )
     else
@@ -197,6 +218,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         control_path,
         payload,
         meta.delivery_tag,
+        meta.redelivered,
         timestamp
       )
     else

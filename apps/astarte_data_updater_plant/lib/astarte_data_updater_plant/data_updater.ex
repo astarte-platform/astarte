@@ -24,44 +24,95 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.DataUpdaterPlant.MessageTracker.Server, as: MessageTrackerServer
   require Logger
 
-  def handle_connection(realm, encoded_device_id, ip_address, delivery_tag, timestamp) do
+  def handle_connection(
+        realm,
+        encoded_device_id,
+        ip_address,
+        delivery_tag,
+        redelivered,
+        timestamp
+      ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag)
+    MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered)
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.cast({:handle_connection, ip_address, delivery_tag, timestamp})
   end
 
-  def handle_disconnection(realm, encoded_device_id, delivery_tag, timestamp) do
+  def handle_disconnection(realm, encoded_device_id, delivery_tag, redelivered, timestamp) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_disconnection, delivery_tag, timestamp})
+    case MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered) do
+      :ok ->
+        get_data_updater_process(realm, encoded_device_id, message_tracker)
+        |> GenServer.cast({:handle_disconnection, delivery_tag, timestamp})
+
+      :ignore ->
+        :ok
+    end
   end
 
-  def handle_data(realm, encoded_device_id, interface, path, payload, delivery_tag, timestamp) do
+  def handle_data(
+        realm,
+        encoded_device_id,
+        interface,
+        path,
+        payload,
+        delivery_tag,
+        redelivered,
+        timestamp
+      ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_data, interface, path, payload, delivery_tag, timestamp})
+    case MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered) do
+      :ok ->
+        get_data_updater_process(realm, encoded_device_id, message_tracker)
+        |> GenServer.cast({:handle_data, interface, path, payload, delivery_tag, timestamp})
+
+      :ignore ->
+        :ok
+    end
   end
 
-  def handle_introspection(realm, encoded_device_id, payload, delivery_tag, timestamp) do
+  def handle_introspection(
+        realm,
+        encoded_device_id,
+        payload,
+        delivery_tag,
+        redelivered,
+        timestamp
+      ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_introspection, payload, delivery_tag, timestamp})
+    case MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered) do
+      :ok ->
+        get_data_updater_process(realm, encoded_device_id, message_tracker)
+        |> GenServer.cast({:handle_introspection, payload, delivery_tag, timestamp})
+
+      :ignore ->
+        :ok
+    end
   end
 
-  def handle_control(realm, encoded_device_id, path, payload, delivery_tag, timestamp) do
+  def handle_control(
+        realm,
+        encoded_device_id,
+        path,
+        payload,
+        delivery_tag,
+        redelivered,
+        timestamp
+      ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_control, path, payload, delivery_tag, timestamp})
+    case MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered) do
+      :ok ->
+        get_data_updater_process(realm, encoded_device_id, message_tracker)
+        |> GenServer.cast({:handle_control, path, payload, delivery_tag, timestamp})
+
+      :ignore ->
+        :ok
+    end
   end
 
   def handle_install_volatile_trigger(
