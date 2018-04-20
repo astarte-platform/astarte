@@ -43,8 +43,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   def handle_call({:ack_delivery, delivery_tag}, _from, state) do
     {{:value, ^delivery_tag}, new_state} = :queue.out(state)
 
-    if delivery_tag do
-      AMQPDataConsumer.ack(delivery_tag)
+    unless match?({:injected_msg, _ref}, delivery_tag) do
+      :ok = AMQPDataConsumer.ack(delivery_tag)
     end
 
     {:reply, :ok, new_state}
@@ -58,7 +58,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   def reject_all(queue) do
     case :queue.out(queue) do
       {{:value, delivery_tag}, new_queue} ->
-        if delivery_tag do
+        unless match?({:injected_msg, _ref}, delivery_tag) do
           :ok = AMQPDataConsumer.requeue(delivery_tag)
         end
 
