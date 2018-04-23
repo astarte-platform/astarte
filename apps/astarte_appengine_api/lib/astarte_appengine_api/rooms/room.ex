@@ -60,8 +60,14 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     if MapSet.member?(clients, pid) do
       {:reply, {:error, :already_joined}, state}
     else
+      Process.monitor(pid)
       {:reply, :ok, %{state | clients: MapSet.put(clients, pid)}}
     end
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, %{clients: clients} = state) do
+    {:noreply, %{state | clients: MapSet.delete(clients, pid)}}
   end
 
   # Helpers
