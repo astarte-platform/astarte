@@ -21,7 +21,7 @@ RUN apt-get -qq update
 ENV LANG C.UTF-8
 
 # We need SSL
-RUN apt-get -qq install libssl1.0.2
+RUN apt-get -qq install libssl1.1
 
 WORKDIR /app
 COPY --from=builder /app/_build/prod/rel/astarte_data_updater_plant .
