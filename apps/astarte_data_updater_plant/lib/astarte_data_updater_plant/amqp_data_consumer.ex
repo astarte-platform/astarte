@@ -94,10 +94,19 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     {:noreply, new_state}
   end
 
-  def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
+  def handle_info({:DOWN, _, :process, pid, reason}, state) do
+    if state.conn.pid == pid do
+      Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
+      {:ok, new_state} = rabbitmq_connect()
+      {:noreply, new_state}
+    else
+      Logger.warn(
+        "A message tracker has crashed (with reason #{inspect(reason)}), sending again all messages."
+      )
+
+      :ok = AMQP.Basic.recover(state)
+      {:noreply, state}
+    end
   end
 
   defp rabbitmq_connect(retry \\ true) do

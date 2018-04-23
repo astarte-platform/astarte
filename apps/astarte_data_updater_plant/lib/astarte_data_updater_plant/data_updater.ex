@@ -152,6 +152,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         [] ->
           name = {:via, Registry, {Registry.MessageTracker, {realm, device_id}}}
           {:ok, pid} = MessageTrackerServer.start(name: name)
+          Process.monitor(pid)
           pid
 
         [{pid, nil}] ->
