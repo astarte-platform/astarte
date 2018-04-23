@@ -18,4 +18,41 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.Room do
+  use GenServer, restart: :transient
+
+  # API
+
+  def start_link(args) do
+    with {:ok, room_name} <- Keyword.fetch(args, :room_name),
+         {:ok, pid} <- GenServer.start_link(__MODULE__, args, name: via_tuple(room_name)) do
+      {:ok, pid}
+    else
+      :error ->
+        # No room_name in args
+        {:error, :no_room_name}
+
+      {:error, {:already_started, pid}} ->
+        # Already started, we don't care
+        {:ok, pid}
+
+      other ->
+        # Relay everything else
+        other
+    end
+  end
+
+  # Callbacks
+
+  @impl true
+  def init(args) do
+    room_name = Keyword.get(args, :room_name)
+
+    {:ok, %{room_name: room_name, clients: MapSet.new()}}
+  end
+
+  # Helpers
+
+  defp via_tuple(room_name) do
+    {:via, Registry, {RoomsRegistry, room_name}}
+  end
 end
