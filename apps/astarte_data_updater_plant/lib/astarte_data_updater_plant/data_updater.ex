@@ -21,7 +21,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Server
   alias Astarte.DataUpdaterPlant.MessageTracker
-  alias Astarte.DataUpdaterPlant.MessageTracker.Server, as: MessageTrackerServer
   require Logger
 
   def handle_connection(
@@ -151,7 +150,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
       case Registry.lookup(Registry.MessageTracker, {realm, device_id}) do
         [] ->
           name = {:via, Registry, {Registry.MessageTracker, {realm, device_id}}}
-          {:ok, pid} = MessageTrackerServer.start(name: name)
+          {:ok, pid} = MessageTracker.start(name: name)
+
+          # This will leak a monitor into the callee, that is likely AMQPDataConsumer in production
+          # Make sure that AMQPDataConsumer has an handle_info that handles process termination.
           Process.monitor(pid)
           pid
 

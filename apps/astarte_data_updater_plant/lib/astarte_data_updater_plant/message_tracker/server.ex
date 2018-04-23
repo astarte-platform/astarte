@@ -21,10 +21,6 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   use GenServer
 
-  def start(opts \\ []) do
-    GenServer.start(__MODULE__, :ok, opts)
-  end
-
   def init(:ok) do
     new_state = :queue.new()
     {:ok, new_state}
@@ -88,11 +84,11 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
 
   defp reject_all(queue) do
     case :queue.out(queue) do
-      {{:value, delivery_tag}, new_queue} ->
-        unless match?({:injected_msg, _ref}, delivery_tag) do
-          :ok = AMQPDataConsumer.requeue(delivery_tag)
-        end
+      {{:value, {:injected_msg, _ref}}, new_queue} ->
+        reject_all(new_queue)
 
+      {{:value, delivery_tag}, new_queue} ->
+        :ok = AMQPDataConsumer.requeue(delivery_tag)
         reject_all(new_queue)
 
       {:empty, new_queue} ->

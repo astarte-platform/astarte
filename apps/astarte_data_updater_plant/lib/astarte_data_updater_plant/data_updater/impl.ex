@@ -41,6 +41,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   def init_state(realm, device_id, message_tracker) do
     MessageTracker.register_data_updater(message_tracker)
+    Process.monitor(message_tracker)
 
     new_state = %State{
       realm: realm,

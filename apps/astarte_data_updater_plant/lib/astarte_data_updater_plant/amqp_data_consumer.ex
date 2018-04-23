@@ -103,6 +103,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     {:noreply, new_state}
   end
 
+  # Make sure to handle monitored message trackers exit messages
+  # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
   def handle_info({:DOWN, _, :process, pid, reason}, state) do
     if state.conn.pid == pid do
       Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
@@ -154,6 +156,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @ip_header => ip_address
          } <- headers do
+      # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_connection(
         realm,
         device_id,
@@ -172,6 +175,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
+      # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_disconnection(
         realm,
         device_id,
@@ -189,6 +193,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
+      # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_introspection(
         realm,
         device_id,
@@ -209,6 +214,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @interface_header => interface,
            @path_header => path
          } <- headers do
+      # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_data(
         realm,
         device_id,
@@ -230,6 +236,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @control_path_header => control_path
          } <- headers do
+      # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_control(
         realm,
         device_id,
