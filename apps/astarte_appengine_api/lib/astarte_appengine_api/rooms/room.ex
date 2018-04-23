@@ -41,6 +41,11 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     end
   end
 
+  def join(room_name) do
+    via_tuple(room_name)
+    |> GenServer.call(:join)
+  end
+
   # Callbacks
 
   @impl true
@@ -48,6 +53,15 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     room_name = Keyword.get(args, :room_name)
 
     {:ok, %{room_name: room_name, clients: MapSet.new()}}
+  end
+
+  @impl true
+  def handle_call(:join, {pid, _tag} = _from, %{clients: clients} = state) do
+    if MapSet.member?(clients, pid) do
+      {:reply, {:error, :already_joined}, state}
+    else
+      {:reply, :ok, %{state | clients: MapSet.put(clients, pid)}}
+    end
   end
 
   # Helpers
