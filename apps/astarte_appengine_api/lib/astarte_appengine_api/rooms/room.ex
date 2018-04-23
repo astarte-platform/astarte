@@ -46,6 +46,11 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     |> GenServer.call(:join)
   end
 
+  def clients_count(room_name) do
+    via_tuple(room_name)
+    |> GenServer.call(:clients_count)
+  end
+
   # Callbacks
 
   @impl true
@@ -63,6 +68,10 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       Process.monitor(pid)
       {:reply, :ok, %{state | clients: MapSet.put(clients, pid)}}
     end
+  end
+
+  def handle_call(:clients_count, _from, %{clients: clients} = state) do
+    {:reply, MapSet.size(clients), state}
   end
 
   @impl true
