@@ -21,6 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
   defstruct [
     :realm,
     :device_id,
+    :message_tracker,
     :introspection,
     :interfaces,
     :interface_ids_to_name,

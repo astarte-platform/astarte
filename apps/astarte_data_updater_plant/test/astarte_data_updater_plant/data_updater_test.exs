@@ -72,7 +72,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       realm,
       device_id,
       "10.0.0.1",
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -136,7 +137,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       realm,
       device_id,
       existing_introspection_string,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -199,7 +201,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.test.LCDMonitor",
       "/time/from",
       Bson.encode(%{"v" => 9000}),
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -210,7 +213,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.test.LCDMonitor",
       "/weekSchedule/9/start",
       Bson.encode(%{"v" => 9}),
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -221,7 +225,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.test.LCDMonitor",
       "/weekSchedule/10/start",
       Bson.encode(%{"v" => 10}),
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -259,7 +264,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.test.SimpleStreamTest",
       "/0/value",
       Bson.encode(%{"v" => 5}),
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:15:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -336,7 +342,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       realm,
       device_id,
       "com.test.LCDMonitor:1:0;com.example.TestObject:1:5;com.test.SimpleStreamTest:1:0",
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -377,7 +384,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.example.TestObject",
       "/",
       payload0,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:49+00:00"), 1), :milliseconds) *
         10000
     )
@@ -390,7 +398,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.example.TestObject",
       "/",
       payload1,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:50+00:00"), 1), :milliseconds) *
         10000
     )
@@ -403,7 +412,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.example.TestObject",
       "/",
       payload2,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:51+00:00"), 1), :milliseconds) *
         10000
     )
@@ -417,7 +427,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.example.TestObject",
       "/",
       payload3,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-09-30T07:13:00+00:00"), 1), :milliseconds) *
         10000
     )
@@ -430,7 +441,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.example.TestObject",
       "/",
       payload4,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-30T07:13:00+00:00"), 1), :milliseconds) *
         10000
     )
@@ -510,7 +522,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       device_id,
       "/producer/properties",
       data,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -620,7 +633,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "com.test.LCDMonitor",
       "/weekSchedule/10/start",
       <<>>,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T15:10:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -650,7 +664,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DataUpdater.handle_disconnection(
       realm,
       device_id,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:30:45+00:00"), 1), :milliseconds) *
         10000
     )
@@ -694,7 +709,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       realm,
       device_id,
       "10.0.0.1",
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-12-09T14:00:32+00:00"), 1), :milliseconds) *
         10000
     )
@@ -717,7 +733,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       realm,
       device_id,
       new_introspection_string,
-      nil,
+      {:injected_msg, make_ref()},
+      false,
       DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
         10000
     )

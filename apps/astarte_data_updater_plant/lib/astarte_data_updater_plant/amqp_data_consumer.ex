@@ -29,6 +29,14 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     GenServer.call(__MODULE__, {:ack, delivery_tag})
   end
 
+  def discard(delivery_tag) do
+    GenServer.call(__MODULE__, {:discard, delivery_tag})
+  end
+
+  def requeue(delivery_tag) do
+    GenServer.call(__MODULE__, {:requeue, delivery_tag})
+  end
+
   # Server callbacks
 
   def init(_args) do
@@ -42,6 +50,16 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   def handle_call({:ack, delivery_tag}, _from, chan) do
     res = Basic.ack(chan, delivery_tag)
+    {:reply, res, chan}
+  end
+
+  def handle_call({:discard, delivery_tag}, _from, chan) do
+    res = Basic.reject(chan, delivery_tag, requeue: false)
+    {:reply, res, chan}
+  end
+
+  def handle_call({:requeue, delivery_tag}, _from, chan) do
+    res = Basic.reject(chan, delivery_tag, requeue: true)
     {:reply, res, chan}
   end
 
@@ -70,15 +88,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
     case handle_consume(msg_type, payload, headers_map, timestamp, clean_meta) do
       :ok ->
-        # TODO: this should be done asynchronously by Data Updater
-        Basic.ack(chan, meta.delivery_tag)
+        :ok
 
       :invalid_msg ->
         # ACK invalid msg to discard them
-        Basic.ack(chan, meta.delivery_tag)
-
-      _ ->
-        # ACK everything else for now, TODO: add other handle_consume return values
         Basic.ack(chan, meta.delivery_tag)
     end
 
@@ -90,10 +103,21 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     {:noreply, new_state}
   end
 
-  def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
+  # Make sure to handle monitored message trackers exit messages
+  # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
+  def handle_info({:DOWN, _, :process, pid, reason}, state) do
+    if state.conn.pid == pid do
+      Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
+      {:ok, new_state} = rabbitmq_connect()
+      {:noreply, new_state}
+    else
+      Logger.warn(
+        "A message tracker has crashed (with reason #{inspect(reason)}), sending again all messages."
+      )
+
+      :ok = AMQP.Basic.recover(state)
+      {:noreply, state}
+    end
   end
 
   defp rabbitmq_connect(retry \\ true) do
@@ -132,7 +156,15 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @ip_header => ip_address
          } <- headers do
-      DataUpdater.handle_connection(realm, device_id, ip_address, meta.delivery_tag, timestamp)
+      # Following call might spawn processes and implicitly monitor them
+      DataUpdater.handle_connection(
+        realm,
+        device_id,
+        ip_address,
+        meta.delivery_tag,
+        meta.redelivered,
+        timestamp
+      )
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -143,7 +175,14 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      DataUpdater.handle_disconnection(realm, device_id, meta.delivery_tag, timestamp)
+      # Following call might spawn processes and implicitly monitor them
+      DataUpdater.handle_disconnection(
+        realm,
+        device_id,
+        meta.delivery_tag,
+        meta.redelivered,
+        timestamp
+      )
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -154,7 +193,15 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      DataUpdater.handle_introspection(realm, device_id, payload, meta.delivery_tag, timestamp)
+      # Following call might spawn processes and implicitly monitor them
+      DataUpdater.handle_introspection(
+        realm,
+        device_id,
+        payload,
+        meta.delivery_tag,
+        meta.redelivered,
+        timestamp
+      )
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -167,6 +214,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @interface_header => interface,
            @path_header => path
          } <- headers do
+      # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_data(
         realm,
         device_id,
@@ -174,6 +222,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         path,
         payload,
         meta.delivery_tag,
+        meta.redelivered,
         timestamp
       )
     else
@@ -187,12 +236,14 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @control_path_header => control_path
          } <- headers do
+      # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_control(
         realm,
         device_id,
         control_path,
         payload,
         meta.delivery_tag,
+        meta.redelivered,
         timestamp
       )
     else

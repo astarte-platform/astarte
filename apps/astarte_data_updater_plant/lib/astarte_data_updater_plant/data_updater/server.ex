@@ -20,39 +20,60 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   use GenServer
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
+  alias Astarte.DataUpdaterPlant.MessageTracker
 
-  def start(realm, device_id, opts \\ []) do
-    GenServer.start(__MODULE__, {realm, device_id}, opts)
+  def start(realm, device_id, message_tracker, opts \\ []) do
+    GenServer.start(__MODULE__, {realm, device_id, message_tracker}, opts)
   end
 
-  def init({realm, device_id}) do
-    new_state = Impl.init_state(realm, device_id)
+  def init({realm, device_id, message_tracker}) do
+    new_state = Impl.init_state(realm, device_id, message_tracker)
     {:ok, new_state}
   end
 
   def handle_cast({:handle_connection, ip_address, delivery_tag, timestamp}, state) do
-    new_state = Impl.handle_connection(state, ip_address, delivery_tag, timestamp)
-    {:noreply, new_state}
+    if MessageTracker.can_process_message(state.message_tracker, delivery_tag) do
+      new_state = Impl.handle_connection(state, ip_address, delivery_tag, timestamp)
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_cast({:handle_disconnection, delivery_tag, timestamp}, state) do
-    new_state = Impl.handle_disconnection(state, delivery_tag, timestamp)
-    {:noreply, new_state}
+    if MessageTracker.can_process_message(state.message_tracker, delivery_tag) do
+      new_state = Impl.handle_disconnection(state, delivery_tag, timestamp)
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_cast({:handle_data, interface, path, payload, delivery_tag, timestamp}, state) do
-    new_state = Impl.handle_data(state, interface, path, payload, delivery_tag, timestamp)
-    {:noreply, new_state}
+    if MessageTracker.can_process_message(state.message_tracker, delivery_tag) do
+      new_state = Impl.handle_data(state, interface, path, payload, delivery_tag, timestamp)
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_cast({:handle_introspection, payload, delivery_tag, timestamp}, state) do
-    new_state = Impl.handle_introspection(state, payload, delivery_tag, timestamp)
-    {:noreply, new_state}
+    if MessageTracker.can_process_message(state.message_tracker, delivery_tag) do
+      new_state = Impl.handle_introspection(state, payload, delivery_tag, timestamp)
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_cast({:handle_control, payload, path, delivery_tag, timestamp}, state) do
-    new_state = Impl.handle_control(state, payload, path, delivery_tag, timestamp)
-    {:noreply, new_state}
+    if MessageTracker.can_process_message(state.message_tracker, delivery_tag) do
+      new_state = Impl.handle_control(state, payload, path, delivery_tag, timestamp)
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_call(
@@ -83,5 +104,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   def handle_call({:dump_state}, _from, state) do
     {:reply, state, state}
+  end
+
+  def handle_info({:DOWN, _, :process, _pid, _reason}, state) do
+    {:stop, :monitored_process_died, state}
   end
 end
