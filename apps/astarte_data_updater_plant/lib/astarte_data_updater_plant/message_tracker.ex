@@ -34,4 +34,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker do
   def ack_delivery(message_tracker, delivery_tag) do
     GenServer.call(message_tracker, {:ack_delivery, delivery_tag})
   end
+
+  def discard(message_tracker, delivery_tag) do
+    GenServer.call(message_tracker, {:discard, delivery_tag})
+  end
 end

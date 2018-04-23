@@ -55,6 +55,16 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:reply, :ok, new_state}
   end
 
+  def handle_call({:discard, delivery_tag}, _from, state) do
+    {{:value, ^delivery_tag}, new_state} = :queue.out(state)
+
+    unless match?({:injected_msg, _ref}, delivery_tag) do
+      :ok = AMQPDataConsumer.discard(delivery_tag)
+    end
+
+    {:reply, :ok, new_state}
+  end
+
   def handle_cast({:track_delivery, delivery_tag, redelivered}, state) do
     cond do
       not redelivered ->
@@ -76,7 +86,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:noreply, new_state}
   end
 
-  def reject_all(queue) do
+  defp reject_all(queue) do
     case :queue.out(queue) do
       {{:value, delivery_tag}, new_queue} ->
         unless match?({:injected_msg, _ref}, delivery_tag) do

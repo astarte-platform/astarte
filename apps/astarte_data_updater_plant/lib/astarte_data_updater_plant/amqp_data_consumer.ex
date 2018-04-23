@@ -29,6 +29,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     GenServer.call(__MODULE__, {:ack, delivery_tag})
   end
 
+  def discard(delivery_tag) do
+    GenServer.call(__MODULE__, {:discard, delivery_tag})
+  end
+
   def requeue(delivery_tag) do
     GenServer.call(__MODULE__, {:requeue, delivery_tag})
   end
@@ -46,6 +50,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   def handle_call({:ack, delivery_tag}, _from, chan) do
     res = Basic.ack(chan, delivery_tag)
+    {:reply, res, chan}
+  end
+
+  def handle_call({:discard, delivery_tag}, _from, chan) do
+    res = Basic.reject(chan, delivery_tag, requeue: false)
     {:reply, res, chan}
   end
 
