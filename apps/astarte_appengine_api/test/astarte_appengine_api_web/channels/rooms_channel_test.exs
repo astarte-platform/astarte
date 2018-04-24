@@ -23,6 +23,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.AppEngine.API.Rooms.Room
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
 
@@ -87,14 +88,18 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
 
     test "succeeds with correct realm and room name", %{socket: socket} do
-      assert {:ok, _reply, _socket} = join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
+      assert {:ok, _reply, socket} = join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
+      assert socket.assigns[:room_name] == "#{@realm}:#{@authorized_room_name}"
+      assert Room.clients_count("#{@realm}:#{@authorized_room_name}") == 1
     end
 
     test "succeeds with all access token" do
       token = JWTTestHelper.gen_channels_jwt_all_access_token()
       {:ok, socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
 
-      assert {:ok, _reply, _socket} = join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
+      assert {:ok, _reply, socket} = join(socket, "rooms:#{@realm}:#{@authorized_room_name}")
+      assert socket.assigns[:room_name] == "#{@realm}:#{@authorized_room_name}"
+      assert Room.clients_count("#{@realm}:#{@authorized_room_name}") == 1
     end
   end
 
