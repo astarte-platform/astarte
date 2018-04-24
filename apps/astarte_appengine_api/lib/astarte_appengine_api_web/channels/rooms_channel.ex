@@ -21,15 +21,25 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
   use Astarte.AppEngine.APIWeb, :channel
 
   alias Astarte.AppEngine.API.Auth.RoomsUser
+  alias Astarte.AppEngine.API.Rooms.Room
+  alias Astarte.AppEngine.API.Rooms.RoomsSupervisor
+  alias Phoenix.Socket
 
   def join("rooms:" <> room_name, _payload, socket) do
     user = socket.assigns[:user]
     realm = socket.assigns[:realm]
 
-    if join_authorized?(room_name, user, realm) do
-      {:ok, socket}
+    with true <- join_authorized?(room_name, user, realm),
+         :ok <- maybe_start_room(realm, room_name),
+         :ok <- Room.join(room_name) do
+      {:ok, Socket.assign(socket, :room_name, room_name)}
     else
-      {:error, %{reason: "unauthorized"}}
+      false ->
+        # Join unauthorized
+        {:error, %{reason: "unauthorized"}}
+
+      {:error, :room_not_started} ->
+        {:error, %{reason: "room can't be started"}}
     end
   end
 
@@ -48,6 +58,20 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
       _ ->
         # If we're here we failed to compile a regex
         false
+    end
+  end
+
+  defp maybe_start_room(realm, room_name) do
+    if RoomsSupervisor.room_started?(room_name) do
+      :ok
+    else
+      case RoomsSupervisor.start_room(realm, room_name) do
+        {:ok, _pid} ->
+          :ok
+
+        {:error, _reason} ->
+          {:error, :room_not_started}
+      end
     end
   end
 end
