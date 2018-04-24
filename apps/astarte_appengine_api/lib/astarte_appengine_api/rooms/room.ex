@@ -20,6 +20,8 @@
 defmodule Astarte.AppEngine.API.Rooms.Room do
   use GenServer, restart: :transient
 
+  alias Astarte.AppEngine.API.Utils
+
   # API
 
   def start_link(args) do
@@ -67,6 +69,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
      %{
        room_name: room_name,
        realm: realm,
+       room_uuid: Utils.get_uuid(),
        clients: MapSet.new()
      }}
   end
