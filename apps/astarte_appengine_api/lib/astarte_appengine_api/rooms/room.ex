@@ -24,12 +24,17 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
   def start_link(args) do
     with {:ok, room_name} <- Keyword.fetch(args, :room_name),
+         true <- Keyword.has_key?(args, :realm),
          {:ok, pid} <- GenServer.start_link(__MODULE__, args, name: via_tuple(room_name)) do
       {:ok, pid}
     else
       :error ->
         # No room_name in args
         {:error, :no_room_name}
+
+      false ->
+        # No realm name in args
+        {:error, :no_realm_name}
 
       {:error, {:already_started, pid}} ->
         # Already started, we don't care
@@ -56,8 +61,14 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   @impl true
   def init(args) do
     room_name = Keyword.get(args, :room_name)
+    realm = Keyword.get(args, :realm)
 
-    {:ok, %{room_name: room_name, clients: MapSet.new()}}
+    {:ok,
+     %{
+       room_name: room_name,
+       realm: realm,
+       clients: MapSet.new()
+     }}
   end
 
   @impl true
