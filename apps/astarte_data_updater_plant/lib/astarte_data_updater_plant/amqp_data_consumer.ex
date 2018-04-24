@@ -26,14 +26,17 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   end
 
   def ack(delivery_tag) do
+    Logger.debug("Going to ack #{inspect(delivery_tag)}")
     GenServer.call(__MODULE__, {:ack, delivery_tag})
   end
 
   def discard(delivery_tag) do
+    Logger.debug("Going to discard #{inspect(delivery_tag)}")
     GenServer.call(__MODULE__, {:discard, delivery_tag})
   end
 
   def requeue(delivery_tag) do
+    Logger.debug("Going to requeue #{inspect(delivery_tag)}")
     GenServer.call(__MODULE__, {:requeue, delivery_tag})
   end
 
