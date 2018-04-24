@@ -29,11 +29,11 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker do
   end
 
   def register_data_updater(message_tracker) do
-    GenServer.call(message_tracker, :register_data_updater)
+    GenServer.call(message_tracker, :register_data_updater, :infinity)
   end
 
   def can_process_message(message_tracker, delivery_tag) do
-    GenServer.call(message_tracker, {:can_process_message, delivery_tag})
+    GenServer.call(message_tracker, {:can_process_message, delivery_tag}, :infinity)
   end
 
   def ack_delivery(message_tracker, delivery_tag) do
