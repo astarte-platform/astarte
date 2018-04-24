@@ -20,7 +20,18 @@
 defmodule Astarte.AppEngine.API.Rooms.Room do
   use GenServer, restart: :transient
 
+  alias Astarte.AppEngine.API.Rooms.WatchRequest
+  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
+  alias Astarte.AppEngine.API.RPC.VolatileTrigger
   alias Astarte.AppEngine.API.Utils
+  alias Astarte.AppEngine.API.Config
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+
+  require Logger
 
   # API
 
@@ -58,6 +69,11 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     |> GenServer.call(:clients_count)
   end
 
+  def watch(room_name, %WatchRequest{} = watch_request) do
+    via_tuple(room_name)
+    |> GenServer.call({:watch, watch_request})
+  end
+
   # Callbacks
 
   @impl true
@@ -67,10 +83,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
     {:ok,
      %{
-       room_name: room_name,
+       clients: MapSet.new(),
        realm: realm,
+       room_name: room_name,
        room_uuid: Utils.get_uuid(),
-       clients: MapSet.new()
+       watch_id_to_request: %{},
+       watch_name_to_id: %{}
      }}
   end
 
@@ -86,6 +104,66 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
   def handle_call(:clients_count, _from, %{clients: clients} = state) do
     {:reply, MapSet.size(clients), state}
+  end
+
+  def handle_call({:watch, watch_request}, _from, state) do
+    %{
+      watch_id_to_request: watch_id_to_request,
+      watch_name_to_id: watch_name_to_id,
+      room_uuid: room_uuid,
+      realm: realm
+    } = state
+
+    if Map.has_key?(watch_name_to_id, watch_request.name) do
+      {:reply, {:error, :duplicate_watch}, state}
+    else
+      %WatchRequest{
+        name: name,
+        device_id: device_id,
+        simple_trigger: simple_trigger_config
+      } = watch_request
+
+      %TaggedSimpleTrigger{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_container: simple_trigger_container
+      } = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
+
+      trigger_id = Utils.get_uuid()
+
+      amqp_trigger_target = %AMQPTriggerTarget{
+        simple_trigger_id: trigger_id,
+        parent_trigger_id: room_uuid,
+        routing_key: Config.rooms_events_routing_key()
+      }
+
+      trigger_target_container = %TriggerTargetContainer{
+        trigger_target: {:amqp_trigger_target, amqp_trigger_target}
+      }
+
+      volatile_trigger = %VolatileTrigger{
+        object_id: object_id,
+        object_type: object_type,
+        serialized_simple_trigger: SimpleTriggerContainer.encode(simple_trigger_container),
+        parent_id: room_uuid,
+        simple_trigger_id: trigger_id,
+        serialized_trigger_target: TriggerTargetContainer.encode(trigger_target_container)
+      }
+
+      case DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
+        :ok ->
+          {:reply, :ok,
+           %{
+             state
+             | watch_id_to_request: Map.put(watch_id_to_request, trigger_id, watch_request),
+               watch_name_to_id: Map.put(watch_name_to_id, name, trigger_id)
+           }}
+
+        {:error, reason} ->
+          Logger.warn("install_volatile_trigger failed with reason: #{inspect(reason)}")
+          {:reply, {:error, :watch_failed}, state}
+      end
+    end
   end
 
   @impl true
