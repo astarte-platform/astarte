@@ -55,6 +55,18 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
     |> extract_reply()
   end
 
+  def delete_volatile_trigger(realm_name, device_id, trigger_id) do
+    %DeleteVolatileTrigger{
+      realm_name: realm_name,
+      device_id: device_id,
+      trigger_id: trigger_id
+    }
+    |> encode_call(:delete_volatile_trigger)
+    |> @rpc_client.rpc_call()
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
