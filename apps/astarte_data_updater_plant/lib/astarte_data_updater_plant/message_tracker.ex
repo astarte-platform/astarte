@@ -24,23 +24,23 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker do
     GenServer.start(Server, :ok, opts)
   end
 
-  def track_delivery(message_tracker, delivery_tag, redelivered) do
-    GenServer.cast(message_tracker, {:track_delivery, delivery_tag, redelivered})
+  def track_delivery(message_tracker, message_id, delivery_tag, redelivered) do
+    GenServer.cast(message_tracker, {:track_delivery, message_id, delivery_tag, redelivered})
   end
 
   def register_data_updater(message_tracker) do
     GenServer.call(message_tracker, :register_data_updater, :infinity)
   end
 
-  def can_process_message(message_tracker, delivery_tag) do
-    GenServer.call(message_tracker, {:can_process_message, delivery_tag}, :infinity)
+  def can_process_message(message_tracker, message_id) do
+    GenServer.call(message_tracker, {:can_process_message, message_id}, :infinity)
   end
 
-  def ack_delivery(message_tracker, delivery_tag) do
-    GenServer.call(message_tracker, {:ack_delivery, delivery_tag})
+  def ack_delivery(message_tracker, message_id) do
+    GenServer.call(message_tracker, {:ack_delivery, message_id})
   end
 
-  def discard(message_tracker, delivery_tag) do
-    GenServer.call(message_tracker, {:discard, delivery_tag})
+  def discard(message_tracker, message_id) do
+    GenServer.call(message_tracker, {:discard, message_id})
   end
 end

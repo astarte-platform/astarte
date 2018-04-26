@@ -27,23 +27,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         realm,
         encoded_device_id,
         ip_address,
-        delivery_tag,
-        redelivered,
+        tracking_id,
         timestamp
       ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered)
+    {message_id, delivery_tag, redelivered} = tracking_id
+    MessageTracker.track_delivery(message_tracker, message_id, delivery_tag, redelivered)
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_connection, ip_address, delivery_tag, timestamp})
+    |> GenServer.cast({:handle_connection, ip_address, message_id, timestamp})
   end
 
-  def handle_disconnection(realm, encoded_device_id, delivery_tag, redelivered, timestamp) do
+  def handle_disconnection(realm, encoded_device_id, tracking_id, timestamp) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered)
+    {message_id, delivery_tag, redelivered} = tracking_id
+    MessageTracker.track_delivery(message_tracker, message_id, delivery_tag, redelivered)
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_disconnection, delivery_tag, timestamp})
+    |> GenServer.cast({:handle_disconnection, message_id, timestamp})
   end
 
   def handle_data(
@@ -52,30 +53,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         interface,
         path,
         payload,
-        delivery_tag,
-        redelivered,
+        tracking_id,
         timestamp
       ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered)
+    {message_id, delivery_tag, redelivered} = tracking_id
+    MessageTracker.track_delivery(message_tracker, message_id, delivery_tag, redelivered)
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_data, interface, path, payload, delivery_tag, timestamp})
+    |> GenServer.cast({:handle_data, interface, path, payload, message_id, timestamp})
   end
 
   def handle_introspection(
         realm,
         encoded_device_id,
         payload,
-        delivery_tag,
-        redelivered,
+        tracking_id,
         timestamp
       ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered)
+    {message_id, delivery_tag, redelivered} = tracking_id
+    MessageTracker.track_delivery(message_tracker, message_id, delivery_tag, redelivered)
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_introspection, payload, delivery_tag, timestamp})
+    |> GenServer.cast({:handle_introspection, payload, message_id, timestamp})
   end
 
   def handle_control(
@@ -83,15 +84,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         encoded_device_id,
         path,
         payload,
-        delivery_tag,
-        redelivered,
+        tracking_id,
         timestamp
       ) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
-    MessageTracker.track_delivery(message_tracker, delivery_tag, redelivered)
+    {message_id, delivery_tag, redelivered} = tracking_id
+    MessageTracker.track_delivery(message_tracker, message_id, delivery_tag, redelivered)
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
-    |> GenServer.cast({:handle_control, path, payload, delivery_tag, timestamp})
+    |> GenServer.cast({:handle_control, path, payload, message_id, timestamp})
   end
 
   def handle_install_volatile_trigger(
