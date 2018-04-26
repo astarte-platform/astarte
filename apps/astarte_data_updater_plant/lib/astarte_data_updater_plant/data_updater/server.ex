@@ -27,8 +27,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   end
 
   def init({realm, device_id, message_tracker}) do
-    new_state = Impl.init_state(realm, device_id, message_tracker)
-    {:ok, new_state}
+    send(self(), {:initialize, realm, device_id, message_tracker})
+    {:ok, nil}
+  end
+
+  def handle_info({:initialize, realm, device_id, message_tracker}, nil) do
+    {:noreply, Impl.init_state(realm, device_id, message_tracker)}
   end
 
   def handle_cast({:handle_connection, ip_address, delivery_tag, timestamp}, state) do
