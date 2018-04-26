@@ -49,4 +49,11 @@ defmodule Astarte.AppEngine.API.Config do
       nil
     end
   end
+
+  @doc """
+  Returns the routing key used for Rooms AMQP events consumer. A constant for now.
+  """
+  def rooms_events_routing_key do
+    "astarte_rooms"
+  end
 end
