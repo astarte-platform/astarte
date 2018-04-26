@@ -56,4 +56,11 @@ defmodule Astarte.AppEngine.API.Config do
   def rooms_events_routing_key do
     "astarte_rooms"
   end
+
+  @doc """
+  Returns the RPC client, defaulting to AMQPClient. Used for Mox during testing.
+  """
+  def rpc_client do
+    Application.get_env(:astarte_appengine_api, :rpc_client, Astarte.AppEngine.API.RPC.AMQPClient)
+  end
 end
