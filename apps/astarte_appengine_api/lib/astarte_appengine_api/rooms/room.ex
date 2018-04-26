@@ -74,6 +74,11 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     |> GenServer.call({:watch, watch_request})
   end
 
+  def unwatch(room_name, watch_name) do
+    via_tuple(room_name)
+    |> GenServer.call({:unwatch, watch_name})
+  end
+
   # Callbacks
 
   @impl true
@@ -163,6 +168,32 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
           Logger.warn("install_volatile_trigger failed with reason: #{inspect(reason)}")
           {:reply, {:error, :watch_failed}, state}
       end
+    end
+  end
+
+  def handle_call({:unwatch, watch_name}, _from, state) do
+    %{
+      watch_id_to_request: watch_id_to_request,
+      watch_name_to_id: watch_name_to_id,
+      realm: realm
+    } = state
+
+    with {:ok, trigger_id} <- Map.fetch(watch_name_to_id, watch_name),
+         {:ok, %WatchRequest{device_id: device_id}} <- Map.fetch(watch_id_to_request, trigger_id),
+         :ok <- DataUpdaterPlant.delete_volatile_trigger(realm, device_id, trigger_id) do
+      {:reply, :ok,
+       %{
+         state
+         | watch_id_to_request: Map.delete(watch_id_to_request, trigger_id),
+           watch_name_to_id: Map.delete(watch_name_to_id, watch_name)
+       }}
+    else
+      :error ->
+        {:reply, {:error, :not_found}, state}
+
+      {:error, reason} ->
+        Logger.warn("delete_volatile_trigger failed with reason: #{inspect(reason)}")
+        {:reply, {:error, :unwatch_failed}, state}
     end
   end
 
