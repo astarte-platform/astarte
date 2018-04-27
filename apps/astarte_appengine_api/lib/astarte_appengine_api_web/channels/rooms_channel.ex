@@ -23,6 +23,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.Rooms.Room
   alias Astarte.AppEngine.API.Rooms.RoomsSupervisor
+  alias Astarte.AppEngine.API.Rooms.UnwatchRequest
   alias Astarte.AppEngine.API.Rooms.WatchRequest
   alias Astarte.AppEngine.APIWeb.ChangesetView
   alias Astarte.Core.Triggers.SimpleTriggerConfig
@@ -70,6 +71,29 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
       {:error, :watch_failed} ->
         # RPC error reply
         {:reply, {:error, %{reason: "watch failed"}}, socket}
+    end
+  end
+
+  def handle_in("unwatch", payload, socket) do
+    changeset = UnwatchRequest.changeset(%UnwatchRequest{}, payload)
+
+    # TODO: authorize unwatch?
+    with {:ok, %UnwatchRequest{name: watch_name}} <-
+           Ecto.Changeset.apply_action(changeset, :insert),
+         :ok <- Room.unwatch(socket.assigns[:room_name], watch_name) do
+      {:reply, :ok, socket}
+    else
+      {:error, %Ecto.Changeset{} = changeset} ->
+        # Malformed watch request
+        response = ChangesetView.render("error.json", %{changeset: changeset})
+        {:reply, {:error, response}, socket}
+
+      {:error, :not_found} ->
+        {:reply, {:error, %{reason: "not found"}}, socket}
+
+      {:error, :unwatch_failed} ->
+        # RPC error reply
+        {:reply, {:error, %{reason: "unwatch failed"}}, socket}
     end
   end
 
