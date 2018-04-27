@@ -11,7 +11,6 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   @connection_backoff 10000
 
-  @msg_id_header "message_id"
   @msg_type_header "x_astarte_msg_type"
   @realm_header "x_astarte_realm"
   @device_id_header "x_astarte_device_id"
@@ -156,12 +155,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   defp handle_consume("connection", payload, headers, timestamp, meta) do
     with %{
-           @msg_id_header => message_id,
            @realm_header => realm,
            @device_id_header => device_id,
            @ip_header => ip_address
          } <- headers do
-      tracking_id = {message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_connection(
@@ -178,11 +176,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   defp handle_consume("disconnection", payload, headers, timestamp, meta) do
     with %{
-           @msg_id_header => message_id,
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      tracking_id = {message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_disconnection(
@@ -198,11 +195,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   defp handle_consume("introspection", payload, headers, timestamp, meta) do
     with %{
-           @msg_id_header => message_id,
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      tracking_id = {message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_introspection(
@@ -219,13 +215,12 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   defp handle_consume("data", payload, headers, timestamp, meta) do
     with %{
-           @msg_id_header => message_id,
            @realm_header => realm,
            @device_id_header => device_id,
            @interface_header => interface,
            @path_header => path
          } <- headers do
-      tracking_id = {message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_data(
@@ -244,12 +239,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   defp handle_consume("control", payload, headers, timestamp, meta) do
     with %{
-           @msg_id_header => message_id,
            @realm_header => realm,
            @device_id_header => device_id,
            @control_path_header => control_path
          } <- headers do
-      tracking_id = {message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_control(
