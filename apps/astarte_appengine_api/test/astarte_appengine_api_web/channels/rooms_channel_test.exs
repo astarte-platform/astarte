@@ -27,11 +27,55 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
 
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.Call
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericErrorReply
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericOkReply
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.InstallVolatileTrigger
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.Reply
+
+  import Mox
+
   @all_access_regex ".*"
   @realm "autotestrealm"
   @authorized_room_name "letmein"
 
+  @device_id "9ZJmHWdwSjuXjPVaEMqkuA"
+  @interface_exact "com.Some.Interface"
+  @interface_regex "com.Some.Other.Interface"
+  @path "/my/watched/path"
+  @authorized_watch_path_exact "#{@device_id}/#{@interface_exact}#{@path}"
+  @authorized_watch_path_regex "#{@device_id}/#{@interface_regex}.*"
+
+  @name "testwatch"
+
+  @data_simple_trigger %{
+    "type" => "data_trigger",
+    "interface_name" => @interface_exact,
+    "interface_major" => 2,
+    "on" => "incoming_data",
+    "value_match_operator" => ">",
+    "match_path" => @path,
+    "known_value" => 42
+  }
+
+  @device_simple_trigger %{
+    "type" => "device_trigger",
+    "on" => "device_connected",
+    "device_id" => @device_id
+  }
+
   @unauthorized_reason %{reason: "unauthorized"}
+
+  @encoded_generic_ok_reply %Reply{
+    reply: {:generic_ok_reply, %GenericOkReply{async_operation: false}}
+  }
+  |> Reply.encode()
+
+  @encoded_generic_error_reply %Reply{
+    error: true,
+    reply: {:generic_error_reply, %GenericErrorReply{error_name: "some_error"}}
+  }
+  |> Reply.encode()
 
   setup_all do
     DatabaseTestHelper.create_public_key_only_keyspace()
@@ -103,10 +147,230 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
   end
 
+  describe "watch" do
+    setup [:join_socket_and_authorize_watch]
+
+    test "fails with invalid simple trigger", %{socket: socket} do
+      invalid_simple_trigger_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => %{"type" => "invalid"}
+      }
+
+      ref = push(socket, "watch", invalid_simple_trigger_payload)
+      assert_reply ref, :error, %{errors: _errors}
+    end
+
+    test "fails on unauthorized paths", %{socket: socket} do
+      unauthorized_device_id = "0JS2C1qlTiS0JTmUC4vCKQ"
+
+      unauthorized_device_id_payload = %{
+        "device_id" => unauthorized_device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", unauthorized_device_id_payload)
+      assert_reply ref, :error, @unauthorized_reason
+
+      unauthorized_interface =
+        Map.put(@data_simple_trigger, "interface_name", "com.OtherInterface")
+
+      unauthorized_interface_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => unauthorized_interface
+      }
+
+      ref = push(socket, "watch", unauthorized_interface_payload)
+      assert_reply ref, :error, @unauthorized_reason
+    end
+
+    test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn _serialized_call ->
+        {:ok, @encoded_generic_error_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :error, %{reason: "watch failed"}
+    end
+
+    test "succeeds on authorized exact path", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @device_id
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :ok, %{}
+    end
+
+    test "fails on duplicate", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @device_id
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :ok, %{}
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :error, %{reason: "already existing"}
+    end
+
+    test "succeeds on authorized regex path", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @device_id
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      regex_trigger =
+        @data_simple_trigger
+        |> Map.put("interface_name", @interface_regex)
+        |> Map.put("match_path", "/a/random/path")
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => regex_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :ok, %{}
+    end
+
+    test "fails on device_trigger with conflicting device_ids", %{socket: socket} do
+      other_device_id = "0JS2C1qlTiS0JTmUC4vCKQ"
+
+      wrong_device_id_trigger =
+        @device_simple_trigger
+        |> Map.put("device_id", other_device_id)
+
+      conflicting_device_id_payload_1 = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => wrong_device_id_trigger
+      }
+
+      ref = push(socket, "watch", conflicting_device_id_payload_1)
+      assert_reply ref, :error, @unauthorized_reason
+
+      conflicting_device_id_payload_2 = %{
+        "device_id" => other_device_id,
+        "name" => @name,
+        "simple_trigger" => @device_simple_trigger
+      }
+
+      ref = push(socket, "watch", conflicting_device_id_payload_2)
+      assert_reply ref, :error, @unauthorized_reason
+    end
+
+    test "succeeds on authorized device_id", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @device_id
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @device_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :ok, %{}
+    end
+  end
+
+
   defp room_join_authorized_socket(_context) do
     token = JWTTestHelper.gen_channels_jwt_token(["JOIN::#{@authorized_room_name}"])
     {:ok, socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
 
     {:ok, socket: socket}
+  end
+
+  defp join_socket_and_authorize_watch(_context) do
+    token =
+      JWTTestHelper.gen_channels_jwt_token([
+        "JOIN::#{@authorized_room_name}",
+        "WATCH::#{@authorized_watch_path_exact}",
+        "WATCH::#{@authorized_watch_path_regex}",
+        "WATCH::#{@device_id}"
+      ])
+
+    room_name = "#{@realm}:#{@authorized_room_name}"
+    {:ok, socket} = connect(UserSocket, %{"realm" => @realm, "token" => token})
+    {:ok, _reply, socket} = subscribe_and_join(socket, RoomsChannel, "rooms:#{room_name}")
+
+    room_process = room_process(room_name)
+
+    on_exit fn ->
+      GenServer.stop(room_process)
+    end
+
+    {:ok, socket: socket, room_process: room_process}
+  end
+
+  defp room_process(room_name) do
+    case Registry.lookup(RoomsRegistry, room_name) do
+      [{pid, _opts}] -> pid
+    end
   end
 end
