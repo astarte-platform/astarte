@@ -85,13 +85,16 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   def init(args) do
     room_name = Keyword.get(args, :room_name)
     realm = Keyword.get(args, :realm)
+    room_uuid = Utils.get_uuid()
+
+    {:ok, _} = Registry.register(RoomsRegistry, {:parent_trigger_id, room_uuid}, [])
 
     {:ok,
      %{
        clients: MapSet.new(),
        realm: realm,
        room_name: room_name,
-       room_uuid: Utils.get_uuid(),
+       room_uuid: room_uuid,
        watch_id_to_request: %{},
        watch_name_to_id: %{}
      }}
