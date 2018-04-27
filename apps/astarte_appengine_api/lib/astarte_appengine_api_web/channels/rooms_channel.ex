@@ -23,6 +23,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.Rooms.Room
   alias Astarte.AppEngine.API.Rooms.RoomsSupervisor
+  alias Astarte.AppEngine.API.Rooms.WatchRequest
+  alias Astarte.AppEngine.APIWeb.ChangesetView
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Phoenix.Socket
 
   def join("rooms:" <> room_name, _payload, socket) do
@@ -40,6 +43,33 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
 
       {:error, :room_not_started} ->
         {:error, %{reason: "room can't be started"}}
+    end
+  end
+
+  def handle_in("watch", payload, socket) do
+    changeset = WatchRequest.changeset(%WatchRequest{}, payload)
+
+    with {:ok, request} <- Ecto.Changeset.apply_action(changeset, :insert),
+         user <- socket.assigns[:user],
+         true <- watch_authorized?(request, user),
+         :ok <- Room.watch(socket.assigns[:room_name], request) do
+      {:reply, :ok, socket}
+    else
+      {:error, %Ecto.Changeset{} = changeset} ->
+        # Malformed watch request
+        response = ChangesetView.render("error.json", %{changeset: changeset})
+        {:reply, {:error, response}, socket}
+
+      false ->
+        # watch_authorized? returned false
+        {:reply, {:error, %{reason: "unauthorized"}}, socket}
+
+      {:error, :duplicate_watch} ->
+        {:reply, {:error, %{reason: "already existing"}}, socket}
+
+      {:error, :watch_failed} ->
+        # RPC error reply
+        {:reply, {:error, %{reason: "watch failed"}}, socket}
     end
   end
 
@@ -72,6 +102,60 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
         {:error, _reason} ->
           {:error, :room_not_started}
       end
+    end
+  end
+
+  defp watch_authorized?(%WatchRequest{} = request, %RoomsUser{} = user) do
+    %WatchRequest{
+      device_id: device_id,
+      simple_trigger: simple_trigger_config
+    } = request
+
+    %RoomsUser{
+      watch_authorizations: authorizations
+    } = user
+
+    can_watch_simple_trigger?(simple_trigger_config, device_id, authorizations)
+  end
+
+  defp can_watch_simple_trigger?(
+         %SimpleTriggerConfig{type: "data_trigger"} = trigger,
+         device_id,
+         watch_authorizations
+       ) do
+    %SimpleTriggerConfig{
+      interface_name: interface_name,
+      match_path: path
+    } = trigger
+
+    watch_path = "#{device_id}/#{interface_name}#{path}"
+
+    Enum.any?(watch_authorizations, fn authz_string ->
+      can_watch_path?(watch_path, authz_string)
+    end)
+  end
+
+  defp can_watch_simple_trigger?(
+         device_id,
+         %SimpleTriggerConfig{type: "device_trigger"},
+         watch_authorizations
+       ) do
+
+    # We match on device_id for the events
+    Enum.any?(watch_authorizations, fn authz_string ->
+      can_watch_path?(device_id, authz_string)
+    end)
+  end
+
+  defp can_watch_path?(path, authz_string) do
+    # TODO: compile regexes on socket auth?
+    case Regex.compile("^#{authz_string}$") do
+      {:ok, path_regex} ->
+        Regex.match?(path_regex, path)
+
+      _ ->
+        # If we're here we failed to compile a regex
+        false
     end
   end
 end
