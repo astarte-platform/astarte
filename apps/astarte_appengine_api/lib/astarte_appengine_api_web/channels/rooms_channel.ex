@@ -54,6 +54,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
          user <- socket.assigns[:user],
          true <- watch_authorized?(request, user),
          :ok <- Room.watch(socket.assigns[:room_name], request) do
+      broadcast(socket, "watch_added", request)
       {:reply, :ok, socket}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -81,6 +82,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
     with {:ok, %UnwatchRequest{name: watch_name}} <-
            Ecto.Changeset.apply_action(changeset, :insert),
          :ok <- Room.unwatch(socket.assigns[:room_name], watch_name) do
+      broadcast(socket, "watch_removed", %{name: watch_name})
       {:reply, :ok, socket}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
