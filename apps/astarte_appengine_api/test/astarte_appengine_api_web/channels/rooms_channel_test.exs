@@ -338,6 +338,73 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
   end
 
+  describe "unwatch" do
+    setup [:join_socket_and_authorize_watch]
+
+    test "fails with invalid params", %{socket: socket} do
+      invalid_payload = %{}
+
+      ref = push(socket, "unwatch", invalid_payload)
+      assert_reply ref, :error, _
+    end
+
+    test "fails for non existing", %{socket: socket} do
+      nonexisting_payload = %{"name" => "nonexisting"}
+
+      ref = push(socket, "unwatch", nonexisting_payload)
+      assert_reply ref, :error, %{reason: "not found"}
+    end
+
+    test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn _serialized_install ->
+          {:ok, @encoded_generic_ok_reply}
+      end)
+      |> expect(:rpc_call, fn _serialized_delete ->
+          {:ok, @encoded_generic_error_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :ok, %{}
+
+      unwatch_payload = %{"name" => @name}
+
+      ref = push(socket, "unwatch", unwatch_payload)
+      assert_reply ref, :error, %{reason: "unwatch failed"}
+    end
+
+    test "succeeds with valid name", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn _serialized_install ->
+          {:ok, @encoded_generic_ok_reply}
+      end)
+      |> expect(:rpc_call, fn _serialized_delete ->
+          {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply ref, :ok, %{}
+
+      unwatch_payload = %{"name" => @name}
+
+      ref = push(socket, "unwatch", unwatch_payload)
+      assert_reply ref, :ok, %{}
+    end
+  end
 
   defp room_join_authorized_socket(_context) do
     token = JWTTestHelper.gen_channels_jwt_token(["JOIN::#{@authorized_room_name}"])
