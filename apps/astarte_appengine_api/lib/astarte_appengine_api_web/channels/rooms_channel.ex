@@ -136,15 +136,23 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
   end
 
   defp can_watch_simple_trigger?(
+         %SimpleTriggerConfig{type: "device_trigger"} = trigger,
          device_id,
-         %SimpleTriggerConfig{type: "device_trigger"},
          watch_authorizations
        ) do
+    %SimpleTriggerConfig{
+      device_id: trigger_device_id
+    } = trigger
 
-    # We match on device_id for the events
-    Enum.any?(watch_authorizations, fn authz_string ->
-      can_watch_path?(device_id, authz_string)
-    end)
+    if device_id == trigger_device_id do
+      # We match on device_id for the events
+      Enum.any?(watch_authorizations, fn authz_string ->
+        can_watch_path?(device_id, authz_string)
+      end)
+    else
+      # Conflicting device ids, reject
+      false
+    end
   end
 
   defp can_watch_path?(path, authz_string) do
