@@ -18,6 +18,8 @@ config :astarte_appengine_api, :mqtt_options,
   host: "localhost",
   port: 1883
 
+config :astarte_appengine_api, :rpc_client, MockRPCClient
+
 config :astarte_appengine_api, :test_priv_key,
   {%{kty: :jose_jwk_kty_rsa},
     %{"d" => "VJG98B1RkaSbUXykgVn72KT85Le9VN93BJiTAGkUp799ziY7k9vlAxj08_GFaa9gA0miIML74eAeq3FOudvHVQgxOuTZoD3WkhMyf5Qs3NgMMusWF2hrIVx40Du8siRVoE5LmnglipSWG_CWlOTj3wow1pfSVbOYYoNg2Lox_5tv3hoatJ9lMg5oim1eIRGezy99PL8Z2f2uINBx18Se0TO8zmdiL1qQTL2gktWCap-Ss4GIGzC1EY0VMmijUcB4qPFXfhjmq4o19IfFPc1zhO4rqbQqbFvYTDayGkAnGgMbtZLHCibCdxP10X6o4HHokq9RK0vrBPZ3APyMhCUhAQ",
