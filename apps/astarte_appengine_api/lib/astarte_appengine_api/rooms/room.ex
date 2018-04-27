@@ -25,6 +25,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   alias Astarte.AppEngine.API.RPC.VolatileTrigger
   alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.API.Config
+  alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
@@ -77,6 +78,10 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   def unwatch(room_name, watch_name) do
     via_tuple(room_name)
     |> GenServer.call({:unwatch, watch_name})
+  end
+
+  def broadcast_event(pid, device_id, event) do
+    GenServer.call(pid, {:broadcast_event, device_id, event})
   end
 
   # Callbacks
@@ -198,6 +203,16 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         Logger.warn("delete_volatile_trigger failed with reason: #{inspect(reason)}")
         {:reply, {:error, :unwatch_failed}, state}
     end
+  end
+
+  def handle_call({:broadcast_event, device_id, event}, _from, %{room_name: room_name} = state) do
+    payload = %{
+      "device_id" => device_id,
+      "event" => event
+    }
+
+    Endpoint.broadcast("rooms:" <> room_name, "new_event", payload)
+    {:reply, :ok, state}
   end
 
   @impl true
