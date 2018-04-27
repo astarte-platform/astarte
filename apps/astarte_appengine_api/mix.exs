@@ -88,7 +88,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:guardian, github: "ispirata/guardian"},
       {:phoenix_swagger, "~> 0.7.0"},
       {:distillery, "~> 1.4", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "~> 0.6", only: :test},
+      {:mox, "~> 0.3", only: :test}
     ]
   end
 end
