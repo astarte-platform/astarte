@@ -51,10 +51,32 @@ defmodule Astarte.AppEngine.API.Config do
   end
 
   @doc """
+  Returns the AMQP connection options for AMQP client consuming events for rooms.
+  Defaults to []
+  """
+  def rooms_amqp_options do
+    Application.get_env(:astarte_appengine_api, :rooms_amqp_client_options, [])
+  end
+
+  @doc """
+  Returns the exchange name which Rooms AMQP events consumer binds to.
+  """
+  def events_exchange_name do
+    Application.get_env(:astarte_appengine_api, :rooms_events_exchange_name, "astarte_events")
+  end
+
+  @doc """
   Returns the routing key used for Rooms AMQP events consumer. A constant for now.
   """
   def rooms_events_routing_key do
     "astarte_rooms"
+  end
+
+  @doc """
+  Returns the queue name used for Rooms AMQP events consumer.
+  """
+  def rooms_events_queue_name do
+    Application.get_env(:astarte_appengine_api, :rooms_events_queue_name, "astarte_rooms_events")
   end
 
   @doc """
