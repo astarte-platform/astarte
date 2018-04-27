@@ -225,6 +225,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
     end
 
@@ -250,6 +251,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
 
       ref = push(socket, "watch", watch_payload)
@@ -283,6 +285,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
     end
 
@@ -334,6 +337,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
     end
   end
@@ -372,6 +376,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
 
       unwatch_payload = %{"name" => @name}
@@ -397,11 +402,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
 
       unwatch_payload = %{"name" => @name}
 
       ref = push(socket, "unwatch", unwatch_payload)
+      assert_broadcast "watch_removed", _
       assert_reply ref, :ok, %{}
     end
   end
