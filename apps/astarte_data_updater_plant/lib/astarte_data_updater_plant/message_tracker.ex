@@ -24,8 +24,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker do
     GenServer.start(Server, :ok, opts)
   end
 
-  def track_delivery(message_tracker, message_id, delivery_tag, redelivered) do
-    GenServer.cast(message_tracker, {:track_delivery, message_id, delivery_tag, redelivered})
+  def track_delivery(message_tracker, message_id, delivery_tag) do
+    GenServer.cast(message_tracker, {:track_delivery, message_id, delivery_tag})
   end
 
   def register_data_updater(message_tracker) do

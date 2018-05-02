@@ -821,7 +821,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   defp gen_tracking_id() do
     message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
     delivery_tag = {:injected_msg, make_ref()}
-    redelivery = false
-    {message_id, delivery_tag, redelivery}
+    {message_id, delivery_tag}
   end
 end
