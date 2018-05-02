@@ -23,176 +23,152 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   use GenServer
 
   def init(:ok) do
-    {:ok, {:new, :queue.new(), %{}, nil}}
+    {:ok, {:new, :queue.new(), %{}}}
   end
 
-  def handle_call(:register_data_updater, {pid, _ref}, {:new, queue, ids, _}) do
-    Process.monitor(pid)
-    {:reply, :ok, {:accepting, queue, ids, nil}}
+  def handle_call(:register_data_updater, from, {:new, queue, ids}) do
+    monitor(from)
+    {:reply, :ok, {:accepting, queue, ids}}
   end
 
-  def handle_call(:register_data_updater, from, {state, queue, ids, _}) do
+  def handle_call(:register_data_updater, from, {_state, queue, ids}) do
     Logger.debug("Blocked data updater registration. Queue is #{inspect(queue)}.")
 
-    {:noreply, {state, queue, ids, from}}
+    {:noreply, {{:waiting_cleanup, from}, queue, ids}}
   end
 
-  def handle_call({:can_process_message, message_id}, from, {:accepting, queue, ids, pending} = s) do
+  def handle_call({:can_process_message, message_id}, from, {:accepting, queue, ids} = s) do
     case :queue.peek(queue) do
       {:value, ^message_id} ->
-        {:reply, true, s}
+        case Map.get(ids, message_id) do
+          nil ->
+            {:noreply, {{:waiting_delivery, from}, queue, ids}}
+
+          {:requeued, _delivery_tag} ->
+            {:noreply, {{:waiting_delivery, from}, queue, ids}}
+
+          _ ->
+            {:reply, true, s}
+        end
 
       {:value, _} ->
         {:reply, false, s}
 
       :empty ->
         Logger.debug("#{inspect(message_id)} has not been tracked yet. Waiting.")
-        {:noreply, {{:accepting_waiting, message_id, from}, queue, ids, pending}}
+        {:noreply, {{:accepting_waiting, message_id, from}, queue, ids}}
     end
   end
 
-  def handle_call({:ack_delivery, message_id}, _from, {:accepting, queue, ids, pending}) do
+  def handle_call({:ack_delivery, message_id}, _from, {:accepting, queue, ids}) do
     {{:value, ^message_id}, new_queue} = :queue.out(queue)
     {delivery_tag, new_ids} = Map.pop(ids, message_id)
 
-    unless match?({:injected_msg, _ref}, delivery_tag) do
-      :ok = AMQPDataConsumer.ack(delivery_tag)
-    end
+    :ok = ack(delivery_tag)
 
-    {:reply, :ok, {:accepting, new_queue, new_ids, pending}}
+    {:reply, :ok, {:accepting, new_queue, new_ids}}
   end
 
-  def handle_call({:discard, message_id}, _from, {:accepting, queue, ids, pending}) do
+  def handle_call({:discard, message_id}, _from, {:accepting, queue, ids}) do
     {{:value, ^message_id}, new_queue} = :queue.out(queue)
     {delivery_tag, new_ids} = Map.pop(ids, message_id)
 
-    unless match?({:injected_msg, _ref}, delivery_tag) do
-      :ok = AMQPDataConsumer.discard(delivery_tag)
-    end
+    :ok = discard(delivery_tag)
 
-    {:reply, :ok, {:accepting, new_queue, new_ids, pending}}
-  end
-
-  def handle_cast(
-        {:track_delivery, message_id, delivery_tag, _redelivered},
-        {{:cleanup, peek}, queue, ids, pending}
-      )
-      when message_id != peek do
-    new_ids = Map.put(ids, message_id, delivery_tag)
-
-    unless match?({:injected_msg, _ref}, delivery_tag) do
-      :ok = AMQPDataConsumer.requeue(delivery_tag)
-    end
-
-    {:noreply, {{:cleanup, peek}, queue, new_ids, pending}}
+    {:reply, :ok, {:accepting, new_queue, new_ids}}
   end
 
   def handle_cast(
         {:track_delivery, message_id, delivery_tag, redelivered},
-        {{:cleanup, _peek}, queue, ids, nil}
+        {{:waiting_delivery, waiting_process}, queue, ids}
       ) do
-    handle_cast({:track_delivery, message_id, delivery_tag, redelivered}, {:new, queue, ids, nil})
-  end
-
-  def handle_cast(
-        {:track_delivery, message_id, delivery_tag, redelivered},
-        {{:cleanup, _peek}, queue, ids, pending}
-      ) do
-    next_state =
-      handle_cast(
-        {:track_delivery, message_id, delivery_tag, redelivered},
-        {:accepting, queue, ids, pending}
-      )
-
-    Logger.debug("Ready to accept again incoming data")
-    {pid, _ref} = pending
-    Process.monitor(pid)
-    GenServer.reply(pending, :ok)
-
-    next_state
-  end
-
-  def handle_cast(
-        {:track_delivery, message_id, delivery_tag, redelivered},
-        {{:accepting_waiting, check_delivery, from}, queue, ids, pending}
-      ) do
-    next_state =
-      handle_cast(
-        {:track_delivery, message_id, delivery_tag, redelivered},
-        {:accepting, queue, ids, pending}
-      )
-
-    Logger.debug("Received msg #{inspect(delivery_tag)}. Ready to get back to normal flow again.")
-
-    if delivery_tag == check_delivery do
-      GenServer.reply(from, true)
-    else
-      GenServer.reply(from, false)
-    end
-
-    next_state
-  end
-
-  def handle_cast(
-        {:track_delivery, message_id, delivery_tag, redelivered},
-        {state, queue, ids, pending}
-      ) do
-    new_ids = Map.put(ids, message_id, delivery_tag)
-
-    cond do
-      not redelivered ->
-        new_queue = :queue.in(message_id, queue)
-        {:noreply, {state, new_queue, new_ids, pending}}
-
-      :queue.member(message_id, queue) ->
-        Logger.debug("Duplicated message in queue detected: #{inspect(message_id)}")
-        new_queue = :queue.in({:duplicated_delivery, message_id}, queue)
-        {:noreply, {state, new_queue, new_ids, pending}}
-
-      true ->
-        new_queue = :queue.in(message_id, queue)
-        {:noreply, {state, new_queue, new_ids, pending}}
-    end
-  end
-
-  def handle_info({:DOWN, _, :process, _pid, reason}, {_state, queue, ids, pending} = s) do
-    Logger.warn("Crash detected. Reason: #{inspect(reason)}, state: #{inspect(s)}.")
-
-    {next_state, new_queue} =
-      case :queue.peek(queue) do
-        :empty ->
-          {:new, queue}
-
-        {:value, peek} ->
-          new_queue = reject_all(queue, ids)
-          {{:cleanup, peek}, new_queue}
-      end
-
-    case pending do
-      {pid, _ref} ->
-        Logger.debug("Ready soon to process messages again.")
-        Process.monitor(pid)
-        GenServer.reply(pending, :ok)
-        {:noreply, {:accepting, new_queue, ids, nil}}
-
+    case Map.get(ids, message_id) do
       nil ->
-        {:noreply, {next_state, new_queue, ids, nil}}
-    end
-  end
+        {new_queue, new_ids} = enqueue_message(queue, ids, message_id, delivery_tag)
+        {:noreply, {{:waiting_delivery, waiting_process}, new_queue, new_ids}}
 
-  defp reject_all(queue, ids) do
-    case :queue.out(queue) do
-      {{:value, message_id}, new_queue} ->
-        delivery_tag = ids[message_id]
+      {:requeued, _tag} ->
+        new_ids = Map.put(ids, message_id, delivery_tag)
 
-        unless match?({:injected_msg, _ref}, delivery_tag) do
-          :ok = AMQPDataConsumer.requeue(delivery_tag)
+        if :queue.peek(queue) == {:value, message_id} do
+          GenServer.reply(waiting_process, true)
+          {:noreply, {:accepting, queue, new_ids}}
+        else
+          {:noreply, {{:waiting_delivery, waiting_process}, queue, new_ids}}
         end
 
-        reject_all(new_queue, ids)
-
-      {:empty, new_queue} ->
-        new_queue
+      _ ->
+        new_ids = Map.put(ids, message_id, delivery_tag)
+        {:noreply, {{:waiting_delivery, waiting_process}, queue, new_ids}}
     end
+  end
+
+  def handle_cast(
+        {:track_delivery, message_id, delivery_tag, redelivered},
+        {state, queue, ids}
+      ) do
+    unless Map.has_key?(ids, message_id) do
+      {new_queue, new_ids} = enqueue_message(queue, ids, message_id, delivery_tag)
+      {:noreply, {state, new_queue, new_ids}}
+    else
+      new_ids = Map.put(ids, message_id, delivery_tag)
+      {:noreply, {state, queue, new_ids}}
+    end
+  end
+
+  def handle_info({:DOWN, _, :process, _pid, reason}, {state, queue, ids} = s) do
+    Logger.warn("Crash detected. Reason: #{inspect(reason)}, state: #{inspect(s)}.")
+
+    marked_ids =
+      :queue.to_list(queue)
+      |> List.foldl(%{}, fn item, acc ->
+        delivery_tag = ids[item]
+        :ok = requeue(delivery_tag)
+        Map.put(acc, item, {:requeued, delivery_tag})
+      end)
+
+    case state do
+      {:waiting_cleanup, waiting_process} ->
+        monitor(waiting_process)
+        GenServer.reply(waiting_process, :ok)
+        {:noreply, {:accepting, queue, marked_ids}}
+
+      _ ->
+        {:noreply, {:new, queue, marked_ids}}
+    end
+  end
+
+  defp monitor({pid, _ref}) do
+    Process.monitor(pid)
+  end
+
+  defp enqueue_message(queue, ids, message_id, delivery_tag) do
+    new_ids = Map.put(ids, message_id, delivery_tag)
+    new_queue = :queue.in(message_id, queue)
+    {new_queue, new_ids}
+  end
+
+  defp requeue({:injected_msg, _ref}) do
+    :ok
+  end
+
+  defp requeue(delivery_tag) when is_integer(delivery_tag) do
+    AMQPDataConsumer.requeue(delivery_tag)
+  end
+
+  defp ack({:injected_msg, _ref}) do
+    :ok
+  end
+
+  defp ack(delivery_tag) when is_integer(delivery_tag) do
+    AMQPDataConsumer.ack(delivery_tag)
+  end
+
+  defp discard({:injected_msg, _ref}) do
+    :ok
+  end
+
+  defp discard(delivery_tag) when is_integer(delivery_tag) do
+    AMQPDataConsumer.discard(delivery_tag)
   end
 end
