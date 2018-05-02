@@ -156,9 +156,9 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     AMQPDataConsumer.requeue(delivery_tag)
   end
 
-  # Requeue an already requeued message
   defp requeue({:requeued, delivery_tag}) when is_integer(delivery_tag) do
-    AMQPDataConsumer.requeue(delivery_tag)
+    # Do not try to requeue already requeued messages, otherwise channel will crash
+    :ok
   end
 
   defp ack({:injected_msg, _ref}) do

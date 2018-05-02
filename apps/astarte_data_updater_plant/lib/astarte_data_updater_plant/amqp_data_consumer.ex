@@ -46,7 +46,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     rabbitmq_connect(false)
   end
 
-  def terminate(_reason, %Channel{conn: conn} = chan) do
+  def terminate(reason, %Channel{conn: conn} = chan) do
+    Logger.info("AMQPDataConsumer terminating due to reason: #{inspect(reason)}.")
     Channel.close(chan)
     Connection.close(conn)
   end
