@@ -158,9 +158,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id,
            @ip_header => ip_address
-         } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag}
-
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_connection(
         realm,
@@ -178,9 +177,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     with %{
            @realm_header => realm,
            @device_id_header => device_id
-         } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag}
-
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_disconnection(
         realm,
@@ -197,9 +195,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     with %{
            @realm_header => realm,
            @device_id_header => device_id
-         } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag}
-
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_introspection(
         realm,
@@ -219,9 +216,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @interface_header => interface,
            @path_header => path
-         } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag}
-
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_data(
         realm,
@@ -242,9 +238,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id,
            @control_path_header => control_path
-         } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag}
-
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_control(
         realm,
@@ -277,5 +272,16 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     Enum.reduce(headers, %{}, fn {key, _type, value}, acc ->
       Map.put(acc, key, value)
     end)
+  end
+
+  defp get_tracking_id(meta) do
+    message_id = meta.message_id
+    delivery_tag = meta.delivery_tag
+
+    if is_binary(message_id) and is_integer(delivery_tag) do
+      {:ok, {meta.message_id, meta.delivery_tag}}
+    else
+      {:error, :invalid_message_metadata}
+    end
   end
 end
