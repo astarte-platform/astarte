@@ -22,6 +22,9 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   require Logger
   use GenServer
 
+  @base_backoff 1000
+  @random_backoff 9000
+
   def init(:ok) do
     {:ok, {:new, :queue.new(), %{}}}
   end
@@ -126,6 +129,12 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
         :ok = requeue(delivery_tag)
         Map.put(acc, item, {:requeued, delivery_tag})
       end)
+
+    unless :queue.is_empty(queue) do
+      :rand.uniform(@base_backoff)
+      |> Kernel.+(@random_backoff)
+      |> :erlang.sleep()
+    end
 
     case state do
       {:waiting_cleanup, waiting_process} ->
