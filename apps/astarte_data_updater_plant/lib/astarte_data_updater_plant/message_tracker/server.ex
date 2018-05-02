@@ -56,7 +56,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
 
       :empty ->
         Logger.debug("#{inspect(message_id)} has not been tracked yet. Waiting.")
-        {:noreply, {{:accepting_waiting, message_id, from}, queue, ids}}
+        {:noreply, {{:waiting_delivery, message_id, from}, queue, ids}}
     end
   end
 
