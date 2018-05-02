@@ -159,7 +159,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @ip_header => ip_address
          } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_connection(
@@ -179,7 +179,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_disconnection(
@@ -198,7 +198,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @realm_header => realm,
            @device_id_header => device_id
          } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_introspection(
@@ -220,7 +220,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @interface_header => interface,
            @path_header => path
          } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_data(
@@ -243,7 +243,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
            @device_id_header => device_id,
            @control_path_header => control_path
          } <- headers do
-      tracking_id = {meta.message_id, meta.delivery_tag, meta.redelivered}
+      tracking_id = {meta.message_id, meta.delivery_tag}
 
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_control(

@@ -79,7 +79,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   def handle_cast(
-        {:track_delivery, message_id, delivery_tag, redelivered},
+        {:track_delivery, message_id, delivery_tag},
         {{:waiting_delivery, waiting_process}, queue, ids}
       ) do
     case Map.get(ids, message_id) do
@@ -104,7 +104,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   def handle_cast(
-        {:track_delivery, message_id, delivery_tag, redelivered},
+        {:track_delivery, message_id, delivery_tag},
         {state, queue, ids}
       ) do
     unless Map.has_key?(ids, message_id) do
