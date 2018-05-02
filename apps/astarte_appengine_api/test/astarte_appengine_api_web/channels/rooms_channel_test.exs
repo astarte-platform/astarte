@@ -23,11 +23,17 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.AppEngine.API.Rooms.EventsDispatcher
   alias Astarte.AppEngine.API.Rooms.Room
+  alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
 
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+
   alias Astarte.RPC.Protocol.DataUpdaterPlant.Call
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.DeleteVolatileTrigger
   alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericErrorReply
   alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericOkReply
   alias Astarte.RPC.Protocol.DataUpdaterPlant.InstallVolatileTrigger
@@ -76,6 +82,24 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     reply: {:generic_error_reply, %GenericErrorReply{error_name: "some_error"}}
   }
   |> Reply.encode()
+
+  @event_simple_trigger_id Utils.get_uuid()
+  @event_value 1000
+
+  @simple_event %SimpleEvent{
+    simple_trigger_id: @event_simple_trigger_id,
+    parent_trigger_id: nil, # Populated in tests
+    realm: @realm,
+    device_id: @device_id,
+    event: {
+      :incoming_data_event,
+      %IncomingDataEvent{
+        interface: @interface_exact,
+        path: @path,
+        bson_value: Bson.encode(%{v: @event_value})
+      }
+    }
+  }
 
   setup_all do
     DatabaseTestHelper.create_public_key_only_keyspace()
@@ -410,6 +434,55 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "unwatch", unwatch_payload)
       assert_broadcast "watch_removed", _
       assert_reply ref, :ok, %{}
+    end
+  end
+
+  describe "incoming events" do
+    setup [:join_socket_and_authorize_watch]
+
+    test "an event directed towards an unexisting room uninstalls the trigger", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call ->
+        assert %Call{
+          call: {
+            :delete_volatile_trigger,
+            serialized_delete
+          }
+        } = Call.decode(serialized_call)
+
+        assert %DeleteVolatileTrigger{
+          realm_name: @realm,
+          device_id: @device_id,
+          trigger_id: @event_simple_trigger_id
+        } = serialized_delete
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      unexisting_room_serialized_event =
+        %{@simple_event | parent_trigger_id: Utils.get_uuid()}
+        |> SimpleEvent.encode()
+
+      assert :ok = EventsDispatcher.dispatch(unexisting_room_serialized_event)
+    end
+
+    test "an event belonging to a room triggers a broadcast", %{socket: socket, room_process: room_process}  do
+      %{room_uuid: room_uuid} = :sys.get_state(room_process)
+
+      existing_room_serialized_event =
+        %{@simple_event | parent_trigger_id: room_uuid}
+        |> SimpleEvent.encode()
+
+      assert :ok = EventsDispatcher.dispatch(existing_room_serialized_event)
+      assert_broadcast "new_event", %{"device_id" => @device_id, "event" => event}
+      assert %{
+        "type" => "incoming_data",
+        "interface" => @interface_exact,
+        "path" => @path,
+        "value" => @event_value
+      }
+      |> Poison.encode() == Poison.encode(event)
     end
   end
 
