@@ -118,7 +118,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         "A message tracker has crashed (with reason #{inspect(reason)}), sending again all messages."
       )
 
-      :ok = AMQP.Basic.recover(state)
+      :ok = AMQP.Basic.recover(state, requeue: true)
       {:noreply, state}
     end
   end
