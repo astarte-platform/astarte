@@ -157,7 +157,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         simple_trigger: {
           :data_trigger,
           %DataTrigger{
-            interface_id: :uuid.string_to_uuid("d2d90d55-a779-b988-9db4-15284b04f2e9"),
+            interface_name: "com.test.SimpleStreamTest",
+            interface_major: 1,
             data_trigger_type: :INCOMING_DATA,
             match_path: "/0/value",
             value_match_operator: :LESS_THAN,
