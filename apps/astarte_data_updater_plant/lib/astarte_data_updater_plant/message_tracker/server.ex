@@ -131,9 +131,9 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
       end)
 
     unless :queue.is_empty(queue) do
-      :rand.uniform(@base_backoff)
-      |> Kernel.+(@random_backoff)
-      |> :erlang.sleep()
+      :rand.uniform(@random_backoff)
+      |> Kernel.+(@base_backoff)
+      |> :timer.sleep()
     end
 
     case state do
