@@ -59,14 +59,14 @@ RUN git clone https://github.com/astarte-platform/astarte_trigger_engine.git -b 
     && mix release --env=$MIX_ENV
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:jessie-slim
+FROM debian:stretch-slim
 RUN apt-get -qq update
 
 # Set the locale
 ENV LANG C.UTF-8
 
 # We need SSL
-RUN apt-get -qq install libssl1.0.0 supervisor
+RUN apt-get -qq install libssl1.1 supervisor
 
 WORKDIR /app
 COPY --from=builder /build/astarte_appengine_api/_build/prod/rel/astarte_appengine_api astarte_appengine_api
