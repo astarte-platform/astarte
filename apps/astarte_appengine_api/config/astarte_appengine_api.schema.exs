@@ -106,6 +106,51 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.port"
     ],
+    "rooms_amqp_client_options.host": [
+      commented: true,
+      datatype: :binary,
+      default: "localhost",
+      env_var: "APPENGINE_API_ROOMS_AMQP_CLIENT_HOST",
+      doc: "The host for the AMQP consumer connection.",
+      hidden: false,
+      to: "astarte_appengine_api.rooms_amqp_client_options.host"
+    ],
+    "rooms_amqp_client_options.username": [
+      commented: true,
+      datatype: :binary,
+      default: "guest",
+      env_var: "APPENGINE_API_ROOMS_AMQP_CLIENT_USERNAME",
+      doc: "The username for the AMQP consumer connection.",
+      hidden: false,
+      to: "astarte_appengine_api.rooms_amqp_client_options.username"
+    ],
+    "rooms_amqp_client_options.password": [
+      commented: true,
+      datatype: :binary,
+      default: "guest",
+      env_var: "APPENGINE_API_ROOMS_AMQP_CLIENT_PASSWORD",
+      doc: "The password for the AMQP consumer connection.",
+      hidden: false,
+      to: "astarte_appengine_api.rooms_amqp_client_options.password"
+    ],
+    "rooms_amqp_client_options.virtual_host": [
+      commented: true,
+      datatype: :binary,
+      default: "/",
+      env_var: "APPENGINE_API_ROOMS_AMQP_CLIENT_VIRTUAL_HOST",
+      doc: "The virtual_host for the AMQP consumer connection.",
+      hidden: false,
+      to: "astarte_appengine_api.rooms_amqp_client_options.virtual_host"
+    ],
+    "rooms_amqp_client_options.port": [
+      commented: true,
+      datatype: :integer,
+      default: 5672,
+      env_var: "APPENGINE_API_ROOMS_AMQP_CLIENT_PORT",
+      doc: "The port for the AMQP consumer connection.",
+      hidden: false,
+      to: "astarte_appengine_api.rooms_amqp_client_options.port"
+    ],
     "bind_address": [
       commented: true,
       datatype: :binary,
