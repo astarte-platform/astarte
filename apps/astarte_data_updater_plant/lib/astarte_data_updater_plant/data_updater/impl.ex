@@ -557,14 +557,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_control(_state, "/emptyCache", _payload, _delivery_tag, _timestamp) do
+  def handle_control(_state, "/emptyCache", _payload, delivery_tag, _timestamp) do
+    MessageTracker.discard(delivery_tag)
     # TODO: implement empty cache
     raise "TODO"
   end
 
-  def handle_control(_state, path, payload, _delivery_tag, _timestamp) do
-    IO.puts("Control on #{path}, payload: #{inspect(payload)}")
+  def handle_control(_state, path, payload, delivery_tag, _timestamp) do
+    Logger.warn("Control on #{path}, payload: #{inspect(payload)}")
 
+    MessageTracker.discard(delivery_tag)
     raise "TODO or unexpected"
   end
 
