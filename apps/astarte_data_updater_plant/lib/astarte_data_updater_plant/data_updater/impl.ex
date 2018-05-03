@@ -67,7 +67,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.merge(new_state, stats_and_introspection)
   end
 
-  def handle_connection(state, ip_address_string, delivery_tag, timestamp) do
+  def handle_connection(state, ip_address_string, message_id, timestamp) do
     db_client = Queries.connect_to_db(state)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -104,11 +104,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       ip_address_string
     )
 
-    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
-  def handle_disconnection(state, delivery_tag, timestamp) do
+  def handle_disconnection(state, message_id, timestamp) do
     db_client = Queries.connect_to_db(state)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -125,11 +125,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     device_id_string = Device.encode_device_id(new_state.device_id)
     TriggersHandler.device_disconnected(trigger_targets, new_state.realm, device_id_string)
 
-    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     %{new_state | connected: false, last_seen_message: timestamp}
   end
 
-  def handle_data(state, interface, path, payload, delivery_tag, timestamp) do
+  def handle_data(state, interface, path, payload, message_id, timestamp) do
     db_client = Queries.connect_to_db(state)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -373,7 +373,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Logger.debug("result is #{inspect(result)} further actions should be required.")
     end
 
-    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
     %{
       new_state
@@ -384,7 +384,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_introspection(state, payload, delivery_tag, timestamp) do
+  def handle_introspection(state, payload, message_id, timestamp) do
     db_client = Queries.connect_to_db(state)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -496,7 +496,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       db_introspection_minor_map
     )
 
-    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
     %{
       new_state
@@ -506,18 +506,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, delivery_tag, timestamp) do
+  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, message_id, timestamp) do
     db_client = Queries.connect_to_db(state)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    operation_result = prune_device_properties(new_state, "", delivery_tag)
+    operation_result = prune_device_properties(new_state, "", message_id)
 
     if operation_result != :ok do
       Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
     end
 
-    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
     %{
       new_state
@@ -528,7 +528,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_control(state, "/producer/properties", payload, delivery_tag, timestamp) do
+  def handle_control(state, "/producer/properties", payload, message_id, timestamp) do
     db_client = Queries.connect_to_db(state)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -540,14 +540,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     decoded_payload = PayloadsDecoder.safe_inflate(zlib_payload)
 
     if decoded_payload != :error do
-      operation_result = prune_device_properties(new_state, decoded_payload, delivery_tag)
+      operation_result = prune_device_properties(new_state, decoded_payload, message_id)
 
       if operation_result != :ok do
         Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
       end
     end
 
-    MessageTracker.ack_delivery(new_state.message_tracker, delivery_tag)
+    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
     %{
       new_state
@@ -557,16 +557,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_control(_state, "/emptyCache", _payload, delivery_tag, _timestamp) do
-    MessageTracker.discard(delivery_tag)
+  def handle_control(state, "/emptyCache", _payload, message_id, _timestamp) do
+    MessageTracker.discard(state.message_tracker, message_id)
     # TODO: implement empty cache
     raise "TODO"
   end
 
-  def handle_control(_state, path, payload, delivery_tag, _timestamp) do
+  def handle_control(state, path, payload, message_id, _timestamp) do
     Logger.warn("Control on #{path}, payload: #{inspect(payload)}")
 
-    MessageTracker.discard(delivery_tag)
+    MessageTracker.discard(state.message_tracker, message_id)
     raise "TODO or unexpected"
   end
 
@@ -735,20 +735,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {interface_descriptor, state}
   end
 
-  defp prune_device_properties(state, decoded_payload, delivery_tag) do
+  defp prune_device_properties(state, decoded_payload, message_id) do
     {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
     db_client = Queries.connect_to_db(state)
 
     Enum.each(state.introspection, fn {interface, _} ->
-      prune_interface(state, db_client, interface, paths_set, delivery_tag)
+      prune_interface(state, db_client, interface, paths_set, message_id)
     end)
 
     :ok
   end
 
-  defp prune_interface(state, db_client, interface, all_paths_set, delivery_tag) do
+  defp prune_interface(state, db_client, interface, all_paths_set, message_id) do
     {interface_descriptor, new_state} =
       maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
 
