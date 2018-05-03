@@ -84,7 +84,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
     {:noreply, chan}
   end
 
-  def handle_info({:try_to_connect}, _state) do
+  def handle_info(:try_to_connect, _state) do
     {:ok, new_state} = rabbitmq_connect()
     {:noreply, new_state}
   end
@@ -125,7 +125,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   defp maybe_retry(retry) do
     if retry do
       Logger.warn("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), {:try_to_connect})
+      :erlang.send_after(@connection_backoff, :erlang.self(), :try_to_connect)
       {:ok, :not_connected}
     else
       {:stop, :connection_failed}
