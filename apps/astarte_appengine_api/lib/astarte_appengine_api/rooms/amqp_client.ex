@@ -77,7 +77,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   end
 
   def handle_info(:try_to_connect, _state) do
-    {:ok, new_state} = rabbitmq_connect()
+    {:ok, new_state} = connect()
     {:noreply, new_state}
   end
 
@@ -87,11 +87,25 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
     {:noreply, new_state}
   end
 
-  defp rabbitmq_connect(retry \\ true) do
+  defp connect do
     with {:ok, conn} <- Connection.open(Config.rooms_amqp_options()),
-         # Get notifications when the connection goes down
-         Process.monitor(conn.pid),
-         {:ok, chan} <- Channel.open(conn),
+         {:ok, chan} <- setup_channel(conn) do
+      {:ok, chan}
+    else
+      {:error, reason} ->
+        Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
+        retry_after(@connection_backoff)
+        {:ok, :not_connected}
+
+      _ ->
+        Logger.warn("Unknown RabbitMQ connection error")
+        retry_after(@connection_backoff)
+        {:ok, :not_connected}
+    end
+  end
+
+  defp setup_channel(%Connection{} = conn) do
+    with {:ok, chan} <- Channel.open(conn),
          :ok <- Exchange.declare(chan, Config.rooms_events_routing_key(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.rooms_events_queue_name(), durable: true),
          :ok <-
@@ -101,26 +115,15 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
              Config.events_exchange_name(),
              routing_key: Config.rooms_events_routing_key()
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name()) do
+         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name()),
+         # Get notifications when the chan or the connection go down
+         Process.monitor(chan.pid) do
       {:ok, chan}
-    else
-      {:error, reason} ->
-        Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
-        maybe_retry(retry)
-
-      :error ->
-        Logger.warn("Unknown RabbitMQ connection error")
-        maybe_retry(retry)
     end
   end
 
-  defp maybe_retry(retry) do
-    if retry do
-      Logger.warn("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), :try_to_connect)
-      {:ok, :not_connected}
-    else
-      {:stop, :connection_failed}
-    end
+  defp retry_after(backoff) do
+    Logger.warn("Retrying connection in #{backoff} ms")
+    :erlang.send_after(backoff, self(), :try_to_connect)
   end
 end
