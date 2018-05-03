@@ -31,6 +31,7 @@ defmodule Astarte.AppEngine.API.Application do
     children = [
       worker(Astarte.AppEngine.API.DataTransmitter.MQTTClient, [Config.mqtt_options()]),
       supervisor(Astarte.AppEngine.API.Rooms.MasterSupervisor, []),
+      supervisor(Astarte.AppEngine.API.Rooms.AMQPClient, []),
       supervisor(Astarte.AppEngine.APIWeb.Endpoint, [])
     ]
 
