@@ -148,15 +148,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
   defp get_message_tracker(realm, encoded_device_id) do
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id, allow_extended_id: true) do
-      case Registry.lookup(Registry.MessageTracker, {realm, device_id}) do
-        [] ->
-          name = {:via, Registry, {Registry.MessageTracker, {realm, device_id}}}
-          {:ok, pid} = MessageTracker.start(name: name)
+      device = {realm, device_id}
 
-          # This will leak a monitor into the callee, that is likely AMQPDataConsumer in production
-          # Make sure that AMQPDataConsumer has an handle_info that handles process termination.
-          Process.monitor(pid)
-          pid
+      case Registry.lookup(Registry.MessageTracker, device) do
+        [] ->
+          this_instance = self()
+
+          case Registry.meta(Registry.MessageTracker, device) do
+            {:ok, {:amqp_instance, ^this_instance}} ->
+              nil
+
+            {:ok, {:amqp_instance, _}} ->
+              spawn_message_tracker(device)
+
+            :error ->
+              spawn_message_tracker(device)
+          end
 
         [{pid, nil}] ->
           pid
@@ -166,5 +173,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         Logger.info("Received invalid device id: #{encoded_device_id}")
         # TODO: unrecoverable error, discard the message here
     end
+  end
+
+  defp spawn_message_tracker(device) do
+    Registry.put_meta(Registry.MessageTracker, device, {:amqp_instance, self()})
+    name = {:via, Registry, {Registry.MessageTracker, device}}
+    {:ok, pid} = MessageTracker.start(name: name)
+
+    # This will leak a monitor into the callee, that is likely AMQPDataConsumer in production
+    # Make sure that AMQPDataConsumer has an handle_info that handles process termination.
+    Process.monitor(pid)
+
+    pid
   end
 end
