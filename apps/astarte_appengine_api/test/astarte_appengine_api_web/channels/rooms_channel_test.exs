@@ -516,7 +516,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   defp room_process(room_name) do
-    case Registry.lookup(RoomsRegistry, room_name) do
+    case Registry.lookup(Registry.AstarteRooms, room_name) do
       [{pid, _opts}] -> pid
     end
   end

@@ -35,7 +35,7 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
       event: {_event_type, event}
     } = SimpleEvent.decode(serialized_simple_event)
 
-    with [{pid, _}] <- Registry.lookup(RoomsRegistry, {:parent_trigger_id, parent_trigger_id}) do
+    with [{pid, _}] <- Registry.lookup(Registry.AstarteRooms, {:parent_trigger_id, parent_trigger_id}) do
       Room.broadcast_event(pid, device_id, event)
     else
       [] ->

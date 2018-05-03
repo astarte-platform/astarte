@@ -92,7 +92,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     realm = Keyword.get(args, :realm)
     room_uuid = Utils.get_uuid()
 
-    {:ok, _} = Registry.register(RoomsRegistry, {:parent_trigger_id, room_uuid}, [])
+    {:ok, _} = Registry.register(Registry.AstarteRooms, {:parent_trigger_id, room_uuid}, [])
 
     {:ok,
      %{
@@ -223,6 +223,6 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   # Helpers
 
   defp via_tuple(room_name) do
-    {:via, Registry, {RoomsRegistry, room_name}}
+    {:via, Registry, {Registry.AstarteRooms, room_name}}
   end
 end

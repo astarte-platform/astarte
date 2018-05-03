@@ -31,7 +31,7 @@ defmodule Astarte.AppEngine.API.Rooms.RoomsSupervisor do
   end
 
   def room_started?(room_name) do
-    case Registry.lookup(RoomsRegistry, room_name) do
+    case Registry.lookup(Registry.AstarteRooms, room_name) do
       [] ->
         false
 

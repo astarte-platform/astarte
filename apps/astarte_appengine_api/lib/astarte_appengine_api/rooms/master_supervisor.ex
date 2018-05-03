@@ -26,7 +26,7 @@ defmodule Astarte.AppEngine.API.Rooms.MasterSupervisor do
 
   def init(_arg) do
     children = [
-      {Registry, keys: :unique, name: RoomsRegistry},
+      {Registry, keys: :unique, name: Registry.AstarteRooms},
       Astarte.AppEngine.API.Rooms.RoomsSupervisor
     ]
 
