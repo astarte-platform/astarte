@@ -44,7 +44,8 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   # Server callbacks
 
   def init(_args) do
-    rabbitmq_connect(false)
+    send(self(), :try_to_connect)
+    {:ok, :not_connected}
   end
 
   def terminate(_reason, %Channel{conn: conn} = chan) do
