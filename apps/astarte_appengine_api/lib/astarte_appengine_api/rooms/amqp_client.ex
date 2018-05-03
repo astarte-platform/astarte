@@ -81,10 +81,28 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
     {:noreply, new_state}
   end
 
-  def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
+  def handle_info({:DOWN, _, :process, chan_pid, reason}, %Channel{pid: chan_pid, conn: conn}) do
+    Logger.warn("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reopen...")
+
+    %Connection{
+      pid: conn_pid
+    } = conn
+
+    with true <- Process.alive?(conn_pid),
+         {:ok, chan} <- setup_channel(conn) do
+      {:noreply, chan}
+    else
+      # Connection process is dead
+      false ->
+        {:ok, new_state} = connect()
+        {:noreply, new_state}
+
+      # If setup_channel fails, we start a new connection, after closing the previous one
+      _ ->
+        Connection.close(conn)
+        {:ok, new_state} = connect()
+        {:noreply, new_state}
+    end
   end
 
   defp connect do
