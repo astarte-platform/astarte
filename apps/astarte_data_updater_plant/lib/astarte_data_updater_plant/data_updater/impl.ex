@@ -134,246 +134,202 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    {interface_descriptor, new_state} =
-      maybe_handle_cache_miss(
-        Map.get(new_state.interfaces, interface),
-        interface,
-        new_state,
-        db_client
-      )
-
-    {resolve_result, endpoint} =
-      case interface_descriptor.aggregation do
-        :individual ->
-          {resolve_result, endpoint_id} =
-            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
-
-          endpoint = Map.get(new_state.mappings, endpoint_id)
-
-          {resolve_result, endpoint}
-
-        :object ->
-          {:ok, %Mapping{}}
-      end
-
-    {value, value_timestamp, metadata} = PayloadsDecoder.decode_bson_payload(payload, timestamp)
-
     # TODO: here we need to set value_timestamp to reception_timestamp if custom timestamp
     # is not allowed
 
-    result =
-      cond do
-        interface_descriptor.ownership == :server ->
-          warn(new_state, "tried to write on server owned interface: #{interface}.")
-          {:error, :maybe_outdated_introspection}
+    with maybe_descriptor <- Map.get(new_state.interfaces, interface),
+         {:ok, interface_descriptor, new_state} <-
+           maybe_handle_cache_miss(maybe_descriptor, interface, new_state, db_client),
+         :ok <- can_write_on_interface?(interface_descriptor),
+         interface_id <- interface_descriptor.interface_id,
+         {:ok, endpoint} <- resolve_path(path, interface_descriptor, new_state.mappings),
+         endpoint_id <- endpoint.endpoint_id,
+         {value, value_timestamp, metadata} <-
+           PayloadsDecoder.decode_bson_payload(payload, timestamp) do
+      realm = new_state.realm
+      device_id_string = Device.encode_device_id(new_state.device_id)
+      interface_name = interface_descriptor.name
 
-        resolve_result != :ok ->
-          warn(new_state, "cannot resolve #{path} to #{interface} endpoint.")
-          {:error, :maybe_outdated_introspection}
+      # any interface triggers
+      get_on_data_triggers(new_state, :on_incoming_data, :any_interface, :any_endpoint)
+      |> Enum.each(fn trigger ->
+        TriggersHandler.incoming_data(
+          trigger.trigger_targets,
+          realm,
+          device_id_string,
+          interface_name,
+          path,
+          payload
+        )
+      end)
 
-        value == :error ->
-          warn(state, "invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
-          {:error, :invalid_message}
+      # any endpoint triggers
+      get_on_data_triggers(new_state, :on_incoming_data, interface_id, :any_endpoint)
+      |> Enum.each(fn trigger ->
+        TriggersHandler.incoming_data(
+          trigger.trigger_targets,
+          realm,
+          device_id_string,
+          interface_name,
+          path,
+          payload
+        )
+      end)
 
-        true ->
-          realm = new_state.realm
-          device_id_string = Device.encode_device_id(new_state.device_id)
-          interface_name = interface_descriptor.name
+      # incoming data triggers
+      get_on_data_triggers(new_state, :on_incoming_data, interface_id, endpoint_id, path, value)
+      |> Enum.each(fn trigger ->
+        TriggersHandler.incoming_data(
+          trigger.trigger_targets,
+          realm,
+          device_id_string,
+          interface_name,
+          path,
+          payload
+        )
+      end)
 
-          any_interface_triggers =
-            get_on_data_triggers(new_state, :on_incoming_data, :any_interface, :any_endpoint)
+      value_change_triggers =
+        get_on_data_triggers(new_state, :on_value_change, interface_id, endpoint_id, path, value)
 
-          Enum.each(any_interface_triggers, fn trigger ->
-            TriggersHandler.incoming_data(
-              trigger.trigger_targets,
-              realm,
-              device_id_string,
-              interface_name,
-              path,
-              payload
-            )
-          end)
+      value_change_applied_triggers =
+        get_on_data_triggers(
+          new_state,
+          :on_value_change_applied,
+          interface_id,
+          endpoint_id,
+          path,
+          value
+        )
 
-          any_endpoint_triggers =
-            get_on_data_triggers(
-              new_state,
-              :on_incoming_data,
-              interface_descriptor.interface_id,
-              :any_endpoint
-            )
+      path_created_triggers =
+        get_on_data_triggers(new_state, :on_path_created, interface_id, endpoint_id, path, value)
 
-          Enum.each(any_endpoint_triggers, fn trigger ->
-            TriggersHandler.incoming_data(
-              trigger.trigger_targets,
-              realm,
-              device_id_string,
-              interface_name,
-              path,
-              payload
-            )
-          end)
+      path_removed_triggers =
+        get_on_data_triggers(new_state, :on_path_removed, interface_id, endpoint_id, path)
 
-          incoming_data_triggers =
-            get_on_data_triggers(
-              new_state,
-              :on_incoming_data,
-              interface_descriptor.interface_id,
-              endpoint.endpoint_id,
-              path,
-              value
-            )
+      previous_value =
+        if value_change_triggers != [] or value_change_applied_triggers != [] or
+             path_created_triggers != [] do
+          Queries.query_previous_value(
+            db_client,
+            interface_descriptor.aggregation,
+            interface_descriptor.type,
+            new_state.device_id,
+            interface_descriptor,
+            endpoint_id,
+            endpoint,
+            path
+          )
+        else
+          nil
+        end
 
-          Enum.each(incoming_data_triggers, fn trigger ->
-            TriggersHandler.incoming_data(
-              trigger.trigger_targets,
-              realm,
-              device_id_string,
-              interface_name,
-              path,
-              payload
-            )
-          end)
+      # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
+      old_bson_value =
+        if previous_value do
+          %{v: previous_value}
+          |> Bson.encode()
+        else
+          <<>>
+        end
 
-          value_change_triggers =
-            get_on_data_triggers(
-              new_state,
-              :on_value_change,
-              interface_descriptor.interface_id,
-              endpoint.endpoint_id,
-              path,
-              value
-            )
-
-          value_change_applied_triggers =
-            get_on_data_triggers(
-              new_state,
-              :on_value_change_applied,
-              interface_descriptor.interface_id,
-              endpoint.endpoint_id,
-              path,
-              value
-            )
-
-          path_created_triggers =
-            get_on_data_triggers(
-              new_state,
-              :on_path_created,
-              interface_descriptor.interface_id,
-              endpoint.endpoint_id,
-              path,
-              value
-            )
-
-          path_removed_triggers =
-            get_on_data_triggers(
-              new_state,
-              :on_path_removed,
-              interface_descriptor.interface_id,
-              endpoint.endpoint_id,
-              path
-            )
-
-          previous_value =
-            if value_change_triggers != [] or value_change_applied_triggers != [] or
-                 path_created_triggers != [] do
-              Queries.query_previous_value(
-                db_client,
-                interface_descriptor.aggregation,
-                interface_descriptor.type,
-                new_state.device_id,
-                interface_descriptor,
-                endpoint.endpoint_id,
-                endpoint,
-                path
-              )
-            else
-              nil
-            end
-
-          # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
-          old_bson_value =
-            if previous_value do
-              %{v: previous_value}
-              |> Bson.encode()
-            else
-              <<>>
-            end
-
-          if old_bson_value != payload do
-            Enum.each(value_change_triggers, fn trigger ->
-              TriggersHandler.value_change(
-                trigger.trigger_targets,
-                realm,
-                device_id_string,
-                interface_name,
-                path,
-                old_bson_value,
-                payload
-              )
-            end)
-          end
-
-          insert_result =
-            Queries.insert_value_into_db(
-              db_client,
-              interface_descriptor.storage_type,
-              new_state.device_id,
-              interface_descriptor,
-              endpoint.endpoint_id,
-              endpoint,
-              path,
-              value,
-              value_timestamp,
-              timestamp
-            )
-
-          if old_bson_value == <<>> and payload != <<>> do
-            Enum.each(path_created_triggers, fn trigger ->
-              TriggersHandler.path_created(
-                trigger.trigger_targets,
-                realm,
-                device_id_string,
-                interface_name,
-                path,
-                payload
-              )
-            end)
-          end
-
-          if old_bson_value != <<>> and payload == <<>> do
-            Enum.each(path_removed_triggers, fn trigger ->
-              TriggersHandler.path_removed(
-                trigger.trigger_targets,
-                realm,
-                device_id_string,
-                interface_name,
-                path
-              )
-            end)
-          end
-
-          if old_bson_value != payload do
-            Enum.each(value_change_applied_triggers, fn trigger ->
-              TriggersHandler.value_change_applied(
-                trigger.trigger_targets,
-                realm,
-                device_id_string,
-                interface_name,
-                path,
-                old_bson_value,
-                payload
-              )
-            end)
-          end
-
-          insert_result
+      if old_bson_value != payload do
+        Enum.each(value_change_triggers, fn trigger ->
+          TriggersHandler.value_change(
+            trigger.trigger_targets,
+            realm,
+            device_id_string,
+            interface_name,
+            path,
+            old_bson_value,
+            payload
+          )
+        end)
       end
 
-    if result != :ok do
-      Logger.debug("result is #{inspect(result)} further actions should be required.")
-    end
+      # TODO: handle insert failures here
+      insert_result =
+        Queries.insert_value_into_db(
+          db_client,
+          interface_descriptor.storage_type,
+          new_state.device_id,
+          interface_descriptor,
+          endpoint_id,
+          endpoint,
+          path,
+          value,
+          value_timestamp,
+          timestamp
+        )
 
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+      :ok = insert_result
+
+      if old_bson_value == <<>> and payload != <<>> do
+        Enum.each(path_created_triggers, fn trigger ->
+          TriggersHandler.path_created(
+            trigger.trigger_targets,
+            realm,
+            device_id_string,
+            interface_name,
+            path,
+            payload
+          )
+        end)
+      end
+
+      if old_bson_value != <<>> and payload == <<>> do
+        Enum.each(path_removed_triggers, fn trigger ->
+          TriggersHandler.path_removed(
+            trigger.trigger_targets,
+            realm,
+            device_id_string,
+            interface_name,
+            path
+          )
+        end)
+      end
+
+      if old_bson_value != payload do
+        Enum.each(value_change_applied_triggers, fn trigger ->
+          TriggersHandler.value_change_applied(
+            trigger.trigger_targets,
+            realm,
+            device_id_string,
+            interface_name,
+            path,
+            old_bson_value,
+            payload
+          )
+        end)
+      end
+
+      MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+    else
+      {:error, :cannot_write_on_server_owned_interface} ->
+        warn(new_state, "tried to write on server owned interface: #{interface}.")
+        # TODO: request new introspection if property, maybe blacklist interface
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+      {:error, :not_found} ->
+        warn(
+          new_state,
+          "mapping not found for #{interface}#{path}. Maybe outdated introspection?"
+        )
+
+        # TODO: request new introspection if property, maybe blacklist interface
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+      {:guessed, _guessed_endpoints} ->
+        warn(new_state, "mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
+        # TODO: request new introspection if property, maybe blacklist interface
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+      {:error, :undecodable_bson_payload} ->
+        warn(state, "invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
+        # TODO: empty cache if property, maybe blacklist interface
+        MessageTracker.discard(new_state.message_tracker, message_id)
+    end
 
     %{
       new_state
@@ -728,11 +684,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :interface
       )
 
-    {interface_descriptor, new_state}
+    {:ok, interface_descriptor, new_state}
   end
 
   defp maybe_handle_cache_miss(interface_descriptor, _interface_name, state, _db_client) do
-    {interface_descriptor, state}
+    {:ok, interface_descriptor, state}
   end
 
   defp prune_device_properties(state, decoded_payload, message_id) do
@@ -749,7 +705,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp prune_interface(state, db_client, interface, all_paths_set, message_id) do
-    {interface_descriptor, new_state} =
+    {:ok, interface_descriptor, new_state} =
       maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
 
     cond do
@@ -996,6 +952,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     next_device_triggers = Map.put(device_triggers, event_type, new_targets)
     Map.put(state, :device_triggers, next_device_triggers)
+  end
+
+  defp resolve_path(path, interface_descriptor, mappings) do
+    case interface_descriptor.aggregation do
+      :individual ->
+        {resolve_result, endpoint_id} =
+          EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+
+        endpoint = Map.get(mappings, endpoint_id)
+
+        {resolve_result, endpoint}
+
+      :object ->
+        {:ok, %Mapping{}}
+    end
+  end
+
+  defp can_write_on_interface?(interface_descriptor) do
+    case interface_descriptor.ownership do
+      :device ->
+        :ok
+
+      :server ->
+        {:error, :cannot_write_on_server_owned_interface}
+    end
   end
 
   def warn(state, msg) do
