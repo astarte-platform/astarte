@@ -56,14 +56,16 @@ defmodule Astarte.AppEngine.API.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true}
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
       {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
-      {:astarte_data_access, git: "https://git.ispirata.com/Astarte-NG/astarte_data_access"}
+      {:astarte_data_access, git: "https://git.ispirata.com/Astarte-NG/astarte_data_access"},
+      {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"}
     ]
   end
 
@@ -86,7 +88,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:guardian, github: "ispirata/guardian"},
       {:phoenix_swagger, "~> 0.7.0"},
       {:distillery, "~> 1.4", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "~> 0.6", only: :test},
+      {:mox, "~> 0.3", only: :test}
     ]
   end
 end

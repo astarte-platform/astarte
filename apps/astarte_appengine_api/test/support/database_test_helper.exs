@@ -465,6 +465,21 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     end
   end
 
+  def create_public_key_only_keyspace do
+    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+
+    DatabaseQuery.call!(client, @create_autotestrealm)
+
+    DatabaseQuery.call!(client, @create_kv_store)
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_pubkey_pem)
+      |> DatabaseQuery.put(:pem, JWTTestHelper.public_key_pem())
+
+    DatabaseQuery.call!(client, query)
+  end
+
   def destroy_local_test_keyspace do
     {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
     DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")

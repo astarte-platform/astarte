@@ -49,7 +49,7 @@ but should be brought to the users attention, or `{:error, message}` if it is in
 See the moduledoc for `Conform.Schema.Validator` for more details and examples.
 """
 [
-  extends: [:astarte_data_access],
+  extends: [:astarte_data_access, :astarte_rpc],
   import: [],
   mappings: [
     "max_results_limit": [
