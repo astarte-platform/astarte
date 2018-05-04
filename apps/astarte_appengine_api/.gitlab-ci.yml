@@ -16,6 +16,7 @@ mix:test-ci:
     services:
         - scylladb/scylla:latest
         - erlio/docker-vernemq:1.2.0
+        - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=test
