@@ -239,22 +239,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.pubsub.adapter"
     ],
-    "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.debug_errors": [
-      commented: false,
-      datatype: :atom,
-      default: true,
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.debug_errors here.",
-      hidden: true,
-      to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.debug_errors"
-    ],
-    "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.code_reloader": [
-      commented: false,
-      datatype: :atom,
-      default: true,
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.code_reloader here.",
-      hidden: true,
-      to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.code_reloader"
-    ],
     "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.check_origin": [
       commented: false,
       datatype: :atom,
