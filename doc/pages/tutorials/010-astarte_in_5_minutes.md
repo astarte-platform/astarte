@@ -128,7 +128,7 @@ You can now run `stream-qt5-test` from your last build directory. Refer to its [
 Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-test`, you can get the last sent value via cURL:
 
 ```sh
-$ curl -X GET "http://localhost:4002/v1/devices/<your device id>/interfaces/org.astarteplatform.Values/realValue?limit=1" -H "Authorization: Bearer $(./generate-astarte-credentials -t appengine -p test_realm.key)"
+$ curl -X GET "http://localhost:4002/v1/test/devices/<your device id>/interfaces/org.astarteplatform.Values/realValue?limit=1" -H "Authorization: Bearer $(./generate-astarte-credentials -t appengine -p test_realm.key)"
 ```
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
