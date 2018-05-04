@@ -18,6 +18,9 @@ config :astarte_appengine_api, :mqtt_options,
   host: "localhost",
   port: 1883
 
+config :astarte_rpc, :amqp_connection,
+  host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
+
 config :astarte_appengine_api, :rpc_client, MockRPCClient
 
 config :astarte_appengine_api, :test_priv_key,
