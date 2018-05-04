@@ -29,8 +29,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
 
   def device_connected(targets, realm, device_id, ip_address) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      device_connected(target, realm, device_id, ip_address)
+    execute_all_ok(targets, fn target ->
+      device_connected(target, realm, device_id, ip_address) == :ok
     end)
   end
 
@@ -47,8 +47,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def device_disconnected(targets, realm, device_id) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      device_disconnected(target, realm, device_id)
+    execute_all_ok(targets, fn target ->
+      device_disconnected(target, realm, device_id) == :ok
     end)
   end
 
@@ -66,8 +66,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def incoming_data(targets, realm, device_id, interface, path, bson_value)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      incoming_data(target, realm, device_id, interface, path, bson_value)
+    execute_all_ok(targets, fn target ->
+      incoming_data(target, realm, device_id, interface, path, bson_value) == :ok
     end)
   end
 
@@ -84,8 +84,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def incoming_introspection(targets, realm, device_id, introspection) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      incoming_introspection(target, realm, device_id, introspection)
+    execute_all_ok(targets, fn target ->
+      incoming_introspection(target, realm, device_id, introspection) == :ok
     end)
   end
 
@@ -103,8 +103,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def interface_added(targets, realm, device_id, interface, major_version, minor_version)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      interface_added(target, realm, device_id, interface, major_version, minor_version)
+    execute_all_ok(targets, fn target ->
+      interface_added(target, realm, device_id, interface, major_version, minor_version) == :ok
     end)
   end
 
@@ -134,7 +134,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         new_minor
       )
       when is_list(targets) do
-    Enum.each(targets, fn target ->
+    execute_all_ok(targets, fn target ->
       interface_minor_updated(
         target,
         realm,
@@ -143,7 +143,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         major_version,
         old_minor,
         new_minor
-      )
+      ) == :ok
     end)
   end
 
@@ -174,8 +174,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def interface_removed(targets, realm, device_id, interface, major_version)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      interface_removed(target, realm, device_id, interface, major_version)
+    execute_all_ok(targets, fn target ->
+      interface_removed(target, realm, device_id, interface, major_version) == :ok
     end)
   end
 
@@ -193,8 +193,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def path_created(targets, realm, device_id, interface, path, bson_value)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      path_created(target, realm, device_id, interface, path, bson_value)
+    execute_all_ok(targets, fn target ->
+      path_created(target, realm, device_id, interface, path, bson_value) == :ok
     end)
   end
 
@@ -211,8 +211,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def path_removed(targets, realm, device_id, interface, path) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      path_removed(target, realm, device_id, interface, path)
+    execute_all_ok(targets, fn target ->
+      path_removed(target, realm, device_id, interface, path) == :ok
     end)
   end
 
@@ -230,8 +230,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def value_change(targets, realm, device_id, interface, path, old_bson_value, new_bson_value)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
+    execute_all_ok(targets, fn target ->
+      value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) ==
+        :ok
     end)
   end
 
@@ -262,7 +263,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         new_bson_value
       )
       when is_list(targets) do
-    Enum.each(targets, fn target ->
+    execute_all_ok(targets, fn target ->
       value_change_applied(
         target,
         realm,
@@ -271,7 +272,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         path,
         old_bson_value,
         new_bson_value
-      )
+      ) == :ok
     end)
   end
 
@@ -315,6 +316,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id: device_id,
       event: {event_type, event}
     }
+  end
+
+  defp execute_all_ok(items, fun) do
+    if Enum.all?(items, fun) do
+      :ok
+    else
+      :error
+    end
   end
 
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
