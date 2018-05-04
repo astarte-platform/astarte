@@ -129,6 +129,140 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{new_state | connected: false, last_seen_message: timestamp}
   end
 
+  defp execute_incoming_data_triggers(
+         state,
+         device,
+         interface,
+         interface_id,
+         path,
+         endpoint_id,
+         payload,
+         value
+       ) do
+    realm = state.realm
+
+    # any interface triggers
+    get_on_data_triggers(state, :on_incoming_data, :any_interface, :any_endpoint)
+    |> Enum.each(fn trigger ->
+      targets = trigger.trigger_targets
+      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload)
+    end)
+
+    # any endpoint triggers
+    get_on_data_triggers(state, :on_incoming_data, interface_id, :any_endpoint)
+    |> Enum.each(fn trigger ->
+      targets = trigger.trigger_targets
+      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload)
+    end)
+
+    # incoming data triggers
+    get_on_data_triggers(state, :on_incoming_data, interface_id, endpoint_id, path, value)
+    |> Enum.each(fn trigger ->
+      targets = trigger.trigger_targets
+      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload)
+    end)
+
+    :ok
+  end
+
+  defp get_value_change_triggers(state, interface_id, endpoint_id, path, value) do
+    value_change_triggers =
+      get_on_data_triggers(state, :on_value_change, interface_id, endpoint_id, path, value)
+
+    value_change_applied_triggers =
+      get_on_data_triggers(
+        state,
+        :on_value_change_applied,
+        interface_id,
+        endpoint_id,
+        path,
+        value
+      )
+
+    path_created_triggers =
+      get_on_data_triggers(state, :on_path_created, interface_id, endpoint_id, path, value)
+
+    path_removed_triggers =
+      get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
+
+    if value_change_triggers != [] or value_change_applied_triggers != [] or
+         path_created_triggers != [] do
+      {:ok,
+       {value_change_triggers, value_change_applied_triggers, path_created_triggers,
+        path_removed_triggers}}
+    else
+      {:no_value_change_triggers, nil}
+    end
+  end
+
+  defp execute_pre_change_triggers(
+         {value_change_triggers, _, _, _},
+         realm,
+         device_id_string,
+         interface_name,
+         path,
+         old_bson_value,
+         payload
+       ) do
+    if old_bson_value != payload do
+      Enum.each(value_change_triggers, fn trigger ->
+        TriggersHandler.value_change(
+          trigger.trigger_targets,
+          realm,
+          device_id_string,
+          interface_name,
+          path,
+          old_bson_value,
+          payload
+        )
+      end)
+    end
+
+    :ok
+  end
+
+  defp execute_post_change_triggers(
+         {_, value_change_applied_triggers, path_created_triggers, path_removed_triggers},
+         realm,
+         device,
+         interface,
+         path,
+         old_bson_value,
+         payload
+       ) do
+    if old_bson_value == <<>> and payload != <<>> do
+      Enum.each(path_created_triggers, fn trigger ->
+        targets = trigger.trigger_targets
+        TriggersHandler.path_created(targets, realm, device, interface, path, payload)
+      end)
+    end
+
+    if old_bson_value != <<>> and payload == <<>> do
+      Enum.each(path_removed_triggers, fn trigger ->
+        targets = trigger.trigger_targets
+        TriggersHandler.path_removed(targets, realm, device, interface, path)
+      end)
+    end
+
+    if old_bson_value != payload do
+      Enum.each(value_change_applied_triggers, fn trigger ->
+        targets = trigger.trigger_targets
+
+        TriggersHandler.value_change_applied(
+          targets,
+          realm,
+          device,
+          interface,
+          path,
+          old_bson_value,
+          payload
+        )
+      end)
+    end
+
+    :ok
+  end
+
   def handle_data(state, interface, path, payload, message_id, timestamp) do
     db_client = Queries.connect_to_db(state)
 
@@ -150,94 +284,47 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       device_id_string = Device.encode_device_id(new_state.device_id)
       interface_name = interface_descriptor.name
 
-      # any interface triggers
-      get_on_data_triggers(new_state, :on_incoming_data, :any_interface, :any_endpoint)
-      |> Enum.each(fn trigger ->
-        TriggersHandler.incoming_data(
-          trigger.trigger_targets,
-          realm,
-          device_id_string,
-          interface_name,
-          path,
-          payload
-        )
-      end)
+      execute_incoming_data_triggers(
+        new_state,
+        device_id_string,
+        interface_name,
+        interface_id,
+        path,
+        endpoint_id,
+        payload,
+        value
+      )
 
-      # any endpoint triggers
-      get_on_data_triggers(new_state, :on_incoming_data, interface_id, :any_endpoint)
-      |> Enum.each(fn trigger ->
-        TriggersHandler.incoming_data(
-          trigger.trigger_targets,
-          realm,
-          device_id_string,
-          interface_name,
-          path,
-          payload
-        )
-      end)
+      {has_change_triggers, change_triggers} =
+        get_value_change_triggers(new_state, interface_id, endpoint_id, path, value)
 
-      # incoming data triggers
-      get_on_data_triggers(new_state, :on_incoming_data, interface_id, endpoint_id, path, value)
-      |> Enum.each(fn trigger ->
-        TriggersHandler.incoming_data(
-          trigger.trigger_targets,
-          realm,
-          device_id_string,
-          interface_name,
-          path,
-          payload
-        )
-      end)
-
-      value_change_triggers =
-        get_on_data_triggers(new_state, :on_value_change, interface_id, endpoint_id, path, value)
-
-      value_change_applied_triggers =
-        get_on_data_triggers(
-          new_state,
-          :on_value_change_applied,
-          interface_id,
-          endpoint_id,
-          path,
-          value
-        )
-
-      path_created_triggers =
-        get_on_data_triggers(new_state, :on_path_created, interface_id, endpoint_id, path, value)
-
-      path_removed_triggers =
-        get_on_data_triggers(new_state, :on_path_removed, interface_id, endpoint_id, path)
-
-      previous_value =
-        if value_change_triggers != [] or value_change_applied_triggers != [] or
-             path_created_triggers != [] do
-          Queries.query_previous_value(
-            db_client,
-            interface_descriptor.aggregation,
-            interface_descriptor.type,
-            new_state.device_id,
-            interface_descriptor,
-            endpoint_id,
-            endpoint,
-            path
-          )
-        else
-          nil
-        end
-
-      # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
       old_bson_value =
-        if previous_value do
-          %{v: previous_value}
-          |> Bson.encode()
-        else
-          <<>>
+        if has_change_triggers == :ok do
+          previous_value =
+            Queries.query_previous_value(
+              db_client,
+              interface_descriptor.aggregation,
+              interface_descriptor.type,
+              new_state.device_id,
+              interface_descriptor,
+              endpoint_id,
+              endpoint,
+              path
+            )
+
+          # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
+          if previous_value do
+            %{v: previous_value}
+            |> Bson.encode()
+          else
+            <<>>
+          end
         end
 
-      if old_bson_value != payload do
-        Enum.each(value_change_triggers, fn trigger ->
-          TriggersHandler.value_change(
-            trigger.trigger_targets,
+      if has_change_triggers == :ok do
+        :ok =
+          execute_pre_change_triggers(
+            change_triggers,
             realm,
             device_id_string,
             interface_name,
@@ -245,7 +332,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             old_bson_value,
             payload
           )
-        end)
       end
 
       # TODO: handle insert failures here
@@ -265,35 +351,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       :ok = insert_result
 
-      if old_bson_value == <<>> and payload != <<>> do
-        Enum.each(path_created_triggers, fn trigger ->
-          TriggersHandler.path_created(
-            trigger.trigger_targets,
-            realm,
-            device_id_string,
-            interface_name,
-            path,
-            payload
-          )
-        end)
-      end
-
-      if old_bson_value != <<>> and payload == <<>> do
-        Enum.each(path_removed_triggers, fn trigger ->
-          TriggersHandler.path_removed(
-            trigger.trigger_targets,
-            realm,
-            device_id_string,
-            interface_name,
-            path
-          )
-        end)
-      end
-
-      if old_bson_value != payload do
-        Enum.each(value_change_applied_triggers, fn trigger ->
-          TriggersHandler.value_change_applied(
-            trigger.trigger_targets,
+      if has_change_triggers == :ok do
+        :ok =
+          execute_post_change_triggers(
+            change_triggers,
             realm,
             device_id_string,
             interface_name,
@@ -301,7 +362,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             old_bson_value,
             payload
           )
-        end)
       end
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)
