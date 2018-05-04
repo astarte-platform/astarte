@@ -558,16 +558,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/emptyCache", _payload, message_id, _timestamp) do
+    Logger.debug("Received /emptyCache")
+
     MessageTracker.discard(state.message_tracker, message_id)
     # TODO: implement empty cache
-    raise "TODO"
+
+    state
   end
 
   def handle_control(state, path, payload, message_id, _timestamp) do
     Logger.warn("Control on #{path}, payload: #{inspect(payload)}")
 
     MessageTracker.discard(state.message_tracker, message_id)
-    raise "TODO or unexpected"
+    # TODO: handle unexpected control messages
+
+    state
   end
 
   def handle_install_volatile_trigger(
