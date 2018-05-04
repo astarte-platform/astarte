@@ -18,10 +18,15 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
+  use Bitwise, only_operators: true
+  require Logger
+
   @moduledoc """
   This module handles the triggers by generating the events requested
   by the Trigger targets
   """
+
+  @max_backoff_exponent 10
 
   use Astarte.Core.Triggers.SimpleEvents
 
@@ -326,6 +331,34 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end
   end
 
+  defp wait_backoff_and_publish(:ok, _retry, _payload, _routing_key, _headers) do
+    :ok
+  end
+
+  defp wait_backoff_and_publish({:error, reason}, retry, payload, routing_key, headers) do
+    Logger.warn(
+      "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
+    )
+
+    :rand.uniform(1 <<< (retry * 1000))
+    |> :timer.sleep()
+
+    next_retry =
+      if retry <= @max_backoff_exponent do
+        retry + 1
+      else
+        retry
+      end
+
+    AMQPEventsProducer.publish(payload, routing_key, headers)
+    |> wait_backoff_and_publish(next_retry, payload, routing_key, headers)
+  end
+
+  defp wait_ok_publish(payload, routing_key, headers) do
+    AMQPEventsProducer.publish(payload, routing_key, headers)
+    |> wait_backoff_and_publish(1, payload, routing_key, headers)
+  end
+
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
          routing_key: routing_key,
          static_headers: static_headers
@@ -352,6 +385,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     ]
 
     SimpleEvent.encode(simple_event)
-    |> AMQPEventsProducer.publish(routing_key, headers)
+    |> wait_ok_publish(routing_key, headers)
   end
 end
