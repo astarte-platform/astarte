@@ -305,11 +305,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+      update_stats(new_state, interface, path, payload)
     else
       {:error, :cannot_write_on_server_owned_interface} ->
         warn(new_state, "tried to write on server owned interface: #{interface}.")
-        # TODO: request new introspection if property, maybe blacklist interface
+        new_state = ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
 
       {:error, :not_found} ->
         warn(
@@ -317,26 +319,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "mapping not found for #{interface}#{path}. Maybe outdated introspection?"
         )
 
-        # TODO: request new introspection if property, maybe blacklist interface
+        new_state = ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
 
       {:guessed, _guessed_endpoints} ->
         warn(new_state, "mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
-        # TODO: request new introspection if property, maybe blacklist interface
+        new_state = ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
 
       {:error, :undecodable_bson_payload} ->
         warn(state, "invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
-        # TODO: empty cache if property, maybe blacklist interface
+        new_state = ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
     end
+  end
 
+  defp update_stats(state, interface, path, payload) do
     %{
-      new_state
-      | total_received_msgs: new_state.total_received_msgs + 1,
+      state
+      | total_received_msgs: state.total_received_msgs + 1,
         total_received_bytes:
-          new_state.total_received_bytes + byte_size(payload) + byte_size(interface) +
-            byte_size(path)
+          state.total_received_bytes + byte_size(payload) + byte_size(interface) + byte_size(path)
     }
   end
 
@@ -769,6 +775,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         {:ok, new_state}
     end
+  end
+
+  defp ask_clean_session(state) do
+    warn(state, "TODO: disconnect and ask clean session")
+    state
   end
 
   defp get_on_data_triggers(state, event, interface_id, endpoint_id) do
