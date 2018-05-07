@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagement.Queries do
   require Logger
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.StorageType
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -41,14 +42,12 @@ defmodule Astarte.RealmManagement.Queries do
     VALUES (:interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
   """
 
-  # TODO: should we add reception_timestamp_submillis only to datastreams?
-  @create_individual_multiinterface_table """
-    CREATE TABLE IF NOT EXISTS :table_name (
+  @create_property_individual_multiinterface_table """
+    CREATE TABLE IF NOT EXISTS individual_property (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
       path varchar,
-      :value_timestamp
       reception_timestamp timestamp,
       reception_timestamp_submillis smallint,
       endpoint_tokens list<varchar>,
@@ -68,7 +67,37 @@ defmodule Astarte.RealmManagement.Queries do
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
 
-      PRIMARY KEY((device_id, interface_id), endpoint_id, path :key_timestamp)
+      PRIMARY KEY((device_id, interface_id), endpoint_id, path)
+    )
+  """
+
+  @create_datastream_individual_multiinterface_table """
+    CREATE TABLE IF NOT EXISTS individual_datastream (
+      device_id uuid,
+      interface_id uuid,
+      endpoint_id uuid,
+      path varchar,
+      value_timestamp timestamp,
+      reception_timestamp timestamp,
+      reception_timestamp_submillis smallint,
+      endpoint_tokens list<varchar>,
+
+      double_value double,
+      integer_value int,
+      boolean_value boolean,
+      longinteger_value bigint,
+      string_value varchar,
+      binaryblob_value blob,
+      datetime_value timestamp,
+      doublearray_value list<double>,
+      integerarray_value list<int>,
+      booleanarray_value list<boolean>,
+      longintegerarray_value list<bigint>,
+      stringarray_value list<varchar>,
+      binaryblobarray_value list<blob>,
+      datetimearray_value list<timestamp>,
+
+      PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp)
     )
   """
 
@@ -137,26 +166,24 @@ defmodule Astarte.RealmManagement.Queries do
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
-  defp create_interface_table(:individual, :multi, interface_descriptor, _mappings) do
-    {table_type, suffix, value_timestamp, key_timestamp} =
-      case interface_descriptor.type do
-        :datastream ->
-          {:multi_interface_individual_datastream_dbtable, "datastream",
-           "value_timestamp timestamp,", ", value_timestamp, reception_timestamp"}
+  defp create_interface_table(
+         :individual,
+         :multi,
+         %InterfaceDescriptor{type: :properties},
+         _mappings
+       ) do
+    {:multi_interface_individual_properties_dbtable, "individual_property",
+     @create_property_individual_multiinterface_table}
+  end
 
-        :properties ->
-          {:multi_interface_individual_properties_dbtable, "property", "", ""}
-      end
-
-    table_name = "individual_#{suffix}"
-
-    create_table_statement =
-      @create_individual_multiinterface_table
-      |> String.replace(":table_name", table_name)
-      |> String.replace(":value_timestamp", value_timestamp)
-      |> String.replace(":key_timestamp", key_timestamp)
-
-    {table_type, table_name, create_table_statement}
+  defp create_interface_table(
+         :individual,
+         :multi,
+         %InterfaceDescriptor{type: :datastream},
+         _mappings
+       ) do
+    {:multi_interface_individual_datastream_dbtable, "individual_datastream",
+     @create_datastream_individual_multiinterface_table}
   end
 
   defp create_interface_table(:individual, :one, interface_descriptor, mappings) do
