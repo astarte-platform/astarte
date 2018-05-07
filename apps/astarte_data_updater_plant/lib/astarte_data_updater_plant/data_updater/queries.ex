@@ -19,6 +19,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
@@ -78,10 +79,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
-        :multi_interface_individual_properties_dbtable,
         device_id,
-        interface_descriptor,
-        endpoint_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          interface_descriptor,
         endpoint,
         path,
         nil,
@@ -101,7 +101,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
       |> DatabaseQuery.put(:path, path)
 
     DatabaseQuery.call!(db_client, unset_query)
@@ -111,10 +111,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
-        :multi_interface_individual_properties_dbtable,
         device_id,
-        interface_descriptor,
-        endpoint_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          interface_descriptor,
         endpoint,
         path,
         value,
@@ -133,7 +132,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
@@ -146,10 +145,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
-        :multi_interface_individual_datastream_dbtable,
         device_id,
-        interface_descriptor,
-        endpoint_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
+          interface_descriptor,
         endpoint,
         path,
         value,
@@ -169,7 +167,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, value_timestamp)
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
@@ -183,10 +181,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
-        :one_object_datastream_dbtable,
         device_id,
-        interface_descriptor,
-        _endpoint_id,
+        %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint,
         _path,
         value,

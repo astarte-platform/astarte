@@ -338,10 +338,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       insert_result =
         Queries.insert_value_into_db(
           db_client,
-          interface_descriptor.storage_type,
           new_state.device_id,
           interface_descriptor,
-          endpoint_id,
           endpoint,
           path,
           value,
