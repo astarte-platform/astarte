@@ -280,14 +280,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          endpoint_id <- endpoint.endpoint_id,
          {value, value_timestamp, metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp) do
-      realm = new_state.realm
       device_id_string = Device.encode_device_id(new_state.device_id)
-      interface_name = interface_descriptor.name
 
       execute_incoming_data_triggers(
         new_state,
         device_id_string,
-        interface_name,
+        interface_descriptor.name,
         interface_id,
         path,
         endpoint_id,
@@ -322,9 +320,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ok =
           execute_pre_change_triggers(
             change_triggers,
-            realm,
+            new_state.realm,
             device_id_string,
-            interface_name,
+            interface_descriptor.name,
             path,
             old_bson_value,
             payload
@@ -350,9 +348,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ok =
           execute_post_change_triggers(
             change_triggers,
-            realm,
+            new_state.realm,
             device_id_string,
-            interface_name,
+            interface_descriptor.name,
             path,
             old_bson_value,
             payload
