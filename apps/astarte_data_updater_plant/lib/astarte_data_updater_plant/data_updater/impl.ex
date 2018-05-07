@@ -303,11 +303,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           previous_value =
             Queries.query_previous_value(
               db_client,
-              interface_descriptor.aggregation,
-              interface_descriptor.type,
               new_state.device_id,
               interface_descriptor,
-              endpoint_id,
               endpoint,
               path
             )

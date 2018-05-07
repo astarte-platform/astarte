@@ -333,11 +333,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def query_previous_value(
         _db_client,
-        :individual,
-        :properties,
         _device_id,
-        _interface_descriptor,
-        _endpoint_id,
+        %InterfaceDescriptor{aggregation: :individual, type: :properties} = _interface_descriptor,
         _endpoint,
         _path
       ) do
