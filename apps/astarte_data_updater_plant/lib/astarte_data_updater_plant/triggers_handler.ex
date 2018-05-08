@@ -18,10 +18,15 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
+  use Bitwise, only_operators: true
+  require Logger
+
   @moduledoc """
   This module handles the triggers by generating the events requested
   by the Trigger targets
   """
+
+  @max_backoff_exponent 10
 
   use Astarte.Core.Triggers.SimpleEvents
 
@@ -29,8 +34,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
 
   def device_connected(targets, realm, device_id, ip_address) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      device_connected(target, realm, device_id, ip_address)
+    execute_all_ok(targets, fn target ->
+      device_connected(target, realm, device_id, ip_address) == :ok
     end)
   end
 
@@ -47,8 +52,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def device_disconnected(targets, realm, device_id) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      device_disconnected(target, realm, device_id)
+    execute_all_ok(targets, fn target ->
+      device_disconnected(target, realm, device_id) == :ok
     end)
   end
 
@@ -66,8 +71,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def incoming_data(targets, realm, device_id, interface, path, bson_value)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      incoming_data(target, realm, device_id, interface, path, bson_value)
+    execute_all_ok(targets, fn target ->
+      incoming_data(target, realm, device_id, interface, path, bson_value) == :ok
     end)
   end
 
@@ -84,8 +89,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def incoming_introspection(targets, realm, device_id, introspection) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      incoming_introspection(target, realm, device_id, introspection)
+    execute_all_ok(targets, fn target ->
+      incoming_introspection(target, realm, device_id, introspection) == :ok
     end)
   end
 
@@ -103,8 +108,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def interface_added(targets, realm, device_id, interface, major_version, minor_version)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      interface_added(target, realm, device_id, interface, major_version, minor_version)
+    execute_all_ok(targets, fn target ->
+      interface_added(target, realm, device_id, interface, major_version, minor_version) == :ok
     end)
   end
 
@@ -134,7 +139,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         new_minor
       )
       when is_list(targets) do
-    Enum.each(targets, fn target ->
+    execute_all_ok(targets, fn target ->
       interface_minor_updated(
         target,
         realm,
@@ -143,7 +148,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         major_version,
         old_minor,
         new_minor
-      )
+      ) == :ok
     end)
   end
 
@@ -174,8 +179,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def interface_removed(targets, realm, device_id, interface, major_version)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      interface_removed(target, realm, device_id, interface, major_version)
+    execute_all_ok(targets, fn target ->
+      interface_removed(target, realm, device_id, interface, major_version) == :ok
     end)
   end
 
@@ -193,8 +198,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def path_created(targets, realm, device_id, interface, path, bson_value)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      path_created(target, realm, device_id, interface, path, bson_value)
+    execute_all_ok(targets, fn target ->
+      path_created(target, realm, device_id, interface, path, bson_value) == :ok
     end)
   end
 
@@ -211,8 +216,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def path_removed(targets, realm, device_id, interface, path) when is_list(targets) do
-    Enum.each(targets, fn target ->
-      path_removed(target, realm, device_id, interface, path)
+    execute_all_ok(targets, fn target ->
+      path_removed(target, realm, device_id, interface, path) == :ok
     end)
   end
 
@@ -230,8 +235,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   def value_change(targets, realm, device_id, interface, path, old_bson_value, new_bson_value)
       when is_list(targets) do
-    Enum.each(targets, fn target ->
-      value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value)
+    execute_all_ok(targets, fn target ->
+      value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) ==
+        :ok
     end)
   end
 
@@ -262,7 +268,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         new_bson_value
       )
       when is_list(targets) do
-    Enum.each(targets, fn target ->
+    execute_all_ok(targets, fn target ->
       value_change_applied(
         target,
         realm,
@@ -271,7 +277,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         path,
         old_bson_value,
         new_bson_value
-      )
+      ) == :ok
     end)
   end
 
@@ -317,6 +323,42 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     }
   end
 
+  defp execute_all_ok(items, fun) do
+    if Enum.all?(items, fun) do
+      :ok
+    else
+      :error
+    end
+  end
+
+  defp wait_backoff_and_publish(:ok, _retry, _payload, _routing_key, _headers) do
+    :ok
+  end
+
+  defp wait_backoff_and_publish({:error, reason}, retry, payload, routing_key, headers) do
+    Logger.warn(
+      "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
+    )
+
+    :rand.uniform(1 <<< (retry * 1000))
+    |> :timer.sleep()
+
+    next_retry =
+      if retry <= @max_backoff_exponent do
+        retry + 1
+      else
+        retry
+      end
+
+    AMQPEventsProducer.publish(payload, routing_key, headers)
+    |> wait_backoff_and_publish(next_retry, payload, routing_key, headers)
+  end
+
+  defp wait_ok_publish(payload, routing_key, headers) do
+    AMQPEventsProducer.publish(payload, routing_key, headers)
+    |> wait_backoff_and_publish(1, payload, routing_key, headers)
+  end
+
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
          routing_key: routing_key,
          static_headers: static_headers
@@ -343,6 +385,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     ]
 
     SimpleEvent.encode(simple_event)
-    |> AMQPEventsProducer.publish(routing_key, headers)
+    |> wait_ok_publish(routing_key, headers)
   end
 end

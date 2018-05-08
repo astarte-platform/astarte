@@ -50,7 +50,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
           {bson_value, div(reception_timestamp, 10000), %{}}
 
         _ ->
-          :error
+          {:error, :undecodable_bson_payload}
       end
     else
       {nil, nil, nil}
