@@ -74,20 +74,20 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.3.0"},
-      {:phoenix_pubsub, "~> 1.0"},
+      {:phoenix, "== 1.3.2"},
+      {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"},
-      {:ecto, "~> 2.1"},
-      {:conform, "~> 2.2"},
-      {:cqex, github: "matehat/cqex"},
-      {:cors_plug, "~> 1.2"},
+      {:cowboy, "== 1.1.2"},
+      {:ecto, "== 2.2.10"},
+      {:conform, "== 2.5.2"},
+      {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
+      {:cors_plug, "== 1.5.2"},
       {:ex_lttb, "~> 0.2"},
       {:gen_mqtt, "~> 0.4.0"},
-      {:cyanide, "~> 0.5.0"},
-      {:guardian, github: "ispirata/guardian"},
-      {:phoenix_swagger, "~> 0.7.0"},
-      {:distillery, "~> 1.4", runtime: false},
+      {:cyanide, "== 0.5.0"},
+      {:guardian, github: "ispirata/guardian", ref: "ffa8464ce24a6bd438bc0881f3e108397d053843"},
+      {:phoenix_swagger, "== 0.8.0"},
+      {:distillery, "== 1.5.2", runtime: false},
       {:excoveralls, "~> 0.6", only: :test},
       {:mox, "~> 0.3", only: :test}
     ]
