@@ -14,7 +14,7 @@ variables:
 mix:test-ci:
     image: elixir:1.6
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
         - erlio/docker-vernemq:1.2.0
         - rabbitmq:3.6
     stage: build
@@ -33,7 +33,7 @@ mix:test-ci:
 mix:build:
     image: elixir:1.6
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
         - erlio/docker-vernemq:1.2.0
         - rabbitmq:3.6
     stage: build
@@ -54,7 +54,7 @@ mix:build:
 mix:release-build:
     image: elixir:1.6
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
         - erlio/docker-vernemq:1.2.0
         - rabbitmq:3.6
     stage: build
