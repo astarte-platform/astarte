@@ -712,7 +712,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> DatabaseResult.head()
       |> Keyword.get(:introspection)
 
-    assert old_device_introspection == :null
+    assert old_device_introspection == nil
 
     DataUpdater.handle_introspection(
       realm,
