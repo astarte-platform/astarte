@@ -230,7 +230,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
 
-      PRIMARY KEY((device_id, interface_id), endpoint_id, path, value_timestamp, reception_timestamp)
+      PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp)
     );
   """
 

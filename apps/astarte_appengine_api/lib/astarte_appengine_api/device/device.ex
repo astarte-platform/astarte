@@ -660,7 +660,7 @@ defmodule Astarte.AppEngine.API.Device do
       cond do
         # Check the explicit user defined limit to know if we have to reorder data
         opts.limit != nil and since_value == nil ->
-          {"ORDER BY endpoint_id DESC, path DESC, value_timestamp DESC LIMIT :limit_nrows",
+          {"ORDER BY value_timestamp DESC LIMIT :limit_nrows",
            query_limit}
 
         query_limit != nil ->
