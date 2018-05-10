@@ -164,8 +164,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @insert_timestamp_test_value """
-  INSERT INTO individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, longinteger_value)
-    VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/test/:ind/v', :value_timestamp, :reception_timestamp, :num) ;
+  INSERT INTO individual_datastream (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, longinteger_value)
+    VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/test/:ind/v', :value_timestamp, :reception_timestamp, 0, :num) ;
   """
 
   @list_endpoints_by_interface """
