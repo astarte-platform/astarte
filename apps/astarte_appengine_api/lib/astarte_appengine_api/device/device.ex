@@ -660,7 +660,7 @@ defmodule Astarte.AppEngine.API.Device do
       cond do
         # Check the explicit user defined limit to know if we have to reorder data
         opts.limit != nil and since_value == nil ->
-          {"ORDER BY value_timestamp DESC LIMIT :limit_nrows",
+          {"ORDER BY value_timestamp DESC, reception_timestamp DESC, reception_timestamp_submillis DESC LIMIT :limit_nrows",
            query_limit}
 
         query_limit != nil ->
@@ -699,10 +699,10 @@ defmodule Astarte.AppEngine.API.Device do
       } #{to_statement} #{limit_statement}"
 
     {
-      "SELECT value_timestamp, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{
+      "SELECT value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{
         table_name
       } #{where_clause}",
-      "SELECT count(value_timestamp) FROM #{table_name} #{where_clause}",
+      "SELECT count(value_timestamp, reception_timestamp, reception_timestamp_submillis) FROM #{table_name} #{where_clause}",
       query
     }
   end
@@ -1030,7 +1030,7 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     values_array =
       for value <- values do
-        [{:value_timestamp, tstamp}, {_, v}] = value
+        [{:value_timestamp, tstamp}, _, _, {_, v}] = value
 
         %{
           "timestamp" =>
@@ -1069,7 +1069,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     values_array =
       for value <- values do
-        [{:value_timestamp, tstamp}, {_, v}] = value
+        [{:value_timestamp, tstamp}, _, _, {_, v}] = value
 
         [
           db_value_to_json_friendly_value(tstamp, :datetime, []),
@@ -1105,7 +1105,7 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     values_array =
       for value <- values do
-        [{:value_timestamp, tstamp}, {_, v}] = value
+        [{:value_timestamp, tstamp}, _, _, {_, v}] = value
 
         [
           db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), []),
