@@ -20,6 +20,9 @@
 defmodule Astarte.Housekeeping.Supervisor do
   use Supervisor
 
+  alias Astarte.RPC.Protocol.Housekeeping
+  alias Astarte.Housekeeping.RPC.Handler
+
   def start_link do
     Supervisor.start_link(__MODULE__, [])
   end
@@ -27,7 +30,7 @@ defmodule Astarte.Housekeeping.Supervisor do
   def init(_) do
     children = [
       worker(Astarte.Housekeeping.Engine, []),
-      worker(Astarte.Housekeeping.RPC.AMQPServer, [])
+      worker(Astarte.RPC.AMQP.Server, [[amqp_queue: Housekeeping.amqp_queue(), handler: Handler]])
     ]
 
     supervise(children, strategy: :one_for_one)
