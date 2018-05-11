@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.API.Realms do
   The boundary for the Realms system.
   """
 
-  alias Astarte.Housekeeping.API.Realms.RPC.AMQPClient
+  alias Astarte.Housekeeping.API.Realms.RPC.Housekeeping
   alias Astarte.Housekeeping.API.Realms.Realm
 
   @doc """
@@ -35,7 +35,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   """
   def list_realms do
-    AMQPClient.list_realms()
+    Housekeeping.list_realms()
   end
 
   @doc """
@@ -48,7 +48,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   """
   def get_realm(realm_name) do
-    AMQPClient.get_realm(realm_name)
+    Housekeeping.get_realm(realm_name)
   end
 
   @doc """
@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
     if changeset.valid? do
       realm = Ecto.Changeset.apply_changes(changeset)
-      case AMQPClient.create_realm(realm) do
+      case Housekeeping.create_realm(realm) do
         :ok -> {:ok, realm}
 
         {:ok, :started} -> {:ok, realm}

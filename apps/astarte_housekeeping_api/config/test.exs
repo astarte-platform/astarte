@@ -35,3 +35,5 @@ config :astarte_housekeeping_api, :jwt_public_key_pem,
   OwIDAQAB
   -----END PUBLIC KEY-----
   """
+
+config :astarte_housekeeping_api, :rpc_client, Astarte.Housekeeping.Mock

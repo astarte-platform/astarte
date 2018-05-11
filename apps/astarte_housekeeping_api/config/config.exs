@@ -22,9 +22,6 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-config :astarte_rpc, :amqp_queue,
-  "housekeeping_rpc"
-
 config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.AuthGuardian,
   allowed_algos: [
     "ES256",

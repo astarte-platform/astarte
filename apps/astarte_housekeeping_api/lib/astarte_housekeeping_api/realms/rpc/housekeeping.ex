@@ -14,19 +14,33 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
-  use Astarte.RPC.AMQPClient
-
-  use Astarte.RPC.Protocol.Housekeeping
+defmodule Astarte.Housekeeping.API.Realms.RPC.Housekeeping do
+  alias Astarte.RPC.Protocol.Housekeeping.{
+    Call,
+    CreateRealm,
+    DoesRealmExist,
+    DoesRealmExistReply,
+    GenericErrorReply,
+    GenericOkReply,
+    GetRealm,
+    GetRealmReply,
+    GetRealmsList,
+    GetRealmsListReply,
+    Reply
+  }
+  alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Realms.Realm
+
+  @rpc_client Config.rpc_client()
+  @destination Astarte.RPC.Protocol.Housekeeping.amqp_queue()
 
   def create_realm(%Realm{realm_name: realm_name, jwt_public_key_pem: pem}) do
     %CreateRealm{realm: realm_name, async_operation: true, jwt_public_key_pem: pem}
     |> encode_call(:create_realm)
-    |> rpc_call()
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -34,7 +48,7 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   def list_realms do
     %GetRealmsList{}
     |> encode_call(:get_realms_list)
-    |> rpc_call()
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -42,7 +56,7 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   def get_realm(realm_name) do
     %GetRealm{realm_name: realm_name}
     |> encode_call(:get_realm)
-    |> rpc_call()
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -50,7 +64,7 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.AMQPClient do
   def realm_exists?(realm_name) do
     %DoesRealmExist{realm: realm_name}
     |> encode_call(:does_realm_exist)
-    |> rpc_call()
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
