@@ -120,12 +120,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def prepare_get_individual_datastream_statement(
-         value_type,
-         metadata,
-         table_name,
-         :multi_interface_individual_datastream_dbtable,
-         opts
-       ) do
+        value_type,
+        metadata,
+        table_name,
+        :multi_interface_individual_datastream_dbtable,
+        opts
+      ) do
     metadata_column =
       if metadata do
         ",metadata"
@@ -205,6 +205,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       } #{where_clause}",
       query
     }
+  end
+
+  def retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id) do
+    all_paths_statement = """
+      SELECT path
+      FROM individual_property
+      WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id
+    """
+
+    all_paths_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(all_paths_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+    DatabaseQuery.call!(client, all_paths_query)
   end
 
   # TODO Copy&pasted from data updater plant, make it a library

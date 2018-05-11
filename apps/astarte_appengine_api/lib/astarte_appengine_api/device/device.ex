@@ -537,20 +537,78 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         _client,
-         _device_id,
+         client,
+         device_id,
          :individual,
          :datastream,
-         _interface_row,
-         _endpoint_id,
-         _endpoint_row,
+         interface_row,
+         endpoint_id,
+         endpoint_row,
          "/",
-         _opts
+         opts
        ) do
-    # TODO: Swagger specification says that last value for each path sould be returned, we cannot implement this right now.
-    # it is required to use individual_property table to store available path, then we should iterate on all of them and report
-    # most recent value.
-    raise "TODO"
+    path = "/"
+
+    interface_id = interface_row[:interface_id]
+
+    values =
+      Queries.retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id)
+      |> Enum.reduce(%{}, fn row, values_map ->
+        if String.starts_with?(row[:path], path) do
+          [{:path, row_path}] = row
+
+          simplified_path = simplify_path(path, row_path)
+
+          {values_query_statement, count_query_statement, q_params} =
+            Queries.prepare_get_individual_datastream_statement(
+              ValueType.from_int(endpoint_row[:value_type]),
+              false,
+              interface_row[:storage],
+              StorageType.from_int(interface_row[:storage_type]),
+              %{opts | limit: 1}
+            )
+
+          values_query =
+            DatabaseQuery.new()
+            |> DatabaseQuery.statement(values_query_statement)
+            |> DatabaseQuery.put(:device_id, device_id)
+            |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+            |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+            |> DatabaseQuery.put(:path, row_path)
+            |> DatabaseQuery.merge(q_params)
+
+          [{:value_timestamp, tstamp}, {:reception_timestamp, reception}, _, {_, v}] =
+            DatabaseQuery.call!(client, values_query)
+            |> DatabaseResult.head()
+
+          nice_value =
+            db_value_to_json_friendly_value(
+              v,
+              ValueType.from_int(endpoint_row[:value_type]),
+              allow_bigintegers: true
+            )
+
+          Map.put(values_map, simplified_path, %{
+            "value" => nice_value,
+            "timestamp" =>
+              db_value_to_json_friendly_value(
+                tstamp,
+                :datetime,
+                keep_milliseconds: opts.keep_milliseconds
+              ),
+            "reception_timestamp" =>
+              db_value_to_json_friendly_value(
+                reception,
+                :datetime,
+                keep_milliseconds: opts.keep_milliseconds
+              )
+          })
+        else
+          values_map
+        end
+      end)
+
+    values
   end
 
   defp retrieve_endpoint_values(
