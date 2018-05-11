@@ -17,10 +17,23 @@
 # Copyright (C) 2017 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.AMQPServerTest do
+defmodule Astarte.Housekeeping.RPC.HandlerTest do
   use ExUnit.Case
-  alias Astarte.Housekeeping.RPC.AMQPServer
-  use Astarte.RPC.Protocol.Housekeeping
+  alias Astarte.RPC.Protocol.Housekeeping.{
+    Call,
+    CreateRealm,
+    DoesRealmExist,
+    DoesRealmExistReply,
+    GenericErrorReply,
+    GenericOkReply,
+    GetRealm,
+    GetRealmReply,
+    GetRealmsList,
+    GetRealmsListReply,
+    Reply
+  }
+
+  alias Astarte.Housekeeping.RPC.Handler
 
   @invalid_test_realm "not~valid"
   @not_existing_realm "nonexistingrealm"
@@ -57,7 +70,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       Call.new()
       |> Call.encode()
 
-    assert AMQPServer.process_rpc(encoded) == {:error, :empty_call}
+    assert Handler.handle_rpc(encoded) == {:error, :empty_call}
   end
 
   test "CreateRealm call with nil realm" do
@@ -67,7 +80,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     expected = generic_error("empty_name", "empty realm name")
 
-    {:ok, reply} = AMQPServer.process_rpc(encoded)
+    {:ok, reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(reply) == generic_error("empty_name", "empty realm name")
   end
@@ -79,7 +92,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     expected = generic_error("empty_public_key", "empty jwt public key pem")
 
-    {:ok, reply} = AMQPServer.process_rpc(encoded)
+    {:ok, reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(reply) == expected
   end
@@ -93,7 +106,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       )
       |> Call.encode()
 
-    {:ok, reply} = AMQPServer.process_rpc(encoded)
+    {:ok, reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(reply) == generic_error("realm_not_allowed")
   end
@@ -107,7 +120,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       )
       |> Call.encode()
 
-    {:ok, create_reply} = AMQPServer.process_rpc(encoded)
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(create_reply) == generic_ok()
 
@@ -117,7 +130,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}}}
 
-    {:ok, exists_reply} = AMQPServer.process_rpc(encoded)
+    {:ok, exists_reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(exists_reply) == expected
   end
@@ -129,7 +142,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
 
     expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: false}}}
 
-    {:ok, enc_reply} = AMQPServer.process_rpc(encoded)
+    {:ok, enc_reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(enc_reply) == expected
   end
@@ -139,7 +152,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       %Call{call: {:get_realms_list, %GetRealmsList{}}}
       |> Call.encode()
 
-    {:ok, list_reply} = AMQPServer.process_rpc(encoded)
+    {:ok, list_reply} = Handler.handle_rpc(encoded)
 
     assert match?(
              %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: names}}},
@@ -157,7 +170,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       )
       |> Call.encode()
 
-    {:ok, create_reply} = AMQPServer.process_rpc(encoded)
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(create_reply) == generic_ok()
 
@@ -165,7 +178,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       %Call{call: {:get_realm, %GetRealm{realm_name: @another_test_realm}}}
       |> Call.encode()
 
-    {:ok, reply} = AMQPServer.process_rpc(encoded)
+    {:ok, reply} = Handler.handle_rpc(encoded)
 
     expected = %Reply{
       reply:
@@ -181,7 +194,7 @@ defmodule Astarte.Housekeeping.AMQPServerTest do
       %Call{call: {:get_realm, %GetRealm{realm_name: @not_existing_realm}}}
       |> Call.encode()
 
-    {:ok, reply} = AMQPServer.process_rpc(encoded)
+    {:ok, reply} = Handler.handle_rpc(encoded)
 
     expected = generic_error("realm_not_found")
 

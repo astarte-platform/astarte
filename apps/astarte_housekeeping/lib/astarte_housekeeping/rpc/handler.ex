@@ -14,14 +14,29 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.RPC.AMQPServer do
-  use Astarte.RPC.AMQPServer
-  use Astarte.RPC.Protocol.Housekeeping
+defmodule Astarte.Housekeeping.RPC.Handler do
+  @behaviour Astarte.RPC.Handler
 
-  def process_rpc(payload) do
+  alias Astarte.RPC.Protocol.Housekeeping.{
+    Call,
+    CreateRealm,
+    DoesRealmExist,
+    DoesRealmExistReply,
+    GenericErrorReply,
+    GenericOkReply,
+    GetRealm,
+    GetRealmReply,
+    GetRealmsList,
+    GetRealmsListReply,
+    Reply
+  }
+
+  require Logger
+
+  def handle_rpc(payload) do
     with {:ok, call_tuple} <- extract_call_tuple(Call.decode(payload)) do
       call_rpc(call_tuple)
     end
