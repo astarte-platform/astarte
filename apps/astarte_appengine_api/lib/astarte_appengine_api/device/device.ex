@@ -285,14 +285,8 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(client, device_id, :individual, interface_row, opts) do
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT value_type, endpoint_id FROM endpoints WHERE interface_id=:interface_id"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-
-    endpoint_rows = DatabaseQuery.call!(client, endpoint_query)
+    endpoint_rows =
+      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
 
     values_map =
       Enum.reduce(endpoint_rows, %{}, fn endpoint_row, values ->

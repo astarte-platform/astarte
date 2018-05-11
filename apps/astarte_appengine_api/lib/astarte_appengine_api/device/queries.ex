@@ -98,6 +98,21 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
+  def retrieve_all_endpoint_ids_for_interface!(client, interface_id) do
+    endpoints_with_type_statement = """
+    SELECT value_type, endpoint_id
+    FROM endpoints
+    WHERE interface_id=:interface_id
+    """
+
+    endpoint_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(endpoints_with_type_statement)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+
+    DatabaseQuery.call!(client, endpoint_query)
+  end
+
   def prepare_get_property_statement(
         value_type,
         metadata,
