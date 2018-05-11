@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.APIWeb.ConnCase do
@@ -46,7 +46,6 @@ defmodule Astarte.Housekeeping.APIWeb.ConnCase do
   end
 
   setup_all do
-    Astarte.Housekeeping.Mock.start_link()
     Astarte.Housekeeping.Mock.DB.start_link()
     :ok
   end
