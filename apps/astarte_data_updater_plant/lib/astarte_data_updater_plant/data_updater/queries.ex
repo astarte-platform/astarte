@@ -251,6 +251,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
+  def insert_path_into_db(
+        db_client,
+        device_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
+          interface_descriptor,
+        endpoint,
+        path,
+        value,
+        value_timestamp,
+        reception_timestamp
+      ) do
+    property_table = String.replace(interface_descriptor.storage, "datastream", "property")
+
+    # TODO: use received value_timestamp when needed
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(
+        "INSERT INTO #{property_table} " <>
+          "(device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis, #{
+            CQLUtils.type_to_db_column_name(endpoint.value_type)
+          }) " <>
+          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp, :reception_timestamp_submillis, :value);"
+      )
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
+      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
+  end
+
+  def insert_path_into_db(
+        _db_client,
+        _device_id,
+        %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
+        _endpoint,
+        _path,
+        _value,
+        _value_timestamp,
+        _reception_timestamp
+      ) do
+    :ok
+  end
+
   def delete_property_from_db(state, db_client, interface_descriptor, endpoint_id, path) do
     delete_query =
       DatabaseQuery.new()
