@@ -35,4 +35,11 @@ defmodule Astarte.Housekeeping.API.Config do
   def authentication_disabled? do
     Application.get_env(:astarte_housekeeping_api, :disable_authentication, false)
   end
+
+  @doc """
+  Returns the RPC client module
+  """
+  def rpc_client do
+    Application.get_env(:astarte_housekeeping_api, :rpc_client, Astarte.RPC.AMQP.Client)
+  end
 end
