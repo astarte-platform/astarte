@@ -117,12 +117,14 @@ defmodule Astarte.RealmManagement.Queries do
   @create_interface_table_with_object_aggregation """
     CREATE TABLE :interface_name (
       device_id uuid,
+      path varchar,
+
       :value_timestamp,
       reception_timestamp timestamp,
       reception_timestamp_submillis smallint,
       :columns,
 
-      PRIMARY KEY(device_id, :key_timestamp reception_timestamp, reception_timestamp_submillis)
+      PRIMARY KEY((device_id, path), :key_timestamp reception_timestamp, reception_timestamp_submillis)
     )
   """
 
