@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
   alias Astarte.AppEngine.API.Rooms.WatchRequest
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
-  alias Astarte.AppEngine.API.RPC.VolatileTrigger
+  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
   alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.APIWeb.Endpoint

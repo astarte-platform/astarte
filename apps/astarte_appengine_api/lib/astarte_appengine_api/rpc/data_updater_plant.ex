@@ -22,12 +22,22 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
   This module sends RPC to DataUpdaterPlant
   """
 
-  use Astarte.RPC.Protocol.DataUpdaterPlant
+  alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
+
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.{
+    Call,
+    DeleteVolatileTrigger,
+    GenericErrorReply,
+    GenericOkReply,
+    InstallVolatileTrigger,
+    Reply
+  }
 
   alias Astarte.AppEngine.API.Config
-  alias Astarte.AppEngine.API.RPC.VolatileTrigger
+  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
 
   @rpc_client Config.rpc_client()
+  @destination Protocol.amqp_queue()
 
   def install_volatile_trigger(realm_name, device_id, %VolatileTrigger{} = volatile_trigger) do
     %VolatileTrigger{
@@ -50,7 +60,7 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
       trigger_target: serialized_trigger_target
     }
     |> encode_call(:install_volatile_trigger)
-    |> @rpc_client.rpc_call()
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -62,7 +72,7 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
       trigger_id: trigger_id
     }
     |> encode_call(:delete_volatile_trigger)
-    |> @rpc_client.rpc_call()
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end

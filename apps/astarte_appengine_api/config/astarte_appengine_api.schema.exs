@@ -61,42 +61,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_appengine_api.max_results_limit"
     ],
-    "astarte_appengine_api.mqtt_options.username": [
-      commented: true,
-      datatype: :binary,
-      default: "test",
-      env_var: "APPENGINE_API_MQTT_USERNAME",
-      doc: "Provide documentation for astarte_appengine_api.mqtt_options.username here.",
-      hidden: false,
-      to: "astarte_appengine_api.mqtt_options.username"
-    ],
-    "astarte_appengine_api.mqtt_options.password": [
-      commented: true,
-      datatype: :binary,
-      default: "test",
-      env_var: "APPENGINE_API_MQTT_PASSWORD",
-      doc: "Provide documentation for astarte_appengine_api.mqtt_options.password here.",
-      hidden: false,
-      to: "astarte_appengine_api.mqtt_options.password"
-    ],
-    "astarte_appengine_api.mqtt_options.host": [
-      commented: true,
-      datatype: :binary,
-      default: "localhost",
-      env_var: "APPENGINE_API_MQTT_HOST",
-      doc: "Provide documentation for astarte_appengine_api.mqtt_options.host here.",
-      hidden: false,
-      to: "astarte_appengine_api.mqtt_options.host"
-    ],
-    "astarte_appengine_api.mqtt_options.port": [
-      commented: true,
-      datatype: :integer,
-      default: 1883,
-      env_var: "APPENGINE_API_MQTT_PORT",
-      doc: "Provide documentation for astarte_appengine_api.mqtt_options.port here.",
-      hidden: false,
-      to: "astarte_appengine_api.mqtt_options.port"
-    ],
     "port": [
       commented: true,
       datatype: :integer,

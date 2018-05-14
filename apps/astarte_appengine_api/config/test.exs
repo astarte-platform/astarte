@@ -12,12 +12,6 @@ config :cqerl,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
-config :astarte_appengine_api, :mqtt_options,
-  username: "autotest",
-  password: "autotest",
-  host: "localhost",
-  port: 1883
-
 config :astarte_rpc, :amqp_connection,
   host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 

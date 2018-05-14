@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.AppEngine.API.DataTransmitter do
@@ -22,7 +22,9 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   This module allows Astarte to push data to the devices
   """
 
-  alias Astarte.AppEngine.API.DataTransmitter.MQTTClient
+  alias Astarte.AppEngine.API.RPC.VMQPlugin
+
+  @property_qos 2
 
   @doc false
   defimpl Cyanide.Encoder, for: DateTime do
@@ -45,6 +47,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   def push_datastream(realm, device_id, interface, path, payload, opts \\ []) do
     timestamp = Keyword.get(opts, :timestamp)
     metadata = Keyword.get(opts, :metadata)
+    qos = Keyword.get(opts, :qos, 0)
 
     bson_payload =
       make_payload_map(payload, timestamp, metadata)
@@ -52,7 +55,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     topic = make_topic(realm, device_id, interface, path)
 
-    MQTTClient.publish(topic, bson_payload)
+    VMQPlugin.publish(topic, bson_payload, qos)
   end
 
   @doc """
@@ -73,7 +76,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     topic = make_topic(realm, device_id, interface, path)
 
-    MQTTClient.publish(topic, bson_payload)
+    VMQPlugin.publish(topic, bson_payload, @property_qos)
   end
 
   @doc """
@@ -82,7 +85,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   def unset_property(realm, device_id, interface, path) do
     topic = make_topic(realm, device_id, interface, path)
 
-    MQTTClient.publish(topic, "")
+    VMQPlugin.publish(topic, "", @property_qos)
   end
 
   defp make_payload_map(payload, nil, nil) do

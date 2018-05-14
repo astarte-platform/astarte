@@ -17,10 +17,14 @@
 # Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.API.RPC.AMQPClient do
-  @moduledoc """
-  This module delivers RPC calls via AMQP
-  """
-  # TODO: this will be replaced by a generic Astarte.RPC.AMQPClient
-  use Astarte.RPC.AMQPClient
+defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger do
+  @enforce_keys [
+    :object_id,
+    :object_type,
+    :serialized_simple_trigger,
+    :parent_id,
+    :simple_trigger_id,
+    :serialized_trigger_target
+  ]
+  defstruct @enforce_keys
 end
