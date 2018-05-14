@@ -74,40 +74,40 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
   @insert_log_line0_device_a """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
-      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '2010-02-04 04:05+0000', 0, 'test', '2010-02-03 04:05+0000', 9123456789012345678, 'com.test', 5, '/bin/test')
+      (device_id, path, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '/', '2010-02-04 04:05+0000', 0, 'test', '2010-02-03 04:05+0000', 9123456789012345678, 'com.test', 5, '/bin/test')
   """
 
   @insert_log_line1_device_a """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
-      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '2012-02-04 04:06+0000', 0, 'testです', '2012-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
+      (device_id, path, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '/', '2012-02-04 04:06+0000', 0, 'testです', '2012-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
   @insert_log_line0_device_b """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
-      VALUES (536be249-bbbb-4e02-9583-5a4833cbfe49, '2012-02-03 04:06+0000', 0, 'testです', '2010-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
+      (device_id, path, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      VALUES (536be249-bbbb-4e02-9583-5a4833cbfe49, '/', '2012-02-03 04:06+0000', 0, 'testです', '2010-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
   @count_log_entries_for_device_a """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49;
+    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_b """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49;
+    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_c """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49;
+    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @a_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND reception_timestamp > '2011-02-03 04:05+0000';
+    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp > '2011-02-03 04:05+0000';
   """
 
   @an_older_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND reception_timestamp <= '2011-02-03 04:05+0000';
+    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp <= '2011-02-03 04:05+0000';
   """
 
   @individual_property_device_owned_interface """
@@ -312,6 +312,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
                  [
                    device_id:
                      <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
+                   path: "/",
                    reception_timestamp: 1_328_328_360_000,
                    reception_timestamp_submillis: 0,
                    applicationid: "this.is.a.bit.longer.string",
@@ -331,6 +332,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
                  [
                    device_id:
                      <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
+                   path: "/",
                    reception_timestamp: 1_265_256_300_000,
                    reception_timestamp_submillis: 0,
                    applicationid: "com.test",
