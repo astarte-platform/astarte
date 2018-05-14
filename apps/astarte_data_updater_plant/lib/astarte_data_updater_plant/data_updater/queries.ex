@@ -202,10 +202,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # FIXME: new atoms are created here, we should avoid this. We need to fix our BSON decoder before, and to understand better CQEx code.
     column_atoms =
       Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
-        [endpoint_name] =
+        endpoint_name =
           endpoint[:endpoint]
           |> String.split("/")
-          |> tl()
+          |> List.last()
 
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
 
