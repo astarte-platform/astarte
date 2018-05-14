@@ -23,8 +23,3 @@ config :phoenix, :stacktrace_depth, 20
 config :cqerl,
   cassandra_nodes: [{System.get_env("CASSANDRA_DB_HOST"), System.get_env("CASSANDRA_DB_PORT")}]
 
-config :astarte_appengine_api, :mqtt_options,
-  username: "test",
-  password: "test",
-  host: "localhost",
-  port: 1883
