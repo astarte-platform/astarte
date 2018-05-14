@@ -17,7 +17,7 @@
 # Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.API.RPC.VolatileTrigger do
+defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger do
   @enforce_keys [
     :object_id,
     :object_type,

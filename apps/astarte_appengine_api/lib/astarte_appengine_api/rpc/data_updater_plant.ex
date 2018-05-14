@@ -34,7 +34,7 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
   }
 
   alias Astarte.AppEngine.API.Config
-  alias Astarte.AppEngine.API.RPC.VolatileTrigger
+  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
 
   @rpc_client Config.rpc_client()
   @destination Protocol.amqp_queue()
