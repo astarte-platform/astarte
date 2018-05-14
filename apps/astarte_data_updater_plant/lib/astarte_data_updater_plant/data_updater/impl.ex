@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
-  use GenServer
   alias AMQP.Basic
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
