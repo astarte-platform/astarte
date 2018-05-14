@@ -80,9 +80,9 @@ defmodule Astarte.AppEngine.API.Config do
   end
 
   @doc """
-  Returns the RPC client, defaulting to AMQPClient. Used for Mox during testing.
+  Returns the RPC client, defaulting to AMQP.Client. Used for Mox during testing.
   """
   def rpc_client do
-    Application.get_env(:astarte_appengine_api, :rpc_client, Astarte.AppEngine.API.RPC.AMQPClient)
+    Application.get_env(:astarte_appengine_api, :rpc_client, Astarte.RPC.AMQP.Client)
   end
 end
