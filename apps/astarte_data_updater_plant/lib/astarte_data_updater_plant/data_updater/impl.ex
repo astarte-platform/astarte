@@ -329,6 +329,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
       end
 
+      cond do
+        interface_descriptor.type == :datastream and value != nil ->
+          insert_result =
+            Queries.insert_path_into_db(
+              db_client,
+              new_state.device_id,
+              interface_descriptor,
+              endpoint,
+              path,
+              value,
+              value_timestamp,
+              timestamp
+            )
+
+          :ok = insert_result
+
+        interface_descriptor.type == :datastream ->
+          warn(new_state, "tried to unset a datastream")
+          MessageTracker.discard(new_state.message_tracker, message_id)
+          raise "Unsupported"
+
+        true ->
+          :ok
+      end
+
       # TODO: handle insert failures here
       insert_result =
         Queries.insert_value_into_db(
