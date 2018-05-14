@@ -184,7 +184,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint,
-        _path,
+        path,
         value,
         value_timestamp,
         reception_timestamp
@@ -237,10 +237,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     insert_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} (device_id, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
-          "VALUES (:device_id, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
+        "INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
+          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
       )
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, value_timestamp)
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))

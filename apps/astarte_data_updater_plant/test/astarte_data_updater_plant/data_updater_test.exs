@@ -441,7 +441,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     objects_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT * FROM com_example_testobject_v1 WHERE device_id=:device_id"
+        "SELECT * FROM com_example_testobject_v1 WHERE device_id=:device_id AND path='/'"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
 
@@ -452,6 +452,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert objects == [
              [
                device_id: device_id_uuid,
+               path: "/",
                reception_timestamp: 1_506_755_400_000,
                reception_timestamp_submillis: 0,
                string: "aaa",
@@ -459,6 +460,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              ],
              [
                device_id: device_id_uuid,
+               path: "/",
                reception_timestamp: 1_506_755_520_000,
                reception_timestamp_submillis: 0,
                string: "bbb",
@@ -466,6 +468,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              ],
              [
                device_id: device_id_uuid,
+               path: "/",
                reception_timestamp: 1_506_755_580_000,
                reception_timestamp_submillis: 0,
                string: "zzz",
@@ -473,6 +476,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              ],
              [
                device_id: device_id_uuid,
+               path: "/",
                reception_timestamp: 1_509_007_729_000,
                reception_timestamp_submillis: 0,
                string: "Astarteです",
@@ -480,6 +484,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              ],
              [
                device_id: device_id_uuid,
+               path: "/",
                reception_timestamp: 1_509_007_730_000,
                reception_timestamp_submillis: 0,
                string: "Hello World');",
@@ -487,6 +492,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              ],
              [
                device_id: device_id_uuid,
+               path: "/",
                reception_timestamp: 1_509_007_731_000,
                reception_timestamp_submillis: 0,
                string: nil,
@@ -494,6 +500,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              ],
              [
                device_id: device_id_uuid,
+               path: "/",
                reception_timestamp: 1_509_347_580_000,
                reception_timestamp_submillis: 0,
                string: nil,
