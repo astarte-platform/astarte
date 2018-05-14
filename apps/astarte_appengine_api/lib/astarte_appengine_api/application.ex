@@ -20,8 +20,6 @@
 defmodule Astarte.AppEngine.API.Application do
   use Application
 
-  alias Astarte.AppEngine.API.Config
-
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
@@ -29,7 +27,6 @@ defmodule Astarte.AppEngine.API.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
-      worker(Astarte.AppEngine.API.DataTransmitter.MQTTClient, [Config.mqtt_options()]),
       supervisor(Astarte.RPC.AMQP.Client, []),
       supervisor(Astarte.AppEngine.API.Rooms.MasterSupervisor, []),
       supervisor(Astarte.AppEngine.API.Rooms.AMQPClient, []),
