@@ -20,7 +20,19 @@
 defmodule Astarte.Housekeeping do
   use Application
 
+  alias Astarte.RPC.Protocol.Housekeeping, as: Protocol
+
+  alias Astarte.Housekeeping.Engine
+  alias Astarte.Housekeeping.RPC.Handler
+
   def start(_type, _args) do
-    Astarte.Housekeeping.Supervisor.start_link()
+    :ok = Engine.init()
+
+    children = [
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
+    ]
+
+    opts = [strategy: :one_for_one, name: Astarte.Housekeeping.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 end
