@@ -184,7 +184,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint,
-        _path,
+        path,
         value,
         value_timestamp,
         reception_timestamp
@@ -202,10 +202,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # FIXME: new atoms are created here, we should avoid this. We need to fix our BSON decoder before, and to understand better CQEx code.
     column_atoms =
       Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
-        [endpoint_name] =
+        endpoint_name =
           endpoint[:endpoint]
           |> String.split("/")
-          |> tl()
+          |> List.last()
 
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
 
@@ -237,10 +237,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     insert_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} (device_id, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
-          "VALUES (:device_id, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
+        "INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
+          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
       )
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, value_timestamp)
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
