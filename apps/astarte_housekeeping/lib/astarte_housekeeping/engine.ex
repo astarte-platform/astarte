@@ -14,76 +14,55 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.Engine do
   use GenServer
   require Logger
 
-  @timeout 20000
+  alias CQEx.Client, as: DatabaseClient
 
-  def start_link do
-    GenServer.start_link(__MODULE__, [], name: :astarte_housekeeping_engine)
-  end
+  alias Astarte.Housekeeping.Queries
 
-  def init(_opts) do
+  def init do
     client = CQEx.Client.new!()
 
-    unless Astarte.Housekeeping.Queries.astarte_keyspace_exists?(client) do
+    unless Queries.astarte_keyspace_exists?(client) do
       Logger.info("Astarte keyspace not found, creating it")
-      Astarte.Housekeeping.Queries.create_astarte_keyspace(client)
+      Queries.create_astarte_keyspace(client)
+    else
+      :ok
     end
-
-    {:ok, client}
   end
 
   def create_realm(realm, public_key_pem, opts \\ []) do
+    client = get_db_client()
+
     if opts[:async] do
-      GenServer.cast(:astarte_housekeeping_engine, {:create_realm, realm, public_key_pem})
+      {:ok, _pid} = Task.start(Queries, :create_realm, [client, realm, public_key_pem])
+      :ok
     else
-      GenServer.call(
-        :astarte_housekeeping_engine,
-        {:create_realm, realm, public_key_pem},
-        @timeout
-      )
+      Queries.create_realm(client, realm, public_key_pem)
     end
   end
 
+  def get_realm(realm) do
+    get_db_client()
+    |> Queries.get_realm(realm)
+  end
+
   def realm_exists?(realm) do
-    GenServer.call(:astarte_housekeeping_engine, {:realm_exists, realm})
+    get_db_client()
+    |> Queries.realm_exists?(realm)
   end
 
   def realms_list() do
-    GenServer.call(:astarte_housekeeping_engine, {:realms_list})
+    get_db_client()
+    |> Queries.realms_list()
   end
 
-  def get_realm(realm) do
-    GenServer.call(:astarte_housekeeping_engine, {:get_realm, realm})
-  end
-
-  def handle_cast({:create_realm, realm, public_key_pem}, client) do
-    Astarte.Housekeeping.Queries.create_realm(client, realm, public_key_pem)
-    {:noreply, client}
-  end
-
-  def handle_call({:create_realm, realm, public_key_pem}, _from, client) do
-    reply = Astarte.Housekeeping.Queries.create_realm(client, realm, public_key_pem)
-    {:reply, reply, client}
-  end
-
-  def handle_call({:realm_exists, realm}, _from, client) do
-    reply = Astarte.Housekeeping.Queries.realm_exists?(client, realm)
-    {:reply, reply, client}
-  end
-
-  def handle_call({:realms_list}, _from, client) do
-    reply = Astarte.Housekeeping.Queries.realms_list(client)
-    {:reply, reply, client}
-  end
-
-  def handle_call({:get_realm, realm}, _from, client) do
-    reply = Astarte.Housekeeping.Queries.get_realm(client, realm)
-    {:reply, reply, client}
+  defp get_db_client do
+    DatabaseClient.new!()
   end
 end
