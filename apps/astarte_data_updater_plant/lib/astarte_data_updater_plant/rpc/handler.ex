@@ -17,15 +17,23 @@
 # Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.DataUpdaterPlant.RPC.AMQPServer do
-  @moduledoc false
+defmodule Astarte.DataUpdaterPlant.RPC.Handler do
+  @behaviour Astarte.RPC.Handler
 
   alias Astarte.DataUpdaterPlant.DataUpdater
 
-  use Astarte.RPC.AMQPServer
-  use Astarte.RPC.Protocol.DataUpdaterPlant
+  alias Astarte.RPC.Protocol.DataUpdaterPlant.{
+    Call,
+    DeleteVolatileTrigger,
+    GenericErrorReply,
+    GenericOkReply,
+    InstallVolatileTrigger,
+    Reply
+  }
 
-  def process_rpc(payload) do
+  require Logger
+
+  def handle_rpc(payload) do
     with {:ok, call_tuple} <- extract_call_tuple(Call.decode(payload)) do
       call_rpc(call_tuple)
     end
