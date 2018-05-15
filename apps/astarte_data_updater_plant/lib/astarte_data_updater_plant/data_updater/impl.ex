@@ -31,6 +31,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   require Logger
@@ -607,10 +608,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_control(state, "/emptyCache", _payload, message_id, _timestamp) do
     Logger.debug("Received /emptyCache")
 
-    MessageTracker.discard(state.message_tracker, message_id)
-    # TODO: implement empty cache
+    new_state = resend_all_properties(state)
 
-    state
+    MessageTracker.ack_delivery(state.message_tracker, message_id)
+
+    new_state
   end
 
   def handle_control(state, path, payload, message_id, _timestamp) do
@@ -1122,6 +1124,73 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       :server ->
         {:error, :cannot_write_on_server_owned_interface}
+    end
+  end
+
+  defp each_interface_mapping(state, db_client, interface_descriptor, fun) do
+    Enum.each(state.mappings, fn {endpoint_id, mapping} ->
+      if mapping.interface_id == interface_descriptor.interface_id do
+        fun.(mapping)
+      end
+    end)
+
+    state
+  end
+
+  defp resend_all_properties(state) do
+    db_client = Queries.connect_to_db(state)
+
+    Logger.debug("resend_all_properties. device introspection: #{inspect(state.introspection)}")
+
+    Enum.each(state.introspection, fn {interface, _} ->
+      {:ok, interface_descriptor, new_state} =
+        maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
+
+      resend_all_interface_properties(new_state, db_client, interface_descriptor)
+    end)
+
+    state
+  end
+
+  defp resend_all_interface_properties(
+         state,
+         db_client,
+         %InterfaceDescriptor{type: :properties} = interface_descriptor
+       ) do
+    each_interface_mapping(state, db_client, interface_descriptor, fn mapping ->
+      device_id_string =
+        if state.extended_id do
+          state.extended_id
+        else
+          Device.encode_device_id(state.device_id)
+        end
+
+      Queries.retrieve_endpoint_values(db_client, state.device_id, interface_descriptor, mapping)
+      |> Enum.each(fn [{:path, path}, {_, value}] ->
+        {:ok, _} =
+          send_value(state.realm, device_id_string, interface_descriptor.name, path, value)
+      end)
+    end)
+  end
+
+  defp resend_all_interface_properties(_state, _db, %InterfaceDescriptor{type: :datastream} = _i) do
+    :ok
+  end
+
+  defp send_value(realm, device_id_string, interface_name, path, value) do
+    topic = "#{realm}/#{device_id_string}/#{interface_name}#{path}"
+    encapsulated_value = %{v: value}
+
+    bson_value = Bson.encode(encapsulated_value)
+
+    Logger.debug("send_value: going to publish #{topic} -> #{inspect(encapsulated_value)}.")
+
+    case VMQPlugin.publish(topic, bson_value, 2) do
+      :ok ->
+        {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
