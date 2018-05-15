@@ -26,7 +26,9 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
-  alias Astarte.DataUpdaterPlant.RPC.AMQPServer
+  alias Astarte.DataUpdaterPlant.RPC.Handler
+
+  alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
 
   def start(_type, _args) do
     # List all child processes to be supervised
@@ -35,7 +37,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
       AMQPDataConsumer,
       AMQPEventsProducer,
-      AMQPServer
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
     ]
 
     opts = [strategy: :rest_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
