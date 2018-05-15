@@ -37,7 +37,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
       AMQPDataConsumer,
       AMQPEventsProducer,
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
+      Astarte.RPC.AMQP.Client
     ]
 
     opts = [strategy: :rest_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
