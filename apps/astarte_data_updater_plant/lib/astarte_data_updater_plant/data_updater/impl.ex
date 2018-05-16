@@ -400,6 +400,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
+      {:error, :interface_loading_failed} ->
+        warn(new_state, "cannot load interface: #{interface}.")
+        # TODO: think about additional actions since the problem
+        # could be a missing interface in the DB
+        new_state = ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
+
       {:guessed, _guessed_endpoints} ->
         warn(new_state, "mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
         new_state = ask_clean_session(new_state)
