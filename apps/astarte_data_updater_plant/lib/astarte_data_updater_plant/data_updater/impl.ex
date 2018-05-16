@@ -400,6 +400,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
+      {:error, :interface_loading_failed} ->
+        warn(new_state, "cannot load interface: #{interface}.")
+        # TODO: think about additional actions since the problem
+        # could be a missing interface in the DB
+        new_state = ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
+
       {:guessed, _guessed_endpoints} ->
         warn(new_state, "mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
         new_state = ask_clean_session(new_state)
@@ -550,7 +558,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    operation_result = prune_device_properties(new_state, "", message_id)
+    operation_result = prune_device_properties(new_state, "")
 
     if operation_result != :ok do
       Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
@@ -579,7 +587,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     decoded_payload = PayloadsDecoder.safe_inflate(zlib_payload)
 
     if decoded_payload != :error do
-      operation_result = prune_device_properties(new_state, decoded_payload, message_id)
+      operation_result = prune_device_properties(new_state, decoded_payload)
 
       if operation_result != :ok do
         Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
@@ -744,119 +752,151 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
-    major_version = Queries.interface_version!(db_client, state.device_id, interface_name)
-    interface_row = Queries.retrieve_interface_row!(db_client, interface_name, major_version)
+    with {:ok, major_version} <-
+           Queries.interface_version(db_client, state.device_id, interface_name),
+         {:ok, interface_row} <-
+           Queries.retrieve_interface_row(db_client, interface_name, major_version),
+         %InterfaceDescriptor{} = interface_descriptor <-
+           InterfaceDescriptor.from_db_result!(interface_row),
+         {:ok, mappings} <-
+           Queries.retrieve_interface_mappings(db_client, interface_descriptor.interface_id),
+         new_interfaces_by_expiry <-
+           state.interfaces_by_expiry ++
+             [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],
+         new_state <- %State{
+           state
+           | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
+             interface_ids_to_name:
+               Map.put(
+                 state.interface_ids_to_name,
+                 interface_descriptor.interface_id,
+                 interface_name
+               ),
+             interfaces_by_expiry: new_interfaces_by_expiry,
+             mappings: Map.merge(state.mappings, mappings)
+         },
+         new_state <-
+           populate_triggers_for_object!(
+             new_state,
+             db_client,
+             interface_descriptor.interface_id,
+             :interface
+           ) do
+      # TODO: make everything with-friendly
+      {:ok, interface_descriptor, new_state}
+    else
+      # Known errors. TODO: handle specific cases (e.g. ask for new introspection etc.)
+      {:error, :interface_not_in_introspection} ->
+        {:error, :interface_loading_failed}
 
-    interface_descriptor = InterfaceDescriptor.from_db_result!(interface_row)
+      {:error, :device_not_found} ->
+        {:error, :interface_loading_failed}
 
-    mappings = Queries.retrieve_interface_mappings!(db_client, interface_descriptor.interface_id)
+      {:error, :db_error} ->
+        {:error, :interface_loading_failed}
 
-    new_interfaces_by_expiry =
-      state.interfaces_by_expiry ++
-        [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}]
+      {:error, :interface_not_found} ->
+        {:error, :interface_loading_failed}
 
-    new_state = %State{
-      state
-      | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
-        interface_ids_to_name:
-          Map.put(state.interface_ids_to_name, interface_descriptor.interface_id, interface_name),
-        interfaces_by_expiry: new_interfaces_by_expiry,
-        mappings: Map.merge(state.mappings, mappings)
-    }
-
-    new_state =
-      populate_triggers_for_object!(
-        new_state,
-        db_client,
-        interface_descriptor.interface_id,
-        :interface
-      )
-
-    {:ok, interface_descriptor, new_state}
+      other ->
+        Logger.warn("maybe_handle_cache_miss failed: #{inspect(other)}")
+        {:error, :interface_loading_failed}
+    end
   end
 
   defp maybe_handle_cache_miss(interface_descriptor, _interface_name, state, _db_client) do
     {:ok, interface_descriptor, state}
   end
 
-  defp prune_device_properties(state, decoded_payload, message_id) do
+  defp prune_device_properties(state, decoded_payload) do
     {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
     db_client = Queries.connect_to_db(state)
 
     Enum.each(state.introspection, fn {interface, _} ->
-      prune_interface(state, db_client, interface, paths_set, message_id)
+      # TODO: check result here
+      prune_interface(state, db_client, interface, paths_set)
     end)
 
     :ok
   end
 
-  defp prune_interface(state, db_client, interface, all_paths_set, message_id) do
-    {:ok, interface_descriptor, new_state} =
-      maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
+  defp prune_interface(state, db_client, interface, all_paths_set) do
+    with {:ok, interface_descriptor, new_state} <-
+           maybe_handle_cache_miss(
+             Map.get(state.interfaces, interface),
+             interface,
+             state,
+             db_client
+           ) do
+      cond do
+        interface_descriptor.type != :properties ->
+          # TODO: nobody uses new_state
+          {:ok, new_state}
 
-    cond do
-      interface_descriptor.type != :properties ->
-        {:ok, state}
+        interface_descriptor.ownership != :device ->
+          warn(state, "tried to write on server owned interface: #{interface}.")
+          {:error, :maybe_outdated_introspection}
 
-      interface_descriptor.ownership != :device ->
-        warn(state, "tried to write on server owned interface: #{interface}.")
-        {:error, :maybe_outdated_introspection}
+        true ->
+          do_prune(new_state, db_client, interface_descriptor, all_paths_set)
+          # TODO: nobody uses new_state
+          {:ok, new_state}
+      end
+    end
+  end
 
-      true ->
-        Enum.each(new_state.mappings, fn {endpoint_id, mapping} ->
-          if mapping.interface_id == interface_descriptor.interface_id do
-            Queries.query_all_endpoint_paths!(
+  defp do_prune(state, db_client, interface_descriptor, all_paths_set) do
+    Enum.each(state.mappings, fn {endpoint_id, mapping} ->
+      if mapping.interface_id == interface_descriptor.interface_id do
+        Queries.query_all_endpoint_paths!(
+          db_client,
+          state.device_id,
+          interface_descriptor,
+          endpoint_id
+        )
+        |> Enum.each(fn path_row ->
+          path = path_row[:path]
+
+          if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
+            device_id_string = Device.encode_device_id(state.device_id)
+
+            {:ok, endpoint_id} =
+              EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+
+            Queries.delete_property_from_db(
+              state,
               db_client,
-              state.device_id,
               interface_descriptor,
-              endpoint_id
+              endpoint_id,
+              path
             )
-            |> Enum.each(fn path_row ->
-              path = path_row[:path]
 
-              if not MapSet.member?(all_paths_set, {interface, path}) do
-                device_id_string = Device.encode_device_id(state.device_id)
+            path_removed_triggers =
+              get_on_data_triggers(
+                state,
+                :on_path_removed,
+                interface_descriptor.interface_id,
+                endpoint_id,
+                path
+              )
 
-                {:ok, endpoint_id} =
-                  EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
-
-                Queries.delete_property_from_db(
-                  new_state,
-                  db_client,
-                  interface_descriptor,
-                  endpoint_id,
-                  path
-                )
-
-                path_removed_triggers =
-                  get_on_data_triggers(
-                    new_state,
-                    :on_path_removed,
-                    interface_descriptor.interface_id,
-                    endpoint_id,
-                    path
-                  )
-
-                Enum.each(path_removed_triggers, fn trigger ->
-                  TriggersHandler.path_removed(
-                    trigger.trigger_targets,
-                    state.realm,
-                    device_id_string,
-                    interface_descriptor.name,
-                    path
-                  )
-                end)
-              end
+            Enum.each(path_removed_triggers, fn trigger ->
+              TriggersHandler.path_removed(
+                trigger.trigger_targets,
+                state.realm,
+                device_id_string,
+                interface_descriptor.name,
+                path
+              )
             end)
-          else
-            :ok
           end
         end)
-
-        {:ok, new_state}
-    end
+      else
+        :ok
+      end
+    end)
   end
 
   defp ask_clean_session(state) do

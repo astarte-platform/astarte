@@ -26,7 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
-  def retrieve_interface_mappings!(db_client, interface_id) do
+  def retrieve_interface_mappings(db_client, interface_id) do
     mappings_statement = """
     SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id, interface_id
     FROM endpoints
@@ -38,11 +38,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.statement(mappings_statement)
       |> DatabaseQuery.put(:interface_id, interface_id)
 
-    DatabaseQuery.call!(db_client, mappings_query)
-    |> Enum.reduce(%{}, fn endpoint_row, acc ->
-      mapping = Mapping.from_db_result!(endpoint_row)
-      Map.put(acc, mapping.endpoint_id, mapping)
-    end)
+    with {:ok, result} <- DatabaseQuery.call(db_client, mappings_query) do
+      mappings =
+        Enum.reduce(result, %{}, fn endpoint_row, acc ->
+          mapping = Mapping.from_db_result!(endpoint_row)
+          Map.put(acc, mapping.endpoint_id, mapping)
+        end)
+
+      {:ok, mappings}
+    else
+      {:error, reason} ->
+        Logger.warn("retrieve_interface_mappings: failed with reason #{inspect(reason)}")
+        {:error, :db_error}
+    end
   end
 
   def query_simple_triggers!(db_client, object_id, object_type_int) do
@@ -318,7 +326,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   # TODO: copied from AppEngine, make it an api
-  def retrieve_interface_row!(client, interface, major_version) do
+  def retrieve_interface_row(client, interface, major_version) do
     interface_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
@@ -328,57 +336,51 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:name, interface)
       |> DatabaseQuery.put(:major_version, major_version)
 
-    interface_row =
-      DatabaseQuery.call!(client, interface_query)
-      |> DatabaseResult.head()
+    with {:ok, result} <- DatabaseQuery.call(client, interface_query),
+         interface_row when is_list(interface_row) <- DatabaseResult.head(result) do
+      {:ok, interface_row}
+    else
+      :empty_dataset ->
+        {:error, :interface_not_found}
 
-    # if interface_row == :empty_dataset do
-    #  Logger.warn "Device.retrieve_interface_row: interface not found. This error here means that the device has an interface that is not installed."
-    #  raise InterfaceNotFoundError
-    # end
-
-    interface_row
+      {:error, reason} ->
+        Logger.warn("retrieve_interface_row: failed with reason #{inspect(reason)}")
+        {:error, :db_error}
+    end
   end
 
   # TODO: copied from AppEngine, make it an api
-  def interface_version!(client, device_id, interface) do
+  def interface_version(client, device_id, interface) do
     device_introspection_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, device_id)
 
-    device_row =
-      DatabaseQuery.call!(client, device_introspection_query)
-      |> DatabaseResult.head()
+    with {:ok, result} <- DatabaseQuery.call(client, device_introspection_query),
+         device_row when is_list(device_row) <- DatabaseResult.head(result),
+         introspection <- Keyword.get(device_row, :introspection, []),
+         {_interface_name, interface_major} <-
+           List.keyfind(introspection, interface, 0, :interface_not_found) do
+      {:ok, interface_major}
+    else
+      :empty_dataset ->
+        Logger.warn("interface_version: device not found #{inspect(device_id)}")
+        {:error, :device_not_found}
 
-    # if device_row == :empty_dataset do
-    #  raise DeviceNotFoundError
-    # end
-
-    introspection =
-      case device_row[:introspection] do
-        :null ->
-          []
-
-        nil ->
-          []
-
-        result ->
-          result
-      end
-
-    interface_tuple =
-      introspection
-      |> List.keyfind(interface, 0)
-
-    case interface_tuple do
-      {_interface_name, interface_major} ->
-        interface_major
-
-      nil ->
+      :interface_not_found ->
         # TODO: report device introspection here for debug purposes
-        # raise InterfaceNotFoundError
-        {:error, :interface_not_found}
+        Logger.warn(
+          "interface_version: interface #{inspect(interface)} not found in device #{
+            inspect(device_id)
+          } introspection"
+        )
+
+        {:error, :interface_not_in_introspection}
+
+      {:error, reason} ->
+        # DB Error
+        Logger.warn("interface_version: failed with reason #{inspect(reason)}")
+        {:error, :db_error}
     end
   end
 
