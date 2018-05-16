@@ -341,44 +341,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   # TODO: copied from AppEngine, make it an api
-  def interface_version!(client, device_id, interface) do
+  def interface_version(client, device_id, interface) do
     device_introspection_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id")
       |> DatabaseQuery.put(:device_id, device_id)
 
-    device_row =
-      DatabaseQuery.call!(client, device_introspection_query)
-      |> DatabaseResult.head()
+    with {:ok, result} <- DatabaseQuery.call(client, device_introspection_query),
+         device_row when is_list(device_row) <- DatabaseResult.head(result),
+         introspection <- Keyword.get(device_row, :introspection, []),
+         {_interface_name, interface_major} <-
+           List.keyfind(introspection, interface, 0, :interface_not_found) do
+      {:ok, interface_major}
+    else
+      :empty_dataset ->
+        Logger.warn("interface_version: device not found #{inspect(device_id)}")
+        {:error, :device_not_found}
 
-    # if device_row == :empty_dataset do
-    #  raise DeviceNotFoundError
-    # end
-
-    introspection =
-      case device_row[:introspection] do
-        :null ->
-          []
-
-        nil ->
-          []
-
-        result ->
-          result
-      end
-
-    interface_tuple =
-      introspection
-      |> List.keyfind(interface, 0)
-
-    case interface_tuple do
-      {_interface_name, interface_major} ->
-        interface_major
-
-      nil ->
+      :interface_not_found ->
         # TODO: report device introspection here for debug purposes
-        # raise InterfaceNotFoundError
-        {:error, :interface_not_found}
+        Logger.warn(
+          "interface_version: interface #{inspect(interface)} not found in device #{
+            inspect(device_id)
+          } introspection"
+        )
+
+        {:error, :interface_not_in_introspection}
+
+      {:error, reason} ->
+        # DB Error
+        Logger.warn("interface_version: failed with reason #{inspect(reason)}")
+        {:error, :db_error}
     end
   end
 
