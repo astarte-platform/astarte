@@ -326,7 +326,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   # TODO: copied from AppEngine, make it an api
-  def retrieve_interface_row!(client, interface, major_version) do
+  def retrieve_interface_row(client, interface, major_version) do
     interface_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
@@ -336,16 +336,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:name, interface)
       |> DatabaseQuery.put(:major_version, major_version)
 
-    interface_row =
-      DatabaseQuery.call!(client, interface_query)
-      |> DatabaseResult.head()
+    with {:ok, result} <- DatabaseQuery.call(client, interface_query),
+         interface_row when is_list(interface_row) <- DatabaseResult.head(result) do
+      {:ok, interface_row}
+    else
+      :empty_dataset ->
+        {:error, :interface_not_found}
 
-    # if interface_row == :empty_dataset do
-    #  Logger.warn "Device.retrieve_interface_row: interface not found. This error here means that the device has an interface that is not installed."
-    #  raise InterfaceNotFoundError
-    # end
-
-    interface_row
+      {:error, reason} ->
+        Logger.warn("retrieve_interface_row: failed with reason #{inspect(reason)}")
+        {:error, :db_error}
+    end
   end
 
   # TODO: copied from AppEngine, make it an api
