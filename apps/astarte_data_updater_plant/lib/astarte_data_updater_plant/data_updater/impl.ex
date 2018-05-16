@@ -744,35 +744,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
-    major_version = Queries.interface_version!(db_client, state.device_id, interface_name)
-    interface_row = Queries.retrieve_interface_row!(db_client, interface_name, major_version)
+    with {:ok, major_version} <-
+           Queries.interface_version(db_client, state.device_id, interface_name),
+         {:ok, interface_row} <-
+           Queries.retrieve_interface_row(db_client, interface_name, major_version),
+         %InterfaceDescriptor{} = interface_descriptor <-
+           InterfaceDescriptor.from_db_result!(interface_row),
+         {:ok, mappings} <-
+           Queries.retrieve_interface_mappings(db_client, interface_descriptor.interface_id),
+         new_interfaces_by_expiry <-
+           state.interfaces_by_expiry ++
+             [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],
+         new_state <- %State{
+           state
+           | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
+             interface_ids_to_name:
+               Map.put(
+                 state.interface_ids_to_name,
+                 interface_descriptor.interface_id,
+                 interface_name
+               ),
+             interfaces_by_expiry: new_interfaces_by_expiry,
+             mappings: Map.merge(state.mappings, mappings)
+         },
+         new_state <-
+           populate_triggers_for_object!(
+             new_state,
+             db_client,
+             interface_descriptor.interface_id,
+             :interface
+           ) do
+      # TODO: make everything with-friendly
+      {:ok, interface_descriptor, new_state}
+    else
+      # Known errors. TODO: handle specific cases (e.g. ask for new introspection etc.)
+      {:error, :interface_not_in_introspection} ->
+        {:error, :interface_loading_failed}
 
-    interface_descriptor = InterfaceDescriptor.from_db_result!(interface_row)
+      {:error, :device_not_found} ->
+        {:error, :interface_loading_failed}
 
-    mappings = Queries.retrieve_interface_mappings!(db_client, interface_descriptor.interface_id)
+      {:error, :db_error} ->
+        {:error, :interface_loading_failed}
 
-    new_interfaces_by_expiry =
-      state.interfaces_by_expiry ++
-        [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}]
+      {:error, :interface_not_found} ->
+        {:error, :interface_loading_failed}
 
-    new_state = %State{
-      state
-      | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
-        interface_ids_to_name:
-          Map.put(state.interface_ids_to_name, interface_descriptor.interface_id, interface_name),
-        interfaces_by_expiry: new_interfaces_by_expiry,
-        mappings: Map.merge(state.mappings, mappings)
-    }
-
-    new_state =
-      populate_triggers_for_object!(
-        new_state,
-        db_client,
-        interface_descriptor.interface_id,
-        :interface
-      )
-
-    {:ok, interface_descriptor, new_state}
+      other ->
+        Logger.warn("maybe_handle_cache_miss failed: #{inspect(other)}")
+        {:error, :interface_loading_failed}
+    end
   end
 
   defp maybe_handle_cache_miss(interface_descriptor, _interface_name, state, _db_client) do
