@@ -390,7 +390,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
-      {:error, :not_found} ->
+      {:error, :mapping_not_found} ->
         warn(
           new_state,
           "mapping not found for #{interface}#{path}. Maybe outdated introspection?"
@@ -1050,12 +1050,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp resolve_path(path, interface_descriptor, mappings) do
     case interface_descriptor.aggregation do
       :individual ->
-        {resolve_result, endpoint_id} =
-          EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+        with {:ok, endpoint_id} <-
+               EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
+             {:ok, endpoint} <- Map.fetch(mappings, endpoint_id) do
+          {:ok, endpoint}
+        else
+          :error ->
+            # Map.fetch failed
+            Logger.warn(
+              "resolve_path: endpoint_id for path #{inspect(path)} not found in mappings #{
+                inspect(mappings)
+              }"
+            )
 
-        endpoint = Map.get(mappings, endpoint_id)
+            {:error, :mapping_not_found}
 
-        {resolve_result, endpoint}
+          {:error, reason} ->
+            Logger.warn("EndpointsAutomaton.resolve_path failed with reason #{inspect(reason)}")
+            {:error, :mapping_not_found}
+        end
 
       :object ->
         {:ok, %Mapping{}}
