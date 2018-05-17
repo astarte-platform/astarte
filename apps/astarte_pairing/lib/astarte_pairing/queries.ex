@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Pairing.Queries do
@@ -29,8 +29,8 @@ defmodule Astarte.Pairing.Queries do
 
   @insert_new_device """
   INSERT INTO devices
-  (device_id, extended_id, inhibit_pairing, protocol_revision, total_received_bytes, total_received_msgs)
-  VALUES (:device_id, :extended_id, :inhibit_pairing, :protocol_revision, :total_received_bytes, :total_received_msgs)
+  (device_id, extended_id, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
+  VALUES (:device_id, :extended_id, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
   """
 
   @select_device """
@@ -39,15 +39,16 @@ defmodule Astarte.Pairing.Queries do
   WHERE device_id=:device_id
   """
 
-  @select_device_for_pairing """
-  SELECT extended_id, first_pairing, cert_aki, cert_serial
+  @select_device_for_credentials_request """
+  SELECT extended_id, first_credentials_request, cert_aki, cert_serial
   FROM devices
   WHERE device_id=:device_id
   """
 
-  @update_device_after_pairing """
+  @update_device_after_credentials_request """
   UPDATE devices
-  SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_pairing_ip=:last_pairing_ip, first_pairing=:first_pairing
+  SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_credentials_request_ip=:last_credentials_request_ip,
+    first_credentials_request=:first_credentials_request
   WHERE device_id=:device_id
   """
 
@@ -72,10 +73,10 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def select_device_for_pairing(client, device_uuid) do
+  def select_device_for_credentials_request(client, device_uuid) do
     device_query =
       Query.new()
-      |> Query.statement(@select_device_for_pairing)
+      |> Query.statement(@select_device_for_credentials_request)
       |> Query.put(:device_id, device_uuid)
 
     case Query.call(client, device_query) do
@@ -92,35 +93,35 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def update_device_after_pairing(client, device_uuid, cert_data, device_ip, :null) do
-    first_pairing_timestamp =
+  def update_device_after_credentials_request(client, device_uuid, cert_data, device_ip, :null) do
+    first_credentials_request_timestamp =
       DateTime.utc_now()
       |> DateTime.to_unix(:milliseconds)
 
-    update_device_after_pairing(
+    update_device_after_credentials_request(
       client,
       device_uuid,
       cert_data,
       device_ip,
-      first_pairing_timestamp
+      first_credentials_request_timestamp
     )
   end
 
-  def update_device_after_pairing(
+  def update_device_after_credentials_request(
         client,
         device_uuid,
         %{serial: serial, aki: aki} = _cert_data,
         device_ip,
-        first_pairing_timestamp
+        first_credentials_request_timestamp
       ) do
     query =
       Query.new()
-      |> Query.statement(@update_device_after_pairing)
+      |> Query.statement(@update_device_after_credentials_request)
       |> Query.put(:device_id, device_uuid)
       |> Query.put(:cert_aki, aki)
       |> Query.put(:cert_serial, serial)
-      |> Query.put(:last_pairing_ip, device_ip)
-      |> Query.put(:first_pairing, first_pairing_timestamp)
+      |> Query.put(:last_credentials_request_ip, device_ip)
+      |> Query.put(:first_credentials_request, first_credentials_request_timestamp)
 
     case Query.call(client, query) do
       {:ok, _res} ->
@@ -138,7 +139,7 @@ defmodule Astarte.Pairing.Queries do
       |> Query.statement(@insert_new_device)
       |> Query.put(:device_id, device_uuid)
       |> Query.put(:extended_id, extended_id)
-      |> Query.put(:inhibit_pairing, false)
+      |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)
       |> Query.put(:total_received_bytes, 0)
       |> Query.put(:total_received_msgs, 0)
