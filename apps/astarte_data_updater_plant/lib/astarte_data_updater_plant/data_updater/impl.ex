@@ -386,7 +386,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     else
       {:error, :cannot_write_on_server_owned_interface} ->
         warn(new_state, "tried to write on server owned interface: #{interface}.")
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
@@ -396,7 +396,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "mapping not found for #{interface}#{path}. Maybe outdated introspection?"
         )
 
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
@@ -404,19 +404,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         warn(new_state, "cannot load interface: #{interface}.")
         # TODO: think about additional actions since the problem
         # could be a missing interface in the DB
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:guessed, _guessed_endpoints} ->
         warn(new_state, "mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :undecodable_bson_payload} ->
         warn(state, "invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
     end
@@ -617,10 +617,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_control(state, path, payload, message_id, _timestamp) do
     warn(state, "unexpected control on #{path}, payload: #{inspect(payload)}")
 
-    new_state = ask_clean_session(state)
-    MessageTracker.discard(new_state.message_tracker, message_id)
+    ask_clean_session(state)
+    MessageTracker.discard(state.message_tracker, message_id)
 
-    update_stats(new_state, "", path, payload)
+    update_stats(state, "", path, payload)
   end
 
   def handle_install_volatile_trigger(
@@ -888,10 +888,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     else
       {:error, reason} ->
         warn(state, "disconnect failed due to error: #{inspect(reason)}")
-        #TODO: die gracefully here
+        # TODO: die gracefully here
+        {:error, :clean_session_failed}
     end
-
-    state
   end
 
   defp get_on_data_triggers(state, event, interface_id, endpoint_id) do
