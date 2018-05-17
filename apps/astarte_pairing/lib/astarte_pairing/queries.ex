@@ -40,7 +40,7 @@ defmodule Astarte.Pairing.Queries do
   """
 
   @select_device_for_credentials_request """
-  SELECT extended_id, first_credentials_request, cert_aki, cert_serial
+  SELECT extended_id, first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
   FROM devices
   WHERE device_id=:device_id
   """
@@ -78,19 +78,18 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def select_device_for_credentials_request(client, device_uuid) do
+  def select_device_for_credentials_request(client, device_id) do
     device_query =
       Query.new()
       |> Query.statement(@select_device_for_credentials_request)
-      |> Query.put(:device_id, device_uuid)
+      |> Query.put(:device_id, device_id)
 
-    case Query.call(client, device_query) do
-      {:ok, res} ->
-        if Enum.empty?(res) do
-          {:error, :device_not_found}
-        else
-          {:ok, Result.head(res)}
-        end
+    with {:ok, res} <- Query.call(client, device_query),
+         device_row when is_list(device_row) <- Result.head(res) do
+      {:ok, device_row}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
 
       error ->
         Logger.warn("DB error: #{inspect(error)}")
