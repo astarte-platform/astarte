@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Pairing do
@@ -23,13 +23,15 @@ defmodule Astarte.Pairing do
   use Application
 
   alias Astarte.Pairing.Config
-  alias Astarte.Pairing.RPC.AMQPServer
+  alias Astarte.Pairing.RPC.Handler
+
+  alias Astarte.RPC.Protocol.Pairing, as: Protocol
 
   def start(_type, _args) do
     Config.init!()
 
     children = [
-      AMQPServer
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
