@@ -883,7 +883,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp ask_clean_session(state) do
     warn(state, "disconnecting client and asking clean session.")
 
-    VMQPlugin.disconnect("/#{state.realm}/#{state.extended_id}", true)
+    with :ok <- VMQPlugin.disconnect("/#{state.realm}/#{state.extended_id}", true) do
+      :ok
+    else
+      {:error, reason} ->
+        warn(state, "disconnect failed due to error: #{inspect(reason)}")
+        #TODO: die gracefully here
+    end
 
     state
   end
