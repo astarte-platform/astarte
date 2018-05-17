@@ -23,34 +23,76 @@ defmodule Astarte.Pairing.Engine do
   """
 
   alias Astarte.Core.Device
-  alias Astarte.Pairing.APIKey
   alias Astarte.Pairing.CertVerifier
-  alias Astarte.Pairing.CFSSLPairing
+  alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
   alias CQEx.Client
 
+  require Logger
+
   @version Mix.Project.config()[:version]
 
-  def do_pairing(csr, api_key, device_ip) do
-    with {:ok, %{realm: realm, device_uuid: device_uuid}} <- APIKey.verify(api_key, "api_salt"),
+  def get_credentials(
+        :astarte_mqtt_v1,
+        %{csr: csr},
+        realm,
+        hardware_id,
+        credentials_secret,
+        device_ip
+      ) do
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
          {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
-         {:ok, device} <- Queries.select_device_for_pairing(client, device_uuid),
-         _ <- CFSSLPairing.revoke(device[:cert_serial], device[:cert_aki]),
+         {:ok, device_row} <- Queries.select_device_for_credentials_request(client, device_id),
+         {:authorized?, true} <-
+           {:authorized?,
+            CredentialsSecret.verify(credentials_secret, device_row[:credentials_secret])},
+         {:credentials_inhibited?, false} <-
+           {:credentials_inhibited?, device_row[:inhibit_credentials_request]},
+         _ <- CFSSLCredentials.revoke(device_row[:cert_serial], device_row[:cert_aki]),
          {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
-           CFSSLPairing.pair(csr, realm, device[:extended_id]),
+           CFSSLCredentials.get_certificate(csr, realm, device_row[:extended_id]),
          :ok <-
-           Queries.update_device_after_pairing(
+           Queries.update_device_after_credentials_request(
              client,
-             device_uuid,
+             device_id,
              cert_data,
              ip_tuple,
-             device[:first_pairing]
+             device_row[:first_credentials_request]
            ) do
-      {:ok, cert}
+      {:ok, %{client_crt: cert}}
+    else
+      {:authorized?, false} ->
+        {:error, :unauthorized}
+
+      {:credentials_inhibited?, true} ->
+        {:error, :credentials_request_inhibited}
+
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
     end
+  end
+
+  def get_credentials(
+        protocol,
+        credentials_params,
+        _realm,
+        _hw_id,
+        _credentials_secret,
+        _device_ip
+      ) do
+    Logger.warn(
+      "get_credentials: unknown protocol #{inspect(protocol)} with params #{
+        inspect(credentials_params)
+      }"
+    )
+
+    {:error, :unknown_protocol}
   end
 
   def get_info do
