@@ -82,6 +82,10 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
     reply
   end
 
+  defp decode_reply({:error, "exception"}) do
+    {:error, :vmq_plugin_rpc_exception}
+  end
+
   defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
     :ok
   end
@@ -90,5 +94,9 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
     error_map = Map.from_struct(error_struct)
 
     {:error, error_map}
+  end
+
+  defp extract_reply({:error, :vmq_plugin_rpc_exception} = error) do
+    error
   end
 end
