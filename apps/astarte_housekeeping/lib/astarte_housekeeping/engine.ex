@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.Housekeeping.Engine do
-  use GenServer
   require Logger
 
   alias CQEx.Client, as: DatabaseClient
