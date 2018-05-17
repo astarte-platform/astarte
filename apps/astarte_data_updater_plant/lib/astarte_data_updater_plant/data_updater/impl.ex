@@ -1138,22 +1138,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp resend_all_interface_properties(
-         state,
+         %State{realm: realm, device_id: device_id, mappings: mappings, extended_id: extended_id} =
+           s,
          db_client,
          %InterfaceDescriptor{type: :properties} = interface_descriptor
        ) do
-    each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
-      device_id_string =
-        if state.extended_id do
-          state.extended_id
-        else
-          Device.encode_device_id(state.device_id)
-        end
-
-      Queries.retrieve_endpoint_values(db_client, state.device_id, interface_descriptor, mapping)
+    each_interface_mapping(mappings, interface_descriptor, fn mapping ->
+      Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
       |> Enum.each(fn [{:path, path}, {_, value}] ->
-        {:ok, _} =
-          send_value(state.realm, device_id_string, interface_descriptor.name, path, value)
+        {:ok, _} = send_value(realm, extended_id, interface_descriptor.name, path, value)
       end)
     end)
   end
