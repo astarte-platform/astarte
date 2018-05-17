@@ -848,55 +848,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp do_prune(state, db_client, interface_descriptor, all_paths_set) do
-    Enum.each(state.mappings, fn {endpoint_id, mapping} ->
-      if mapping.interface_id == interface_descriptor.interface_id do
-        Queries.query_all_endpoint_paths!(
-          db_client,
-          state.device_id,
-          interface_descriptor,
-          endpoint_id
-        )
-        |> Enum.each(fn path_row ->
-          path = path_row[:path]
+  defp do_prune(state, db, interface_descriptor, all_paths_set) do
+    each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
+      endpoint_id = mapping.endpoint_id
 
-          if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
-            device_id_string = Device.encode_device_id(state.device_id)
+      Queries.query_all_endpoint_paths!(db, state.device_id, interface_descriptor, endpoint_id)
+      |> Enum.each(fn path_row ->
+        path = path_row[:path]
 
-            {:ok, endpoint_id} =
-              EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+        if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
+          device_id_string = Device.encode_device_id(state.device_id)
 
-            Queries.delete_property_from_db(
-              state,
-              db_client,
-              interface_descriptor,
-              endpoint_id,
-              path
-            )
+          {:ok, endpoint_id} =
+            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
 
-            path_removed_triggers =
-              get_on_data_triggers(
-                state,
-                :on_path_removed,
-                interface_descriptor.interface_id,
-                endpoint_id,
-                path
-              )
+          Queries.delete_property_from_db(state, db, interface_descriptor, endpoint_id, path)
 
-            Enum.each(path_removed_triggers, fn trigger ->
-              TriggersHandler.path_removed(
-                trigger.trigger_targets,
-                state.realm,
-                device_id_string,
-                interface_descriptor.name,
-                path
-              )
-            end)
-          end
-        end)
-      else
-        :ok
-      end
+          interface_id = interface_descriptor.interface_id
+
+          path_removed_triggers =
+            get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
+
+          i_name = interface_descriptor.name
+
+          Enum.each(path_removed_triggers, fn trigger ->
+            targets = trigger.trigger_targets
+            TriggersHandler.path_removed(targets, state.realm, device_id_string, i_name, path)
+          end)
+        end
+      end)
     end)
   end
 
@@ -1129,14 +1109,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp each_interface_mapping(state, db_client, interface_descriptor, fun) do
-    Enum.each(state.mappings, fn {endpoint_id, mapping} ->
+  defp each_interface_mapping(mappings, interface_descriptor, fun) do
+    Enum.each(mappings, fn {_endpoint_id, mapping} ->
       if mapping.interface_id == interface_descriptor.interface_id do
         fun.(mapping)
       end
     end)
-
-    state
   end
 
   defp resend_all_properties(state) do
@@ -1159,7 +1137,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          db_client,
          %InterfaceDescriptor{type: :properties} = interface_descriptor
        ) do
-    each_interface_mapping(state, db_client, interface_descriptor, fn mapping ->
+    each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
       device_id_string =
         if state.extended_id do
           state.extended_id
