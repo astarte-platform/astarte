@@ -129,12 +129,12 @@ defmodule Astarte.Pairing.EngineTest do
       |> CQEx.Client.new!(keyspace: realm)
 
     {:ok, no_paired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
-    assert no_paired_device[:first_pairing] == :null
+    assert no_paired_device[:first_pairing] == nil
 
     assert {:ok, _first_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
     {:ok, paired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
     first_pairing_timestamp = paired_device[:first_pairing]
-    assert first_pairing_timestamp != :null
+    assert first_pairing_timestamp != nil
 
     assert {:ok, _second_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
     {:ok, repaired_device} = Queries.select_device_for_pairing(db_client, device_uuid)

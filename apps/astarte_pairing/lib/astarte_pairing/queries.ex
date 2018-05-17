@@ -97,7 +97,7 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def update_device_after_credentials_request(client, device_uuid, cert_data, device_ip, :null) do
+  def update_device_after_credentials_request(client, device_uuid, cert_data, device_ip, nil) do
     first_credentials_request_timestamp =
       DateTime.utc_now()
       |> DateTime.to_unix(:milliseconds)

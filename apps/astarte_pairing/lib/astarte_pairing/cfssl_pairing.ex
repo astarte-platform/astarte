@@ -54,7 +54,7 @@ defmodule Astarte.Pairing.CFSSLPairing do
   end
 
   # If it was not present in the DB, no need to revoke it
-  def revoke(:null, :null), do: :ok
+  def revoke(nil, nil), do: :ok
 
   def revoke(serial, aki) do
     case CFXXL.revoke(client(), serial, aki, "superseded") do

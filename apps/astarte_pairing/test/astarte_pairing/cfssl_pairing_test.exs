@@ -24,6 +24,6 @@ defmodule Astarte.Pairing.CFSSLPairingTest do
 
   test "revoke should never fail" do
     assert CFSSLPairing.revoke("invalidserial", "invalidaki") == :ok
-    assert CFSSLPairing.revoke(:null, :null) == :ok
+    assert CFSSLPairing.revoke(nil, nil) == :ok
   end
 end
