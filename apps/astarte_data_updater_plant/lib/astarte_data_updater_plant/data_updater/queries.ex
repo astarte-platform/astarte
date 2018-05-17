@@ -397,7 +397,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def retrieve_device_stats_and_introspection!(db_client, device_id) do
     stats_and_introspection_statement = """
-    SELECT total_received_msgs, total_received_bytes, introspection
+    SELECT total_received_msgs, total_received_bytes, introspection, extended_id
     FROM devices
     WHERE device_id=:device_id
     """
@@ -425,6 +425,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     %{
       introspection: introspection_map,
+      extended_id: device_row[:extended_id],
       total_received_msgs: device_row[:total_received_msgs],
       total_received_bytes: device_row[:total_received_bytes]
     }
@@ -504,5 +505,45 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   defp to_db_friendly_type(value) do
     value
+  end
+
+  def retrieve_endpoint_values(client, device_id, interface_descriptor, mapping) do
+    query_statement =
+      prepare_get_property_statement(
+        mapping.value_type,
+        false,
+        interface_descriptor.storage,
+        interface_descriptor.storage_type
+      )
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  defp prepare_get_property_statement(
+         value_type,
+         metadata,
+         table_name,
+         :multi_interface_individual_properties_dbtable
+       ) do
+    metadata_column =
+      if metadata do
+        ",metadata"
+      else
+        ""
+      end
+
+    # TODO: should we filter on path for performance reason?
+    # TODO: probably we should sanitize also table_name: right now it is stored on database
+    "SELECT path, #{Astarte.Core.CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{
+      table_name
+    }" <>
+      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
   end
 end

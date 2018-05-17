@@ -41,4 +41,11 @@ defmodule Astarte.DataUpdaterPlant.Config do
   def amqp_consumer_prefetch_count do
     Application.get_env(:astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300)
   end
+
+  @doc """
+  Returns the RPC client, defaulting to AMQP.Client. Used for Mox during testing.
+  """
+  def rpc_client do
+    Application.get_env(:astarte_data_updater_plant, :rpc_client, Astarte.RPC.AMQP.Client)
+  end
 end

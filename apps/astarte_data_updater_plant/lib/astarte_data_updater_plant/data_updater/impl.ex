@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
-  alias AMQP.Basic
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
@@ -31,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   require Logger
@@ -386,7 +386,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     else
       {:error, :cannot_write_on_server_owned_interface} ->
         warn(new_state, "tried to write on server owned interface: #{interface}.")
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
@@ -396,7 +396,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "mapping not found for #{interface}#{path}. Maybe outdated introspection?"
         )
 
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
@@ -404,19 +404,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         warn(new_state, "cannot load interface: #{interface}.")
         # TODO: think about additional actions since the problem
         # could be a missing interface in the DB
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:guessed, _guessed_endpoints} ->
         warn(new_state, "mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :undecodable_bson_payload} ->
         warn(state, "invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
-        new_state = ask_clean_session(new_state)
+        ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
     end
@@ -607,19 +607,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_control(state, "/emptyCache", _payload, message_id, _timestamp) do
     Logger.debug("Received /emptyCache")
 
-    MessageTracker.discard(state.message_tracker, message_id)
-    # TODO: implement empty cache
+    new_state = resend_all_properties(state)
 
-    state
+    MessageTracker.ack_delivery(state.message_tracker, message_id)
+
+    new_state
   end
 
   def handle_control(state, path, payload, message_id, _timestamp) do
-    Logger.warn("Control on #{path}, payload: #{inspect(payload)}")
+    warn(state, "unexpected control on #{path}, payload: #{inspect(payload)}")
 
+    ask_clean_session(state)
     MessageTracker.discard(state.message_tracker, message_id)
-    # TODO: handle unexpected control messages
 
-    state
+    update_stats(state, "", path, payload)
   end
 
   def handle_install_volatile_trigger(
@@ -847,61 +848,49 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp do_prune(state, db_client, interface_descriptor, all_paths_set) do
-    Enum.each(state.mappings, fn {endpoint_id, mapping} ->
-      if mapping.interface_id == interface_descriptor.interface_id do
-        Queries.query_all_endpoint_paths!(
-          db_client,
-          state.device_id,
-          interface_descriptor,
-          endpoint_id
-        )
-        |> Enum.each(fn path_row ->
-          path = path_row[:path]
+  defp do_prune(state, db, interface_descriptor, all_paths_set) do
+    each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
+      endpoint_id = mapping.endpoint_id
 
-          if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
-            device_id_string = Device.encode_device_id(state.device_id)
+      Queries.query_all_endpoint_paths!(db, state.device_id, interface_descriptor, endpoint_id)
+      |> Enum.each(fn path_row ->
+        path = path_row[:path]
 
-            {:ok, endpoint_id} =
-              EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+        if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
+          device_id_string = Device.encode_device_id(state.device_id)
 
-            Queries.delete_property_from_db(
-              state,
-              db_client,
-              interface_descriptor,
-              endpoint_id,
-              path
-            )
+          {:ok, endpoint_id} =
+            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
 
-            path_removed_triggers =
-              get_on_data_triggers(
-                state,
-                :on_path_removed,
-                interface_descriptor.interface_id,
-                endpoint_id,
-                path
-              )
+          Queries.delete_property_from_db(state, db, interface_descriptor, endpoint_id, path)
 
-            Enum.each(path_removed_triggers, fn trigger ->
-              TriggersHandler.path_removed(
-                trigger.trigger_targets,
-                state.realm,
-                device_id_string,
-                interface_descriptor.name,
-                path
-              )
-            end)
-          end
-        end)
-      else
-        :ok
-      end
+          interface_id = interface_descriptor.interface_id
+
+          path_removed_triggers =
+            get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
+
+          i_name = interface_descriptor.name
+
+          Enum.each(path_removed_triggers, fn trigger ->
+            targets = trigger.trigger_targets
+            TriggersHandler.path_removed(targets, state.realm, device_id_string, i_name, path)
+          end)
+        end
+      end)
     end)
   end
 
   defp ask_clean_session(state) do
-    warn(state, "TODO: disconnect and ask clean session")
-    state
+    warn(state, "disconnecting client and asking clean session.")
+
+    with :ok <- VMQPlugin.disconnect("/#{state.realm}/#{state.extended_id}", true) do
+      :ok
+    else
+      {:error, reason} ->
+        warn(state, "disconnect failed due to error: #{inspect(reason)}")
+        # TODO: die gracefully here
+        {:error, :clean_session_failed}
+    end
   end
 
   defp get_on_data_triggers(state, event, interface_id, endpoint_id) do
@@ -1122,6 +1111,64 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       :server ->
         {:error, :cannot_write_on_server_owned_interface}
+    end
+  end
+
+  defp each_interface_mapping(mappings, interface_descriptor, fun) do
+    Enum.each(mappings, fn {_endpoint_id, mapping} ->
+      if mapping.interface_id == interface_descriptor.interface_id do
+        fun.(mapping)
+      end
+    end)
+  end
+
+  defp resend_all_properties(state) do
+    db_client = Queries.connect_to_db(state)
+
+    Logger.debug("resend_all_properties. device introspection: #{inspect(state.introspection)}")
+
+    Enum.each(state.introspection, fn {interface, _} ->
+      {:ok, interface_descriptor, new_state} =
+        maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
+
+      resend_all_interface_properties(new_state, db_client, interface_descriptor)
+    end)
+
+    state
+  end
+
+  defp resend_all_interface_properties(
+         %State{realm: realm, device_id: device_id, mappings: mappings, extended_id: extended_id} =
+           s,
+         db_client,
+         %InterfaceDescriptor{type: :properties} = interface_descriptor
+       ) do
+    each_interface_mapping(mappings, interface_descriptor, fn mapping ->
+      Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
+      |> Enum.each(fn [{:path, path}, {_, value}] ->
+        {:ok, _} = send_value(realm, extended_id, interface_descriptor.name, path, value)
+      end)
+    end)
+  end
+
+  defp resend_all_interface_properties(_state, _db, %InterfaceDescriptor{type: :datastream} = _i) do
+    :ok
+  end
+
+  defp send_value(realm, device_id_string, interface_name, path, value) do
+    topic = "#{realm}/#{device_id_string}/#{interface_name}#{path}"
+    encapsulated_value = %{v: value}
+
+    bson_value = Bson.encode(encapsulated_value)
+
+    Logger.debug("send_value: going to publish #{topic} -> #{inspect(encapsulated_value)}.")
+
+    case VMQPlugin.publish(topic, bson_value, 2) do
+      :ok ->
+        {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
