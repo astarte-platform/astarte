@@ -18,7 +18,6 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
-  alias AMQP.Basic
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
