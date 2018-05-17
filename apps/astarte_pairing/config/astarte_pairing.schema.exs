@@ -52,15 +52,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [:astarte_rpc, :astarte_data_access],
   import: [],
   mappings: [
-    "astarte_pairing.secret_key_base": [
-      commented: true,
-      datatype: :binary,
-      doc: "Provide documentation for astarte_pairing.secret_key_base here.",
-      env_var: "PAIRING_SECRET_KEY_BASE",
-      hidden: false,
-      required: true,
-      to: "astarte_pairing.secret_key_base"
-    ],
     "astarte_pairing.broker_url": [
       commented: true,
       datatype: :binary,
