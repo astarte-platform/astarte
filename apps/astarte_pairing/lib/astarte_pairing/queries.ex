@@ -27,14 +27,14 @@ defmodule Astarte.Pairing.Queries do
 
   require Logger
 
-  @insert_new_device """
+  @register_device """
   INSERT INTO devices
-  (device_id, extended_id, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
-  VALUES (:device_id, :extended_id, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
+  (device_id, extended_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
+  VALUES (:device_id, :extended_id, :credentials_secret, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
   """
 
-  @select_device """
-  SELECT device_id
+  @check_registered_device """
+  SELECT first_credentials_request
   FROM devices
   WHERE device_id=:device_id
   """
@@ -52,21 +52,26 @@ defmodule Astarte.Pairing.Queries do
   WHERE device_id=:device_id
   """
 
-  def insert_device(client, device_uuid, extended_id) do
-    # TODO: use IF NOT EXISTS as soon as Scylla supports it
+  def register_device(client, device_id, extended_id, credentials_secret) do
     device_exists_query =
       Query.new()
-      |> Query.statement(@select_device)
-      |> Query.put(:device_id, device_uuid)
+      |> Query.statement(@check_registered_device)
+      |> Query.put(:device_id, device_id)
 
-    case Query.call(client, device_exists_query) do
-      {:ok, res} ->
-        if Result.size(res) > 0 do
-          {:error, :device_exists}
-        else
-          insert_not_existing_device(client, device_uuid, extended_id)
-        end
+    with {:ok, res} <- Query.call(client, device_exists_query) do
+      case Result.head(res) do
+        :empty_dataset ->
+          do_register_device(client, device_id, extended_id, credentials_secret)
 
+        [first_credentials_request: nil] ->
+          Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
+          do_register_device(client, device_id, extended_id, credentials_secret)
+
+        [first_credentials_request: _timestamp] ->
+          Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
+          {:error, :already_registered}
+      end
+    else
       error ->
         Logger.warn("DB error: #{inspect(error)}")
         {:error, :db_error}
@@ -133,12 +138,13 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp insert_not_existing_device(client, device_uuid, extended_id) do
+  defp do_register_device(client, device_id, extended_id, credentials_secret) do
     query =
       Query.new()
-      |> Query.statement(@insert_new_device)
-      |> Query.put(:device_id, device_uuid)
+      |> Query.statement(@register_device)
+      |> Query.put(:device_id, device_id)
       |> Query.put(:extended_id, extended_id)
+      |> Query.put(:credentials_secret, credentials_secret)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)
       |> Query.put(:total_received_bytes, 0)
