@@ -1141,7 +1141,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          %State{realm: realm, device_id: device_id, mappings: mappings, extended_id: extended_id} =
            s,
          db_client,
-         %InterfaceDescriptor{type: :properties} = interface_descriptor
+         %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
        ) do
     each_interface_mapping(mappings, interface_descriptor, fn mapping ->
       Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
@@ -1151,7 +1151,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
-  defp resend_all_interface_properties(_state, _db, %InterfaceDescriptor{type: :datastream} = _i) do
+  defp resend_all_interface_properties(_state, _db, %InterfaceDescriptor{} = _descriptor) do
     :ok
   end
 
