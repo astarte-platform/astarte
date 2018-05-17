@@ -116,7 +116,7 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
-  def verify_certificate(pem_cert) do
+  def verify_credentials(pem_cert) do
     CertVerifier.verify(pem_cert, Config.ca_cert())
   end
 
