@@ -616,12 +616,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, path, payload, message_id, _timestamp) do
-    Logger.warn("Control on #{path}, payload: #{inspect(payload)}")
+    warn(state, "unexpected control on #{path}, payload: #{inspect(payload)}")
 
-    MessageTracker.discard(state.message_tracker, message_id)
-    # TODO: handle unexpected control messages
+    new_state = ask_clean_session(state)
+    MessageTracker.discard(new_state.message_tracker, message_id)
 
-    state
+    update_stats(new_state, "", path, payload)
   end
 
   def handle_install_volatile_trigger(
