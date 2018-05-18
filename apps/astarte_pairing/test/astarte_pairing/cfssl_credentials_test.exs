@@ -14,16 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.CFSSLPairingTest do
+defmodule Astarte.Pairing.CFSSLCredentialsTest do
   use ExUnit.Case
 
-  alias Astarte.Pairing.CFSSLPairing
+  alias Astarte.Pairing.CFSSLCredentials
 
   test "revoke should never fail" do
-    assert CFSSLPairing.revoke("invalidserial", "invalidaki") == :ok
-    assert CFSSLPairing.revoke(nil, nil) == :ok
+    assert CFSSLCredentials.revoke("invalidserial", "invalidaki") == :ok
+    assert CFSSLCredentials.revoke(nil, nil) == :ok
   end
 end
