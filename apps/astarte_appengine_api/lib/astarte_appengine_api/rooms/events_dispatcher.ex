@@ -26,21 +26,41 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
 
+  require Logger
+
   def dispatch(serialized_simple_event) do
+    simple_event = SimpleEvent.decode(serialized_simple_event)
+
     %SimpleEvent{
       simple_trigger_id: simple_trigger_id,
       parent_trigger_id: parent_trigger_id,
       realm: realm,
       device_id: device_id,
       event: {_event_type, event}
-    } = SimpleEvent.decode(serialized_simple_event)
+    } = simple_event
 
-    with [{pid, _}] <- Registry.lookup(Registry.AstarteRooms, {:parent_trigger_id, parent_trigger_id}) do
-      Room.broadcast_event(pid, device_id, event)
+    with {:room_pid, [{pid, _}]} <-
+           {:room_pid,
+            Registry.lookup(Registry.AstarteRooms, {:parent_trigger_id, parent_trigger_id})},
+         :ok <- Room.broadcast_event(pid, simple_trigger_id, device_id, event) do
+      :ok
     else
-      [] ->
+      {:room_pid, []} ->
         # The room is dead, uninstall the trigger
+        Logger.warn("dispatch: unexisting room for event #{inspect(simple_event)}")
         DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
+        {:error, :no_room_for_event}
+
+      {:error, :trigger_not_found} ->
+        # The room has unwatched the trigger, uninstall it again
+        Logger.warn("dispatch: trigger not found for event #{inspect(simple_event)}")
+        DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
+        {:error, :trigger_not_found}
+
+      {:error, reason} ->
+        # Dispatch error
+        Logger.warn("dispatch: failed for event #{inspect(simple_event)} with reason #{reason}")
+        {:error, :dispatch_error}
     end
   end
 end
