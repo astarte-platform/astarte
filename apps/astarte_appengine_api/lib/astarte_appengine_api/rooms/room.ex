@@ -80,8 +80,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     |> GenServer.call({:unwatch, watch_name})
   end
 
-  def broadcast_event(pid, device_id, event) do
-    GenServer.call(pid, {:broadcast_event, device_id, event})
+  def broadcast_event(pid, trigger_id, device_id, event) do
+    GenServer.call(pid, {:broadcast_event, trigger_id, device_id, event})
   end
 
   # Callbacks
@@ -205,14 +205,22 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     end
   end
 
-  def handle_call({:broadcast_event, device_id, event}, _from, %{room_name: room_name} = state) do
-    payload = %{
-      "device_id" => device_id,
-      "event" => event
-    }
+  def handle_call({:broadcast_event, trigger_id, device_id, event}, _from, state) do
+    %{room_name: room_name, watch_id_to_request: watch_id_to_request} = state
 
-    Endpoint.broadcast("rooms:" <> room_name, "new_event", payload)
-    {:reply, :ok, state}
+    reply =
+      if not Map.has_key?(watch_id_to_request, trigger_id) do
+        {:error, :trigger_not_found}
+      else
+        payload = %{
+          "device_id" => device_id,
+          "event" => event
+        }
+
+        Endpoint.broadcast("rooms:" <> room_name, "new_event", payload)
+      end
+
+    {:reply, reply, state}
   end
 
   @impl true
