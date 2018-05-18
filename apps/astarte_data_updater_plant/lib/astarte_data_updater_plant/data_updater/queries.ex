@@ -226,7 +226,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         if column_atoms[obj_key] != nil do
           column_name = CQLUtils.endpoint_to_db_column_name(to_string(obj_key))
 
-          next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], obj_value)
+          db_value = to_db_friendly_type(obj_value)
+          next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], db_value)
           next_placeholders_acc = "#{placeholders_acc} :#{to_string(column_atoms[obj_key])},"
           next_query_acc = "#{query_acc} #{column_name}, "
 
