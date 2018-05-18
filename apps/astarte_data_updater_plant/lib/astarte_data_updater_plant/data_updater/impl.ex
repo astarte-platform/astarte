@@ -385,7 +385,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       update_stats(new_state, interface, path, payload)
     else
       {:error, :cannot_write_on_server_owned_interface} ->
-        warn(new_state, "tried to write on server owned interface: #{interface}.")
+        warn(
+          new_state,
+          "tried to write on server owned interface: #{interface} on " <>
+            "path: #{path}, payload: #{inspect(payload)}, timestamp: #{inspect(timestamp)}."
+        )
+
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
@@ -837,7 +842,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, new_state}
 
         interface_descriptor.ownership != :device ->
-          warn(state, "tried to write on server owned interface: #{interface}.")
+          warn(state, "tried to prune server owned interface: #{interface}.")
           {:error, :maybe_outdated_introspection}
 
         true ->
