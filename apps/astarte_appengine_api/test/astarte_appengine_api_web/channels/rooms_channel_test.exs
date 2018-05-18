@@ -467,14 +467,74 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
         %{@simple_event | parent_trigger_id: Utils.get_uuid()}
         |> SimpleEvent.encode()
 
-      assert :ok = EventsDispatcher.dispatch(unexisting_room_serialized_event)
+      assert {:error, :no_room_for_event} = EventsDispatcher.dispatch(unexisting_room_serialized_event)
+      refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
     end
 
-    test "an event belonging to a room triggers a broadcast", %{socket: socket, room_process: room_process}  do
+    test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast", %{socket: socket, room_process: room_process} do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
+        assert %Call{
+          call: {
+            :delete_volatile_trigger,
+            serialized_delete
+          }
+        } = Call.decode(serialized_call)
+
+        assert %DeleteVolatileTrigger{
+          realm_name: @realm,
+          device_id: @device_id,
+          trigger_id: @event_simple_trigger_id
+        } = serialized_delete
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
 
       existing_room_serialized_event =
         %{@simple_event | parent_trigger_id: room_uuid}
+        |> SimpleEvent.encode()
+
+      assert {:error, :trigger_not_found} = EventsDispatcher.dispatch(existing_room_serialized_event)
+      refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
+    end
+
+    test "an event for a watched trigger belonging to a room triggers a broadcast", %{socket: socket, room_process: room_process}  do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @device_id
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
+      assert_reply ref, :ok, %{}
+
+      %{room_uuid: room_uuid, watch_id_to_request: watch_map} = :sys.get_state(room_process)
+
+      [simple_trigger_id | _] = Map.keys(watch_map)
+
+      existing_room_serialized_event =
+        %{@simple_event
+          | parent_trigger_id: room_uuid, simple_trigger_id: simple_trigger_id
+        }
         |> SimpleEvent.encode()
 
       assert :ok = EventsDispatcher.dispatch(existing_room_serialized_event)
@@ -487,6 +547,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
       |> Poison.encode() == Poison.encode(event)
     end
+
   end
 
   defp room_join_authorized_socket(_context) do
