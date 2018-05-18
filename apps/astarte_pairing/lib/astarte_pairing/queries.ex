@@ -97,14 +97,14 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def update_device_after_credentials_request(client, device_uuid, cert_data, device_ip, nil) do
+  def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
     first_credentials_request_timestamp =
       DateTime.utc_now()
       |> DateTime.to_unix(:milliseconds)
 
     update_device_after_credentials_request(
       client,
-      device_uuid,
+      device_id,
       cert_data,
       device_ip,
       first_credentials_request_timestamp
@@ -113,7 +113,7 @@ defmodule Astarte.Pairing.Queries do
 
   def update_device_after_credentials_request(
         client,
-        device_uuid,
+        device_id,
         %{serial: serial, aki: aki} = _cert_data,
         device_ip,
         first_credentials_request_timestamp
@@ -121,7 +121,7 @@ defmodule Astarte.Pairing.Queries do
     query =
       Query.new()
       |> Query.statement(@update_device_after_credentials_request)
-      |> Query.put(:device_id, device_uuid)
+      |> Query.put(:device_id, device_id)
       |> Query.put(:cert_aki, aki)
       |> Query.put(:cert_serial, serial)
       |> Query.put(:last_credentials_request_ip, device_ip)
