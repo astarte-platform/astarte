@@ -1128,10 +1128,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.debug("resend_all_properties. device introspection: #{inspect(state.introspection)}")
 
     Enum.each(state.introspection, fn {interface, _} ->
-      {:ok, interface_descriptor, new_state} =
-        maybe_handle_cache_miss(Map.get(state.interfaces, interface), interface, state, db_client)
-
-      resend_all_interface_properties(new_state, db_client, interface_descriptor)
+      with {:ok, interface_descriptor, new_state} <-
+             maybe_handle_cache_miss(
+               Map.get(state.interfaces, interface),
+               interface,
+               state,
+               db_client
+             ) do
+        resend_all_interface_properties(new_state, db_client, interface_descriptor)
+      else
+        {:error, :interface_loading_failed} ->
+          warn(state, "resend_all_properties: failed #{interface} interface loading.")
+          {:error, :sending_properties_to_interface_failed}
+      end
     end)
 
     state
