@@ -238,10 +238,11 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   @create_test_object_table """
     CREATE TABLE autotestrealm.com_example_testobject_v1 (
       device_id uuid,
+      path varchar,
       reception_timestamp timestamp,
       string varchar,
       value double,
-      PRIMARY KEY (device_id, reception_timestamp)
+      PRIMARY KEY ((device_id, path), reception_timestamp)
     );
   """
 
@@ -303,16 +304,16 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-30 07:10+0000', '2017-09-30 08:10+0000', 0, 4);
     """,
     """
-      INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, reception_timestamp, value, string) VALUES
-        (7f454c46-0201-0100-0000-000000000000, '2017-09-30 07:10+0000', 1.1, 'aaa');
+      INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, path, reception_timestamp, value, string) VALUES
+        (7f454c46-0201-0100-0000-000000000000, '/', '2017-09-30 07:10+0000', 1.1, 'aaa');
     """,
     """
-      INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, reception_timestamp, value, string) VALUES
-        (7f454c46-0201-0100-0000-000000000000, '2017-09-30 07:12+0000', 2.2, 'bbb');
+      INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, path, reception_timestamp, value, string) VALUES
+        (7f454c46-0201-0100-0000-000000000000, '/', '2017-09-30 07:12+0000', 2.2, 'bbb');
     """,
     """
-      INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, reception_timestamp, value, string) VALUES
-        (7f454c46-0201-0100-0000-000000000000, '2017-09-30 07:13+0000', 3.3, 'ccc');
+      INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, path, reception_timestamp, value, string) VALUES
+        (7f454c46-0201-0100-0000-000000000000, '/', '2017-09-30 07:13+0000', 3.3, 'ccc');
     """
   ]
 

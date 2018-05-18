@@ -622,6 +622,7 @@ defmodule Astarte.AppEngine.API.Device do
          "/",
          opts
        ) do
+    path = "/"
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
     {columns, column_atom_to_pretty_name, downsample_column_atom} =
@@ -678,7 +679,9 @@ defmodule Astarte.AppEngine.API.Device do
       end
 
     where_clause =
-      "WHERE device_id=:device_id #{since_statement} #{to_statement} #{limit_statement} ;"
+      "WHERE device_id=:device_id #{since_statement} AND path=:path #{to_statement} #{
+        limit_statement
+      } ;"
 
     values_query_statement =
       "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} #{where_clause};"
@@ -687,6 +690,7 @@ defmodule Astarte.AppEngine.API.Device do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(values_query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:path, path)
 
     values_query =
       if since_statement != "" do
