@@ -64,6 +64,8 @@ defmodule Astarte.Pairing.Queries do
   WHERE device_id=:device_id
   """
 
+  @protocol_revision 1
+
   def register_device(client, device_id, extended_id, credentials_secret) do
     device_exists_query =
       Query.new()
@@ -131,6 +133,7 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:cert_serial, serial)
       |> Query.put(:last_credentials_request_ip, device_ip)
       |> Query.put(:first_credentials_request, first_credentials_request_timestamp)
+      |> Query.put(:protocol_revision, @protocol_revision)
 
     case Query.call(client, query) do
       {:ok, _res} ->
