@@ -22,11 +22,11 @@ defmodule Astarte.Pairing.Config do
   This module helps the access to the runtime configuration of Astarte Pairing
   """
 
-  alias Astarte.Pairing.CFSSLPairing
+  alias Astarte.Pairing.CFSSLCredentials
 
   def init! do
     if Application.fetch_env(:astarte_pairing, :ca_cert) == :error do
-      case CFSSLPairing.ca_cert() do
+      case CFSSLCredentials.ca_cert() do
         {:ok, cert} ->
           Application.put_env(:astarte_pairing, :ca_cert, cert)
 
