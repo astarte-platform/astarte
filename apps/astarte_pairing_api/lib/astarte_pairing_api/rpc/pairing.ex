@@ -24,6 +24,9 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
 
   alias Astarte.Pairing.API.Config
 
+  @rpc_client Config.rpc_client()
+  @destination Astarte.RPC.Protocol.Pairing.amqp_queue()
+
   alias Astarte.RPC.Protocol.Pairing.{
     AstarteMQTTV1CredentialsParameters,
     AstarteMQTTV1Credentials,
@@ -42,10 +45,10 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     VerifyCredentialsReply
   }
 
-  def get_info do
-    %GetInfo{}
+  def get_info(realm, hw_id, secret) do
+    %GetInfo{realm: realm, hw_id: hw_id, secret: secret}
     |> encode_call(:get_info)
-    |> rpc_call()
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -84,8 +87,21 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     reply
   end
 
-  defp extract_reply({:get_info_reply, %GetInfoReply{url: url, version: version}}) do
-    {:ok, %{url: url, version: version}}
+  defp extract_reply(
+         {:get_info_reply,
+          %GetInfoReply{version: version, device_status: device_status, protocols: protocols}}
+       ) do
+    protocols_map =
+      Enum.reduce(protocols, %{}, fn %ProtocolStatus{} = element, acc ->
+        %ProtocolStatus{
+          status: {protocol_name, protocol_status_struct}
+        } = element
+
+        protocol_status_map = Map.from_struct(protocol_status_struct)
+        Map.put(acc, protocol_name, protocol_status_map)
+      end)
+
+    {:ok, %{status: device_status, version: version, protocols: protocols_map}}
   end
 
   defp extract_reply({:generate_api_key_reply, %GenerateAPIKeyReply{api_key: api_key}}) do
