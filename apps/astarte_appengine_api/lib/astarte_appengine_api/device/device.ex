@@ -682,23 +682,14 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
-    query_statement =
-      Queries.prepare_get_property_statement(
-        Astarte.Core.Mapping.ValueType.from_int(endpoint_row[:value_type]),
-        false,
-        interface_row[:storage],
-        StorageType.from_int(interface_row[:storage_type])
-      )
-
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
     values =
-      DatabaseQuery.call!(client, query)
+      Queries.all_properties_for_endpoint!(
+        client,
+        device_id,
+        interface_row,
+        endpoint_row,
+        endpoint_id
+      )
       |> Enum.reduce(%{}, fn row, values_map ->
         if String.starts_with?(row[:path], path) do
           [{:path, row_path}, {_, row_value}] = row

@@ -779,4 +779,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         nil
     end
   end
+
+  def all_properties_for_endpoint!(client, device_id, interface_row, endpoint_row, endpoint_id) do
+    query_statement =
+      prepare_get_property_statement(
+        ValueType.from_int(endpoint_row[:value_type]),
+        false,
+        interface_row[:storage],
+        StorageType.from_int(interface_row[:storage_type])
+      )
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(query_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+    DatabaseQuery.call!(client, query)
+  end
 end
