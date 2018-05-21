@@ -53,10 +53,10 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     |> extract_reply()
   end
 
-  def generate_api_key(realm, hw_id) do
-    %GenerateAPIKey{realm: realm, hw_id: hw_id}
-    |> encode_call(:generate_api_key)
-    |> rpc_call()
+  def register_device(realm, hw_id) do
+    %RegisterDevice{realm: realm, hw_id: hw_id}
+    |> encode_call(:register_device)
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -104,8 +104,8 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     {:ok, %{status: device_status, version: version, protocols: protocols_map}}
   end
 
-  defp extract_reply({:generate_api_key_reply, %GenerateAPIKeyReply{api_key: api_key}}) do
-    {:ok, api_key}
+  defp extract_reply({:register_device_reply, %RegisterDeviceReply{credentials_secret: secret}}) do
+    {:ok, %{credentials_secret: secret}}
   end
 
   defp extract_reply({:do_pairing_reply, %DoPairingReply{client_crt: client_crt}}) do
