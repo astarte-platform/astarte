@@ -23,8 +23,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
+  alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.ValueType
+  alias Astarte.Core.StorageType
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
@@ -671,6 +674,109 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
       not_ok ->
         not_ok
+    end
+  end
+
+  def retrieve_object_datastream_values(client, device_id, interface_row, path, columns, opts) do
+    {since_statement, since_value} =
+      cond do
+        opts.since != nil ->
+          {"AND reception_timestamp >= :since", opts.since}
+
+        opts.since_after != nil ->
+          {"AND reception_timestamp > :since", opts.since_after}
+
+        opts.since == nil and opts.since_after == nil ->
+          {"", nil}
+      end
+
+    {to_statement, to_value} =
+      if opts.to != nil do
+        {"AND reception_timestamp < :to_timestamp", opts.to}
+      else
+        {"", nil}
+      end
+
+    query_limit = min(opts.limit, Config.max_results_limit())
+
+    {limit_statement, limit_value} =
+      cond do
+        # Check the explicit user defined limit to know if we have to reorder data
+        opts.limit != nil and since_value == nil ->
+          {"ORDER BY reception_timestamp DESC LIMIT :limit_nrows", query_limit}
+
+        query_limit != nil ->
+          {"LIMIT :limit_nrows", query_limit}
+
+        true ->
+          {"", nil}
+      end
+
+    where_clause =
+      "WHERE device_id=:device_id #{since_statement} AND path=:path #{to_statement} #{
+        limit_statement
+      } ;"
+
+    values_query_statement =
+      "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} #{where_clause};"
+
+    values_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(values_query_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:path, path)
+
+    values_query =
+      if since_statement != "" do
+        values_query
+        |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :milliseconds))
+      else
+        values_query
+      end
+
+    values_query =
+      if to_statement != "" do
+        values_query
+        |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
+      else
+        values_query
+      end
+
+    values_query =
+      if limit_statement != "" do
+        values_query
+        |> DatabaseQuery.put(:limit_nrows, limit_value)
+      else
+        values_query
+      end
+
+    values = DatabaseQuery.call!(client, values_query)
+
+    count_query_statement =
+      "SELECT count(reception_timestamp) FROM #{interface_row[:storage]} #{where_clause} ;"
+
+    count_query =
+      values_query
+      |> DatabaseQuery.statement(count_query_statement)
+
+    count = get_results_count(client, count_query, opts)
+
+    {:ok, count, values}
+  end
+
+  def get_results_count(_client, _count_query, %InterfaceValuesOptions{downsample_to: nil}) do
+    # Count will be ignored since there's no downsample_to
+    nil
+  end
+
+  def get_results_count(client, count_query, opts) do
+    with {:ok, result} <- DatabaseQuery.call(client, count_query),
+         [{_count_key, count}] <- DatabaseResult.head(result) do
+      min(count, opts.limit)
+    else
+      error ->
+        Logger.warn("Can't retrieve count for #{inspect(count_query)}: #{inspect(error)}")
+        nil
     end
   end
 end
