@@ -20,8 +20,10 @@
 defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Mapping
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
@@ -111,6 +113,25 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:interface_id, interface_id)
 
     DatabaseQuery.call!(client, endpoint_query)
+  end
+
+  def retrieve_mapping(db_client, interface_id, endpoint_id) do
+    mapping_statement = """
+    SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id,
+           interface_id
+    FROM endpoints
+    WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id
+    """
+
+    mapping_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(mapping_statement)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+    DatabaseQuery.call!(db_client, mapping_query)
+    |> DatabaseResult.head()
+    |> Mapping.from_db_result!()
   end
 
   def prepare_get_property_statement(

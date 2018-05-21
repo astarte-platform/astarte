@@ -23,7 +23,6 @@ defmodule Astarte.AppEngine.API.Device do
   """
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.DataTransmitter
-  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
@@ -240,18 +239,7 @@ defmodule Astarte.AppEngine.API.Device do
       raise "Not Allowed"
     end
 
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id, interface_id FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    mapping =
-      DatabaseQuery.call!(client, endpoint_query)
-      |> DatabaseResult.head()
-      |> Mapping.from_db_result!()
+    mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
     {:ok, extended_device_id} = Queries.retrieve_extended_id(client, device_id)
 
