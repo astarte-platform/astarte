@@ -77,10 +77,12 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     |> extract_reply()
   end
 
-  def verify_certificate(certificate) do
-    %VerifyCertificate{crt: certificate}
-    |> encode_call(:verify_certificate)
-    |> rpc_call()
+  def verify_astarte_mqtt_v1_credentials(realm, hw_id, secret, %{client_crt: client_crt}) do
+    credentials = {:astarte_mqtt_v1, %AstarteMQTTV1Credentials{client_crt: client_crt}}
+
+    %VerifyCredentials{realm: realm, hw_id: hw_id, secret: secret, credentials: credentials}
+    |> encode_call(:verify_credentials)
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -120,16 +122,11 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     extract_credentials(credentials)
   end
 
-  defp extract_reply({:verify_certificate_reply, %VerifyCertificateReply{} = reply_struct}) do
-    reply = %{
-      valid: reply_struct.valid,
-      timestamp: reply_struct.timestamp,
-      until: reply_struct.until,
-      cause: reply_struct.cause,
-      details: reply_struct.details
-    }
-
-    {:ok, reply}
+  defp extract_reply(
+         {:verify_credentials_reply,
+          %VerifyCredentialsReply{credentials_status: credentials_status}}
+       ) do
+    extract_credentials_status(credentials_status)
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
@@ -140,5 +137,25 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
 
   defp extract_credentials({:astarte_mqtt_v1, %AstarteMQTTV1Credentials{client_crt: client_crt}}) do
     {:ok, client_crt}
+  end
+
+  defp extract_credentials_status({:astarte_mqtt_v1, %AstarteMQTTV1CredentialsStatus{} = status}) do
+    %AstarteMQTTV1CredentialsStatus{
+      valid: valid,
+      timestamp: timestamp,
+      until: until,
+      cause: cause,
+      details: details
+    } = status
+
+    reply = %{
+      valid: valid,
+      timestamp: timestamp,
+      until: until,
+      cause: cause,
+      details: details
+    }
+
+    {:ok, reply}
   end
 end
