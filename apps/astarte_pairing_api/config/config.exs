@@ -44,6 +44,9 @@ config :logger, :console,
 config :astarte_rpc, :amqp_queue,
   "pairing_rpc"
 
+config :lager,
+  handlers: [level: :critical]
+
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.AgentGuardian,
   allowed_algos: ["RS256"],
   secret_key: {Astarte.Pairing.API.Config, :jwt_public_key, []}
