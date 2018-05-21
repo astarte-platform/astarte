@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Device.DeviceNotFoundError
   alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
@@ -335,6 +336,152 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   # TODO Copy&pasted from data updater plant, make it a library
   defp to_db_friendly_type(value) do
     value
+  end
+
+  @device_status_columns_without_device_id """
+    , aliases
+    , connected
+    , last_connection
+    , last_disconnection
+    , first_pairing
+    , last_pairing_ip
+    , last_seen_ip
+    , total_received_msgs
+    , total_received_bytes
+  """
+
+  defp device_status_row_to_device_status(row) do
+    [
+      device_id: device_id,
+      aliases: aliases,
+      connected: connected,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_pairing: first_pairing,
+      last_pairing_ip: last_pairing_ip,
+      last_seen_ip: last_seen_ip,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes
+    ] = row
+
+    %DeviceStatus{
+      id: Base.url_encode64(device_id, padding: false),
+      aliases: Enum.into(aliases || [], %{}),
+      connected: connected,
+      last_connection: millis_or_null_to_datetime!(last_connection),
+      last_disconnection: millis_or_null_to_datetime!(last_disconnection),
+      first_pairing: millis_or_null_to_datetime!(first_pairing),
+      last_pairing_ip: ip_or_null_to_string(last_pairing_ip),
+      last_seen_ip: ip_or_null_to_string(last_seen_ip),
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes
+    }
+  end
+
+  # TODO: copy&pasted from Device
+  defp millis_or_null_to_datetime!(nil) do
+    nil
+  end
+
+  # TODO: copy&pasted from Device
+  defp millis_or_null_to_datetime!(millis) do
+    DateTime.from_unix!(millis, :millisecond)
+  end
+
+  defp ip_or_null_to_string(nil) do
+    nil
+  end
+
+  defp ip_or_null_to_string(ip) do
+    ip
+    |> :inet_parse.ntoa()
+    |> to_string()
+  end
+
+  def retrieve_device_status(client, device_id) do
+    device_statement = """
+    SELECT device_id #{@device_status_columns_without_device_id}
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(device_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    with {:ok, result} <- DatabaseQuery.call(client, device_query),
+         device_row when is_list(device_row) <- DatabaseResult.head(result) do
+      {:ok, device_status_row_to_device_status(device_row)}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      not_ok ->
+        Logger.warn("Device.retrieve_device_status: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp execute_devices_list_query(client, limit, retrieve_details, previous_token) do
+    retrieve_details_string =
+      if retrieve_details do
+        @device_status_columns_without_device_id
+      else
+        ""
+      end
+
+    previous_token =
+      case previous_token do
+        nil ->
+          # This is -2^63, that is the lowest 64 bit integer
+          -9_223_372_036_854_775_808
+
+        first ->
+          first + 1
+      end
+
+    devices_list_statement = """
+    SELECT TOKEN(device_id), device_id #{retrieve_details_string}
+    FROM devices
+    WHERE TOKEN(device_id) >= :previous_token LIMIT #{Integer.to_string(limit)};
+    """
+
+    devices_list_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(devices_list_statement)
+      |> DatabaseQuery.put(:previous_token, previous_token)
+
+    DatabaseQuery.call(client, devices_list_query)
+  end
+
+  def retrieve_devices_list(client, limit, retrieve_details, previous_token) do
+    with {:ok, result} <-
+           execute_devices_list_query(client, limit, retrieve_details, previous_token) do
+      {devices_list, count, last_token} =
+        Enum.reduce(result, {[], 0, nil}, fn row, {devices_acc, count, _last_seen_token} ->
+          {device, token} =
+            if retrieve_details do
+              [{:"system.token(device_id)", token} | device_status_row] = row
+              {device_status_row_to_device_status(device_status_row), token}
+            else
+              ["system.token(device_id)": token, device_id: device_id] = row
+              {Base.url_encode64(device_id, padding: false), token}
+            end
+
+          {[device | devices_acc], count + 1, token}
+        end)
+
+      if count < limit do
+        {:ok, %DevicesList{devices: Enum.reverse(devices_list)}}
+      else
+        {:ok, %DevicesList{devices: Enum.reverse(devices_list), last_token: last_token}}
+      end
+    else
+      not_ok ->
+        Logger.warn("Device.retrieve_devices_list: database error: #{inspect(not_ok)}")
+        {:error, :database_error}
+    end
   end
 
   def retrieve_extended_id(client, device_id) do
