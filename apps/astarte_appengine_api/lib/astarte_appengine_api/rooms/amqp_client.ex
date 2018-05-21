@@ -30,6 +30,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   alias Astarte.AppEngine.API.Rooms.EventsDispatcher
 
   @connection_backoff 10000
+  @prefetch_count 300
 
   # API
 
@@ -124,6 +125,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
 
   defp setup_channel(%Connection{} = conn) do
     with {:ok, chan} <- Channel.open(conn),
+         :ok <- Basic.qos(chan, prefetch_count: @prefetch_count),
          :ok <- Exchange.declare(chan, Config.rooms_events_routing_key(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.rooms_events_queue_name(), durable: true),
          :ok <-
