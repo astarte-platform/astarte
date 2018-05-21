@@ -116,6 +116,21 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     DatabaseQuery.call!(client, endpoint_query)
   end
 
+  def retrieve_all_endpoints_for_interface!(client, interface_id) do
+    endpoints_with_type_statement = """
+    SELECT value_type, endpoint
+    FROM endpoints
+    WHERE interface_id=:interface_id
+    """
+
+    endpoint_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(endpoints_with_type_statement)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+
+    DatabaseQuery.call!(client, endpoint_query)
+  end
+
   def retrieve_mapping(db_client, interface_id, endpoint_id) do
     mapping_statement = """
     SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id,

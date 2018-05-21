@@ -411,14 +411,8 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-
-    endpoint_rows = DatabaseQuery.call!(client, endpoint_query)
+    endpoint_rows =
+      Queries.retrieve_all_endpoints_for_interface!(client, interface_row[:interface_id])
 
     interface_values =
       retrieve_endpoint_values(
