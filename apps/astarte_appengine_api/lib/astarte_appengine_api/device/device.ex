@@ -534,27 +534,21 @@ defmodule Astarte.AppEngine.API.Device do
 
           simplified_path = simplify_path(path, row_path)
 
-          {values_query_statement, count_query_statement, q_params} =
-            Queries.prepare_get_individual_datastream_statement(
-              ValueType.from_int(endpoint_row[:value_type]),
-              false,
-              interface_row[:storage],
-              StorageType.from_int(interface_row[:storage_type]),
-              %{opts | limit: 1}
+          [
+            {:value_timestamp, tstamp},
+            {:reception_timestamp, reception},
+            _,
+            {_, v}
+          ] =
+            Queries.last_datastream_value!(
+              client,
+              device_id,
+              interface_row,
+              endpoint_row,
+              endpoint_id,
+              path,
+              opts
             )
-
-          values_query =
-            DatabaseQuery.new()
-            |> DatabaseQuery.statement(values_query_statement)
-            |> DatabaseQuery.put(:device_id, device_id)
-            |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-            |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-            |> DatabaseQuery.put(:path, row_path)
-            |> DatabaseQuery.merge(q_params)
-
-          [{:value_timestamp, tstamp}, {:reception_timestamp, reception}, _, {_, v}] =
-            DatabaseQuery.call!(client, values_query)
-            |> DatabaseResult.head()
 
           nice_value =
             db_value_to_json_friendly_value(

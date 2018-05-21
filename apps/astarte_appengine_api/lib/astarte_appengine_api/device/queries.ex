@@ -259,6 +259,37 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     }
   end
 
+  def last_datastream_value!(
+        client,
+        device_id,
+        interface_row,
+        endpoint_row,
+        endpoint_id,
+        path,
+        opts
+      ) do
+    {values_query_statement, _count_query_statement, q_params} =
+      prepare_get_individual_datastream_statement(
+        ValueType.from_int(endpoint_row[:value_type]),
+        false,
+        interface_row[:storage],
+        StorageType.from_int(interface_row[:storage_type]),
+        %{opts | limit: 1}
+      )
+
+    values_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(values_query_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.merge(q_params)
+
+    DatabaseQuery.call!(client, values_query)
+    |> DatabaseResult.head()
+  end
+
   def retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id) do
     all_paths_statement = """
       SELECT path
