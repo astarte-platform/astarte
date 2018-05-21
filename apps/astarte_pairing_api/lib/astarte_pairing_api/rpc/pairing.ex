@@ -61,10 +61,18 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     |> extract_reply()
   end
 
-  def do_pairing(csr, api_key, device_ip) do
-    %DoPairing{csr: csr, api_key: api_key, device_ip: device_ip}
-    |> encode_call(:do_pairing)
-    |> rpc_call()
+  def get_astarte_mqtt_v1_credentials(realm, hw_id, secret, device_ip, %{csr: csr}) do
+    credentials_parameters = {:astarte_mqtt_v1, %AstarteMQTTV1CredentialsParameters{csr: csr}}
+
+    %GetCredentials{
+      realm: realm,
+      hw_id: hw_id,
+      secret: secret,
+      device_ip: device_ip,
+      credentials_parameters: credentials_parameters
+    }
+    |> encode_call(:get_credentials)
+    |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
   end
@@ -108,8 +116,8 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     {:ok, %{credentials_secret: secret}}
   end
 
-  defp extract_reply({:do_pairing_reply, %DoPairingReply{client_crt: client_crt}}) do
-    {:ok, client_crt}
+  defp extract_reply({:get_credentials_reply, %GetCredentialsReply{credentials: credentials}}) do
+    extract_credentials(credentials)
   end
 
   defp extract_reply({:verify_certificate_reply, %VerifyCertificateReply{} = reply_struct}) do
@@ -128,5 +136,9 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     error_map = Map.from_struct(error_struct)
 
     {:error, error_map}
+  end
+
+  defp extract_credentials({:astarte_mqtt_v1, %AstarteMQTTV1Credentials{client_crt: client_crt}}) do
+    {:ok, client_crt}
   end
 end
