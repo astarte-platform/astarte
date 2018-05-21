@@ -14,18 +14,33 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.RPC.AMQPClient do
+defmodule Astarte.Pairing.API.RPC.Pairing do
   @moduledoc """
   This module sends RPC to the astarte_pairing backend
   """
 
   alias Astarte.Pairing.API.Config
 
-  use Astarte.RPC.Protocol.Pairing
-  use Astarte.RPC.AMQPClient
+  alias Astarte.RPC.Protocol.Pairing.{
+    AstarteMQTTV1CredentialsParameters,
+    AstarteMQTTV1Credentials,
+    AstarteMQTTV1CredentialsStatus,
+    Call,
+    GenericErrorReply,
+    GetCredentials,
+    GetCredentialsReply,
+    GetInfo,
+    GetInfoReply,
+    ProtocolStatus,
+    RegisterDevice,
+    RegisterDeviceReply,
+    Reply,
+    VerifyCredentials,
+    VerifyCredentialsReply
+  }
 
   def get_info do
     %GetInfo{}
