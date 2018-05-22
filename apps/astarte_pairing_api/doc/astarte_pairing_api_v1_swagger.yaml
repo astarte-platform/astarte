@@ -17,6 +17,28 @@ tags:
   externalDocs:
     description: "Find out more"
     url: "https://docs.astarte-platform.org/"
+securityDefinitions:
+    JWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: |
+        For accessing the agent API a valid JWT token must be passed in all the queries in
+        the 'Authorization' header.
+
+        The following syntax must be used in the 'Authorization' header :
+          Bearer xxxxxx.yyyyyyy.zzzzzz
+
+    CredentialsSecret:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: |
+        For accessing the device API a valid Credentials Secret must be passed in all the queries
+        in the 'Authorization' header
+
+        The following syntax must be used in the 'Authorization' header :
+          Bearer xxxxxxxxxxxxxxxxxxxxx
 paths:
   /{realm_name}/agent/devices:
     post:
@@ -29,6 +51,8 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      security:
+      - JWT: []
       parameters:
       - name: "realm_name"
         in: "path"
@@ -86,6 +110,8 @@ paths:
       operationId: "getInfo"
       produces:
       - "application/json"
+      security:
+      - CredentialsSecret: []
       parameters:
       - name: "realm_name"
         in: "path"
@@ -133,6 +159,8 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      security:
+      - CredentialsSecret: []
       parameters:
       - name: "realm_name"
         in: "path"
@@ -197,6 +225,8 @@ paths:
       - "application/json"
       produces:
       - "application/json"
+      security:
+      - CredentialsSecret: []
       parameters:
       - name: "realm_name"
         in: "path"
