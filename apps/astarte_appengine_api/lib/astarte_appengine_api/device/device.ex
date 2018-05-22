@@ -35,7 +35,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.Core.StorageType
   alias Ecto.Changeset
   require Logger
 
@@ -159,7 +158,7 @@ defmodule Astarte.AppEngine.API.Device do
         interface,
         no_prefix_path,
         value,
-        params
+        _params
       ) do
     {:ok, client} = Queries.connect_to_db(realm_name)
 
@@ -178,7 +177,7 @@ defmodule Astarte.AppEngine.API.Device do
         {:ok, endpoint_id} ->
           endpoint_id
 
-        {:guessed, endpoint_ids} ->
+        {:guessed, _endpoint_ids} ->
           raise EndpointNotFoundError
 
         {:error, :not_found} ->
@@ -607,7 +606,7 @@ defmodule Astarte.AppEngine.API.Device do
          endpoint_id,
          endpoint_row,
          path,
-         opts
+         _opts
        ) do
     values =
       Queries.all_properties_for_endpoint!(
