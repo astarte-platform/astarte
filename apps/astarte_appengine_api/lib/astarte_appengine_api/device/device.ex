@@ -22,6 +22,7 @@ defmodule Astarte.AppEngine.API.Device do
   The Device context.
   """
   alias Astarte.AppEngine.API.DataTransmitter
+  alias Astarte.AppEngine.API.Device.AstarteValue
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.MapTree
@@ -455,7 +456,7 @@ defmodule Astarte.AppEngine.API.Device do
             )
 
           nice_value =
-            db_value_to_json_friendly_value(
+            AstarteValue.to_json_friendly(
               v,
               ValueType.from_int(endpoint_row[:value_type]),
               allow_bigintegers: true
@@ -464,13 +465,13 @@ defmodule Astarte.AppEngine.API.Device do
           Map.put(values_map, simplified_path, %{
             "value" => nice_value,
             "timestamp" =>
-              db_value_to_json_friendly_value(
+              AstarteValue.to_json_friendly(
                 tstamp,
                 :datetime,
                 keep_milliseconds: opts.keep_milliseconds
               ),
             "reception_timestamp" =>
-              db_value_to_json_friendly_value(
+              AstarteValue.to_json_friendly(
                 reception,
                 :datetime,
                 keep_milliseconds: opts.keep_milliseconds
@@ -588,7 +589,7 @@ defmodule Astarte.AppEngine.API.Device do
           simplified_path = simplify_path(path, row_path)
 
           nice_value =
-            db_value_to_json_friendly_value(
+            AstarteValue.to_json_friendly(
               row_value,
               ValueType.from_int(endpoint_row[:value_type]),
               allow_bigintegers: true
@@ -676,13 +677,13 @@ defmodule Astarte.AppEngine.API.Device do
 
         %{
           "timestamp" =>
-            db_value_to_json_friendly_value(
+            AstarteValue.to_json_friendly(
               tstamp,
               :datetime,
               keep_milliseconds: opts.keep_milliseconds
             ),
           "value" =>
-            db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), [])
+            AstarteValue.to_json_friendly(v, ValueType.from_int(endpoint_row[:value_type]), [])
         }
       end
 
@@ -714,8 +715,8 @@ defmodule Astarte.AppEngine.API.Device do
         [{:value_timestamp, tstamp}, _, _, {_, v}] = value
 
         [
-          db_value_to_json_friendly_value(tstamp, :datetime, []),
-          db_value_to_json_friendly_value(
+          AstarteValue.to_json_friendly(tstamp, :datetime, []),
+          AstarteValue.to_json_friendly(
             v,
             ValueType.from_int(endpoint_row[:value_type]),
             keep_milliseconds: opts.keep_milliseconds
@@ -750,8 +751,8 @@ defmodule Astarte.AppEngine.API.Device do
         [{:value_timestamp, tstamp}, _, _, {_, v}] = value
 
         [
-          db_value_to_json_friendly_value(v, ValueType.from_int(endpoint_row[:value_type]), []),
-          db_value_to_json_friendly_value(
+          AstarteValue.to_json_friendly(v, ValueType.from_int(endpoint_row[:value_type]), []),
+          AstarteValue.to_json_friendly(
             tstamp,
             :datetime,
             keep_milliseconds: opts.keep_milliseconds
@@ -794,7 +795,7 @@ defmodule Astarte.AppEngine.API.Device do
     values_array =
       for value <- values do
         base_array_entry = [
-          db_value_to_json_friendly_value(
+          AstarteValue.to_json_friendly(
             value[:reception_timestamp],
             :datetime,
             keep_milliseconds: opts.keep_milliseconds
@@ -836,7 +837,7 @@ defmodule Astarte.AppEngine.API.Device do
             column_list = [
               [
                 column_value,
-                db_value_to_json_friendly_value(
+                AstarteValue.to_json_friendly(
                   value[:reception_timestamp],
                   :datetime,
                   keep_milliseconds: opts.keep_milliseconds
@@ -874,7 +875,7 @@ defmodule Astarte.AppEngine.API.Device do
       for value <- values do
         base_array_entry = %{
           "timestamp" =>
-            db_value_to_json_friendly_value(
+            AstarteValue.to_json_friendly(
               value[:reception_timestamp],
               :datetime,
               keep_milliseconds: opts.keep_milliseconds
@@ -903,65 +904,5 @@ defmodule Astarte.AppEngine.API.Device do
         Logger.warn("Device.device_alias_to_device_id: database error: #{inspect(not_ok)}")
         {:error, :database_error}
     end
-  end
-
-  defp db_value_to_json_friendly_value(value, :longinteger, opts) do
-    cond do
-      opts[:allow_bigintegers] ->
-        value
-
-      opts[:allow_safe_bigintegers] ->
-        # the following magic value is the biggest mantissa allowed in a double value
-        if value <= 0xFFFFFFFFFFFFF do
-          value
-        else
-          Integer.to_string(value)
-        end
-
-      true ->
-        Integer.to_string(value)
-    end
-  end
-
-  defp db_value_to_json_friendly_value(value, :binaryblob, _opts) do
-    Base.encode64(value)
-  end
-
-  defp db_value_to_json_friendly_value(value, :datetime, opts) do
-    if opts[:keep_milliseconds] do
-      value
-    else
-      DateTime.from_unix!(value, :millisecond)
-    end
-  end
-
-  defp db_value_to_json_friendly_value(value, :longintegerarray, opts) do
-    for item <- value do
-      db_value_to_json_friendly_value(item, :longintegerarray, opts)
-    end
-  end
-
-  defp db_value_to_json_friendly_value(value, :binaryblobarray, _opts) do
-    for item <- value do
-      Base.encode64(item)
-    end
-  end
-
-  defp db_value_to_json_friendly_value(value, :datetimearray, opts) do
-    for item <- value do
-      db_value_to_json_friendly_value(item, :datetimearray, opts)
-    end
-  end
-
-  defp db_value_to_json_friendly_value(:null, _value_type, _opts) do
-    Logger.warn(
-      "Device.db_value_to_json_friendly_value: it has been found a path with a :null value. This shouldn't happen."
-    )
-
-    raise PathNotFoundError
-  end
-
-  defp db_value_to_json_friendly_value(value, _value_type, _opts) do
-    value
   end
 end
