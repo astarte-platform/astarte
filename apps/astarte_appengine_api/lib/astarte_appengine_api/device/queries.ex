@@ -798,4 +798,42 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     DatabaseQuery.call!(client, query)
   end
+
+  def retrieve_datastream_values(
+        client,
+        device_id,
+        interface_row,
+        endpoint_row,
+        endpoint_id,
+        path,
+        opts
+      ) do
+    {values_query_statement, count_query_statement, q_params} =
+      prepare_get_individual_datastream_statement(
+        ValueType.from_int(endpoint_row[:value_type]),
+        false,
+        interface_row[:storage],
+        StorageType.from_int(interface_row[:storage_type]),
+        opts
+      )
+
+    values_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(values_query_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.merge(q_params)
+
+    values = DatabaseQuery.call!(client, values_query)
+
+    count_query =
+      values_query
+      |> DatabaseQuery.statement(count_query_statement)
+
+    count = get_results_count(client, count_query, opts)
+
+    {:ok, count, values}
+  end
 end
