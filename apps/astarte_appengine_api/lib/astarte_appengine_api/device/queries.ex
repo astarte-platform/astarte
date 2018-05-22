@@ -44,6 +44,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
+  def first_result_row(values) do
+    DatabaseResult.head(values)
+  end
+
   def retrieve_interface_row!(client, interface, major_version) do
     interface_query =
       DatabaseQuery.new()

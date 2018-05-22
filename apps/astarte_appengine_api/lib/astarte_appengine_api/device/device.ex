@@ -35,7 +35,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
-  alias CQEx.Result, as: DatabaseResult
   alias Ecto.Changeset
   require Logger
 
@@ -822,11 +821,9 @@ defmodule Astarte.AppEngine.API.Device do
          %{format: "table"} = opts
        ) do
     {_cols_count, columns, reverse_table_header} =
-      List.foldl(DatabaseResult.head(values), {1, %{"timestamp" => 0}, ["timestamp"]}, fn {column,
-                                                                                           _column_value},
-                                                                                          {next_index,
-                                                                                           acc,
-                                                                                           list_acc} ->
+      Queries.first_result_row(values)
+      |> List.foldl({1, %{"timestamp" => 0}, ["timestamp"]}, fn {column, _column_value},
+                                                                {next_index, acc, list_acc} ->
         pretty_name = column_atom_to_pretty_name[column]
 
         if pretty_name != nil and pretty_name != "timestamp" do
