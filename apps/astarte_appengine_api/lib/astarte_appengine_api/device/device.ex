@@ -485,7 +485,7 @@ defmodule Astarte.AppEngine.API.Device do
               interface_row,
               endpoint_row,
               endpoint_id,
-              path,
+              row_path,
               opts
             )
 
