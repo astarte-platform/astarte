@@ -29,6 +29,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.PathNotFoundError
   alias Astarte.AppEngine.API.Device.Queries
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Type
@@ -52,16 +53,15 @@ defmodule Astarte.AppEngine.API.Device do
   Device status returns information such as connected, last_connection and last_disconnection.
   """
   def get_device_status!(realm_name, encoded_device_id) do
-    with {:ok, client} <- Queries.connect_to_db(realm_name) do
-      device_id = decode_device_id(encoded_device_id)
+    with {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       Queries.retrieve_device_status(client, device_id)
     end
   end
 
   def merge_device_status!(realm_name, encoded_device_id, device_status_merge) do
-    device_id = decode_device_id(encoded_device_id)
-
-    with {:ok, client} <- Queries.connect_to_db(realm_name) do
+    with {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       Enum.find_value(Map.get(device_status_merge, "aliases", %{}), :ok, fn {alias_upd_key,
                                                                              alias_upd_value} ->
         result =
@@ -84,11 +84,10 @@ defmodule Astarte.AppEngine.API.Device do
   Returns the list of interfaces.
   """
   def list_interfaces!(realm_name, encoded_device_id) do
-    {:ok, client} = Queries.connect_to_db(realm_name)
-
-    device_id = decode_device_id(encoded_device_id)
-
-    Queries.retrieve_interfaces_list!(client, device_id)
+    with {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+      Queries.retrieve_interfaces_list!(client, device_id)
+    end
   end
 
   @doc """
@@ -99,9 +98,8 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Queries.connect_to_db(realm_name) do
-      device_id = decode_device_id(encoded_device_id)
-
+         {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       major_version = Queries.interface_version!(client, device_id, interface)
 
       interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
@@ -125,9 +123,8 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Queries.connect_to_db(realm_name) do
-      device_id = decode_device_id(encoded_device_id)
-
+         {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       path = "/" <> no_prefix_path
 
       major_version = Queries.interface_version!(client, device_id, interface)
@@ -166,7 +163,7 @@ defmodule Astarte.AppEngine.API.Device do
       ) do
     {:ok, client} = Queries.connect_to_db(realm_name)
 
-    device_id = decode_device_id(encoded_device_id)
+    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
     path = "/" <> no_prefix_path
     major_version = Queries.interface_version!(client, device_id, interface)
     interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
@@ -443,11 +440,6 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         {:error, reason}
     end
-  end
-
-  defp decode_device_id(encoded_device_id) do
-    <<device_uuid::binary-size(16)>> = Base.url_decode64!(encoded_device_id, padding: false)
-    device_uuid
   end
 
   defp column_pretty_name(endpoint) do
