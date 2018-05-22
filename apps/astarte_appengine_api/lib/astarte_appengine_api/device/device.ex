@@ -36,7 +36,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
   alias CQEx.Client, as: DatabaseClient
-  alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   alias Ecto.Changeset
   require Logger
@@ -169,12 +168,7 @@ defmodule Astarte.AppEngine.API.Device do
         raise EndpointNotFoundError
       end
 
-      endpoint_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(
-          "SELECT value_type FROM endpoints WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id;"
-        )
-        |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      endpoint_query = Queries.prepare_value_type_query(interface_row[:interface_id])
 
       do_get_interface_values!(
         client,
@@ -322,13 +316,7 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     values_map =
       List.foldl(endpoint_ids, %{}, fn endpoint_id, values ->
-        endpoint_query =
-          endpoint_query
-          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-        endpoint_row =
-          DatabaseQuery.call!(client, endpoint_query)
-          |> DatabaseResult.head()
+        endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
 
         # TODO: we should use path in this query if _status is :ok
         value =
@@ -377,13 +365,7 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     [endpoint_id] = endpoint_ids
 
-    endpoint_query =
-      endpoint_query
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    endpoint_row =
-      DatabaseQuery.call!(client, endpoint_query)
-      |> DatabaseResult.head()
+    endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
 
     retrieve_endpoint_values(
       client,

@@ -836,4 +836,25 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     {:ok, count, values}
   end
+
+  def prepare_value_type_query(interface_id) do
+    value_type_statement = """
+    SELECT value_type
+    FROM endpoints
+    WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id
+    """
+
+    DatabaseQuery.new()
+    |> DatabaseQuery.statement(value_type_statement)
+    |> DatabaseQuery.put(:interface_id, interface_id)
+  end
+
+  def execute_value_type_query(client, value_type_query, endpoint_id) do
+    value_type_query =
+      value_type_query
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+
+    DatabaseQuery.call!(client, value_type_query)
+    |> DatabaseResult.head()
+  end
 end
