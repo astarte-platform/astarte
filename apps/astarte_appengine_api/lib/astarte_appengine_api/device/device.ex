@@ -35,7 +35,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
-  alias CQEx.Client, as: DatabaseClient
   alias CQEx.Result, as: DatabaseResult
   alias Ecto.Changeset
   require Logger
@@ -44,11 +43,7 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = DevicesListOptions.changeset(%DevicesListOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <-
-           DatabaseClient.new(
-             List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-             keyspace: realm_name
-           ) do
+         {:ok, client} <- Queries.connect_to_db(realm_name) do
       Queries.retrieve_devices_list(client, options.limit, options.details, options.from_token)
     end
   end
@@ -58,11 +53,7 @@ defmodule Astarte.AppEngine.API.Device do
   Device status returns information such as connected, last_connection and last_disconnection.
   """
   def get_device_status!(realm_name, encoded_device_id) do
-    with {:ok, client} <-
-           DatabaseClient.new(
-             List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-             keyspace: realm_name
-           ) do
+    with {:ok, client} <- Queries.connect_to_db(realm_name) do
       device_id = decode_device_id(encoded_device_id)
       Queries.retrieve_device_status(client, device_id)
     end
@@ -71,11 +62,7 @@ defmodule Astarte.AppEngine.API.Device do
   def merge_device_status!(realm_name, encoded_device_id, device_status_merge) do
     device_id = decode_device_id(encoded_device_id)
 
-    with {:ok, client} <-
-           DatabaseClient.new(
-             List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-             keyspace: realm_name
-           ) do
+    with {:ok, client} <- Queries.connect_to_db(realm_name) do
       Enum.find_value(Map.get(device_status_merge, "aliases", %{}), :ok, fn {alias_upd_key,
                                                                              alias_upd_value} ->
         result =
@@ -98,11 +85,7 @@ defmodule Astarte.AppEngine.API.Device do
   Returns the list of interfaces.
   """
   def list_interfaces!(realm_name, encoded_device_id) do
-    client =
-      DatabaseClient.new!(
-        List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-        keyspace: realm_name
-      )
+    {:ok, client} = Queries.connect_to_db(realm_name)
 
     device_id = decode_device_id(encoded_device_id)
 
@@ -116,13 +99,8 @@ defmodule Astarte.AppEngine.API.Device do
   def get_interface_values!(realm_name, encoded_device_id, interface, params) do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
-    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
-      client =
-        DatabaseClient.new!(
-          List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-          keyspace: realm_name
-        )
-
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert),
+         {:ok, client} <- Queries.connect_to_db(realm_name) do
       device_id = decode_device_id(encoded_device_id)
 
       major_version = Queries.interface_version!(client, device_id, interface)
@@ -147,13 +125,8 @@ defmodule Astarte.AppEngine.API.Device do
   def get_interface_values!(realm_name, encoded_device_id, interface, no_prefix_path, params) do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
-    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
-      client =
-        DatabaseClient.new!(
-          List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-          keyspace: realm_name
-        )
-
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert),
+         {:ok, client} <- Queries.connect_to_db(realm_name) do
       device_id = decode_device_id(encoded_device_id)
 
       path = "/" <> no_prefix_path
@@ -192,11 +165,7 @@ defmodule Astarte.AppEngine.API.Device do
         value,
         params
       ) do
-    client =
-      DatabaseClient.new!(
-        List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-        keyspace: realm_name
-      )
+    {:ok, client} = Queries.connect_to_db(realm_name)
 
     device_id = decode_device_id(encoded_device_id)
     path = "/" <> no_prefix_path
@@ -974,11 +943,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   def device_alias_to_device_id(realm_name, device_alias) do
-    with {:ok, client} <-
-           DatabaseClient.new(
-             List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-             keyspace: realm_name
-           ) do
+    with {:ok, client} <- Queries.connect_to_db(realm_name) do
       Queries.device_alias_to_device_id(client, device_alias)
     else
       not_ok ->

@@ -28,9 +28,21 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
+  alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
+
+  def connect_to_db(realm_name) do
+    node = List.first(Application.get_env(:cqerl, :cassandra_nodes))
+
+    with {:ok, client} <- DatabaseClient.new(node, keyspace: realm_name) do
+      {:ok, client}
+    else
+      _ ->
+        {:error, :database_error}
+    end
+  end
 
   def retrieve_interface_row!(client, interface, major_version) do
     interface_query =
