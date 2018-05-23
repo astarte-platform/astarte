@@ -48,10 +48,10 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   def handle_simple_event(realm, device_id, headers_map, event_type, event) do
     with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
-         {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id) do
-      event_to_payload(realm, device_id, event_type, event, action)
-      |> event_to_headers(realm, device_id, event_type, event, action)
-      |> execute_action(action)
+         {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id),
+         {:ok, payload} <- event_to_payload(realm, device_id, event_type, event, action),
+         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action) do
+      execute_action(payload, headers, action)
     else
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
@@ -88,19 +88,15 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     end)
   end
 
-  def event_to_headers({:ok, payload}, realm, _device_id, _event_type, _event, %{
+  def event_to_headers(realm, _device_id, _event_type, _event, %{
         "template" => _template,
         "template_type" => "mustache"
       }) do
-    {:ok, payload, ["Astarte-Realm": realm, "Content-Type": "text/plain"]}
+    {:ok, ["Astarte-Realm": realm, "Content-Type": "text/plain"]}
   end
 
-  def event_to_headers({:ok, payload}, realm, _device_id, _event_type, _event, _action) do
-    {:ok, payload, ["Astarte-Realm": realm, "Content-Type": "application/json"]}
-  end
-
-  def event_to_headers(payload_result, _realm, _device_id, _event_type, _event, _action) do
-    payload_result
+  def event_to_headers(realm, _device_id, _event_type, _event, _action) do
+    {:ok, ["Astarte-Realm": realm, "Content-Type": "application/json"]}
   end
 
   def event_to_payload(realm, device_id, event_type, event, %{
@@ -122,9 +118,8 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     |> Poison.encode()
   end
 
-  def execute_action(payload_and_headers, action) do
-    with {:ok, payload, headers} <- payload_and_headers,
-         {:ok, url} <- Map.fetch(action, "http_post_url") do
+  def execute_action(payload, headers, action) do
+    with {:ok, url} <- Map.fetch(action, "http_post_url") do
       {status, response} = HTTPoison.post(url, payload, headers)
 
       Logger.debug(
