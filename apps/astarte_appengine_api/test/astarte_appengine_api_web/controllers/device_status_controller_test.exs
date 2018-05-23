@@ -68,6 +68,21 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
 
       assert json_response(conn, 200)["data"] == @expected_device_status
     end
+
+    test "get device_status with invalid device id", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          device_status_path(
+            conn,
+            :show,
+            "autotestrealm",
+            "f0VMRgIBA#AAAAAAAAAAAA"
+          )
+        )
+
+      assert json_response(conn, 400)["errors"] == %{"detail" => "Bad request"}
+    end
   end
 
   describe "update" do
