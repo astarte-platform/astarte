@@ -76,22 +76,25 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   @unauthorized_reason %{reason: "unauthorized"}
 
   @encoded_generic_ok_reply %Reply{
-    reply: {:generic_ok_reply, %GenericOkReply{async_operation: false}}
-  }
-  |> Reply.encode()
+                              reply: {:generic_ok_reply, %GenericOkReply{async_operation: false}}
+                            }
+                            |> Reply.encode()
 
   @encoded_generic_error_reply %Reply{
-    error: true,
-    reply: {:generic_error_reply, %GenericErrorReply{error_name: "some_error"}}
-  }
-  |> Reply.encode()
+                                 error: true,
+                                 reply:
+                                   {:generic_error_reply,
+                                    %GenericErrorReply{error_name: "some_error"}}
+                               }
+                               |> Reply.encode()
 
   @event_simple_trigger_id Utils.get_uuid()
   @event_value 1000
 
   @simple_event %SimpleEvent{
     simple_trigger_id: @event_simple_trigger_id,
-    parent_trigger_id: nil, # Populated in tests
+    # Populated in tests
+    parent_trigger_id: nil,
     realm: @realm,
     device_id: @device_id,
     event: {
@@ -390,10 +393,10 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       MockRPCClient
       |> allow(self(), room_process)
       |> expect(:rpc_call, fn _serialized_install, @dup_rpc_destination ->
-          {:ok, @encoded_generic_ok_reply}
+        {:ok, @encoded_generic_ok_reply}
       end)
       |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
-          {:ok, @encoded_generic_error_reply}
+        {:ok, @encoded_generic_error_reply}
       end)
 
       watch_payload = %{
@@ -416,10 +419,10 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       MockRPCClient
       |> allow(self(), room_process)
       |> expect(:rpc_call, fn _serialized_install, @dup_rpc_destination ->
-          {:ok, @encoded_generic_ok_reply}
+        {:ok, @encoded_generic_ok_reply}
       end)
       |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
-          {:ok, @encoded_generic_ok_reply}
+        {:ok, @encoded_generic_ok_reply}
       end)
 
       watch_payload = %{
@@ -443,22 +446,25 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   describe "incoming events" do
     setup [:join_socket_and_authorize_watch]
 
-    test "an event directed towards an unexisting room uninstalls the trigger", %{socket: socket, room_process: room_process} do
+    test "an event directed towards an unexisting room uninstalls the trigger", %{
+      socket: socket,
+      room_process: room_process
+    } do
       MockRPCClient
       |> allow(self(), room_process)
       |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
         assert %Call{
-          call: {
-            :delete_volatile_trigger,
-            serialized_delete
-          }
-        } = Call.decode(serialized_call)
+                 call: {
+                   :delete_volatile_trigger,
+                   serialized_delete
+                 }
+               } = Call.decode(serialized_call)
 
         assert %DeleteVolatileTrigger{
-          realm_name: @realm,
-          device_id: @device_id,
-          trigger_id: @event_simple_trigger_id
-        } = serialized_delete
+                 realm_name: @realm,
+                 device_id: @device_id,
+                 trigger_id: @event_simple_trigger_id
+               } = serialized_delete
 
         {:ok, @encoded_generic_ok_reply}
       end)
@@ -471,26 +477,26 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
     end
 
-    test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast", %{socket: socket, room_process: room_process} do
+    test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast",
+         %{socket: socket, room_process: room_process} do
       MockRPCClient
       |> allow(self(), room_process)
       |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
         assert %Call{
-          call: {
-            :delete_volatile_trigger,
-            serialized_delete
-          }
-        } = Call.decode(serialized_call)
+                 call: {
+                   :delete_volatile_trigger,
+                   serialized_delete
+                 }
+               } = Call.decode(serialized_call)
 
         assert %DeleteVolatileTrigger{
-          realm_name: @realm,
-          device_id: @device_id,
-          trigger_id: @event_simple_trigger_id
-        } = serialized_delete
+                 realm_name: @realm,
+                 device_id: @device_id,
+                 trigger_id: @event_simple_trigger_id
+               } = serialized_delete
 
         {:ok, @encoded_generic_ok_reply}
       end)
-
 
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
 
@@ -502,7 +508,10 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
     end
 
-    test "an event for a watched trigger belonging to a room triggers a broadcast", %{socket: socket, room_process: room_process}  do
+    test "an event for a watched trigger belonging to a room triggers a broadcast", %{
+      socket: socket,
+      room_process: room_process
+    } do
       MockRPCClient
       |> allow(self(), room_process)
       |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
@@ -532,22 +541,19 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       [simple_trigger_id | _] = Map.keys(watch_map)
 
       existing_room_serialized_event =
-        %{@simple_event
-          | parent_trigger_id: room_uuid, simple_trigger_id: simple_trigger_id
-        }
+        %{@simple_event | parent_trigger_id: room_uuid, simple_trigger_id: simple_trigger_id}
         |> SimpleEvent.encode()
 
       assert :ok = EventsDispatcher.dispatch(existing_room_serialized_event)
       assert_broadcast "new_event", %{"device_id" => @device_id, "event" => event}
       assert %{
-        "type" => "incoming_data",
-        "interface" => @interface_exact,
-        "path" => @path,
-        "value" => @event_value
-      }
-      |> Poison.encode() == Poison.encode(event)
+               "type" => "incoming_data",
+               "interface" => @interface_exact,
+               "path" => @path,
+               "value" => @event_value
+             }
+             |> Poison.encode() == Poison.encode(event)
     end
-
   end
 
   defp room_join_authorized_socket(_context) do

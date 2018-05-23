@@ -33,12 +33,13 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
     links =
       case last_token do
         nil ->
-          %{"self": RouterHelpers.device_status_path(%URI{}, :index, realm, request_params)}
+          %{self: RouterHelpers.device_status_path(%URI{}, :index, realm, request_params)}
 
         last_token ->
           next_request_params = Map.put(request_params, "from_token", last_token)
+
           %{
-            "self": RouterHelpers.device_status_path(%URI{}, :index, realm, request_params),
+            self: RouterHelpers.device_status_path(%URI{}, :index, realm, request_params),
             next: RouterHelpers.device_status_path(%URI{}, :index, realm, next_request_params)
           }
       end
