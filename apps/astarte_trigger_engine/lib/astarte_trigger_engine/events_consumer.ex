@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumer do
@@ -92,7 +92,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
         "template" => _template,
         "template_type" => "mustache"
       }) do
-    {:ok, payload, ["Astarte-Realm": realm]}
+    {:ok, payload, ["Astarte-Realm": realm, "Content-Type": "text/plain"]}
   end
 
   def event_to_headers({:ok, payload}, realm, _device_id, _event_type, _event, _action) do
