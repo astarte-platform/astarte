@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -754,7 +755,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
     with {:ok, major_version} <-
-           Queries.interface_version(db_client, state.device_id, interface_name),
+           DeviceQueries.interface_version(db_client, state.device_id, interface_name),
          {:ok, interface_row} <-
            Queries.retrieve_interface_row(db_client, interface_name, major_version),
          %InterfaceDescriptor{} = interface_descriptor <-
