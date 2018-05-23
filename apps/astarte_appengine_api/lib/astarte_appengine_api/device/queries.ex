@@ -101,22 +101,33 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def retrieve_interfaces_list!(client, device_id) do
+  def retrieve_interfaces_list(client, device_id) do
+    device_introspection_statement = """
+    SELECT introspection
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
     device_introspection_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id")
+      |> DatabaseQuery.statement(device_introspection_statement)
       |> DatabaseQuery.put(:device_id, device_id)
 
-    device_row =
-      DatabaseQuery.call!(client, device_introspection_query)
-      |> DatabaseResult.head()
+    with {:ok, result} <- DatabaseQuery.call(client, device_introspection_query),
+         [introspection: introspection] <- DatabaseResult.head(result) do
+      interfaces_list =
+        for {interface_name, _interface_major} <- introspection do
+          interface_name
+        end
 
-    if device_row == :empty_dataset do
-      raise DeviceNotFoundError
-    end
+      {:ok, interfaces_list}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
 
-    for {interface_name, _interface_major} <- device_row[:introspection] do
-      interface_name
+      any_error ->
+        Logger.warn("retrieve_interfaces_list: error: #{inspect(any_error)}")
+        {:error, :database_error}
     end
   end
 

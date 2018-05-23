@@ -84,10 +84,10 @@ defmodule Astarte.AppEngine.API.Device do
   @doc """
   Returns the list of interfaces.
   """
-  def list_interfaces!(realm_name, encoded_device_id) do
+  def list_interfaces(realm_name, encoded_device_id) do
     with {:ok, client} <- Queries.connect_to_db(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Queries.retrieve_interfaces_list!(client, device_id)
+      Queries.retrieve_interfaces_list(client, device_id)
     end
   end
 

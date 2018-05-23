@@ -89,16 +89,15 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     end)
   end
 
-  test "list_interfaces!/2 returns all interfaces" do
-    assert Enum.sort(Device.list_interfaces!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA"
-    )) == [
-      "com.example.PixelsConfiguration",
-      "com.example.TestObject",
-      "com.test.LCDMonitor",
-      "com.test.SimpleStreamTest"
-    ]
+  test "list_interfaces/2 returns all interfaces" do
+    {:ok, result} = Device.list_interfaces("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA")
+
+    assert Enum.sort(result) == [
+             "com.example.PixelsConfiguration",
+             "com.example.TestObject",
+             "com.test.LCDMonitor",
+             "com.test.SimpleStreamTest"
+           ]
   end
 
   test "get_interface_values! returns interfaces values on individual property interface" do

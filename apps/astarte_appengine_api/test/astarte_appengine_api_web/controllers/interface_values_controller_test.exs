@@ -39,6 +39,21 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
   end
 
   describe "index" do
+    test "lists all interfaces using a invalid device id", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          interface_values_path(
+            conn,
+            :index,
+            "autotestrealm",
+            "zzzzzzzzzzzf0VMRgIBAQAAAAAAAAAAAA"
+          )
+        )
+
+      assert json_response(conn, 400)["errors"] == %{"detail" => "Bad request"}
+    end
+
     test "lists all interfaces", %{conn: conn} do
       conn =
         get(
