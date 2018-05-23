@@ -19,7 +19,6 @@
 
 defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Config
-  alias Astarte.AppEngine.API.Device.DeviceNotFoundError
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
@@ -71,34 +70,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
 
     interface_row
-  end
-
-  def interface_version!(client, device_id, interface) do
-    device_introspection_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id")
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    device_row =
-      DatabaseQuery.call!(client, device_introspection_query)
-      |> DatabaseResult.head()
-
-    if device_row == :empty_dataset do
-      raise DeviceNotFoundError
-    end
-
-    interface_tuple =
-      device_row[:introspection]
-      |> List.keyfind(interface, 0)
-
-    case interface_tuple do
-      {_interface_name, interface_major} ->
-        interface_major
-
-      nil ->
-        # TODO: report device introspection here for debug purposes
-        raise InterfaceNotFoundError
-    end
   end
 
   def retrieve_interfaces_list(client, device_id) do

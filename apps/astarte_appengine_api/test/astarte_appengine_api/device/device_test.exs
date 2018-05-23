@@ -23,7 +23,6 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
-  alias Astarte.AppEngine.API.Device.DeviceNotFoundError
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceValues
@@ -140,25 +139,21 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              )
            ) == 8
 
-    assert_raise DeviceNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAQ",
-        "com.test.LCDMonitor",
-        "time/from",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAQ",
+             "com.test.LCDMonitor",
+             "time/from",
+             %{}
+           ) == {:error, :device_not_found}
 
-    assert_raise InterfaceNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAA",
-        "com.test.Missing",
-        "weekSchedule/3/start",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             "com.test.Missing",
+             "weekSchedule/3/start",
+             %{}
+           ) == {:error, :interface_not_in_introspection}
 
     assert_raise EndpointNotFoundError, fn ->
       Device.get_interface_values!(
@@ -695,25 +690,21 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     # exception tests
 
-    assert_raise DeviceNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAQ",
-        "com.test.SimpleStreamTest",
-        "0/value",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAQ",
+             "com.test.SimpleStreamTest",
+             "0/value",
+             %{}
+           ) == {:error, :device_not_found}
 
-    assert_raise InterfaceNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAA",
-        "com.test.Missing",
-        "0/value",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             "com.test.Missing",
+             "0/value",
+             %{}
+           ) == {:error, :interface_not_in_introspection}
 
     assert_raise EndpointNotFoundError, fn ->
       Device.get_interface_values!(
@@ -884,9 +875,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     path = "/1/2/color"
     par = %{}
 
-    assert_raise DeviceNotFoundError, fn ->
-      Device.update_interface_values!(test_realm, missing_id, test_interface, path, value, par)
-    end
+    assert Device.update_interface_values!(
+             test_realm,
+             missing_id,
+             test_interface,
+             path,
+             value,
+             par
+           ) == {:error, :device_not_found}
 
     device_id = "f0VMRgIBAQAAAAAAAAAAAA"
     short_path = "/something"
@@ -904,9 +900,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     missing_interface = "com.test.Missing"
 
-    assert_raise InterfaceNotFoundError, fn ->
-      Device.update_interface_values!(test_realm, device_id, missing_interface, ro_path, value, par)
-    end
+    assert Device.update_interface_values!(
+             test_realm,
+             device_id,
+             missing_interface,
+             ro_path,
+             value,
+             par
+           ) == {:error, :interface_not_in_introspection}
   end
 
   test "device_alias_to_device_id/2 returns device IDs (uuid)" do

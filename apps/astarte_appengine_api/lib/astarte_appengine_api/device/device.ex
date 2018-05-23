@@ -37,6 +37,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
+  alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Ecto.Changeset
   require Logger
 
@@ -100,9 +101,8 @@ defmodule Astarte.AppEngine.API.Device do
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Queries.connect_to_db(realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      major_version = Queries.interface_version!(client, device_id, interface)
-
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface) do
       interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
 
       do_get_interface_values!(
@@ -125,10 +125,9 @@ defmodule Astarte.AppEngine.API.Device do
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Queries.connect_to_db(realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface) do
       path = "/" <> no_prefix_path
-
-      major_version = Queries.interface_version!(client, device_id, interface)
 
       interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
 
@@ -162,71 +161,72 @@ defmodule Astarte.AppEngine.API.Device do
         value,
         _params
       ) do
-    {:ok, client} = Queries.connect_to_db(realm_name)
+    with {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface) do
+      interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
 
-    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
-    path = "/" <> no_prefix_path
-    major_version = Queries.interface_version!(client, device_id, interface)
-    interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
+      path = "/" <> no_prefix_path
 
-    automaton = {
-      :erlang.binary_to_term(interface_row[:automaton_transitions]),
-      :erlang.binary_to_term(interface_row[:automaton_accepting_states])
-    }
+      automaton = {
+        :erlang.binary_to_term(interface_row[:automaton_transitions]),
+        :erlang.binary_to_term(interface_row[:automaton_accepting_states])
+      }
 
-    endpoint_id =
-      case EndpointsAutomaton.resolve_path(path, automaton) do
-        {:ok, endpoint_id} ->
-          endpoint_id
+      endpoint_id =
+        case EndpointsAutomaton.resolve_path(path, automaton) do
+          {:ok, endpoint_id} ->
+            endpoint_id
 
-        {:guessed, _endpoint_ids} ->
-          raise EndpointNotFoundError
+          {:guessed, _endpoint_ids} ->
+            raise EndpointNotFoundError
 
-        {:error, :not_found} ->
-          raise EndpointNotFoundError
+          {:error, :not_found} ->
+            raise EndpointNotFoundError
+        end
+
+      timestamp =
+        DateTime.utc_now()
+        |> DateTime.to_unix(:milliseconds)
+
+      interface_descriptor = InterfaceDescriptor.from_db_result!(interface_row)
+
+      if interface_descriptor.ownership != :server do
+        raise "Not Allowed"
       end
 
-    timestamp =
-      DateTime.utc_now()
-      |> DateTime.to_unix(:milliseconds)
+      mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
-    interface_descriptor = InterfaceDescriptor.from_db_result!(interface_row)
+      {:ok, extended_device_id} = Queries.retrieve_extended_id(client, device_id)
 
-    if interface_descriptor.ownership != :server do
-      raise "Not Allowed"
+      Queries.insert_value_into_db(
+        client,
+        interface_descriptor.storage_type,
+        device_id,
+        interface_descriptor,
+        endpoint_id,
+        mapping,
+        path,
+        value,
+        timestamp
+      )
+
+      case interface_descriptor.type do
+        :properties ->
+          DataTransmitter.set_property(realm_name, extended_device_id, interface, path, value)
+
+        :datastream ->
+          DataTransmitter.push_datastream(realm_name, extended_device_id, interface, path, value)
+
+        _ ->
+          raise "Unimplemented"
+      end
+
+      {:ok,
+       %InterfaceValues{
+         data: value
+       }}
     end
-
-    mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
-
-    {:ok, extended_device_id} = Queries.retrieve_extended_id(client, device_id)
-
-    Queries.insert_value_into_db(
-      client,
-      interface_descriptor.storage_type,
-      device_id,
-      interface_descriptor,
-      endpoint_id,
-      mapping,
-      path,
-      value,
-      timestamp
-    )
-
-    case interface_descriptor.type do
-      :properties ->
-        DataTransmitter.set_property(realm_name, extended_device_id, interface, path, value)
-
-      :datastream ->
-        DataTransmitter.push_datastream(realm_name, extended_device_id, interface, path, value)
-
-      _ ->
-        raise "Unimplemented"
-    end
-
-    {:ok,
-     %InterfaceValues{
-       data: value
-     }}
   end
 
   defp do_get_interface_values!(client, device_id, :individual, interface_row, opts) do

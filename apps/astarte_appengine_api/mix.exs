@@ -80,6 +80,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cowboy, "== 1.1.2"},
       {:ecto, "== 2.2.10"},
       {:conform, "== 2.5.2"},
+      {:cqerl,
+       github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:cors_plug, "== 1.5.2"},
       {:ex_lttb, "~> 0.2"},
