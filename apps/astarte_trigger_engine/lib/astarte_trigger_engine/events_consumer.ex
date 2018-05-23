@@ -112,128 +112,12 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
   end
 
-  def event_to_payload(_realm, device_id, :device_connected_event, event, _action) do
+  def event_to_payload(_realm, device_id, _event_type, event, _action) do
+    # TODO: the timestamp should be in the event
     %{
-      "event_type" => "device_connected",
+      "timestamp" => DateTime.utc_now(),
       "device_id" => device_id,
-      "device_ip_address" => event.device_ip_address
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :device_disconnected_event, _event, _action) do
-    %{
-      "event_type" => "device_disconnected",
-      "device_id" => device_id
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :incoming_data_event, event, _action) do
-    %{
-      "event_type" => "incoming_data",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "path" => event.path,
-      "value" => decode_bson_value(event.bson_value)
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :incoming_introspection_event, event, _action) do
-    %{
-      "event_type" => "incoming_introspection",
-      "device_id" => device_id,
-      "introspection" => event.introspection
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :interface_added_event, event, _action) do
-    %{
-      "event_type" => "interface_added",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "major_version" => event.major_version,
-      "minor_version" => event.minor_version
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :interface_minor_updated_event, event, _action) do
-    %{
-      "event_type" => "interface_minor_updated",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "major_version" => event.major_version,
-      "old_minor_version" => event.old_minor_version,
-      "new_minor_version" => event.new_minor_version
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :interface_removed_event, event, _action) do
-    %{
-      "event_type" => "interface_removed",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "major_version" => event.major_version
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :path_created_event, event, _action) do
-    %{
-      "event_type" => "path_created",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "path" => event.path,
-      "value" => decode_bson_value(event.bson_value)
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :path_removed_event, event, _action) do
-    %{
-      "event_type" => "path_removed",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "path" => event.path
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :value_change_applied_event, event, _action) do
-    %{
-      "event_type" => "value_change_applied",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "path" => event.path,
-      "new_value" => decode_bson_value(event.new_bson_value),
-      "old_value" => decode_bson_value(event.old_bson_value)
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :value_change_event, event, _action) do
-    %{
-      "event_type" => "value_change",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "path" => event.path,
-      "new_value" => decode_bson_value(event.new_bson_value),
-      "old_value" => decode_bson_value(event.old_bson_value)
-    }
-    |> Poison.encode()
-  end
-
-  def event_to_payload(_realm, device_id, :value_stored_event, event, _action) do
-    %{
-      "event_type" => "value_stored",
-      "device_id" => device_id,
-      "interface" => event.interface,
-      "path" => event.path,
-      "value" => decode_bson_value(event.bson_value)
+      "event" => event
     }
     |> Poison.encode()
   end
@@ -252,16 +136,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
         error
-    end
-  end
-
-  def decode_bson_value(encoded) do
-    case Bson.decode(encoded) do
-      %{v: value} ->
-        value
-
-      any_decoded ->
-        any_decoded
     end
   end
 
