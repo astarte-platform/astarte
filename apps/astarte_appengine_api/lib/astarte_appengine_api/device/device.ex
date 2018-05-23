@@ -24,6 +24,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.EndpointNotFoundError
+  alias Astarte.AppEngine.API.Device.MapTree
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.PathNotFoundError
@@ -250,7 +251,7 @@ defmodule Astarte.AppEngine.API.Device do
         Map.merge(values, value)
       end)
 
-    {:ok, %InterfaceValues{data: inflate_tree(values_map)}}
+    {:ok, %InterfaceValues{data: MapTree.inflate_tree(values_map)}}
   end
 
   defp do_get_interface_values!(client, device_id, :object, interface_row, opts) do
@@ -310,7 +311,7 @@ defmodule Astarte.AppEngine.API.Device do
       if individual_value != nil do
         individual_value
       else
-        inflate_tree(values_map)
+        MapTree.inflate_tree(values_map)
       end
 
     {:ok, %InterfaceValues{data: data}}
@@ -385,42 +386,6 @@ defmodule Astarte.AppEngine.API.Device do
     case no_basepath do
       "/" <> noleadingslash -> noleadingslash
       already_noleadingslash -> already_noleadingslash
-    end
-  end
-
-  defp inflate_tree(values_map) do
-    Enum.reduce(values_map, %{}, fn {key, value}, acc ->
-      new_value =
-        if String.contains?(key, "/") do
-          build_tree_from_path(key, value)
-        else
-          %{key => value}
-        end
-
-      merge_tree(acc, new_value)
-    end)
-  end
-
-  defp build_tree_from_path(path, value) do
-    tokens = String.split(path, "/")
-
-    List.foldr(tokens, value, fn token, subtree ->
-      %{token => subtree}
-    end)
-  end
-
-  defp merge_tree(existing_tree, new_tree) do
-    {subkey, subtree} = Enum.at(new_tree, 0)
-
-    cond do
-      Map.get(existing_tree, subkey) == nil ->
-        Map.put(existing_tree, subkey, subtree)
-
-      is_map(subtree) ->
-        Map.put(existing_tree, subkey, merge_tree(Map.get(existing_tree, subkey), subtree))
-
-      true ->
-        Map.put(existing_tree, subkey, subtree)
     end
   end
 
