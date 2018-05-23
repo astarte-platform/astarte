@@ -31,6 +31,18 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ChangesetView, "error.json", changeset: changeset)
   end
 
+  def call(conn, {:error, :extended_id_not_allowed}) do
+    conn
+    |> put_status(:bad_request)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"400")
+  end
+
+  def call(conn, {:error, :invalid_device_id}) do
+    conn
+    |> put_status(:bad_request)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"400")
+  end
+
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)
