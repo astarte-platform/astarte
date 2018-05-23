@@ -18,8 +18,8 @@
 
 defmodule Astarte.DataAccess.Device do
   require Logger
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
+  alias CQEx.Query
+  alias CQEx.Result
 
   @spec interface_version(any, binary, String.t()) :: {:ok, integer} | {:error, atom}
   def interface_version(client, device_id, interface) do
@@ -30,12 +30,12 @@ defmodule Astarte.DataAccess.Device do
     """
 
     device_introspection_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_introspection_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
+      Query.new()
+      |> Query.statement(device_introspection_statement)
+      |> Query.put(:device_id, device_id)
 
-    with {:ok, result} <- DatabaseQuery.call(client, device_introspection_query),
-         device_row when is_list(device_row) <- DatabaseResult.head(result),
+    with {:ok, result} <- Query.call(client, device_introspection_query),
+         device_row when is_list(device_row) <- Result.head(result),
          introspection <- Keyword.get(device_row, :introspection, []),
          {_interface_name, interface_major} <-
            List.keyfind(introspection, interface, 0, :interface_not_found) do
