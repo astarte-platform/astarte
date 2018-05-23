@@ -27,8 +27,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name, "device_id" => device_id}) do
-    interfaces = Device.list_interfaces!(realm_name, device_id)
-    render(conn, "index.json", interfaces: interfaces)
+    with {:ok, interfaces} <- Device.list_interfaces(realm_name, device_id) do
+      render(conn, "index.json", interfaces: interfaces)
+    end
   end
 
   def show(
