@@ -118,9 +118,3 @@ Also, the hard cap has a very different meaning in downsampling. In this case, t
 Astarte is also capable of downsampling aggregated interfaces, as long as a `downsample_key` is specified, which has to match the last token of an `endpoint` of the queried `interface` (i.e. in case the interface has a `/%{id}/myValue` mapping which should be used as the `downsample_key`, you should specify `downsample_key=myValue` in the query). When doing so, the aggregate will be downsampled using the chosen `endpoint` value as the `y` axis value, whereas its other `endpoints` will be disregarded when applying the algorithm. Please note that, no matter what `downsample_key` is used, a sample will be composed by the whole aggregation.
 
 If there is no way an interface can be downsampled (this is true, for example, if no `downsample_key` has been specified for `aggregations`, or for types such as `strings`), AppEngine API will return a `4xx` error. In general, downsampling is a powerful mechanism with a lot of limitations which really shines when plotting. Once again, this is a fundamental factor to consider when [designing your interfaces](029-interface_design_guide.html).
-
-## Using Astarte Channels
-
-Especially when building Frontend applications, it is useful to receive real-time updates about data sent from Devices. Astarte leverages [Phoenix Channels](https://hexdocs.pm/phoenix/channels.html) to provide such a thing over [WebSockets](https://en.wikipedia.org/wiki/WebSocket). WebSockets can be used natively from a Web Browser and follow the same authentication pattern as a standard HTTP call.
-
-Astarte Channels define a semantic on top of Phoenix Channels which allows read-only monitoring of `device` Interfaces. Authentication and Authorization over Channels happens in the very same way as `AppEngine`, and the `a_aea` claim in the token is respected when requesting interfaces and mappings to monitor.

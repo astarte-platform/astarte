@@ -54,6 +54,8 @@ Supported token claims are:
  * `a_aea`: Defines the regular expressions for AppEngine API
  * `a_rma`: Defines the regular expressions for Realm Management API
  * `a_hka`: Defines the regular expressions for Housekeeping API
+ * `a_pa`: Defines the regular expressions for Pairing API
+ * `a_ch`: Defines the regular expressions for Channels
 
 Of course, claims are considered only after a successful token verification. This means that the claim will be processed only if the caller is authenticated against the correct authentication realm  - this is especially the case for what concerns Housekeeping, which has a dedicated Authentication realm not tied to any Astarte realms.
 
@@ -93,6 +95,12 @@ Valid tokens can be used for calling into Astarte's public APIs. Depending on wh
 ### JWT
 
 Every API call **must** have an `Authorization: Bearer <token>` header. Not providing the token or providing a token which can't be validated for the authentication realm of the context results in a 401 reply.
+
+## Authorization for Channels
+
+A valid token should be supplied when opening the WebSocket, in the very same fashion to what happens with REST APIs. However, the claims in this token will support different verbs compared to the REST APIs, namely `JOIN` and `WATCH`. These have very specific meanings and are well explained in [Channels' User Guide](052-using_channels.html#authorization).
+
+The behavior and supported tokens are equivalent to REST APIs.
 
 ## Supported integrations
 
