@@ -314,6 +314,10 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     """
       INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, path, reception_timestamp, value, string) VALUES
         (7f454c46-0201-0100-0000-000000000000, '/', '2017-09-30 07:13+0000', 3.3, 'ccc');
+    """,
+    """
+      INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, reception_timestamp) VALUES
+        (7f454c46-0201-0100-0000-000000000000, e7f6d126-ae91-9689-2dba-71a0be336507, f12524ba-8f0d-6056-0d3d-8674769d0446, '/', '2017-09-30 07:12+0000');
     """
   ]
 

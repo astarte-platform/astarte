@@ -408,12 +408,9 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp column_pretty_name(endpoint) do
-    [pretty_name] =
-      endpoint
-      |> String.split("/")
-      |> tl
-
-    pretty_name
+    endpoint
+    |> String.split("/")
+    |> List.last()
   end
 
   defp retrieve_endpoint_values(
@@ -491,12 +488,91 @@ defmodule Astarte.AppEngine.API.Device do
          :object,
          :datastream,
          interface_row,
-         _endpoint_id,
-         endpoint_rows,
+         nil,
+         endpoint_row,
          "/",
          opts
        ) do
     path = "/"
+
+    interface_id = interface_row[:interface_id]
+
+    endpoint_id = CQLUtils.endpoint_id(interface_row[:name], interface_row[:major_version], "")
+
+    {count, paths} =
+      Queries.retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id)
+      |> Enum.reduce({0, []}, fn row, {count, all_paths} ->
+        if String.starts_with?(row[:path], path) do
+          [{:path, row_path}] = row
+
+          {count + 1, [row_path | all_paths]}
+        else
+          {count, all_paths}
+        end
+      end)
+
+    cond do
+      count == 0 ->
+        raise PathNotFoundError
+
+      count == 1 ->
+        [only_path] = paths
+
+        retrieve_endpoint_values(
+          client,
+          device_id,
+          :object,
+          :datastream,
+          interface_row,
+          endpoint_id,
+          endpoint_row,
+          only_path,
+          opts
+        )
+
+      count > 1 ->
+        values_map =
+          Enum.reduce(paths, %{}, fn a_path, values_map ->
+            {:ok, %Astarte.AppEngine.API.Device.InterfaceValues{data: values}} =
+              retrieve_endpoint_values(
+                client,
+                device_id,
+                :object,
+                :datastream,
+                interface_row,
+                endpoint_id,
+                endpoint_row,
+                a_path,
+                %InterfaceValuesOptions{limit: 1}
+              )
+
+            case values do
+              [] ->
+                values_map
+
+              [value] ->
+                simplified_path = simplify_path(path, a_path)
+
+                Map.put(values_map, simplified_path, value)
+            end
+          end)
+          |> MapTree.inflate_tree()
+
+        {:ok, %InterfaceValues{data: values_map}}
+    end
+  end
+
+  defp retrieve_endpoint_values(
+         client,
+         device_id,
+         :object,
+         :datastream,
+         interface_row,
+         _endpoint_id,
+         endpoint_rows,
+         path,
+         opts
+       ) do
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
     {columns, column_atom_to_pretty_name, downsample_column_atom} =
