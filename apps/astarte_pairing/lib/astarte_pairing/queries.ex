@@ -39,6 +39,12 @@ defmodule Astarte.Pairing.Queries do
   WHERE device_id=:device_id
   """
 
+  @select_device_for_info """
+  SELECT credentials_secret, inhibit_credentials_request, first_credentials_request
+  FROM devices
+  WHERE device_id=:device_id
+  """
+
   @select_device_for_credentials_request """
   SELECT extended_id, first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
   FROM devices
@@ -82,6 +88,25 @@ defmodule Astarte.Pairing.Queries do
     device_query =
       Query.new()
       |> Query.statement(@select_device_for_credentials_request)
+      |> Query.put(:device_id, device_id)
+
+    with {:ok, res} <- Query.call(client, device_query),
+         device_row when is_list(device_row) <- Result.head(res) do
+      {:ok, device_row}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
+        {:error, :db_error}
+    end
+  end
+
+  def select_device_for_info(client, device_id) do
+    device_query =
+      Query.new()
+      |> Query.statement(@select_device_for_info)
       |> Query.put(:device_id, device_id)
 
     with {:ok, res} <- Query.call(client, device_query),
