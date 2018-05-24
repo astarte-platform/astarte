@@ -888,7 +888,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     short_path = "/something"
 
     assert_raise EndpointNotFoundError, fn ->
-      Device.update_interface_values!(test_realm, device_id, test_interface, short_path, value, par)
+      Device.update_interface_values!(
+        test_realm,
+        device_id,
+        test_interface,
+        short_path,
+        value,
+        par
+      )
     end
 
     ro_interface = "com.test.SimpleStreamTest"
