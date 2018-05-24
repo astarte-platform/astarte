@@ -139,8 +139,37 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
-  def verify_credentials(pem_cert) do
-    CertVerifier.verify(pem_cert, Config.ca_cert())
+  def verify_credentials(:astarte_mqtt_v1, %{client_crt: client_crt}, realm, hardware_id, secret) do
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+         cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, device_row} <- Queries.select_device_for_verify_credentials(client, device_id),
+         {:authorized?, true} <-
+           {:authorized?, CredentialsSecret.verify(secret, device_row[:credentials_secret])} do
+      CertVerifier.verify(client_crt, Config.ca_cert())
+    else
+      {:authorized?, false} ->
+        {:error, :unauthorized}
+
+      {:credentials_inhibited?, true} ->
+        {:error, :credentials_request_inhibited}
+
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def verify_credentials(protocol, credentials_map, _realm, _hw_id, _secret) do
+    Logger.warn(
+      "verify_credentials: unknown protocol #{inspect(protocol)} with params #{
+        inspect(credentials_map)
+      }"
+    )
+
+    {:error, :unknown_protocol}
   end
 
   defp device_status_string(device_row) do
