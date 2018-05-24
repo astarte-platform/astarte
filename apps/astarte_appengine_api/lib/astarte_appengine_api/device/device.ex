@@ -491,12 +491,53 @@ defmodule Astarte.AppEngine.API.Device do
          :object,
          :datastream,
          interface_row,
-         _endpoint_id,
-         endpoint_rows,
+         nil,
+         endpoint_row,
          "/",
          opts
        ) do
     path = "/"
+
+    interface_id = interface_row[:interface_id]
+
+    endpoint_id = CQLUtils.endpoint_id(interface_row[:name], interface_row[:major_version], "")
+
+    values =
+      Queries.retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id)
+      |> Enum.reduce(%{}, fn row, values_map ->
+        if String.starts_with?(row[:path], path) do
+          [{:path, row_path}] = row
+
+          retrieve_endpoint_values(
+            client,
+            device_id,
+            :object,
+            :datastream,
+            interface_row,
+            endpoint_id,
+            endpoint_row,
+            row_path,
+            opts
+          )
+        else
+          values_map
+        end
+      end)
+
+    values
+  end
+
+  defp retrieve_endpoint_values(
+         client,
+         device_id,
+         :object,
+         :datastream,
+         interface_row,
+         _endpoint_id,
+         endpoint_rows,
+         path,
+         opts
+       ) do
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
     {columns, column_atom_to_pretty_name, downsample_column_atom} =
