@@ -42,7 +42,7 @@ defmodule Astarte.DataAccess.Device do
       {:ok, interface_major}
     else
       :empty_dataset ->
-        Logger.warn("interface_version: device not found #{inspect(device_id)}")
+        Logger.debug("interface_version: device not found #{inspect(device_id)}")
         {:error, :device_not_found}
 
       :interface_not_found ->
@@ -58,7 +58,7 @@ defmodule Astarte.DataAccess.Device do
       {:error, reason} ->
         # DB Error
         Logger.warn("interface_version: failed with reason #{inspect(reason)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 end
