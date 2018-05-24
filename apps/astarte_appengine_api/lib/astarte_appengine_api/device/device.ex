@@ -408,12 +408,9 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp column_pretty_name(endpoint) do
-    [pretty_name] =
-      endpoint
-      |> String.split("/")
-      |> tl
-
-    pretty_name
+    endpoint
+    |> String.split("/")
+    |> List.last()
   end
 
   defp retrieve_endpoint_values(
