@@ -71,6 +71,6 @@ defmodule Astarte.Pairing.CertVerifierTest do
 
     :timer.sleep(1500)
 
-    assert {:error, :cert_expired} = CertVerifier.verify(valid_cert, ca_crt)
+    assert {:ok, %{valid: false, reason: :cert_expired}} = CertVerifier.verify(valid_cert, ca_crt)
   end
 end
