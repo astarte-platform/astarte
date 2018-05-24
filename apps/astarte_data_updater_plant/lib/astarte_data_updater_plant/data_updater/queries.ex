@@ -299,15 +299,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_path_into_db(
-        _db_client,
-        _device_id,
+        db_client,
+        device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
-        _endpoint,
-        _path,
+        endpoint,
+        path,
         _value,
-        _value_timestamp,
-        _reception_timestamp
+        value_timestamp,
+        reception_timestamp
       ) do
+    insert_statement = """
+    INSERT INTO individual_property
+        (device_id, interface_id, endpoint_id, path,
+        reception_timestamp, reception_timestamp_submillis, datetime_value)
+    VALUES (:device_id, :interface_id, :endpoint_id, :path,
+        :reception_timestamp, :reception_timestamp_submillis, :datetime_value)
+    """
+
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
+      |> DatabaseQuery.put(:datetime_value, value_timestamp)
+
+    DatabaseQuery.call!(db_client, insert_query)
+
     :ok
   end
 

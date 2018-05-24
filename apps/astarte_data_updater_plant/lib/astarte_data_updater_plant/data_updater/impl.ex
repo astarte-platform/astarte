@@ -1106,7 +1106,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         end
 
       :object ->
-        {:ok, %Mapping{}}
+        endpoint_id =
+          CQLUtils.endpoint_id(interface_descriptor.name, interface_descriptor.major_version, "")
+
+        {:ok, %Mapping{endpoint_id: endpoint_id}}
     end
   end
 
