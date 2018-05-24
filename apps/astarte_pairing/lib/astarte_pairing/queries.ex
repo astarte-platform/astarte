@@ -91,60 +91,15 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def select_device_for_credentials_request(client, device_id) do
-    device_query =
-      Query.new()
-      |> Query.statement(@select_device_for_credentials_request)
-      |> Query.put(:device_id, device_id)
-
-    with {:ok, res} <- Query.call(client, device_query),
-         device_row when is_list(device_row) <- Result.head(res) do
-      {:ok, device_row}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      error ->
-        Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
-    end
+    do_select_device(client, device_id, @select_device_for_credentials_request)
   end
 
   def select_device_for_info(client, device_id) do
-    device_query =
-      Query.new()
-      |> Query.statement(@select_device_for_info)
-      |> Query.put(:device_id, device_id)
-
-    with {:ok, res} <- Query.call(client, device_query),
-         device_row when is_list(device_row) <- Result.head(res) do
-      {:ok, device_row}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      error ->
-        Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
-    end
+    do_select_device(client, device_id, @select_device_for_info)
   end
 
   def select_device_for_verify_credentials(client, device_id) do
-    device_query =
-      Query.new()
-      |> Query.statement(@select_device_for_verify_credentials)
-      |> Query.put(:device_id, device_id)
-
-    with {:ok, res} <- Query.call(client, device_query),
-         device_row when is_list(device_row) <- Result.head(res) do
-      {:ok, device_row}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      error ->
-        Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
-    end
+    do_select_device(client, device_id, @select_device_for_verify_credentials)
   end
 
   def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
@@ -180,6 +135,25 @@ defmodule Astarte.Pairing.Queries do
     case Query.call(client, query) do
       {:ok, _res} ->
         :ok
+
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
+        {:error, :db_error}
+    end
+  end
+
+  defp do_select_device(client, device_id, select_statement) do
+    device_query =
+      Query.new()
+      |> Query.statement(select_statement)
+      |> Query.put(:device_id, device_id)
+
+    with {:ok, res} <- Query.call(client, device_query),
+         device_row when is_list(device_row) <- Result.head(res) do
+      {:ok, device_row}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
 
       error ->
         Logger.warn("DB error: #{inspect(error)}")
