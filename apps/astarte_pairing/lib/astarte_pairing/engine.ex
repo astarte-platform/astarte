@@ -95,8 +95,31 @@ defmodule Astarte.Pairing.Engine do
     {:error, :unknown_protocol}
   end
 
-  def get_info do
-    %{version: @version, url: Config.broker_url!()}
+  def get_info(realm, hardware_id, credentials_secret) do
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+         cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, device_row} <- Queries.select_device_for_info(client, device_id),
+         {:authorized?, true} <-
+           {:authorized?,
+            CredentialsSecret.verify(credentials_secret, device_row[:credentials_secret])} do
+      device_status = device_status_string(device_row)
+      protocols = get_protocol_info()
+
+      {:ok, %{version: @version, device_status: device_status, protocols: protocols}}
+    else
+      {:authorized?, false} ->
+        {:error, :unauthorized}
+
+      {:credentials_inhibited?, true} ->
+        {:error, :credentials_request_inhibited}
+
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   def register_device(realm, hardware_id) do
@@ -118,6 +141,29 @@ defmodule Astarte.Pairing.Engine do
 
   def verify_credentials(pem_cert) do
     CertVerifier.verify(pem_cert, Config.ca_cert())
+  end
+
+  defp device_status_string(device_row) do
+    # The device is pending until the first credendtial request
+    cond do
+      Keyword.get(device_row, :inhibit_credentials_request) ->
+        "inhibited"
+
+      Keyword.get(device_row, :first_credentials_request) ->
+        "confirmed"
+
+      true ->
+        "pending"
+    end
+  end
+
+  defp get_protocol_info do
+    # TODO: this should be made modular when we support more protocols
+    %{
+      astarte_mqtt_v1: %{
+        broker_url: Config.broker_url!()
+      }
+    }
   end
 
   defp parse_ip(ip_string) do
