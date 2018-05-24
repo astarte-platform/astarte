@@ -502,29 +502,67 @@ defmodule Astarte.AppEngine.API.Device do
 
     endpoint_id = CQLUtils.endpoint_id(interface_row[:name], interface_row[:major_version], "")
 
-    values =
+    {count, paths} =
       Queries.retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id)
-      |> Enum.reduce(%{}, fn row, values_map ->
+      |> Enum.reduce({0, []}, fn row, {count, all_paths} ->
         if String.starts_with?(row[:path], path) do
           [{:path, row_path}] = row
 
-          retrieve_endpoint_values(
-            client,
-            device_id,
-            :object,
-            :datastream,
-            interface_row,
-            endpoint_id,
-            endpoint_row,
-            row_path,
-            opts
-          )
+          {count + 1, [row_path | all_paths]}
         else
-          values_map
+          {count, all_paths}
         end
       end)
 
-    values
+    cond do
+      count == 0 ->
+        raise PathNotFoundError
+
+      count == 1 ->
+        [only_path] = paths
+
+        retrieve_endpoint_values(
+          client,
+          device_id,
+          :object,
+          :datastream,
+          interface_row,
+          endpoint_id,
+          endpoint_row,
+          only_path,
+          opts
+        )
+
+      count > 1 ->
+        values_map =
+          Enum.reduce(paths, %{}, fn a_path, values_map ->
+            {:ok, %Astarte.AppEngine.API.Device.InterfaceValues{data: values}} =
+              retrieve_endpoint_values(
+                client,
+                device_id,
+                :object,
+                :datastream,
+                interface_row,
+                endpoint_id,
+                endpoint_row,
+                a_path,
+                %InterfaceValuesOptions{limit: 1}
+              )
+
+            case values do
+              [] ->
+                values_map
+
+              [value] ->
+                simplified_path = simplify_path(path, a_path)
+
+                Map.put(values_map, simplified_path, value)
+            end
+          end)
+          |> MapTree.inflate_tree()
+
+        {:ok, %InterfaceValues{data: values_map}}
+    end
   end
 
   defp retrieve_endpoint_values(
