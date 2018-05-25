@@ -34,6 +34,20 @@ defmodule Astarte.Pairing.Engine do
 
   @version Mix.Project.config()[:version]
 
+  def get_agent_public_key_pems(realm) do
+    with cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, jwt_pems} <- Queries.get_agent_public_key_pems(client) do
+      {:ok, jwt_pems}
+    else
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   def get_credentials(
         :astarte_mqtt_v1,
         %{csr: csr},
