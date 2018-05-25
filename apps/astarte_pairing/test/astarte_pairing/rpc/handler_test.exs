@@ -32,6 +32,8 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
     AstarteMQTTV1Status,
     Call,
     GenericErrorReply,
+    GetAgentPublicKeyPEMs,
+    GetAgentPublicKeyPEMsReply,
     GetCredentials,
     GetCredentialsReply,
     GetInfo,
@@ -118,6 +120,38 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
       |> Call.encode()
 
     assert Handler.handle_rpc(encoded) == {:error, :empty_call}
+  end
+
+  describe "GetAgentPublicKeyPEMs" do
+    test "fails with invalid realm" do
+      encoded =
+        %Call{call: {:get_agent_public_key_pems, %GetAgentPublicKeyPEMs{realm: "invalid"}}}
+        |> Call.encode()
+
+      {:ok, reply} = Handler.handle_rpc(encoded)
+
+      expected_err_reply = %Reply{
+        error: true,
+        reply: {:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}
+      }
+
+      assert Reply.decode(reply) == expected_err_reply
+    end
+
+    test "successful call" do
+      encoded =
+        %Call{call: {:get_agent_public_key_pems, %GetAgentPublicKeyPEMs{realm: @test_realm}}}
+        |> Call.encode()
+
+      {:ok, reply} = Handler.handle_rpc(encoded)
+
+      pems = DatabaseTestHelper.agent_public_key_pems()
+
+      assert %Reply{
+        error: false,
+        reply: {:get_agent_public_key_pems_reply, %GetAgentPublicKeyPEMsReply{agent_public_key_pems: ^pems}}
+      } = Reply.decode(reply)
+    end
   end
 
   describe "GetInfo" do

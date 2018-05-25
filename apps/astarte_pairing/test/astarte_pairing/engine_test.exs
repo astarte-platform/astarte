@@ -63,6 +63,18 @@ defmodule Astarte.Pairing.EngineTest do
     end)
   end
 
+  describe "get_agent_public_key_pem" do
+    test "fails with non-existing realm" do
+      assert {:error, :realm_not_found} = Engine.get_agent_public_key_pems("nonexisting")
+    end
+
+    test "successful call" do
+      pems = DatabaseTestHelper.agent_public_key_pems()
+
+      assert {:ok, ^pems} = Engine.get_agent_public_key_pems(@test_realm)
+    end
+  end
+
   describe "register_device" do
     setup [:seed_devices]
 

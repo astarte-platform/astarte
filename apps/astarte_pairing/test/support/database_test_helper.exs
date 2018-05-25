@@ -59,6 +59,28 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   );
   """
 
+  @create_kv_store_table """
+  CREATE TABLE autotestrealm.kv_store (
+    group varchar,
+    key varchar,
+    value blob,
+
+    PRIMARY KEY ((group), key)
+  );
+  """
+
+  @jwt_public_key_pem """
+  -----BEGIN PUBLIC KEY-----
+  MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE7u5hHn9oE9uy5JoUjwNU6rSEgRlAFh5e
+  u9/f1dNImWDuIPeLu8nEiuHlCMy02+YDu0wN2U1psPC7w6AFjv4uTg==
+  -----END PUBLIC KEY-----
+  """
+
+  @insert_jwt_public_key_pem """
+  INSERT INTO autotestrealm.kv_store (group, key, value)
+  VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob('#{@jwt_public_key_pem}'))
+  """
+
   @drop_autotestrealm """
   DROP KEYSPACE autotestrealm;
   """
@@ -86,6 +108,8 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def test_realm(), do: @test_realm
 
+  def agent_public_key_pems, do: [@jwt_public_key_pem]
+
   def unregistered_hw_id(), do: @unregistered_hw_id
 
   def registered_not_confirmed_hw_id(), do: @registered_not_confirmed_hw_id
@@ -109,11 +133,16 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Client.new!()
 
     with {:ok, _} <- Query.call(client, @create_autotestrealm),
-         {:ok, _} <- Query.call(client, @create_devices_table) do
+         {:ok, _} <- Query.call(client, @create_devices_table),
+         {:ok, _} <- Query.call(client, @create_kv_store_table),
+         {:ok, _} <- Query.call(client, @insert_jwt_public_key_pem) do
       :ok
     else
       %{msg: msg} -> {:error, msg}
     end
+  end
+
+  def seed_agent_public_key_pem do
   end
 
   def seed_devices do
