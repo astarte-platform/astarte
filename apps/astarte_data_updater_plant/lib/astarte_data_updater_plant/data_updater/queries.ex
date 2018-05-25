@@ -49,7 +49,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     else
       {:error, reason} ->
         Logger.warn("retrieve_interface_mappings: failed with reason #{inspect(reason)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 
@@ -345,30 +345,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     DatabaseQuery.call!(db_client, delete_query)
     :ok
-  end
-
-  # TODO: copied from AppEngine, make it an api
-  def retrieve_interface_row(client, interface, major_version) do
-    interface_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT name, major_version, minor_version, interface_id, type, quality, flags, storage, storage_type, automaton_transitions, automaton_accepting_states FROM interfaces" <>
-          " WHERE name=:name AND major_version=:major_version"
-      )
-      |> DatabaseQuery.put(:name, interface)
-      |> DatabaseQuery.put(:major_version, major_version)
-
-    with {:ok, result} <- DatabaseQuery.call(client, interface_query),
-         interface_row when is_list(interface_row) <- DatabaseResult.head(result) do
-      {:ok, interface_row}
-    else
-      :empty_dataset ->
-        {:error, :interface_not_found}
-
-      {:error, reason} ->
-        Logger.warn("retrieve_interface_row: failed with reason #{inspect(reason)}")
-        {:error, :db_error}
-    end
   end
 
   def query_previous_value(

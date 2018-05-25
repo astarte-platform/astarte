@@ -27,6 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -762,7 +763,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     with {:ok, major_version} <-
            DeviceQueries.interface_version(db_client, state.device_id, interface_name),
          {:ok, interface_row} <-
-           Queries.retrieve_interface_row(db_client, interface_name, major_version),
+           InterfaceQueries.retrieve_interface_row(db_client, interface_name, major_version),
          %InterfaceDescriptor{} = interface_descriptor <-
            InterfaceDescriptor.from_db_result!(interface_row),
          {:ok, mappings} <-
@@ -799,7 +800,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:error, :device_not_found} ->
         {:error, :interface_loading_failed}
 
-      {:error, :db_error} ->
+      {:error, :database_error} ->
         {:error, :interface_loading_failed}
 
       {:error, :interface_not_found} ->
