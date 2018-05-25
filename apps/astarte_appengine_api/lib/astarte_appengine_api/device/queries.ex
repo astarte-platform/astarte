@@ -46,6 +46,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     DatabaseResult.head(values)
   end
 
+  @spec retrieve_interfaces_list(:cqerl.client(), binary) ::
+          {:ok, list(String.t())} | {:error, atom}
   def retrieve_interfaces_list(client, device_id) do
     device_introspection_statement = """
     SELECT introspection
@@ -59,7 +61,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:device_id, device_id)
 
     with {:ok, result} <- DatabaseQuery.call(client, device_introspection_query),
-         [introspection: introspection] <- DatabaseResult.head(result) do
+         [introspection: introspection_or_nil] <- DatabaseResult.head(result) do
+      introspection = introspection_or_nil || []
+
       interfaces_list =
         for {interface_name, _interface_major} <- introspection do
           interface_name
@@ -70,8 +74,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       :empty_dataset ->
         {:error, :device_not_found}
 
-      any_error ->
-        Logger.warn("retrieve_interfaces_list: error: #{inspect(any_error)}")
+      {:error, reason} ->
+        Logger.warn("retrieve_interfaces_list: error: #{inspect(reason)}")
         {:error, :database_error}
     end
   end
