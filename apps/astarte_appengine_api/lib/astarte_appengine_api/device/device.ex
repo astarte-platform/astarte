@@ -38,6 +38,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataAccess.Device, as: DeviceQueries
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Ecto.Changeset
   require Logger
 
@@ -102,9 +103,9 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Queries.connect_to_db(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface) do
-      interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
-
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, interface_row} <-
+           InterfaceQueries.retrieve_interface_row(client, interface, major_version) do
       do_get_interface_values!(
         client,
         device_id,
@@ -126,10 +127,10 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Queries.connect_to_db(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface) do
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, interface_row} <-
+           InterfaceQueries.retrieve_interface_row(client, interface, major_version) do
       path = "/" <> no_prefix_path
-
-      interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
 
       {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
 
@@ -163,9 +164,9 @@ defmodule Astarte.AppEngine.API.Device do
       ) do
     with {:ok, client} <- Queries.connect_to_db(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface) do
-      interface_row = Queries.retrieve_interface_row!(client, interface, major_version)
-
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, interface_row} <-
+           InterfaceQueries.retrieve_interface_row(client, interface, major_version) do
       path = "/" <> no_prefix_path
 
       automaton = {

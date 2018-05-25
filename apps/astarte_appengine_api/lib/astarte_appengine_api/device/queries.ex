@@ -21,7 +21,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
-  alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
@@ -45,31 +44,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   def first_result_row(values) do
     DatabaseResult.head(values)
-  end
-
-  def retrieve_interface_row!(client, interface, major_version) do
-    interface_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT name, major_version, minor_version, interface_id, type, quality, flags, storage, storage_type, automaton_transitions, automaton_accepting_states FROM interfaces" <>
-          " WHERE name=:name AND major_version=:major_version"
-      )
-      |> DatabaseQuery.put(:name, interface)
-      |> DatabaseQuery.put(:major_version, major_version)
-
-    interface_row =
-      DatabaseQuery.call!(client, interface_query)
-      |> DatabaseResult.head()
-
-    if interface_row == :empty_dataset do
-      Logger.warn(
-        "Device.retrieve_interface_row: interface not found. This error here means that the device has an interface that is not installed."
-      )
-
-      raise InterfaceNotFoundError
-    end
-
-    interface_row
   end
 
   def retrieve_interfaces_list(client, device_id) do
