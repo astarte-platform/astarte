@@ -88,7 +88,7 @@ defmodule Astarte.Pairing.Queries do
     else
       error ->
         Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 
@@ -141,7 +141,7 @@ defmodule Astarte.Pairing.Queries do
 
       error ->
         Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 
@@ -160,7 +160,7 @@ defmodule Astarte.Pairing.Queries do
 
       error ->
         Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 
@@ -182,7 +182,7 @@ defmodule Astarte.Pairing.Queries do
 
       error ->
         Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 end
