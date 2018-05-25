@@ -21,7 +21,7 @@ defmodule Astarte.DataAccess.Device do
   alias CQEx.Query
   alias CQEx.Result
 
-  @spec interface_version(any, binary, String.t()) :: {:ok, integer} | {:error, atom}
+  @spec interface_version(:cqerl.client(), binary, String.t()) :: {:ok, integer} | {:error, atom}
   def interface_version(client, device_id, interface) do
     device_introspection_statement = """
     SELECT introspection
@@ -42,7 +42,7 @@ defmodule Astarte.DataAccess.Device do
       {:ok, interface_major}
     else
       :empty_dataset ->
-        Logger.warn("interface_version: device not found #{inspect(device_id)}")
+        Logger.debug("interface_version: device not found #{inspect(device_id)}")
         {:error, :device_not_found}
 
       :interface_not_found ->
@@ -58,7 +58,7 @@ defmodule Astarte.DataAccess.Device do
       {:error, reason} ->
         # DB Error
         Logger.warn("interface_version: failed with reason #{inspect(reason)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 end
