@@ -24,7 +24,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.AstarteValue
   alias Astarte.AppEngine.API.Device.DevicesListOptions
-  alias Astarte.AppEngine.API.Device.EndpointNotFoundError
   alias Astarte.AppEngine.API.Device.MapTree
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
@@ -129,15 +128,9 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version) do
-      path = "/" <> no_prefix_path
-
-      {status, endpoint_ids} = get_endpoint_ids(interface_row, path)
-
-      if status == :error and endpoint_ids == :not_found do
-        raise EndpointNotFoundError
-      end
-
+           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+         path <- "/" <> no_prefix_path,
+         {:ok, endpoint_ids} <- get_endpoint_ids(interface_row, path, allow_guess: true) do
       endpoint_query = Queries.prepare_value_type_query(interface_row[:interface_id])
 
       do_get_interface_values!(
@@ -166,26 +159,9 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version) do
-      path = "/" <> no_prefix_path
-
-      automaton = {
-        :erlang.binary_to_term(interface_row[:automaton_transitions]),
-        :erlang.binary_to_term(interface_row[:automaton_accepting_states])
-      }
-
-      endpoint_id =
-        case EndpointsAutomaton.resolve_path(path, automaton) do
-          {:ok, endpoint_id} ->
-            endpoint_id
-
-          {:guessed, _endpoint_ids} ->
-            raise EndpointNotFoundError
-
-          {:error, :not_found} ->
-            raise EndpointNotFoundError
-        end
-
+           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+         path <- "/" <> no_prefix_path,
+         {:ok, endpoint_id} <- get_endpoint_ids(interface_row, path) do
       timestamp =
         DateTime.utc_now()
         |> DateTime.to_unix(:milliseconds)
@@ -227,6 +203,12 @@ defmodule Astarte.AppEngine.API.Device do
        %InterfaceValues{
          data: value
        }}
+    else
+      {:error, :endpoint_guess_not_allowed} ->
+        {:error, :read_only_resource}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -391,20 +373,25 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp get_endpoint_ids(interface_metadata, path) do
+  defp get_endpoint_ids(interface_metadata, path, opts \\ []) do
     automaton =
       {:erlang.binary_to_term(interface_metadata[:automaton_transitions]),
        :erlang.binary_to_term(interface_metadata[:automaton_accepting_states])}
 
-    case Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton) do
+    allow_guess = opts[:allow_guess]
+
+    case EndpointsAutomaton.resolve_path(path, automaton) do
       {:ok, endpoint_id} ->
-        {interface_metadata, [endpoint_id]}
+        {:ok, [endpoint_id]}
 
-      {:guessed, endpoint_ids} ->
-        {interface_metadata, endpoint_ids}
+      {:guessed, endpoint_ids} when allow_guess ->
+        {:ok, endpoint_ids}
 
-      {:error, reason} ->
-        {:error, reason}
+      {:guessed, _endpoint_ids} ->
+        {:error, :endpoint_guess_not_allowed}
+
+      {:error, :not_found} ->
+        {:error, :endpoint_not_found}
     end
   end
 

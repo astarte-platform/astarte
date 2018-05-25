@@ -37,6 +37,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404_device")
   end
 
+  def call(conn, {:error, :endpoint_not_found}) do
+    conn
+    |> put_status(:bad_request)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404_endpoint_not_found")
+  end
+
   def call(conn, {:error, :extended_id_not_allowed}) do
     conn
     |> put_status(:bad_request)
@@ -65,6 +71,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     conn
     |> put_status(:not_found)
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404")
+  end
+
+  def call(conn, {:error, :read_only_resource}) do
+    conn
+    |> put_status(:forbidden)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"403_read_only_resource.json")
   end
 
   def call(conn, {:error, :unauthorized}) do
