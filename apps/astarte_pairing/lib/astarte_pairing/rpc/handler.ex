@@ -31,6 +31,8 @@ defmodule Astarte.Pairing.RPC.Handler do
     AstarteMQTTV1Status,
     Call,
     GenericErrorReply,
+    GetAgentPublicKeyPEMs,
+    GetAgentPublicKeyPEMsReply,
     GetCredentials,
     GetCredentialsReply,
     GetInfo,
@@ -58,6 +60,17 @@ defmodule Astarte.Pairing.RPC.Handler do
 
   defp extract_call_tuple(%Call{call: call_tuple}) do
     {:ok, call_tuple}
+  end
+
+  defp call_rpc({:get_agent_public_key_pems, %GetAgentPublicKeyPEMs{realm: realm}}) when is_binary(realm) do
+    with {:ok, pems} <- Engine.get_agent_public_key_pems(realm) do
+      %GetAgentPublicKeyPEMsReply{agent_public_key_pems: pems}
+      |> encode_reply(:get_agent_public_key_pems_reply)
+      |> ok_wrap()
+    else
+      {:error, reason} ->
+        generic_error(reason)
+    end
   end
 
   defp call_rpc(
