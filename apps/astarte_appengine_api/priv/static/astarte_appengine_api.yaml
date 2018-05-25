@@ -20,7 +20,7 @@
 swagger: "2.0"
 info:
   description: "AppEngine API"
-  version: "0.1.0"
+  version: "0.9.0"
   title: "Astarte App Engine API"
   contact:
     email: "info@ispirata.com"
@@ -129,7 +129,9 @@ paths:
               data:
                 $ref: "#/definitions/DeviceStatus"
         404:
-          description: "Device Not found"
+          description: "Device not found"
+          schema:
+            $ref: "#/definitions/DeviceNotFoundError"
     patch:
       tags:
       - "device"
@@ -149,7 +151,9 @@ paths:
               data:
                 $ref: "#/definitions/DeviceStatus"
         404:
-          description: "Device Not found"
+          description: "Device not found."
+          schema:
+            $ref: "#/definitions/DeviceNotFoundError"
 
   /{realm_name}/devices-by-alias/{device_alias}:
     parameters:
@@ -180,7 +184,9 @@ paths:
               data:
                 $ref: "#/definitions/DeviceStatus"
         404:
-          description: "Device Not found"
+          description: "Device not found"
+          schema:
+            $ref: "#/definitions/DeviceNotFoundError"
     patch:
       tags:
       - "device"
@@ -200,7 +206,9 @@ paths:
               data:
                 $ref: "#/definitions/DeviceStatus"
         404:
-          description: "Device Not found"
+          description: "Device not found."
+          schema:
+            $ref: "#/definitions/DeviceNotFoundError"
   /{realm_name}/devices/{device_id}/interfaces:
     get:
       tags:
@@ -222,10 +230,14 @@ paths:
         required: true
         type: "string"
       responses:
-        404:
-          description: "Interface or Device Not found"
+        200:
+          description: "Success"
           examples:
-            text/json: ["com.test.foo", "com.test.bar"]
+            text/json: { "data": ["com.test.foo", "com.test.bar"]}
+        404:
+          description: "Device not found."
+          schema:
+            $ref: "#/definitions/DeviceNotFoundError"
   /{realm_name}/devices/{device_id}/interfaces/{interface}:
     get:
       tags:
@@ -252,8 +264,12 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
         404:
-          description: "Interface or Device Not found"
+          description: "Interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/InterfaceNotInIntrospectionOrDeviceNotFoundError"
     put:
       tags:
       - "device"
@@ -277,8 +293,12 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
         404:
-          description: "Interface or Device Not found"
+          description: "Interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/InterfaceNotInIntrospectionOrDeviceNotFoundError"
         405:
           description: "Invalid object"
   /{realm_name}/devices/{device_id}/interfaces/{interface}/{path}:
@@ -337,8 +357,12 @@ paths:
         required: false
         type: "boolean"
       responses:
+        200:
+          description: "Success"
         404:
-          description: "Interface or Device Not found"
+          description: "Path not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
         405:
           description: "Invalid Request"
     put:
@@ -369,8 +393,12 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
         404:
-          description: "Interface or Device Not found"
+          description: "Path not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
         405:
           description: "Invalid object"
     post:
@@ -401,8 +429,12 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
         404:
-          description: "Interface or Device Not found"
+          description: "Endpoint not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
         405:
           description: "Invalid object"
     delete:
@@ -433,8 +465,12 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
         404:
-          description: "Interface or Device Not found"
+          description: "Path not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
         405:
           description: "Invalid object"
 
@@ -474,6 +510,8 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
         404:
           description: "Interface, Device or Timestamp Not found"
 
@@ -527,3 +565,42 @@ definitions:
       last_pairing_ip: "5.6.7.8"
       total_received_bytes: 10240
       total_received_msgs: 10
+
+  DeviceNotFoundError:
+    type: object
+    properties:
+      errors:
+        type: object
+        properties:
+          detail:
+            type: "string"
+            description: "Short error description"
+    example:
+      errors:
+        detail: "Device not found"
+
+  InterfaceNotInIntrospectionOrDeviceNotFoundError:
+    type: object
+    properties:
+      errors:
+        type: object
+        properties:
+          detail:
+            type: "string"
+            description: "Short error description"
+    example:
+      errors:
+        detail: "Interface not found in device introspection"
+
+  InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError:
+    type: object
+    properties:
+      errors:
+        type: object
+        properties:
+          detail:
+            type: "string"
+            description: "Short error description"
+    example:
+      errors:
+        detail: "Path not found"
