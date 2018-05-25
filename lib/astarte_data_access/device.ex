@@ -36,7 +36,7 @@ defmodule Astarte.DataAccess.Device do
 
     with {:ok, result} <- Query.call(client, device_introspection_query),
          device_row when is_list(device_row) <- Result.head(result),
-         introspection <- Keyword.get(device_row, :introspection, []),
+         introspection <- Keyword.get(device_row, :introspection) || [],
          {_interface_name, interface_major} <-
            List.keyfind(introspection, interface, 0, :interface_not_found) do
       {:ok, interface_major}
