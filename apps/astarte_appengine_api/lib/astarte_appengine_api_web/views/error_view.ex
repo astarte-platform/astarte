@@ -24,12 +24,20 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Bad request"}}
   end
 
+  def render("403_read_only_resource.json", _assigns) do
+    %{errors: %{detail: "Cannot write to read-only resource"}}
+  end
+
   def render("404.json", _assigns) do
     %{errors: %{detail: "Not found"}}
   end
 
   def render("404_device.json", _assigns) do
     %{errors: %{detail: "Device not found"}}
+  end
+
+  def render("404_endpoint_not_found.json", _assigns) do
+    %{errors: %{detail: "Endpoint not found"}}
   end
 
   def render("404_interface_not_found.json", _assigns) do

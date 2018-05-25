@@ -23,8 +23,6 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
-  alias Astarte.AppEngine.API.Device.EndpointNotFoundError
-  alias Astarte.AppEngine.API.Device.InterfaceNotFoundError
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.PathNotFoundError
 
@@ -155,15 +153,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              %{}
            ) == {:error, :interface_not_in_introspection}
 
-    assert_raise EndpointNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAA",
-        "com.test.LCDMonitor",
-        "time/missing",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             "com.test.LCDMonitor",
+             "time/missing",
+             %{}
+           ) == {:error, :endpoint_not_found}
 
     assert_raise PathNotFoundError, fn ->
       Device.get_interface_values!(
@@ -706,15 +702,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              %{}
            ) == {:error, :interface_not_in_introspection}
 
-    assert_raise EndpointNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAA",
-        "com.test.SimpleStreamTest",
-        "missing/endpoint/test",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             "com.test.SimpleStreamTest",
+             "missing/endpoint/test",
+             %{}
+           ) == {:error, :endpoint_not_found}
 
     assert_raise PathNotFoundError, fn ->
       Device.get_interface_values!(
@@ -887,16 +881,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     device_id = "f0VMRgIBAQAAAAAAAAAAAA"
     short_path = "/something"
 
-    assert_raise EndpointNotFoundError, fn ->
-      Device.update_interface_values!(
-        test_realm,
-        device_id,
-        test_interface,
-        short_path,
-        value,
-        par
-      )
-    end
+    assert Device.update_interface_values!(
+             test_realm,
+             device_id,
+             test_interface,
+             short_path,
+             value,
+             par
+           ) == {:error, :read_only_resource}
 
     ro_interface = "com.test.SimpleStreamTest"
     ro_path = "/0/value"

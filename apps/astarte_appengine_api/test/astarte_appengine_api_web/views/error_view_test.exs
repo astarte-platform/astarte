@@ -28,6 +28,16 @@ defmodule Astarte.AppEngine.APIWeb.ErrorViewTest do
              %{errors: %{detail: "Bad request"}}
   end
 
+  test "renders 403_read_only_resource.json" do
+    assert render(Astarte.AppEngine.APIWeb.ErrorView, "403_read_only_resource.json", []) ==
+             %{errors: %{detail: "Cannot write to read-only resource"}}
+  end
+
+  test "renders 404_endpoint_not_found.json" do
+    assert render(Astarte.AppEngine.APIWeb.ErrorView, "404_endpoint_not_found.json", []) ==
+             %{errors: %{detail: "Endpoint not found"}}
+  end
+
   test "renders 404_interface_not_found.json" do
     assert render(Astarte.AppEngine.APIWeb.ErrorView, "404_interface_not_found.json", []) ==
              %{errors: %{detail: "Interface not found"}}
