@@ -43,6 +43,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"400")
   end
 
+  def call(conn, {:error, :interface_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404_interface_not_found")
+  end
+
   def call(conn, {:error, :interface_not_in_introspection}) do
     conn
     |> put_status(:not_found)

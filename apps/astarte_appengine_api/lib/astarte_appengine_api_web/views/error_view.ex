@@ -32,6 +32,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Device not found"}}
   end
 
+  def render("404_interface_not_found.json", _assigns) do
+    %{errors: %{detail: "Interface not found"}}
+  end
+
   def render("404_interface_not_in_introspection.json", _assigns) do
     %{errors: %{detail: "Interface not found in device introspection"}}
   end
