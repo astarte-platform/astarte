@@ -27,6 +27,12 @@ defmodule Astarte.Pairing.Queries do
 
   require Logger
 
+  @get_jwt_public_key_pem """
+  SELECT blobAsVarchar(value)
+  FROM kv_store
+  WHERE group='auth' AND key='jwt_public_key_pem';
+  """
+
   @register_device """
   INSERT INTO devices
   (device_id, extended_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
@@ -65,6 +71,25 @@ defmodule Astarte.Pairing.Queries do
   """
 
   @protocol_revision 1
+
+  def get_agent_public_key_pems(client) do
+    #TODO: add additional keys
+    query =
+      Query.new()
+      |> Query.statement(@get_jwt_public_key_pem)
+
+    with {:ok, res} <- Query.call(client, query),
+         ["system.blobasvarchar(value)": pem] <- Result.head(res) do
+      {:ok, [pem]}
+    else
+      :empty_dataset ->
+        {:error, :public_key_not_found}
+
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
+        {:error, :database_error}
+    end
+  end
 
   def register_device(client, device_id, extended_id, credentials_secret) do
     device_exists_query =
