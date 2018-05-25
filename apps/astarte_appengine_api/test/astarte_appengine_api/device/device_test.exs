@@ -99,6 +99,17 @@ defmodule Astarte.AppEngine.API.DeviceTest do
            ]
   end
 
+  test "list_interfaces/2 returns [] on a device without introspection" do
+    encoded_device_id = "9ovH-plr6J_JPGWIp7c29w"
+    {:ok, client} = DatabaseTestHelper.connect_to_test_keyspace()
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id(encoded_device_id)
+    DatabaseTestHelper.insert_empty_device(client, device_id)
+
+    assert Device.list_interfaces("autotestrealm", encoded_device_id) == {:ok, []}
+
+    DatabaseTestHelper.remove_device(client, device_id)
+  end
+
   test "get_interface_values! returns interfaces values on individual property interface" do
     expected_reply = %{
       "time" => %{"from" => 8, "to" => 20},
