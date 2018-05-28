@@ -20,7 +20,7 @@
 swagger: "2.0"
 info:
   description: "AppEngine API"
-  version: "0.1.0"
+  version: "0.9.0"
   title: "Astarte App Engine API"
   contact:
     email: "info@ispirata.com"
@@ -98,8 +98,11 @@ paths:
                 "8ZxuSGkU7pggwoomJeXo9g",
                 "k-IFKDPoVzIXUcFkF7U80A"
               ]
-        403:
-          description: "Forbidden"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
+
   /{realm_name}/devices/{device_id}:
     parameters:
       - name: "realm_name"
@@ -128,8 +131,18 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Device Not found"
+          description: "Device not found"
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
     patch:
       tags:
       - "device"
@@ -148,8 +161,20 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        400:
+          description: "Bad request"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Device Not found"
+          description: "Device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
 
   /{realm_name}/devices-by-alias/{device_alias}:
     parameters:
@@ -179,8 +204,18 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Device Not found"
+          description: "Device not found"
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
     patch:
       tags:
       - "device"
@@ -199,8 +234,20 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        400:
+          description: "Bad request"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Device Not found"
+          description: "Device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
   /{realm_name}/devices/{device_id}/interfaces:
     get:
       tags:
@@ -222,10 +269,22 @@ paths:
         required: true
         type: "string"
       responses:
-        404:
-          description: "Interface or Device Not found"
+        200:
+          description: "Success"
           examples:
-            text/json: ["com.test.foo", "com.test.bar"]
+            text/json: { "data": ["com.test.foo", "com.test.bar"]}
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
+        404:
+          description: "Device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
   /{realm_name}/devices/{device_id}/interfaces/{interface}:
     get:
       tags:
@@ -252,35 +311,21 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Interface or Device Not found"
-    put:
-      tags:
-      - "device"
-      summary: "Update and push all properties for a given object interface"
-      description: "Replaces all properties values for a given server owned interface on a certain device. Pushing all data must be used only when the target interface is an object properties aggregation, for individual properties interfaces actions should be performed on each invidual path."
-      operationId: "setInterfacePropertiesValues"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "Name of the realm which the device belongs to."
-        required: true
-        type: "string"
-      - name: "device_id"
-        in: "path"
-        description: "Device ID"
-        required: true
-        type: "string"
-      - name: "interface"
-        in: "path"
-        description: "Interface name"
-        required: true
-        type: "string"
-      responses:
-        404:
-          description: "Interface or Device Not found"
-        405:
-          description: "Invalid object"
+          description: "Interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Interface not found in device introspection"
+
   /{realm_name}/devices/{device_id}/interfaces/{interface}/{path}:
     get:
       tags:
@@ -337,8 +382,20 @@ paths:
         required: false
         type: "boolean"
       responses:
+        200:
+          description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Interface or Device Not found"
+          description: "Path not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Path not found"
         405:
           description: "Invalid Request"
     put:
@@ -369,8 +426,22 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Interface or Device Not found"
+          description: "Endpoint not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Endpoint not found"
         405:
           description: "Invalid object"
     post:
@@ -401,8 +472,22 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
+        400:
+          description: "Bad request"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Interface or Device Not found"
+          description: "Endpoint not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Endpoint not found"
         405:
           description: "Invalid object"
     delete:
@@ -433,49 +518,22 @@ paths:
         required: true
         type: "string"
       responses:
+        200:
+          description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Interface or Device Not found"
+          description: "Path not found or interface not found in introspection or device not found."
+          schema:
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Path not found"
         405:
           description: "Invalid object"
-
-  /{realm_name}/devices/{device_id}/interfaces/{interface}/{path}/{timestamp}:
-    get:
-      tags:
-      - "device"
-      summary: "Get streamed value at a certain timestamp"
-      description: "Retrieve a value on a given path at a certain timestamp, this action can be used only on a data stream."
-      operationId: "getInterfaceStreamedValue"
-      produces:
-      - "application/json"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "Name of the realm which the device belongs to."
-        required: true
-        type: "string"
-      - name: "device_id"
-        in: "path"
-        description: "Device ID"
-        required: true
-        type: "string"
-      - name: "interface"
-        in: "path"
-        description: "Interface name"
-        required: true
-        type: "string"
-      - name: "path"
-        in: "path"
-        description: "Endpoint Path"
-        required: true
-        type: "string"
-      - name: "timestamp"
-        in: "path"
-        description: "Streamed value timestamp"
-        required: true
-        type: "string"
-      responses:
-        404:
-          description: "Interface, Device or Timestamp Not found"
 
 definitions:
   DeviceStatus:
@@ -527,3 +585,29 @@ definitions:
       last_pairing_ip: "5.6.7.8"
       total_received_bytes: 10240
       total_received_msgs: 10
+
+  NotFoundError:
+    type: object
+    properties:
+      errors:
+        type: object
+        properties:
+          detail:
+            type: "string"
+            description: "Short error description"
+    example:
+      errors:
+        detail: "Device not found"
+
+  UnauthorizedError:
+    type: object
+    properties:
+      errors:
+        type: object
+        properties:
+          detail:
+            type: "string"
+            description: "Short error description"
+    example:
+      errors:
+        detail: "Unauthorized"
