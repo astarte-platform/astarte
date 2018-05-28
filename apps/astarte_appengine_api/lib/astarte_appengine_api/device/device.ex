@@ -328,6 +328,8 @@ defmodule Astarte.AppEngine.API.Device do
           else
             {:error, :path_not_found}
           end
+        else
+          {status, values}
         end
       end)
 
