@@ -98,8 +98,11 @@ paths:
                 "8ZxuSGkU7pggwoomJeXo9g",
                 "k-IFKDPoVzIXUcFkF7U80A"
               ]
-        403:
-          description: "Forbidden"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
+
   /{realm_name}/devices/{device_id}:
     parameters:
       - name: "realm_name"
@@ -128,6 +131,10 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Device not found"
           schema:
@@ -150,6 +157,10 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Device not found."
           schema:
@@ -183,6 +194,10 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Device not found"
           schema:
@@ -205,6 +220,10 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Device not found."
           schema:
@@ -234,6 +253,10 @@ paths:
           description: "Success"
           examples:
             text/json: { "data": ["com.test.foo", "com.test.bar"]}
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Device not found."
           schema:
@@ -266,6 +289,10 @@ paths:
       responses:
         200:
           description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Interface not found in introspection or device not found."
           schema:
@@ -329,6 +356,10 @@ paths:
       responses:
         200:
           description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Path not found or interface not found in introspection or device not found."
           schema:
@@ -365,6 +396,10 @@ paths:
       responses:
         200:
           description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Path not found or interface not found in introspection or device not found."
           schema:
@@ -401,6 +436,10 @@ paths:
       responses:
         200:
           description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Endpoint not found or interface not found in introspection or device not found."
           schema:
@@ -437,6 +476,10 @@ paths:
       responses:
         200:
           description: "Success"
+        401:
+          description: "Realm doesn't exist or operation not allowed."
+          schema:
+            $ref: "#/definitions/UnauthorizedError"
         404:
           description: "Path not found or interface not found in introspection or device not found."
           schema:
@@ -533,3 +576,16 @@ definitions:
     example:
       errors:
         detail: "Path not found"
+
+  UnauthorizedError:
+    type: object
+    properties:
+      errors:
+        type: object
+        properties:
+          detail:
+            type: "string"
+            description: "Short error description"
+    example:
+      errors:
+        detail: "Unauthorized"
