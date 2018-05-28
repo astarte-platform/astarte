@@ -25,15 +25,25 @@ info:
   contact:
     email: "info@ispirata.com"
 basePath: "/v1"
+
+securityDefinitions:
+    JWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: |
+        For accessing the agent API a valid JWT token must be passed in all the queries in
+        the 'Authorization' header.
+
+        The following syntax must be used in the 'Authorization' header :
+          Bearer xxxxxx.yyyyyyy.zzzzzz
+
 tags:
 - name: "device"
   description: "Device data status retrival and publish. All operations on a device can be done using both the device id or any of its aliases."
   externalDocs:
     description: "Complete documentation"
     url: "http://docs.astarte-platform.org/snapshot"
-schemes:
-- https
-- http
 paths:
   /{realm_name}/devices:
     get:
@@ -42,6 +52,8 @@ paths:
       summary: "Get devices list"
       description: "A paged list of all devices is returned. By default the device ID string is returned for each already (agent) paired device. The complete device status can be optionally retrieved rather than device ID string using details option."
       operationId: "getDevicesList"
+      security:
+      - JWT: []
       produces:
       - "application/json"
       parameters:
@@ -121,6 +133,8 @@ paths:
       summary: "Get device general status"
       description: "A device overview status is returned. Overview includes an array of reported interfaces (introspection), offline/online status, etc..."
       operationId: "getDeviceStatus"
+      security:
+      - JWT: []
       produces:
       - "application/json"
       responses:
@@ -149,6 +163,8 @@ paths:
       summary: "Update a device writeable property"
       description: "Update any of the writeable device properties such as device aliases."
       operationId: "updateDeviceStatus"
+      security:
+      - JWT: []
       consumes:
       - "application/merge-patch+json"
       produces:
@@ -194,6 +210,8 @@ paths:
       summary: "Get device general status"
       description: "A device overview status is returned. Overview includes an array of reported interfaces (introspection), offline/online status, etc..."
       operationId: "getDeviceStatusByAlias"
+      security:
+      - JWT: []
       produces:
       - "application/json"
       responses:
@@ -222,6 +240,8 @@ paths:
       summary: "Update a device writeable property"
       description: "Update any of the writeable device properties such as device aliases."
       operationId: "updateDeviceStatusByAlias"
+      security:
+      - JWT: []
       consumes:
       - "application/merge-patch+json"
       produces:
@@ -255,6 +275,8 @@ paths:
       summary: "Get interfaces list"
       description: "Get a list of interfaces supported by a certain device. Interfaces that are not reported by the device are not reported here. If a device stops to advertise a certain interface, it should be retrived from a different API, same applies for older versions of a certain interface."
       operationId: "getInterfaces"
+      security:
+      - JWT: []
       produces:
       - "application/json"
       parameters:
@@ -292,6 +314,8 @@ paths:
       summary: "Get properties values"
       description: "Get a values snapshot for a given interface on a certain device. This action performed on a data stream interface returns the most recent set of data for each endpoint. More specific APIs should be used for advances data stream actions."
       operationId: "getInterfacePropertiesValues"
+      security:
+      - JWT: []
       produces:
       - "application/json"
       parameters:
@@ -333,6 +357,8 @@ paths:
       summary: "Get property value"
       description: "Retrieve a value on a given path. This action on a data production path returns the last entry if no query parameters are specified."
       operationId: "getInterfacePropertyValue"
+      security:
+      - JWT: []
       produces:
       - "application/json"
       parameters:
@@ -404,6 +430,8 @@ paths:
       summary: "Update and push a value on a path"
       description: "Update and push a property value to the device on a certain endpoint path. interface should be an individual server owned property interface. It mustn't be used to stream data to a device or to update single properties that are members of an object aggregated interface."
       operationId: "updatePathValue"
+      security:
+      - JWT: []
       parameters:
       - name: "realm_name"
         in: "path"
@@ -450,6 +478,8 @@ paths:
       summary: "Stream data"
       description: "Stream a value on a certain path. Endpoint must be a member of a datastream interface."
       operationId: "streamData"
+      security:
+      - JWT: []
       parameters:
       - name: "realm_name"
         in: "path"
@@ -496,6 +526,8 @@ paths:
       summary: "Delete path and push an unset value message"
       description: "Unset a value on a certain path, path is also deleted. Endpoint must support unset."
       operationId: "deletePathValue"
+      security:
+      - JWT: []
       parameters:
       - name: "realm_name"
         in: "path"
