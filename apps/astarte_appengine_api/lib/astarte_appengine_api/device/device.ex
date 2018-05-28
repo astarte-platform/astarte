@@ -160,17 +160,13 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
          {:ok, interface_row} <-
            InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
+         {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
          {:ok, endpoint_id} <- get_endpoint_ids(interface_row, path) do
       timestamp =
         DateTime.utc_now()
         |> DateTime.to_unix(:milliseconds)
-
-      interface_descriptor = InterfaceDescriptor.from_db_result!(interface_row)
-
-      if interface_descriptor.ownership != :server do
-        raise "Not Allowed"
-      end
 
       mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
@@ -194,9 +190,6 @@ defmodule Astarte.AppEngine.API.Device do
 
         :datastream ->
           DataTransmitter.push_datastream(realm_name, extended_device_id, interface, path, value)
-
-        _ ->
-          raise "Unimplemented"
       end
 
       {:ok,
@@ -204,6 +197,9 @@ defmodule Astarte.AppEngine.API.Device do
          data: value
        }}
     else
+      {:ownership, :device} ->
+        {:error, :cannot_write_to_device_owned}
+
       {:error, :endpoint_guess_not_allowed} ->
         {:error, :read_only_resource}
 

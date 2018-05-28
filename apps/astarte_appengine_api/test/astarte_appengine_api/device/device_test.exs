@@ -904,9 +904,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     ro_interface = "com.test.SimpleStreamTest"
     ro_path = "/0/value"
 
-    assert_raise RuntimeError, fn ->
-      Device.update_interface_values!(test_realm, device_id, ro_interface, ro_path, value, par)
-    end
+    assert Device.update_interface_values!(
+             test_realm,
+             device_id,
+             ro_interface,
+             ro_path,
+             value,
+             par
+           ) == {:error, :cannot_write_to_device_owned}
 
     missing_interface = "com.test.Missing"
 
