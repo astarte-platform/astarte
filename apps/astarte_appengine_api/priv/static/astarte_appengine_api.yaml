@@ -270,37 +270,7 @@ paths:
           description: "Interface not found in introspection or device not found."
           schema:
             $ref: "#/definitions/InterfaceNotInIntrospectionOrDeviceNotFoundError"
-    put:
-      tags:
-      - "device"
-      summary: "Update and push all properties for a given object interface"
-      description: "Replaces all properties values for a given server owned interface on a certain device. Pushing all data must be used only when the target interface is an object properties aggregation, for individual properties interfaces actions should be performed on each invidual path."
-      operationId: "setInterfacePropertiesValues"
-      parameters:
-      - name: "realm_name"
-        in: "path"
-        description: "Name of the realm which the device belongs to."
-        required: true
-        type: "string"
-      - name: "device_id"
-        in: "path"
-        description: "Device ID"
-        required: true
-        type: "string"
-      - name: "interface"
-        in: "path"
-        description: "Interface name"
-        required: true
-        type: "string"
-      responses:
-        200:
-          description: "Success"
-        404:
-          description: "Interface not found in introspection or device not found."
-          schema:
-            $ref: "#/definitions/InterfaceNotInIntrospectionOrDeviceNotFoundError"
-        405:
-          description: "Invalid object"
+
   /{realm_name}/devices/{device_id}/interfaces/{interface}/{path}:
     get:
       tags:
