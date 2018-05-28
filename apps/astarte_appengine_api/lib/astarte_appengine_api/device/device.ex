@@ -162,7 +162,7 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
-         {:ok, endpoint_id} <- get_endpoint_ids(interface_row, path) do
+         {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path) do
       timestamp =
         DateTime.utc_now()
         |> DateTime.to_unix(:milliseconds)
