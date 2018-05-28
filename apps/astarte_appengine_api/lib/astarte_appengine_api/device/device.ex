@@ -27,7 +27,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.MapTree
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
-  alias Astarte.AppEngine.API.Device.PathNotFoundError
   alias Astarte.AppEngine.API.Device.Queries
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
@@ -259,42 +258,46 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
-    values_map =
-      List.foldl(endpoint_ids, %{}, fn endpoint_id, values ->
-        endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
+    {status, result} =
+      List.foldl(endpoint_ids, {:ok, %{}}, fn endpoint_id, {status, values} ->
+        if status == :ok do
+          endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
 
-        # TODO: we should use path in this query if _status is :ok
-        value =
-          retrieve_endpoint_values(
-            client,
-            device_id,
-            :individual,
-            :properties,
-            interface_row,
-            endpoint_id,
-            endpoint_row,
-            path,
-            opts
-          )
+          value =
+            retrieve_endpoint_values(
+              client,
+              device_id,
+              :individual,
+              :properties,
+              interface_row,
+              endpoint_id,
+              endpoint_row,
+              path,
+              opts
+            )
 
-        # TODO: next release idea: raise ValueNotSetError for debug purposes if path has not been guessed, that means it is a complete path, but it is not set.
-        if value == %{} do
-          raise PathNotFoundError
+          if value != %{} do
+            {:ok, Map.merge(values, value)}
+          else
+            {:error, :path_not_found}
+          end
         end
-
-        Map.merge(values, value)
       end)
 
-    individual_value = Map.get(values_map, "")
+    if status == :ok do
+      individual_value = Map.get(result, "")
 
-    data =
-      if individual_value != nil do
-        individual_value
-      else
-        MapTree.inflate_tree(values_map)
-      end
+      data =
+        if individual_value != nil do
+          individual_value
+        else
+          MapTree.inflate_tree(result)
+        end
 
-    {:ok, %InterfaceValues{data: data}}
+      {:ok, %InterfaceValues{data: data}}
+    else
+      {:error, result}
+    end
   end
 
   defp do_get_interface_values!(
@@ -353,10 +356,10 @@ defmodule Astarte.AppEngine.API.Device do
       )
 
     if elem(interface_values, 1).data == [] and path != "/" do
-      raise PathNotFoundError
+      {:error, :path_not_found}
+    else
+      interface_values
     end
-
-    interface_values
   end
 
   # TODO: optimize: do not use string replace
@@ -497,7 +500,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     cond do
       count == 0 ->
-        raise PathNotFoundError
+        {:error, :path_not_found}
 
       count == 1 ->
         [only_path] = paths
@@ -747,14 +750,14 @@ defmodule Astarte.AppEngine.API.Device do
         }
       end
 
-    if values_array == [] do
-      raise PathNotFoundError
+    if values_array != [] do
+      {:ok,
+       %InterfaceValues{
+         data: values_array
+       }}
+    else
+      {:error, :path_not_found}
     end
-
-    {:ok,
-     %InterfaceValues{
-       data: values_array
-     }}
   end
 
   defp pack_result(
@@ -784,18 +787,18 @@ defmodule Astarte.AppEngine.API.Device do
         ]
       end
 
-    if values_array == [] do
-      raise PathNotFoundError
+    if values_array != [] do
+      {:ok,
+       %InterfaceValues{
+         metadata: %{
+           "columns" => %{"timestamp" => 0, value_name => 1},
+           "table_header" => ["timestamp", value_name]
+         },
+         data: values_array
+       }}
+    else
+      {:error, :path_not_found}
     end
-
-    {:ok,
-     %InterfaceValues{
-       metadata: %{
-         "columns" => %{"timestamp" => 0, value_name => 1},
-         "table_header" => ["timestamp", value_name]
-       },
-       data: values_array
-     }}
   end
 
   defp pack_result(
@@ -820,14 +823,14 @@ defmodule Astarte.AppEngine.API.Device do
         ]
       end
 
-    if values_array == [] do
-      raise PathNotFoundError
+    if values_array != [] do
+      {:ok,
+       %InterfaceValues{
+         data: %{"value" => values_array}
+       }}
+    else
+      {:error, :path_not_found}
     end
-
-    {:ok,
-     %InterfaceValues{
-       data: %{"value" => values_array}
-     }}
   end
 
   defp pack_result(

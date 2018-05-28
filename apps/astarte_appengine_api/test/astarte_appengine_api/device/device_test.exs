@@ -24,7 +24,6 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.AppEngine.API.Device.PathNotFoundError
 
   @expected_device_status %DeviceStatus{
     connected: false,
@@ -172,15 +171,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              %{}
            ) == {:error, :endpoint_not_found}
 
-    assert_raise PathNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAA",
-        "com.test.LCDMonitor",
-        "weekSchedule/9/start",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             "com.test.LCDMonitor",
+             "weekSchedule/9/start",
+             %{}
+           ) == {:error, :path_not_found}
   end
 
   test "get_interface_values! returns interfaces values on individual datastream interface" do
@@ -721,15 +718,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              %{}
            ) == {:error, :endpoint_not_found}
 
-    assert_raise PathNotFoundError, fn ->
-      Device.get_interface_values!(
-        "autotestrealm",
-        "f0VMRgIBAQAAAAAAAAAAAA",
-        "com.test.SimpleStreamTest",
-        "100/value",
-        %{}
-      )
-    end
+    assert Device.get_interface_values!(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             "com.test.SimpleStreamTest",
+             "100/value",
+             %{}
+           ) == {:error, :path_not_found}
   end
 
   test "get_interface_values! returns interfaces values on object datastream interface" do

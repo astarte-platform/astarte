@@ -79,6 +79,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404")
   end
 
+  def call(conn, {:error, :path_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"404_path")
+  end
+
   def call(conn, {:error, :read_only_resource}) do
     conn
     |> put_status(:forbidden)
