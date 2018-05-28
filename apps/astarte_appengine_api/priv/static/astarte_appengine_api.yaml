@@ -161,6 +161,8 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        400:
+          description: "Bad request"
         401:
           description: "Realm doesn't exist or operation not allowed."
           schema:
@@ -232,6 +234,8 @@ paths:
             properties:
               data:
                 $ref: "#/definitions/DeviceStatus"
+        400:
+          description: "Bad request"
         401:
           description: "Realm doesn't exist or operation not allowed."
           schema:
