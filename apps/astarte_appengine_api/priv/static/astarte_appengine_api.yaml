@@ -138,7 +138,11 @@ paths:
         404:
           description: "Device not found"
           schema:
-            $ref: "#/definitions/DeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
     patch:
       tags:
       - "device"
@@ -164,7 +168,11 @@ paths:
         404:
           description: "Device not found."
           schema:
-            $ref: "#/definitions/DeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
 
   /{realm_name}/devices-by-alias/{device_alias}:
     parameters:
@@ -201,7 +209,11 @@ paths:
         404:
           description: "Device not found"
           schema:
-            $ref: "#/definitions/DeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
     patch:
       tags:
       - "device"
@@ -227,7 +239,11 @@ paths:
         404:
           description: "Device not found."
           schema:
-            $ref: "#/definitions/DeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
   /{realm_name}/devices/{device_id}/interfaces:
     get:
       tags:
@@ -260,7 +276,11 @@ paths:
         404:
           description: "Device not found."
           schema:
-            $ref: "#/definitions/DeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Device not found"
   /{realm_name}/devices/{device_id}/interfaces/{interface}:
     get:
       tags:
@@ -296,7 +316,11 @@ paths:
         404:
           description: "Interface not found in introspection or device not found."
           schema:
-            $ref: "#/definitions/InterfaceNotInIntrospectionOrDeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Interface not found in device introspection"
 
   /{realm_name}/devices/{device_id}/interfaces/{interface}/{path}:
     get:
@@ -363,7 +387,11 @@ paths:
         404:
           description: "Path not found or interface not found in introspection or device not found."
           schema:
-            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Path not found"
         405:
           description: "Invalid Request"
     put:
@@ -403,9 +431,13 @@ paths:
           schema:
             $ref: "#/definitions/UnauthorizedError"
         404:
-          description: "Path not found or interface not found in introspection or device not found."
+          description: "Endpoint not found or interface not found in introspection or device not found."
           schema:
-            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Endpoint not found"
         405:
           description: "Invalid object"
     post:
@@ -447,7 +479,11 @@ paths:
         404:
           description: "Endpoint not found or interface not found in introspection or device not found."
           schema:
-            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Endpoint not found"
         405:
           description: "Invalid object"
     delete:
@@ -487,7 +523,11 @@ paths:
         404:
           description: "Path not found or interface not found in introspection or device not found."
           schema:
-            $ref: "#/definitions/InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError"
+            $ref: "#/definitions/NotFoundError"
+          examples:
+            application/json:
+              errors:
+                detail: "Path not found"
         405:
           description: "Invalid object"
 
@@ -542,7 +582,7 @@ definitions:
       total_received_bytes: 10240
       total_received_msgs: 10
 
-  DeviceNotFoundError:
+  NotFoundError:
     type: object
     properties:
       errors:
@@ -554,32 +594,6 @@ definitions:
     example:
       errors:
         detail: "Device not found"
-
-  InterfaceNotInIntrospectionOrDeviceNotFoundError:
-    type: object
-    properties:
-      errors:
-        type: object
-        properties:
-          detail:
-            type: "string"
-            description: "Short error description"
-    example:
-      errors:
-        detail: "Interface not found in device introspection"
-
-  InterfaceNotInIntrospectionOrPathOrEndpointOrDeviceNotFoundError:
-    type: object
-    properties:
-      errors:
-        type: object
-        properties:
-          detail:
-            type: "string"
-            description: "Short error description"
-    example:
-      errors:
-        detail: "Path not found"
 
   UnauthorizedError:
     type: object
