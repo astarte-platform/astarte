@@ -52,6 +52,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Interface not found in device introspection"}}
   end
 
+  def render("404_path.json", _assigns) do
+    %{errors: %{detail: "Path not found"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end

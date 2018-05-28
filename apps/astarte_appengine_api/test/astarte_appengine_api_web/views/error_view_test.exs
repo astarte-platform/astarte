@@ -56,6 +56,11 @@ defmodule Astarte.AppEngine.APIWeb.ErrorViewTest do
            ) == %{errors: %{detail: "Interface not found in device introspection"}}
   end
 
+  test "renders 404_path.json" do
+    assert render(Astarte.AppEngine.APIWeb.ErrorView, "404_path.json", []) ==
+             %{errors: %{detail: "Path not found"}}
+  end
+
   test "renders 404.json" do
     assert render(Astarte.AppEngine.APIWeb.ErrorView, "404.json", []) ==
              %{errors: %{detail: "Not found"}}
