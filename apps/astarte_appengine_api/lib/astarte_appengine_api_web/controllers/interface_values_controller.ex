@@ -75,4 +75,15 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
       render(conn, "show.json", interface_values: interface_values)
     end
   end
+
+  def delete(conn, %{
+        "realm_name" => realm_name,
+        "device_id" => device_id,
+        "id" => interface,
+        "path" => path
+      }) do
+    with :ok <- Device.delete_interface_values(realm_name, device_id, interface, path) do
+      send_resp(conn, :no_content, "")
+    end
+  end
 end

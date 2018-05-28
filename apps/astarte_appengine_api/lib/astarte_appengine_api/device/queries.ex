@@ -292,6 +292,39 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         :multi_interface_individual_properties_dbtable,
         device_id,
         interface_descriptor,
+        _endpoint_id,
+        endpoint,
+        path,
+        nil,
+        _timestamp
+      ) do
+    if endpoint.allow_unset == false do
+      Logger.warn("Tried to unset value on allow_unset=false mapping.")
+      # TODO: should we handle this situation?
+    end
+
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    unset_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(
+        "DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+      )
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+
+    DatabaseQuery.call!(db_client, unset_query)
+
+    :ok
+  end
+
+  # TODO Copy&pasted from data updater plant, make it a library
+  def insert_value_into_db(
+        db_client,
+        :multi_interface_individual_properties_dbtable,
+        device_id,
+        interface_descriptor,
         endpoint_id,
         endpoint,
         path,
