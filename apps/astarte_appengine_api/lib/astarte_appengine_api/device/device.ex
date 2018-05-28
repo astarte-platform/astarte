@@ -207,6 +207,53 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  # TODO: we should probably allow delete for every path regardless of the interface type
+  # just for maintenance reasons
+  def delete_interface_values(realm_name, encoded_device_id, interface, no_prefix_path) do
+    with {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, interface_row} <-
+           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
+         {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
+         path <- "/" <> no_prefix_path,
+         {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path) do
+      mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
+
+      {:ok, extended_device_id} = Queries.retrieve_extended_id(client, device_id)
+
+      Queries.insert_value_into_db(
+        client,
+        interface_descriptor.storage_type,
+        device_id,
+        interface_descriptor,
+        endpoint_id,
+        mapping,
+        path,
+        nil,
+        nil
+      )
+
+      case interface_descriptor.type do
+        :properties ->
+          DataTransmitter.unset_property(realm_name, extended_device_id, interface, path)
+
+        :datastream ->
+          :ok
+      end
+    else
+      {:ownership, :device} ->
+        {:error, :cannot_write_to_device_owned}
+
+      {:error, :endpoint_guess_not_allowed} ->
+        {:error, :read_only_resource}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp do_get_interface_values!(client, device_id, :individual, interface_row, opts) do
     endpoint_rows =
       Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
