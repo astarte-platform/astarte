@@ -31,6 +31,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ChangesetView, "error.json", changeset: changeset)
   end
 
+  def call(conn, {:error, :cannot_write_to_device_owned}) do
+    conn
+    |> put_status(:forbidden)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"403_cannot_write_to_device_owned.json")
+  end
+
   def call(conn, {:error, :device_not_found}) do
     conn
     |> put_status(:not_found)

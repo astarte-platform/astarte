@@ -24,6 +24,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Bad request"}}
   end
 
+  def render("403_cannot_write_to_device_owned.json", _assigns) do
+    %{errors: %{detail: "Cannot write to device owned resource"}}
+  end
+
   def render("403_read_only_resource.json", _assigns) do
     %{errors: %{detail: "Cannot write to read-only resource"}}
   end
