@@ -163,9 +163,9 @@ defmodule Astarte.AppEngine.API.Device do
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
          {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path) do
-      timestamp =
+      timestamp_micro =
         DateTime.utc_now()
-        |> DateTime.to_unix(:milliseconds)
+        |> DateTime.to_unix(:microseconds)
 
       mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
@@ -180,7 +180,7 @@ defmodule Astarte.AppEngine.API.Device do
         mapping,
         path,
         value,
-        timestamp
+        timestamp_micro
       )
 
       case interface_descriptor.type do
@@ -188,6 +188,16 @@ defmodule Astarte.AppEngine.API.Device do
           DataTransmitter.set_property(realm_name, extended_device_id, interface, path, value)
 
         :datastream ->
+          Queries.insert_path_into_db(
+            client,
+            device_id,
+            interface_descriptor,
+            endpoint_id,
+            path,
+            timestamp_micro,
+            div(timestamp_micro, 1000)
+          )
+
           DataTransmitter.push_datastream(realm_name, extended_device_id, interface, path, value)
       end
 

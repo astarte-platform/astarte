@@ -23,6 +23,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
@@ -287,6 +288,41 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
+  def insert_path_into_db(
+        db_client,
+        device_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
+          interface_descriptor,
+        endpoint_id,
+        path,
+        value_timestamp,
+        reception_timestamp
+      ) do
+    property_table = String.replace(interface_descriptor.storage, "datastream", "property")
+
+    # TODO: use received value_timestamp when needed
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(
+        "INSERT INTO #{property_table} " <>
+          "(device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis, datetime_value) " <>
+          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp, :reception_timestamp_submillis, :datetime_value);"
+      )
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 1000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 100))
+      |> DatabaseQuery.put(:datetime_value, value_timestamp)
+
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
+  end
+
+  # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
         db_client,
         :multi_interface_individual_properties_dbtable,
@@ -345,8 +381,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, timestamp)
-      |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
+      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, div(timestamp, 100))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -381,9 +417,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, timestamp)
-      |> DatabaseQuery.put(:reception_timestamp, timestamp)
-      |> DatabaseQuery.put(:reception_timestamp_submillis, 0)
+      |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
+      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 100))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
