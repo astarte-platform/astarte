@@ -14,21 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.AppEngine.API.Device.DeviceStatus do
+defmodule Astarte.AppEngine.API.Device.InterfaceVersion do
   defstruct [
-    :id,
-    :aliases,
-    :introspection,
-    :connected,
-    :last_connection,
-    :last_disconnection,
-    :first_pairing,
-    :last_pairing_ip,
-    :last_seen_ip,
-    :total_received_msgs,
-    :total_received_bytes
+    :major,
+    :minor
   ]
 end

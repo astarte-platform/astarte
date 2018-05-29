@@ -577,6 +577,9 @@ definitions:
       aliases:
         type: "object"
         description: "A set of aliases and their tags. Each alias has an unique tag that identifies its purpose."
+      introspection:
+        type: "object"
+        description: "A dictionary of available (installed) interfaces on the device. For each interface version major and minor versions are provided. Interfaces that are listed here might not be available on the server (e.g. not installed)."
       connected:
         type: "boolean"
         description: "True if the device is connected to the broker."
@@ -609,6 +612,13 @@ definitions:
       aliases:
         serial_number: "1234567"
         display_name: "my_device_name"
+      introspection:
+        "com.example.ExampleInterface":
+          major: 2
+          minor: 0
+        "com.example.HelloWorldInterface":
+          major: 1
+          minor: 1
       connected: false
       last_connection: "2017-09-28T03:45:00.000Z"
       last_disconnection: "2017-09-29T18:25:00.000Z"
