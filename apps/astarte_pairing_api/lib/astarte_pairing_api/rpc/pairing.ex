@@ -33,6 +33,8 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     AstarteMQTTV1CredentialsStatus,
     Call,
     GenericErrorReply,
+    GetAgentPublicKeyPEMs,
+    GetAgentPublicKeyPEMsReply,
     GetCredentials,
     GetCredentialsReply,
     GetInfo,
@@ -44,6 +46,14 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     VerifyCredentials,
     VerifyCredentialsReply
   }
+
+  def get_agent_public_key_pems(realm) do
+    %GetAgentPublicKeyPEMs{realm: realm}
+    |> encode_call(:get_agent_public_key_pems)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
 
   def get_info(realm, hw_id, secret) do
     %GetInfo{realm: realm, hw_id: hw_id, secret: secret}
@@ -95,6 +105,13 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
     %Reply{reply: reply} = Reply.decode(encoded_reply)
     reply
+  end
+
+  defp extract_reply(
+         {:get_agent_public_key_pems_reply,
+          %GetAgentPublicKeyPEMsReply{agent_public_key_pems: pems}}
+       ) do
+    {:ok, pems}
   end
 
   defp extract_reply(
