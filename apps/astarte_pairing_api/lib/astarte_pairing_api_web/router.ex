@@ -27,9 +27,10 @@ defmodule Astarte.Pairing.APIWeb.Router do
   scope "/v1", Astarte.Pairing.APIWeb do
     pipe_through :api
 
+    post "/:realm_name/agent/devices", AgentController, :create
+
     post "/verifyCertificate", CertificateController, :verify
     post "/pairing", CertificateController, :create
-    post "/devices/apikeysFromDevice", APIKeyController, :create
     get "/info", BrokerInfoController, :show
   end
 end
