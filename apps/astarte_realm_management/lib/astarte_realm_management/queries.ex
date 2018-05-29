@@ -42,35 +42,6 @@ defmodule Astarte.RealmManagement.Queries do
     VALUES (:interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
   """
 
-  @create_property_individual_multiinterface_table """
-    CREATE TABLE IF NOT EXISTS individual_property (
-      device_id uuid,
-      interface_id uuid,
-      endpoint_id uuid,
-      path varchar,
-      reception_timestamp timestamp,
-      reception_timestamp_submillis smallint,
-      endpoint_tokens list<varchar>,
-
-      double_value double,
-      integer_value int,
-      boolean_value boolean,
-      longinteger_value bigint,
-      string_value varchar,
-      binaryblob_value blob,
-      datetime_value timestamp,
-      doublearray_value list<double>,
-      integerarray_value list<int>,
-      booleanarray_value list<boolean>,
-      longintegerarray_value list<bigint>,
-      stringarray_value list<varchar>,
-      binaryblobarray_value list<blob>,
-      datetimearray_value list<timestamp>,
-
-      PRIMARY KEY((device_id, interface_id), endpoint_id, path)
-    )
-  """
-
   @create_datastream_individual_multiinterface_table """
     CREATE TABLE IF NOT EXISTS individual_datastream (
       device_id uuid,
@@ -174,8 +145,7 @@ defmodule Astarte.RealmManagement.Queries do
          %InterfaceDescriptor{type: :properties},
          _mappings
        ) do
-    {:multi_interface_individual_properties_dbtable, "individual_property",
-     @create_property_individual_multiinterface_table}
+    {:multi_interface_individual_properties_dbtable, "individual_property", ""}
   end
 
   defp create_interface_table(
@@ -279,7 +249,12 @@ defmodule Astarte.RealmManagement.Queries do
         interface_document.mappings
       )
 
-    {:ok, _} = DatabaseQuery.call(client, create_table_statement)
+    {:ok, _} =
+      if create_table_statement != "" do
+        DatabaseQuery.call(client, create_table_statement)
+      else
+        {:ok, nil}
+      end
 
     interface_id =
       CQLUtils.interface_id(
