@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.Agent.APIKey do
-  @enforce_keys [:api_key]
-  defstruct [:api_key]
+defmodule Astarte.Pairing.API.Agent.DeviceRegistrationResponse do
+  @enforce_keys [:credentials_secret]
+  defstruct [:credentials_secret]
 end

@@ -14,46 +14,39 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.Agent.APIKeyRequest do
+defmodule Astarte.Pairing.API.Agent.DeviceRegistrationRequest do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Astarte.Pairing.API.Agent.APIKeyRequest
+  alias Astarte.Core.Device
+  alias Astarte.Pairing.API.Agent.DeviceRegistrationRequest
 
   @primary_key false
   embedded_schema do
     field :hw_id, :string
-    field :realm, :string
   end
 
   @doc false
-  def changeset(%APIKeyRequest{} = api_key_request, attrs) do
-    api_key_request
-    |> cast(attrs, [:realm, :hw_id])
-    |> validate_required([:realm, :hw_id])
+  def changeset(%DeviceRegistrationRequest{} = request, attrs) do
+    request
+    |> cast(attrs, [:hw_id])
+    |> validate_required([:hw_id])
     |> validate_hw_id(:hw_id)
   end
 
-  defp validate_hw_id(changeset, hw_id_key) do
-    hw_id = changeset.changes[hw_id_key]
-
-    valid =
-      if is_binary(hw_id) do
-        case Base.url_decode64(hw_id, padding: false) do
-          {:ok, <<_device_id::binary-size(16), _extended_id::binary-size(16)>>} -> true
-          {:ok, <<_device_id::binary-size(16)>>} -> true
-          _ -> false
-        end
-      else
-        false
-      end
-
-    if valid do
+  defp validate_hw_id(changeset, field) do
+    with {:ok, hw_id} <- fetch_change(changeset, field),
+         {:ok, _decoded_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
       changeset
     else
-      add_error(changeset, hw_id_key, "is not a valid base64 encoded 128 bits id")
+      # No hw_id, already handled
+      :error ->
+        changeset
+
+      _ ->
+        add_error(changeset, field, "is not a valid base64 encoded 128 bits id")
     end
   end
 end
