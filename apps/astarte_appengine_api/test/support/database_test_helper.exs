@@ -55,18 +55,25 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         extended_id ascii,
         aliases map<ascii, varchar>,
         introspection map<ascii, int>,
+        introspection_minor map<ascii, int>,
+        protocol_revision int,
         metadata map<ascii, text>,
+        credentials_api_key ascii,
+        inhibit_pairing boolean,
+        cert_serial ascii,
+        cert_aki ascii,
         first_pairing timestamp,
         last_connection timestamp,
         last_disconnection timestamp,
         connected boolean,
+        pending_empty_cache boolean,
         total_received_msgs bigint,
         total_received_bytes bigint,
         last_pairing_ip inet,
         last_seen_ip inet,
 
         PRIMARY KEY (device_id)
-    );
+      );
   """
 
   @insert_pubkey_pem """
@@ -75,9 +82,20 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   """
 
   @insert_device_statement """
-        INSERT INTO autotestrealm.devices (device_id, extended_id, aliases, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
-          VALUES (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ', :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
-          '8.8.8.8', '4.4.4.4', 45000, :total_received_bytes, {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1, 'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1});
+  INSERT INTO autotestrealm.devices
+   (device_id, extended_id, aliases, connected, last_connection, last_disconnection, first_pairing,
+     last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection,
+     introspection_minor)
+  VALUES
+   (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ',
+    :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
+    '8.8.8.8', '4.4.4.4', 45000, :total_received_bytes,
+    {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
+     'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1},
+    {'com.test.LCDMonitor' : 3, 'com.test.SimpleStreamTest' : 0,
+     'com.example.TestObject': 5, 'com.example.PixelsConfiguration': 0
+    }
+  );
   """
 
   @insert_alias_statement """
