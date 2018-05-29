@@ -24,11 +24,20 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.AppEngine.API.Device.InterfaceVersion
+
+  @expected_introspection %{
+    "com.example.PixelsConfiguration" => %InterfaceVersion{major: 1, minor: 0},
+    "com.example.TestObject" => %InterfaceVersion{major: 1, minor: 5},
+    "com.test.LCDMonitor" => %InterfaceVersion{major: 1, minor: 3},
+    "com.test.SimpleStreamTest" => %InterfaceVersion{major: 1, minor: 0}
+  }
 
   @expected_device_status %DeviceStatus{
     connected: false,
     id: "f0VMRgIBAQAAAAAAAAAAAA",
     aliases: %{"display_name" => "device_a"},
+    introspection: @expected_introspection,
     last_connection: %DateTime{
       calendar: Calendar.ISO,
       microsecond: {0, 3},

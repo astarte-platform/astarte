@@ -24,11 +24,19 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.JWTTestHelper
 
+  @expected_introspection %{
+    "com.example.PixelsConfiguration" => %{"major" => 1, "minor" => 0},
+    "com.example.TestObject" => %{"major" => 1, "minor" => 5},
+    "com.test.LCDMonitor" => %{"major" => 1, "minor" => 3},
+    "com.test.SimpleStreamTest" => %{"major" => 1, "minor" => 0}
+  }
+
   @expected_device_id "f0VMRgIBAQAAAAAAAAAAAA"
   @expected_device_status %{
     "connected" => false,
     "id" => @expected_device_id,
     "aliases" => %{"display_name" => "device_a"},
+    "introspection" => @expected_introspection,
     "last_connection" => "2017-09-28T03:45:00.000Z",
     "last_disconnection" => "2017-09-29T18:25:00.000Z",
     "first_pairing" => "2016-08-20T09:44:00.000Z",

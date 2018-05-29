@@ -22,7 +22,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
+  alias Astarte.AppEngine.API.Device.InterfaceVersion
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
@@ -434,6 +436,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   @device_status_columns_without_device_id """
     , aliases
+    , introspection
+    , introspection_minor
     , connected
     , last_connection
     , last_disconnection
@@ -448,6 +452,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     [
       device_id: device_id,
       aliases: aliases,
+      introspection: introspection_major,
+      introspection_minor: introspection_minor,
       connected: connected,
       last_connection: last_connection,
       last_disconnection: last_disconnection,
@@ -458,9 +464,27 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       total_received_bytes: total_received_bytes
     ] = row
 
+    only_major_introspection =
+      Enum.reduce(introspection_major || %{}, %{}, fn {interface, major}, acc ->
+        Map.put(acc, interface, %InterfaceVersion{major: major})
+      end)
+
+    introspection =
+      Enum.reduce(introspection_minor || %{}, %{}, fn {interface, minor}, acc ->
+        with {:ok, major_item} <- Map.fetch(only_major_introspection, interface) do
+          Map.put(acc, interface, %{major_item | minor: minor})
+        else
+          :error ->
+            device = Device.encode_id(device_id)
+            Logger.warn("#{device} has no minor version for #{interface}. Corrupted entry?")
+            acc
+        end
+      end)
+
     %DeviceStatus{
       id: Base.url_encode64(device_id, padding: false),
       aliases: Enum.into(aliases || [], %{}),
+      introspection: introspection,
       connected: connected,
       last_connection: millis_or_null_to_datetime!(last_connection),
       last_disconnection: millis_or_null_to_datetime!(last_disconnection),
