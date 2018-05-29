@@ -24,7 +24,7 @@ defmodule Astarte.Pairing.APIWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/api/v1", Astarte.Pairing.APIWeb do
+  scope "/v1", Astarte.Pairing.APIWeb do
     pipe_through :api
 
     post "/verifyCertificate", CertificateController, :verify
