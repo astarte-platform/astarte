@@ -51,6 +51,18 @@ config :astarte_pairing_api, Astarte.Pairing.APIWeb.AgentGuardian,
   allowed_algos: ["RS256"],
   secret_key: {Astarte.Pairing.API.Config, :jwt_public_key, []}
 
+config :astarte_pairing_api, Astarte.Pairing.APIWeb.AuthGuardian,
+  allowed_algos: [
+    "ES256",
+    "ES384",
+    "ES512",
+    "PS256",
+    "PS384",
+    "PS512",
+    "RS256",
+    "RS384",
+    "RS512"]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env}.exs"

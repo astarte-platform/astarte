@@ -30,6 +30,14 @@ defmodule Astarte.Pairing.API.Config do
   end
 
   @doc """
+  Returns true if the authentication for the agent is disabled.
+  Credential requests made by devices are always authenticated, even it this is true.
+  """
+  def authentication_disabled? do
+    Application.get_env(:astarte_pairing_api, :disable_authentication, false)
+  end
+
+  @doc """
   Returns the RPC Client
   """
   def rpc_client do
