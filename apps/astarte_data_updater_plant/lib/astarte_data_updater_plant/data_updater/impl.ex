@@ -733,6 +733,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, %{state | device_triggers: updated_device_triggers}}
   end
 
+  defp delete_volatile_trigger(
+         state,
+         {_obj_id, _obj_type},
+         {{:introspection_trigger, proto_buf_introspection_trigger}, trigger_target}
+       ) do
+    introspection_triggers = state.introspection_triggers
+
+    event_type = EventTypeUtils.pretty_change_type(proto_buf_introspection_trigger.change_type)
+
+    introspection_trigger_key =
+      {event_type, proto_buf_introspection_trigger.match_interface || :any_interface}
+
+    updated_targets_list =
+      Map.get(introspection_triggers, introspection_trigger_key, [])
+      |> Enum.reject(fn target ->
+        target == trigger_target
+      end)
+
+    updated_introspection_triggers =
+      Map.put(introspection_triggers, introspection_trigger_key, updated_targets_list)
+
+    {:ok, %{state | introspection_triggers: updated_introspection_triggers}}
+  end
+
   defp reload_device_triggers_on_expiry(state, timestamp, db_client) do
     if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
          timestamp do
