@@ -28,6 +28,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataUpdaterPlant.DataUpdater.Cache
+  alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -37,6 +39,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
   require Logger
 
+  @paths_cache_size 32
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
@@ -53,6 +56,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       interface_ids_to_name: %{},
       interfaces_by_expiry: [],
       mappings: %{},
+      paths_cache: Cache.new(@paths_cache_size),
       device_triggers: %{},
       data_triggers: %{},
       volatile_triggers: [],
@@ -332,19 +336,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       cond do
         interface_descriptor.type == :datastream and value != nil ->
-          insert_result =
-            Queries.insert_path_into_db(
-              db_client,
-              new_state.device_id,
-              interface_descriptor,
-              endpoint,
-              path,
-              value,
-              value_timestamp,
-              timestamp
-            )
+          :ok =
+            unless Cache.has_key?(new_state.paths_cache, {interface, path}) do
+              insert_result =
+                Queries.insert_path_into_db(
+                  db_client,
+                  new_state.device_id,
+                  interface_descriptor,
+                  endpoint,
+                  path,
+                  value,
+                  value_timestamp,
+                  timestamp
+                )
 
-          :ok = insert_result
+              insert_result
+            else
+              :ok
+            end
 
         interface_descriptor.type == :datastream ->
           warn(new_state, "tried to unset a datastream")
@@ -382,6 +391,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             payload
           )
       end
+
+      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{})
+      new_state = %{new_state | paths_cache: paths_cache}
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)
       update_stats(new_state, interface, path, payload)
@@ -555,6 +567,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{
       new_state
       | introspection: db_introspection_map,
+        paths_cache: Cache.new(@paths_cache_size),
         total_received_msgs: new_state.total_received_msgs + 1,
         total_received_bytes: new_state.total_received_bytes + byte_size(payload)
     }

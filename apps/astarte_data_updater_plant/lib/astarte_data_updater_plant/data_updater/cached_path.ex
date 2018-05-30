@@ -14,29 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017-2018 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
-  defstruct [
-    :realm,
-    :device_id,
-    :message_tracker,
-    :introspection,
-    :interfaces,
-    :interface_ids_to_name,
-    :interfaces_by_expiry,
-    :mappings,
-    :paths_cache,
-    :extended_id,
-    :device_triggers,
-    :data_triggers,
-    :volatile_triggers,
-    :introspection_triggers,
-    :connected,
-    :total_received_msgs,
-    :total_received_bytes,
-    :last_seen_message,
-    :last_device_triggers_refresh
-  ]
+defmodule Astarte.DataUpdaterPlant.DataUpdater.CachedPath do
+  defstruct []
 end
