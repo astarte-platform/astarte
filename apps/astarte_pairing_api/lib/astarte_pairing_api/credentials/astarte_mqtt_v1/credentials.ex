@@ -14,10 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.Pairing.CertificateStatus do
-  @enforce_keys [:valid, :timestamp, :until, :cause, :details]
-  defstruct [:valid, :timestamp, :until, :cause, :details]
+defmodule Astarte.Pairing.API.Credentials.AstarteMQTTV1.Credentials do
+  use Ecto.Schema
+  import Ecto.Changeset
+  alias Astarte.Pairing.API.Credentials.AstarteMQTTV1.Credentials
+
+  @primary_key false
+  embedded_schema do
+    field :client_crt, :string
+  end
+
+  @doc false
+  def changeset(%Credentials{} = verify_request, attrs) do
+    verify_request
+    |> cast(attrs, [:client_crt])
+    |> validate_required([:client_crt])
+  end
 end
