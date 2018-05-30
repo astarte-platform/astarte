@@ -23,7 +23,11 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   alias Astarte.RPC.Protocol.Pairing.{
     AstarteMQTTV1Credentials,
     AstarteMQTTV1CredentialsStatus,
+    AstarteMQTTV1Status,
+    GenericErrorReply,
     GetCredentialsReply,
+    GetInfoReply,
+    ProtocolStatus,
     Reply,
     VerifyCredentialsReply
   }
@@ -229,6 +233,71 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
                "cause" => "EXPIRED",
                "details" => nil
              } = json_response(conn, 200)["data"]
+    end
+  end
+
+  describe "get device info" do
+    @version "0.1.0"
+    @status "pending"
+    @broker_url "ssl://broker.example.com"
+
+    @encoded_info_response %Reply{
+                             reply:
+                               {:get_info_reply,
+                                %GetInfoReply{
+                                  version: @version,
+                                  device_status: @status,
+                                  protocols: [
+                                    %ProtocolStatus{
+                                      status:
+                                        {:astarte_mqtt_v1,
+                                         %AstarteMQTTV1Status{
+                                           broker_url: @broker_url
+                                         }}
+                                    }
+                                  ]
+                                }}
+                           }
+                           |> Reply.encode()
+
+    @encoded_forbidden_response %Reply{
+                                  reply:
+                                    {:generic_error_reply,
+                                     %GenericErrorReply{error_name: "forbidden"}}
+                                }
+                                |> Reply.encode()
+
+    setup %{conn: conn} do
+      conn =
+        conn
+        |> put_req_header("authorization", "bearer #{@secret}")
+        |> put_resp_header("accept", "application/json")
+
+      {:ok, conn: conn}
+    end
+
+    test "renders info status", %{conn: conn} do
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+        {:ok, @encoded_info_response}
+      end)
+
+      conn = get(conn, device_path(conn, :show_info, @realm, @hw_id))
+
+      assert %{"version" => @version, "status" => @status, "protocols" => protocols} =
+               json_response(conn, 200)["data"]
+
+      assert %{"astarte_mqtt_v1" => %{"broker_url" => @broker_url}} = protocols
+    end
+
+    test "renders error with invalid secret", %{conn: conn} do
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+        {:ok, @encoded_forbidden_response}
+      end)
+
+      conn = get(conn, device_path(conn, :show_info, @realm, @hw_id))
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
     end
   end
 end
