@@ -29,6 +29,7 @@ defmodule Astarte.Pairing.APIWeb.Router do
 
     post "/:realm_name/agent/devices", AgentController, :create
 
+    get "/:realm_name/devices/:hw_id", DeviceController, :show_info
     post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials",
       DeviceController,
       :create_credentials
@@ -36,6 +37,5 @@ defmodule Astarte.Pairing.APIWeb.Router do
       DeviceController,
       :verify_credentials
 
-    get "/info", BrokerInfoController, :show
   end
 end
