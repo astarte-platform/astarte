@@ -14,19 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.APIWeb.CertificateView do
+defmodule Astarte.Pairing.APIWeb.CredentialsView do
   use Astarte.Pairing.APIWeb, :view
-  alias Astarte.Pairing.APIWeb.CertificateView
+  alias Astarte.Pairing.APIWeb.CredentialsView
 
-  def render("show.json", %{certificate: certificate}) do
-    render_one(certificate, CertificateView, "certificate.json")
+  def render("show_astarte_mqtt_v1.json", %{credentials: credentials}) do
+    %{data: render_one(credentials, CredentialsView, "astarte_mqtt_v1_credentials.json")}
   end
 
-  def render("certificate.json", %{certificate: certificate}) do
-    # clientCrt is spelled this way for backwards compatibility
-    %{clientCrt: certificate.client_crt}
+  def render("astarte_mqtt_v1_credentials.json", %{credentials: credentials}) do
+    %{client_crt: credentials.client_crt}
   end
 end
