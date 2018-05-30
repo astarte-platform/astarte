@@ -659,15 +659,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  # it takes some time before a trigger is not notified anymore
-  # the data updater needs to forget the interface before.
-  # Some spurious events might be sent afterwards, so the receiver needs to
-  # deal with this issue and discard those events.
-  # TODO: future version should completely forget it.
   def handle_delete_volatile_trigger(state, trigger_id) do
     {new_volatile, maybe_trigger} =
       Enum.reduce(state.volatile_triggers, {[], nil}, fn item, {acc, found} ->
-        {_, {simple_trigger, trigger_target}} = item
+        {_, {_simple_trigger, trigger_target}} = item
 
         if trigger_target.simple_trigger_id == trigger_id do
           {acc, item}
@@ -715,6 +710,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     else
       {:ok, state}
     end
+  end
+
+  defp delete_volatile_trigger(
+         state,
+         {_obj_id, _obj_type},
+         {{:device_trigger, proto_buf_device_trigger}, trigger_target}
+       ) do
+    event_type =
+      EventTypeUtils.pretty_device_event_type(proto_buf_device_trigger.device_event_type)
+
+    device_triggers = state.device_triggers
+
+    updated_targets_list =
+      Map.get(device_triggers, event_type, [])
+      |> Enum.reject(fn target ->
+        target == trigger_target
+      end)
+
+    updated_device_triggers = Map.put(device_triggers, event_type, updated_targets_list)
+
+    {:ok, %{state | device_triggers: updated_device_triggers}}
   end
 
   defp reload_device_triggers_on_expiry(state, timestamp, db_client) do
