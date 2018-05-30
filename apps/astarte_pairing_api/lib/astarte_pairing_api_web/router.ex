@@ -29,8 +29,13 @@ defmodule Astarte.Pairing.APIWeb.Router do
 
     post "/:realm_name/agent/devices", AgentController, :create
 
-    post "/verifyCertificate", CertificateController, :verify
-    post "/pairing", CertificateController, :create
+    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials",
+      DeviceController,
+      :create_credentials
+    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials/verify",
+      DeviceController,
+      :verify_credentials
+
     get "/info", BrokerInfoController, :show
   end
 end
