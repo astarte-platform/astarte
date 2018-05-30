@@ -22,8 +22,11 @@ defmodule Astarte.Pairing.APIWeb.DeviceController do
 
   alias Astarte.Pairing.API.Credentials
   alias Astarte.Pairing.API.Credentials.AstarteMQTTV1
+  alias Astarte.Pairing.API.Info
+  alias Astarte.Pairing.API.Info.DeviceInfo
   alias Astarte.Pairing.APIWeb.CredentialsView
   alias Astarte.Pairing.APIWeb.CredentialsStatusView
+  alias Astarte.Pairing.APIWeb.DeviceInfoView
 
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
@@ -42,6 +45,13 @@ defmodule Astarte.Pairing.APIWeb.DeviceController do
       conn
       |> put_status(:created)
       |> render(CredentialsView, "show_astarte_mqtt_v1.json", credentials: credentials)
+    end
+  end
+
+  def show_info(conn, %{"realm_name" => realm, "hw_id" => hw_id}) do
+    with {:ok, secret} <- get_secret(conn),
+         {:ok, %DeviceInfo{} = device_info} <- Info.get_device_info(realm, hw_id, secret) do
+      render(conn, DeviceInfoView, "show.json", device_info: device_info)
     end
   end
 
