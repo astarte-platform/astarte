@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Pairing.API.Info do
@@ -22,27 +22,28 @@ defmodule Astarte.Pairing.API.Info do
   The Info context.
   """
 
-  alias Astarte.Pairing.API.Info.BrokerInfo
-  alias Astarte.Pairing.API.RPC.AMQPClient
+  alias Astarte.Pairing.API.Info.DeviceInfo
+  alias Astarte.Pairing.API.RPC.Pairing
 
   @doc """
-  Gets broker_info.
-
-  Raises if the Broker info does not exist.
-
-  ## Examples
-
-      iex> get_broker_info!()
-      %BrokerInfo{url: "ssl://broker.example.com:1234", version: "1"}
-
+  Retrieves device info.
   """
-  def get_broker_info! do
-    case AMQPClient.get_info() do
-      {:ok, %{url: url, version: version}} ->
-        %BrokerInfo{url: url, version: version}
+  def get_device_info(realm, hw_id, secret) do
+    with {:ok, %{version: version, status: status, protocols: protocols}} <-
+           Pairing.get_info(realm, hw_id, secret) do
+      device_info = %DeviceInfo{
+        version: version,
+        status: status,
+        protocols: protocols
+      }
 
-      _ ->
-        raise "Broker info unavailable"
+      {:ok, device_info}
+    else
+      {:error, :forbidden} ->
+        {:error, :forbidden}
+
+      {:error, _other} ->
+        {:error, :rpc_error}
     end
   end
 end

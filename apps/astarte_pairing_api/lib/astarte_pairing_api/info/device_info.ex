@@ -14,10 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.Info.BrokerInfo do
-  @enforce_keys [:url, :version]
-  defstruct [:url, :version]
+defmodule Astarte.Pairing.API.Info.DeviceInfo do
+  @enforce_keys [
+    :version,
+    :status,
+    :protocols
+  ]
+  defstruct [
+    :version,
+    :status,
+    :protocols
+  ]
 end
