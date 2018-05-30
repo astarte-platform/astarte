@@ -71,6 +71,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip"
     ],
+    "disable_authentication": [
+      commented: true,
+      datatype: :atom,
+      env_var: "PAIRING_API_DISABLE_AUTHENTICATION",
+      doc: "Disables JWT authentication for agent's endpoints. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
+      default: false,
+      hidden: false,
+      to: "astarte_pairing_api.disable_authentication"
+    ],
     # Hidden options
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host": [
       commented: false,
