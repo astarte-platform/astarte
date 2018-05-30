@@ -665,13 +665,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   # deal with this issue and discard those events.
   # TODO: future version should completely forget it.
   def handle_delete_volatile_trigger(state, trigger_id) do
-    updated_volatile_triggers =
-      Enum.reject(state.volatile_triggers, fn {{obj_id, obj_type},
-                                               {simple_trigger, trigger_target}} ->
-        trigger_target.simple_trigger_id == trigger_id
+    {new_volatile, maybe_trigger} =
+      Enum.reduce(state.volatile_triggers, {[], nil}, fn item, {acc, found} ->
+        {_, {simple_trigger, trigger_target}} = item
+
+        if trigger_target.simple_trigger_id == trigger_id do
+          {acc, item}
+        else
+          {[item | acc], found}
+        end
       end)
 
-    {:ok, Map.put(state, :volatile_triggers, updated_volatile_triggers)}
+    case maybe_trigger do
+      {{obj_id, obj_type}, {simple_trigger, trigger_target}} ->
+        %{state | volatile_triggers: new_volatile}
+        |> delete_volatile_trigger({obj_id, obj_type}, {simple_trigger, trigger_target})
+
+      nil ->
+        {:ok, state}
+    end
+  end
+
+  defp delete_volatile_trigger(
+         state,
+         {obj_id, _obj_type},
+         {{:data_trigger, proto_buf_data_trigger}, trigger_target}
+       ) do
+    if Map.get(state.interface_ids_to_name, obj_id) do
+      data_trigger_key = data_trigger_to_key(state, proto_buf_data_trigger)
+
+      next_data_triggers =
+        case Map.get(state.data_triggers, data_trigger_key) do
+          [_one_trigger] ->
+            Map.delete(state.data_triggers, data_trigger_key)
+
+          nil ->
+            state.data_triggers
+
+          triggers_chain ->
+            new_chain =
+              Enum.reject(triggers_chain, fn chain_target ->
+                chain_target == trigger_target
+              end)
+
+            Map.put(state.data_triggers, data_trigger_key, new_chain)
+        end
+
+      {:ok, %{state | data_triggers: next_data_triggers}}
+    else
+      {:ok, state}
+    end
   end
 
   defp reload_device_triggers_on_expiry(state, timestamp, db_client) do
@@ -978,16 +1021,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
-  # TODO: implement: on_value_change, on_value_changed, on_path_created, on_value_stored
-  defp load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
-    data_trigger =
-      SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
-
-    data_triggers = state.data_triggers
-
+  defp data_trigger_to_key(state, proto_buf_data_trigger) do
     event_type = EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
 
-    interface_id = data_trigger.interface_id
+    interface_id =
+      SimpleTriggersProtobufUtils.get_interface_id_or_any(
+        proto_buf_data_trigger.interface_name,
+        proto_buf_data_trigger.interface_major
+      )
 
     endpoint =
       if proto_buf_data_trigger.match_path != :any_endpoint and interface_id != :any_interface do
@@ -1005,7 +1046,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :any_endpoint
       end
 
-    data_trigger_key = {event_type, interface_id, endpoint}
+    {event_type, interface_id, endpoint}
+  end
+
+  # TODO: implement: on_value_change, on_value_changed, on_path_created, on_value_stored
+  defp load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
+    data_trigger =
+      SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
+
+    data_triggers = state.data_triggers
+
+    data_trigger_key = data_trigger_to_key(state, proto_buf_data_trigger)
 
     candidate_triggers = Map.get(data_triggers, data_trigger_key)
 

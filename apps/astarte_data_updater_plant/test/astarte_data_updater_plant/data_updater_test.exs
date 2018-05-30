@@ -332,6 +332,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert value == [integer_value: 5]
 
+    assert DataUpdater.handle_delete_volatile_trigger(realm, device_id, volatile_trigger_id) ==
+             :ok
+
     # Introspection change subtest
     DataUpdater.handle_introspection(
       realm,
@@ -674,9 +677,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              total_received_msgs: 45013,
              total_received_bytes: 4_500_692
            ]
-
-    assert DataUpdater.handle_delete_volatile_trigger(realm, device_id, volatile_trigger_id) ==
-             :ok
 
     assert AMQPTestHelper.awaiting_messages_count() == 0
   end
