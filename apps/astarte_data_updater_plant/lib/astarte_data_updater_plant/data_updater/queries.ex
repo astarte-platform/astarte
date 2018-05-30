@@ -369,6 +369,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(stats_and_introspection_statement)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:local_quorum)
 
     device_row =
       DatabaseQuery.call!(db_client, device_row_query)
@@ -407,6 +408,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:last_connection, timestamp_ms)
       |> DatabaseQuery.put(:last_seen_ip, ip_address)
+      |> DatabaseQuery.consistency(:local_quorum)
 
     DatabaseQuery.call!(db_client, device_update_query)
   end
@@ -434,6 +436,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:last_disconnection, timestamp_ms)
       |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
       |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+      |> DatabaseQuery.consistency(:local_quorum)
 
     DatabaseQuery.call!(db_client, device_update_query)
   end
@@ -451,6 +454,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:introspection, introspection)
       |> DatabaseQuery.put(:introspection_minor, introspection_minor)
+      |> DatabaseQuery.consistency(:quorum)
 
     DatabaseQuery.call!(db_client, introspection_update_query)
   end
