@@ -119,7 +119,7 @@ defmodule Astarte.Pairing.EngineTest do
     test "fails with invalid secret", %{hw_id: hw_id} do
       secret = CredentialsSecret.generate()
 
-      assert {:error, :unauthorized} =
+      assert {:error, :forbidden} =
                Engine.get_credentials(
                  @astarte_protocol,
                  @astarte_credentials_params,

@@ -79,7 +79,7 @@ defmodule Astarte.Pairing.Engine do
       {:ok, %{client_crt: cert}}
     else
       {:authorized?, false} ->
-        {:error, :unauthorized}
+        {:error, :forbidden}
 
       {:credentials_inhibited?, true} ->
         {:error, :credentials_request_inhibited}
@@ -123,7 +123,7 @@ defmodule Astarte.Pairing.Engine do
       {:ok, %{version: @version, device_status: device_status, protocols: protocols}}
     else
       {:authorized?, false} ->
-        {:error, :unauthorized}
+        {:error, :forbidden}
 
       {:credentials_inhibited?, true} ->
         {:error, :credentials_request_inhibited}
@@ -163,7 +163,7 @@ defmodule Astarte.Pairing.Engine do
       CertVerifier.verify(client_crt, Config.ca_cert())
     else
       {:authorized?, false} ->
-        {:error, :unauthorized}
+        {:error, :forbidden}
 
       {:credentials_inhibited?, true} ->
         {:error, :credentials_request_inhibited}
