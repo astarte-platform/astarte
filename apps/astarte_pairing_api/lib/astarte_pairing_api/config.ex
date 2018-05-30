@@ -23,13 +23,6 @@ defmodule Astarte.Pairing.API.Config do
   """
 
   @doc """
-  Returns the JWT public key
-  """
-  def jwt_public_key do
-    Application.get_env(:astarte_pairing_api, :jwt_public_key)
-  end
-
-  @doc """
   Returns true if the authentication for the agent is disabled.
   Credential requests made by devices are always authenticated, even it this is true.
   """
