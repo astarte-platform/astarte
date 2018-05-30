@@ -14,28 +14,34 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.APIWeb.TestJWTProducer do
-  use Guardian, otp_app: :astarte_pairing_api
+defmodule Astarte.Pairing.APIWeb.JWTTestHelper do
+  alias Astarte.Pairing.API.Auth.User
+  alias Astarte.Pairing.APIWeb.AuthGuardian
 
-  alias Astarte.Pairing.API.Agent.Realm
-
-  def build_claims(claims, %Realm{realm_name: realm_name}, _opts) do
-    new_claims =
-      claims
-      |> Map.delete("sub")
-      |> Map.put("routingTopic", realm_name)
-
-    {:ok, new_claims}
+  def agent_public_key_pems do
+    Application.get_env(:astarte_pairing_api, :agent_public_key_pems)
   end
 
-  def subject_for_token(%Realm{realm_name: realm_name}, _claims) do
-    {:ok, realm_name}
+  def gen_jwt_token(authorization_paths) do
+    jwk =
+      Application.get_env(:astarte_pairing_api, :test_priv_key)
+      |> JOSE.JWK.from_map()
+
+    {:ok, jwt, _claims} =
+      %User{id: "testuser"}
+      |> AuthGuardian.encode_and_sign(
+        %{a_pa: authorization_paths},
+        secret: jwk,
+        allowed_algos: ["RS256"]
+      )
+
+    jwt
   end
 
-  def resource_from_claims(claims) do
-    {:ok, %Realm{realm_name: claims["routingTopic"]}}
+  def gen_jwt_all_access_token do
+    gen_jwt_token([".*::.*"])
   end
 end
