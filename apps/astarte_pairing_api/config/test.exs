@@ -31,6 +31,9 @@ config :logger, level: :warn
 config :astarte_rpc, :amqp_connection,
   host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 
+config :astarte_pairing_api, :rpc_client,
+  MockRPCClient
+
 config :astarte_pairing_api, :jwt_public_key,
   # The public key for the private key found below
   %{"e" => "AQAB",
