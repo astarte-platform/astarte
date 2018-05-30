@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
@@ -67,6 +68,46 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DatabaseTestHelper.insert_device(device_id, insert_opts)
 
     db_client = connect_to_db(realm)
+
+    # Install a volatile device test trigger
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: :DEVICE_CONNECTED
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             device_id,
+             device_id_uuid,
+             1,
+             volatile_trigger_parent_id,
+             volatile_trigger_id,
+             simple_trigger_data,
+             trigger_target_data
+           ) == :ok
+
+    assert DataUpdater.handle_delete_volatile_trigger(realm, device_id, volatile_trigger_id) ==
+             :ok
 
     DataUpdater.handle_connection(
       realm,
