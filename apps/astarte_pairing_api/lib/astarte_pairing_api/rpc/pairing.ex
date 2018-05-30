@@ -146,6 +146,18 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     extract_credentials_status(credentials_status)
   end
 
+  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "forbidden"}}) do
+    {:error, :forbidden}
+  end
+
+  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
+    {:error, :forbidden}
+  end
+
+  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "device_not_found"}}) do
+    {:error, :forbidden}
+  end
+
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 
