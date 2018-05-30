@@ -14,18 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.APIWeb.BrokerInfoView do
+defmodule Astarte.Pairing.APIWeb.DeviceInfoView do
   use Astarte.Pairing.APIWeb, :view
-  alias Astarte.Pairing.APIWeb.BrokerInfoView
+  alias Astarte.Pairing.APIWeb.DeviceInfoView
 
-  def render("show.json", %{broker_info: broker_info}) do
-    render_one(broker_info, BrokerInfoView, "broker_info.json")
+  def render("show.json", %{device_info: device_info}) do
+    %{data: render_one(device_info, DeviceInfoView, "device_info.json")}
   end
 
-  def render("broker_info.json", %{broker_info: broker_info}) do
-    %{url: broker_info.url, version: broker_info.version}
+  def render("device_info.json", %{device_info: device_info}) do
+    %{version: device_info.version, status: device_info.status, protocols: device_info.protocols}
   end
 end
