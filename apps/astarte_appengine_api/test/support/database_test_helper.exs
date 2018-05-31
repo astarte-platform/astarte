@@ -18,8 +18,8 @@
 #
 
 defmodule Astarte.AppEngine.API.DatabaseTestHelper do
+  alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Client, as: DatabaseClient
   alias Astarte.AppEngine.API.JWTTestHelper
 
   @create_autotestrealm """
@@ -360,10 +360,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   """
 
   def connect_to_test_keyspace() do
-    DatabaseClient.new(
-      List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-      keyspace: " autotestrealm"
-    )
+    Database.connect("autotestrealm")
   end
 
   def insert_empty_device(client, device_id) do
@@ -389,7 +386,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_test_keyspace do
-    {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    {:ok, client} = Database.connect()
 
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
@@ -519,7 +516,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_public_key_only_keyspace do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    {:ok, client} = Database.connect()
 
     DatabaseQuery.call!(client, @create_autotestrealm)
 
@@ -534,7 +531,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def destroy_local_test_keyspace do
-    {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    {:ok, client} = Database.connect()
     DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
     :ok
   end
