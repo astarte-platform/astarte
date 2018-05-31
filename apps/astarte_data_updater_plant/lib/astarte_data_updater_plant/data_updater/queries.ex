@@ -111,6 +111,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
       |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
 
     DatabaseQuery.call!(db_client, unset_query)
 
@@ -145,6 +146,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
 
     DatabaseQuery.call!(db_client, insert_query)
 
@@ -181,6 +183,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
 
     DatabaseQuery.call!(db_client, insert_query)
 
@@ -256,6 +259,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.merge(query_values)
 
+    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
+
     DatabaseQuery.call!(db_client, insert_query)
 
     :ok
@@ -292,6 +297,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+      |> DatabaseQuery.consistency(path_consistency(interface_descriptor, endpoint))
 
     DatabaseQuery.call!(db_client, insert_query)
 
@@ -326,6 +332,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:datetime_value, value_timestamp)
+      |> DatabaseQuery.consistency(path_consistency(interface_descriptor, endpoint))
 
     DatabaseQuery.call!(db_client, insert_query)
 
@@ -342,6 +349,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
+
+    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
 
     DatabaseQuery.call!(db_client, delete_query)
     :ok
@@ -512,5 +521,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       table_name
     }" <>
       " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
+  end
+
+  defp path_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
+    :one
+  end
+
+  defp path_consistency(_interface_descriptor, _mapping) do
+    :local_quorum
+  end
+
+  defp insert_consistency(%InterfaceDescriptor{type: :properties}, _mapping) do
+    :quorum
+  end
+
+  defp insert_consistency(%InterfaceDescriptor{type: :datastream}, %Mapping{
+         reliability: :guaranteed,
+         retention: :stored
+       }) do
+    :local_quorum
+  end
+
+  defp insert_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
+    :any
+  end
+
+  defp insert_consistency(_interface_descriptor, _mapping) do
+    :one
   end
 end
