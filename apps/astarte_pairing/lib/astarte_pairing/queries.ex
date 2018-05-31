@@ -65,6 +65,7 @@ defmodule Astarte.Pairing.Queries do
       Query.new()
       |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
+      |> Query.consistency(:quorum)
 
     with {:ok, res} <- Query.call(client, device_exists_query) do
       case Result.head(res) do
@@ -153,6 +154,7 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:last_credentials_request_ip, device_ip)
       |> Query.put(:first_credentials_request, first_credentials_request_timestamp)
       |> Query.put(:protocol_revision, @protocol_revision)
+      |> Query.consistency(:quorum)
 
     case Query.call(client, query) do
       {:ok, _res} ->
@@ -169,6 +171,7 @@ defmodule Astarte.Pairing.Queries do
       Query.new()
       |> Query.statement(select_statement)
       |> Query.put(:device_id, device_id)
+      |> Query.consistency(:quorum)
 
     with {:ok, res} <- Query.call(client, device_query),
          device_row when is_list(device_row) <- Result.head(res) do
@@ -200,6 +203,7 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:protocol_revision, 0)
       |> Query.put(:total_received_bytes, 0)
       |> Query.put(:total_received_msgs, 0)
+      |> Query.consistency(:quorum)
 
     case Query.call(client, query) do
       {:ok, _res} ->
