@@ -27,56 +27,19 @@ defmodule Astarte.Pairing.Queries do
 
   require Logger
 
-  @get_jwt_public_key_pem """
-  SELECT blobAsVarchar(value)
-  FROM kv_store
-  WHERE group='auth' AND key='jwt_public_key_pem';
-  """
-
-  @register_device """
-  INSERT INTO devices
-  (device_id, extended_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
-  VALUES (:device_id, :extended_id, :credentials_secret, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
-  """
-
-  @check_registered_device """
-  SELECT first_credentials_request
-  FROM devices
-  WHERE device_id=:device_id
-  """
-
-  @select_device_for_info """
-  SELECT credentials_secret, inhibit_credentials_request, first_credentials_request
-  FROM devices
-  WHERE device_id=:device_id
-  """
-
-  @select_device_for_credentials_request """
-  SELECT extended_id, first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
-  FROM devices
-  WHERE device_id=:device_id
-  """
-
-  @select_device_for_verify_credentials """
-  SELECT credentials_secret
-  FROM devices
-  WHERE device_id=:device_id
-  """
-
-  @update_device_after_credentials_request """
-  UPDATE devices
-  SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_credentials_request_ip=:last_credentials_request_ip,
-    first_credentials_request=:first_credentials_request
-  WHERE device_id=:device_id
-  """
-
   @protocol_revision 1
 
   def get_agent_public_key_pems(client) do
-    #TODO: add additional keys
+    get_jwt_public_key_pem = """
+    SELECT blobAsVarchar(value)
+    FROM kv_store
+    WHERE group='auth' AND key='jwt_public_key_pem';
+    """
+
+    # TODO: add additional keys
     query =
       Query.new()
-      |> Query.statement(@get_jwt_public_key_pem)
+      |> Query.statement(get_jwt_public_key_pem)
 
     with {:ok, res} <- Query.call(client, query),
          ["system.blobasvarchar(value)": pem] <- Result.head(res) do
@@ -92,9 +55,15 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def register_device(client, device_id, extended_id, credentials_secret) do
+    statement = """
+    SELECT first_credentials_request
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
     device_exists_query =
       Query.new()
-      |> Query.statement(@check_registered_device)
+      |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
 
     with {:ok, res} <- Query.call(client, device_exists_query) do
@@ -118,15 +87,33 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def select_device_for_credentials_request(client, device_id) do
-    do_select_device(client, device_id, @select_device_for_credentials_request)
+    statement = """
+    SELECT extended_id, first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    do_select_device(client, device_id, statement)
   end
 
   def select_device_for_info(client, device_id) do
-    do_select_device(client, device_id, @select_device_for_info)
+    statement = """
+    SELECT credentials_secret, inhibit_credentials_request, first_credentials_request
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    do_select_device(client, device_id, statement)
   end
 
   def select_device_for_verify_credentials(client, device_id) do
-    do_select_device(client, device_id, @select_device_for_verify_credentials)
+    statement = """
+    SELECT credentials_secret
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    do_select_device(client, device_id, statement)
   end
 
   def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
@@ -150,9 +137,16 @@ defmodule Astarte.Pairing.Queries do
         device_ip,
         first_credentials_request_timestamp
       ) do
+    statement = """
+    UPDATE devices
+    SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_credentials_request_ip=:last_credentials_request_ip,
+    first_credentials_request=:first_credentials_request
+    WHERE device_id=:device_id
+    """
+
     query =
       Query.new()
-      |> Query.statement(@update_device_after_credentials_request)
+      |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
       |> Query.put(:cert_aki, aki)
       |> Query.put(:cert_serial, serial)
@@ -190,9 +184,15 @@ defmodule Astarte.Pairing.Queries do
   end
 
   defp do_register_device(client, device_id, extended_id, credentials_secret) do
+    statement = """
+    INSERT INTO devices
+    (device_id, extended_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
+    VALUES (:device_id, :extended_id, :credentials_secret, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
+    """
+
     query =
       Query.new()
-      |> Query.statement(@register_device)
+      |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
       |> Query.put(:extended_id, extended_id)
       |> Query.put(:credentials_secret, credentials_secret)
