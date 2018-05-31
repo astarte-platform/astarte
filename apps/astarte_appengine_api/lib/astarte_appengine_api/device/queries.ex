@@ -34,17 +34,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
-  def connect_to_db(realm_name) do
-    node = List.first(Application.get_env(:cqerl, :cassandra_nodes))
-
-    with {:ok, client} <- DatabaseClient.new(node, keyspace: realm_name) do
-      {:ok, client}
-    else
-      _ ->
-        {:error, :database_error}
-    end
-  end
-
   def first_result_row(values) do
     DatabaseResult.head(values)
   end

@@ -35,6 +35,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Ecto.Changeset
@@ -44,7 +45,7 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = DevicesListOptions.changeset(%DevicesListOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Queries.connect_to_db(realm_name) do
+         {:ok, client} <- Database.connect(realm_name) do
       Queries.retrieve_devices_list(client, options.limit, options.details, options.from_token)
     end
   end
@@ -54,14 +55,14 @@ defmodule Astarte.AppEngine.API.Device do
   Device status returns information such as connected, last_connection and last_disconnection.
   """
   def get_device_status!(realm_name, encoded_device_id) do
-    with {:ok, client} <- Queries.connect_to_db(realm_name),
+    with {:ok, client} <- Database.connect(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       Queries.retrieve_device_status(client, device_id)
     end
   end
 
   def merge_device_status!(realm_name, encoded_device_id, device_status_merge) do
-    with {:ok, client} <- Queries.connect_to_db(realm_name),
+    with {:ok, client} <- Database.connect(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       Enum.find_value(Map.get(device_status_merge, "aliases", %{}), :ok, fn {alias_upd_key,
                                                                              alias_upd_value} ->
@@ -85,7 +86,7 @@ defmodule Astarte.AppEngine.API.Device do
   Returns the list of interfaces.
   """
   def list_interfaces(realm_name, encoded_device_id) do
-    with {:ok, client} <- Queries.connect_to_db(realm_name),
+    with {:ok, client} <- Database.connect(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       Queries.retrieve_interfaces_list(client, device_id)
     end
@@ -99,7 +100,7 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, client} <- Database.connect(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
          {:ok, interface_row} <-
@@ -123,7 +124,7 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Queries.connect_to_db(realm_name),
+         {:ok, client} <- Database.connect(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
          {:ok, interface_row} <-
@@ -154,7 +155,7 @@ defmodule Astarte.AppEngine.API.Device do
         value,
         _params
       ) do
-    with {:ok, client} <- Queries.connect_to_db(realm_name),
+    with {:ok, client} <- Database.connect(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
          {:ok, interface_row} <-
@@ -220,7 +221,7 @@ defmodule Astarte.AppEngine.API.Device do
   # TODO: we should probably allow delete for every path regardless of the interface type
   # just for maintenance reasons
   def delete_interface_values(realm_name, encoded_device_id, interface, no_prefix_path) do
-    with {:ok, client} <- Queries.connect_to_db(realm_name),
+    with {:ok, client} <- Database.connect(realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
          {:ok, interface_row} <-
@@ -1019,7 +1020,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   def device_alias_to_device_id(realm_name, device_alias) do
-    with {:ok, client} <- Queries.connect_to_db(realm_name) do
+    with {:ok, client} <- Database.connect(realm_name) do
       Queries.device_alias_to_device_id(client, device_alias)
     else
       not_ok ->
