@@ -47,6 +47,8 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     VerifyCredentialsReply
   }
 
+  require Logger
+
   def get_agent_public_key_pems(realm) do
     %GetAgentPublicKeyPEMs{realm: realm}
     |> encode_call(:get_agent_public_key_pems)
@@ -105,6 +107,11 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
     %Reply{reply: reply} = Reply.decode(encoded_reply)
     reply
+  end
+
+  defp decode_reply({:error, reason}) do
+    Logger.warn("rpc_call failed with error #{inspect(reason)}")
+    {:error, :rpc_error}
   end
 
   defp extract_reply(
