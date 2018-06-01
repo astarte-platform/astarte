@@ -21,7 +21,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
@@ -466,13 +465,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.consistency(:quorum)
 
     DatabaseQuery.call!(db_client, introspection_update_query)
-  end
-
-  def connect_to_db(state) do
-    DatabaseClient.new!(
-      List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-      keyspace: state.realm
-    )
   end
 
   defp to_db_friendly_type(%Bson.UTC{ms: ms}) do
