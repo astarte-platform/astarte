@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
   alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
@@ -258,6 +259,47 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         10000
     )
 
+    # Install a volatile value change applied test trigger
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_name: "com.test.LCDMonitor",
+            interface_major: 1,
+            data_trigger_type: :VALUE_CHANGE_APPLIED,
+            match_path: "/weekSchedule/10/start",
+            value_match_operator: :ANY
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    volatile_changed_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    volatile_changed_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             device_id,
+             :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"),
+             2,
+             volatile_changed_trigger_parent_id,
+             volatile_changed_trigger_id,
+             simple_trigger_data,
+             trigger_target_data
+           ) == :ok
+
     DataUpdater.handle_data(
       realm,
       device_id,
@@ -293,6 +335,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
              simple_trigger_id: DatabaseTestHelper.greater_than_incoming_trigger_id(),
+             version: 1
+           }
+
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "value_change_applied_event"
+    assert incoming_headers["x_astarte_device_id"] == short_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             volatile_changed_trigger_parent_id
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             volatile_changed_trigger_id
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: short_device_id,
+             event: {
+               :value_change_applied_event,
+               %ValueChangeAppliedEvent{
+                 old_bson_value: Bson.encode(%{"v" => 42}),
+                 new_bson_value: Bson.encode(%{"v" => 10}),
+                 interface: "com.test.LCDMonitor",
+                 path: "/weekSchedule/10/start"
+               }
+             },
+             parent_trigger_id: volatile_changed_trigger_parent_id,
+             realm: realm,
+             simple_trigger_id: volatile_changed_trigger_id,
              version: 1
            }
 
@@ -667,6 +737,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert value == [integer_value: 5]
 
     # Unset subtest
+
+    # Delete it otherwise it gets raised
+    assert DataUpdater.handle_delete_volatile_trigger(
+             realm,
+             device_id,
+             volatile_changed_trigger_id
+           ) == :ok
+
     DataUpdater.handle_data(
       realm,
       device_id,
