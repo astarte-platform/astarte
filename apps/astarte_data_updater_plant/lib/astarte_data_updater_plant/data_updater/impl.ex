@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataAccess.Data
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
@@ -304,23 +305,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         get_value_change_triggers(new_state, interface_id, endpoint_id, path, value)
 
       old_bson_value =
-        if has_change_triggers == :ok do
-          previous_value =
-            Queries.query_previous_value(
-              db_client,
-              new_state.device_id,
-              interface_descriptor,
-              endpoint,
-              path
-            )
+        with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
+             {:ok, property_value} <-
+               Data.fetch_property(
+                 db_client,
+                 new_state.device_id,
+                 interface_descriptor,
+                 endpoint,
+                 path
+               ) do
+          Bson.encode(%{v: property_value})
+        else
+          {:has_change_triggers, _not_ok} ->
+            nil
 
-          # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
-          if previous_value do
-            %{v: previous_value}
-            |> Bson.encode()
-          else
+          {:error, :property_not_set} ->
             <<>>
-          end
         end
 
       if has_change_triggers == :ok do

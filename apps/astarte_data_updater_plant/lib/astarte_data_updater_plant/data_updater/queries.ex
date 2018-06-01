@@ -355,17 +355,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
-  def query_previous_value(
-        _db_client,
-        _device_id,
-        %InterfaceDescriptor{aggregation: :individual, type: :properties} = _interface_descriptor,
-        _endpoint,
-        _path
-      ) do
-    # TODO: implement me
-    nil
-  end
-
   def retrieve_device_stats_and_introspection!(db_client, device_id) do
     stats_and_introspection_statement = """
     SELECT total_received_msgs, total_received_bytes, introspection, extended_id
