@@ -32,7 +32,7 @@ defmodule Astarte.DataAccess.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      deps: deps()
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
 
@@ -40,6 +40,18 @@ defmodule Astarte.DataAccess.Mixfile do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  defp astarte_required_modules("true") do
+    [
+      {:astarte_core, in_umbrella: true}
+    ]
+  end
+
+  defp astarte_required_modules(_) do
+    [
+      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"}
     ]
   end
 
