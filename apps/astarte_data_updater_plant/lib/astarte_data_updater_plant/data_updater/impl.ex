@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.DataAccess.Data
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
@@ -208,10 +209,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          device_id_string,
          interface_name,
          path,
-         old_bson_value,
-         payload
+         previous_value,
+         value
        ) do
-    if old_bson_value != payload do
+    old_bson_value = Bson.encode(%{v: previous_value})
+    payload = Bson.encode(%{v: value})
+
+    if previous_value != value do
       Enum.each(value_change_triggers, fn trigger ->
         TriggersHandler.value_change(
           trigger.trigger_targets,
@@ -234,24 +238,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          device,
          interface,
          path,
-         old_bson_value,
-         payload
+         previous_value,
+         value
        ) do
-    if old_bson_value == <<>> and payload != <<>> do
+    old_bson_value = Bson.encode(%{v: previous_value})
+    payload = Bson.encode(%{v: value})
+
+    if previous_value == nil and value != nil do
       Enum.each(path_created_triggers, fn trigger ->
         targets = trigger.trigger_targets
         TriggersHandler.path_created(targets, realm, device, interface, path, payload)
       end)
     end
 
-    if old_bson_value != <<>> and payload == <<>> do
+    if previous_value != nil and value == nil do
       Enum.each(path_removed_triggers, fn trigger ->
         targets = trigger.trigger_targets
         TriggersHandler.path_removed(targets, realm, device, interface, path)
       end)
     end
 
-    if old_bson_value != payload do
+    if previous_value != value do
       Enum.each(value_change_applied_triggers, fn trigger ->
         targets = trigger.trigger_targets
 
@@ -303,24 +310,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {has_change_triggers, change_triggers} =
         get_value_change_triggers(new_state, interface_id, endpoint_id, path, value)
 
-      old_bson_value =
-        if has_change_triggers == :ok do
-          previous_value =
-            Queries.query_previous_value(
-              db_client,
-              new_state.device_id,
-              interface_descriptor,
-              endpoint,
-              path
-            )
+      previous_value =
+        with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
+             {:ok, property_value} <-
+               Data.fetch_property(
+                 db_client,
+                 new_state.device_id,
+                 interface_descriptor,
+                 endpoint,
+                 path
+               ) do
+          property_value
+        else
+          {:has_change_triggers, _not_ok} ->
+            nil
 
-          # TODO: if retrieved_value is nil should we send an empty v, an empty document or an empty payload?
-          if previous_value do
-            %{v: previous_value}
-            |> Bson.encode()
-          else
-            <<>>
-          end
+          {:error, :property_not_set} ->
+            nil
         end
 
       if has_change_triggers == :ok do
@@ -331,8 +337,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             device_id_string,
             interface_descriptor.name,
             path,
-            old_bson_value,
-            payload
+            previous_value,
+            value
           )
       end
 
@@ -389,8 +395,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             device_id_string,
             interface_descriptor.name,
             path,
-            old_bson_value,
-            payload
+            previous_value,
+            value
           )
       end
 

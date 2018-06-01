@@ -265,6 +265,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     """,
     """
       INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+        (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/10/start', 42);
+    """,
+    """
+      INSERT INTO autotestrealm.individual_property (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, d9b4ff40-d4cb-a479-d021-127205822baa, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/2/stop', 15);
     """,
     """
