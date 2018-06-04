@@ -345,8 +345,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       cond do
         interface_descriptor.type == :datastream and value != nil ->
           :ok =
-            unless Cache.has_key?(new_state.paths_cache, {interface, path}) do
-              insert_result =
+            cond do
+              Cache.has_key?(new_state.paths_cache, {interface, path}) ->
+                :ok
+
+              Data.path_exists?(
+                db_client,
+                new_state.device_id,
+                interface_descriptor,
+                endpoint,
+                path
+              ) == {:ok, true} ->
+                :ok
+
+              true ->
                 Queries.insert_path_into_db(
                   db_client,
                   new_state.device_id,
@@ -357,10 +369,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   value_timestamp,
                   timestamp
                 )
-
-              insert_result
-            else
-              :ok
             end
 
         interface_descriptor.type == :datastream ->
