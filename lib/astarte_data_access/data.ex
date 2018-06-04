@@ -155,11 +155,13 @@ defmodule Astarte.DataAccess.Data do
            datetime_value: datetime_value,
            reception_timestamp: reception_timestamp,
            reception_timestamp_submillis: reception_timestamp_submillis
-         ] <- Result.head(result),
+         ]
+         when is_integer(reception_timestamp) and is_integer(datetime_value) <-
+           Result.head(result),
          {:ok, value_t} <- DateTime.from_unix(datetime_value, :milliseconds),
          {:ok, reception_t} <-
            DateTime.from_unix(
-             reception_timestamp * 1000 + div(reception_timestamp_submillis, 10),
+             reception_timestamp * 1000 + div(reception_timestamp_submillis || 0, 10),
              :microseconds
            ) do
       {:ok,
@@ -169,7 +171,11 @@ defmodule Astarte.DataAccess.Data do
        }}
     else
       :empty_dataset ->
-        {:error, :property_not_set}
+        {:error, :path_not_set}
+
+      [datetime_value: _, reception_timestamp: _, reception_timestamp_submillis: _] ->
+        Logger.warn("Unexpected null timestamp on #{path}, mapping: #{inspect(mapping)}.")
+        {:error, :invalid_result}
 
       any_error ->
         Logger.warn("Database error while retrieving property: #{inspect(any_error)}")
