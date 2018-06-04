@@ -21,7 +21,8 @@ defmodule Astarte.DataAccess.Database do
 
   @spec connect() :: {:ok, :cqerl.client()} | {:error, atom}
   def connect() do
-    with {:nodes, nodes} when is_list(nodes) <- {:nodes, Application.get_env(:cqerl, :cassandra_nodes)},
+    with {:nodes, nodes} when is_list(nodes) <-
+           {:nodes, Application.get_env(:cqerl, :cassandra_nodes)},
          {:node, node} when is_tuple(node) <- {:node, Enum.random(nodes)},
          {:ok, client} <- CQEx.Client.new(node) do
       {:ok, client}
@@ -45,7 +46,8 @@ defmodule Astarte.DataAccess.Database do
 
   @spec connect(String.t()) :: {:ok, :cqerl.client()} | {:error, atom}
   def connect(realm_name) when is_binary(realm_name) do
-    with {:nodes, nodes} when is_list(nodes) <- {:nodes, Application.get_env(:cqerl, :cassandra_nodes)},
+    with {:nodes, nodes} when is_list(nodes) <-
+           {:nodes, Application.get_env(:cqerl, :cassandra_nodes)},
          {:node, node} when is_tuple(node) <- {:node, Enum.random(nodes)},
          {:ok, client} <- CQEx.Client.new(node, keyspace: realm_name) do
       {:ok, client}
