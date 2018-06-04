@@ -53,7 +53,7 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 200) == @expected_data
+      assert json_response(conn, 200)["data"] == @expected_data
     end
 
     test "valid token returns the data", %{conn: conn} do
@@ -65,7 +65,7 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 200) == @expected_data
+      assert json_response(conn, 200)["data"] == @expected_data
     end
 
     test "token for another path returns 403", %{conn: conn} do
@@ -94,7 +94,7 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 200) == @expected_data
+      assert json_response(conn, 200)["data"] == @expected_data
     end
 
     test "token for another method returns 403", %{conn: conn} do
@@ -123,7 +123,7 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 200) == @expected_data
+      assert json_response(conn, 200)["data"] == @expected_data
     end
 
     test "token with generic matching regexp returns the data", %{conn: conn} do
@@ -135,7 +135,7 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 200) == @expected_data
+      assert json_response(conn, 200)["data"] == @expected_data
     end
   end
 end

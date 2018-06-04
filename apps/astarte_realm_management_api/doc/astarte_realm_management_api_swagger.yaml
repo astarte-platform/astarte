@@ -94,7 +94,7 @@ paths:
         200:
           description: "Success"
           examples:
-            text/json: ["com.example.interfacefoo", "com.example.interfacebar"]
+            text/json: {"data": ["com.example.interfacefoo", "com.example.interfacebar"]}
 
     post:
       tags:
@@ -148,7 +148,7 @@ paths:
         200:
           description: "Success"
           examples:
-            text/json: [1, 2, 10]
+            text/json: {"data": [1, 2, 10]}
 
   /{realm_name}/interfaces/{interface_name}/{major_version}:
     parameters:
