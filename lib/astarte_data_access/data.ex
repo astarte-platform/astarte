@@ -24,6 +24,8 @@ defmodule Astarte.DataAccess.Data do
   alias CQEx.Query
   alias CQEx.Result
 
+  @individual_properties_table "individual_property"
+
   @spec fetch_property(:cqerl.client(), binary, %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
           {:ok, any} | {:error, atom}
   def fetch_property(
@@ -63,6 +65,111 @@ defmodule Astarte.DataAccess.Data do
       [{column, nil}] when is_atom(column) ->
         Logger.warn("Unexpected null value on #{path}, mapping: #{inspect(mapping)}.")
         {:error, :undefined_property}
+
+      any_error ->
+        Logger.warn("Database error while retrieving property: #{inspect(any_error)}")
+        {:error, :database_error}
+    end
+  end
+
+  @spec path_exists?(:cqerl.client(), binary, %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
+          {:ok, boolean} | {:error, atom}
+  def path_exists?(db_client, device_id, interface_descriptor, %Mapping{} = mapping, path)
+      when is_binary(device_id) and is_binary(path) do
+    # TODO: do not hardcode individual_property here
+    fetch_property_value_statement = """
+    SELECT COUNT(*)
+    FROM #{@individual_properties_table}
+    WHERE device_id=:device_id AND interface_id=:interface_id
+      AND endpoint_id=:endpoint_id AND path=:path
+    """
+
+    fetch_property_query =
+      Query.new()
+      |> Query.statement(fetch_property_value_statement)
+      |> Query.put(:device_id, device_id)
+      |> Query.put(:interface_id, interface_descriptor.interface_id)
+      |> Query.put(:endpoint_id, mapping.endpoint_id)
+      |> Query.put(:path, path)
+      |> Query.consistency(:quorum)
+
+    with {:ok, result} <- Query.call(db_client, fetch_property_query),
+         [count: value] when not is_nil(value) <- Result.head(result) do
+      case value do
+        0 ->
+          {:ok, false}
+
+        1 ->
+          {:ok, true}
+      end
+    else
+      :empty_dataset ->
+        {:error, :property_not_set}
+
+      [count: nil] ->
+        Logger.warn("Unexpected null value on #{path}, mapping: #{inspect(mapping)}.")
+        {:error, :undefined_property}
+
+      any_error ->
+        Logger.warn("Database error while retrieving property: #{inspect(any_error)}")
+        {:error, :database_error}
+    end
+  end
+
+  @spec fetch_last_path_update(
+          :cqerl.client(),
+          binary,
+          %InterfaceDescriptor{},
+          %Mapping{},
+          String.t()
+        ) ::
+          {:ok, %{value_timestamp: DateTime.t(), reception_timestamp: DateTime.t()}}
+          | {:error, atom}
+  def fetch_last_path_update(
+        db_client,
+        device_id,
+        interface_descriptor,
+        %Mapping{} = mapping,
+        path
+      )
+      when is_binary(device_id) and is_binary(path) do
+    # TODO: do not hardcode individual_property here
+    fetch_property_value_statement = """
+    SELECT datetime_value, reception_timestamp, reception_timestamp_submillis
+    FROM #{@individual_properties_table}
+    WHERE device_id=:device_id AND interface_id=:interface_id
+      AND endpoint_id=:endpoint_id AND path=:path
+    """
+
+    fetch_property_query =
+      Query.new()
+      |> Query.statement(fetch_property_value_statement)
+      |> Query.put(:device_id, device_id)
+      |> Query.put(:interface_id, interface_descriptor.interface_id)
+      |> Query.put(:endpoint_id, mapping.endpoint_id)
+      |> Query.put(:path, path)
+      |> Query.consistency(:quorum)
+
+    with {:ok, result} <- Query.call(db_client, fetch_property_query),
+         [
+           datetime_value: datetime_value,
+           reception_timestamp: reception_timestamp,
+           reception_timestamp_submillis: reception_timestamp_submillis
+         ] <- Result.head(result),
+         {:ok, value_t} <- DateTime.from_unix(datetime_value, :milliseconds),
+         {:ok, reception_t} <-
+           DateTime.from_unix(
+             reception_timestamp * 1000 + div(reception_timestamp_submillis, 10),
+             :microseconds
+           ) do
+      {:ok,
+       %{
+         value_timestamp: value_t,
+         reception_timestamp: reception_t
+       }}
+    else
+      :empty_dataset ->
+        {:error, :property_not_set}
 
       any_error ->
         Logger.warn("Database error while retrieving property: #{inspect(any_error)}")
