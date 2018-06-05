@@ -365,7 +365,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   interface_descriptor,
                   endpoint,
                   path,
-                  value,
                   value_timestamp,
                   timestamp
                 )
