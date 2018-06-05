@@ -73,6 +73,35 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       );
   """
 
+  @create_individual_property_table """
+      CREATE TABLE autotestrealm.individual_property (
+        device_id uuid,
+        interface_id uuid,
+        endpoint_id uuid,
+        path varchar,
+        reception_timestamp timestamp,
+        reception_timestamp_submillis smallint,
+        endpoint_tokens list<varchar>,
+
+        double_value double,
+        integer_value int,
+        boolean_value boolean,
+        longinteger_value bigint,
+        string_value varchar,
+        binaryblob_value blob,
+        datetime_value timestamp,
+        doublearray_value list<double>,
+        integerarray_value list<int>,
+        booleanarray_value list<boolean>,
+        longintegerarray_value list<bigint>,
+        stringarray_value list<varchar>,
+        binaryblobarray_value list<blob>,
+        datetimearray_value list<timestamp>,
+
+        PRIMARY KEY((device_id, interface_id), endpoint_id, path)
+      )
+  """
+
   @create_kv_store_table """
     CREATE TABLE autotestrealm.kv_store (
       group varchar,
@@ -95,6 +124,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_interfaces_table)
         DatabaseQuery.call!(client, @create_endpoints_table)
+        DatabaseQuery.call!(client, @create_individual_property_table)
         DatabaseQuery.call!(client, @create_kv_store_table)
 
         query =
