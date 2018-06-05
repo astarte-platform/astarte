@@ -18,10 +18,12 @@
 
 defmodule Astarte.DataAccess.Device do
   require Logger
+  alias Astarte.Core.Device
   alias CQEx.Query
   alias CQEx.Result
 
-  @spec interface_version(:cqerl.client(), binary, String.t()) :: {:ok, integer} | {:error, atom}
+  @spec interface_version(:cqerl.client(), Device.device_id(), String.t()) ::
+          {:ok, integer} | {:error, atom}
   def interface_version(client, device_id, interface) do
     device_introspection_statement = """
     SELECT introspection

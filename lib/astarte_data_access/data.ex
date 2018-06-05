@@ -19,6 +19,7 @@
 defmodule Astarte.DataAccess.Data do
   require Logger
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias CQEx.Query
@@ -26,7 +27,7 @@ defmodule Astarte.DataAccess.Data do
 
   @individual_properties_table "individual_property"
 
-  @spec fetch_property(:cqerl.client(), binary, %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
+  @spec fetch_property(:cqerl.client(), Device.device_id(), %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
           {:ok, any} | {:error, atom}
   def fetch_property(
         db_client,
@@ -72,7 +73,7 @@ defmodule Astarte.DataAccess.Data do
     end
   end
 
-  @spec path_exists?(:cqerl.client(), binary, %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
+  @spec path_exists?(:cqerl.client(), Device.device_id(), %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
           {:ok, boolean} | {:error, atom}
   def path_exists?(db_client, device_id, interface_descriptor, %Mapping{} = mapping, path)
       when is_binary(device_id) and is_binary(path) do
@@ -118,7 +119,7 @@ defmodule Astarte.DataAccess.Data do
 
   @spec fetch_last_path_update(
           :cqerl.client(),
-          binary,
+          Device.device_id(),
           %InterfaceDescriptor{},
           %Mapping{},
           String.t()
