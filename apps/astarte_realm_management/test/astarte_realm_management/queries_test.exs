@@ -228,302 +228,285 @@ defmodule Astarte.RealmManagement.QueriesTest do
   end
 
   test "object interface install" do
-    case DatabaseTestHelper.connect_to_test_database() do
-      {:ok, _} ->
-        client = connect_to_test_realm("autotestrealm")
+    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
+    client = connect_to_test_realm("autotestrealm")
 
-        {:ok, intdoc} =
-          Astarte.Core.InterfaceDocument.from_json(@object_datastream_interface_json)
+    {:ok, intdoc} = Astarte.Core.InterfaceDocument.from_json(@object_datastream_interface_json)
 
-        {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
+    {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == false
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == false
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version - 1
-               ) == false
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version - 1
+           ) == false
 
-        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
+    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
 
-        assert Queries.interface_source(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == {:error, :interface_not_found}
+    assert Queries.interface_source(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == {:error, :interface_not_found}
 
-        assert Queries.get_interfaces_list(client) == []
+    assert Queries.get_interfaces_list(client) == []
 
-        Queries.install_new_interface(client, intdoc, automaton)
+    Queries.install_new_interface(client, intdoc, automaton)
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == true
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == true
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version - 1
-               ) == false
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version - 1
+           ) == false
 
-        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [
-                 [
-                   major_version: intdoc.descriptor.major_version,
-                   minor_version: intdoc.descriptor.minor_version
-                 ]
-               ]
+    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [
+             [
+               major_version: intdoc.descriptor.major_version,
+               minor_version: intdoc.descriptor.minor_version
+             ]
+           ]
 
-        assert Queries.interface_source(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == {:ok, intdoc.source}
+    assert Queries.interface_source(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == {:ok, intdoc.source}
 
-        assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
+    assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
 
-        DatabaseQuery.call!(client, @insert_log_line0_device_a)
-        DatabaseQuery.call!(client, @insert_log_line1_device_a)
-        DatabaseQuery.call!(client, @insert_log_line0_device_b)
+    DatabaseQuery.call!(client, @insert_log_line0_device_a)
+    DatabaseQuery.call!(client, @insert_log_line1_device_a)
+    DatabaseQuery.call!(client, @insert_log_line0_device_b)
 
-        count =
-          DatabaseQuery.call!(client, @count_log_entries_for_device_a)
-          |> Enum.to_list()
+    count =
+      DatabaseQuery.call!(client, @count_log_entries_for_device_a)
+      |> Enum.to_list()
 
-        assert count == [[count: 2]]
+    assert count == [[count: 2]]
 
-        count =
-          DatabaseQuery.call!(client, @count_log_entries_for_device_b)
-          |> Enum.to_list()
+    count =
+      DatabaseQuery.call!(client, @count_log_entries_for_device_b)
+      |> Enum.to_list()
 
-        assert count == [[count: 1]]
+    assert count == [[count: 1]]
 
-        count =
-          DatabaseQuery.call!(client, @count_log_entries_for_device_c)
-          |> Enum.to_list()
+    count =
+      DatabaseQuery.call!(client, @count_log_entries_for_device_c)
+      |> Enum.to_list()
 
-        assert count == [[count: 0]]
+    assert count == [[count: 0]]
 
-        a_log_entry =
-          DatabaseQuery.call!(client, @a_log_entry_for_device_a)
-          |> Enum.to_list()
+    a_log_entry =
+      DatabaseQuery.call!(client, @a_log_entry_for_device_a)
+      |> Enum.to_list()
 
-        assert a_log_entry == [
-                 [
-                   device_id:
-                     <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
-                   path: "/",
-                   reception_timestamp: 1_328_328_360_000,
-                   reception_timestamp_submillis: 0,
-                   applicationid: "this.is.a.bit.longer.string",
-                   cmdline: "/usr/bin/things/test",
-                   message: "testです",
-                   monotonictimestamp: -1,
-                   pid: -2,
-                   timestamp: 1_328_241_960_000
-                 ]
-               ]
+    assert a_log_entry == [
+             [
+               device_id:
+                 <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
+               path: "/",
+               reception_timestamp: 1_328_328_360_000,
+               reception_timestamp_submillis: 0,
+               applicationid: "this.is.a.bit.longer.string",
+               cmdline: "/usr/bin/things/test",
+               message: "testです",
+               monotonictimestamp: -1,
+               pid: -2,
+               timestamp: 1_328_241_960_000
+             ]
+           ]
 
-        an_older_log_entry =
-          DatabaseQuery.call!(client, @an_older_log_entry_for_device_a)
-          |> Enum.to_list()
+    an_older_log_entry =
+      DatabaseQuery.call!(client, @an_older_log_entry_for_device_a)
+      |> Enum.to_list()
 
-        assert an_older_log_entry == [
-                 [
-                   device_id:
-                     <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
-                   path: "/",
-                   reception_timestamp: 1_265_256_300_000,
-                   reception_timestamp_submillis: 0,
-                   applicationid: "com.test",
-                   cmdline: "/bin/test",
-                   message: "test",
-                   monotonictimestamp: 9_123_456_789_012_345_678,
-                   pid: 5,
-                   timestamp: 1_265_169_900_000
-                 ]
-               ]
+    assert an_older_log_entry == [
+             [
+               device_id:
+                 <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
+               path: "/",
+               reception_timestamp: 1_265_256_300_000,
+               reception_timestamp_submillis: 0,
+               applicationid: "com.test",
+               cmdline: "/bin/test",
+               message: "test",
+               monotonictimestamp: 9_123_456_789_012_345_678,
+               pid: 5,
+               timestamp: 1_265_169_900_000
+             ]
+           ]
 
-        DatabaseTestHelper.destroy_local_test_keyspace()
-
-      {:error, msg} ->
-        Logger.warn("Skipped 'object interface install' test, database engine says: " <> msg)
-    end
+    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   test "individual interface install" do
-    case DatabaseTestHelper.connect_to_test_database() do
-      {:ok, _} ->
-        client = connect_to_test_realm("autotestrealm")
+    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
+    client = connect_to_test_realm("autotestrealm")
 
-        {:ok, intdoc} =
-          Astarte.Core.InterfaceDocument.from_json(@individual_property_device_owned_interface)
+    {:ok, intdoc} =
+      Astarte.Core.InterfaceDocument.from_json(@individual_property_device_owned_interface)
 
-        {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
+    {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == false
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == false
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version - 1
-               ) == false
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version - 1
+           ) == false
 
-        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
+    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
 
-        assert Queries.interface_source(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == {:error, :interface_not_found}
+    assert Queries.interface_source(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == {:error, :interface_not_found}
 
-        assert Queries.get_interfaces_list(client) == []
+    assert Queries.get_interfaces_list(client) == []
 
-        Queries.install_new_interface(client, intdoc, automaton)
+    Queries.install_new_interface(client, intdoc, automaton)
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == true
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == true
 
-        assert Queries.is_interface_major_available?(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version - 1
-               ) == false
+    assert Queries.is_interface_major_available?(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version - 1
+           ) == false
 
-        assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [
-                 [
-                   major_version: intdoc.descriptor.major_version,
-                   minor_version: intdoc.descriptor.minor_version
-                 ]
-               ]
+    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [
+             [
+               major_version: intdoc.descriptor.major_version,
+               minor_version: intdoc.descriptor.minor_version
+             ]
+           ]
 
-        assert Queries.interface_source(
-                 client,
-                 intdoc.descriptor.name,
-                 intdoc.descriptor.major_version
-               ) == {:ok, intdoc.source}
+    assert Queries.interface_source(
+             client,
+             intdoc.descriptor.name,
+             intdoc.descriptor.major_version
+           ) == {:ok, intdoc.source}
 
-        assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
+    assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
 
-        endpoint =
-          find_endpoint(
-            client,
-            "com.ispirata.Hemera.DeviceLog.Status",
-            2,
-            "/filterRules/%{ruleId}/%{filterKey}/value"
-          )
+    endpoint =
+      find_endpoint(
+        client,
+        "com.ispirata.Hemera.DeviceLog.Status",
+        2,
+        "/filterRules/%{ruleId}/%{filterKey}/value"
+      )
 
-        endpoint_id = endpoint[:endpoint_id]
+    endpoint_id = endpoint[:endpoint_id]
 
-        interface_id =
-          Astarte.Core.CQLUtils.interface_id("com.ispirata.Hemera.DeviceLog.Status", 2)
+    interface_id = Astarte.Core.CQLUtils.interface_id("com.ispirata.Hemera.DeviceLog.Status", 2)
 
-        assert endpoint[:interface_name] == "com.ispirata.Hemera.DeviceLog.Status"
-        assert endpoint[:interface_major_version] == 2
-        assert endpoint[:interface_minor_version] == 1
-        assert endpoint[:interface_type] == 1
-        assert endpoint[:allow_unset] == true
-        assert endpoint[:value_type] == 7
+    assert endpoint[:interface_name] == "com.ispirata.Hemera.DeviceLog.Status"
+    assert endpoint[:interface_major_version] == 2
+    assert endpoint[:interface_minor_version] == 1
+    assert endpoint[:interface_type] == 1
+    assert endpoint[:allow_unset] == true
+    assert endpoint[:value_type] == 7
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_devicelog_status_0)
-          |> DatabaseQuery.put(:interface_id, interface_id)
-          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_devicelog_status_0)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
 
-        DatabaseQuery.call!(client, query)
+    DatabaseQuery.call!(client, query)
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_devicelog_status_1)
-          |> DatabaseQuery.put(:interface_id, interface_id)
-          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_devicelog_status_1)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
 
-        DatabaseQuery.call!(client, query)
+    DatabaseQuery.call!(client, query)
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@find_devicelog_status_entry)
-          |> DatabaseQuery.put(:interface_id, interface_id)
-          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@find_devicelog_status_entry)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
 
-        entry =
-          DatabaseQuery.call!(client, query)
-          |> Enum.to_list()
+    entry =
+      DatabaseQuery.call!(client, query)
+      |> Enum.to_list()
 
-        assert entry == [
-                 [
-                   device_id:
-                     <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
-                   path: "/filterRules/0/testKey/value",
-                   reception_timestamp: 1_328_241_960_000,
-                   string_value: "T€ST_VÆLÙE"
-                 ]
-               ]
+    assert entry == [
+             [
+               device_id:
+                 <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
+               path: "/filterRules/0/testKey/value",
+               reception_timestamp: 1_328_241_960_000,
+               string_value: "T€ST_VÆLÙE"
+             ]
+           ]
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@find_devicelog_status_entries)
-          |> DatabaseQuery.put(:interface_id, interface_id)
-          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@find_devicelog_status_entries)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
 
-        entries =
-          DatabaseQuery.call!(client, query)
-          |> Enum.to_list()
+    entries =
+      DatabaseQuery.call!(client, query)
+      |> Enum.to_list()
 
-        assert entries == [
-                 [path: "/filterRules/0/testKey/value"],
-                 [path: "/filterRules/1/testKey2/value"]
-               ]
+    assert entries == [
+             [path: "/filterRules/0/testKey/value"],
+             [path: "/filterRules/1/testKey2/value"]
+           ]
 
-        DatabaseTestHelper.destroy_local_test_keyspace()
-
-      {:error, msg} ->
-        Logger.warn("Skipped 'individual interface install' test, database engine says: " <> msg)
-    end
+    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   test "timestamp handling" do
-    case DatabaseTestHelper.connect_to_test_database() do
-      {:ok, _} ->
-        client = connect_to_test_realm("autotestrealm")
+    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
+    client = connect_to_test_realm("autotestrealm")
 
-        {:ok, doc} =
-          Astarte.Core.InterfaceDocument.from_json(
-            @individual_datastream_with_explicit_timestamp_interface_json
-          )
+    {:ok, doc} =
+      Astarte.Core.InterfaceDocument.from_json(
+        @individual_datastream_with_explicit_timestamp_interface_json
+      )
 
-        {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
-        Queries.install_new_interface(client, doc, automaton)
+    {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
+    Queries.install_new_interface(client, doc, automaton)
 
-        endpoint_id = retrieve_endpoint_id(client, "com.timestamp.Test", 1, "/test/0/v")
+    endpoint_id = retrieve_endpoint_id(client, "com.timestamp.Test", 1, "/test/0/v")
 
-        timestamp_handling_insert_values(client, endpoint_id, 0, 100)
-        timestamp_handling_insert_values(client, endpoint_id, 1, 20)
-        timestamp_handling_insert_values(client, endpoint_id, 2, 10)
+    timestamp_handling_insert_values(client, endpoint_id, 0, 100)
+    timestamp_handling_insert_values(client, endpoint_id, 1, 20)
+    timestamp_handling_insert_values(client, endpoint_id, 2, 10)
 
-        assert timestamp_handling_check_order(client, endpoint_id, 0) == {100, true}
-        assert timestamp_handling_check_order(client, endpoint_id, 1) == {20, true}
-        assert timestamp_handling_check_order(client, endpoint_id, 2) == {10, true}
+    assert timestamp_handling_check_order(client, endpoint_id, 0) == {100, true}
+    assert timestamp_handling_check_order(client, endpoint_id, 1) == {20, true}
+    assert timestamp_handling_check_order(client, endpoint_id, 2) == {10, true}
 
-        DatabaseTestHelper.destroy_local_test_keyspace()
-
-      {:error, msg} ->
-        Logger.warn("Skipped 'individual interface install' test, database engine says: " <> msg)
-    end
+    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   defp timestamp_handling_insert_values(_client, _endpoint_id, _ind, 0) do
