@@ -22,6 +22,11 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Interface.Aggregation
+  alias Astarte.Core.Interface.Ownership
+  alias Astarte.Core.Interface.Type, as: InterfaceType
+  alias Astarte.Core.Mapping.Reliability
+  alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -225,27 +230,20 @@ defmodule Astarte.RealmManagement.Queries do
         )
       end)
 
+    interface_descriptor = interface_document.descriptor
+
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_interfaces)
-      |> DatabaseQuery.put(:name, interface_document.descriptor.name)
-      |> DatabaseQuery.put(:major_version, interface_document.descriptor.major_version)
-      |> DatabaseQuery.put(:minor_version, interface_document.descriptor.minor_version)
+      |> DatabaseQuery.put(:name, interface_descriptor.name)
+      |> DatabaseQuery.put(:major_version, interface_descriptor.major_version)
+      |> DatabaseQuery.put(:minor_version, interface_descriptor.minor_version)
       |> DatabaseQuery.put(:interface_id, interface_id)
       |> DatabaseQuery.put(:storage_type, StorageType.to_int(storage_type))
       |> DatabaseQuery.put(:storage, table_name)
-      |> DatabaseQuery.put(
-        :type,
-        Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type)
-      )
-      |> DatabaseQuery.put(
-        :ownership,
-        Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership)
-      )
-      |> DatabaseQuery.put(
-        :aggregation,
-        Astarte.Core.Interface.Aggregation.to_int(interface_document.descriptor.aggregation)
-      )
+      |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_descriptor.type))
+      |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_descriptor.ownership))
+      |> DatabaseQuery.put(:aggregation, Aggregation.to_int(interface_descriptor.aggregation))
       |> DatabaseQuery.put(:source, interface_document.source)
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
@@ -255,35 +253,26 @@ defmodule Astarte.RealmManagement.Queries do
     base_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_endpoints)
-      |> DatabaseQuery.put(:interface_name, interface_document.descriptor.name)
-      |> DatabaseQuery.put(:interface_major_version, interface_document.descriptor.major_version)
-      |> DatabaseQuery.put(:interface_minor_version, interface_document.descriptor.minor_version)
-      |> DatabaseQuery.put(
-        :interface_type,
-        Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type)
-      )
+      |> DatabaseQuery.put(:interface_name, interface_descriptor.name)
+      |> DatabaseQuery.put(:interface_major_version, interface_descriptor.major_version)
+      |> DatabaseQuery.put(:interface_minor_version, interface_descriptor.minor_version)
+      |> DatabaseQuery.put(:interface_type, InterfaceType.to_int(interface_descriptor.type))
 
     for mapping <- interface_document.mappings do
+      endpoint_id =
+        CQLUtils.endpoint_id(
+          interface_descriptor.name,
+          interface_descriptor.major_version,
+          mapping.endpoint
+        )
+
       query =
         base_query
         |> DatabaseQuery.put(:interface_id, interface_id)
-        |> DatabaseQuery.put(
-          :endpoint_id,
-          CQLUtils.endpoint_id(
-            interface_document.descriptor.name,
-            interface_document.descriptor.major_version,
-            mapping.endpoint
-          )
-        )
+        |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
-        |> DatabaseQuery.put(
-          :value_type,
-          Astarte.Core.Mapping.ValueType.to_int(mapping.value_type)
-        )
-        |> DatabaseQuery.put(
-          :reliability,
-          Astarte.Core.Mapping.Reliability.to_int(mapping.reliability)
-        )
+        |> DatabaseQuery.put(:value_type, ValueType.to_int(mapping.value_type))
+        |> DatabaseQuery.put(:reliability, Reliability.to_int(mapping.reliability))
         |> DatabaseQuery.put(:retention, Astarte.Core.Mapping.Retention.to_int(mapping.retention))
         |> DatabaseQuery.put(:expiry, mapping.expiry)
         |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
