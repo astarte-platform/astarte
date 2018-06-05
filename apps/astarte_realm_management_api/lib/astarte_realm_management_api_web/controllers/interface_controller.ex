@@ -69,10 +69,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     interface_source =
       Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, parsed_major)
 
-    # do not use render here, just return a raw json, render would escape this and ecapsulate it inside an outer JSON object
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(200, interface_source)
+    {:ok, decoded_json} = Poison.decode(interface_source)
+    render(conn, "show.json", interface: %{data: decoded_json})
   end
 
   def update(conn, %{
