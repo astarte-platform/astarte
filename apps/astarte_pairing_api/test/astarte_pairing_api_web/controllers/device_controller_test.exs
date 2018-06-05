@@ -180,7 +180,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
     setup %{conn: conn} do
       conn =
         conn
-        |> put_req_header("authorization", "bearer #{@secret}")
+        |> put_req_header("authorization", "Bearer #{@secret}")
         |> put_resp_header("accept", "application/json")
 
       {:ok, conn: conn}
@@ -270,7 +270,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
     setup %{conn: conn} do
       conn =
         conn
-        |> put_req_header("authorization", "bearer #{@secret}")
+        |> put_req_header("authorization", "BEARER #{@secret}")
         |> put_resp_header("accept", "application/json")
 
       {:ok, conn: conn}
