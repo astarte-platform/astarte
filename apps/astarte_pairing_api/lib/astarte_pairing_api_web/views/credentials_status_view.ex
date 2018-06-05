@@ -37,8 +37,8 @@ defmodule Astarte.Pairing.APIWeb.CredentialsStatusView do
       }) do
     %{
       valid: credentials_status.valid,
-      timestamp: credentials_status.timestamp,
-      until: credentials_status.until
+      timestamp: to_datetime_string(credentials_status.timestamp),
+      until: to_datetime_string(credentials_status.until)
     }
   end
 
@@ -47,9 +47,18 @@ defmodule Astarte.Pairing.APIWeb.CredentialsStatusView do
       }) do
     %{
       valid: credentials_status.valid,
-      timestamp: credentials_status.timestamp,
+      timestamp: to_datetime_string(credentials_status.timestamp),
       cause: credentials_status.cause,
       details: credentials_status.details
     }
+  end
+
+  defp to_datetime_string(ms_epoch_timestamp) when is_integer(ms_epoch_timestamp) do
+    with {:ok, datetime} <- DateTime.from_unix(ms_epoch_timestamp, :milliseconds) do
+      DateTime.to_string(datetime)
+    else
+      _ ->
+        ""
+    end
   end
 end
