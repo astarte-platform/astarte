@@ -128,15 +128,21 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @insert_devicelog_status_0 """
-    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, reception_timestamp_submillis, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/0/testKey/value', ['0', 'testKey'], '2012-02-03 04:06+0000', 0, 'T€ST_VÆLÙE') ;
+  INSERT INTO individual_property
+    (device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis, string_value)
+    VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/0/testKey/value', '2012-02-03 04:06+0000', 0, 'T€ST_VÆLÙE')
   """
 
   @insert_devicelog_status_1 """
-    INSERT INTO individual_property (device_id, interface_id, endpoint_id, path, endpoint_tokens, reception_timestamp, reception_timestamp_submillis, string_value) VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/1/testKey2/value', ['1', 'testKey2'], '2012-02-03 04:06+0000', 0, 'test') ;
+  INSERT INTO individual_property
+    (device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis, string_value)
+    VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/1/testKey2/value', '2012-02-03 04:06+0000', 0, 'test')
   """
 
   @find_devicelog_status_entry """
-    SELECT device_id, path, endpoint_tokens, reception_timestamp, string_value FROM individual_property WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/filterRules/0/testKey/value';
+  SELECT device_id, path, reception_timestamp, string_value
+  FROM individual_property
+  WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/filterRules/0/testKey/value'
   """
 
   @find_devicelog_status_entries """
@@ -463,7 +469,6 @@ defmodule Astarte.RealmManagement.QueriesTest do
                    device_id:
                      <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
                    path: "/filterRules/0/testKey/value",
-                   endpoint_tokens: ["0", "testKey"],
                    reception_timestamp: 1_328_241_960_000,
                    string_value: "T€ST_VÆLÙE"
                  ]

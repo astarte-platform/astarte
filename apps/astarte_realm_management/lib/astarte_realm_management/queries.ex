@@ -51,7 +51,6 @@ defmodule Astarte.RealmManagement.Queries do
       value_timestamp timestamp,
       reception_timestamp timestamp,
       reception_timestamp_submillis smallint,
-      endpoint_tokens list<varchar>,
 
       double_value double,
       integer_value int,
@@ -79,7 +78,6 @@ defmodule Astarte.RealmManagement.Queries do
       path varchar,
       :value_timestamp
       reception_timestamp timestamp,
-      endpoint_tokens list<varchar>,
       :columns,
       PRIMARY KEY(device_id, endpoint_id, path :key_timestamp)
     )
