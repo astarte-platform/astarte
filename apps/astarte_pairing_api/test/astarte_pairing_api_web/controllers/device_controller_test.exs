@@ -144,8 +144,13 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
     @expired_crt_attrs %{"client_crt" => @expired_client_crt}
     @invalid_attrs %{"client_crt" => ""}
 
-    @now DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
-    @one_month_from_now 2_678_400_000 + @now
+    @now DateTime.utc_now() |> DateTime.truncate(:millisecond)
+    @now_ms @now |> DateTime.to_unix(:milliseconds)
+    @now_string @now |> DateTime.to_string()
+    @one_month_from_now_ms 2_678_400_000 + @now_ms
+    @one_month_from_now_string @one_month_from_now_ms
+                               |> DateTime.from_unix!(:milliseconds)
+                               |> DateTime.to_string()
 
     @encoded_verify_valid_response %Reply{
                                      reply:
@@ -155,8 +160,8 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
                                             {:astarte_mqtt_v1,
                                              %AstarteMQTTV1CredentialsStatus{
                                                valid: true,
-                                               timestamp: @now,
-                                               until: @one_month_from_now
+                                               timestamp: @now_ms,
+                                               until: @one_month_from_now_ms
                                              }}
                                         }}
                                    }
@@ -170,7 +175,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
                                                 {:astarte_mqtt_v1,
                                                  %AstarteMQTTV1CredentialsStatus{
                                                    valid: false,
-                                                   timestamp: @now,
+                                                   timestamp: @now_ms,
                                                    cause: :EXPIRED
                                                  }}
                                             }}
@@ -199,7 +204,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
           data: @verify_attrs
         )
 
-      assert %{"valid" => true, "timestamp" => @now, "until" => @one_month_from_now} =
+      assert %{"valid" => true, "timestamp" => @now_string, "until" => @one_month_from_now_string} =
                json_response(conn, 200)["data"]
     end
 
@@ -229,7 +234,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
 
       assert %{
                "valid" => false,
-               "timestamp" => @now,
+               "timestamp" => @now_string,
                "cause" => "EXPIRED",
                "details" => nil
              } = json_response(conn, 200)["data"]
