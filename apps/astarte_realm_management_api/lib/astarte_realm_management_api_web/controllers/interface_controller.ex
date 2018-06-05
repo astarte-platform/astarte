@@ -70,7 +70,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
       Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, parsed_major)
 
     {:ok, decoded_json} = Poison.decode(interface_source)
-    render(conn, "show.json", interface: %{data: decoded_json})
+    render(conn, "show.json", interface: decoded_json)
   end
 
   def update(conn, %{
