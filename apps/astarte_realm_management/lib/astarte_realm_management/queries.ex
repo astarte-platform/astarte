@@ -22,6 +22,11 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Interface.Aggregation
+  alias Astarte.Core.Interface.Ownership
+  alias Astarte.Core.Interface.Type, as: InterfaceType
+  alias Astarte.Core.Mapping.Reliability
+  alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -71,18 +76,6 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
-  @create_interface_table_with_individual_aggregation """
-    CREATE TABLE :interface_name (
-      device_id uuid,
-      endpoint_id uuid,
-      path varchar,
-      :value_timestamp
-      reception_timestamp timestamp,
-      :columns,
-      PRIMARY KEY(device_id, endpoint_id, path :key_timestamp)
-    )
-  """
-
   @create_interface_table_with_object_aggregation """
     CREATE TABLE :interface_name (
       device_id uuid,
@@ -104,11 +97,6 @@ defmodule Astarte.RealmManagement.Queries do
   @delete_interface_from_interfaces """
      DELETE FROM interfaces WHERE name=:name;
   """
-
-  # TODO: disable DROP TABLE
-  #  @drop_interface_table """
-  #   DROP TABLE :table_name;
-  # """
 
   @query_interface_versions """
     SELECT major_version, minor_version FROM interfaces WHERE name=:interface_name;
@@ -154,46 +142,6 @@ defmodule Astarte.RealmManagement.Queries do
        ) do
     {:multi_interface_individual_datastream_dbtable, "individual_datastream",
      @create_datastream_individual_multiinterface_table}
-  end
-
-  defp create_interface_table(:individual, :one, interface_descriptor, mappings) do
-    table_name =
-      CQLUtils.interface_name_to_table_name(
-        interface_descriptor.name,
-        interface_descriptor.major_version
-      )
-
-    mappings_cql =
-      for mapping <- mappings do
-        "#{CQLUtils.type_to_db_column_name(mapping.value_type)} #{
-          CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
-        }"
-      end
-
-    columns =
-      mappings_cql
-      |> Enum.uniq()
-      |> Enum.sort()
-      |> Enum.join(~s(,\n))
-
-    {table_type, value_timestamp, key_timestamp} =
-      case interface_descriptor.type do
-        :datastream ->
-          {:one_individual_datastream_dbtable, "value_timestamp timestamp, ",
-           ", value_timestamp, reception_timestamp, reception_timestamp_submillis"}
-
-        :properties ->
-          {:one_individual_properties_dbtable, "", ""}
-      end
-
-    create_table_statement =
-      @create_interface_table_with_individual_aggregation
-      |> String.replace(":interface_name", table_name)
-      |> String.replace(":value_timestamp", value_timestamp)
-      |> String.replace(":columns", columns)
-      |> String.replace(":key_timestamp", key_timestamp)
-
-    {table_type, table_name, create_table_statement}
   end
 
   defp create_interface_table(:object, :one, interface_descriptor, mappings) do
@@ -277,27 +225,20 @@ defmodule Astarte.RealmManagement.Queries do
         )
       end)
 
+    interface_descriptor = interface_document.descriptor
+
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_interfaces)
-      |> DatabaseQuery.put(:name, interface_document.descriptor.name)
-      |> DatabaseQuery.put(:major_version, interface_document.descriptor.major_version)
-      |> DatabaseQuery.put(:minor_version, interface_document.descriptor.minor_version)
+      |> DatabaseQuery.put(:name, interface_descriptor.name)
+      |> DatabaseQuery.put(:major_version, interface_descriptor.major_version)
+      |> DatabaseQuery.put(:minor_version, interface_descriptor.minor_version)
       |> DatabaseQuery.put(:interface_id, interface_id)
       |> DatabaseQuery.put(:storage_type, StorageType.to_int(storage_type))
       |> DatabaseQuery.put(:storage, table_name)
-      |> DatabaseQuery.put(
-        :type,
-        Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type)
-      )
-      |> DatabaseQuery.put(
-        :ownership,
-        Astarte.Core.Interface.Ownership.to_int(interface_document.descriptor.ownership)
-      )
-      |> DatabaseQuery.put(
-        :aggregation,
-        Astarte.Core.Interface.Aggregation.to_int(interface_document.descriptor.aggregation)
-      )
+      |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_descriptor.type))
+      |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_descriptor.ownership))
+      |> DatabaseQuery.put(:aggregation, Aggregation.to_int(interface_descriptor.aggregation))
       |> DatabaseQuery.put(:source, interface_document.source)
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
@@ -307,35 +248,26 @@ defmodule Astarte.RealmManagement.Queries do
     base_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_endpoints)
-      |> DatabaseQuery.put(:interface_name, interface_document.descriptor.name)
-      |> DatabaseQuery.put(:interface_major_version, interface_document.descriptor.major_version)
-      |> DatabaseQuery.put(:interface_minor_version, interface_document.descriptor.minor_version)
-      |> DatabaseQuery.put(
-        :interface_type,
-        Astarte.Core.Interface.Type.to_int(interface_document.descriptor.type)
-      )
+      |> DatabaseQuery.put(:interface_name, interface_descriptor.name)
+      |> DatabaseQuery.put(:interface_major_version, interface_descriptor.major_version)
+      |> DatabaseQuery.put(:interface_minor_version, interface_descriptor.minor_version)
+      |> DatabaseQuery.put(:interface_type, InterfaceType.to_int(interface_descriptor.type))
 
     for mapping <- interface_document.mappings do
+      endpoint_id =
+        CQLUtils.endpoint_id(
+          interface_descriptor.name,
+          interface_descriptor.major_version,
+          mapping.endpoint
+        )
+
       query =
         base_query
         |> DatabaseQuery.put(:interface_id, interface_id)
-        |> DatabaseQuery.put(
-          :endpoint_id,
-          CQLUtils.endpoint_id(
-            interface_document.descriptor.name,
-            interface_document.descriptor.major_version,
-            mapping.endpoint
-          )
-        )
+        |> DatabaseQuery.put(:endpoint_id, endpoint_id)
         |> DatabaseQuery.put(:endpoint, mapping.endpoint)
-        |> DatabaseQuery.put(
-          :value_type,
-          Astarte.Core.Mapping.ValueType.to_int(mapping.value_type)
-        )
-        |> DatabaseQuery.put(
-          :reliability,
-          Astarte.Core.Mapping.Reliability.to_int(mapping.reliability)
-        )
+        |> DatabaseQuery.put(:value_type, ValueType.to_int(mapping.value_type))
+        |> DatabaseQuery.put(:reliability, Reliability.to_int(mapping.reliability))
         |> DatabaseQuery.put(:retention, Astarte.Core.Mapping.Retention.to_int(mapping.retention))
         |> DatabaseQuery.put(:expiry, mapping.expiry)
         |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
@@ -375,10 +307,7 @@ defmodule Astarte.RealmManagement.Queries do
 
       DatabaseQuery.call!(client, delete_query)
 
-      # TODO: no need to delete a table for the multi interface approach
-      # drop_table_statement = @drop_interface_table
-      #  |> String.replace(":table_name", CQLUtils.interface_name_to_table_name(interface_name, 0))
-      # DatabaseQuery.call!(client, drop_table_statement)
+      # TODO: remove table for object aggregations
 
       :ok
     end
