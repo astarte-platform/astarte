@@ -28,6 +28,8 @@ defmodule Astarte.Pairing.APIWeb.DeviceController do
   alias Astarte.Pairing.APIWeb.CredentialsStatusView
   alias Astarte.Pairing.APIWeb.DeviceInfoView
 
+  @bearer_regex ~r/bearer\:?\s+(.*)$/i
+
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
   def create_credentials(conn, %{
@@ -71,9 +73,21 @@ defmodule Astarte.Pairing.APIWeb.DeviceController do
   end
 
   defp get_secret(conn) do
-    case get_req_header(conn, "authorization") do
-      ["bearer " <> secret] -> {:ok, secret}
-      _ -> {:error, :unauthorized}
+    auth_headers = get_req_header(conn, "authorization")
+    find_secret(auth_headers)
+  end
+
+  defp find_secret([]) do
+    {:error, :unauthorized}
+  end
+
+  defp find_secret([auth_header | tail]) do
+    case Regex.run(@bearer_regex, auth_header) do
+      [_, match] ->
+        {:ok, match}
+
+      _ ->
+        find_secret(tail)
     end
   end
 
