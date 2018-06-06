@@ -113,6 +113,24 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  setup do
+    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
+      DatabaseTestHelper.seed_test_data(client)
+    end
+  end
+
+  setup_all do
+    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
+      DatabaseTestHelper.create_test_keyspace(client)
+    end
+
+    on_exit(fn ->
+      with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
+        DatabaseTestHelper.drop_test_keyspace(client)
+      end
+    end)
+  end
+
   test "install interface" do
     case DatabaseTestHelper.connect_to_test_database() do
       {:ok, _} ->
@@ -169,8 +187,6 @@ defmodule Astarte.RealmManagement.EngineTest do
                  "com.ispirata.Hemera.DeviceLog.Status"
                ]
 
-        DatabaseTestHelper.destroy_local_test_keyspace()
-
       {:error, msg} ->
         Logger.warn("Skipped 'install interface' test, database engine says: " <> msg)
     end
@@ -209,8 +225,6 @@ defmodule Astarte.RealmManagement.EngineTest do
         assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
                  {:ok, [[major_version: 0, minor_version: 2]]}
 
-        DatabaseTestHelper.destroy_local_test_keyspace()
-
       {:error, msg} ->
         Logger.warn("Skipped 'install interface' test, database engine says: " <> msg)
     end
@@ -221,8 +235,6 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.get_jwt_public_key_pem("autotestrealm") ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
-
-    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   test "get JWT public key PEM with unexisting realm" do
@@ -244,8 +256,6 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.get_jwt_public_key_pem("autotestrealm") ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
-
-    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   test "update JWT public key PEM with unexisting realm" do

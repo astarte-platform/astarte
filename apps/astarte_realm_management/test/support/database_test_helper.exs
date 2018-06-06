@@ -20,6 +20,7 @@
 defmodule Astarte.RealmManagement.DatabaseTestHelper do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
+  require Logger
 
   @jwt_public_key_pem """
   -----BEGIN PUBLIC KEY-----
@@ -117,33 +118,47 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
-  def connect_to_test_database do
-    {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+  def create_test_keyspace(client) do
+    DatabaseQuery.call!(client, @create_autotestrealm)
+    DatabaseQuery.call!(client, @create_interfaces_table)
+    DatabaseQuery.call!(client, @create_endpoints_table)
+    DatabaseQuery.call!(client, @create_individual_property_table)
+    DatabaseQuery.call!(client, @create_kv_store_table)
 
-    case DatabaseQuery.call(client, @create_autotestrealm) do
-      {:ok, _} ->
-        DatabaseQuery.call!(client, @create_interfaces_table)
-        DatabaseQuery.call!(client, @create_endpoints_table)
-        DatabaseQuery.call!(client, @create_individual_property_table)
-        DatabaseQuery.call!(client, @create_kv_store_table)
+    :ok
+  end
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_public_key)
-          |> DatabaseQuery.put(:pem, @jwt_public_key_pem)
+  def seed_test_data(client) do
+    Enum.each(["interfaces", "endpoints", "individual_property", "kv_store"], fn table ->
+      DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
+    end)
 
-        DatabaseQuery.call!(client, query)
-        {:ok, client}
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_public_key)
+      |> DatabaseQuery.put(:pem, @jwt_public_key_pem)
 
-      %{msg: msg} ->
-        {:error, msg}
+    with {:ok, _result} <- DatabaseQuery.call(client, query) do
+      :ok
+    else
+      error ->
+        Logger.warn("Database error: #{inspect(error)}")
+        {:error, :database_error}
     end
   end
 
-  def destroy_local_test_keyspace do
-    {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
-    DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
-    :ok
+  def drop_test_keyspace(client) do
+    with {:ok, _result} <- DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm") do
+      :ok
+    else
+      error ->
+        Logger.warn("Database error: #{inspect(error)}")
+        {:error, :database_error}
+    end
+  end
+
+  def connect_to_test_database do
+    DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
   end
 
   def jwt_public_key_pem_fixture do
