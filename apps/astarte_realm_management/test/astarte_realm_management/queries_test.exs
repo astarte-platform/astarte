@@ -186,6 +186,24 @@ defmodule Astarte.RealmManagement.QueriesTest do
     SELECT value_timestamp FROM individual_datastream WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
   """
 
+  setup do
+    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
+      DatabaseTestHelper.seed_test_data(client)
+    end
+  end
+
+  setup_all do
+    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
+      DatabaseTestHelper.create_test_keyspace(client)
+    end
+
+    on_exit(fn ->
+      with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
+        DatabaseTestHelper.drop_test_keyspace(client)
+      end
+    end)
+  end
+
   def connect_to_test_realm(realm) do
     CQEx.Client.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), keyspace: realm)
   end
@@ -348,7 +366,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
              ]
            ]
 
-    DatabaseTestHelper.destroy_local_test_keyspace()
+    DatabaseQuery.call!(client, "DROP TABLE com_ispirata_hemera_devicelog_v1")
   end
 
   test "individual interface install" do
@@ -480,8 +498,6 @@ defmodule Astarte.RealmManagement.QueriesTest do
              [path: "/filterRules/0/testKey/value"],
              [path: "/filterRules/1/testKey2/value"]
            ]
-
-    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   test "timestamp handling" do
@@ -505,8 +521,6 @@ defmodule Astarte.RealmManagement.QueriesTest do
     assert timestamp_handling_check_order(client, endpoint_id, 0) == {100, true}
     assert timestamp_handling_check_order(client, endpoint_id, 1) == {20, true}
     assert timestamp_handling_check_order(client, endpoint_id, 2) == {10, true}
-
-    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   defp timestamp_handling_insert_values(_client, _endpoint_id, _ind, 0) do
@@ -566,8 +580,6 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_jwt_public_key_pem(client) ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
-
-    DatabaseTestHelper.destroy_local_test_keyspace()
   end
 
   test "update JWT public key PEM" do
