@@ -331,8 +331,72 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def delete_interface_storage(_client, %InterfaceDescriptor{} = _interface_descriptor) do
-    :ok
+  def delete_interface_storage(client, %InterfaceDescriptor{} = interface_descriptor) do
+    with {:ok, result} <- devices_with_data_on_interface(client, interface_descriptor.name) do
+      Enum.reduce_while(result, :ok, fn device_id, _acc ->
+        with :ok <- delete_values(client, device_id, interface_descriptor) do
+          {:cont, :ok}
+        else
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+      end)
+    end
+  end
+
+  def devices_by_interface(client, interface_name) do
+    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name"
+
+    devices_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(devices_statement)
+      |> DatabaseQuery.put(:group_name, "devices-by-interface-#{interface_name}-v0")
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    DatabaseQuery.call(client, devices_query)
+  end
+
+  def devices_with_data_on_interface(client, interface_name) do
+    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name"
+
+    devices_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(devices_statement)
+      |> DatabaseQuery.put(:group_name, "devices-with-data-on-interface-#{interface_name}-v0")
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    DatabaseQuery.call(client, devices_query)
+  end
+
+  def delete_values(
+        client,
+        device_id,
+        %InterfaceDescriptor{
+          interface_id: interface_id,
+          storage_type: :multi_interface_individual_properties_dbtable,
+          storage: table_name
+        } = _interface_descriptor
+      ) do
+    delete_values_statement = """
+    DELETE
+    FROM #{table_name}
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    """
+
+    delete_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_values_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, _res} <- DatabaseQuery.call(client, delete_query) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn("Database error: cannot delete values. reason: #{inspect(reason)}")
+        {:error, :database_error}
+    end
   end
 
   def interface_available_versions(client, interface_name) do
