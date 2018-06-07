@@ -113,6 +113,27 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_draft_interface_b_0 """
+  {
+   "interface_name": "com.ObjectAggregation",
+   "version_major": 0,
+   "version_minor": 3,
+   "type": "datastream",
+   "quality": "producer",
+   "aggregation": "object",
+   "mappings": [
+      {
+        "path": "/x",
+        "type": "double"
+      },
+      {
+        "path": "/y",
+        "type": "double"
+      }
+    ]
+  }
+  """
+
   setup do
     with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
       DatabaseTestHelper.seed_test_data(client)
@@ -216,6 +237,33 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
+  end
+
+  test "install object aggregated interface" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_b_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:ok, [[major_version: 0, minor_version: 3]]}
+
+    assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, []}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:error, :interface_not_found}
+
+    # Try again so we can verify if it has been completely deleted
+
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_b_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:ok, [[major_version: 0, minor_version: 3]]}
+
+    assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
   end
 
   test "get JWT public key PEM with existing realm" do
