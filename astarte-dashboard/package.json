@@ -14,11 +14,11 @@
     "project"
   ],
   "contributors": [
-      {
-          "name": "Mattia Pavinati",
-          "email": "mattia.pavinati@ispirata.com",
-          "url": "https://ispirata.com/"
-      }
+    {
+      "name": "Mattia Pavinati",
+      "email": "mattia.pavinati@ispirata.com",
+      "url": "https://ispirata.com/"
+    }
   ],
   "license": "GPL-3.0",
   "devDependencies": {
