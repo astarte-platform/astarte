@@ -1,0 +1,30 @@
+{
+  "name": "astarte-dashboard",
+  "version": "0.9.0",
+  "description": "Astarte dashboard",
+  "main": "public/index.html",
+  "scripts": {
+    "deploy": "brunch build --production",
+    "start": "brunch watch --server"
+  },
+  "keywords": [
+    "elm",
+    "template",
+    "empty",
+    "project"
+  ],
+  "contributors": [
+      {
+          "name": "Mattia Pavinati",
+          "email": "mattia.pavinati@ispirata.com",
+          "url": "https://ispirata.com/"
+      }
+  ],
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "auto-reload-brunch": "^2.7.1",
+    "brunch": "^2.10.12",
+    "elm": "^0.18.0",
+    "elm-brunch": "^0.10.0"
+  }
+}

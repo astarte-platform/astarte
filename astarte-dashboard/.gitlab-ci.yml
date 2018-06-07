@@ -1,0 +1,29 @@
+variables:
+    PROJECT_NAME: "astarte-dashboard"
+
+stages:
+    - build
+    - deploy
+
+next:build:
+    image: node:8-stretch
+    stage: build
+    script:
+        - apt-get -y update
+        - apt-get -y install netbase build-essential autoconf libffi-dev
+        - npm install
+        - npm run deploy
+
+docker:snapshot-container:
+    image: docker:stable
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
+    services:
+        - docker:stable-dind
+    stage: deploy
+    only:
+        - master@Astarte-NG/astarte-dashboard
+    script:
+        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte-dashboard:snapshot .
+        - docker push $DOCKER_REGISTRY/astarte-ng/astarte-dashboard:snapshot

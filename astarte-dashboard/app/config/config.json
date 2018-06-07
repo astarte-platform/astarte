@@ -1,0 +1,4 @@
+{
+    "realm_management_api_url": "https://your.realmmanagement.api",
+    "oauth_api_url": "https://your.auth.service/or/null"
+}
