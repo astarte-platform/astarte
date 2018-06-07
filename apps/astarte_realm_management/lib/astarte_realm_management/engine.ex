@@ -19,12 +19,16 @@
 
 defmodule Astarte.RealmManagement.Engine do
   require Logger
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.InterfaceDocument
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
+  alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.Interface
+  alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Queries
   alias CQEx.Client, as: DatabaseClient
 
@@ -137,30 +141,31 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def delete_interface(realm_name, interface_name, interface_major_version, opts \\ []) do
-    client =
-      DatabaseClient.new!(
-        List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-        keyspace: realm_name
-      )
+  def delete_interface(realm_name, name, major, opts \\ []) do
+    with {:ok, client} <- Database.connect(realm_name),
+         {:major_is_avail, true} <-
+           {:major_is_avail, Queries.is_interface_major_available?(client, name, major)} do
+      if opts[:async] do
+        Task.start_link(Engine, :execute_interface_deletion, [client, name, major])
 
-    cond do
-      Queries.is_interface_major_available?(client, interface_name, interface_major_version) ==
-          false ->
+        {:ok, :started}
+      else
+        Engine.execute_interface_deletion(client, name, major)
+      end
+    else
+      {:major_is_avail, true} ->
         {:error, :interface_major_version_does_not_exist}
 
-      true ->
-        if opts[:async] do
-          Task.start_link(Queries, :delete_interface, [
-            client,
-            interface_name,
-            interface_major_version
-          ])
+      error ->
+        error
+    end
+  end
 
-          {:ok, :started}
-        else
-          Queries.delete_interface(client, interface_name, interface_major_version)
-        end
+  def execute_interface_deletion(client, name, major) do
+    with {:ok, interface_row} <- Interface.retrieve_interface_row(client, name, major),
+         {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
+         :ok <- Queries.delete_interface_storage(client, descriptor) do
+      Queries.delete_interface(client, name, major)
     end
   end
 

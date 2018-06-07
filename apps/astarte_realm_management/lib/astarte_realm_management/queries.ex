@@ -308,9 +308,31 @@ defmodule Astarte.RealmManagement.Queries do
       DatabaseQuery.call!(client, delete_query)
 
       # TODO: remove table for object aggregations
-
       :ok
     end
+  end
+
+  def delete_interface_storage(
+        client,
+        %InterfaceDescriptor{
+          storage_type: :one_object_datastream_dbtable,
+          storage: table_name
+        } = _interface_descriptor
+      ) do
+    delete_statement = "DROP TABLE IF EXISTS #{table_name}"
+
+    with {:ok, _res} <- DatabaseQuery.call(client, delete_statement) do
+      Logger.info("Deleted #{table_name} table.")
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn("Database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  def delete_interface_storage(_client, %InterfaceDescriptor{} = _interface_descriptor) do
+    :ok
   end
 
   def interface_available_versions(client, interface_name) do
