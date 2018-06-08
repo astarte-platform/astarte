@@ -23,7 +23,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
   """
 
   import Ecto.Query, warn: false
-  alias Astarte.RealmManagement.API.RPC.AMQPClient
+  alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
@@ -38,7 +38,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
   Returns the list of triggers.
   """
   def list_triggers(realm_name) do
-    with {:ok, triggers_list} <- AMQPClient.get_triggers_list(realm_name) do
+    with {:ok, triggers_list} <- RealmManagement.get_triggers_list(realm_name) do
       triggers_list
     end
   end
@@ -63,7 +63,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
             trigger_name: name,
             trigger_action: action,
             tagged_simple_triggers: tagged_simple_triggers
-          }} <- AMQPClient.get_trigger(realm_name, trigger_name),
+          }} <- RealmManagement.get_trigger(realm_name, trigger_name),
          {:ok, action_map} <- Poison.decode(action) do
       simple_triggers_configs =
         Enum.map(tagged_simple_triggers, &SimpleTriggerConfig.from_tagged_simple_trigger/1)
@@ -102,7 +102,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
              &SimpleTriggerConfig.to_tagged_simple_trigger/1
            ),
          :ok <-
-           AMQPClient.install_trigger(
+           RealmManagement.install_trigger(
              realm_name,
              trigger_params.name,
              encoded_action,
@@ -146,7 +146,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   """
   def delete_trigger(realm_name, %Trigger{} = trigger) do
-    with :ok <- AMQPClient.delete_trigger(realm_name, trigger.name) do
+    with :ok <- RealmManagement.delete_trigger(realm_name, trigger.name) do
       {:ok, trigger}
     end
   end
