@@ -1,12 +1,24 @@
 defmodule Astarte.RealmManagement.Mock do
-  use Astarte.RPC.AMQPServer
-
-  use Astarte.RPC.Protocol.RealmManagement
+  alias Astarte.RPC.Protocol.RealmManagement.{
+    Call,
+    GenericErrorReply,
+    GenericOkReply,
+    GetInterfacesList,
+    GetInterfacesListReply,
+    GetJWTPublicKeyPEM,
+    GetJWTPublicKeyPEMReply,
+    Reply,
+    UpdateJWTPublicKeyPEM
+  }
 
   alias Astarte.RealmManagement.API.Realms.Realm
   alias Astarte.RealmManagement.Mock.DB
 
-  def process_rpc(payload) do
+  def rpc_call(payload, _destination) do
+    handle_rpc(payload)
+  end
+
+  def handle_rpc(payload) do
     extract_call_tuple(Call.decode(payload))
     |> execute_rpc()
   end
