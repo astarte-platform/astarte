@@ -14,37 +14,37 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces do
-  alias Astarte.RealmManagement.API.RPC.AMQPClient
+  alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   require Logger
 
   def list_interfaces!(realm_name) do
-    AMQPClient.get_interfaces_list(realm_name)
+    RealmManagement.get_interfaces_list(realm_name)
   end
 
   def list_interface_major_versions!(realm_name, id) do
-    for interface_version <- AMQPClient.get_interface_versions_list(realm_name, id) do
+    for interface_version <- RealmManagement.get_interface_versions_list(realm_name, id) do
       interface_version[:major_version]
     end
   end
 
   def get_interface!(realm_name, interface_name, interface_major_version) do
-    AMQPClient.get_interface(realm_name, interface_name, interface_major_version)
+    RealmManagement.get_interface(realm_name, interface_name, interface_major_version)
   end
 
   def create_interface!(realm_name, interface_source, _attrs \\ %{}) do
-    AMQPClient.install_interface(realm_name, interface_source)
+    RealmManagement.install_interface(realm_name, interface_source)
   end
 
   def update_interface!(realm_name, interface_source, _attrs \\ %{}) do
-    AMQPClient.update_interface(realm_name, interface_source)
+    RealmManagement.update_interface(realm_name, interface_source)
   end
 
   def delete_interface!(realm_name, interface_name, interface_major_version, _attrs \\ %{}) do
-    AMQPClient.delete_interface(realm_name, interface_name, interface_major_version)
+    RealmManagement.delete_interface(realm_name, interface_name, interface_major_version)
   end
 end

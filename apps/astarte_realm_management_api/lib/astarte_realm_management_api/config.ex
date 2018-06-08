@@ -28,4 +28,11 @@ defmodule Astarte.RealmManagement.API.Config do
   def authentication_disabled? do
     Application.get_env(:astarte_realm_management_api, :disable_authentication, false)
   end
+
+  @doc """
+  Returns the RPC Client
+  """
+  def rpc_client do
+    Application.get_env(:astarte_realm_management_api, :rpc_client, Astarte.RPC.AMQP.Client)
+  end
 end

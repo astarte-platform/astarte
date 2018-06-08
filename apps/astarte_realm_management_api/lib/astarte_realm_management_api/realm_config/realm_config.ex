@@ -19,12 +19,12 @@
 
 defmodule Astarte.RealmManagement.API.RealmConfig do
   alias Astarte.RealmManagement.API.RealmConfig.AuthConfig
-  alias Astarte.RealmManagement.API.RPC.AMQPClient
+  alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   require Logger
 
   def get_auth_config(realm) do
-    with {:ok, jwt_public_key_pem} <- AMQPClient.get_jwt_public_key_pem(realm) do
+    with {:ok, jwt_public_key_pem} <- RealmManagement.get_jwt_public_key_pem(realm) do
       {:ok, %AuthConfig{jwt_public_key_pem: jwt_public_key_pem}}
     end
   end
@@ -33,7 +33,7 @@ defmodule Astarte.RealmManagement.API.RealmConfig do
     with %Ecto.Changeset{valid?: true} = changeset <-
            AuthConfig.changeset(%AuthConfig{}, new_config_params),
          %AuthConfig{jwt_public_key_pem: pem} <- Ecto.Changeset.apply_changes(changeset),
-         :ok <- AMQPClient.update_jwt_public_key_pem(realm, pem) do
+         :ok <- RealmManagement.update_jwt_public_key_pem(realm, pem) do
       :ok
     else
       %Ecto.Changeset{valid?: false} = changeset ->

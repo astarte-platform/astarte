@@ -14,12 +14,35 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
-  use Astarte.RPC.AMQPClient
-  use Astarte.RPC.Protocol.RealmManagement
+defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
+  alias Astarte.RPC.Protocol.RealmManagement.{
+    Call,
+    DeleteInterface,
+    DeleteTrigger,
+    GenericErrorReply,
+    GenericOkReply,
+    GetInterfacesList,
+    GetInterfacesListReply,
+    GetInterfaceSource,
+    GetInterfaceSourceReply,
+    GetInterfaceVersionsList,
+    GetInterfaceVersionsListReply,
+    GetInterfaceVersionsListReplyVersionTuple,
+    GetJWTPublicKeyPEM,
+    GetJWTPublicKeyPEMReply,
+    GetTrigger,
+    GetTriggerReply,
+    GetTriggersList,
+    GetTriggersListReply,
+    InstallInterface,
+    InstallTrigger,
+    Reply,
+    UpdateInterface,
+    UpdateJWTPublicKeyPEM
+  }
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.Trigger
@@ -27,6 +50,10 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
   alias Astarte.RealmManagement.API.InterfaceNotFoundError
   alias Astarte.RealmManagement.API.RealmNotFoundError
   alias Astarte.RealmManagement.API.InvalidInterfaceDocumentError
+  alias Astarte.RealmManagement.API.Config
+
+  @rpc_client Config.rpc_client()
+  @destination Astarte.RPC.Protocol.RealmManagement.amqp_queue()
 
   def get_interface_versions_list(realm_name, interface_name) do
     {:ok, payload} =
@@ -172,7 +199,7 @@ defmodule Astarte.RealmManagement.API.RPC.AMQPClient do
       call: {call_name, call}
     }
     |> Call.encode()
-    |> rpc_call
+    |> @rpc_client.rpc_call(@destination)
   end
 
   defp payload_to_result(payload) do

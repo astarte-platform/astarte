@@ -31,7 +31,6 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
   end
 
   setup_all do
-    Astarte.RealmManagement.Mock.start_link()
     Astarte.RealmManagement.Mock.DB.start_link()
     :ok
   end

@@ -54,15 +54,16 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp deps do
     [
-      {:phoenix, "~> 1.3.0-rc"},
-      {:phoenix_pubsub, "~> 1.0"},
+      {:phoenix, "== 1.3.2"},
+      {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cors_plug, "~> 1.2"},
-      {:cowboy, "~> 1.0"},
-      {:conform, "~> 2.2"},
-      {:ecto, "~> 2.1"},
+      {:cors_plug, "== 1.5.2"},
+      {:cowboy, "== 1.1.2"},
+      {:ranch, "== 1.4.0", override: true},
+      {:conform, "== 2.5.2"},
+      {:ecto, "== 2.2.10"},
       {:guardian, github: "ispirata/guardian"},
-      {:distillery, "~> 1.4", runtime: false},
+      {:distillery, "== 1.5.2", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
     ]
   end

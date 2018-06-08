@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.API.Application do
@@ -23,11 +23,9 @@ defmodule Astarte.RealmManagement.API.Application do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    import Supervisor.Spec
-
     children = [
-      supervisor(Astarte.RealmManagement.APIWeb.Endpoint, []),
-      worker(Astarte.RealmManagement.API.RPC.AMQPClient, [])
+      Astarte.RealmManagement.APIWeb.Endpoint,
+      Astarte.RPC.AMQP.Client
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

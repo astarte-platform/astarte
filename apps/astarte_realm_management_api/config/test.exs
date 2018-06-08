@@ -12,6 +12,9 @@ config :astarte_rpc, :amqp_connection,
 # Print only warnings and errors during test
 config :logger, level: :warn
 
+config :astarte_realm_management_api, :rpc_client,
+  Astarte.RealmManagement.Mock
+
 config :astarte_realm_management_api, :test_priv_key,
   {%{kty: :jose_jwk_kty_rsa},
    %{"d" => "NTf4ag6B51NL-p-ZIft2iCypIKkniAJST2gmuFexSsCJRn8tIk66hcdySMKBaof6uM1nT18MyS-qCZLFxRe630Gba-fewMDmkgEdNBfgEQfbrb-ff829-ojgqxuNWW873V6p13vfPhuByMg84OInr3q70EfT3GG0wXAxQhRdsYg_faja6LX-YBAzeEcXkbhNj7H-PmwfCvKo-hV7iiPOLiVCqVY3n2jlruVEazG9oO8M8Tq6z0CgVKxozpHdA8L6ZEbRKPkJRSPrX_nscIEMLj4vdQjFwBw3fr_aP8Ty99rRmyAHp7uRj7rtlMLecFJm6MLkJ5pq6zNua3cnQ7vnoQ",
