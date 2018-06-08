@@ -14,15 +14,42 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.RealmManagement.RPC.AMQPServer do
-  use Astarte.RPC.AMQPServer
-  use Astarte.RPC.Protocol.RealmManagement
+defmodule Astarte.RealmManagement.RPC.Handler do
+  @behaviour Astarte.RPC.Handler
+
+  alias Astarte.RPC.Protocol.RealmManagement.{
+    Call,
+    DeleteInterface,
+    DeleteTrigger,
+    GenericErrorReply,
+    GenericOkReply,
+    GetInterfacesList,
+    GetInterfacesListReply,
+    GetInterfaceSource,
+    GetInterfaceSourceReply,
+    GetInterfaceVersionsList,
+    GetInterfaceVersionsListReply,
+    GetInterfaceVersionsListReplyVersionTuple,
+    GetJWTPublicKeyPEM,
+    GetJWTPublicKeyPEMReply,
+    GetTrigger,
+    GetTriggerReply,
+    GetTriggersList,
+    GetTriggersListReply,
+    InstallInterface,
+    InstallTrigger,
+    Reply,
+    UpdateInterface,
+    UpdateJWTPublicKeyPEM
+  }
 
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.Engine
+
+  require Logger
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
     msg = %GetInterfaceSourceReply{
@@ -124,7 +151,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServer do
     {:error, reason}
   end
 
-  def process_rpc(payload) do
+  def handle_rpc(payload) do
     case Call.decode(payload) do
       %Call{call: call_tuple} when call_tuple != nil ->
         case call_tuple do
