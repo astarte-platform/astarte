@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagement.Queries do
   require Logger
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Ownership
@@ -333,8 +334,9 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_interface_storage(client, %InterfaceDescriptor{} = interface_descriptor) do
     with {:ok, result} <- devices_with_data_on_interface(client, interface_descriptor.name) do
-      Enum.reduce_while(result, :ok, fn device_id, _acc ->
-        with :ok <- delete_values(client, device_id, interface_descriptor) do
+      Enum.reduce_while(result, :ok, fn [key: encoded_device_id], _acc ->
+        with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+             :ok <- delete_values(client, device_id, interface_descriptor) do
           {:cont, :ok}
         else
           {:error, reason} ->
@@ -423,6 +425,121 @@ defmodule Astarte.RealmManagement.Queries do
     else
       {:error, reason} ->
         Logger.warn("Database error: cannot delete values. reason: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  def delete_values(
+        client,
+        device_id,
+        %InterfaceDescriptor{
+          storage_type: :multi_interface_individual_datastream_dbtable
+        } = interface_descriptor
+      ) do
+    with {:ok, result} <-
+           fetch_all_paths_and_endpoint_ids(client, device_id, interface_descriptor),
+         :ok <- delete_all_paths_values(client, device_id, interface_descriptor, result) do
+      delete_all_paths(client, device_id, interface_descriptor)
+    end
+  end
+
+  defp delete_all_paths_values(client, device_id, interface_descriptor, all_paths) do
+    Enum.reduce_while(all_paths, :ok, fn [endpoint_id: endpoint_id, path: path], _acc ->
+      with :ok <- delete_path_values(client, device_id, interface_descriptor, endpoint_id, path) do
+        {:cont, :ok}
+      else
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  def delete_path_values(
+        client,
+        device_id,
+        %InterfaceDescriptor{
+          interface_id: interface_id,
+          storage_type: :multi_interface_individual_datastream_dbtable,
+          storage: table_name
+        } = _interface_descriptor,
+        endpoint_id,
+        path
+      ) do
+    delete_path_values_statement = """
+    DELETE
+    FROM #{table_name}
+    WHERE device_id=:device_id AND interface_id=:interface_id
+      AND endpoint_id=:endpoint_id AND path=:path
+    """
+
+    delete_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_path_values_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, _res} <- DatabaseQuery.call(client, delete_query) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn("Database error: cannot delete path values. reason: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp fetch_all_paths_and_endpoint_ids(
+         client,
+         device_id,
+         %InterfaceDescriptor{
+           interface_id: interface_id,
+           storage_type: :multi_interface_individual_datastream_dbtable
+         } = _interface_descriptor
+       ) do
+    all_paths_statement = """
+    SELECT endpoint_id, path
+    FROM individual_property
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    """
+
+    all_paths_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(all_paths_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    DatabaseQuery.call(client, all_paths_query)
+  end
+
+  defp delete_all_paths(
+         client,
+         device_id,
+         %InterfaceDescriptor{
+           interface_id: interface_id,
+           storage_type: :multi_interface_individual_datastream_dbtable
+         } = _interface_descriptor
+       ) do
+    delete_paths_statement = """
+    DELETE
+    FROM individual_property
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    """
+
+    all_paths_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_paths_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(client, all_paths_query) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn("database error while deleting all paths: #{inspect(reason)}")
         {:error, :database_error}
     end
   end
