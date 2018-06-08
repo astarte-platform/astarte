@@ -144,7 +144,9 @@ defmodule Astarte.RealmManagement.Engine do
   def delete_interface(realm_name, name, major, opts \\ []) do
     with {:ok, client} <- Database.connect(realm_name),
          {:major_is_avail, true} <-
-           {:major_is_avail, Queries.is_interface_major_available?(client, name, major)} do
+           {:major_is_avail, Queries.is_interface_major_available?(client, name, major)},
+         {:devices, {:ok, false}} <-
+           {:devices, Queries.is_any_device_using_interface?(client, name)} do
       if opts[:async] do
         Task.start_link(Engine, :execute_interface_deletion, [client, name, major])
 
@@ -156,14 +158,21 @@ defmodule Astarte.RealmManagement.Engine do
       {:major_is_avail, true} ->
         {:error, :interface_major_version_does_not_exist}
 
-      error ->
-        error
+      {:devices, {:ok, true}} ->
+        {:error, :cannot_delete_currently_used_interface}
+
+      {:devices, {:error, reason}} ->
+        {:error, reason}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
   def execute_interface_deletion(client, name, major) do
     with {:ok, interface_row} <- Interface.retrieve_interface_row(client, name, major),
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
+         :ok <- Queries.delete_devices_with_data_on_interface(client, name),
          :ok <- Queries.delete_interface_storage(client, descriptor) do
       Queries.delete_interface(client, name, major)
     end

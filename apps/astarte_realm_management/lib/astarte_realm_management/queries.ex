@@ -344,8 +344,8 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def devices_by_interface(client, interface_name) do
-    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name"
+  def is_any_device_using_interface?(client, interface_name) do
+    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name LIMIT 1"
 
     devices_query =
       DatabaseQuery.new()
@@ -353,7 +353,17 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:group_name, "devices-by-interface-#{interface_name}-v0")
       |> DatabaseQuery.consistency(:each_quorum)
 
-    DatabaseQuery.call(client, devices_query)
+    with {:ok, result} <- DatabaseQuery.call(client, devices_query),
+         [key: _device_id] <- DatabaseResult.head(result) do
+      {:ok, true}
+    else
+      :empty_dataset ->
+        {:ok, false}
+
+      {:error, reason} ->
+        Logger.warn("is_any_device_using_interface?: database error: #{inspect(reason)}.")
+        {:error, :database_error}
+    end
   end
 
   def devices_with_data_on_interface(client, interface_name) do
@@ -366,6 +376,24 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.consistency(:each_quorum)
 
     DatabaseQuery.call(client, devices_query)
+  end
+
+  def delete_devices_with_data_on_interface(client, interface_name) do
+    devices_statement = "DELETE FROM kv_store WHERE group=:group_name"
+
+    devices_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(devices_statement)
+      |> DatabaseQuery.put(:group_name, "devices-with-data-on-interface-#{interface_name}-v0")
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(client, devices_query) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn("delete_devices_with_data_on_interface: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
   end
 
   def delete_values(
