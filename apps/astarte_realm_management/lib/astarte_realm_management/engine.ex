@@ -142,9 +142,10 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do
-    with {:ok, client} <- Database.connect(realm_name),
+    with {:major, 0} <- {:major, major},
+         {:ok, client} <- Database.connect(realm_name),
          {:major_is_avail, true} <-
-           {:major_is_avail, Queries.is_interface_major_available?(client, name, major)},
+           {:major_is_avail, Queries.is_interface_major_available?(client, name, 0)},
          {:devices, {:ok, false}} <-
            {:devices, Queries.is_any_device_using_interface?(client, name)} do
       if opts[:async] do
@@ -155,7 +156,10 @@ defmodule Astarte.RealmManagement.Engine do
         Engine.execute_interface_deletion(client, name, major)
       end
     else
-      {:major_is_avail, true} ->
+      {:major, _} ->
+        {:error, :forbidden}
+
+      {:major_is_avail, false} ->
         {:error, :interface_major_version_does_not_exist}
 
       {:devices, {:ok, true}} ->
