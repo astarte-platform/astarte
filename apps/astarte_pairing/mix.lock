@@ -8,7 +8,7 @@
   "certifi": {:hex, :certifi, "2.3.1", "d0f424232390bf47d82da8478022301c561cf6445b5b5fb6a84d49a9e76d2639", [:rebar3], [{:parse_trans, "3.2.0", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},
   "cfxxl": {:hex, :cfxxl, "0.3.0", "7d69bf5533ce0949b0c08ab29766375c704ac42ea4a5c26af93eeff76ff70122", [:mix], [{:httpoison, "~> 0.13", [hex: :httpoison, repo: "hexpm", optional: false]}, {:poison, "~> 3.1", [hex: :poison, repo: "hexpm", optional: false]}], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
-  "cqerl": {:git, "https://github.com/matehat/cqex.git", "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", [ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9"]},
+  "cqerl": {:git, "https://github.com/matehat/cqerl.git", "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", [ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9"]},
   "cqex": {:git, "https://github.com/matehat/cqex.git", "a2c45667108f9b1e8a9c73c5250a04020bf72a30", [ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"]},
   "cyanide": {:hex, :cyanide, "0.5.0", "b72422623ce84baa19f96498e18f15f46c4dcac8359d484c9a8c0e3836cb629b", [:mix], [], "hexpm"},
   "decimal": {:hex, :decimal, "1.5.0", "b0433a36d0e2430e3d50291b1c65f53c37d56f83665b43d79963684865beab68", [:mix], [], "hexpm"},
