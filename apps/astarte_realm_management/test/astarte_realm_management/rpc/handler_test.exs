@@ -14,25 +14,33 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
-  alias Astarte.RealmManagement.RPC.AMQPServer
-  use Astarte.RPC.Protocol.RealmManagement
+defmodule Astarte.RealmManagement.RPC.HandlerTest do
+  alias Astarte.RealmManagement.RPC.Handler
+  alias Astarte.RPC.Protocol.RealmManagement.{
+    GenericErrorReply,
+    GetInterfacesListReply,
+    GetInterfaceSourceReply,
+    GetInterfaceVersionsListReply,
+    GetInterfaceVersionsListReplyVersionTuple,
+    Reply
+  }
+
   use ExUnit.Case
   require Logger
 
-  test "process_rpc invalid messages and calls" do
-    assert_raise FunctionClauseError, fn -> AMQPServer.process_rpc(nil) end
-    assert_raise FunctionClauseError, fn -> assert AMQPServer.process_rpc([]) end
-    assert AMQPServer.process_rpc("") == {:error, :unexpected_message}
+  test "handle_rpc invalid messages and calls" do
+    assert_raise FunctionClauseError, fn -> Handler.handle_rpc(nil) end
+    assert_raise FunctionClauseError, fn -> assert Handler.handle_rpc([]) end
+    assert Handler.handle_rpc("") == {:error, :unexpected_message}
   end
 
   test "encode error reply" do
-    assert AMQPServer.encode_reply(:test, {:error, :retry}) == {:error, :retry}
+    assert Handler.encode_reply(:test, {:error, :retry}) == {:error, :retry}
 
-    assert AMQPServer.encode_reply(:test, {:error, "some random string"}) ==
+    assert Handler.encode_reply(:test, {:error, "some random string"}) ==
              {:error, "some random string"}
 
     expectedReply = %Reply{
@@ -48,7 +56,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
       version: 1
     }
 
-    {:ok, buf} = AMQPServer.encode_reply(:test, {:error, :fake_error})
+    {:ok, buf} = Handler.encode_reply(:test, {:error, :fake_error})
     assert Reply.decode(buf) == expectedReply
   end
 
@@ -62,7 +70,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
          }}
     }
 
-    {:ok, buf} = AMQPServer.encode_reply(:get_interface_source, {:ok, "this_is_the_source"})
+    {:ok, buf} = Handler.encode_reply(:get_interface_source, {:ok, "this_is_the_source"})
     assert Reply.decode(buf) == expectedReply
 
     expectedReply = %Reply{
@@ -84,7 +92,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
     }
 
     {:ok, buf} =
-      AMQPServer.encode_reply(
+      Handler.encode_reply(
         :get_interface_versions_list,
         {:ok, [[major_version: 1, minor_version: 2], [major_version: 2, minor_version: 0]]}
       )
@@ -104,7 +112,7 @@ defmodule Astarte.RealmManagement.RPC.AMQPServerTest do
     }
 
     {:ok, buf} =
-      AMQPServer.encode_reply(:get_interfaces_list, {:ok, ["interface.a", "interface.b"]})
+      Handler.encode_reply(:get_interfaces_list, {:ok, ["interface.a", "interface.b"]})
 
     assert Reply.decode(buf) == expectedReply
   end
