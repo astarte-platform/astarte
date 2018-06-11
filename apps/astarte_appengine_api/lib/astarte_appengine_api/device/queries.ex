@@ -464,7 +464,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           Map.put(acc, interface, %{major_item | minor: minor})
         else
           :error ->
-            device = Device.encode_id(device_id)
+            device = Device.encode_device_id(device_id)
             Logger.warn("#{device} has no minor version for #{interface}. Corrupted entry?")
             acc
         end
