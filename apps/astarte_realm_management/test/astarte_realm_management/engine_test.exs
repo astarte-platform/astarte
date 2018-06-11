@@ -240,7 +240,34 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
 
+    {:ok, client} = Database.connect("autotestrealm")
+    d = :crypto.strong_rand_bytes(16)
+
+    e1 =
+      CQLUtils.endpoint_id(
+        "com.ispirata.TestDatastream",
+        0,
+        "/filterRules/%{ruleId}/%{filterKey}/value"
+      )
+
+    p1 = "/filterRules/0/TEST/value"
+    DatabaseTestHelper.seed_properties_test_value(client, d, "com.ispirata.Draft", 0, e1, p1)
+
+    assert DatabaseTestHelper.count_interface_properties_for_device(
+             client,
+             d,
+             "com.ispirata.Draft",
+             0
+           ) == 1
+
     assert Engine.delete_interface("autotestrealm", "com.ispirata.Draft", 0) == :ok
+
+    assert DatabaseTestHelper.count_interface_properties_for_device(
+             client,
+             d,
+             "com.ispirata.Draft",
+             0
+           ) == 0
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, []}
 

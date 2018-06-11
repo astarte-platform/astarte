@@ -187,6 +187,59 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     |> Keyword.fetch!(:count)
   end
 
+  def seed_properties_test_value(client, device_id, interface_name, major, endpoint_id, path) do
+    interface_id = CQLUtils.interface_id(interface_name, major)
+
+    property_statement = """
+    INSERT INTO individual_property
+      (device_id, interface_id, endpoint_id, path)
+    VALUES (:device_id, :interface_id, :endpoint_id, :path)
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(property_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+
+    DatabaseQuery.call!(client, query)
+
+    kv_store_statement = "INSERT INTO kv_store (group, key) VALUES (:group, :key)"
+
+    kv_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(kv_store_statement)
+      |> DatabaseQuery.put(:group, "devices-with-data-on-interface-#{interface_name}-v0")
+      |> DatabaseQuery.put(:key, Device.encode_device_id(device_id))
+      |> DatabaseQuery.consistency(:all)
+
+    DatabaseQuery.call!(client, kv_query)
+
+    :ok
+  end
+
+  def count_interface_properties_for_device(client, device_id, interface_name, major) do
+    count_statement = """
+    SELECT COUNT(*)
+    FROM individual_property
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    """
+
+    interface_id = CQLUtils.interface_id(interface_name, major)
+
+    count_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(count_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+
+    DatabaseQuery.call!(client, count_query)
+    |> DatabaseResult.head()
+    |> Keyword.fetch!(:count)
+  end
+
   def create_test_keyspace(client) do
     DatabaseQuery.call!(client, @create_autotestrealm)
     DatabaseQuery.call!(client, @create_interfaces_table)
