@@ -13,7 +13,7 @@ variables:
 mix:test-ci:
     image: elixir:1.6
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
         - rabbitmq:3.6
     stage: build
     script:
@@ -21,7 +21,7 @@ mix:test-ci:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix coveralls --exclude cassandra_only
+        - mix coveralls
     cache:
         paths:
             - deps
@@ -31,7 +31,7 @@ mix:test-ci:
 mix:build:
     image: elixir:1.6
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
         - rabbitmq:3.6
     stage: build
     script:
@@ -39,7 +39,7 @@ mix:build:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix coveralls --exclude cassandra_only
+        - mix coveralls
         - export MIX_ENV=dev
         - mix release
     cache:
@@ -51,7 +51,7 @@ mix:build:
 mix:release-build:
     image: elixir:1.6
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
         - rabbitmq:3.6
     stage: build
     script:
@@ -59,7 +59,7 @@ mix:release-build:
         - mix deps.get --force
         - mix deps.compile --force
         - mix compile --force
-        - mix test --exclude cassandra_only
+        - mix test
         - mix release --env=prod
     cache:
         paths:
