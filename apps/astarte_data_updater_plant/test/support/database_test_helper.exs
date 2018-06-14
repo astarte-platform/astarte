@@ -119,6 +119,16 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       );
   """
 
+  @create_kv_store_table """
+      CREATE TABLE autotestrealm.kv_store (
+        group varchar,
+        key varchar,
+        value blob,
+
+        PRIMARY KEY ((group), key)
+      );
+  """
+
   @insert_endpoints [
     """
       INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
@@ -359,6 +369,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         end)
 
         DatabaseQuery.call!(client, @create_interfaces_table)
+        DatabaseQuery.call!(client, @create_kv_store_table)
 
         query =
           DatabaseQuery.new()
