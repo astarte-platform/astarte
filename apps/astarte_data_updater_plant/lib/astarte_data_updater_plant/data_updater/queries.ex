@@ -19,6 +19,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias CQEx.Query, as: DatabaseQuery
@@ -461,6 +462,73 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.consistency(:quorum)
 
     DatabaseQuery.call!(db_client, introspection_update_query)
+  end
+
+  def register_device_with_interface(db_client, device_id, interface_name, interface_major) do
+    key_insert_statement = """
+    INSERT INTO kv_store (group, key)
+    VALUES (:group, :key)
+    """
+
+    major_str = "v#{Integer.to_string(interface_major)}"
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    insert_device_by_interface_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(key_insert_statement)
+      |> DatabaseQuery.put(:group, "devices-by-interface-#{interface_name}-#{major_str}")
+      |> DatabaseQuery.put(:key, encoded_device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    insert_to_with_data_on_interface =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(key_insert_statement)
+      |> DatabaseQuery.put(
+        :group,
+        "devices-with-data-on-interface-#{interface_name}-#{major_str}"
+      )
+      |> DatabaseQuery.put(:key, encoded_device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(db_client, insert_device_by_interface_query),
+         {:ok, _result} <- DatabaseQuery.call(db_client, insert_to_with_data_on_interface) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn(
+          "database error: cannot register device-interface pair, reason: #{inspect(reason)}"
+        )
+
+        {:error, reason}
+    end
+  end
+
+  def unregister_device_with_interface(db_client, device_id, interface_name, interface_major) do
+    key_delete_statement = """
+    DELETE FROM kv_store
+    WHERE group=:group AND key=:key
+    """
+
+    major_str = "v#{Integer.to_string(interface_major)}"
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    delete_device_by_interface_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(key_delete_statement)
+      |> DatabaseQuery.put(:group, "devices-by-interface-#{interface_name}-#{major_str}")
+      |> DatabaseQuery.put(:key, encoded_device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(db_client, delete_device_by_interface_query) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn(
+          "database error: cannot unregister device-interface pair, reason: #{inspect(reason)}"
+        )
+
+        {:error, reason}
+    end
   end
 
   defp to_db_friendly_type(%Bson.UTC{ms: ms}) do

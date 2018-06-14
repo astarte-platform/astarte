@@ -524,6 +524,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
 
           Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
+            :ok =
+              if interface_major == 0 do
+                Queries.register_device_with_interface(
+                  db_client,
+                  state.device_id,
+                  interface_name,
+                  0
+                )
+              else
+                :ok
+              end
+
             minor = Map.get(db_introspection_minor_map, interface_name)
 
             interface_added_targets =
@@ -547,6 +559,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
 
           Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
+            :ok =
+              if interface_major == 0 do
+                Queries.unregister_device_with_interface(
+                  db_client,
+                  state.device_id,
+                  interface_name,
+                  0
+                )
+              else
+                :ok
+              end
+
             interface_removed_targets =
               Map.get(introspection_triggers, {:on_interface_deleted, :any_interface}, [])
 
