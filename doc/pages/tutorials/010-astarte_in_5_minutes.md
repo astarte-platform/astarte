@@ -6,7 +6,7 @@ This tutorial will guide you through bringing up your Astarte instance, creating
 
 First of all, please keep in mind that **this setup is not meant to be used in production**: by default, no persistence is involved, the installation does not have any recovery mechanism, and you will have to restart services manually in case something goes awry. This guide is great if you want to take Astarte for a spin, or if you want to use an isolated instance for development.
 
-You will need a machine with at least 4GB of RAM (mainly due to Cassandra), with [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl), Python 3 and OpenSSL installed. You will need the `jwt` Python module for generating JWT tokens for Astarte, which you can install either via `pip` (`pip install jwt`) or using your distribution's packages.
+You will need a machine with at least 4GB of RAM (mainly due to Cassandra), with [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl), Python 3 and OpenSSL installed. You will need the PyJWT Python module for generating JWT tokens for Astarte, which you can install either via `pip3` (`pip3 install pyjwt`) or using your distribution's packages (e.g. `apt-get install python3-jwt` on Debian based distributions).
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
 
