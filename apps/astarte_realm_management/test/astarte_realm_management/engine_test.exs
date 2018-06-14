@@ -20,6 +20,8 @@
 defmodule Astarte.RealmManagement.EngineTest do
   use ExUnit.Case
   require Logger
+  alias Astarte.Core.CQLUtils
+  alias Astarte.DataAccess.Database
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Engine
 
@@ -113,6 +115,47 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_draft_interface_b_0 """
+  {
+   "interface_name": "com.ObjectAggregation",
+   "version_major": 0,
+   "version_minor": 3,
+   "type": "datastream",
+   "quality": "producer",
+   "aggregation": "object",
+   "mappings": [
+      {
+        "path": "/x",
+        "type": "double"
+      },
+      {
+        "path": "/y",
+        "type": "double"
+      }
+    ]
+  }
+  """
+
+  @test_draft_interface_c_0 """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 10,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/integerValues",
+        "type": "integer"
+      }
+    ]
+  }
+  """
+
   setup do
     with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
       DatabaseTestHelper.seed_test_data(client)
@@ -197,7 +240,34 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
 
+    {:ok, client} = Database.connect("autotestrealm")
+    d = :crypto.strong_rand_bytes(16)
+
+    e1 =
+      CQLUtils.endpoint_id(
+        "com.ispirata.TestDatastream",
+        0,
+        "/filterRules/%{ruleId}/%{filterKey}/value"
+      )
+
+    p1 = "/filterRules/0/TEST/value"
+    DatabaseTestHelper.seed_properties_test_value(client, d, "com.ispirata.Draft", 0, e1, p1)
+
+    assert DatabaseTestHelper.count_interface_properties_for_device(
+             client,
+             d,
+             "com.ispirata.Draft",
+             0
+           ) == 1
+
     assert Engine.delete_interface("autotestrealm", "com.ispirata.Draft", 0) == :ok
+
+    assert DatabaseTestHelper.count_interface_properties_for_device(
+             client,
+             d,
+             "com.ispirata.Draft",
+             0
+           ) == 0
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, []}
 
@@ -216,6 +286,88 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
+  end
+
+  test "install object aggregated interface" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_b_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:ok, [[major_version: 0, minor_version: 3]]}
+
+    assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, []}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:error, :interface_not_found}
+
+    # Try again so we can verify if it has been completely deleted
+
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_b_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:ok, [[major_version: 0, minor_version: 3]]}
+
+    assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
+  end
+
+  test "delete datastream interface" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    {:ok, client} = Database.connect("autotestrealm")
+    d = :crypto.strong_rand_bytes(16)
+    e1 = CQLUtils.endpoint_id("com.ispirata.TestDatastream", 0, "/%{sensorId}/realValues")
+    p1 = "/0/realValues"
+
+    DatabaseTestHelper.seed_datastream_test_data(
+      client,
+      d,
+      "com.ispirata.TestDatastream",
+      0,
+      e1,
+      p1
+    )
+
+    e2 = CQLUtils.endpoint_id("com.ispirata.TestDatastream", 0, "/%{sensorId}/integerValues")
+    p2 = "/0/integerValues"
+
+    DatabaseTestHelper.seed_datastream_test_data(
+      client,
+      d,
+      "com.ispirata.TestDatastream",
+      0,
+      e2,
+      p2
+    )
+
+    assert Engine.delete_interface("autotestrealm", "com.ispirata.TestDatastream", 0) == :ok
+
+    assert DatabaseTestHelper.count_rows_for_datastream(
+             client,
+             d,
+             "com.ispirata.TestDatastream",
+             0,
+             e1,
+             p1
+           ) == 0
+
+    assert DatabaseTestHelper.count_rows_for_datastream(
+             client,
+             d,
+             "com.ispirata.TestDatastream",
+             0,
+             e2,
+             p2
+           ) == 0
   end
 
   test "get JWT public key PEM with existing realm" do

@@ -18,8 +18,11 @@
 #
 
 defmodule Astarte.RealmManagement.DatabaseTestHelper do
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
+  alias CQEx.Result, as: DatabaseResult
   require Logger
 
   @jwt_public_key_pem """
@@ -117,6 +120,125 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     INSERT INTO autotestrealm.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
+
+  def seed_datastream_test_data(client, device_id, interface_name, major, endpoint_id, path) do
+    interface_id = CQLUtils.interface_id(interface_name, major)
+
+    Enum.each(
+      [
+        """
+        INSERT INTO individual_property
+          (device_id, interface_id, endpoint_id, path)
+        VALUES (:device_id, :interface_id, :endpoint_id, :path);
+        """,
+        """
+        INSERT INTO individual_datastream
+          (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value)
+        VALUES (:device_id, :interface_id, :endpoint_id, '/0/integerValues', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 0, 42);
+        """
+      ],
+      fn statement ->
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(statement)
+          |> DatabaseQuery.put(:device_id, device_id)
+          |> DatabaseQuery.put(:interface_id, interface_id)
+          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+          |> DatabaseQuery.put(:path, path)
+
+        DatabaseQuery.call!(client, query)
+      end
+    )
+
+    kv_store_statement = "INSERT INTO kv_store (group, key) VALUES (:group, :key)"
+
+    kv_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(kv_store_statement)
+      |> DatabaseQuery.put(:group, "devices-with-data-on-interface-#{interface_name}-v0")
+      |> DatabaseQuery.put(:key, Device.encode_device_id(device_id))
+      |> DatabaseQuery.consistency(:all)
+
+    DatabaseQuery.call!(client, kv_query)
+
+    :ok
+  end
+
+  def count_rows_for_datastream(client, device_id, interface_name, major, endpoint_id, path) do
+    count_statement = """
+    SELECT COUNT(*)
+    FROM individual_datastream
+    WHERE device_id=:device_id AND interface_id=:interface_id
+      AND endpoint_id=:endpoint_id AND path=:path
+    """
+
+    interface_id = CQLUtils.interface_id(interface_name, major)
+
+    count_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(count_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+
+    DatabaseQuery.call!(client, count_query)
+    |> DatabaseResult.head()
+    |> Keyword.fetch!(:count)
+  end
+
+  def seed_properties_test_value(client, device_id, interface_name, major, endpoint_id, path) do
+    interface_id = CQLUtils.interface_id(interface_name, major)
+
+    property_statement = """
+    INSERT INTO individual_property
+      (device_id, interface_id, endpoint_id, path)
+    VALUES (:device_id, :interface_id, :endpoint_id, :path)
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(property_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+
+    DatabaseQuery.call!(client, query)
+
+    kv_store_statement = "INSERT INTO kv_store (group, key) VALUES (:group, :key)"
+
+    kv_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(kv_store_statement)
+      |> DatabaseQuery.put(:group, "devices-with-data-on-interface-#{interface_name}-v0")
+      |> DatabaseQuery.put(:key, Device.encode_device_id(device_id))
+      |> DatabaseQuery.consistency(:all)
+
+    DatabaseQuery.call!(client, kv_query)
+
+    :ok
+  end
+
+  def count_interface_properties_for_device(client, device_id, interface_name, major) do
+    count_statement = """
+    SELECT COUNT(*)
+    FROM individual_property
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    """
+
+    interface_id = CQLUtils.interface_id(interface_name, major)
+
+    count_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(count_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_id)
+
+    DatabaseQuery.call!(client, count_query)
+    |> DatabaseResult.head()
+    |> Keyword.fetch!(:count)
+  end
 
   def create_test_keyspace(client) do
     DatabaseQuery.call!(client, @create_autotestrealm)
