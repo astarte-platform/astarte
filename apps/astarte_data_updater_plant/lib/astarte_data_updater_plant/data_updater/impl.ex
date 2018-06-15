@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataAccess.Mappings
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
@@ -902,7 +903,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          %InterfaceDescriptor{} = interface_descriptor <-
            InterfaceDescriptor.from_db_result!(interface_row),
          {:ok, mappings} <-
-           Queries.retrieve_interface_mappings(db_client, interface_descriptor.interface_id),
+           Mappings.fetch_interface_mappings_map(db_client, interface_descriptor.interface_id),
          new_interfaces_by_expiry <-
            state.interfaces_by_expiry ++
              [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],
