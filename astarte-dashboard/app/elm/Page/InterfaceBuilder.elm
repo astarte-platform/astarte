@@ -22,6 +22,7 @@ import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 
 -- bootstrap components
 
+import Bootstrap.Alert as Alert
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
@@ -34,6 +35,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 
@@ -43,6 +45,8 @@ type alias Model =
     , newMappingVisible : Bool
     , interfaceMapping : InterfaceMapping
     , interfaceEditMode : Bool
+    , deleteModalVisibility : Modal.Visibility
+    , confirmInterfaceName : String
     }
 
 
@@ -52,6 +56,8 @@ init maybeInterfaceId session =
       , newMappingVisible = False
       , interfaceMapping = InterfaceMapping.empty
       , interfaceEditMode = False
+      , deleteModalVisibility = Modal.hidden
+      , confirmInterfaceName = ""
       }
     , case maybeInterfaceId of
         Just ( name, major ) ->
@@ -63,14 +69,22 @@ init maybeInterfaceId session =
     )
 
 
+type ModalResult
+    = ModalCancel
+    | ModalOk
+
+
 type Msg
     = SetNewMappingVisible Bool
     | GetInterfaceDone (Result Http.Error Interface)
     | AddInterface
     | AddInterfaceDone (Result Http.Error String)
+    | DeleteInterfaceDone (Result Http.Error String)
     | AddMappingToInterface
     | ResetForm
     | ResetMapping
+    | ShowDeleteModal
+    | CloseDeleteModal ModalResult
     | Forward ExternalMsg
       -- interface messages
     | UpdateInterfaceName String
@@ -92,6 +106,8 @@ type Msg
     | UpdateMappingAllowUnset Bool
     | UpdateMappingDescription String
     | UpdateMappingDoc String
+      -- modal
+    | UpdateConfirmInterfaceName String
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -139,6 +155,18 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot add the interface."
             )
 
+        DeleteInterfaceDone (Ok msg) ->
+            ( model
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted."
+            )
+
+        DeleteInterfaceDone (Err err) ->
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot delete interface."
+            )
+
         AddMappingToInterface ->
             let
                 newMapping =
@@ -177,6 +205,30 @@ update session msg model =
             , Cmd.none
             , ExternalMsg.Noop
             )
+
+        ShowDeleteModal ->
+            ( { model
+                | deleteModalVisibility = Modal.shown
+                , confirmInterfaceName = ""
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        CloseDeleteModal modalResult ->
+            case modalResult of
+                ModalOk ->
+                    ( { model | deleteModalVisibility = Modal.hidden }
+                    , Http.send DeleteInterfaceDone <|
+                        AstarteApi.deleteInterfaceRequest model.interface.name model.interface.major session
+                    , ExternalMsg.Noop
+                    )
+
+                ModalCancel ->
+                    ( { model | deleteModalVisibility = Modal.hidden }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
         Forward msg ->
             ( model
@@ -340,22 +392,48 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        UpdateConfirmInterfaceName userInput ->
+            ( { model | confirmInterfaceName = userInput }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    renderContent flashMessages model.interface model.interfaceEditMode model.interfaceMapping model.newMappingVisible
-
-
-renderContent : List FlashMessage -> Interface -> Bool -> InterfaceMapping -> Bool -> Html Msg
-renderContent flashMessages interface interfaceEditMode interfaceMapping newMappingVisible =
     Grid.container
         [ Spacing.mt5Sm ]
+        [ Grid.row
+            [ Row.middleSm
+            , Row.topSm
+            ]
+            [ Grid.col
+                [ Col.sm12 ]
+                [ Utilities.renderFlashMessages flashMessages Forward ]
+            ]
+        , Grid.row []
+            [ Grid.col
+                [ Col.sm12 ]
+                [ renderContent
+                    model.interface
+                    model.interfaceEditMode
+                    model.interfaceMapping
+                    model.newMappingVisible
+                ]
+            ]
+        , Grid.row []
+            [ Grid.col
+                [ Col.sm12 ]
+                [ renderDeleteInterfaceModal model ]
+            ]
+        ]
+
+
+renderContent : Interface -> Bool -> InterfaceMapping -> Bool -> Html Msg
+renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
+    Grid.container []
         [ Form.form []
             [ Form.row []
-                [ Form.col [ Col.sm12 ]
-                    [ Utilities.renderFlashMessages flashMessages Forward ]
-                ]
-            , Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ h3 []
                         [ text
@@ -364,6 +442,15 @@ renderContent flashMessages interface interfaceEditMode interfaceMapping newMapp
                              else
                                 "Add a new interface"
                             )
+                        , if (interfaceEditMode && interface.major == 0) then
+                            Button.button
+                                [ Button.warning
+                                , Button.attrs [ Spacing.ml2 ]
+                                , Button.onClick ShowDeleteModal
+                                ]
+                                [ text "Delete..." ]
+                          else
+                            text ""
                         ]
                     ]
                 ]
@@ -741,6 +828,55 @@ renderMapping mapping =
         [ h4 [ Display.inline ] [ text mapping.endpoint ]
         , p [ Display.inline ] [ text <| " : " ++ (mappingTypeToEnglishString mapping.mType) ]
         ]
+
+
+renderDeleteInterfaceModal : Model -> Html Msg
+renderDeleteInterfaceModal model =
+    Modal.config (CloseDeleteModal ModalCancel)
+        |> Modal.large
+        |> Modal.h5 [] [ text "Confirmation Required" ]
+        |> Modal.body []
+            [ Form.form []
+                [ Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ text "You are going to remove "
+                        , b [] [ text <| model.interface.name ++ " v0. " ]
+                        , text "This might cause data loss, removed interfaces cannot be restored. Are you sure?"
+                        ]
+                    ]
+                , Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ text "Please type "
+                        , b [] [ text model.interface.name ]
+                        , text " to proceed."
+                        ]
+                    ]
+                , Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ Input.text
+                            [ Input.id "confirmInterfaceName"
+                            , Input.placeholder "Interface Name"
+                            , Input.value model.confirmInterfaceName
+                            , Input.onInput UpdateConfirmInterfaceName
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        |> Modal.footer []
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick <| CloseDeleteModal ModalCancel
+                ]
+                [ text "Cancel" ]
+            , Button.button
+                [ Button.primary
+                , Button.disabled <| model.interface.name /= model.confirmInterfaceName
+                , Button.onClick <| CloseDeleteModal ModalOk
+                ]
+                [ text "Confirm" ]
+            ]
+        |> Modal.view model.deleteModalVisibility
 
 
 mappingTypeToEnglishString : MappingType -> String

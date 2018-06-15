@@ -20,6 +20,7 @@ type Endpoint
     | ListInterfaces
     | ListInterfaceMajors String
     | GetInterface String Int
+    | DeleteInterface String Int
     | NewInterface
     | ListTriggers
     | GetTrigger String
@@ -55,6 +56,9 @@ endpointParams session endpoint =
 
             GetInterface interfaceName major ->
                 ( "GET", baseUrl ++ "/interfaces/" ++ interfaceName ++ "/" ++ (toString major) )
+
+            DeleteInterface interfaceName major ->
+                ( "DELETE", baseUrl ++ "/interfaces/" ++ interfaceName ++ "/" ++ (toString major) )
 
             NewInterface ->
                 ( "POST", baseUrl ++ "/interfaces" )
@@ -167,6 +171,23 @@ getInterfaceRequest interfaceName major session =
             , url = url
             , body = Http.emptyBody
             , expect = Http.expectJson <| field "data" Interface.decoder
+            , timeout = Nothing
+            , withCredentials = False
+            }
+
+
+deleteInterfaceRequest : String -> Int -> Session -> Http.Request String
+deleteInterfaceRequest interfaceName major session =
+    let
+        ( method, url ) =
+            endpointParams session <| DeleteInterface interfaceName major
+    in
+        Http.request
+            { method = method
+            , headers = headers session.credentials
+            , url = url
+            , body = Http.emptyBody
+            , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
             }
