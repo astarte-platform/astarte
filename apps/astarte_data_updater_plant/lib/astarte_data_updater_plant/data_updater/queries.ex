@@ -26,33 +26,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
-  def retrieve_interface_mappings(db_client, interface_id) do
-    mappings_statement = """
-    SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id, interface_id
-    FROM endpoints
-    WHERE interface_id=:interface_id
-    """
-
-    mappings_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(mappings_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-
-    with {:ok, result} <- DatabaseQuery.call(db_client, mappings_query) do
-      mappings =
-        Enum.reduce(result, %{}, fn endpoint_row, acc ->
-          mapping = Mapping.from_db_result!(endpoint_row)
-          Map.put(acc, mapping.endpoint_id, mapping)
-        end)
-
-      {:ok, mappings}
-    else
-      {:error, reason} ->
-        Logger.warn("retrieve_interface_mappings: failed with reason #{inspect(reason)}")
-        {:error, :database_error}
-    end
-  end
-
   def query_simple_triggers!(db_client, object_id, object_type_int) do
     simple_triggers_statement = """
     SELECT simple_trigger_id, parent_trigger_id, trigger_data, trigger_target
