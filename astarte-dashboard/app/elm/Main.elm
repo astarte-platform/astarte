@@ -14,7 +14,7 @@ import Json.Encode as Encode
 
 import Route exposing (Route, RealmRoute)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.Session as Session exposing (Session, Credentials)
+import Types.Session as Session exposing (Session, Credentials, LoginType(..))
 import Types.ExternalMessage exposing (ExternalMsg(..))
 
 
@@ -71,14 +71,34 @@ init jsParam location =
             Decode.decodeValue (at [ "defaultAuthUrl" ] string) jsParam
                 |> Result.toMaybe
 
-        initialSession =
+        previousSession =
             Decode.decodeValue (at [ "previousSession" ] string) jsParam
                 |> Result.toMaybe
                 |> Maybe.andThen (Decode.decodeString Session.decoder >> Result.toMaybe)
-                |> Maybe.withDefault Session.empty
-                |> Session.setRealmManagementApiUrl rmApiUrl
-                |> Session.setAuthUrl (defaultAuthUrl |> Maybe.withDefault "")
-                |> Session.setHostUrl (location.protocol ++ "//" ++ location.host)
+
+        hostUrl =
+            location.protocol ++ "//" ++ location.host
+
+        defaultLoginType =
+            case defaultAuthUrl of
+                Nothing ->
+                    OAuth
+
+                Just url ->
+                    OAuthFromConfig url
+
+        initialSession =
+            case previousSession of
+                Nothing ->
+                    Session.empty
+                        |> Session.setAuthUrl defaultAuthUrl
+                        |> Session.setRealmManagementApiUrl rmApiUrl
+                        |> Session.setHostUrl hostUrl
+                        |> Session.setLoginType defaultLoginType
+
+                Just prevSession ->
+                    prevSession
+                        |> Session.setHostUrl hostUrl
 
         ( initialPage, initialCommand, updatedSession ) =
             Route.fromLocation location
@@ -287,12 +307,27 @@ pageInit realmRoute credentials session =
                     initLoginPage session
 
                 logoutPath =
-                    "/logout?redirect_uri=" ++ Http.encodeUri session.hostUrl
+                    case session.loginType of
+                        Token ->
+                            Route.toString <| Route.RealmSelection (Just "token")
+
+                        OAuthFromConfig authUrl ->
+                            [ authUrl, "/logout?redirect_uri=", Http.encodeUri session.hostUrl ]
+                                |> String.concat
+
+                        OAuth ->
+                            let
+                                authUrl =
+                                    session.authUrl
+                                        |> Maybe.withDefault ""
+                            in
+                                [ authUrl, "/logout?redirect_uri=", Http.encodeUri session.hostUrl ]
+                                    |> String.concat
             in
                 ( page
                 , Cmd.batch
                     [ Ports.storeSession Nothing
-                    , Navigation.load <| session.authUrl ++ logoutPath
+                    , Navigation.load <| logoutPath
                     ]
                 )
 
@@ -321,14 +356,8 @@ pageInit realmRoute credentials session =
 initLoginPage : Session -> ( Page, Cmd Msg )
 initLoginPage session =
     let
-        defaultAuthUrl =
-            if String.isEmpty session.authUrl then
-                Nothing
-            else
-                Just session.authUrl
-
         ( initialSubModel, initialPageCommand ) =
-            Login.init defaultAuthUrl session
+            Login.init session
     in
         ( Public (LoginPage initialSubModel)
         , Cmd.map LoginMsg initialPageCommand
@@ -420,9 +449,21 @@ processRoute session ( maybeRoute, maybeToken ) =
             initLoginPage session
                 ==> session
 
-        Just Route.RealmSelection ->
-            initLoginPage session
-                ==> session
+        Just (Route.RealmSelection loginTypeString) ->
+            let
+                loginType =
+                    case loginTypeString of
+                        Just "token" ->
+                            Token
+
+                        _ ->
+                            OAuth
+
+                updatedSession =
+                    Session.setLoginType loginType session
+            in
+                initLoginPage updatedSession
+                    ==> updatedSession
 
         Just (Route.Realm realmRoute) ->
             processRealmRoute maybeToken realmRoute session
@@ -459,8 +500,8 @@ processRealmRoute maybeToken realmRoute session =
         Nothing ->
             case realmRoute of
                 Route.Auth maybeRealm maybeUrl ->
-                    case ( maybeRealm, maybeUrl, maybeToken ) of
-                        ( Just realm, Just authUrl, Just token ) ->
+                    case ( maybeRealm, maybeToken ) of
+                        ( Just realm, Just token ) ->
                             -- login into realm
                             let
                                 updatedCredentials =
@@ -471,7 +512,7 @@ processRealmRoute maybeToken realmRoute session =
                                 updatedSession =
                                     session
                                         |> Session.setCredentials (Just updatedCredentials)
-                                        |> Session.setAuthUrl authUrl
+                                        |> Session.setAuthUrl maybeUrl
 
                                 ( page, command ) =
                                     pageInit Route.ListInterfaces updatedCredentials updatedSession

@@ -9,7 +9,7 @@ import UrlParser as Url exposing (..)
 
 type Route
     = Root
-    | RealmSelection
+    | RealmSelection (Maybe String)
     | Realm RealmRoute
 
 
@@ -29,7 +29,7 @@ route : Parser (Route -> a) a
 route =
     oneOf
         [ Url.map Root (s "")
-        , Url.map RealmSelection (s "login")
+        , Url.map RealmSelection (s "login" <?> stringParam "type")
         , Url.map Realm (realmRoute)
         ]
 
@@ -64,13 +64,21 @@ toString route =
                 Root ->
                     [ "" ]
 
-                RealmSelection ->
-                    [ "login" ]
+                RealmSelection maybeType ->
+                    case maybeType of
+                        Just loginType ->
+                            [ "login?type=" ++ loginType ]
+
+                        Nothing ->
+                            [ "login" ]
 
                 Realm (Auth r a) ->
                     case ( r, a ) of
                         ( Just realm, Just authUrl ) ->
                             [ "auth?realm=" ++ realm ++ "&authUrl=" ++ authUrl ]
+
+                        ( Just realm, Nothing ) ->
+                            [ "auth?realm=" ++ realm ]
 
                         _ ->
                             [ "" ]
