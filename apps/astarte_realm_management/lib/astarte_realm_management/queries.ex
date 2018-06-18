@@ -27,6 +27,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Ownership
   alias Astarte.Core.Interface.Type, as: InterfaceType
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.Reliability
   alias Astarte.Core.Mapping.Retention
   alias Astarte.Core.Mapping.ValueType
@@ -37,6 +38,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.Trigger
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  alias CQEx.Result.SchemaChanged
 
   @insert_into_interfaces """
     INSERT INTO interfaces
@@ -120,6 +122,15 @@ defmodule Astarte.RealmManagement.Queries do
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
+  defp create_one_object_columns_for_mappings(mappings) do
+    for %Mapping{endpoint: endpoint, value_type: value_type} <- mappings do
+      column_name = CQLUtils.endpoint_to_db_column_name(endpoint)
+      cql_type = CQLUtils.mapping_value_type_to_db_type(value_type)
+      "#{column_name} #{cql_type}"
+    end
+    |> Enum.join(~s(,\n))
+  end
+
   defp create_interface_table(
          :individual,
          :multi,
@@ -146,16 +157,7 @@ defmodule Astarte.RealmManagement.Queries do
         interface_descriptor.major_version
       )
 
-    mappings_cql =
-      for mapping <- mappings do
-        "#{CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{
-          CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
-        }"
-      end
-
-    columns =
-      mappings_cql
-      |> Enum.join(~s(,\n))
+    columns = create_one_object_columns_for_mappings(mappings)
 
     {value_timestamp, key_timestamp} =
       if interface_descriptor.explicit_timestamp do
@@ -343,6 +345,39 @@ defmodule Astarte.RealmManagement.Queries do
         Logger.warn("Interface update failed due to database error: #{inspect(reason)}")
         {:error, :database_error}
     end
+  end
+
+  def update_interface_storage(
+        client,
+        %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable, storage: table_name} =
+          _interface_descriptor,
+        new_mappings
+      ) do
+    add_cols = create_one_object_columns_for_mappings(new_mappings)
+
+    Logger.debug("interface update: going to add #{inspect(add_cols)} to #{table_name}.")
+
+    update_storage_statement = """
+    ALTER TABLE #{table_name}
+    ADD (#{add_cols})
+    """
+
+    with {:ok, %SchemaChanged{change_type: :updated} = _result} <-
+           DatabaseQuery.call(client, update_storage_statement) do
+      :ok
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("update_interface_storage: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("update_interface_storage: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  def update_interface_storage(_client, _interface_descriptor, _new_mappings) do
+    :ok
   end
 
   def delete_interface(client, interface_name, interface_major_version) do
