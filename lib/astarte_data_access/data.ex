@@ -27,8 +27,13 @@ defmodule Astarte.DataAccess.Data do
 
   @individual_properties_table "individual_property"
 
-  @spec fetch_property(:cqerl.client(), Device.device_id(), %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
-          {:ok, any} | {:error, atom}
+  @spec fetch_property(
+          :cqerl.client(),
+          Device.device_id(),
+          %InterfaceDescriptor{},
+          %Mapping{},
+          String.t()
+        ) :: {:ok, any} | {:error, atom}
   def fetch_property(
         db_client,
         device_id,
@@ -73,8 +78,13 @@ defmodule Astarte.DataAccess.Data do
     end
   end
 
-  @spec path_exists?(:cqerl.client(), Device.device_id(), %InterfaceDescriptor{}, %Mapping{}, String.t()) ::
-          {:ok, boolean} | {:error, atom}
+  @spec path_exists?(
+          :cqerl.client(),
+          Device.device_id(),
+          %InterfaceDescriptor{},
+          %Mapping{},
+          String.t()
+        ) :: {:ok, boolean} | {:error, atom}
   def path_exists?(db_client, device_id, interface_descriptor, %Mapping{} = mapping, path)
       when is_binary(device_id) and is_binary(path) do
     # TODO: do not hardcode individual_property here
