@@ -100,20 +100,24 @@ defmodule Astarte.RealmManagement.Engine do
          {:interface, {:ok, interface_doc}} <-
            {:interface, InterfaceDocument.from_json(interface_json)},
          %InterfaceDocument{descriptor: interface_descriptor, source: source} <- interface_doc,
-         %InterfaceDescriptor{name: interface_name, major_version: interface_major} <-
-           interface_descriptor,
+         %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, true} <-
-           {:interface_avail,
-            Queries.is_interface_major_available?(client, interface_name, interface_major)},
-         :ok <- error_on_downgrade(client, interface_descriptor),
+           {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
+         {:ok, installed_interface} <- Interface.fetch_interface_descriptor(client, name, major),
+         :ok <- error_on_downgrade(installed_interface, interface_descriptor),
          {:ok, new_mappings} <- extract_new_mappings(client, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
       new_mappings_list = Map.values(new_mappings)
 
+      interface_update =
+        Map.merge(installed_interface, interface_descriptor, fn _k, old, new ->
+          new || old
+        end)
+
       if opts[:async] do
-        Task.start_link(Queries, :update_interface, [
+        Task.start_link(__MODULE__, :execute_interface_update, [
           client,
-          interface_descriptor,
+          interface_update,
           new_mappings_list,
           automaton,
           source
@@ -121,9 +125,9 @@ defmodule Astarte.RealmManagement.Engine do
 
         {:ok, :started}
       else
-        Queries.update_interface(
+        execute_interface_update(
           client,
-          interface_descriptor,
+          interface_update,
           new_mappings_list,
           automaton,
           source
@@ -160,18 +164,25 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp error_on_downgrade(db_client, %{name: name, major_version: major, minor_version: minor}) do
-    with {:ok, installed_interface} <- Interface.retrieve_interface_row(db_client, name, major) do
-      cond do
-        installed_interface[:minor_version] < minor ->
-          :ok
+  def execute_interface_update(client, interface_descriptor, new_mappings, automaton, source) do
+    with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
+      Queries.update_interface(client, interface_descriptor, new_mappings, automaton, source)
+    end
+  end
 
-        installed_interface[:minor_version] == minor ->
-          {:error, :same_version}
+  defp error_on_downgrade(
+         %InterfaceDescriptor{minor_version: installed_minor},
+         %InterfaceDescriptor{minor_version: minor}
+       ) do
+    cond do
+      installed_minor < minor ->
+        :ok
 
-        installed_interface[:minor_version] > minor ->
-          {:error, :downgrade_not_allowed}
-      end
+      installed_minor == minor ->
+        {:error, :same_version}
+
+      installed_minor > minor ->
+        {:error, :downgrade_not_allowed}
     end
   end
 
