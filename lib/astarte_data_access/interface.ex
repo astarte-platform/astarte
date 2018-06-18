@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataAccess.Interface do
   require Logger
+  alias Astarte.Core.InterfaceDescriptor
   alias CQEx.Query
   alias CQEx.Result
 
@@ -47,6 +48,14 @@ defmodule Astarte.DataAccess.Interface do
       {:error, reason} ->
         Logger.warn("retrieve_interface_row: failed with reason #{inspect(reason)}")
         {:error, :database_error}
+    end
+  end
+
+  @spec fetch_interface_descriptor(:cqerl.client(), String.t(), non_neg_integer) ::
+          {:ok, %InterfaceDescriptor{}} | {:error, atom}
+  def fetch_interface_descriptor(client, interface_name, major_version) do
+    with {:ok, interface_row} <- retrieve_interface_row(client, interface_name, major_version) do
+      InterfaceDescriptor.from_db_result(interface_row)
     end
   end
 end
