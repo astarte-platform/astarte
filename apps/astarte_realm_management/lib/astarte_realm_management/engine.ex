@@ -28,6 +28,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Mappings
   alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Queries
   alias CQEx.Client, as: DatabaseClient
@@ -95,49 +96,122 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def update_interface(realm_name, interface_json, opts \\ []) do
-    {connection_status, connection_result} =
-      DatabaseClient.new(
-        List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-        keyspace: realm_name
-      )
+    with {:ok, client} <- Database.connect(realm_name),
+         {:interface, {:ok, interface_doc}} <-
+           {:interface, InterfaceDocument.from_json(interface_json)},
+         %InterfaceDocument{descriptor: interface_descriptor, source: source} <- interface_doc,
+         %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
+         {:interface_avail, true} <-
+           {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
+         {:ok, installed_interface} <- Interface.fetch_interface_descriptor(client, name, major),
+         :ok <- error_on_downgrade(installed_interface, interface_descriptor),
+         {:ok, new_mappings} <- extract_new_mappings(client, interface_doc),
+         {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
+      new_mappings_list = Map.values(new_mappings)
 
-    if String.contains?(String.downcase(interface_json), [
-         "drop",
-         "insert",
-         "delete",
-         "update",
-         "keyspace",
-         "table"
-       ]) do
-      Logger.warn("Found possible CQL command in JSON interface: #{inspect(interface_json)}")
-    end
+      interface_update =
+        Map.merge(installed_interface, interface_descriptor, fn _k, old, new ->
+          new || old
+        end)
 
-    interface_result = InterfaceDocument.from_json(interface_json)
+      if opts[:async] do
+        Task.start_link(__MODULE__, :execute_interface_update, [
+          client,
+          interface_update,
+          new_mappings_list,
+          automaton,
+          source
+        ])
 
-    cond do
-      interface_result == :error ->
+        {:ok, :started}
+      else
+        execute_interface_update(
+          client,
+          interface_update,
+          new_mappings_list,
+          automaton,
+          source
+        )
+      end
+    else
+      {:error, :database_connection_error} ->
+        {:error, :realm_not_found}
+
+      {:error, :database_error} ->
+        {:error, :database_error}
+
+      {:interface, :error} ->
         Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
         {:error, :invalid_interface_document}
 
-      {connection_status, connection_result} == {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      Queries.is_interface_major_available?(
-        connection_result,
-        elem(interface_result, 1).descriptor.name,
-        elem(interface_result, 1).descriptor.major_version
-      ) != true ->
+      {:interface_avail, false} ->
         {:error, :interface_major_version_does_not_exist}
 
-      true ->
-        {:ok, interface_document} = interface_result
+      {:error, :same_version} ->
+        {:error, :minor_version_not_increased}
 
-        if opts[:async] do
-          Task.start_link(Queries, :update_interface, [connection_result, interface_document])
-          {:ok, :started}
-        else
-          Queries.update_interface(connection_result, interface_document)
-        end
+      {:error, :downgrade_not_allowed} ->
+        {:error, :downgrade_not_allowed}
+
+      {:error, :missing_endpoints} ->
+        {:error, :missing_endpoints}
+
+      {:error, :incompatible_endpoint_change} ->
+        {:error, :incompatible_endpoint_change}
+
+      {:error, :overlapping_mappings} ->
+        {:error, :overlapping_mappings}
+    end
+  end
+
+  def execute_interface_update(client, interface_descriptor, new_mappings, automaton, source) do
+    with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
+      Queries.update_interface(client, interface_descriptor, new_mappings, automaton, source)
+    end
+  end
+
+  defp error_on_downgrade(
+         %InterfaceDescriptor{minor_version: installed_minor},
+         %InterfaceDescriptor{minor_version: minor}
+       ) do
+    cond do
+      installed_minor < minor ->
+        :ok
+
+      installed_minor == minor ->
+        {:error, :same_version}
+
+      installed_minor > minor ->
+        {:error, :downgrade_not_allowed}
+    end
+  end
+
+  defp extract_new_mappings(db_client, %{descriptor: descriptor, mappings: upd_mappings}) do
+    with {:ok, mappings} <- Mappings.fetch_interface_mappings(db_client, descriptor.interface_id) do
+      upd_mappings_map =
+        Enum.into(upd_mappings, %{}, fn mapping ->
+          {mapping.endpoint_id, mapping}
+        end)
+
+      maybe_new_mappings =
+        Enum.reduce_while(mappings, upd_mappings_map, fn mapping, acc ->
+          case Map.get(upd_mappings_map, mapping.endpoint_id) do
+            nil ->
+              {:halt, {:error, :missing_endpoints}}
+
+            ^mapping ->
+              {:cont, Map.delete(acc, mapping.endpoint_id)}
+
+            _ ->
+              {:halt, {:error, :incompatible_endpoint_change}}
+          end
+        end)
+
+      if is_map(maybe_new_mappings) do
+        {:ok, maybe_new_mappings}
+      else
+        maybe_new_mappings
+      end
     end
   end
 

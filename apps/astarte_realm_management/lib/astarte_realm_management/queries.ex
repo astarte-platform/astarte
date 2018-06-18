@@ -18,6 +18,7 @@
 #
 
 defmodule Astarte.RealmManagement.Queries do
+  require CQEx
   require Logger
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
@@ -26,7 +27,9 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Ownership
   alias Astarte.Core.Interface.Type, as: InterfaceType
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.Reliability
+  alias Astarte.Core.Mapping.Retention
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
@@ -35,6 +38,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.Trigger
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  alias CQEx.Result.SchemaChanged
 
   @insert_into_interfaces """
     INSERT INTO interfaces
@@ -118,6 +122,15 @@ defmodule Astarte.RealmManagement.Queries do
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
+  defp create_one_object_columns_for_mappings(mappings) do
+    for %Mapping{endpoint: endpoint, value_type: value_type} <- mappings do
+      column_name = CQLUtils.endpoint_to_db_column_name(endpoint)
+      cql_type = CQLUtils.mapping_value_type_to_db_type(value_type)
+      "#{column_name} #{cql_type}"
+    end
+    |> Enum.join(~s(,\n))
+  end
+
   defp create_interface_table(
          :individual,
          :multi,
@@ -144,16 +157,7 @@ defmodule Astarte.RealmManagement.Queries do
         interface_descriptor.major_version
       )
 
-    mappings_cql =
-      for mapping <- mappings do
-        "#{CQLUtils.endpoint_to_db_column_name(mapping.endpoint)} #{
-          CQLUtils.mapping_value_type_to_db_type(mapping.value_type)
-        }"
-      end
-
-    columns =
-      mappings_cql
-      |> Enum.join(~s(,\n))
+    columns = create_one_object_columns_for_mappings(mappings)
 
     {value_timestamp, key_timestamp} =
       if interface_descriptor.explicit_timestamp do
@@ -271,11 +275,109 @@ defmodule Astarte.RealmManagement.Queries do
     :ok
   end
 
-  def update_interface(client, interface_document) do
-    Logger.warn("update_interface: #{inspect(interface_document)}")
-    Logger.warn("client: #{inspect(client)}")
+  defp insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping) do
+    DatabaseQuery.new()
+    |> DatabaseQuery.statement(@insert_into_endpoints)
+    |> DatabaseQuery.put(:interface_id, interface_id)
+    |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
+    |> DatabaseQuery.put(:interface_name, interface_name)
+    |> DatabaseQuery.put(:interface_major_version, major)
+    |> DatabaseQuery.put(:interface_minor_version, minor)
+    |> DatabaseQuery.put(:interface_type, InterfaceType.to_int(interface_type))
+    |> DatabaseQuery.put(:endpoint, mapping.endpoint)
+    |> DatabaseQuery.put(:value_type, ValueType.to_int(mapping.value_type))
+    |> DatabaseQuery.put(:reliability, Reliability.to_int(mapping.reliability))
+    |> DatabaseQuery.put(:retention, Retention.to_int(mapping.retention))
+    |> DatabaseQuery.put(:expiry, mapping.expiry)
+    |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
+    |> DatabaseQuery.consistency(:each_quorum)
+  end
 
-    {:error, :not_implemented}
+  def update_interface(client, interface_descriptor, new_mappings, automaton, source) do
+    %InterfaceDescriptor{
+      name: interface_name,
+      major_version: major,
+      minor_version: minor,
+      type: interface_type,
+      interface_id: interface_id
+    } = interface_descriptor
+
+    {automaton_accepting_states, automaton_transitions} = automaton
+    automaton_accepting_states_bin = :erlang.term_to_binary(automaton_accepting_states)
+    automaton_transitions_bin = :erlang.term_to_binary(automaton_transitions)
+
+    update_interface_statement = """
+    UPDATE interfaces
+    SET minor_version=:minor_version, automaton_accepting_states=:automaton_accepting_states,
+      automaton_transitions=:automaton_transitions, source=:source
+    WHERE name=:name AND major_version=:major_version
+    """
+
+    update_interface_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(update_interface_statement)
+      |> DatabaseQuery.put(:name, interface_name)
+      |> DatabaseQuery.put(:major_version, major)
+      |> DatabaseQuery.put(:minor_version, minor)
+      |> DatabaseQuery.put(:automaton_accepting_states, automaton_accepting_states_bin)
+      |> DatabaseQuery.put(:automaton_transitions, automaton_transitions_bin)
+      |> DatabaseQuery.put(:source, source)
+      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.convert()
+
+    insert_mapping_queries =
+      for mapping <- new_mappings do
+        insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping)
+        |> DatabaseQuery.convert()
+      end
+
+    update_batch =
+      CQEx.cql_query_batch(
+        consistency: :each_quorum,
+        mode: :logged,
+        queries: insert_mapping_queries ++ [update_interface_query]
+      )
+
+    with {:ok, _result} <- DatabaseQuery.call(client, update_batch) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warn("Interface update failed due to database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  def update_interface_storage(
+        client,
+        %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable, storage: table_name} =
+          _interface_descriptor,
+        new_mappings
+      ) do
+    add_cols = create_one_object_columns_for_mappings(new_mappings)
+
+    Logger.debug("interface update: going to add #{inspect(add_cols)} to #{table_name}.")
+
+    update_storage_statement = """
+    ALTER TABLE #{table_name}
+    ADD (#{add_cols})
+    """
+
+    with {:ok, %SchemaChanged{change_type: :updated} = _result} <-
+           DatabaseQuery.call(client, update_storage_statement) do
+      :ok
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("update_interface_storage: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("update_interface_storage: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  def update_interface_storage(_client, _interface_descriptor, _new_mappings) do
+    :ok
   end
 
   def delete_interface(client, interface_name, interface_major_version) do
