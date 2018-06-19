@@ -214,6 +214,22 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_draft_interface_c_wrong_update """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 20,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      }
+    ]
+  }
+  """
+
   setup do
     with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
       DatabaseTestHelper.seed_test_data(client)
@@ -474,6 +490,44 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, []}
+  end
+
+  test "fail update missing interface" do
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_b_1) ==
+             {:error, :interface_major_version_does_not_exist}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) ==
+             {:error, :interface_major_version_does_not_exist}
+  end
+
+  test "fail update with less mappings" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_wrong_update) ==
+             {:error, :missing_endpoints}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_1}
+
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_wrong_update) ==
+             {:error, :already_installed_interface}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 15]]}
   end
 
   test "get JWT public key PEM with existing realm" do
