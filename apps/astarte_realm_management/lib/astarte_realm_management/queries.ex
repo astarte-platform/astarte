@@ -242,34 +242,19 @@ defmodule Astarte.RealmManagement.Queries do
 
     {:ok, _} = DatabaseQuery.call(client, query)
 
-    base_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_endpoints)
-      |> DatabaseQuery.put(:interface_name, interface_descriptor.name)
-      |> DatabaseQuery.put(:interface_major_version, interface_descriptor.major_version)
-      |> DatabaseQuery.put(:interface_minor_version, interface_descriptor.minor_version)
-      |> DatabaseQuery.put(:interface_type, InterfaceType.to_int(interface_descriptor.type))
+    %InterfaceDescriptor{
+      interface_id: interface_id,
+      name: interface_name,
+      major_version: major,
+      minor_version: minor,
+      type: interface_type
+    } = interface_descriptor
 
     for mapping <- interface_document.mappings do
-      endpoint_id =
-        CQLUtils.endpoint_id(
-          interface_descriptor.name,
-          interface_descriptor.major_version,
-          mapping.endpoint
-        )
+      insert_query =
+        insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping)
 
-      query =
-        base_query
-        |> DatabaseQuery.put(:interface_id, interface_id)
-        |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-        |> DatabaseQuery.put(:endpoint, mapping.endpoint)
-        |> DatabaseQuery.put(:value_type, ValueType.to_int(mapping.value_type))
-        |> DatabaseQuery.put(:reliability, Reliability.to_int(mapping.reliability))
-        |> DatabaseQuery.put(:retention, Astarte.Core.Mapping.Retention.to_int(mapping.retention))
-        |> DatabaseQuery.put(:expiry, mapping.expiry)
-        |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
-
-      {:ok, _} = DatabaseQuery.call(client, query)
+      {:ok, _} = DatabaseQuery.call(client, insert_query)
     end
 
     :ok
