@@ -177,8 +177,18 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def install_new_interface(client, interface_document, automaton) do
+    %InterfaceDescriptor{
+      interface_id: interface_id,
+      name: interface_name,
+      major_version: major,
+      minor_version: minor,
+      type: interface_type,
+      ownership: interface_ownership,
+      aggregation: aggregation
+    } = interface_document.descriptor
+
     table_type =
-      if interface_document.descriptor.aggregation == :individual do
+      if aggregation == :individual do
         :multi
       else
         :one
@@ -186,7 +196,7 @@ defmodule Astarte.RealmManagement.Queries do
 
     {storage_type, table_name, create_table_statement} =
       create_interface_table(
-        interface_document.descriptor.aggregation,
+        aggregation,
         table_type,
         interface_document.descriptor,
         interface_document.mappings
@@ -199,56 +209,32 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, nil}
       end
 
-    interface_id =
-      CQLUtils.interface_id(
-        interface_document.descriptor.name,
-        interface_document.descriptor.major_version
-      )
-
     {transitions, accepting_states} = automaton
 
     accepting_states =
       Enum.reduce(accepting_states, %{}, fn state, new_states ->
         {state_index, endpoint} = state
 
-        Map.put(
-          new_states,
-          state_index,
-          CQLUtils.endpoint_id(
-            interface_document.descriptor.name,
-            interface_document.descriptor.major_version,
-            endpoint
-          )
-        )
+        Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_name, major, endpoint))
       end)
-
-    interface_descriptor = interface_document.descriptor
 
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_interfaces)
-      |> DatabaseQuery.put(:name, interface_descriptor.name)
-      |> DatabaseQuery.put(:major_version, interface_descriptor.major_version)
-      |> DatabaseQuery.put(:minor_version, interface_descriptor.minor_version)
+      |> DatabaseQuery.put(:name, interface_name)
+      |> DatabaseQuery.put(:major_version, major)
+      |> DatabaseQuery.put(:minor_version, minor)
       |> DatabaseQuery.put(:interface_id, interface_id)
       |> DatabaseQuery.put(:storage_type, StorageType.to_int(storage_type))
       |> DatabaseQuery.put(:storage, table_name)
-      |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_descriptor.type))
-      |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_descriptor.ownership))
-      |> DatabaseQuery.put(:aggregation, Aggregation.to_int(interface_descriptor.aggregation))
+      |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_type))
+      |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_ownership))
+      |> DatabaseQuery.put(:aggregation, Aggregation.to_int(aggregation))
       |> DatabaseQuery.put(:source, interface_document.source)
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
 
     {:ok, _} = DatabaseQuery.call(client, query)
-
-    %InterfaceDescriptor{
-      interface_id: interface_id,
-      name: interface_name,
-      major_version: major,
-      minor_version: minor,
-      type: interface_type
-    } = interface_descriptor
 
     for mapping <- interface_document.mappings do
       insert_query =
