@@ -136,6 +136,36 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_draft_interface_b_1 """
+  {
+   "interface_name": "com.ObjectAggregation",
+   "version_major": 0,
+   "version_minor": 4,
+   "type": "datastream",
+   "quality": "producer",
+   "aggregation": "object",
+   "mappings": [
+      {
+        "path": "/x",
+        "type": "double"
+      },
+      {
+        "path": "/y",
+        "type": "double"
+      },
+      {
+        "path": "/z",
+        "type": "double"
+      },
+      {
+        "path": "/speed",
+        "type": "double"
+      }
+
+    ]
+  }
+  """
+
   @test_draft_interface_c_0 """
   {
    "interface_name": "com.ispirata.TestDatastream",
@@ -151,6 +181,134 @@ defmodule Astarte.RealmManagement.EngineTest do
       {
         "path": "/%{sensorId}/integerValues",
         "type": "integer"
+      }
+    ]
+  }
+  """
+
+  @test_draft_interface_c_1 """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 15,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/integerValues",
+        "type": "integer"
+      },
+      {
+        "path": "/%{sensorId}/stringValues",
+        "type": "string"
+      },
+      {
+        "path": "/testLong/something",
+        "type": "longinteger"
+      }
+    ]
+  }
+  """
+
+  @test_draft_interface_c_downgrade """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 14,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/integerValues",
+        "type": "integer"
+      },
+      {
+        "path": "/%{sensorId}/stringValues",
+        "type": "string"
+      },
+      {
+        "path": "/testLong/something/downgrade",
+        "type": "longinteger"
+      }
+    ]
+  }
+  """
+
+  @test_draft_interface_c_invalid_change """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 15,
+   "type": "properties",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/integerValues",
+        "type": "integer"
+      },
+      {
+        "path": "/%{sensorId}/stringValues",
+        "type": "string"
+      },
+      {
+        "path": "/testLong/something",
+        "type": "longinteger"
+      }
+    ]
+  }
+  """
+
+  @test_draft_interface_c_incompatible_change """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 15,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/integerValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/stringValues",
+        "type": "string"
+      },
+      {
+        "path": "/testLong/something",
+        "type": "longinteger"
+      }
+    ]
+  }
+  """
+
+  @test_draft_interface_c_wrong_update """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 20,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
       }
     ]
   }
@@ -368,6 +526,159 @@ defmodule Astarte.RealmManagement.EngineTest do
              e2,
              p2
            ) == 0
+  end
+
+  test "update individual datastream interface" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_0}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_1}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 15]]}
+  end
+
+  test "update object aggregated interface" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_b_0) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ObjectAggregation", 0) ==
+             {:ok, @test_draft_interface_b_0}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:ok, [[major_version: 0, minor_version: 3]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_b_1) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ObjectAggregation", 0) ==
+             {:ok, @test_draft_interface_b_1}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
+             {:ok, [[major_version: 0, minor_version: 4]]}
+
+    assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, []}
+  end
+
+  test "fail update missing interface" do
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_b_1) ==
+             {:error, :interface_major_version_does_not_exist}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) ==
+             {:error, :interface_major_version_does_not_exist}
+  end
+
+  test "fail update with less mappings" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_wrong_update) ==
+             {:error, :missing_endpoints}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_1}
+
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_wrong_update) ==
+             {:error, :already_installed_interface}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 15]]}
+  end
+
+  test "fail on interface type change" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_invalid_change) ==
+             {:error, :invalid_update}
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_0}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+  end
+
+  test "fail on mapping incompatible change" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_incompatible_change) ==
+             {:error, :incompatible_endpoint_change}
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_0}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+  end
+
+  test "fail on interface downgrade" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_0}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_1}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 15]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_downgrade) ==
+             {:error, :downgrade_not_allowed}
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_1}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 15]]}
   end
 
   test "get JWT public key PEM with existing realm" do
