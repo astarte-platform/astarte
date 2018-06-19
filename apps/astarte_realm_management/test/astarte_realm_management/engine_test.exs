@@ -242,6 +242,34 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_draft_interface_c_incompatible_change """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 15,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/integerValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/stringValues",
+        "type": "string"
+      },
+      {
+        "path": "/testLong/something",
+        "type": "longinteger"
+      }
+    ]
+  }
+  """
+
   @test_draft_interface_c_wrong_update """
   {
    "interface_name": "com.ispirata.TestDatastream",
@@ -568,6 +596,26 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_invalid_change) ==
              {:error, :invalid_update}
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_0}
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+  end
+
+  test "fail on mapping incompatible change" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_incompatible_change) ==
+             {:error, :incompatible_endpoint_change}
 
     assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
              {:ok, @test_draft_interface_c_0}
