@@ -40,6 +40,8 @@ defmodule Astarte.RealmManagement.Queries do
   alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
 
+  @max_batch_queries 32
+
   @insert_into_interfaces """
     INSERT INTO interfaces
       (name, major_version, minor_version, interface_id, storage_type, storage, type, quality, flags, source, automaton_transitions, automaton_accepting_states)
@@ -176,6 +178,44 @@ defmodule Astarte.RealmManagement.Queries do
     {:one_object_datastream_dbtable, table_name, create_table_statement}
   end
 
+  defp execute_batch(client, queries) when length(queries) < @max_batch_queries do
+    batch = CQEx.cql_query_batch(consistency: :each_quorum, mode: :logged, queries: queries)
+
+    with {:ok, _result} <- DatabaseQuery.call(client, batch) do
+      :ok
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("Failed batch upsert due to database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Failed batch upsert due to database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp execute_batch(client, queries) do
+    Logger.debug("Trying to run #{inspect(length(queries))} queries, not running in batched mode")
+
+    Enum.reduce_while(queries, :ok, fn query, _acc ->
+      with {:ok, _result} <- DatabaseQuery.call(client, query) do
+        {:cont, :ok}
+      else
+        %{acc: _, msg: err_msg} ->
+          Logger.warn("Failed due to database error: #{err_msg}, changed will not be undone!")
+
+          {:halt, {:error, :database_error}}
+
+        {:error, err} ->
+          Logger.warn(
+            "Failed due to database error: #{inspect(err)}, changes will not be undone!"
+          )
+
+          {:halt, {:error, :database_error}}
+      end
+    end)
+  end
+
   def install_new_interface(client, interface_document, automaton) do
     %InterfaceDescriptor{
       interface_id: interface_id,
@@ -218,7 +258,7 @@ defmodule Astarte.RealmManagement.Queries do
         Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_name, major, endpoint))
       end)
 
-    query =
+    insert_interface_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_interfaces)
       |> DatabaseQuery.put(:name, interface_name)
@@ -233,17 +273,16 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:source, interface_document.source)
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
+      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.convert()
 
-    {:ok, _} = DatabaseQuery.call(client, query)
-
-    for mapping <- interface_document.mappings do
-      insert_query =
+    insert_endpoints =
+      for mapping <- interface_document.mappings do
         insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping)
+        |> DatabaseQuery.convert()
+      end
 
-      {:ok, _} = DatabaseQuery.call(client, insert_query)
-    end
-
-    :ok
+    execute_batch(client, insert_endpoints ++ [insert_interface_query])
   end
 
   defp insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping) do
@@ -302,20 +341,7 @@ defmodule Astarte.RealmManagement.Queries do
         |> DatabaseQuery.convert()
       end
 
-    update_batch =
-      CQEx.cql_query_batch(
-        consistency: :each_quorum,
-        mode: :logged,
-        queries: insert_mapping_queries ++ [update_interface_query]
-      )
-
-    with {:ok, _result} <- DatabaseQuery.call(client, update_batch) do
-      :ok
-    else
-      {:error, reason} ->
-        Logger.warn("Interface update failed due to database error: #{inspect(reason)}")
-        {:error, :database_error}
-    end
+    execute_batch(client, insert_mapping_queries ++ [update_interface_query])
   end
 
   def update_interface_storage(
