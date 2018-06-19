@@ -214,6 +214,34 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_draft_interface_c_downgrade """
+  {
+   "interface_name": "com.ispirata.TestDatastream",
+   "version_major": 0,
+   "version_minor": 14,
+   "type": "datastream",
+   "quality": "producer",
+   "mappings": [
+      {
+        "path": "/%{sensorId}/realValues",
+        "type": "double"
+      },
+      {
+        "path": "/%{sensorId}/integerValues",
+        "type": "integer"
+      },
+      {
+        "path": "/%{sensorId}/stringValues",
+        "type": "string"
+      },
+      {
+        "path": "/testLong/something/downgrade",
+        "type": "longinteger"
+      }
+    ]
+  }
+  """
+
   @test_draft_interface_c_invalid_change """
   {
    "interface_name": "com.ispirata.TestDatastream",
@@ -624,6 +652,33 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 10]]}
+  end
+
+  test "fail on interface downgrade" do
+    assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_0}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 10]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_1}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 15]]}
+
+    assert Engine.update_interface("autotestrealm", @test_draft_interface_c_downgrade) ==
+             {:error, :downgrade_not_allowed}
+
+    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
+             {:ok, @test_draft_interface_c_1}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
+             {:ok, [[major_version: 0, minor_version: 15]]}
   end
 
   test "get JWT public key PEM with existing realm" do
