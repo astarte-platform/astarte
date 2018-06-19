@@ -25,7 +25,6 @@ defmodule Astarte.RealmManagement do
   alias Astarte.RealmManagement.RPC.Handler
 
   def start(_type, _args) do
-
     children = [
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
     ]

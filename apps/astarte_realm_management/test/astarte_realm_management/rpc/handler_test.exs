@@ -19,6 +19,7 @@
 
 defmodule Astarte.RealmManagement.RPC.HandlerTest do
   alias Astarte.RealmManagement.RPC.Handler
+
   alias Astarte.RPC.Protocol.RealmManagement.{
     GenericErrorReply,
     GetInterfacesListReply,
@@ -111,8 +112,7 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
          }}
     }
 
-    {:ok, buf} =
-      Handler.encode_reply(:get_interfaces_list, {:ok, ["interface.a", "interface.b"]})
+    {:ok, buf} = Handler.encode_reply(:get_interfaces_list, {:ok, ["interface.a", "interface.b"]})
 
     assert Reply.decode(buf) == expectedReply
   end
