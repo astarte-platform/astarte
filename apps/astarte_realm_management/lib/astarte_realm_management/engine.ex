@@ -104,6 +104,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:interface_avail, true} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
          {:ok, installed_interface} <- Interface.fetch_interface_descriptor(client, name, major),
+         :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
          {:ok, new_mappings} <- extract_new_mappings(client, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
@@ -150,6 +151,9 @@ defmodule Astarte.RealmManagement.Engine do
       {:error, :same_version} ->
         {:error, :minor_version_not_increased}
 
+      {:error, :invalid_update} ->
+        {:error, :invalid_update}
+
       {:error, :downgrade_not_allowed} ->
         {:error, :downgrade_not_allowed}
 
@@ -183,6 +187,36 @@ defmodule Astarte.RealmManagement.Engine do
 
       installed_minor > minor ->
         {:error, :downgrade_not_allowed}
+    end
+  end
+
+  defp error_on_incompatible_descriptor(installed_descriptor, new_descriptor) do
+    %{
+      name: name,
+      major_version: major_version,
+      type: type,
+      ownership: ownership,
+      aggregation: aggregation,
+      explicit_timestamp: explicit_timestamp,
+      has_metadata: has_metadata,
+      interface_id: interface_id
+    } = installed_descriptor
+
+    with %{
+           name: ^name,
+           major_version: ^major_version,
+           type: ^type,
+           ownership: ^ownership,
+           aggregation: ^aggregation,
+           explicit_timestamp: ^explicit_timestamp,
+           has_metadata: ^has_metadata,
+           interface_id: ^interface_id
+         } <- new_descriptor do
+      :ok
+    else
+      incompatible_value ->
+        Logger.debug("Incompatible change: #{inspect(incompatible_value)}")
+        {:error, :invalid_update}
     end
   end
 
