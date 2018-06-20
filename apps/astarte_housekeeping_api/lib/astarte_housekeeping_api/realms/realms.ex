@@ -22,8 +22,8 @@ defmodule Astarte.Housekeeping.API.Realms do
   The boundary for the Realms system.
   """
 
-  alias Astarte.Housekeeping.API.Realms.RPC.Housekeeping
   alias Astarte.Housekeeping.API.Realms.Realm
+  alias Astarte.Housekeeping.API.RPC.Housekeeping
 
   @doc """
   Returns the list of realms.

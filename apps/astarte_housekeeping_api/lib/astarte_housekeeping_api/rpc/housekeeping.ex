@@ -17,7 +17,7 @@
 # Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.API.Realms.RPC.Housekeeping do
+defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   alias Astarte.RPC.Protocol.Housekeeping.{
     Call,
     CreateRealm,
