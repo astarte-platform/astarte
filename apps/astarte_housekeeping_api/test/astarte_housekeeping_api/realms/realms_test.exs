@@ -38,9 +38,11 @@ MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
 -----END PUBLIC KEY-----
 """
     @valid_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey}
+    @explicit_replication_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey, replication_factor: 3}
     @update_attrs %{}
     @invalid_name_attrs %{realm_name: "0invalid", jwt_public_key_pem: @pubkey}
     @invalid_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: "invalid"}
+    @invalid_replication_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey, replication_factor: "invalid"}
     @malformed_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: @malformed_pubkey}
     @empty_name_attrs %{realm_name: "", jwt_public_key_pem: @pubkey}
     @empty_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: nil}
@@ -70,13 +72,15 @@ MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
     end
 
     test "create_realm/1 with valid data creates a realm" do
-      assert {:ok, %Realm{} = realm} = Realms.create_realm(@valid_attrs)
+      assert {:ok, %Realm{} = _realm} = Realms.create_realm(@valid_attrs)
+      assert {:ok, %Realm{} = _realm} = Realms.create_realm(@explicit_replication_attrs)
     end
 
     test "create_realm/1 with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_name_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_pubkey_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@malformed_pubkey_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_replication_attrs)
     end
 
     test "create_realm/1 with empty required data returns error changeset" do

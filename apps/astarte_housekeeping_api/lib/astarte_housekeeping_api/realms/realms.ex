@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.API.Realms do
@@ -22,8 +22,8 @@ defmodule Astarte.Housekeeping.API.Realms do
   The boundary for the Realms system.
   """
 
-  alias Astarte.Housekeeping.API.Realms.RPC.Housekeeping
   alias Astarte.Housekeeping.API.Realms.Realm
+  alias Astarte.Housekeeping.API.RPC.Housekeeping
 
   @doc """
   Returns the list of realms.
@@ -64,20 +64,16 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   """
   def create_realm(attrs \\ %{}) do
-    changeset = %Realm{}
+    changeset =
+      %Realm{}
       |> Realm.changeset(attrs)
 
-    if changeset.valid? do
-      realm = Ecto.Changeset.apply_changes(changeset)
+    with {:ok, %Realm{} = realm} <- Ecto.Changeset.apply_action(changeset, :insert) do
       case Housekeeping.create_realm(realm) do
         :ok -> {:ok, realm}
-
         {:ok, :started} -> {:ok, realm}
-
-        other -> other
+        {:error, reason} -> {:error, reason}
       end
-    else
-      {:error, %{changeset | action: :create}}
     end
   end
 

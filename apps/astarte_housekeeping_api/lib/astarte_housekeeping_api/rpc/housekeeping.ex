@@ -17,7 +17,7 @@
 # Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.API.Realms.RPC.Housekeeping do
+defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   alias Astarte.RPC.Protocol.Housekeeping.{
     Call,
     CreateRealm,
@@ -37,8 +37,17 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.Housekeeping do
   @rpc_client Config.rpc_client()
   @destination Astarte.RPC.Protocol.Housekeeping.amqp_queue()
 
-  def create_realm(%Realm{realm_name: realm_name, jwt_public_key_pem: pem}) do
-    %CreateRealm{realm: realm_name, async_operation: true, jwt_public_key_pem: pem}
+  def create_realm(%Realm{
+        realm_name: realm_name,
+        jwt_public_key_pem: pem,
+        replication_factor: replication_factor
+      }) do
+    %CreateRealm{
+      realm: realm_name,
+      async_operation: true,
+      jwt_public_key_pem: pem,
+      replication_factor: replication_factor
+    }
     |> encode_call(:create_realm)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
@@ -87,8 +96,20 @@ defmodule Astarte.Housekeeping.API.Realms.RPC.Housekeeping do
     Enum.map(realms_list, fn(realm_name) -> %Realm{realm_name: realm_name} end)
   end
 
-  defp extract_reply({:get_realm_reply, %GetRealmReply{realm_name: realm_name, jwt_public_key_pem: pem}}) do
-    {:ok, %Realm{realm_name: realm_name, jwt_public_key_pem: pem}}
+  defp extract_reply(
+         {:get_realm_reply,
+          %GetRealmReply{
+            realm_name: realm_name,
+            jwt_public_key_pem: pem,
+            replication_factor: replication_factor
+          }}
+       ) do
+    {:ok,
+     %Realm{
+       realm_name: realm_name,
+       jwt_public_key_pem: pem,
+       replication_factor: replication_factor
+     }}
   end
 
   defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do

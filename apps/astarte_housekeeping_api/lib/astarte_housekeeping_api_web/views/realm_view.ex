@@ -36,7 +36,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmView do
   def render("realm.json", %{realm: realm}) do
     %{data: %{
         realm_name: realm.realm_name,
-        jwt_public_key_pem: realm.jwt_public_key_pem
+        jwt_public_key_pem: realm.jwt_public_key_pem,
+        replication_factor: realm.replication_factor
       }
     }
   end

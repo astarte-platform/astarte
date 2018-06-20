@@ -24,4 +24,10 @@ defmodule Astarte.Housekeeping.API.DataCase do
     Astarte.Housekeeping.Mock.DB.start_link()
     :ok
   end
+
+  setup do
+    on_exit(fn ->
+      Astarte.Housekeeping.Mock.DB.clean()
+    end)
+  end
 end
