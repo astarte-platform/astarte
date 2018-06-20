@@ -51,6 +51,10 @@ defmodule Astarte.Housekeeping.APIWeb.ConnCase do
   end
 
   setup _tags do
+    on_exit(fn ->
+      Astarte.Housekeeping.Mock.DB.clean()
+    end)
+
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 

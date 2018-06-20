@@ -39,4 +39,8 @@ defmodule Astarte.Housekeeping.Mock.DB do
   def realms_list do
     Agent.get(__MODULE__, &Map.keys(&1))
   end
+
+  def clean do
+    Agent.update(__MODULE__, fn _x -> %{} end)
+  end
 end
