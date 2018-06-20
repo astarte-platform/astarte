@@ -195,7 +195,7 @@ defmodule Astarte.Housekeeping.Queries do
   """
 
   @get_realm_query """
-    SELECT * from astarte.realms WHERE realm_name=:realm_name;
+    SELECT realm_name, replication_factor from astarte.realms WHERE realm_name=:realm_name;
   """
 
   # TODO: this should be done with a generic insert_kv_store_query
@@ -289,10 +289,15 @@ defmodule Astarte.Housekeeping.Queries do
       |> DatabaseQuery.statement(public_key_statement)
 
     with {:ok, realm_result} <- DatabaseQuery.call(client, realm_query),
-         [realm_name: ^realm_name] <- DatabaseResult.head(realm_result),
+         [realm_name: ^realm_name, replication_factor: replication_factor] <-
+           DatabaseResult.head(realm_result),
          {:ok, public_key_result} <- DatabaseQuery.call(client, public_key_query),
          ["system.blobasvarchar(value)": public_key] <- DatabaseResult.head(public_key_result) do
-      %{realm_name: realm_name, jwt_public_key_pem: public_key}
+      %{
+        realm_name: realm_name,
+        jwt_public_key_pem: public_key,
+        replication_factor: replication_factor
+      }
     else
       _ ->
         {:error, :realm_not_found}
