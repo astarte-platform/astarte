@@ -63,12 +63,17 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
   defp call_rpc(
          {:create_realm,
-          %CreateRealm{realm: realm, jwt_public_key_pem: pub_key, async_operation: async}}
+          %CreateRealm{
+            realm: realm,
+            jwt_public_key_pem: pub_key,
+            replication_factor: replication,
+            async_operation: async
+          }}
        ) do
     if Astarte.Housekeeping.Engine.realm_exists?(realm) do
       generic_error(:existing_realm, "realm already exists")
     else
-      case Astarte.Housekeeping.Engine.create_realm(realm, pub_key, async: async) do
+      case Astarte.Housekeeping.Engine.create_realm(realm, pub_key, replication, async: async) do
         {:error, reason} -> generic_error(reason)
         :ok -> generic_ok(async)
       end
