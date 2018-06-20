@@ -51,7 +51,17 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
 [
   extends: [:astarte_rpc, :astarte_data_access],
   import: [],
-  mappings: [],
+  mappings: [
+    "astarte_keyspace_replication_factor": [
+      commented: true,
+      datatype: :integer,
+      default: 1,
+      env_var: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
+      doc: "The replication factor for the Astarte keyspace",
+      hidden: false,
+      to: "astarte_housekeeping.astarte_keyspace_replication_factor"
+    ]
+  ],
   transforms: [],
   validators: []
 ]
