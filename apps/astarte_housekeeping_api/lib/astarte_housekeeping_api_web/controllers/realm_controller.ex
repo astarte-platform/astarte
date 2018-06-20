@@ -33,8 +33,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
   def create(conn, %{ "data" => realm_params}) do
     with {:ok, %Realm{} = realm} <- Realms.create_realm(realm_params) do
       conn
+      |> put_status(:created)
       |> put_resp_header("location", realm_path(conn, :show, realm))
-      |> send_resp(:created, "")
+      |> render("show.json", realm: realm)
     end
   end
 
