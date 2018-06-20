@@ -40,6 +40,8 @@ defmodule Astarte.RealmManagement.Queries do
   alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
 
+  @max_batch_queries 32
+
   @insert_into_interfaces """
     INSERT INTO interfaces
       (name, major_version, minor_version, interface_id, storage_type, storage, type, quality, flags, source, automaton_transitions, automaton_accepting_states)
@@ -176,9 +178,57 @@ defmodule Astarte.RealmManagement.Queries do
     {:one_object_datastream_dbtable, table_name, create_table_statement}
   end
 
+  defp execute_batch(client, queries) when length(queries) < @max_batch_queries do
+    batch = CQEx.cql_query_batch(consistency: :each_quorum, mode: :logged, queries: queries)
+
+    with {:ok, _result} <- DatabaseQuery.call(client, batch) do
+      :ok
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("Failed batch upsert due to database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Failed batch upsert due to database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp execute_batch(client, queries) do
+    Logger.debug("Trying to run #{inspect(length(queries))} queries, not running in batched mode")
+
+    Enum.reduce_while(queries, :ok, fn query, _acc ->
+      with {:ok, _result} <- DatabaseQuery.call(client, query) do
+        {:cont, :ok}
+      else
+        %{acc: _, msg: err_msg} ->
+          Logger.warn("Failed due to database error: #{err_msg}, changed will not be undone!")
+
+          {:halt, {:error, :database_error}}
+
+        {:error, err} ->
+          Logger.warn(
+            "Failed due to database error: #{inspect(err)}, changes will not be undone!"
+          )
+
+          {:halt, {:error, :database_error}}
+      end
+    end)
+  end
+
   def install_new_interface(client, interface_document, automaton) do
+    %InterfaceDescriptor{
+      interface_id: interface_id,
+      name: interface_name,
+      major_version: major,
+      minor_version: minor,
+      type: interface_type,
+      ownership: interface_ownership,
+      aggregation: aggregation
+    } = interface_document.descriptor
+
     table_type =
-      if interface_document.descriptor.aggregation == :individual do
+      if aggregation == :individual do
         :multi
       else
         :one
@@ -186,7 +236,7 @@ defmodule Astarte.RealmManagement.Queries do
 
     {storage_type, table_name, create_table_statement} =
       create_interface_table(
-        interface_document.descriptor.aggregation,
+        aggregation,
         table_type,
         interface_document.descriptor,
         interface_document.mappings
@@ -199,80 +249,40 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, nil}
       end
 
-    interface_id =
-      CQLUtils.interface_id(
-        interface_document.descriptor.name,
-        interface_document.descriptor.major_version
-      )
-
     {transitions, accepting_states} = automaton
 
     accepting_states =
       Enum.reduce(accepting_states, %{}, fn state, new_states ->
         {state_index, endpoint} = state
 
-        Map.put(
-          new_states,
-          state_index,
-          CQLUtils.endpoint_id(
-            interface_document.descriptor.name,
-            interface_document.descriptor.major_version,
-            endpoint
-          )
-        )
+        Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_name, major, endpoint))
       end)
 
-    interface_descriptor = interface_document.descriptor
-
-    query =
+    insert_interface_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_into_interfaces)
-      |> DatabaseQuery.put(:name, interface_descriptor.name)
-      |> DatabaseQuery.put(:major_version, interface_descriptor.major_version)
-      |> DatabaseQuery.put(:minor_version, interface_descriptor.minor_version)
+      |> DatabaseQuery.put(:name, interface_name)
+      |> DatabaseQuery.put(:major_version, major)
+      |> DatabaseQuery.put(:minor_version, minor)
       |> DatabaseQuery.put(:interface_id, interface_id)
       |> DatabaseQuery.put(:storage_type, StorageType.to_int(storage_type))
       |> DatabaseQuery.put(:storage, table_name)
-      |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_descriptor.type))
-      |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_descriptor.ownership))
-      |> DatabaseQuery.put(:aggregation, Aggregation.to_int(interface_descriptor.aggregation))
+      |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_type))
+      |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_ownership))
+      |> DatabaseQuery.put(:aggregation, Aggregation.to_int(aggregation))
       |> DatabaseQuery.put(:source, interface_document.source)
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
+      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.convert()
 
-    {:ok, _} = DatabaseQuery.call(client, query)
+    insert_endpoints =
+      for mapping <- interface_document.mappings do
+        insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping)
+        |> DatabaseQuery.convert()
+      end
 
-    base_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_endpoints)
-      |> DatabaseQuery.put(:interface_name, interface_descriptor.name)
-      |> DatabaseQuery.put(:interface_major_version, interface_descriptor.major_version)
-      |> DatabaseQuery.put(:interface_minor_version, interface_descriptor.minor_version)
-      |> DatabaseQuery.put(:interface_type, InterfaceType.to_int(interface_descriptor.type))
-
-    for mapping <- interface_document.mappings do
-      endpoint_id =
-        CQLUtils.endpoint_id(
-          interface_descriptor.name,
-          interface_descriptor.major_version,
-          mapping.endpoint
-        )
-
-      query =
-        base_query
-        |> DatabaseQuery.put(:interface_id, interface_id)
-        |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-        |> DatabaseQuery.put(:endpoint, mapping.endpoint)
-        |> DatabaseQuery.put(:value_type, ValueType.to_int(mapping.value_type))
-        |> DatabaseQuery.put(:reliability, Reliability.to_int(mapping.reliability))
-        |> DatabaseQuery.put(:retention, Astarte.Core.Mapping.Retention.to_int(mapping.retention))
-        |> DatabaseQuery.put(:expiry, mapping.expiry)
-        |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
-
-      {:ok, _} = DatabaseQuery.call(client, query)
-    end
-
-    :ok
+    execute_batch(client, insert_endpoints ++ [insert_interface_query])
   end
 
   defp insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping) do
@@ -331,20 +341,7 @@ defmodule Astarte.RealmManagement.Queries do
         |> DatabaseQuery.convert()
       end
 
-    update_batch =
-      CQEx.cql_query_batch(
-        consistency: :each_quorum,
-        mode: :logged,
-        queries: insert_mapping_queries ++ [update_interface_query]
-      )
-
-    with {:ok, _result} <- DatabaseQuery.call(client, update_batch) do
-      :ok
-    else
-      {:error, reason} ->
-        Logger.warn("Interface update failed due to database error: #{inspect(reason)}")
-        {:error, :database_error}
-    end
+    execute_batch(client, insert_mapping_queries ++ [update_interface_query])
   end
 
   def update_interface_storage(
