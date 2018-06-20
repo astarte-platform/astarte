@@ -98,8 +98,16 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
   defp call_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do
     case Astarte.Housekeeping.Engine.get_realm(realm_name) do
-      %{realm_name: realm_name_reply, jwt_public_key_pem: public_key} ->
-        %GetRealmReply{realm_name: realm_name_reply, jwt_public_key_pem: public_key}
+      %{
+        realm_name: realm_name_reply,
+        jwt_public_key_pem: public_key,
+        replication_factor: replication_factor
+      } ->
+        %GetRealmReply{
+          realm_name: realm_name_reply,
+          jwt_public_key_pem: public_key,
+          replication_factor: replication_factor
+        }
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
 
