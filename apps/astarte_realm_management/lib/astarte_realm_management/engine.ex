@@ -34,64 +34,41 @@ defmodule Astarte.RealmManagement.Engine do
   alias CQEx.Client, as: DatabaseClient
 
   def install_interface(realm_name, interface_json, opts \\ []) do
-    {connection_status, connection_result} =
-      DatabaseClient.new(
-        List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-        keyspace: realm_name
-      )
+    with {:ok, client} <- Database.connect(realm_name),
+         {:interface, {:ok, interface_doc}} <-
+           {:interface, InterfaceDocument.from_json(interface_json)},
+         %InterfaceDocument{descriptor: interface_descriptor} <- interface_doc,
+         %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
+         {:interface_avail, false} <-
+           {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
+         :ok <- Queries.check_correct_casing(client, name),
+         {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
+      if opts[:async] do
+        Task.start(Queries, :install_new_interface, [client, interface_doc, automaton])
 
-    if String.contains?(String.downcase(interface_json), [
-         "drop",
-         "insert",
-         "delete",
-         "update",
-         "keyspace",
-         "table"
-       ]) do
-      Logger.warn("Found possible CQL command in JSON interface: #{inspect(interface_json)}")
-    end
+        {:ok, :started}
+      else
+        Queries.install_new_interface(client, interface_doc, automaton)
+      end
+    else
+      {:error, :database_connection_error} ->
+        {:error, :realm_not_found}
 
-    interface_result = InterfaceDocument.from_json(interface_json)
+      {:error, :database_error} ->
+        {:error, :database_error}
 
-    cond do
-      interface_result == :error ->
+      {:interface, :error} ->
         Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
         {:error, :invalid_interface_document}
 
-      {connection_status, connection_result} == {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      Queries.is_interface_major_available?(
-        connection_result,
-        elem(interface_result, 1).descriptor.name,
-        elem(interface_result, 1).descriptor.major_version
-      ) == true ->
+      {:interface_avail, true} ->
         {:error, :already_installed_interface}
 
-      true ->
-        {:ok, interface_document} = interface_result
+      {:error, :invalid_name_casing} ->
+        {:error, :invalid_name_casing}
 
-        automaton_build_result = EndpointsAutomaton.build(interface_document.mappings)
-
-        cond do
-          match?({:error, _}, automaton_build_result) ->
-            automaton_build_result
-
-          opts[:async] ->
-            {:ok, automaton} = automaton_build_result
-
-            Task.start_link(Queries, :install_new_interface, [
-              connection_result,
-              interface_document,
-              automaton
-            ])
-
-            {:ok, :started}
-
-          true ->
-            {:ok, automaton} = automaton_build_result
-            Queries.install_new_interface(connection_result, interface_document, automaton)
-        end
+      {:error, :overlapping_mappings} ->
+        {:error, :overlapping_mappings}
     end
   end
 

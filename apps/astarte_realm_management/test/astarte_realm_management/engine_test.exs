@@ -76,6 +76,23 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_interface_a_name_mismatch """
+  {
+     "interface_name": "com.ispirata.Hemera.devicelog.Status",
+     "version_major": 2,
+     "version_minor": 2,
+     "type": "properties",
+     "quality": "producer",
+     "mappings": [
+       {
+         "path": "/filterRules/%{ruleId}/%{filterKey}/value",
+         "type": "string",
+         "allow_unset": true
+       }
+     ]
+  }
+  """
+
   @test_interface_b_0 """
   {
     "interface_name": "com.ispirata.Hemera.DeviceLog.Configuration",
@@ -385,6 +402,13 @@ defmodule Astarte.RealmManagement.EngineTest do
              "com.ispirata.Hemera.DeviceLog.Configuration",
              "com.ispirata.Hemera.DeviceLog.Status"
            ]
+  end
+
+  test "interface name case mismatch fail" do
+    assert Engine.install_interface("autotestrealm", @test_interface_a_0) == :ok
+
+    assert Engine.install_interface("autotestrealm", @test_interface_a_name_mismatch) ==
+             {:error, :invalid_name_casing}
   end
 
   test "delete interface" do

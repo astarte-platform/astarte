@@ -668,6 +668,50 @@ defmodule Astarte.RealmManagement.Queries do
     count != [count: 0]
   end
 
+  def check_correct_casing(client, interface_name) do
+    lowercase_interface = String.downcase(interface_name)
+
+    all_names_statement = """
+    SELECT DISTINCT name
+    FROM interfaces
+    """
+
+    all_names_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(all_names_statement)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(client, all_names_query) do
+      found_name =
+        Enum.find_value(result, :not_found, fn row ->
+          if String.downcase(row[:name]) == lowercase_interface do
+            row[:name]
+          else
+            false
+          end
+        end)
+
+      case found_name do
+        ^interface_name ->
+          :ok
+
+        :not_found ->
+          :ok
+
+        _ ->
+          {:error, :invalid_name_casing}
+      end
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("has_correct_casing: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("has_correct_casing: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
   def interface_source(client, interface_name, interface_major) do
     query =
       DatabaseQuery.new()
