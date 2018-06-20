@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.Queries do
@@ -26,7 +26,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
       CREATE KEYSPACE :realm_name
         WITH
-          replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+          replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
           durable_writes = true;
     """,
     """
@@ -151,7 +151,7 @@ defmodule Astarte.Housekeeping.Queries do
     """,
     """
       INSERT INTO astarte.realms
-        (realm_name) VALUES (':realm_name');
+        (realm_name, replication_factor) VALUES (':realm_name', :replication_factor);
     """
   ]
 
@@ -165,6 +165,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
       CREATE TABLE astarte.realms (
         realm_name varchar,
+        replication_factor int,
         PRIMARY KEY (realm_name)
       );
     """,
@@ -210,11 +211,21 @@ defmodule Astarte.Housekeeping.Queries do
     WHERE group='auth' AND key='jwt_public_key_pem';
   """
 
-  def create_realm(client, realm_name, public_key_pem) do
+  @default_replication_factor 1
+
+  def create_realm(client, realm_name, public_key_pem, nil = _replication_factor) do
+    create_realm(client, realm_name, public_key_pem, @default_replication_factor)
+  end
+
+  def create_realm(client, realm_name, public_key_pem, replication_factor)
+      when is_integer(replication_factor) and replication_factor > 0 do
     if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
+      replication_factor_str = Integer.to_string(replication_factor)
+
       initialization_queries =
         for query <- @create_realm_queries do
           String.replace(query, ":realm_name", realm_name)
+          |> String.replace(":replication_factor", replication_factor_str)
         end
 
       insert_pubkey_statement =
