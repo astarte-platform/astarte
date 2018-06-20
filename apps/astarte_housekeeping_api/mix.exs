@@ -42,17 +42,18 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:conform, "~> 2.2"},
-      {:ecto, "~> 2.1"},
-      {:phoenix, "~> 1.3.0-rc"},
-      {:phoenix_pubsub, "~> 1.0"},
+      {:conform, "== 2.5.2"},
+      {:ecto, "== 2.2.10"},
+      {:phoenix, "== 1.3.2"},
+      {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cors_plug, "~> 1.2"},
-      {:cowboy, "~> 1.0"},
+      {:cors_plug, "== 1.5.2"},
+      {:cowboy, "== 1.1.2"},
+      {:ranch, "== 1.4.0", override: true},
       {:guardian, github: "ispirata/guardian"},
 
-      {:distillery, "~> 1.4", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test},
+      {:distillery, "== 1.5.2", runtime: false},
+      {:excoveralls, "~> 0.6", only: :test}
     ]
   end
 end
