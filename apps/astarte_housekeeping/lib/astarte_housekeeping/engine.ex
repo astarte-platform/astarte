@@ -35,14 +35,16 @@ defmodule Astarte.Housekeeping.Engine do
     end
   end
 
-  def create_realm(realm, public_key_pem, opts \\ []) do
+  def create_realm(realm, public_key_pem, replication_factor, opts \\ []) do
     client = get_db_client()
 
     if opts[:async] do
-      {:ok, _pid} = Task.start(Queries, :create_realm, [client, realm, public_key_pem])
+      {:ok, _pid} =
+        Task.start(Queries, :create_realm, [client, realm, public_key_pem, replication_factor])
+
       :ok
     else
-      Queries.create_realm(client, realm, public_key_pem)
+      Queries.create_realm(client, realm, public_key_pem, replication_factor)
     end
   end
 
