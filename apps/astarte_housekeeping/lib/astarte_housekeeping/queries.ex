@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.Queries do
   require Logger
+  alias Astarte.Housekeeping.Config
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
@@ -26,7 +27,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
       CREATE KEYSPACE :realm_name
         WITH
-          replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+          replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
           durable_writes = true;
     """,
     """
@@ -151,7 +152,7 @@ defmodule Astarte.Housekeeping.Queries do
     """,
     """
       INSERT INTO astarte.realms
-        (realm_name) VALUES (':realm_name');
+        (realm_name, replication_factor) VALUES (':realm_name', :replication_factor);
     """
   ]
 
@@ -159,12 +160,13 @@ defmodule Astarte.Housekeeping.Queries do
     """
       CREATE KEYSPACE astarte
         WITH
-        replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}  AND
+        replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor}  AND
         durable_writes = true;
     """,
     """
       CREATE TABLE astarte.realms (
         realm_name varchar,
+        replication_factor int,
         PRIMARY KEY (realm_name)
       );
     """,
@@ -194,7 +196,7 @@ defmodule Astarte.Housekeeping.Queries do
   """
 
   @get_realm_query """
-    SELECT * from astarte.realms WHERE realm_name=:realm_name;
+    SELECT realm_name, replication_factor from astarte.realms WHERE realm_name=:realm_name;
   """
 
   # TODO: this should be done with a generic insert_kv_store_query
@@ -210,11 +212,21 @@ defmodule Astarte.Housekeeping.Queries do
     WHERE group='auth' AND key='jwt_public_key_pem';
   """
 
-  def create_realm(client, realm_name, public_key_pem) do
+  @default_replication_factor 1
+
+  def create_realm(client, realm_name, public_key_pem, nil = _replication_factor) do
+    create_realm(client, realm_name, public_key_pem, @default_replication_factor)
+  end
+
+  def create_realm(client, realm_name, public_key_pem, replication_factor)
+      when is_integer(replication_factor) and replication_factor > 0 do
     if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
+      replication_factor_str = Integer.to_string(replication_factor)
+
       initialization_queries =
         for query <- @create_realm_queries do
           String.replace(query, ":realm_name", realm_name)
+          |> String.replace(":replication_factor", replication_factor_str)
         end
 
       insert_pubkey_statement =
@@ -233,7 +245,16 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def create_astarte_keyspace(client) do
-    exec_queries(client, @create_astarte_queries)
+    replication_factor_str =
+      Config.astarte_keyspace_replication_factor()
+      |> Integer.to_string()
+
+    queries =
+      for query <- @create_astarte_queries do
+        String.replace(query, ":replication_factor", replication_factor_str)
+      end
+
+    exec_queries(client, queries)
   end
 
   def realm_exists?(client, realm_name) do
@@ -278,10 +299,15 @@ defmodule Astarte.Housekeeping.Queries do
       |> DatabaseQuery.statement(public_key_statement)
 
     with {:ok, realm_result} <- DatabaseQuery.call(client, realm_query),
-         [realm_name: ^realm_name] <- DatabaseResult.head(realm_result),
+         [realm_name: ^realm_name, replication_factor: replication_factor] <-
+           DatabaseResult.head(realm_result),
          {:ok, public_key_result} <- DatabaseQuery.call(client, public_key_query),
          ["system.blobasvarchar(value)": public_key] <- DatabaseResult.head(public_key_result) do
-      %{realm_name: realm_name, jwt_public_key_pem: public_key}
+      %{
+        realm_name: realm_name,
+        jwt_public_key_pem: public_key,
+        replication_factor: replication_factor
+      }
     else
       _ ->
         {:error, :realm_not_found}

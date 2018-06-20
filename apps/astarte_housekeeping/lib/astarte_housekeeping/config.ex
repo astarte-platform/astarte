@@ -14,23 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017-2018 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.QueriesTest do
-  use ExUnit.Case
-  doctest Astarte.Housekeeping.Queries
-
-  alias Astarte.Housekeeping.DatabaseTestHelper
-
-  @realm "test"
-
-  test "realm creation" do
-    on_exit(fn ->
-      DatabaseTestHelper.realm_cleanup(@realm)
-    end)
-
-    client = CQEx.Client.new!()
-    assert(Astarte.Housekeeping.Queries.create_realm(client, @realm, "testpublickey", 2) == :ok)
+defmodule Astarte.Housekeeping.Config do
+  @doc """
+  Returns the replication factor for the astarte keyspace, defaults to 1
+  """
+  def astarte_keyspace_replication_factor do
+    Application.get_env(:astarte_housekeeping, :astarte_keyspace_replication_factor, 1)
   end
 end

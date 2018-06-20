@@ -63,12 +63,17 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
   defp call_rpc(
          {:create_realm,
-          %CreateRealm{realm: realm, jwt_public_key_pem: pub_key, async_operation: async}}
+          %CreateRealm{
+            realm: realm,
+            jwt_public_key_pem: pub_key,
+            replication_factor: replication,
+            async_operation: async
+          }}
        ) do
     if Astarte.Housekeeping.Engine.realm_exists?(realm) do
       generic_error(:existing_realm, "realm already exists")
     else
-      case Astarte.Housekeeping.Engine.create_realm(realm, pub_key, async: async) do
+      case Astarte.Housekeeping.Engine.create_realm(realm, pub_key, replication, async: async) do
         {:error, reason} -> generic_error(reason)
         :ok -> generic_ok(async)
       end
@@ -93,8 +98,16 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
   defp call_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do
     case Astarte.Housekeeping.Engine.get_realm(realm_name) do
-      %{realm_name: realm_name_reply, jwt_public_key_pem: public_key} ->
-        %GetRealmReply{realm_name: realm_name_reply, jwt_public_key_pem: public_key}
+      %{
+        realm_name: realm_name_reply,
+        jwt_public_key_pem: public_key,
+        replication_factor: replication_factor
+      } ->
+        %GetRealmReply{
+          realm_name: realm_name_reply,
+          jwt_public_key_pem: public_key,
+          replication_factor: replication_factor
+        }
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
 

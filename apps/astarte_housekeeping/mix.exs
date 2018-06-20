@@ -10,6 +10,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       deps_path: "deps",
       lockfile: "mix.lock",
       elixir: "~> 1.4",
+      elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -30,6 +31,9 @@ defmodule Astarte.Housekeeping.Mixfile do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
   defp astarte_required_modules("true") do
     [
       {:astarte_rpc, in_umbrella: true},
@@ -46,9 +50,11 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp deps do
     [
-      {:cqex, github: "ispirata/cqex"},
-      {:conform, "~> 2.2"},
-      {:distillery, "~> 1.4", runtime: false},
+      {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
+      {:cqerl,
+       github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
+      {:conform, "== 2.5.2"},
+      {:distillery, "== 1.5.2", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
     ]
   end

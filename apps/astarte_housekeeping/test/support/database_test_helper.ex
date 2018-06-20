@@ -14,23 +14,32 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017-2018 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.QueriesTest do
-  use ExUnit.Case
-  doctest Astarte.Housekeeping.Queries
+defmodule Astarte.Housekeeping.DatabaseTestHelper do
+  alias CQEx.{Client, Query}
 
-  alias Astarte.Housekeeping.DatabaseTestHelper
+  def realm_cleanup(realm) do
+    c = Client.new!()
 
-  @realm "test"
+    delete_from_astarte_statement = """
+    DELETE FROM astarte.realms
+    WHERE realm_name=:realm_name
+    """
 
-  test "realm creation" do
-    on_exit(fn ->
-      DatabaseTestHelper.realm_cleanup(@realm)
-    end)
+    delete_from_astarte_query =
+      Query.new()
+      |> Query.statement(delete_from_astarte_statement)
+      |> Query.put(:realm_name, realm)
 
-    client = CQEx.Client.new!()
-    assert(Astarte.Housekeeping.Queries.create_realm(client, @realm, "testpublickey", 2) == :ok)
+    drop_keyspace_query =
+      Query.new()
+      |> Query.statement("DROP KEYSPACE #{realm}")
+
+    Query.call!(c, delete_from_astarte_query)
+    Query.call!(c, drop_keyspace_query)
+
+    :ok
   end
 end
