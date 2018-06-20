@@ -19,6 +19,7 @@
 
 defmodule Astarte.Housekeeping.Queries do
   require Logger
+  alias Astarte.Housekeeping.Config
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
@@ -159,7 +160,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
       CREATE KEYSPACE astarte
         WITH
-        replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}  AND
+        replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor}  AND
         durable_writes = true;
     """,
     """
@@ -244,7 +245,16 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def create_astarte_keyspace(client) do
-    exec_queries(client, @create_astarte_queries)
+    replication_factor_str =
+      Config.astarte_keyspace_replication_factor()
+      |> Integer.to_string()
+
+    queries =
+      for query <- @create_astarte_queries do
+        String.replace(query, ":replication_factor", replication_factor_str)
+      end
+
+    exec_queries(client, queries)
   end
 
   def realm_exists?(client, realm_name) do
