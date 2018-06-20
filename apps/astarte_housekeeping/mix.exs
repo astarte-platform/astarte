@@ -46,9 +46,11 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp deps do
     [
-      {:cqex, github: "ispirata/cqex"},
-      {:conform, "~> 2.2"},
-      {:distillery, "~> 1.4", runtime: false},
+      {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
+      {:cqerl,
+       github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
+      {:conform, "== 2.5.2"},
+      {:distillery, "== 1.5.2", runtime: false},
       {:excoveralls, "~> 0.6", only: :test}
     ]
   end
