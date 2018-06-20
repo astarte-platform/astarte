@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.API.Realms.Realm do
@@ -22,6 +22,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   import Ecto.Changeset
 
   @required_fields [:realm_name, :jwt_public_key_pem]
+  @allowed_fields [:replication_factor | @required_fields]
 
   @primary_key false
   @derive {Phoenix.Param, key: :realm_name}
@@ -29,13 +30,15 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   embedded_schema do
     field :realm_name
     field :jwt_public_key_pem
+    field :replication_factor, :integer, default: 1
   end
 
   def changeset(realm, params \\ %{}) do
     realm
-    |> cast(params, @required_fields)
+    |> cast(params, @allowed_fields)
     |> validate_required(@required_fields)
     |> validate_format(:realm_name, ~r/^[a-z][a-z0-9]*$/)
+    |> validate_number(:replication_factor, greater_than: 0)
     |> validate_pem_public_key(:jwt_public_key_pem)
   end
 
