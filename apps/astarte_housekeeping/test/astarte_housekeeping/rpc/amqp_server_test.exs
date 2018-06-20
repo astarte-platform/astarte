@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.RPC.HandlerTest do
   use ExUnit.Case
+
   alias Astarte.RPC.Protocol.Housekeeping.{
     Call,
     CreateRealm,
@@ -34,11 +35,12 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   }
 
   alias Astarte.Housekeeping.RPC.Handler
+  alias Astarte.Housekeeping.DatabaseTestHelper
 
   @invalid_test_realm "not~valid"
   @not_existing_realm "nonexistingrealm"
   @test_realm "newtestrealm"
-  @another_test_realm "anothertestrealm"
+  @replication_factor 3
 
   @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
 
@@ -111,12 +113,48 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     assert Reply.decode(reply) == generic_error("realm_not_allowed")
   end
 
-  test "realm creation and DoesRealmExist successful call" do
+  test "realm creation and DoesRealmExist successful call with implicit replication" do
+    on_exit(fn ->
+      DatabaseTestHelper.realm_cleanup(@test_realm)
+    end)
+
     encoded =
       Call.new(
         call:
           {:create_realm,
            CreateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)}
+      )
+      |> Call.encode()
+
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(create_reply) == generic_ok()
+
+    encoded =
+      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
+      |> Call.encode()
+
+    expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}}}
+
+    {:ok, exists_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(exists_reply) == expected
+  end
+
+  test "realm creation and DoesRealmExist successful call with explicit replication" do
+    on_exit(fn ->
+      DatabaseTestHelper.realm_cleanup(@test_realm)
+    end)
+
+    encoded =
+      Call.new(
+        call:
+          {:create_realm,
+           CreateRealm.new(
+             realm: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             replication_factor: @replication_factor
+           )}
       )
       |> Call.encode()
 
@@ -161,12 +199,19 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   end
 
   test "GetRealm successful call" do
-    # We create another realm to avoid test ordering problems
+    on_exit(fn ->
+      DatabaseTestHelper.realm_cleanup(@test_realm)
+    end)
+
     encoded =
       Call.new(
         call:
           {:create_realm,
-           CreateRealm.new(realm: @another_test_realm, jwt_public_key_pem: @public_key_pem)}
+           CreateRealm.new(
+             realm: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             replication_factor: @replication_factor
+           )}
       )
       |> Call.encode()
 
@@ -175,7 +220,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     assert Reply.decode(create_reply) == generic_ok()
 
     encoded =
-      %Call{call: {:get_realm, %GetRealm{realm_name: @another_test_realm}}}
+      %Call{call: {:get_realm, %GetRealm{realm_name: @test_realm}}}
       |> Call.encode()
 
     {:ok, reply} = Handler.handle_rpc(encoded)
@@ -183,7 +228,11 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     expected = %Reply{
       reply:
         {:get_realm_reply,
-         %GetRealmReply{realm_name: @another_test_realm, jwt_public_key_pem: @public_key_pem}}
+         %GetRealmReply{
+           realm_name: @test_realm,
+           jwt_public_key_pem: @public_key_pem,
+           replication_factor: @replication_factor
+         }}
     }
 
     assert Reply.decode(reply) == expected

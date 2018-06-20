@@ -14,15 +14,23 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Housekeeping.QueriesTest do
   use ExUnit.Case
   doctest Astarte.Housekeeping.Queries
 
+  alias Astarte.Housekeeping.DatabaseTestHelper
+
+  @realm "test"
+
   test "realm creation" do
+    on_exit(fn ->
+      DatabaseTestHelper.realm_cleanup(@realm)
+    end)
+
     client = CQEx.Client.new!()
-    assert(Astarte.Housekeeping.Queries.create_realm(client, "test", "testpublickey") == :ok)
+    assert(Astarte.Housekeeping.Queries.create_realm(client, @realm, "testpublickey", 2) == :ok)
   end
 end
