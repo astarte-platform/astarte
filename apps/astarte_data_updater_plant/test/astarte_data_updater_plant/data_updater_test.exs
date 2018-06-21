@@ -412,7 +412,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -430,7 +430,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
+        "SELECT integer_value FROM individual_datastreams WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
@@ -666,7 +666,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -685,7 +685,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -704,7 +704,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -722,7 +722,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
+        "SELECT integer_value FROM individual_datastreams WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
@@ -764,7 +764,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))

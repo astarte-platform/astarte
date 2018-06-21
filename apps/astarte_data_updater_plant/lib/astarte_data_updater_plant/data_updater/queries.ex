@@ -289,9 +289,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
          value_timestamp,
          reception_timestamp
        ) do
-    # TODO: do not hardcode individual_property here
+    # TODO: do not hardcode individual_properties here
     insert_statement = """
-    INSERT INTO individual_property
+    INSERT INTO individual_properties
         (device_id, interface_id, endpoint_id, path,
         reception_timestamp, reception_timestamp_submillis, datetime_value)
     VALUES (:device_id, :interface_id, :endpoint_id, :path,
