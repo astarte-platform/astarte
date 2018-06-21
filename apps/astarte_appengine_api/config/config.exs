@@ -5,6 +5,11 @@
 # is restricted to this project.
 use Mix.Config
 
+# lager is used by rabbit_common.
+# Silent it by setting the higher loglevel.
+config :lager,
+  handlers: [level: :critical]
+
 # General application configuration
 config :astarte_appengine_api,
   namespace: Astarte.AppEngine.API
