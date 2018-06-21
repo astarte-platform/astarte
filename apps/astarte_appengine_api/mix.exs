@@ -86,6 +86,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cors_plug, "== 1.5.2"},
       {:ex_lttb, "~> 0.2"},
       {:cyanide, "== 0.5.0"},
+      {:ranch, "== 1.4.0", override: true},
       {:guardian, github: "ispirata/guardian", ref: "ffa8464ce24a6bd438bc0881f3e108397d053843"},
       {:phoenix_swagger, "== 0.8.0"},
       {:distillery, "== 1.5.2", runtime: false},
