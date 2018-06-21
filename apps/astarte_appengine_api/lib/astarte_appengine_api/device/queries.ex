@@ -264,7 +264,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   def retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id) do
     all_paths_statement = """
       SELECT path
-      FROM individual_property
+      FROM individual_properties
       WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id
     """
 
