@@ -63,7 +63,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:conform, "== 2.5.2"},
       {:dialyxir, "== 0.5.1", only: [:dev], runtime: false},
-      {:excoveralls, "== 0.8.2", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test}
     ]
   end
 end
