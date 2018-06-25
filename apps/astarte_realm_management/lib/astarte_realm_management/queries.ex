@@ -55,7 +55,7 @@ defmodule Astarte.RealmManagement.Queries do
   """
 
   @create_datastream_individual_multiinterface_table """
-    CREATE TABLE IF NOT EXISTS individual_datastream (
+    CREATE TABLE IF NOT EXISTS individual_datastreams (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
@@ -139,7 +139,7 @@ defmodule Astarte.RealmManagement.Queries do
          %InterfaceDescriptor{type: :properties},
          _mappings
        ) do
-    {:multi_interface_individual_properties_dbtable, "individual_property", ""}
+    {:multi_interface_individual_properties_dbtable, "individual_properties", ""}
   end
 
   defp create_interface_table(
@@ -148,7 +148,7 @@ defmodule Astarte.RealmManagement.Queries do
          %InterfaceDescriptor{type: :datastream},
          _mappings
        ) do
-    {:multi_interface_individual_datastream_dbtable, "individual_datastream",
+    {:multi_interface_individual_datastream_dbtable, "individual_datastreams",
      @create_datastream_individual_multiinterface_table}
   end
 
@@ -599,7 +599,7 @@ defmodule Astarte.RealmManagement.Queries do
        ) do
     all_paths_statement = """
     SELECT endpoint_id, path
-    FROM individual_property
+    FROM individual_properties
     WHERE device_id=:device_id AND interface_id=:interface_id
     """
 
@@ -623,7 +623,7 @@ defmodule Astarte.RealmManagement.Queries do
        ) do
     delete_paths_statement = """
     DELETE
-    FROM individual_property
+    FROM individual_properties
     WHERE device_id=:device_id AND interface_id=:interface_id
     """
 

@@ -77,15 +77,14 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       );
   """
 
-  @create_individual_property_table """
-      CREATE TABLE autotestrealm.individual_property (
+  @create_individual_properties_table """
+      CREATE TABLE autotestrealm.individual_properties (
         device_id uuid,
         interface_id uuid,
         endpoint_id uuid,
         path varchar,
         reception_timestamp timestamp,
         reception_timestamp_submillis smallint,
-        endpoint_tokens list<varchar>,
 
         double_value double,
         integer_value int,
@@ -127,12 +126,12 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     Enum.each(
       [
         """
-        INSERT INTO individual_property
+        INSERT INTO individual_properties
           (device_id, interface_id, endpoint_id, path)
         VALUES (:device_id, :interface_id, :endpoint_id, :path);
         """,
         """
-        INSERT INTO individual_datastream
+        INSERT INTO individual_datastreams
           (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value)
         VALUES (:device_id, :interface_id, :endpoint_id, '/0/integerValues', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 0, 42);
         """
@@ -167,7 +166,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   def count_rows_for_datastream(client, device_id, interface_name, major, endpoint_id, path) do
     count_statement = """
     SELECT COUNT(*)
-    FROM individual_datastream
+    FROM individual_datastreams
     WHERE device_id=:device_id AND interface_id=:interface_id
       AND endpoint_id=:endpoint_id AND path=:path
     """
@@ -191,7 +190,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     interface_id = CQLUtils.interface_id(interface_name, major)
 
     property_statement = """
-    INSERT INTO individual_property
+    INSERT INTO individual_properties
       (device_id, interface_id, endpoint_id, path)
     VALUES (:device_id, :interface_id, :endpoint_id, :path)
     """
@@ -223,7 +222,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   def count_interface_properties_for_device(client, device_id, interface_name, major) do
     count_statement = """
     SELECT COUNT(*)
-    FROM individual_property
+    FROM individual_properties
     WHERE device_id=:device_id AND interface_id=:interface_id
     """
 
@@ -244,14 +243,14 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     DatabaseQuery.call!(client, @create_autotestrealm)
     DatabaseQuery.call!(client, @create_interfaces_table)
     DatabaseQuery.call!(client, @create_endpoints_table)
-    DatabaseQuery.call!(client, @create_individual_property_table)
+    DatabaseQuery.call!(client, @create_individual_properties_table)
     DatabaseQuery.call!(client, @create_kv_store_table)
 
     :ok
   end
 
   def seed_test_data(client) do
-    Enum.each(["interfaces", "endpoints", "individual_property", "kv_store"], fn table ->
+    Enum.each(["interfaces", "endpoints", "individual_properties", "kv_store"], fn table ->
       DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
     end)
 
