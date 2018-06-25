@@ -74,19 +74,19 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
   @insert_log_line0_device_a """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, path, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      (device_id, path, reception_timestamp, reception_timestamp_submillis, v_message, v_timestamp, v_monotonictimestamp, v_applicationid, v_pid, v_cmdline)
       VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '/', '2010-02-04 04:05+0000', 0, 'test', '2010-02-03 04:05+0000', 9123456789012345678, 'com.test', 5, '/bin/test')
   """
 
   @insert_log_line1_device_a """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, path, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      (device_id, path, reception_timestamp, reception_timestamp_submillis, v_message, v_timestamp, v_monotonictimestamp, v_applicationid, v_pid, v_cmdline)
       VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '/', '2012-02-04 04:06+0000', 0, 'testです', '2012-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
   @insert_log_line0_device_b """
     INSERT INTO com_ispirata_hemera_devicelog_v1
-      (device_id, path, reception_timestamp, reception_timestamp_submillis, message, timestamp, monotonictimestamp, applicationid, pid, cmdline)
+      (device_id, path, reception_timestamp, reception_timestamp_submillis, v_message, v_timestamp, v_monotonictimestamp, v_applicationid, v_pid, v_cmdline)
       VALUES (536be249-bbbb-4e02-9583-5a4833cbfe49, '/', '2012-02-03 04:06+0000', 0, 'testです', '2010-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
@@ -337,12 +337,12 @@ defmodule Astarte.RealmManagement.QueriesTest do
                path: "/",
                reception_timestamp: 1_328_328_360_000,
                reception_timestamp_submillis: 0,
-               applicationid: "this.is.a.bit.longer.string",
-               cmdline: "/usr/bin/things/test",
-               message: "testです",
-               monotonictimestamp: -1,
-               pid: -2,
-               timestamp: 1_328_241_960_000
+               v_applicationid: "this.is.a.bit.longer.string",
+               v_cmdline: "/usr/bin/things/test",
+               v_message: "testです",
+               v_monotonictimestamp: -1,
+               v_pid: -2,
+               v_timestamp: 1_328_241_960_000
              ]
            ]
 
@@ -357,12 +357,12 @@ defmodule Astarte.RealmManagement.QueriesTest do
                path: "/",
                reception_timestamp: 1_265_256_300_000,
                reception_timestamp_submillis: 0,
-               applicationid: "com.test",
-               cmdline: "/bin/test",
-               message: "test",
-               monotonictimestamp: 9_123_456_789_012_345_678,
-               pid: 5,
-               timestamp: 1_265_169_900_000
+               v_applicationid: "com.test",
+               v_cmdline: "/bin/test",
+               v_message: "test",
+               v_monotonictimestamp: 9_123_456_789_012_345_678,
+               v_pid: 5,
+               v_timestamp: 1_265_169_900_000
              ]
            ]
 
