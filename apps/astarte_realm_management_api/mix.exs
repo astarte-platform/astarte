@@ -64,7 +64,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:ecto, "== 2.2.10"},
       {:guardian, github: "ispirata/guardian"},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test}
     ]
   end
 end
