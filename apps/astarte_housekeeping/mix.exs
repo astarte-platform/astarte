@@ -55,7 +55,7 @@ defmodule Astarte.Housekeeping.Mixfile do
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:conform, "== 2.5.2"},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test}
     ]
   end
 end
