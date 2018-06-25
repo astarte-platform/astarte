@@ -51,7 +51,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:exprotobuf, "== 1.2.9"},
       {:conform, "== 2.5.2"},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.8.2", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test}
     ]
   end
 end
