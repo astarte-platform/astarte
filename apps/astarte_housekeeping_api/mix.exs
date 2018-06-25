@@ -53,7 +53,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:guardian, github: "ispirata/guardian"},
 
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test}
     ]
   end
 end
