@@ -25,7 +25,7 @@ defmodule Astarte.DataAccess.Data do
   alias CQEx.Query
   alias CQEx.Result
 
-  @individual_properties_table "individual_property"
+  @individual_properties_table "individual_properties"
 
   @spec fetch_property(
           :cqerl.client(),
@@ -87,7 +87,7 @@ defmodule Astarte.DataAccess.Data do
         ) :: {:ok, boolean} | {:error, atom}
   def path_exists?(db_client, device_id, interface_descriptor, %Mapping{} = mapping, path)
       when is_binary(device_id) and is_binary(path) do
-    # TODO: do not hardcode individual_property here
+    # TODO: do not hardcode individual_properties here
     fetch_property_value_statement = """
     SELECT COUNT(*)
     FROM #{@individual_properties_table}
@@ -144,7 +144,7 @@ defmodule Astarte.DataAccess.Data do
         path
       )
       when is_binary(device_id) and is_binary(path) do
-    # TODO: do not hardcode individual_property here
+    # TODO: do not hardcode individual_properties here
     fetch_property_value_statement = """
     SELECT datetime_value, reception_timestamp, reception_timestamp_submillis
     FROM #{@individual_properties_table}
