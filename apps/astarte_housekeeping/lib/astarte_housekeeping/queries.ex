@@ -111,7 +111,7 @@ defmodule Astarte.Housekeeping.Queries do
       );
     """,
     """
-    CREATE TABLE :realm_name.individual_property (
+    CREATE TABLE :realm_name.individual_properties (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
