@@ -183,8 +183,7 @@ mappingTypeToString t =
             baseTypeToString baseType
 
         Array baseType ->
-            baseTypeToString baseType
-                |> (++) "array"
+            (baseTypeToString baseType) ++ "array"
 
 
 baseTypeToString : BaseType -> String
