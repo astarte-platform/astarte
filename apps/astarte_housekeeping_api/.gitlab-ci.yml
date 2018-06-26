@@ -4,21 +4,21 @@ stages:
 
 before_script:
     - mix local.hex --force
-    - mix local.rebar --force
+    - mix local.rebar
 
 variables:
     APPLICATION_NAME: astarte_housekeeping_api
 
 mix:test-ci:
-    image: elixir:1.6
+    image: elixir:1.6.5
     services:
         - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=test
-        - mix deps.get --force
-        - mix deps.compile --force
-        - mix compile --force
+        - mix deps.get
+        - mix deps.compile
+        - mix compile
         - mix coveralls --exclude wip
     cache:
         paths:
@@ -27,15 +27,15 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_housekeeping_api
 
 mix:build:
-    image: elixir:1.6
+    image: elixir:1.6.5
     services:
         - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=test
-        - mix deps.get --force
-        - mix deps.compile --force
-        - mix compile --force
+        - mix deps.get
+        - mix deps.compile
+        - mix compile
         - mix coveralls --exclude wip
         - export MIX_ENV=dev
         - mix release
@@ -46,15 +46,15 @@ mix:build:
         - master@Astarte-NG/astarte_housekeeping_api
 
 mix:release-build:
-    image: elixir:1.6
+    image: elixir:1.6.5
     services:
         - rabbitmq:3.6
     stage: build
     script:
         - export MIX_ENV=prod
-        - mix deps.get --force
-        - mix deps.compile --force
-        - mix compile --force
+        - mix deps.get
+        - mix deps.compile
+        - mix compile
         - mix test --exclude wip
         - mix release --env=prod
     cache:
