@@ -143,55 +143,55 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   @insert_endpoints [
     """
       INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (bfc48596-1fad-b242-6521-435c00698fca, 9bfaca2e-cd94-1a67-0d5a-6e2b2071a777, False, '/time/from', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+        (bfc48596-1fad-b242-6521-435c00698fca, e6f73631-effc-1d7e-ad52-d3f3a3bae50b, False, '/time/from', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
       INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (bfc48596-1fad-b242-6521-435c00698fca, 465d0ef4-5ce3-20e4-9421-2ed7978a27da, False, '/time/to', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+        (bfc48596-1fad-b242-6521-435c00698fca, 2b2c63dd-bbd9-5735-6d4a-8e56f504edda, False, '/time/to', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
       INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, False, '/weekSchedule/%{day}/start', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+        (bfc48596-1fad-b242-6521-435c00698fca, 801e1035-5fdf-7069-8e6e-3fd2792699ab, False, '/weekSchedule/%{day}/start', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
       INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (bfc48596-1fad-b242-6521-435c00698fca, a60682ff-036d-8d93-f3f8-f39730deba34, False, '/lcdCommand', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 7);
+        (bfc48596-1fad-b242-6521-435c00698fca, 4fe5034a-3d9b-99ec-7ec3-b23716303d33, False, '/lcdCommand', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 7);
     """,
     """
       INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, False, '/weekSchedule/%{day}/stop', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+        (bfc48596-1fad-b242-6521-435c00698fca, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, False, '/weekSchedule/%{day}/stop', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
       INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, False, '/%{itemIndex}/value', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 3);
+        (d2d90d55-a779-b988-9db4-15284b04f2e9, 75010e1b-199e-eefc-dd35-d254b0e20924, False, '/%{itemIndex}/value', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 3);
     """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (d2d90d55-a779-b988-9db4-15284b04f2e9, f9d39975-dd34-7da1-c073-e773e956864a, False, '/foo/%{param}/stringValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 7);
+        (d2d90d55-a779-b988-9db4-15284b04f2e9, 3907d41d-5bca-329d-9e51-4cea2a54a99a, False, '/foo/%{param}/stringValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 7);
     """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (d2d90d55-a779-b988-9db4-15284b04f2e9, 32e8adc5-ef41-8945-70a4-ee641a3e6992, False, '/foo/%{param}/blobValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 11);
+        (d2d90d55-a779-b988-9db4-15284b04f2e9, 7aa44c11-2273-47d9-e624-4ae029dedeaa, False, '/foo/%{param}/blobValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 11);
     """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (d2d90d55-a779-b988-9db4-15284b04f2e9, 6ee8a02a-01cf-c6ac-a81e-1b7fa8ae3166, False, '/foo/%{param}/longValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 5);
+        (d2d90d55-a779-b988-9db4-15284b04f2e9, eff957cf-03df-deed-9784-a8708e3d8cb9, False, '/foo/%{param}/longValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 5);
     """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (d2d90d55-a779-b988-9db4-15284b04f2e9, f16391ce-d060-fd45-d655-384090817324, False, '/foo/%{param}/timestampValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 13);
+        (d2d90d55-a779-b988-9db4-15284b04f2e9, 346c80e4-ca99-6274-81f6-7b1c1be59521, False, '/foo/%{param}/timestampValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 13);
     """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (e7f6d126-ae91-9689-2dba-71a0be336507, ee440afe-1576-0c8e-4a8d-5ea603429f1d, False, '/string', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 7);
+        (e7f6d126-ae91-9689-2dba-71a0be336507, 7c9f14e8-4f2f-977f-c126-d5e1bb9876e7, False, '/string', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 7);
     """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (e7f6d126-ae91-9689-2dba-71a0be336507, aae432cf-b8c3-34a1-33c1-082ed93c8b2a, False, '/value', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 1);
+        (e7f6d126-ae91-9689-2dba-71a0be336507, 3b39fd3a-e261-26ff-e523-4c2dd150b864, False, '/value', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 1);
     """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliabilty, retention, value_type) VALUES
-        (298f83b4-2120-da3e-4ac3-f695c59630a6, 75f3122c-3f0e-888b-425f-72d8d6e3ef70, True, '/%{x}/%{y}/color', 0, 1, 0, 'com.example.PixelsConfiguration', 1, 1, 1, 7);
+        (298f83b4-2120-da3e-4ac3-f695c59630a6, 342c0830-f496-0db0-6776-2d1a7e534022, True, '/%{x}/%{y}/color', 0, 1, 0, 'com.example.PixelsConfiguration', 1, 1, 1, 7);
     """
   ]
 
@@ -265,59 +265,59 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   @insert_values [
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 9bfaca2e-cd94-1a67-0d5a-6e2b2071a777, '/time/from', 8);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, e6f73631-effc-1d7e-ad52-d3f3a3bae50b, '/time/from', 8);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 465d0ef4-5ce3-20e4-9421-2ed7978a27da, '/time/to', 20);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 2b2c63dd-bbd9-5735-6d4a-8e56f504edda, '/time/to', 20);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/2/start', 12);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 801e1035-5fdf-7069-8e6e-3fd2792699ab, '/weekSchedule/2/start', 12);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/3/start', 15);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 801e1035-5fdf-7069-8e6e-3fd2792699ab, '/weekSchedule/3/start', 15);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 83f40ec2-3cb3-320c-3fbe-790069524fe0, '/weekSchedule/4/start', 16);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 801e1035-5fdf-7069-8e6e-3fd2792699ab, '/weekSchedule/4/start', 16);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/2/stop', 15);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, '/weekSchedule/2/stop', 15);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/3/stop', 16);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, '/weekSchedule/3/stop', 16);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, b0443b22-613c-e593-76ea-3ece3f17abd9, '/weekSchedule/4/stop', 18);
+        (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, '/weekSchedule/4/stop', 18);
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, string_value) VALUES
-       (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, a60682ff-036d-8d93-f3f8-f39730deba34, '/lcdCommand', 'SWITCH_ON');
+       (7f454c46-0201-0100-0000-000000000000, bfc48596-1fad-b242-6521-435c00698fca, 4fe5034a-3d9b-99ec-7ec3-b23716303d33, '/lcdCommand', 'SWITCH_ON');
     """,
     """
       INSERT INTO autotestrealm.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:05+0000', '2017-09-28 05:05+0000', 0, 0);
+        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-28 04:05+0000', '2017-09-28 05:05+0000', 0, 0);
     """,
     """
       INSERT INTO autotestrealm.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 0, 1);
+        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 0, 1);
     """,
     """
       INSERT INTO autotestrealm.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-28 04:07+0000', '2017-09-28 05:07+0000', 0, 2);
+        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-28 04:07+0000', '2017-09-28 05:07+0000', 0, 2);
     """,
     """
       INSERT INTO autotestrealm.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-29 05:07+0000', '2017-09-29 06:07+0000', 0, 3);
+        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-29 05:07+0000', '2017-09-29 06:07+0000', 0, 3);
     """,
     """
       INSERT INTO autotestrealm.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
-        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 1d0b2977-88e2-4285-c746-f5281a18bb94, '/0/value', '2017-09-30 07:10+0000', '2017-09-30 08:10+0000', 0, 4);
+        (7f454c46-0201-0100-0000-000000000000, d2d90d55-a779-b988-9db4-15284b04f2e9, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-30 07:10+0000', '2017-09-30 08:10+0000', 0, 4);
     """,
     """
       INSERT INTO autotestrealm.com_example_testobject_v1 (device_id, path, reception_timestamp, v_value, v_string) VALUES
@@ -333,7 +333,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     """,
     """
       INSERT INTO autotestrealm.individual_properties (device_id, interface_id, endpoint_id, path, reception_timestamp) VALUES
-        (7f454c46-0201-0100-0000-000000000000, e7f6d126-ae91-9689-2dba-71a0be336507, f12524ba-8f0d-6056-0d3d-8674769d0446, '/', '2017-09-30 07:12+0000');
+        (7f454c46-0201-0100-0000-000000000000, e7f6d126-ae91-9689-2dba-71a0be336507, 7d03ec11-a59f-47fa-c8f0-0bc9b022649f, '/', '2017-09-30 07:12+0000');
     """
   ]
 
@@ -456,7 +456,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
           |> DatabaseQuery.put(
             :automaton_accepting_states,
             Base.decode64!(
-              "g3QAAAAFYQNtAAAAEIP0DsI8szIMP755AGlST+BhBG0AAAAQsEQ7ImE85ZN26j7OPxer2WEFbQAAABCmBoL/A22Nk/P485cw3ro0YQdtAAAAEJv6yi7NlBpnDVpuKyBxp3dhCG0AAAAQRl0O9FzjIOSUIS7Xl4on2g=="
+              "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
             )
           )
           |> DatabaseQuery.put(
@@ -474,7 +474,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
           |> DatabaseQuery.put(
             :automaton_accepting_states,
             Base.decode64!(
-              "g3QAAAAFYQJtAAAAEB0LKXeI4kKFx0b1KBoYu5RhBW0AAAAQ+dOZdd00faHAc+dz6VaGSmEGbQAAABAy6K3F70GJRXCk7mQaPmmSYQdtAAAAEG7ooCoBz8asqB4bf6iuMWZhCG0AAAAQ8WORztBg/UXWVThAkIFzJA=="
+              "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
             )
           )
           |> DatabaseQuery.put(
@@ -497,7 +497,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
           |> DatabaseQuery.statement(@insert_into_interface_3)
           |> DatabaseQuery.put(
             :automaton_accepting_states,
-            Base.decode64!("g3QAAAABYQNtAAAAEHXzEiw/DoiLQl9y2Nbj73A=")
+            Base.decode64!("g3QAAAABYQNtAAAAEOPZVKNVUNqw17mW3O0hiYc=")
           )
           |> DatabaseQuery.put(
             :automaton_transitions,
