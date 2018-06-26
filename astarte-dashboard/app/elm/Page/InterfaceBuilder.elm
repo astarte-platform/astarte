@@ -109,6 +109,8 @@ type Msg
     | AddInterface
     | AddInterfaceDone String
     | DeleteInterfaceDone String
+    | UpdateInterface
+    | UpdateInterfaceDone String
     | AddMappingToInterface
     | ResetMapping
     | ShowDeleteModal
@@ -180,6 +182,22 @@ update session msg model =
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed."
+            )
+
+        UpdateInterface ->
+            ( model
+            , AstarteApi.updateInterface model.interface
+                session
+                UpdateInterfaceDone
+                (ShowError "Cannot apply changes.")
+                RedirectToLogin
+            , ExternalMsg.Noop
+            )
+
+        UpdateInterfaceDone response ->
+            ( { model | minMinor = model.interface.minor }
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Changes succesfully applied."
             )
 
         DeleteInterfaceDone response ->
@@ -691,12 +709,14 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                                 (Radio.radioList "interfaceType"
                                     [ Radio.create
                                         [ Radio.id "itrb1"
+                                        , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.iType == Interface.Datastream
                                         , Radio.onClick <| UpdateInterfaceType Interface.Datastream
                                         ]
                                         "Datastream"
                                     , Radio.create
                                         [ Radio.id "itrb2"
+                                        , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.iType == Interface.Properties
                                         , Radio.onClick <| UpdateInterfaceType Interface.Properties
                                         ]
@@ -715,12 +735,14 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                                 (Radio.radioList "interfaceAggregation"
                                     [ Radio.create
                                         [ Radio.id "iarb1"
+                                        , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.aggregation == Interface.Individual
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Individual
                                         ]
                                         "Individual"
                                     , Radio.create
                                         [ Radio.id "iarb2"
+                                        , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.aggregation == Interface.Object
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Object
                                         ]
@@ -739,12 +761,14 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                                 (Radio.radioList "interfaceOwnership"
                                     [ Radio.create
                                         [ Radio.id "iorb1"
+                                        , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Device
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Device
                                         ]
                                         "Device"
                                     , Radio.create
                                         [ Radio.id "iorb2"
+                                        , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Server
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Server
                                         ]
@@ -758,6 +782,7 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                     [ Form.group []
                         [ Checkbox.checkbox
                             [ Checkbox.id "intExpTimestamp"
+                            , Checkbox.disabled interfaceEditMode
                             , Checkbox.checked interface.explicitTimestamp
                             , Checkbox.onCheck UpdateInterfaceTimestamp
                             ]
@@ -823,23 +848,28 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                 ]
             , Form.row [ Row.rightSm ]
                 [ Form.col [ Col.sm4 ]
-                    [ Button.button
-                        [ Button.primary
-                        , Button.disabled interfaceEditMode
-                        , Button.attrs [ class "float-right", Spacing.ml2 ]
-                        , Button.onClick AddInterface
-                        ]
-                        [ text
-                            (if interfaceEditMode then
-                                "Edit Interface"
-                             else
-                                "Install Interface"
-                            )
-                        ]
-                    ]
+                    [ renderConfirmButton interfaceEditMode ]
                 ]
             ]
         ]
+
+
+renderConfirmButton : Bool -> Html Msg
+renderConfirmButton editMode =
+    if editMode then
+        Button.button
+            [ Button.primary
+            , Button.attrs [ class "float-right", Spacing.ml2 ]
+            , Button.onClick UpdateInterface
+            ]
+            [ text "Apply Changes" ]
+    else
+        Button.button
+            [ Button.primary
+            , Button.attrs [ class "float-right", Spacing.ml2 ]
+            , Button.onClick AddInterface
+            ]
+            [ text "Install Interface" ]
 
 
 renderAddNewMapping : InterfaceMapping -> Html Msg
