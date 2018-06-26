@@ -78,6 +78,23 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
         "id" => interface_name,
         "major_version" => major_version,
         "data" => interface_source
+      })
+      when is_map(interface_source) do
+    source_as_string = Poison.encode!(interface_source, pretty: true)
+
+    update(conn, %{
+      "realm_name" => realm_name,
+      "id" => interface_name,
+      "major_version" => major_version,
+      "data" => source_as_string
+    })
+  end
+
+  def update(conn, %{
+        "realm_name" => realm_name,
+        "id" => interface_name,
+        "major_version" => major_version,
+        "data" => interface_source
       }) do
     doc_result = Astarte.Core.InterfaceDocument.from_json(interface_source)
 
