@@ -112,6 +112,7 @@ type Msg
     | UpdateInterface
     | UpdateInterfaceDone String
     | AddMappingToInterface
+    | RemoveMapping InterfaceMapping
     | ResetMapping
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
@@ -195,7 +196,10 @@ update session msg model =
             )
 
         UpdateInterfaceDone response ->
-            ( { model | minMinor = model.interface.minor }
+            ( { model
+                | minMinor = model.interface.minor
+                , interface = Interface.sealMappings model.interface
+              }
             , Cmd.none
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Changes succesfully applied."
             )
@@ -208,20 +212,15 @@ update session msg model =
 
         AddMappingToInterface ->
             let
-                newMapping =
-                    model.interfaceMapping
-
-                interface =
-                    model.interface
-
                 newInterface =
-                    { interface | mappings = Dict.insert newMapping.endpoint newMapping interface.mappings }
+                    model.interface
+                        |> Interface.addMapping model.interfaceMapping
             in
                 ( { model
                     | interface = newInterface
                     , interfaceMapping = InterfaceMapping.empty
                     , newMappingVisible = False
-                    , sourceBuffer = Interface.toPrettySource interface
+                    , sourceBuffer = Interface.toPrettySource newInterface
                   }
                 , Cmd.none
                 , ExternalMsg.Noop
@@ -581,6 +580,20 @@ update session msg model =
             , Cmd.none
             , ExternalMsg.Noop
             )
+
+        RemoveMapping mapping ->
+            let
+                newInterface =
+                    model.interface
+                        |> Interface.removeMapping mapping
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateConfirmInterfaceName userInput ->
             ( { model | confirmInterfaceName = userInput }
@@ -1061,7 +1074,21 @@ renderMapping mapping =
     ListGroup.li []
         [ h4 [ Display.inline ] [ text mapping.endpoint ]
         , p [ Display.inline ] [ text <| " : " ++ (mappingTypeToEnglishString mapping.mType) ]
+        , renderMappingControls mapping
         ]
+
+
+renderMappingControls : InterfaceMapping -> Html Msg
+renderMappingControls mapping =
+    if mapping.draft then
+        Button.button
+            [ Button.primary
+            , Button.attrs [ class "float-right" ]
+            , Button.onClick <| RemoveMapping mapping
+            ]
+            [ text "Remove" ]
+    else
+        text ""
 
 
 renderDeleteInterfaceModal : Model -> Html Msg

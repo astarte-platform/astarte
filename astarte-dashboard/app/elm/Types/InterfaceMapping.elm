@@ -16,6 +16,7 @@ type alias InterfaceMapping =
     , allowUnset : Bool
     , description : String
     , doc : String
+    , draft : Bool
     }
 
 
@@ -29,6 +30,7 @@ empty =
     , allowUnset = False
     , description = ""
     , doc = ""
+    , draft = True
     }
 
 
@@ -120,6 +122,11 @@ setDescription mapping description =
 setDoc : InterfaceMapping -> String -> InterfaceMapping
 setDoc mapping doc =
     { mapping | doc = doc }
+
+
+setDraft : InterfaceMapping -> Bool -> InterfaceMapping
+setDraft mapping draft =
+    { mapping | draft = draft }
 
 
 
@@ -226,6 +233,7 @@ decoder =
         |> optional "allow_unset" bool False
         |> optional "description" string ""
         |> optional "doc" string ""
+        |> hardcoded False
 
 
 mappingTypeDecoder : Decoder MappingType
