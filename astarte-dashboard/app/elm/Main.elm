@@ -709,7 +709,18 @@ subscriptions model =
     Sub.batch
         [ Navbar.subscriptions model.navbarState NavbarMsg
         , Sub.map UpdateSession sessionChange
+        , pageSubscriptions model.selectedPage
         ]
+
+
+pageSubscriptions : Page -> Sub Msg
+pageSubscriptions page =
+    case page of
+        Realm _ (InterfaceBuilderPage submodel) ->
+            Sub.map InterfaceBuilderMsg <| InterfaceBuilder.subscriptions submodel
+
+        _ ->
+            Sub.none
 
 
 sessionChange : Sub (Maybe Session)

@@ -1,4 +1,4 @@
-module Page.InterfaceBuilder exposing (Model, Msg, init, update, view)
+module Page.InterfaceBuilder exposing (Model, Msg, init, update, view, subscriptions)
 
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -26,8 +26,11 @@ import Types.FlashMessageHelpers as FlashMessageHelpers
 
 -- bootstrap components
 
+import Bootstrap.Accordion as Accordion
 import Bootstrap.Alert as Alert
 import Bootstrap.Button as Button
+import Bootstrap.Card as Card
+import Bootstrap.Card.Block as Block
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Fieldset as Fieldset
@@ -56,6 +59,7 @@ type alias Model =
     , sourceBuffer : String
     , sourceBufferStatus : BufferStatus
     , debouncerControlState : Control.State Msg
+    , accordionState : Accordion.State
     }
 
 
@@ -78,6 +82,7 @@ init maybeInterfaceId session =
       , sourceBuffer = Interface.toPrettySource Interface.empty
       , sourceBufferStatus = Valid
       , debouncerControlState = Control.initialState
+      , accordionState = Accordion.initialState
       }
     , case maybeInterfaceId of
         Just ( name, major ) ->
@@ -145,6 +150,8 @@ type Msg
     | UpdateMappingDoc String
       -- modal
     | UpdateConfirmInterfaceName String
+      -- accordion
+    | AccordionMsg Accordion.State
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -601,6 +608,12 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        AccordionMsg state ->
+            ( { model | accordionState = state }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
@@ -626,6 +639,7 @@ view model flashMessages =
                     model.interfaceEditMode
                     model.interfaceMapping
                     model.newMappingVisible
+                    model.accordionState
                 ]
             , Grid.col
                 [ if model.showSource then
@@ -643,8 +657,8 @@ view model flashMessages =
         ]
 
 
-renderContent : Interface -> Bool -> InterfaceMapping -> Bool -> Html Msg
-renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
+renderContent : Interface -> Bool -> InterfaceMapping -> Bool -> Accordion.State -> Html Msg
+renderContent interface interfaceEditMode interfaceMapping newMappingVisible accordionState =
     Grid.container []
         [ Form.form []
             [ Form.row []
@@ -831,32 +845,35 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                 ]
             , Form.row []
                 [ Form.col [ Col.sm12 ]
-                    [ ListGroup.ul
-                        (Dict.values interface.mappings
-                            |> List.map renderMapping
-                            |> List.append
-                                [ ListGroup.li
-                                    []
-                                    [ (if newMappingVisible then
-                                        (renderAddNewMapping interfaceMapping)
-                                       else
-                                        div []
-                                            [ (if Dict.isEmpty interface.mappings then
-                                                text "No mappings added"
-                                               else
-                                                text ""
-                                              )
-                                            , Button.button
-                                                [ Button.primary
-                                                , Button.attrs [ class "float-right", Spacing.ml2 ]
-                                                , Button.onClick <| SetNewMappingVisible True
-                                                ]
-                                                [ text "Add Mapping ..." ]
-                                            ]
-                                      )
-                                    ]
+                    [ Accordion.config AccordionMsg
+                        |> Accordion.withAnimation
+                        |> Accordion.cards
+                            (interface.mappings
+                                |> Dict.values
+                                |> List.map renderMapping
+                            )
+                        |> Accordion.view accordionState
+                    ]
+                ]
+            , Form.row []
+                [ Form.col [ Col.sm12 ]
+                    [ (if newMappingVisible then
+                        renderAddNewMapping interfaceMapping
+                       else
+                        div []
+                            [ (if Dict.isEmpty interface.mappings then
+                                text "No mappings added"
+                               else
+                                text ""
+                              )
+                            , Button.button
+                                [ Button.primary
+                                , Button.attrs [ class "float-right", Spacing.ml2 ]
+                                , Button.onClick <| SetNewMappingVisible True
                                 ]
-                        )
+                                [ text "Add Mapping ..." ]
+                            ]
+                      )
                     ]
                 ]
             , Form.row [ Row.rightSm ]
@@ -1069,13 +1086,65 @@ renderMappingTypeItem itemSelected mappingType =
         [ text <| mappingTypeToEnglishString mappingType ]
 
 
-renderMapping : InterfaceMapping -> ListGroup.Item Msg
+renderMapping : InterfaceMapping -> Accordion.Card Msg
 renderMapping mapping =
-    ListGroup.li []
-        [ h4 [ Display.inline ] [ text mapping.endpoint ]
-        , p [ Display.inline ] [ text <| " : " ++ (mappingTypeToEnglishString mapping.mType) ]
-        , renderMappingControls mapping
-        ]
+    Accordion.card
+        { id = endpointToHtmlId mapping.endpoint
+        , options = [ Card.attrs [ Spacing.mb2 ] ]
+        , header = renderMappingHeader mapping
+        , blocks =
+            [ Accordion.block []
+                [ Block.titleH5 [] [ text "Reliability" ]
+                , Block.text [] [ text <| reliabilityToEnglishString mapping.reliability ]
+                ]
+            , Accordion.block []
+                [ Block.titleH5 [] [ text "Retention" ]
+                , Block.text [] [ text <| retentionToEnglishString mapping.retention ]
+                ]
+            , Accordion.block []
+                [ Block.titleH5 [] [ text "Description" ]
+                , Block.text []
+                    [ if mapping.description == "" then
+                        text "None"
+                      else
+                        text mapping.description
+                    ]
+                ]
+            , Accordion.block []
+                [ Block.titleH5 [] [ text "Doc" ]
+                , Block.text []
+                    [ if mapping.doc == "" then
+                        text "None"
+                      else
+                        text mapping.doc
+                    ]
+                ]
+            ]
+        }
+
+
+endpointToHtmlId : String -> String
+endpointToHtmlId endpoint =
+    endpoint
+        |> String.map
+            (\c ->
+                if c == '/' then
+                    '-'
+                else
+                    c
+            )
+        |> String.append "m"
+
+
+renderMappingHeader : InterfaceMapping -> Accordion.Header Msg
+renderMappingHeader mapping =
+    Accordion.headerH4 [] (Accordion.toggle [] [ text mapping.endpoint ])
+        |> Accordion.appendHeader
+            [ small
+                [ Display.inline, Spacing.p2 ]
+                [ text <| mappingTypeToEnglishString mapping.mType ]
+            , renderMappingControls mapping
+            ]
 
 
 renderMappingControls : InterfaceMapping -> Html Msg
@@ -1184,3 +1253,38 @@ mappingTypeToEnglishString t =
 
         Array DateTimeMapping ->
             "Array of date and time"
+
+
+reliabilityToEnglishString : InterfaceMapping.Reliability -> String
+reliabilityToEnglishString reliability =
+    case reliability of
+        InterfaceMapping.Unreliable ->
+            "Unreliable"
+
+        InterfaceMapping.Guaranteed ->
+            "Guaranteed"
+
+        InterfaceMapping.Unique ->
+            "Unique"
+
+
+retentionToEnglishString : InterfaceMapping.Retention -> String
+retentionToEnglishString retention =
+    case retention of
+        InterfaceMapping.Discard ->
+            "Discard"
+
+        InterfaceMapping.Volatile ->
+            "Volatile"
+
+        InterfaceMapping.Stored ->
+            "Stored"
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Accordion.subscriptions model.accordionState AccordionMsg
