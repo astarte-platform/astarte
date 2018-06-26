@@ -84,13 +84,14 @@ defmodule Astarte.AppEngine.API.Mixfile do
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:cors_plug, "== 1.5.2"},
-      {:ex_lttb, "~> 0.2"},
+      {:ex_lttb, "== 0.3.0"},
       {:cyanide, "== 0.5.0"},
+      {:ranch, "== 1.4.0", override: true},
       {:guardian, github: "ispirata/guardian", ref: "ffa8464ce24a6bd438bc0881f3e108397d053843"},
       {:phoenix_swagger, "== 0.8.0"},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test},
-      {:mox, "~> 0.3", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test},
+      {:mox, "== 0.3.2", only: :test}
     ]
   end
 end

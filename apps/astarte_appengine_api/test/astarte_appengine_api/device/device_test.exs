@@ -848,13 +848,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       :ok,
       %Astarte.AppEngine.API.Device.InterfaceValues{
         data: [
-          [elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1), "aaa", 1.1],
-          [elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1), "bbb", 2.2],
-          [elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1), "ccc", 3.3]
+          [elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1), 1.1, "aaa"],
+          [elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1), 2.2, "bbb"],
+          [elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1), 3.3, "ccc"]
         ],
         metadata: %{
-          "columns" => %{"string" => 1, "timestamp" => 0, "value" => 2},
-          "table_header" => ["timestamp", "string", "value"]
+          "columns" => %{"string" => 2, "timestamp" => 0, "value" => 1},
+          "table_header" => ["timestamp", "value", "string"]
         }
       }
     }
