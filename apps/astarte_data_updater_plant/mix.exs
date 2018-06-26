@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       app: :astarte_data_updater_plant,
       version: "0.1.0",
-      elixir: "~> 1.5",
+      elixir: "~> 1.6",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -70,7 +70,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:conform, "== 2.5.2"},
       {:ranch, "== 1.4.0", override: true},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test}
     ]
   end
 end

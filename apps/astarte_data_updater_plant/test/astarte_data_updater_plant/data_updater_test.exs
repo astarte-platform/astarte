@@ -228,7 +228,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              device_id,
-             :uuid.string_to_uuid("d2d90d55-a779-b988-9db4-15284b04f2e9"),
+             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
              2,
              volatile_trigger_parent_id,
              volatile_trigger_id,
@@ -292,7 +292,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              device_id,
-             :uuid.string_to_uuid("d9b4ff40-d4cb-a479-d021-127205822baa"),
+             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
              2,
              volatile_changed_trigger_parent_id,
              volatile_changed_trigger_id,
@@ -412,7 +412,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -430,7 +430,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
+        "SELECT integer_value FROM individual_datastreams WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
@@ -570,56 +570,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                path: "/",
                reception_timestamp: 1_506_755_400_000,
                reception_timestamp_submillis: 0,
-               string: "aaa",
-               value: 1.1
+               v_string: "aaa",
+               v_value: 1.1
              ],
              [
                device_id: device_id_uuid,
                path: "/",
                reception_timestamp: 1_506_755_520_000,
                reception_timestamp_submillis: 0,
-               string: "bbb",
-               value: 2.2
+               v_string: "bbb",
+               v_value: 2.2
              ],
              [
                device_id: device_id_uuid,
                path: "/",
                reception_timestamp: 1_506_755_580_000,
                reception_timestamp_submillis: 0,
-               string: "zzz",
-               value: 3.3
+               v_string: "zzz",
+               v_value: 3.3
              ],
              [
                device_id: device_id_uuid,
                path: "/",
                reception_timestamp: 1_509_007_729_000,
                reception_timestamp_submillis: 0,
-               string: "Astarteです",
-               value: 1.9
+               v_string: "Astarteです",
+               v_value: 1.9
              ],
              [
                device_id: device_id_uuid,
                path: "/",
                reception_timestamp: 1_509_007_730_000,
                reception_timestamp_submillis: 0,
-               string: "Hello World');",
-               value: nil
+               v_string: "Hello World');",
+               v_value: nil
              ],
              [
                device_id: device_id_uuid,
                path: "/",
                reception_timestamp: 1_509_007_731_000,
                reception_timestamp_submillis: 0,
-               string: nil,
-               value: 0.0
+               v_string: nil,
+               v_value: 0.0
              ],
              [
                device_id: device_id_uuid,
                path: "/",
                reception_timestamp: 1_509_347_580_000,
                reception_timestamp_submillis: 0,
-               string: nil,
-               value: nil
+               v_string: nil,
+               v_value: nil
              ]
            ]
 
@@ -666,7 +666,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -685,7 +685,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -704,7 +704,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
@@ -722,7 +722,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT integer_value FROM individual_datastream WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
+        "SELECT integer_value FROM individual_datastreams WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
@@ -764,7 +764,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_property WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
       )
       |> DatabaseQuery.put(:device_id, device_id_uuid)
       |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
