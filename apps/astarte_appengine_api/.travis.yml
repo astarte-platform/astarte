@@ -1,0 +1,17 @@
+language: elixir
+# Required for Cassandra
+sudo: required
+services:
+  - cassandra
+  - rabbitmq
+env:
+  - CASSANDRA_DB_HOST=localhost RABBITMQ_HOST=localhost MIX_ENV=test
+matrix:
+  include:
+    - elixir: 1.6.5
+      otp_release: 20.3
+before_script:
+  # Needed or Elixir 1.6 will fail due to a non-updated index
+  - ~/.mix/rebar3 update
+after_script:
+  - mix coveralls.travis
