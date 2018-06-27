@@ -25,6 +25,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       app: :astarte_trigger_engine,
       version: "0.1.0",
       elixir: "~> 1.5",
+      elixirc_paths: elixirc_paths(Mix.env),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -37,6 +38,9 @@ defmodule Astarte.TriggerEngine.Mixfile do
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp astarte_required_modules("true") do
     [
