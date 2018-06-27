@@ -1,17 +1,14 @@
 swagger: "2.0"
 info:
-  description: "APIs for administration activities such as realm creation and astarte configuration."
+  description: "APIs for Administration activities such as Realm creation and Astarte configuration."
   version: "0.1.0"
   title: "HouseKeeping API"
   contact:
     email: "info@ispirata.com"
-host: "housekeeping.api.astarte.cloud"
 basePath: "/v1"
 tags:
 - name: "realm"
-  description: "API for realm management."
-schemes:
-- "http"
+  description: "APIs for managing Realms."
 paths:
   /realms:
     get:
