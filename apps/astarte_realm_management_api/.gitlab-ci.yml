@@ -4,7 +4,7 @@ stages:
 
 before_script:
     - mix local.hex --force
-    - mix local.rebar --force
+    - mix local.rebar
 
 variables:
     APPLICATION_NAME: astarte_realm_management_api
@@ -16,9 +16,9 @@ mix:test-ci:
     stage: build
     script:
         - export MIX_ENV=test
-        - mix deps.get --force
-        - mix deps.compile --force
-        - mix compile --force
+        - mix deps.get
+        - mix deps.compile
+        - mix compile
         - mix coveralls --exclude wip
     cache:
         paths:
@@ -33,9 +33,9 @@ mix:build:
     stage: build
     script:
         - export MIX_ENV=test
-        - mix deps.get --force
-        - mix deps.compile --force
-        - mix compile --force
+        - mix deps.get
+        - mix deps.compile
+        - mix compile
         - mix coveralls --exclude wip
         - export MIX_ENV=dev
         - mix release
@@ -52,9 +52,9 @@ mix:release-build:
     stage: build
     script:
         - export MIX_ENV=prod
-        - mix deps.get --force
-        - mix deps.compile --force
-        - mix compile --force
+        - mix deps.get
+        - mix deps.compile
+        - mix compile
         - mix test --exclude wip
         - mix release --env=prod
     cache:
