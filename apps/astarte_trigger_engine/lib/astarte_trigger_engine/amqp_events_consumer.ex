@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
@@ -31,6 +31,8 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
 
   @connection_backoff 10000
 
+  @consumer Config.events_consumer()
+
   # API
 
   def start_link(args \\ []) do
@@ -44,36 +46,44 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
   # Server callbacks
 
   def init(_args) do
-    rabbitmq_connect(false)
+    send(self(), :try_to_connect)
+    {:ok, %{channel: nil}}
   end
 
-  def terminate(_reason, %Channel{conn: conn} = chan) do
-    Channel.close(chan)
-    Connection.close(conn)
+  def terminate(_reason, state) do
+    if state.channel do
+      conn = state.channel.conn
+      Channel.close(state.channel)
+      Connection.close(conn)
+    end
   end
 
-  def handle_call({:ack, delivery_tag}, _from, chan) do
+  def handle_call({:ack, _delivery_tag}, _from, %{channel: nil} = state) do
+    {:reply, {:error, :disconnected}, state}
+  end
+
+  def handle_call({:ack, delivery_tag}, _from, %{channel: chan} = state) do
     res = Basic.ack(chan, delivery_tag)
-    {:reply, res, chan}
+    {:reply, res, state}
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
-  def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, chan) do
-    {:noreply, chan}
+  def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, state) do
+    {:noreply, state}
   end
 
   # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
-  def handle_info({:basic_cancel, %{consumer_tag: _consumer_tag}}, chan) do
-    {:noreply, chan}
+  def handle_info({:basic_cancel, %{consumer_tag: _consumer_tag}}, state) do
+    {:noreply, state}
   end
 
   # Confirmation sent by the broker to the consumer process after a Basic.cancel
-  def handle_info({:basic_cancel_ok, %{consumer_tag: _consumer_tag}}, chan) do
-    {:noreply, chan}
+  def handle_info({:basic_cancel_ok, %{consumer_tag: _consumer_tag}}, state) do
+    {:noreply, state}
   end
 
   # Message consumed
-  def handle_info({:basic_deliver, payload, meta}, chan) do
+  def handle_info({:basic_deliver, payload, meta}, state) do
     {headers, other_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
 
@@ -83,29 +93,27 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
       }"
     )
 
-    EventsConsumer.consume(payload, headers_map)
+    @consumer.consume(payload, headers_map)
 
     # TODO: should we ack manually?
-    Basic.ack(chan, meta.delivery_tag)
+    Basic.ack(state.channel, meta.delivery_tag)
 
-    {:noreply, chan}
+    {:noreply, state}
   end
 
-  def handle_info({:try_to_connect}, _state) do
-    {:ok, new_state} = rabbitmq_connect()
+  def handle_info(:try_to_connect, _state) do
+    {:ok, new_state} = connect()
     {:noreply, new_state}
   end
 
   def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
     Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-    {:ok, new_state} = rabbitmq_connect()
+    {:ok, new_state} = connect()
     {:noreply, new_state}
   end
 
-  defp rabbitmq_connect(retry \\ true) do
+  defp connect() do
     with {:ok, conn} <- Connection.open(Config.amqp_consumer_options()),
-         # Get notifications when the connection goes down
-         Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
          :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.events_queue_name(), durable: true),
@@ -116,27 +124,26 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
              Config.events_exchange_name(),
              routing_key: Config.events_routing_key()
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, Config.events_queue_name()) do
-      {:ok, chan}
+         {:ok, _consumer_tag} <- Basic.consume(chan, Config.events_queue_name()),
+         # Get notifications when the chan or conn go down
+         Process.monitor(chan.pid) do
+      {:ok, %{channel: chan}}
     else
       {:error, reason} ->
         Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
-        maybe_retry(retry)
+        retry_after(@connection_backoff)
+        {:ok, %{channel: nil}}
 
-      :error ->
+      _ ->
         Logger.warn("Unknown RabbitMQ connection error")
-        maybe_retry(retry)
+        retry_after(@connection_backoff)
+        {:ok, %{channel: nil}}
     end
   end
 
-  defp maybe_retry(retry) do
-    if retry do
-      Logger.warn("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), {:try_to_connect})
-      {:ok, :not_connected}
-    else
-      {:stop, :connection_failed}
-    end
+  defp retry_after(backoff) when is_integer(backoff) do
+    Logger.warn("Retrying connection in #{backoff} ms")
+    Process.send_after(self(), :try_to_connect, backoff)
   end
 
   defp amqp_headers_to_map(headers) do

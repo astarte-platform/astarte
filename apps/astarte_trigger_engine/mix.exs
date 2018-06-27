@@ -24,7 +24,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       app: :astarte_trigger_engine,
       version: "0.1.0",
-      elixir: "~> 1.5",
+      elixir: "~> 1.6",
+      elixirc_paths: elixirc_paths(Mix.env),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -37,6 +38,9 @@ defmodule Astarte.TriggerEngine.Mixfile do
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp astarte_required_modules("true") do
     [
@@ -61,15 +65,17 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.0.0-pre.2"},
-      {:bbmustache, "~> 1.5"},
-      {:conform, "~> 2.2"},
-      {:cyanide, "~> 0.5.0"},
-      {:cqex, github: "ispirata/cqex"},
-      {:httpoison, "~> 1.0"},
-      {:poison, "~> 3.1"},
-      {:distillery, "~> 1.4", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:amqp, "== 1.0.2"},
+      {:bbmustache, "== 1.5.0"},
+      {:conform, "== 2.5.2"},
+      {:cyanide, "== 0.5.0"},
+      {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
+      {:cqerl, github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
+      {:httpoison, "== 1.1.1"},
+      {:poison, "== 3.1.0"},
+      {:distillery, "== 1.5.2", runtime: false},
+      {:excoveralls, "== 0.9.1", only: :test},
+      {:mox, "== 0.3.2", only: :test}
     ]
   end
 end
