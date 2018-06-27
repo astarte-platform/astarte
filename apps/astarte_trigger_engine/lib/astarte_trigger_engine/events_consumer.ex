@@ -26,9 +26,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   require Logger
 
   def consume(payload, headers) do
-    headers_map = Enum.into(headers, %{})
-
-    {:ok, realm} = Map.fetch(headers_map, "x_astarte_realm")
+    {:ok, realm} = Map.fetch(headers, "x_astarte_realm")
 
     decoded_payload = SimpleEvent.decode(payload)
 
@@ -43,7 +41,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       version: 1
     } = decoded_payload
 
-    handle_simple_event(realm, device_id, headers_map, event_type, event)
+    handle_simple_event(realm, device_id, headers, event_type, event)
   end
 
   defp handle_simple_event(realm, device_id, headers_map, event_type, event) do
