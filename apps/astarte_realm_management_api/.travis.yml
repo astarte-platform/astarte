@@ -5,8 +5,8 @@ env:
   - RABBITMQ_HOST=localhost MIX_ENV=test
 matrix:
   include:
-    - elixir: 1.5
-    - elixir: 1.6
+    - elixir: 1.6.5
+      otp_release: 20.3
 before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
