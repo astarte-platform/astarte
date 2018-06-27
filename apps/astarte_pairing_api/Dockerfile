@@ -1,10 +1,10 @@
-FROM elixir:1.6-slim as builder
+FROM elixir:1.6.5-slim as builder
 
 RUN apt-get -qq update
 RUN apt-get -qq install git build-essential curl
 
 RUN mix local.hex --force && \
-    mix local.rebar --force && \
+    mix local.rebar && \
     mix hex.info
 
 WORKDIR /app
