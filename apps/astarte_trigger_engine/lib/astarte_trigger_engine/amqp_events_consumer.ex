@@ -31,6 +31,8 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
 
   @connection_backoff 10000
 
+  @consumer Config.events_consumer()
+
   # API
 
   def start_link(args \\ []) do
@@ -91,7 +93,7 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
       }"
     )
 
-    EventsConsumer.consume(payload, headers_map)
+    @consumer.consume(payload, headers_map)
 
     # TODO: should we ack manually?
     Basic.ack(state.channel, meta.delivery_tag)
