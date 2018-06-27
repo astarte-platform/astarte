@@ -49,4 +49,12 @@ defmodule Astarte.TriggerEngine.Config do
   def events_routing_key do
     Application.get_env(:astarte_trigger_engine, :amqp_events_routing_key)
   end
+
+  @doc """
+  Returns the module used to consume events, used for tests with Mox
+  """
+  def events_consumer do
+    alias Astarte.TriggerEngine.EventsConsumer
+    Application.get_env(:astarte_trigger_engine, :events_consumer, EventsConsumer)
+  end
 end
