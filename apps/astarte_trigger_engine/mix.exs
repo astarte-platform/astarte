@@ -70,7 +70,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:httpoison, "== 1.1.1"},
       {:poison, "== 3.1.0"},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.9.1", only: :test}
+      {:excoveralls, "== 0.9.1", only: :test},
+      {:mox, "== 0.3.2", only: :test}
     ]
   end
 end
