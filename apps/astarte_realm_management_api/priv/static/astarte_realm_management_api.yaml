@@ -5,26 +5,20 @@ info:
   title: "Realm Management API"
   contact:
     email: "info@ispirata.com"
-host: "realmmanagement.api.astarte.cloud"
 basePath: "/v1"
 tags:
 - name: "config"
   description: "Configuration management"
-  externalDocs:
-    description: "Find out more"
-    url: "http://www.astarte.cloud/"
 - name: "interface"
   description: "Interface management"
   externalDocs:
     description: "Find out more"
-    url: "http://www.astarte.cloud/"
+    url: "https://docs.astarte-platform.org/snapshot/030-manage_interfaces.html"
 - name: "trigger"
   description: "Trigger management"
   externalDocs:
     description: "Find out more"
-    url: "http://www.astarte.cloud/"
-schemes:
-- "http"
+    url: "https://docs.astarte-platform.org/snapshot/060-triggers.html"
 paths:
   /{realm_name}/config/auth:
     get:
@@ -311,7 +305,6 @@ paths:
           description: "Success"
         404:
           description: "Trigger Not Found"
-
 
 definitions:
   Interface:
