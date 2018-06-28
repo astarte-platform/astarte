@@ -3,11 +3,13 @@ module Types.Session exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 import Json.Encode as Encode exposing (Value)
+import Utilities
 
 
 type alias Session =
     { credentials : Maybe Credentials
-    , authUrl : String
+    , loginType : LoginType
+    , authUrl : Maybe String
     , realmManagementApiUrl : String
     , hostUrl : String
     }
@@ -16,7 +18,8 @@ type alias Session =
 empty : Session
 empty =
     { credentials = Nothing
-    , authUrl = ""
+    , loginType = OAuth
+    , authUrl = Nothing
     , realmManagementApiUrl = ""
     , hostUrl = ""
     }
@@ -27,7 +30,12 @@ setCredentials cred session =
     { session | credentials = cred }
 
 
-setAuthUrl : String -> Session -> Session
+setLoginType : LoginType -> Session -> Session
+setLoginType loginType session =
+    { session | loginType = loginType }
+
+
+setAuthUrl : Maybe String -> Session -> Session
 setAuthUrl authUrl session =
     { session | authUrl = authUrl }
 
@@ -53,6 +61,12 @@ setToken credentials token =
     { credentials | token = token }
 
 
+type LoginType
+    = OAuth
+    | OAuthFromConfig String
+    | Token
+
+
 
 -- Encoding
 
@@ -68,7 +82,15 @@ encode session =
                 Nothing ->
                     Encode.null
           )
-        , ( "authUrl", Encode.string session.authUrl )
+        , ( "loginType", encodeLoginType session.loginType )
+        , ( "authUrl"
+          , case session.authUrl of
+                Just authUrl ->
+                    Encode.string authUrl
+
+                Nothing ->
+                    Encode.null
+          )
         , ( "realmManagementApiUrl", Encode.string session.realmManagementApiUrl )
         ]
 
@@ -81,6 +103,19 @@ encodeCredentials credentials =
         ]
 
 
+encodeLoginType : LoginType -> Value
+encodeLoginType loginType =
+    case loginType of
+        Token ->
+            Encode.string "Token"
+
+        OAuth ->
+            Encode.string "OAuth"
+
+        OAuthFromConfig a ->
+            Encode.string a
+
+
 
 -- Decoding
 
@@ -89,7 +124,8 @@ decoder : Decoder Session
 decoder =
     decode Session
         |> required "credentials" (Decode.nullable credentialsDecoder)
-        |> required "authUrl" Decode.string
+        |> required "loginType" loginTypeDecoder
+        |> required "authUrl" (Decode.nullable Decode.string)
         |> required "realmManagementApiUrl" Decode.string
         |> hardcoded ""
 
@@ -99,3 +135,22 @@ credentialsDecoder =
     decode Credentials
         |> required "realm" Decode.string
         |> required "token" Decode.string
+
+
+loginTypeDecoder : Decoder LoginType
+loginTypeDecoder =
+    Decode.string
+        |> Decode.andThen (stringToLoginType >> Utilities.resultToDecoder)
+
+
+stringToLoginType : String -> Result String LoginType
+stringToLoginType s =
+    case s of
+        "Token" ->
+            Ok Token
+
+        "OAuth" ->
+            Ok OAuth
+
+        a ->
+            Ok <| OAuthFromConfig a
