@@ -9,3 +9,4 @@ RUN npm run deploy
 
 FROM nginx:1.13
 COPY --from=builder /app/public/ /usr/share/nginx/html/
+ADD default.conf /etc/nginx/conf.d/
