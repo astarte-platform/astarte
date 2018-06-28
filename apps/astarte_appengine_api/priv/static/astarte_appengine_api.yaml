@@ -27,9 +27,9 @@ servers:
           The base URL you're serving Astarte from. This should point to the base
           path from which AppEngine API is served. In case you are running a local
           installation, this is likely `http://localhost:4002`. If you are on a
-          multi-domain instance, it is likely `https://app.api.<your host>/`. In
-          case you have a single domain instance, it is most likely
-          `https://<your host>/app`.
+          multi-domain instance, it is likely `https://appengine.api.<your host>/`.
+          In case you have a single domain instance, it is most likely
+          `https://<your host>/appengine`.
 
 info:
   description: >-
