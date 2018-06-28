@@ -358,7 +358,7 @@ paths:
         '200':
           description: Success
           content:
-            text/json:
+            application/json:
               examples:
                 response:
                   value:
