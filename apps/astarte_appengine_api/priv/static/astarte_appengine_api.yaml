@@ -516,15 +516,6 @@ paths:
           required: false
           schema:
             type: string
-        - name: retrieve_metadata
-          in: query
-          description: >-
-            Retrieve metadata for each value if any, defaults to false. If true
-            for each value it will be returned a JSON object with a metadata
-            sub-object.
-          required: false
-          schema:
-            type: boolean
       responses:
         '200':
           description: Success
