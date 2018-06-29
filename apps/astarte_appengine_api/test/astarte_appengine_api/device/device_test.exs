@@ -87,11 +87,17 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   }
 
   setup do
+    DatabaseTestHelper.seed_data()
+  end
+
+  setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
     end)
+
+    :ok
   end
 
   test "list_interfaces/2 returns all interfaces" do

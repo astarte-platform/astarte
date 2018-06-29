@@ -392,119 +392,15 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
 
         DatabaseQuery.call!(client, @create_names_table)
 
-        insert_device_query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_device_statement)
-
-        devices_list = [
-          {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000, %{"display_name" => "device_a"}},
-          {"olFkumNuZ_J0f_d6-8XCDg", 10, nil},
-          {"4UQbIokuRufdtbVZt9AsLg", 22, %{"display_name" => "device_b", "serial" => "1234"}},
-          {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{"display_name" => "device_c"}},
-          {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{"display_name" => "device_d"}}
-        ]
-
-        for {encoded_device_id, total_received_bytes, aliases} <- devices_list do
-          device_id = Base.url_decode64!(encoded_device_id, padding: false)
-
-          insert_device_query =
-            insert_device_query
-            |> DatabaseQuery.put(:device_id, device_id)
-            |> DatabaseQuery.put(:aliases, aliases)
-            |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
-
-          DatabaseQuery.call!(client, insert_device_query)
-
-          for {_key, device_alias} <- aliases || %{} do
-            insert_alias_query =
-              DatabaseQuery.new()
-              |> DatabaseQuery.statement(@insert_alias_statement)
-              |> DatabaseQuery.put(:device_id, device_id)
-              |> DatabaseQuery.put(:alias, device_alias)
-
-            DatabaseQuery.call!(client, insert_alias_query)
-          end
-        end
-
         DatabaseQuery.call!(client, @create_kv_store)
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_pubkey_pem)
-          |> DatabaseQuery.put(:pem, JWTTestHelper.public_key_pem())
-
-        DatabaseQuery.call!(client, query)
         DatabaseQuery.call!(client, @create_endpoints_table)
-
-        Enum.each(@insert_endpoints, fn query ->
-          DatabaseQuery.call!(client, query)
-        end)
 
         DatabaseQuery.call!(client, @create_individual_properties_table)
         DatabaseQuery.call!(client, @create_individual_datastreams_table)
         DatabaseQuery.call!(client, @create_test_object_table)
 
-        Enum.each(@insert_values, fn query ->
-          DatabaseQuery.call!(client, query)
-        end)
-
         DatabaseQuery.call!(client, @create_interfaces_table)
-
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_interface_0)
-          |> DatabaseQuery.put(
-            :automaton_accepting_states,
-            Base.decode64!(
-              "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
-            )
-          )
-          |> DatabaseQuery.put(
-            :automaton_transitions,
-            Base.decode64!(
-              "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
-            )
-          )
-
-        DatabaseQuery.call!(client, query)
-
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_interface_1)
-          |> DatabaseQuery.put(
-            :automaton_accepting_states,
-            Base.decode64!(
-              "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
-            )
-          )
-          |> DatabaseQuery.put(
-            :automaton_transitions,
-            Base.decode64!(
-              "g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="
-            )
-          )
-
-        DatabaseQuery.call!(client, query)
-
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_interface_2)
-
-        DatabaseQuery.call!(client, query)
-
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_interface_3)
-          |> DatabaseQuery.put(
-            :automaton_accepting_states,
-            Base.decode64!("g3QAAAABYQNtAAAAEOPZVKNVUNqw17mW3O0hiYc=")
-          )
-          |> DatabaseQuery.put(
-            :automaton_transitions,
-            Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAABhAmgCYQJtAAAABWNvbG9yYQM=")
-          )
-
-        DatabaseQuery.call!(client, query)
 
         {:ok, client}
 
@@ -526,6 +422,124 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       |> DatabaseQuery.put(:pem, JWTTestHelper.public_key_pem())
 
     DatabaseQuery.call!(client, query)
+  end
+
+  def seed_data do
+    {:ok, client} = Database.connect()
+
+    Enum.each(
+      ["interfaces", "endpoints", "individual_properties", "individual_datastreams", "kv_store"],
+      fn table ->
+        DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
+      end
+    )
+
+    insert_device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_device_statement)
+
+    devices_list = [
+      {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000, %{"display_name" => "device_a"}},
+      {"olFkumNuZ_J0f_d6-8XCDg", 10, nil},
+      {"4UQbIokuRufdtbVZt9AsLg", 22, %{"display_name" => "device_b", "serial" => "1234"}},
+      {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{"display_name" => "device_c"}},
+      {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{"display_name" => "device_d"}}
+    ]
+
+    for {encoded_device_id, total_received_bytes, aliases} <- devices_list do
+      device_id = Base.url_decode64!(encoded_device_id, padding: false)
+
+      insert_device_query =
+        insert_device_query
+        |> DatabaseQuery.put(:device_id, device_id)
+        |> DatabaseQuery.put(:aliases, aliases)
+        |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+
+      DatabaseQuery.call!(client, insert_device_query)
+
+      for {_key, device_alias} <- aliases || %{} do
+        insert_alias_query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_alias_statement)
+          |> DatabaseQuery.put(:device_id, device_id)
+          |> DatabaseQuery.put(:alias, device_alias)
+
+        DatabaseQuery.call!(client, insert_alias_query)
+      end
+    end
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_pubkey_pem)
+      |> DatabaseQuery.put(:pem, JWTTestHelper.public_key_pem())
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_into_interface_0)
+      |> DatabaseQuery.put(
+        :automaton_accepting_states,
+        Base.decode64!(
+          "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
+        )
+      )
+      |> DatabaseQuery.put(
+        :automaton_transitions,
+        Base.decode64!(
+          "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
+        )
+      )
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_into_interface_1)
+      |> DatabaseQuery.put(
+        :automaton_accepting_states,
+        Base.decode64!(
+          "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
+        )
+      )
+      |> DatabaseQuery.put(
+        :automaton_transitions,
+        Base.decode64!(
+          "g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="
+        )
+      )
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_into_interface_2)
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_into_interface_3)
+      |> DatabaseQuery.put(
+        :automaton_accepting_states,
+        Base.decode64!("g3QAAAABYQNtAAAAEOPZVKNVUNqw17mW3O0hiYc=")
+      )
+      |> DatabaseQuery.put(
+        :automaton_transitions,
+        Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAABhAmgCYQJtAAAABWNvbG9yYQM=")
+      )
+
+    DatabaseQuery.call!(client, query)
+
+    Enum.each(@insert_endpoints, fn query ->
+      DatabaseQuery.call!(client, query)
+    end)
+
+    Enum.each(@insert_values, fn query ->
+      DatabaseQuery.call!(client, query)
+    end)
+
+    :ok
   end
 
   def destroy_local_test_keyspace do
