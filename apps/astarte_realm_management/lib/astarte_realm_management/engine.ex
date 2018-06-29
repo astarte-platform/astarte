@@ -340,7 +340,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def install_trigger(realm_name, trigger_name, action, serialized_tagged_simple_triggers) do
-    with {:ok, client} <- get_database_client(realm_name) do
+    with {:ok, client} <- get_database_client(realm_name),
+         {:exists?, {:error, :trigger_not_found}} <- {:exists?, Queries.retrieve_trigger_uuid(client, trigger_name)} do
       simple_triggers =
         for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
           %TaggedSimpleTrigger{
@@ -400,6 +401,11 @@ defmodule Astarte.RealmManagement.Engine do
           {:error, :failed_simple_trigger_install}
         end
       end
+    else
+      {:exists?, _} ->
+        {:error, :already_installed_trigger}
+      any ->
+        any
     end
   end
 
