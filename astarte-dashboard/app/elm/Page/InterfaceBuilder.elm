@@ -569,12 +569,6 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                             , Checkbox.onCheck UpdateInterfaceTimestamp
                             ]
                             "Explicit timestamp"
-                        , Checkbox.checkbox
-                            [ Checkbox.id "intHasMetadata"
-                            , Checkbox.checked interface.hasMeta
-                            , Checkbox.onCheck UpdateInterfaceHasMeta
-                            ]
-                            "Has Metadata"
                         ]
                     ]
                 ]
