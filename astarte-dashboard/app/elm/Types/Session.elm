@@ -8,36 +8,22 @@ import JsonHelpers as JsonHelpers
 
 type alias Session =
     { credentials : Maybe Credentials
-    , loginType : LoginType
-    , authUrl : Maybe String
     , realmManagementApiUrl : String
     , hostUrl : String
     }
 
 
-empty : Session
-empty =
+init : String -> String -> Session
+init rmApiUrl hostUrl =
     { credentials = Nothing
-    , loginType = OAuth
-    , authUrl = Nothing
-    , realmManagementApiUrl = ""
-    , hostUrl = ""
+    , realmManagementApiUrl = rmApiUrl
+    , hostUrl = hostUrl
     }
 
 
 setCredentials : Maybe Credentials -> Session -> Session
 setCredentials cred session =
     { session | credentials = cred }
-
-
-setLoginType : LoginType -> Session -> Session
-setLoginType loginType session =
-    { session | loginType = loginType }
-
-
-setAuthUrl : Maybe String -> Session -> Session
-setAuthUrl authUrl session =
-    { session | authUrl = authUrl }
 
 
 setRealmManagementApiUrl : String -> Session -> Session
@@ -53,6 +39,7 @@ setHostUrl hostUrl session =
 type alias Credentials =
     { realm : String
     , token : String
+    , loginType : LoginType
     }
 
 
@@ -62,9 +49,8 @@ setToken credentials token =
 
 
 type LoginType
-    = OAuth
-    | OAuthFromConfig String
-    | Token
+    = OAuthLogin String
+    | TokenLogin
 
 
 
@@ -82,15 +68,6 @@ encode session =
                 Nothing ->
                     Encode.null
           )
-        , ( "loginType", encodeLoginType session.loginType )
-        , ( "authUrl"
-          , case session.authUrl of
-                Just authUrl ->
-                    Encode.string authUrl
-
-                Nothing ->
-                    Encode.null
-          )
         , ( "realmManagementApiUrl", Encode.string session.realmManagementApiUrl )
         ]
 
@@ -100,20 +77,18 @@ encodeCredentials credentials =
     Encode.object
         [ ( "realm", Encode.string credentials.realm )
         , ( "token", Encode.string credentials.token )
+        , ( "login_type", encodeLoginType credentials.loginType )
         ]
 
 
 encodeLoginType : LoginType -> Value
 encodeLoginType loginType =
     case loginType of
-        Token ->
-            Encode.string "Token"
+        TokenLogin ->
+            Encode.string "TokenLogin"
 
-        OAuth ->
-            Encode.string "OAuth"
-
-        OAuthFromConfig a ->
-            Encode.string a
+        OAuthLogin oauthUrl ->
+            Encode.string oauthUrl
 
 
 
@@ -124,8 +99,6 @@ decoder : Decoder Session
 decoder =
     decode Session
         |> required "credentials" (Decode.nullable credentialsDecoder)
-        |> required "loginType" loginTypeDecoder
-        |> required "authUrl" (Decode.nullable Decode.string)
         |> required "realmManagementApiUrl" Decode.string
         |> hardcoded ""
 
@@ -135,6 +108,7 @@ credentialsDecoder =
     decode Credentials
         |> required "realm" Decode.string
         |> required "token" Decode.string
+        |> required "login_type" loginTypeDecoder
 
 
 loginTypeDecoder : Decoder LoginType
@@ -146,11 +120,8 @@ loginTypeDecoder =
 stringToLoginType : String -> Result String LoginType
 stringToLoginType s =
     case s of
-        "Token" ->
-            Ok Token
+        "TokenLogin" ->
+            Ok TokenLogin
 
-        "OAuth" ->
-            Ok OAuth
-
-        a ->
-            Ok <| OAuthFromConfig a
+        url ->
+            Ok <| OAuthLogin url

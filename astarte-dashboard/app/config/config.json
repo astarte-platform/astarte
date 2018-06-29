@@ -1,4 +1,14 @@
 {
     "realm_management_api_url": "https://your.realmmanagement.api",
-    "oauth_api_url": "https://your.auth.service/or/null"
+    "default_realm": "myrealm-or-null",
+    "default_auth": "oauth",
+    "auth": [
+        {
+            "type": "oauth",
+            "oauth_api_url": "https://your.auth.service/or/null"
+        },
+        {
+            "type": "token"
+        }
+    ]
 }
