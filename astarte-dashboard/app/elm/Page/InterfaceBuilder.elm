@@ -6,6 +6,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
+import Json.Encode as Encode
 
 
 -- Types
@@ -45,6 +46,7 @@ type alias Model =
     , newMappingVisible : Bool
     , interfaceMapping : InterfaceMapping
     , interfaceEditMode : Bool
+    , minMinor : Int
     , deleteModalVisibility : Modal.Visibility
     , confirmInterfaceName : String
     }
@@ -56,6 +58,7 @@ init maybeInterfaceId session =
       , newMappingVisible = False
       , interfaceMapping = InterfaceMapping.empty
       , interfaceEditMode = False
+      , minMinor = 0
       , deleteModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
       }
@@ -123,6 +126,7 @@ update session msg model =
             ( { model
                 | interface = interface
                 , interfaceEditMode = True
+                , minMinor = interface.minor
                 , interfaceMapping = InterfaceMapping.empty
                 , newMappingVisible = False
               }
@@ -245,29 +249,41 @@ update session msg model =
         UpdateInterfaceMajor newMajor ->
             case (String.toInt newMajor) of
                 Ok major ->
-                    ( { model | interface = Interface.setMajor model.interface major }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+                    if (major >= 0) then
+                        ( { model | interface = Interface.setMajor model.interface major }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
                 Err _ ->
                     ( model
                     , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Interface major is not a number."
+                    , ExternalMsg.Noop
                     )
 
         UpdateInterfaceMinor newMinor ->
             case (String.toInt newMinor) of
                 Ok minor ->
-                    ( { model | interface = Interface.setMinor model.interface minor }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+                    if (minor >= model.minMinor) then
+                        ( { model | interface = Interface.setMinor model.interface minor }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
                 Err _ ->
                     ( model
                     , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Interface minor is not a number."
+                    , ExternalMsg.Noop
                     )
 
         UpdateInterfaceType newInterfaceType ->
