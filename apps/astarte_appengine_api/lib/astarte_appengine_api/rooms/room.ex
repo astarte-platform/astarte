@@ -225,7 +225,23 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
   @impl true
   def handle_info({:DOWN, _ref, :process, pid, _reason}, %{clients: clients} = state) do
-    {:noreply, %{state | clients: MapSet.delete(clients, pid)}}
+    new_clients = MapSet.delete(clients, pid)
+    if Enum.empty?(new_clients) do
+      room_cleanup(state)
+      {:stop, :normal, %{state | watch_id_to_request: %{}, watch_name_to_id: %{}}}
+    else
+      {:noreply, %{state | clients: new_clients}}
+    end
+  end
+
+  defp room_cleanup(%{watch_id_to_request: watch_id_to_request, realm: realm} = _state) do
+    Enum.each(watch_id_to_request, fn {trigger_id, watch_request} ->
+      %WatchRequest{
+        device_id: device_id
+      } = watch_request
+
+      DataUpdaterPlant.delete_volatile_trigger(realm, device_id, trigger_id)
+    end)
   end
 
   # Helpers
