@@ -247,6 +247,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -257,6 +258,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "watch", watch_payload)
       assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
+
+      leave_and_wait(socket)
     end
 
     test "fails on duplicate", %{socket: socket, room_process: room_process} do
@@ -273,6 +276,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -286,6 +290,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       ref = push(socket, "watch", watch_payload)
       assert_reply ref, :error, %{reason: "already existing"}
+
+      leave_and_wait(socket)
     end
 
     test "succeeds on authorized regex path", %{socket: socket, room_process: room_process} do
@@ -302,6 +308,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       regex_trigger =
         @data_simple_trigger
@@ -317,6 +324,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "watch", watch_payload)
       assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
+
+      leave_and_wait(socket)
     end
 
     test "fails on device_trigger with conflicting device_ids", %{socket: socket} do
@@ -359,6 +368,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -369,6 +379,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "watch", watch_payload)
       assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
+
+      leave_and_wait(socket)
     end
   end
 
@@ -398,6 +410,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
         {:ok, @encoded_generic_error_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -413,6 +426,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       ref = push(socket, "unwatch", unwatch_payload)
       assert_reply ref, :error, %{reason: "unwatch failed"}
+
+      leave_and_wait(socket)
     end
 
     test "succeeds with valid name", %{socket: socket, room_process: room_process} do
@@ -424,6 +439,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -440,6 +456,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "unwatch", unwatch_payload)
       assert_broadcast "watch_removed", _
       assert_reply ref, :ok, %{}
+
+      leave_and_wait(socket)
     end
   end
 
@@ -468,6 +486,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       unexisting_room_serialized_event =
         %{@simple_event | parent_trigger_id: Utils.get_uuid()}
@@ -475,6 +494,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       assert {:error, :no_room_for_event} = EventsDispatcher.dispatch(unexisting_room_serialized_event)
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
+
+      leave_and_wait(socket)
     end
 
     test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast",
@@ -497,6 +518,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
 
@@ -506,6 +528,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       assert {:error, :trigger_not_found} = EventsDispatcher.dispatch(existing_room_serialized_event)
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
+
+      leave_and_wait(socket)
     end
 
     test "an event for a watched trigger belonging to a room triggers a broadcast", %{
@@ -525,6 +549,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -553,6 +578,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                "value" => @event_value
              }
              |> Poison.encode() == Poison.encode(event)
+
+      leave_and_wait(socket)
     end
   end
 
@@ -578,10 +605,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
     room_process = room_process(room_name)
 
-    on_exit fn ->
-      GenServer.stop(room_process)
-    end
-
     {:ok, socket: socket, room_process: room_process}
   end
 
@@ -589,5 +612,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     case Registry.lookup(Registry.AstarteRooms, room_name) do
       [{pid, _opts}] -> pid
     end
+  end
+
+  defp leave_and_wait(socket) do
+    # Needed to make sure the calls to MockRPC are executed before the test process is terminated
+    leave(socket)
+    :timer.sleep(200)
   end
 end
