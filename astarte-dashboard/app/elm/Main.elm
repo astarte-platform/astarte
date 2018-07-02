@@ -442,28 +442,43 @@ processRoute : Session -> ( Maybe Route, Maybe String ) -> ( Page, Cmd Msg, Sess
 processRoute session ( maybeRoute, maybeToken ) =
     case maybeRoute of
         Nothing ->
-            initLoginPage session
-                ==> session
+            case session.credentials of
+                Nothing ->
+                    initLoginPage session
+                        ==> session
+
+                _ ->
+                    processRealmRoute maybeToken Route.ListInterfaces session
 
         Just Route.Root ->
-            initLoginPage session
-                ==> session
+            case session.credentials of
+                Nothing ->
+                    initLoginPage session
+                        ==> session
+
+                _ ->
+                    processRealmRoute maybeToken Route.ListInterfaces session
 
         Just (Route.RealmSelection loginTypeString) ->
-            let
-                loginType =
-                    case loginTypeString of
-                        Just "token" ->
-                            Token
+            case session.credentials of
+                Nothing ->
+                    let
+                        loginType =
+                            case loginTypeString of
+                                Just "token" ->
+                                    Token
 
-                        _ ->
-                            OAuth
+                                _ ->
+                                    OAuth
 
-                updatedSession =
-                    Session.setLoginType loginType session
-            in
-                initLoginPage updatedSession
-                    ==> updatedSession
+                        updatedSession =
+                            Session.setLoginType loginType session
+                    in
+                        initLoginPage updatedSession
+                            ==> updatedSession
+
+                _ ->
+                    processRealmRoute maybeToken Route.ListInterfaces session
 
         Just (Route.Realm realmRoute) ->
             processRealmRoute maybeToken realmRoute session
