@@ -70,7 +70,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq
+    image: astarte/vernemq:snapshot
     env_file:
      - ./compose.env
     environment:
