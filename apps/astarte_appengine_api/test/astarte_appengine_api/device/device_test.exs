@@ -25,6 +25,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.InterfaceVersion
+  alias Astarte.DataAccess.Database
+  alias CQEx.Query, as: DatabaseQuery
 
   @expected_introspection %{
     "com.example.PixelsConfiguration" => %InterfaceVersion{major: 1, minor: 0},
@@ -902,6 +904,20 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert unpack_interface_values(
              Device.get_interface_values!(test, device_id, "com.example.TestObject", opts)
            ) == expected_reply
+  end
+
+  test "get_interface_values! returns path_not_found if there are no data" do
+    test = "autotestrealm"
+    device_id = "f0VMRgIBAQAAAAAAAAAAAA"
+
+    {:ok, client} = Database.connect(test)
+    DatabaseQuery.call!(client, "TRUNCATE com_example_testobject_v1")
+    DatabaseQuery.call!(client, "TRUNCATE individual_properties")
+
+    expected_reply = {:ok, %InterfaceValues{data: []}}
+
+    assert Device.get_interface_values!(test, device_id, "com.example.TestObject", %{}) ==
+             expected_reply
   end
 
   test "update_interface_values!/6" do
