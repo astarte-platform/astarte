@@ -58,4 +58,36 @@ defmodule Astarte.DataAccess.Interface do
       InterfaceDescriptor.from_db_result(interface_row)
     end
   end
+
+  @spec check_if_interface_exists(:cqerl.client(), String.t(), non_neg_integer) ::
+          :ok | {:error, atom}
+  def check_if_interface_exists(client, interface_name, major_version) do
+    check_statement = """
+    SELECT COUNT(*)
+    FROM interfaces
+    WHERE name=:name AND major_version=:major_version
+    """
+
+    interface_query =
+      Query.new()
+      |> Query.statement(check_statement)
+      |> Query.put(:name, interface_name)
+      |> Query.put(:major_version, major_version)
+
+    with {:ok, result} <- Query.call(client, interface_query),
+         [count: 1] <- Result.head(result) do
+      :ok
+    else
+      [count: 0] ->
+        {:error, :interface_not_found}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("check_if_interface_exists: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("check_if_interface_exists: failed, reason: #{inspect(reason)}.")
+        {:error, :database_error}
+    end
+  end
 end
