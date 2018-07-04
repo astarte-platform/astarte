@@ -57,6 +57,10 @@ defmodule Astarte.DataAccess.Device do
 
         {:error, :interface_not_in_introspection}
 
+      %{acc: _, msg: error_message} ->
+        Logger.warn("interface_version: database error: #{error_message}")
+        {:error, :database_error}
+
       {:error, reason} ->
         # DB Error
         Logger.warn("interface_version: failed with reason #{inspect(reason)}")

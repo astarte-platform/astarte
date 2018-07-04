@@ -45,6 +45,10 @@ defmodule Astarte.DataAccess.Interface do
       :empty_dataset ->
         {:error, :interface_not_found}
 
+      %{acc: _, msg: error_message} ->
+        Logger.warn("retrieve_interface_row: database error: #{error_message}")
+        {:error, :database_error}
+
       {:error, reason} ->
         Logger.warn("retrieve_interface_row: failed with reason #{inspect(reason)}")
         {:error, :database_error}
