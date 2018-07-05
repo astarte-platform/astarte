@@ -807,7 +807,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          {{:data_trigger, proto_buf_data_trigger}, trigger_target}
        ) do
     if Map.get(state.interface_ids_to_name, obj_id) do
-      data_trigger_key = data_trigger_to_key(state, proto_buf_data_trigger)
+      data_trigger =
+        SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
+
+      event_type =
+        EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
+
+      data_trigger_key = data_trigger_to_key(state, data_trigger, event_type)
 
       next_data_triggers =
         case Map.get(state.data_triggers, data_trigger_key) do
@@ -1181,25 +1187,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
-  defp data_trigger_to_key(state, proto_buf_data_trigger) do
-    event_type = EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
-
-    interface_id =
-      SimpleTriggersProtobufUtils.get_interface_id_or_any(
-        proto_buf_data_trigger.interface_name,
-        proto_buf_data_trigger.interface_major
-      )
+  defp data_trigger_to_key(state, data_trigger, event_type) do
+    %DataTrigger{
+      path_match_tokens: path_match_tokens,
+      interface_id: interface_id
+    } = data_trigger
 
     endpoint =
-      if proto_buf_data_trigger.match_path != :any_endpoint and interface_id != :any_interface do
-        interface_descriptor =
+      if path_match_tokens != :any_endpoint and interface_id != :any_interface do
+        %InterfaceDescriptor{automaton: automaton} =
           Map.get(state.interfaces, Map.get(state.interface_ids_to_name, interface_id))
 
         {:ok, endpoint_id} =
-          EndpointsAutomaton.resolve_path(
-            proto_buf_data_trigger.match_path,
-            interface_descriptor.automaton
-          )
+          path_match_tokens
+          |> Enum.join("/")
+          |> String.replace(~r/\/\//, "/%{}/")
+          |> EndpointsAutomaton.resolve_path(automaton)
 
         endpoint_id
       else
@@ -1216,7 +1219,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     data_triggers = state.data_triggers
 
-    data_trigger_key = data_trigger_to_key(state, proto_buf_data_trigger)
+    event_type = EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
+    data_trigger_key = data_trigger_to_key(state, data_trigger, event_type)
 
     candidate_triggers = Map.get(data_triggers, data_trigger_key)
 
