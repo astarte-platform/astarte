@@ -72,8 +72,12 @@ defmodule Astarte.DataAccess.Data do
         Logger.warn("Unexpected null value on #{path}, mapping: #{inspect(mapping)}.")
         {:error, :undefined_property}
 
-      any_error ->
-        Logger.warn("Database error while retrieving property: #{inspect(any_error)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("fetch_property: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Database error while retrieving property: #{inspect(reason)}")
         {:error, :database_error}
     end
   end
@@ -121,8 +125,12 @@ defmodule Astarte.DataAccess.Data do
         Logger.warn("Unexpected null value on #{path}, mapping: #{inspect(mapping)}.")
         {:error, :undefined_property}
 
-      any_error ->
-        Logger.warn("Database error while retrieving property: #{inspect(any_error)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("path_exists?: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Database error while retrieving property: #{inspect(reason)}")
         {:error, :database_error}
     end
   end
@@ -188,8 +196,12 @@ defmodule Astarte.DataAccess.Data do
         Logger.warn("Unexpected null timestamp on #{path}, mapping: #{inspect(mapping)}.")
         {:error, :invalid_result}
 
-      any_error ->
-        Logger.warn("Database error while retrieving property: #{inspect(any_error)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("fetch_last_path_update: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Database error while retrieving property: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end

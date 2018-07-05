@@ -41,6 +41,10 @@ defmodule Astarte.DataAccess.Mappings do
 
       {:ok, mappings}
     else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("fetch_interface_mappings: database error: #{error_message}")
+        {:error, :database_error}
+
       {:error, reason} ->
         Logger.warn("fetch_interface_mappings: failed with reason #{inspect(reason)}")
         {:error, :database_error}
