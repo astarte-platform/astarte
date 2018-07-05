@@ -61,20 +61,24 @@ defmodule Astarte.DataUpdaterPlant.RPC.Handler do
             trigger_target: trigger_target
           }}
        ) do
-    DataUpdater.handle_install_volatile_trigger(
-      realm_name,
-      device_id,
-      object_id,
-      object_type,
-      parent_id,
-      simple_trigger_id,
-      simple_trigger,
-      trigger_target
-    )
-
-    %GenericOkReply{}
-    |> encode_reply()
-    |> ok_wrap()
+    with :ok <-
+           DataUpdater.handle_install_volatile_trigger(
+             realm_name,
+             device_id,
+             object_id,
+             object_type,
+             parent_id,
+             simple_trigger_id,
+             simple_trigger,
+             trigger_target
+           ) do
+      %GenericOkReply{}
+      |> encode_reply()
+      |> ok_wrap()
+    else
+      {:error, reason} ->
+        generic_error(reason)
+    end
   end
 
   defp call_rpc(

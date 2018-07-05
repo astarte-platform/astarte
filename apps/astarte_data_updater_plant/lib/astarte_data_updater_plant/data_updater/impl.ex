@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataAccess.Data
   alias Astarte.DataAccess.Database
@@ -705,10 +706,76 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = Map.put(state, :volatile_triggers, volatile_triggers_list)
 
-    if Map.get(new_state.interface_ids_to_name, object_id) do
-      load_trigger(new_state, trigger, target)
+    if Map.has_key?(new_state.interface_ids_to_name, object_id) do
+      interface_name = Map.get(new_state.interface_ids_to_name, object_id)
+      %InterfaceDescriptor{automaton: automaton} = new_state.interfaces[interface_name]
+
+      case trigger do
+        {:data_trigger, %ProtobufDataTrigger{match_path: "*"}} ->
+          {:ok, load_trigger(new_state, trigger, target)}
+
+        {:data_trigger, %ProtobufDataTrigger{match_path: match_path}} ->
+          with {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
+            {:ok, load_trigger(new_state, trigger, target)}
+          else
+            {:guessed, _} ->
+              # State rollback here
+              {{:error, :invalid_match_path}, state}
+
+            {:error, :not_found} ->
+              # State rollback here
+              {{:error, :invalid_match_path}, state}
+          end
+      end
     else
-      new_state
+      case trigger do
+        {:data_trigger, %ProtobufDataTrigger{interface_name: "*"}} ->
+          {:ok, new_state}
+
+        {:data_trigger,
+         %ProtobufDataTrigger{
+           interface_name: interface_name,
+           interface_major: major,
+           match_path: "*"
+         }} ->
+          with {:ok, db_client} <- Database.connect(state.realm),
+               :ok <- InterfaceQueries.check_if_interface_exists(db_client, interface_name, major) do
+            {:ok, new_state}
+          else
+            {:error, reason} ->
+              # State rollback here
+              {{:error, reason}, state}
+          end
+
+        {:data_trigger,
+         %ProtobufDataTrigger{
+           interface_name: interface_name,
+           interface_major: major,
+           match_path: match_path
+         }} ->
+          with {:ok, db_client} <- Database.connect(state.realm),
+               {:ok, %InterfaceDescriptor{automaton: automaton}} <-
+                 InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major),
+               {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
+            {:ok, new_state}
+          else
+            {:error, :not_found} ->
+              {{:error, :invalid_match_path}, state}
+
+            {:guessed, _} ->
+              {{:error, :invalid_match_path}, state}
+
+            {:error, reason} ->
+              # State rollback here
+              {{:error, reason}, state}
+          end
+
+        {:introspection_trigger, _} ->
+          {:ok, new_state}
+
+        {:device_trigger, _} ->
+          {:ok, new_state}
+      end
     end
   end
 

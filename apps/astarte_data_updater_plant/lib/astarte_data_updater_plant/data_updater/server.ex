@@ -86,7 +86,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
         _from,
         state
       ) do
-    new_state =
+    {return_value, new_state} =
       Impl.handle_install_volatile_trigger(
         state,
         object_id,
@@ -97,7 +97,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
         trigger_target
       )
 
-    {:reply, :ok, new_state}
+    {:reply, return_value, new_state}
   end
 
   def handle_call({:handle_delete_volatile_trigger, trigger_id}, _from, state) do
