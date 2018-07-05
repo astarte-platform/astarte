@@ -711,7 +711,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       %InterfaceDescriptor{automaton: automaton} = new_state.interfaces[interface_name]
 
       case trigger do
-        {:data_trigger, %ProtobufDataTrigger{match_path: "*"}} ->
+        {:data_trigger, %ProtobufDataTrigger{match_path: "/*"}} ->
           {:ok, load_trigger(new_state, trigger, target)}
 
         {:data_trigger, %ProtobufDataTrigger{match_path: match_path}} ->
