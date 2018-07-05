@@ -479,6 +479,10 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                             , Input.readonly interfaceEditMode
                             , Input.value interface.name
                             , Input.onInput UpdateInterfaceName
+                            , if (Interface.isValidInterfaceName interface.name) then
+                                Input.success
+                              else
+                                Input.danger
                             ]
                         ]
                     ]
