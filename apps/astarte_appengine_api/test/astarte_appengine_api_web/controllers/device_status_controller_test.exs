@@ -46,12 +46,18 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
     "total_received_msgs" => 45000
   }
 
-  setup %{conn: conn} do
+  setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
     end)
+
+    :ok
+  end
+
+  setup %{conn: conn} do
+    DatabaseTestHelper.seed_data()
 
     authorized_conn =
       conn

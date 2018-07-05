@@ -36,6 +36,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   @expected_data 20
 
   setup %{conn: conn} do
+    DatabaseTestHelper.seed_data()
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 

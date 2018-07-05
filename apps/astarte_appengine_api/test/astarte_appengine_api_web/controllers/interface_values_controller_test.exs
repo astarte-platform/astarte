@@ -23,12 +23,18 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.JWTTestHelper
 
-  setup %{conn: conn} do
+  setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
     end)
+
+    :ok
+  end
+
+  setup %{conn: conn} do
+    DatabaseTestHelper.seed_data()
 
     authorized_conn =
       conn
