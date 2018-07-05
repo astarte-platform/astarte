@@ -172,9 +172,13 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
                watch_name_to_id: Map.put(watch_name_to_id, name, trigger_id)
            }}
 
+        {:error, %{error_name: reason}} ->
+          Logger.warn("install_volatile_trigger failed with reason: #{inspect(reason)}")
+          {:reply, {:error, reason}, state}
+
         {:error, reason} ->
           Logger.warn("install_volatile_trigger failed with reason: #{inspect(reason)}")
-          {:reply, {:error, :watch_failed}, state}
+          {:reply, {:error, reason}, state}
       end
     end
   end
