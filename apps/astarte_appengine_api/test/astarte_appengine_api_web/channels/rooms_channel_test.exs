@@ -80,11 +80,12 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                             }
                             |> Reply.encode()
 
+  @error_string
   @encoded_generic_error_reply %Reply{
                                  error: true,
                                  reply:
                                    {:generic_error_reply,
-                                    %GenericErrorReply{error_name: "some_error"}}
+                                    %GenericErrorReply{error_name: @error_string}}
                                }
                                |> Reply.encode()
 
@@ -230,7 +231,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_reply ref, :error, %{reason: "watch failed"}
+      assert_reply ref, :error, %{reason: @error_string}
     end
 
     test "succeeds on authorized exact path", %{socket: socket, room_process: room_process} do
