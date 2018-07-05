@@ -6,6 +6,7 @@ import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
 import Utilities
+import Regex exposing (regex)
 
 
 -- Types
@@ -265,3 +266,8 @@ stringToAggregation s =
 mappingsAsList : Interface -> List InterfaceMapping
 mappingsAsList interface =
     Dict.values interface.mappings
+
+
+isValidInterfaceName : String -> Bool
+isValidInterfaceName interfaceName =
+    Regex.contains (regex "^[a-zA-Z]+(\\.[a-zA-Z0-9]+)*$") interfaceName

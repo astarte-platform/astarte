@@ -391,3 +391,8 @@ toList arrayString =
 
         Err _ ->
             [ arrayString ]
+
+
+isValidEndpoint : String -> Bool
+isValidEndpoint endpoint =
+    Regex.contains (regex "^(/(%{([a-zA-Z][a-zA-Z0-9]*)}|[a-zA-Z][a-zA-Z0-9]*)){1,64}") endpoint
