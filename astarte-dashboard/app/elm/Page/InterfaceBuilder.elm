@@ -48,6 +48,7 @@ type alias Model =
     , minMinor : Int
     , deleteModalVisibility : Modal.Visibility
     , confirmInterfaceName : String
+    , showSource : Bool
     }
 
 
@@ -60,6 +61,7 @@ init maybeInterfaceId session =
       , minMinor = 0
       , deleteModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
+      , showSource = False
       }
     , case maybeInterfaceId of
         Just ( name, major ) ->
@@ -93,6 +95,7 @@ type Msg
     | CloseDeleteModal ModalResult
     | ShowError String String
     | RedirectToLogin
+    | ToggleSource
     | Forward ExternalMsg
       -- interface messages
     | UpdateInterfaceName String
@@ -240,6 +243,12 @@ update session msg model =
             -- TODO: We should save page context, ask for login and then restore previous context
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
+            , ExternalMsg.Noop
+            )
+
+        ToggleSource ->
+            ( { model | showSource = not model.showSource }
+            , Cmd.none
             , ExternalMsg.Noop
             )
 
@@ -444,13 +453,24 @@ view model flashMessages =
             ]
         , Grid.row []
             [ Grid.col
-                [ Col.sm12 ]
+                [ if model.showSource then
+                    Col.sm6
+                  else
+                    Col.sm12
+                ]
                 [ renderContent
                     model.interface
                     model.interfaceEditMode
                     model.interfaceMapping
                     model.newMappingVisible
                 ]
+            , Grid.col
+                [ if model.showSource then
+                    Col.sm6
+                  else
+                    Col.attrs [ Display.none ]
+                ]
+                [ renderInterfaceSource model.interface ]
             ]
         , Grid.row []
             [ Grid.col
@@ -469,7 +489,7 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                     [ h3 []
                         [ text
                             (if interfaceEditMode then
-                                interface.name ++ " v" ++ (toString interface.major)
+                                interface.name
                              else
                                 "Install a new interface"
                             )
@@ -482,6 +502,12 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                                 [ text "Delete..." ]
                           else
                             text ""
+                        , Button.button
+                            [ Button.secondary
+                            , Button.attrs [ class "float-right" ]
+                            , Button.onClick ToggleSource
+                            ]
+                            [ text "->" ]
                         ]
                     ]
                 ]
@@ -843,6 +869,15 @@ renderAddNewMapping mapping =
                     [ text "Cancel" ]
                 ]
             ]
+        ]
+
+
+renderInterfaceSource : Interface -> Html Msg
+renderInterfaceSource interface =
+    Textarea.textarea
+        [ Textarea.id "interfaceSource"
+        , Textarea.rows 30
+        , Textarea.value <| Interface.toPrettySource interface
         ]
 
 

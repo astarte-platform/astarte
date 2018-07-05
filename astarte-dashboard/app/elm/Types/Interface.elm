@@ -271,3 +271,8 @@ mappingsAsList interface =
 isValidInterfaceName : String -> Bool
 isValidInterfaceName interfaceName =
     Regex.contains (regex "^[a-zA-Z]+(\\.[a-zA-Z0-9]+)*$") interfaceName
+
+
+toPrettySource : Interface -> String
+toPrettySource interface =
+    Json.Encode.encode 4 <| encoder interface
