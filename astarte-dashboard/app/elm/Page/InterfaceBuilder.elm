@@ -697,6 +697,10 @@ renderAddNewMapping mapping =
                         [ Input.id "Endpoint"
                         , Input.value <| mapping.endpoint
                         , Input.onInput UpdateMappingEndpoint
+                        , if (InterfaceMapping.isValidEndpoint mapping.endpoint) then
+                            Input.success
+                          else
+                            Input.danger
                         ]
                     ]
                 ]
