@@ -128,16 +128,20 @@ setDoc mapping doc =
 
 interfaceMappingEncoder : InterfaceMapping -> Value
 interfaceMappingEncoder mapping =
-    Json.Encode.object
-        [ ( "endpoint", Json.Encode.string mapping.endpoint )
-        , ( "type", encodeMappingType mapping.mType )
-        , ( "reliability", encodeReliability mapping.reliability )
-        , ( "retention", encodeRetention mapping.retention )
-        , ( "expiry", Json.Encode.int mapping.expiry )
-        , ( "allow_unset", Json.Encode.bool mapping.allowUnset )
-        , ( "description", Json.Encode.string mapping.description )
-        , ( "doc", Json.Encode.string mapping.doc )
+    [ [ ( "endpoint", Json.Encode.string mapping.endpoint )
+      , ( "type", encodeMappingType mapping.mType )
+      ]
+    , Utilities.encodeOptionalFields
+        [ ( "reliability", encodeReliability mapping.reliability, mapping.reliability == Unreliable )
+        , ( "retention", encodeRetention mapping.retention, mapping.retention == Discard )
+        , ( "expiry", Json.Encode.int mapping.expiry, mapping.expiry == 0 )
+        , ( "allow_unset", Json.Encode.bool mapping.allowUnset, mapping.allowUnset == False )
+        , ( "description", Json.Encode.string mapping.description, mapping.description == "" )
+        , ( "doc", Json.Encode.string mapping.doc, mapping.doc == "" )
         ]
+    ]
+        |> List.concat
+        |> Json.Encode.object
 
 
 encodeMappingType : MappingType -> Value

@@ -121,24 +121,29 @@ setDoc interface doc =
 
 encoder : Interface -> Value
 encoder interface =
-    Json.Encode.object
-        [ ( "interface_name", Json.Encode.string interface.name )
-        , ( "version_major", Json.Encode.int interface.major )
-        , ( "version_minor", Json.Encode.int interface.minor )
-        , ( "type", encodeInterfaceType interface.iType )
-        , ( "ownership", encodeOwner interface.ownership )
-        , ( "aggregation", encodeAggregationType interface.aggregation )
-        , ( "explicit_timestamp", Json.Encode.bool interface.explicitTimestamp )
-        , ( "has_metadata", Json.Encode.bool interface.hasMeta )
-        , ( "description", Json.Encode.string interface.description )
-        , ( "doc", Json.Encode.string interface.doc )
-        , ( "mappings"
-          , Json.Encode.list
-                (Dict.values interface.mappings
-                    |> List.map Types.InterfaceMapping.interfaceMappingEncoder
-                )
-          )
+    [ [ ( "interface_name", Json.Encode.string interface.name )
+      , ( "version_major", Json.Encode.int interface.major )
+      , ( "version_minor", Json.Encode.int interface.minor )
+      , ( "type", encodeInterfaceType interface.iType )
+      , ( "ownership", encodeOwner interface.ownership )
+      ]
+    , Utilities.encodeOptionalFields
+        [ ( "aggregation", encodeAggregationType interface.aggregation, interface.aggregation == Individual )
+        , ( "explicit_timestamp", Json.Encode.bool interface.explicitTimestamp, interface.explicitTimestamp == False )
+        , ( "has_metadata", Json.Encode.bool interface.hasMeta, interface.hasMeta == False )
+        , ( "description", Json.Encode.string interface.description, interface.description == "" )
+        , ( "doc", Json.Encode.string interface.doc, interface.doc == "" )
         ]
+    , [ ( "mappings"
+        , Json.Encode.list
+            (Dict.values interface.mappings
+                |> List.map Types.InterfaceMapping.interfaceMappingEncoder
+            )
+        )
+      ]
+    ]
+        |> List.concat
+        |> Json.Encode.object
 
 
 encodeInterfaceType : InterfaceType -> Value
