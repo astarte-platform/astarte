@@ -69,9 +69,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
       {:error, :duplicate_watch} ->
         {:reply, {:error, %{reason: "already existing"}}, socket}
 
-      {:error, :watch_failed} ->
+      {:error, reason} ->
         # RPC error reply
-        {:reply, {:error, %{reason: "watch failed"}}, socket}
+        {:reply, {:error, %{reason: reason}}, socket}
     end
   end
 
