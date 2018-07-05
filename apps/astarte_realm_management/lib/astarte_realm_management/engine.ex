@@ -19,6 +19,7 @@
 
 defmodule Astarte.RealmManagement.Engine do
   require Logger
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.InterfaceDocument
   alias Astarte.Core.Mapping.EndpointsAutomaton
@@ -232,7 +233,10 @@ defmodule Astarte.RealmManagement.Engine do
          {:major_is_avail, true} <-
            {:major_is_avail, Queries.is_interface_major_available?(client, name, 0)},
          {:devices, {:ok, false}} <-
-           {:devices, Queries.is_any_device_using_interface?(client, name)} do
+           {:devices, Queries.is_any_device_using_interface?(client, name)},
+         interface_id = CQLUtils.interface_id(name, major),
+         {:triggers, {:ok, false}} <-
+           {:triggers, Queries.has_interface_simple_triggers?(client, interface_id)} do
       if opts[:async] do
         Task.start_link(Engine, :execute_interface_deletion, [client, name, major])
 
@@ -250,7 +254,10 @@ defmodule Astarte.RealmManagement.Engine do
       {:devices, {:ok, true}} ->
         {:error, :cannot_delete_currently_used_interface}
 
-      {:devices, {:error, reason}} ->
+      {:triggers, {:ok, true}} ->
+        {:error, :cannot_delete_currently_used_interface}
+
+      {_, {:error, reason}} ->
         {:error, reason}
 
       {:error, reason} ->

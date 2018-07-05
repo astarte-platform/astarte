@@ -745,6 +745,38 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  def has_interface_simple_triggers?(db_client, object_id) do
+    # FIXME: hardcoded object type here
+    simple_triggers_statement = """
+    SELECT COUNT(*)
+    FROM simple_triggers
+    WHERE object_id=:object_id AND object_type=2
+    """
+
+    simple_triggers_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(simple_triggers_statement)
+      |> DatabaseQuery.put(:object_id, object_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(db_client, simple_triggers_query),
+         [count: count] <- DatabaseResult.head(result) do
+      if count != 0 do
+        {:ok, true}
+      else
+        {:ok, false}
+      end
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("interface_owns_simple_triggers?: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("interface_owns_simple_triggers?: failed with reason #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
   def get_jwt_public_key_pem(client) do
     query =
       DatabaseQuery.new()
