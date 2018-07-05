@@ -746,7 +746,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          %ProtobufDataTrigger{
            interface_name: interface_name,
            interface_major: major,
-           match_path: "*"
+           match_path: "/*"
          }} ->
           with {:ok, db_client} <- Database.connect(state.realm),
                {:ok, %InterfaceDescriptor{aggregation: :individual}} <-
