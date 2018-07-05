@@ -115,6 +115,19 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     );
   """
 
+  @create_simple_triggers_table """
+      CREATE TABLE autotestrealm.simple_triggers (
+        object_id uuid,
+        object_type int,
+        parent_trigger_id uuid,
+        simple_trigger_id uuid,
+        trigger_data blob,
+        trigger_target blob,
+
+        PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
+      );
+  """
+
   @insert_public_key """
     INSERT INTO autotestrealm.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
@@ -245,6 +258,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     DatabaseQuery.call!(client, @create_endpoints_table)
     DatabaseQuery.call!(client, @create_individual_properties_table)
     DatabaseQuery.call!(client, @create_kv_store_table)
+    DatabaseQuery.call!(client, @create_simple_triggers_table)
 
     :ok
   end
