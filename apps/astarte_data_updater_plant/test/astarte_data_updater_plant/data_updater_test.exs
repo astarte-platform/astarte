@@ -300,6 +300,64 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              trigger_target_data
            ) == :ok
 
+    bad_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_name: "com.missing.Interface",
+            interface_major: 1,
+            data_trigger_type: :VALUE_CHANGE_APPLIED,
+            match_path: "/test",
+            value_match_operator: :ANY
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    bad_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    bad_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             device_id,
+             :uuid.string_to_uuid("badb93a5-842e-bbad-2e4d-d20306838051"),
+             2,
+             bad_trigger_parent_id,
+             bad_trigger_id,
+             bad_trigger_data,
+             trigger_target_data
+           ) == {:error, :interface_not_found}
+
+    bad_path_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_name: "com.test.LCDMonitor",
+            interface_major: 1,
+            data_trigger_type: :VALUE_CHANGE_APPLIED,
+            match_path: "/weekSchedule/10",
+            value_match_operator: :ANY
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    bad_path_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    bad_path_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             device_id,
+             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
+             2,
+             bad_path_trigger_parent_id,
+             bad_path_trigger_id,
+             bad_path_trigger_data,
+             trigger_target_data
+           ) == {:error, :invalid_match_path}
+
     DataUpdater.handle_data(
       realm,
       device_id,
