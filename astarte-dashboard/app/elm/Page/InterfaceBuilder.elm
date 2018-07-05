@@ -378,16 +378,22 @@ update session msg model =
 
         UpdateMappingExpiry newMappingExpiry ->
             case (String.toInt newMappingExpiry) of
-                Ok e ->
-                    ( { model | interfaceMapping = InterfaceMapping.setExpiry model.interfaceMapping e }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+                Ok expiry ->
+                    if (expiry >= 0) then
+                        ( { model | interfaceMapping = InterfaceMapping.setExpiry model.interfaceMapping expiry }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal <| "Parse error. " ++ err
+                    , ExternalMsg.Noop
                     )
 
         UpdateMappingAllowUnset allowUnset ->
