@@ -32,6 +32,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  require CQEx
   require Logger
 
   def first_result_row(values) do
@@ -639,18 +640,25 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def insert_alias(client, device_id, alias_tag, alias_value) do
-    # TODO: Add  IF NOT EXISTS and batch queries together
-    insert_alias_to_names_statement =
-      "INSERT INTO names (object_name, object_type, object_uuid) VALUES (:alias, 1, :device_id);"
+    insert_alias_to_names_statement = """
+    INSERT INTO names
+    (object_name, object_type, object_uuid)
+    VALUES (:alias, 1, :device_id)
+    """
 
     insert_alias_to_names_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(insert_alias_to_names_statement)
       |> DatabaseQuery.put(:alias, alias_value)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.convert()
 
-    insert_alias_to_device_statement =
-      "UPDATE devices SET aliases[:alias_tag] = :alias WHERE device_id = :device_id;"
+    insert_alias_to_device_statement = """
+    UPDATE devices
+    SET aliases[:alias_tag] = :alias
+    WHERE device_id = :device_id
+    """
 
     insert_alias_to_device_query =
       DatabaseQuery.new()
@@ -658,12 +666,20 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:alias_tag, alias_tag)
       |> DatabaseQuery.put(:alias, alias_value)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.convert()
+
+    insert_batch =
+      CQEx.cql_query_batch(
+        consistency: :each_quorum,
+        mode: :logged,
+        queries: [insert_alias_to_names_query, insert_alias_to_device_query]
+      )
 
     with {:existing, {:error, :device_not_found}} <-
            {:existing, device_alias_to_device_id(client, alias_value)},
          :ok <- try_delete_alias(client, device_id, alias_tag),
-         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_names_query),
-         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_device_query) do
+         {:ok, _result} <- DatabaseQuery.call(client, insert_batch) do
       :ok
     else
       {:existing, {:ok, _device_uuid}} ->
