@@ -685,11 +685,18 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       {:existing, {:ok, _device_uuid}} ->
         {:error, :alias_already_in_use}
 
+      {:existing, {:error, reason}} ->
+        {:error, reason}
+
       {:error, :device_not_found} ->
         {:error, :device_not_found}
 
-      not_ok ->
-        Logger.warn("Device.insert_alias: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("insert_alias: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("insert_alias: failed, reason: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -749,8 +756,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       with {:ok, _result} <- DatabaseQuery.call(client, delete_batch) do
         :ok
       else
-        not_ok ->
-          Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+        %{acc: _, msg: error_message} ->
+          Logger.warn("delete_alias: database error: #{error_message}")
+          {:error, :database_error}
+
+        {:error, reason} ->
+          Logger.warn("delete_alias: failed, reason: #{inspect(reason)}.")
           {:error, :database_error}
       end
     else
@@ -764,8 +775,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       nil ->
         {:error, :alias_tag_not_found}
 
-      not_ok ->
-        Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("delete_alias: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("delete_alias: failed, reason: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
