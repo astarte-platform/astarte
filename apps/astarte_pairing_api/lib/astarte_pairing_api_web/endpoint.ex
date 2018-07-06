@@ -41,13 +41,10 @@ defmodule Astarte.Pairing.APIWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Logger
 
-  plug Astarte.Pairing.APIWeb.Plug.FixLegacyPairingMIME
-
   plug Plug.Parsers,
     parsers: [:urlencoded,
               :multipart,
-              :json,
-              Astarte.Pairing.APIWeb.Parsers.LegacyPairing],
+              :json],
     pass: ["*/*"],
     json_decoder: Poison
 

@@ -46,17 +46,18 @@ defmodule Astarte.Pairing.API.Mixfile do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(:dev), do: ["lib", "test/support"]
   defp elixirc_paths(_),     do: ["lib"]
 
   defp astarte_required_modules("true") do
     [
+      {:astarte_core, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true},
     ]
   end
 
   defp astarte_required_modules(_) do
     [
+      {:astarte_core, git: "https://git.ispirata.com/Astarte-NG/astarte_core"},
       {:astarte_rpc, git: "https://git.ispirata.com/Astarte-NG/astarte_rpc"},
     ]
   end
@@ -66,17 +67,19 @@ defmodule Astarte.Pairing.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.3.0"},
-      {:phoenix_pubsub, "~> 1.0"},
+      {:phoenix, "== 1.3.2"},
+      {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"},
-      {:ecto, "~> 2.1"},
-      {:conform, "~> 2.2"},
-      {:guardian, "~> 1.0-beta"},
-      {:remote_ip, "~> 0.1.0"},
+      {:cowboy, "== 1.1.2"},
+      {:ecto, "== 2.2.10"},
+      {:guardian, github: "ispirata/guardian", ref: "ffa8464ce24a6bd438bc0881f3e108397d053843"},
+      {:remote_ip, "== 0.1.4"},
+      {:ranch, "== 1.4.0", override: true},
 
-      {:distillery, "~> 1.4", runtime: false},
-      {:excoveralls, "~> 0.6", only: :test}
+      {:conform, "== 2.5.2"},
+      {:distillery, "== 1.5.2", runtime: false},
+      {:excoveralls, "~> 0.6", only: :test},
+      {:mox, "~> 0.3", only: :test}
     ]
   end
 end

@@ -1,0 +1,377 @@
+swagger: "2.0"
+info:
+  description: "Control device registration, authentication an authorization"
+  version: "0.1.0"
+  title: "Astarte Pairing API"
+  contact:
+    email: "info@ispirata.com"
+basePath: "/v1"
+tags:
+- name: "agent"
+  description: "Device registration and credentials secret emission"
+  externalDocs:
+    description: "Find out more"
+    url: "https://docs.astarte-platform.org/snapshot/050-pairing_mechanism.html"
+- name: "device"
+  description: "Device credentials emission and info"
+  externalDocs:
+    description: "Find out more"
+    url: "https://docs.astarte-platform.org/snapshot/050-pairing_mechanism.html"
+securityDefinitions:
+    JWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: |
+        For accessing the agent API a valid JWT token must be passed in all the queries in
+        the 'Authorization' header.
+
+        The following syntax must be used in the 'Authorization' header :
+          Bearer xxxxxx.yyyyyyy.zzzzzz
+
+    CredentialsSecret:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: |
+        For accessing the device API a valid Credentials Secret must be passed in all the queries
+        in the 'Authorization' header
+
+        The following syntax must be used in the 'Authorization' header :
+          Bearer xxxxxxxxxxxxxxxxxxxxx
+paths:
+  /{realm_name}/agent/devices:
+    post:
+      tags:
+      - "agent"
+      summary: "Register a device"
+      description: "Register a device, obtaining its credentials secret. The registration can be repeated as long as the device didn't request any credentials"
+      operationId: "registerDevice"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      security:
+      - JWT: []
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm the device belongs to."
+        required: true
+        type: "string"
+      - name: "payload"
+        in: "body"
+        description: "Device parameters"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            data:
+              $ref: "#/definitions/DeviceRegistrationRequest"
+          example:
+            data:
+              hw_id: "YHjKs3SMTgqq09eD7fzm6wY25SWGI5RCyD48hqywwznQ"
+
+      responses:
+        201:
+          description: "Device registered"
+          examples:
+            application/json:
+              data:
+                credentials_secret:
+                  "TTkd5OgB13X/3qU0LXU7OCxyTXz5QHM2NY1IgidtPOs="
+          schema:
+            type: "object"
+            properties:
+              data:
+                $ref: "#/definitions/DeviceRegistrationResponse"
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/UnauthorizedResponse"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/ForbiddenResponse"
+        422:
+          description: "Unprocessable entity"
+          examples:
+            application/json:
+              errors:
+                hw_id: ["can't be blank"]
+          schema:
+            $ref: "#/definitions/GenericErrorResponse"
+
+  /{realm_name}/devices/{hw_id}:
+    get:
+      tags:
+      - "device"
+      summary: "Obtain status informations for a device"
+      operationId: "getInfo"
+      produces:
+      - "application/json"
+      security:
+      - CredentialsSecret: []
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm the device belongs to."
+        required: true
+        type: "string"
+      - name: "hw_id"
+        in: "path"
+        description: "Hardware id of the device."
+        required: true
+        type: "string"
+
+      responses:
+        200:
+          description: "Info"
+          schema:
+            type: "object"
+            properties:
+              data:
+                $ref: "#/definitions/InfoResponse"
+          examples:
+            application/json:
+              data:
+                version: "0.1.0"
+                status: "confirmed"
+                protocols:
+                  astarte_mqtt_v1:
+                    broker_url: "ssl://broker.astarte.example.com:8883"
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/UnauthorizedResponse"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/ForbiddenResponse"
+
+  /{realm_name}/devices/{hw_id}/protocols/astarte_mqtt_v1/credentials:
+    post:
+      tags:
+      - "device"
+      summary: "Obtain the credentials for Astarte MQTT v1 protocol"
+      operationId: "obtainCredentials"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      security:
+      - CredentialsSecret: []
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm the device belongs to."
+        required: true
+        type: "string"
+      - name: "hw_id"
+        in: "path"
+        description: "Hardware id of the device"
+        required: true
+        type: "string"
+      - name: "payload"
+        in: "body"
+        description: "Credentials request"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            data:
+              $ref: "#/definitions/AstarteMQTTV1CredentialsRequest"
+          example:
+            data:
+              csr: "-----BEGIN CERTIFICATE REQUEST-----\nMIICnTCCAYUCAQAwWDELMAkGA1UEBhMCSVQxFDASBgNVBAgMC0V4YW1wbGVMYW5k\nMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxEDAOBgNVBAMMB0V4\nYW1wbGUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC6B6eGPsTLsP09\nFzxFUKY95GaPnBU1niq1tx1vtA+r9BBnnoUn4JwNHtu5YTWMnlIJtfAs43ltLOrS\nWyvcedg4e6Bh3nztqyD+4uSpzlSI54zexbztVAzzDvVlEuW0wMRgkqF7ez7OixGF\nBHdPgWKTxagVrYdqX/UjNm9f/Wnd3eCA9mEVwsARUlxRgLs0KPXPkqEGCxbcLSx3\nlJR28YE+OTJK7aLSUk3bjLml23SYhWSlmYbNghu3/2P3n4QO4s6+RAw1bMxEO0xr\ngvZThRcdllw+SQRY03VHzCiAAAYzKR8upy5strSbQfG9D38xHGb+A/Z6oSaJp4tR\nm+VknzINAgMBAAGgADANBgkqhkiG9w0BAQsFAAOCAQEALvDY6irBZJXuJ+AZ/5rL\nEEpWXl3f6ohdGkUE9oZFBsNQkCyejQbwYF4ujmxI7CqhZFrX6TA6KkjzDuWwqezt\nYcyYYBgxF8+HUO/66jseGuJiuPkeDQ5e2Kghit8PPutv9I1OVPaQkbNg6aDvaANT\noB9IilYaxWM6en+RdtSg6p5dysfgOM3GbWqIjjZgU1rZsiuTOPRjxzXLc4Vq0v/A\nMvsV2OFBjcOPfqeTwuegl16reSy9+x79zmSfzapoji90Cc1hBQgqvPYCezEeuj+i\nhXQ3OSmKiyvSLJekdmgqdjsu7ks49Tm7wSUKC0QxlDh54k5Yo8uDM+4MLvOZOzL3\nFQ==\n-----END CERTIFICATE REQUEST-----\n"
+
+      responses:
+        201:
+          description: "Credentials created"
+          schema:
+            type: "object"
+            properties:
+              data:
+                $ref: "#/definitions/AstarteMQTTV1CredentialsResponse"
+          examples:
+            application/json:
+              data:
+                client_certificate: "-----BEGIN CERTIFICATE-----\nMIIFfzCCA2egAwIBAgIJALsySXafOY1aMA0GCSqGSIb3DQEBCwUAMFYxCzAJBgNV\nBAYTAklUMRAwDgYDVQQIDAdFeGFtcGxlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn\naXRzIFB0eSBMdGQxEjAQBgNVBAMMCXRlc3QvaHdpZDAeFw0xNzEwMTgxNTE2MzBa\nFw0xODEwMTgxNTE2MzBaMFYxCzAJBgNVBAYTAklUMRAwDgYDVQQIDAdFeGFtcGxl\nMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxEjAQBgNVBAMMCXRl\nc3QvaHdpZDCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKVsOtA5JoWo\nnOF7BASELrkbus/miu9ySu9u/DtQyrsQcUm5dYHbI0jET9CQv+mI46oNzNDkhQUJ\n+1d82fYgd8mkSglKE8QValmIDJzEwRTMVhsj8i8UydwAiuj0wRuW+hHZw1t3kLXL\n4e/CsLBejqKXAWBLxpDgYNulU5c11Dzof7+So8m/y1Kg9TMCgqF979u1jlHA19x8\nPVeUeAcFvrjiV+cr4XbzNCGBMH1f/bm93dBJjbOEuSVCEm4XE5XnvRT3hWSSp3eV\n9P1uRCNyUTkFuru/f/bkVQsvO+YU39IlNePIEozjvdiZeqXqAmei4JugLWhq/Qwy\nskCS/7avlOmgbGjJd8zSGAAl8/0hUH4YkJ4zcvp7rzc/Ze/E7VJuQOrxbmCpaIBo\nC8s3geMCu+7vzyixkgtvG6lWrX7xzMKPbAX5ciBXYMiNIB14GSlPEn6RqFmPnB0Z\nazUtMY8qYVSPSGo12vuWCt6grCh3cpFakWg6LnviW035iClPhup6JXs42jb1UMZv\nkY9eNWICJ+mOZYBEVgFqL5cTVwRis7ZDkBvcuhEOxn6OwkicQuvTWhmFNDttZM9M\n0YAvGzdQU6mtqH7GOHjqi5hSrZ8vthi275jL9sQv9fuEtjTM6r3zE+sFgwTbxSeq\nRk2M/smGcy8NMfke63j/NFCKcAJeexkLAgMBAAGjUDBOMB0GA1UdDgQWBBTpVKpD\nFWDodB9WohGhL6Q3kMUITDAfBgNVHSMEGDAWgBTpVKpDFWDodB9WohGhL6Q3kMUI\nTDAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQAxlhkVPkKv2mKvXspj\ncodSBTfIBMV+TdlwKKT+3A71k0fpS3HSvH98lLxkZLHPQuTi4/hpscITzvdfyLnG\nHFRrCwc3v2x8d3/Fny7MPJu+5HLRMdDXVOSQXOUcA+P1KwibXWwp6GG8kZJ+VWAW\neRiOFwptBje8tdeF3YkEHS5GJ92DOyUc6As2UjCu+Psx0cB5Kevny4XFcekUs1Bd\nhYH1Hnr/WFZJQJz68Bp+APr36UusQRo7a4YrOwnlYszGqrZQtQNRY8XVP5pC/YhD\ncVtXOyU9NkCPlvxsCdTXObeQq38yxLm6gXi3cJBb1eAL0tBAXky0sLrzOHq462Cn\nnzvGySpFjMtO4ZTK9hOp4o9/vXx2U/AWk62yCrhDtD8mlV+ljIbw2V6rFJsFnBsX\nDFG3ljCR7sW+YCLtn/Fig/H07alBr3GiTjAG8vCSMAbvk/QMs1MNEj55FpXY/B6h\nEXK2dEY+KPwMSBSwxrrZ74BXw0TWcwTVTRpkmtZ8qLTnXYOQ5kYKJ+aDR389+Vy6\nd4NjjktgugxaL4tGkSMwiinZbBeG9oxtOgZOKQ/W+K1qzCb2ySH2hk5NTdbt7fQX\n1o2dS9VvunQFSNA8diqBSOjuyoEuR6qo1ejF0o7KW6cJWMsvqq+awKuNmqM7yG59\nySj0xif2Z8U7MTfhmZs1cyDA/A==\n-----END CERTIFICATE-----\n"
+
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/UnauthorizedResponse"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/ForbiddenResponse"
+        422:
+          description: "Unprocessable entity"
+          examples:
+            application/json:
+              errors:
+                purpose: ["can't be blank"]
+          schema:
+            $ref: "#/definitions/GenericErrorResponse"
+
+  /{realm_name}/devices/{hw_id}/protocols/astarte_mqtt_v1/credentials/verify:
+    post:
+      tags:
+      - "device"
+      summary: "Verify the credentials for Astarte MQTT v1 protocol"
+      operationId: "verifyCredentials"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      security:
+      - CredentialsSecret: []
+      parameters:
+      - name: "realm_name"
+        in: "path"
+        description: "Name of the realm the device belongs to."
+        required: true
+        type: "string"
+      - name: "hw_id"
+        in: "path"
+        description: "Hardware id of the device"
+        required: true
+        type: "string"
+      - name: "payload"
+        in: "body"
+        description: "Credentials verification request"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            data:
+              $ref: "#/definitions/AstarteMQTTV1VerifyCredentialsRequest"
+          example:
+            data:
+              client_certificate: "-----BEGIN CERTIFICATE-----\nMIIFfzCCA2egAwIBAgIJALsySXafOY1aMA0GCSqGSIb3DQEBCwUAMFYxCzAJBgNV\nBAYTAklUMRAwDgYDVQQIDAdFeGFtcGxlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn\naXRzIFB0eSBMdGQxEjAQBgNVBAMMCXRlc3QvaHdpZDAeFw0xNzEwMTgxNTE2MzBa\nFw0xODEwMTgxNTE2MzBaMFYxCzAJBgNVBAYTAklUMRAwDgYDVQQIDAdFeGFtcGxl\nMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQxEjAQBgNVBAMMCXRl\nc3QvaHdpZDCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKVsOtA5JoWo\nnOF7BASELrkbus/miu9ySu9u/DtQyrsQcUm5dYHbI0jET9CQv+mI46oNzNDkhQUJ\n+1d82fYgd8mkSglKE8QValmIDJzEwRTMVhsj8i8UydwAiuj0wRuW+hHZw1t3kLXL\n4e/CsLBejqKXAWBLxpDgYNulU5c11Dzof7+So8m/y1Kg9TMCgqF979u1jlHA19x8\nPVeUeAcFvrjiV+cr4XbzNCGBMH1f/bm93dBJjbOEuSVCEm4XE5XnvRT3hWSSp3eV\n9P1uRCNyUTkFuru/f/bkVQsvO+YU39IlNePIEozjvdiZeqXqAmei4JugLWhq/Qwy\nskCS/7avlOmgbGjJd8zSGAAl8/0hUH4YkJ4zcvp7rzc/Ze/E7VJuQOrxbmCpaIBo\nC8s3geMCu+7vzyixkgtvG6lWrX7xzMKPbAX5ciBXYMiNIB14GSlPEn6RqFmPnB0Z\nazUtMY8qYVSPSGo12vuWCt6grCh3cpFakWg6LnviW035iClPhup6JXs42jb1UMZv\nkY9eNWICJ+mOZYBEVgFqL5cTVwRis7ZDkBvcuhEOxn6OwkicQuvTWhmFNDttZM9M\n0YAvGzdQU6mtqH7GOHjqi5hSrZ8vthi275jL9sQv9fuEtjTM6r3zE+sFgwTbxSeq\nRk2M/smGcy8NMfke63j/NFCKcAJeexkLAgMBAAGjUDBOMB0GA1UdDgQWBBTpVKpD\nFWDodB9WohGhL6Q3kMUITDAfBgNVHSMEGDAWgBTpVKpDFWDodB9WohGhL6Q3kMUI\nTDAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQAxlhkVPkKv2mKvXspj\ncodSBTfIBMV+TdlwKKT+3A71k0fpS3HSvH98lLxkZLHPQuTi4/hpscITzvdfyLnG\nHFRrCwc3v2x8d3/Fny7MPJu+5HLRMdDXVOSQXOUcA+P1KwibXWwp6GG8kZJ+VWAW\neRiOFwptBje8tdeF3YkEHS5GJ92DOyUc6As2UjCu+Psx0cB5Kevny4XFcekUs1Bd\nhYH1Hnr/WFZJQJz68Bp+APr36UusQRo7a4YrOwnlYszGqrZQtQNRY8XVP5pC/YhD\ncVtXOyU9NkCPlvxsCdTXObeQq38yxLm6gXi3cJBb1eAL0tBAXky0sLrzOHq462Cn\nnzvGySpFjMtO4ZTK9hOp4o9/vXx2U/AWk62yCrhDtD8mlV+ljIbw2V6rFJsFnBsX\nDFG3ljCR7sW+YCLtn/Fig/H07alBr3GiTjAG8vCSMAbvk/QMs1MNEj55FpXY/B6h\nEXK2dEY+KPwMSBSwxrrZ74BXw0TWcwTVTRpkmtZ8qLTnXYOQ5kYKJ+aDR389+Vy6\nd4NjjktgugxaL4tGkSMwiinZbBeG9oxtOgZOKQ/W+K1qzCb2ySH2hk5NTdbt7fQX\n1o2dS9VvunQFSNA8diqBSOjuyoEuR6qo1ejF0o7KW6cJWMsvqq+awKuNmqM7yG59\nySj0xif2Z8U7MTfhmZs1cyDA/A==\n-----END CERTIFICATE-----\n"
+
+      responses:
+        200:
+          description: "Credentials verified"
+          schema:
+            type: "object"
+            properties:
+              data:
+                $ref: "#/definitions/AstarteMQTTV1VerifyCredentialsResponse"
+          examples:
+            application/json:
+              data:
+                valid: false
+                cause: "INVALID_ISSUER"
+        401:
+          description: "Unauthorized"
+          schema:
+            $ref: "#/definitions/UnauthorizedResponse"
+        403:
+          description: "Forbidden"
+          schema:
+            $ref: "#/definitions/ForbiddenResponse"
+        422:
+          description: "Unprocessable entity"
+          examples:
+            application/json:
+              errors:
+                purpose: ["can't be blank"]
+          schema:
+            $ref: "#/definitions/GenericErrorResponse"
+definitions:
+  DeviceRegistrationRequest:
+    type: "object"
+    properties:
+      hw_id:
+        type: "string"
+
+  DeviceRegistrationResponse:
+    type: "object"
+    properties:
+      credentials_secret:
+        type: "string"
+
+  InfoResponse:
+    type: "object"
+    properties:
+      version:
+        type: "string"
+      status:
+        type: "string"
+      protocols:
+        type: "object"
+
+  CredentialsObject:
+    type: "object"
+
+  AstarteMQTTV1CredentialsRequest:
+    type: "object"
+    properties:
+      csr:
+        type: "string"
+
+  AstarteMQTTV1CredentialsResponse:
+    type: "object"
+    properties:
+      client_crt:
+        type: "string"
+
+  AstarteMQTTV1VerifyCredentialsRequest:
+    type: "object"
+    properties:
+      purpose:
+        type: "string"
+      credentials:
+        $ref: "#/definitions/CredentialsObject"
+
+  AstarteMQTTV1VerifyCredentialsResponse:
+    type: "object"
+    properties:
+      valid:
+        type: "boolean"
+        description: "true if the credentials are valid, false otherwise"
+      timestamp:
+        type: "integer"
+        description: "the timestamp of the credentials verification"
+      until:
+        type: "integer"
+        description: "if the certificate is valid, the timestamp after which it will be invalid"
+      cause:
+        type: "string"
+        description: "the reason the certificate is invalid"
+      details:
+        type: "string"
+        description: "additional details on the verification"
+
+  ForbiddenResponse:
+    description: "Forbidden response"
+    type: "object"
+    properties:
+      errors:
+        type: "object"
+        properties:
+          detail:
+            type: "string"
+    example:
+      errors:
+        detail: "Forbidden"
+
+  GenericErrorResponse:
+    type: "object"
+    properties:
+      errors:
+        type: "object"
+
+  UnauthorizedResponse:
+    description: "Unauthorized response"
+    properties:
+      errors:
+        type: "object"
+        properties:
+          detail:
+            type: "string"
+    example:
+      errors:
+        detail: "Unauthorized"

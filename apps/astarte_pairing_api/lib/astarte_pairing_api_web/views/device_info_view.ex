@@ -14,26 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.APIWeb.Plug.FixLegacyPairingMIME do
-  import Plug.Conn
+defmodule Astarte.Pairing.APIWeb.DeviceInfoView do
+  use Astarte.Pairing.APIWeb, :view
+  alias Astarte.Pairing.APIWeb.DeviceInfoView
 
-  def init(_opts), do: false
-
-  def call(conn, _opts) do
-    if legacy_pairing?(conn.request_path) do
-      conn
-      |> put_req_header("content-type", "application/astarte-legacy-pairing")
-    else
-      conn
-    end
+  def render("show.json", %{device_info: device_info}) do
+    %{data: render_one(device_info, DeviceInfoView, "device_info.json")}
   end
 
-  defp legacy_pairing?("/api/v1/pairing"), do: true
-
-  defp legacy_pairing?("/api/v1/verifyCertificate"), do: true
-
-  defp legacy_pairing?(_), do: false
+  def render("device_info.json", %{device_info: device_info}) do
+    %{version: device_info.version, status: device_info.status, protocols: device_info.protocols}
+  end
 end

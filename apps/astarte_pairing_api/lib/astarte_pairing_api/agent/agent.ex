@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Pairing.API.Agent do
@@ -22,31 +22,28 @@ defmodule Astarte.Pairing.API.Agent do
   The Agent context.
   """
 
-  alias Astarte.Pairing.API.Agent.APIKey
-  alias Astarte.Pairing.API.Agent.APIKeyRequest
-  alias Astarte.Pairing.API.RPC.AMQPClient
+  alias Astarte.Pairing.API.Agent.DeviceRegistrationRequest
+  alias Astarte.Pairing.API.Agent.DeviceRegistrationResponse
+  alias Astarte.Pairing.API.RPC.Pairing
   alias Astarte.Pairing.API.Utils
 
-  def generate_api_key(attrs \\ %{}) do
+  def register_device(realm, attrs \\ %{}) do
     changeset =
-      %APIKeyRequest{}
-      |> APIKeyRequest.changeset(attrs)
+      %DeviceRegistrationRequest{}
+      |> DeviceRegistrationRequest.changeset(attrs)
 
-    if changeset.valid? do
-      %APIKeyRequest{hw_id: hw_id, realm: realm} = Ecto.Changeset.apply_changes(changeset)
-
-      case AMQPClient.generate_api_key(realm, hw_id) do
-        {:ok, api_key} ->
-          {:ok, %APIKey{api_key: api_key}}
-
-        {:error, %{} = error_map} ->
-          {:error, Utils.error_map_into_changeset(changeset, error_map)}
-
-        _other ->
-          {:error, :rpc_error}
-      end
+    with {:ok, %DeviceRegistrationRequest{hw_id: hw_id}} <- Ecto.Changeset.apply_action(changeset, :insert),
+         {:ok, %{credentials_secret: secret}} <- Pairing.register_device(realm, hw_id) do
+      {:ok, %DeviceRegistrationResponse{credentials_secret: secret}}
     else
-      {:error, %{changeset | action: :create}}
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, changeset}
+
+      {:error, %{} = error_map} ->
+        {:error, Utils.error_map_into_changeset(changeset, error_map)}
+
+      {:error, _other} ->
+        {:error, :rpc_error}
     end
   end
 end

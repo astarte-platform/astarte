@@ -17,33 +17,31 @@
 # Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.Info do
-  @moduledoc """
-  The Info context.
-  """
+defmodule Astarte.Pairing.APIWeb.JWTTestHelper do
+  alias Astarte.Pairing.API.Auth.User
+  alias Astarte.Pairing.APIWeb.AuthGuardian
 
-  alias Astarte.Pairing.API.Info.DeviceInfo
-  alias Astarte.Pairing.API.RPC.Pairing
+  def agent_public_key_pems do
+    Application.get_env(:astarte_pairing_api, :agent_public_key_pems)
+  end
 
-  @doc """
-  Retrieves device info.
-  """
-  def get_device_info(realm, hw_id, secret) do
-    with {:ok, %{version: version, status: status, protocols: protocols}} <-
-           Pairing.get_info(realm, hw_id, secret) do
-      device_info = %DeviceInfo{
-        version: version,
-        status: status,
-        protocols: protocols
-      }
+  def gen_jwt_token(authorization_paths) do
+    jwk =
+      Application.get_env(:astarte_pairing_api, :test_priv_key)
+      |> JOSE.JWK.from_map()
 
-      {:ok, device_info}
-    else
-      {:error, :forbidden} ->
-        {:error, :forbidden}
+    {:ok, jwt, _claims} =
+      %User{id: "testuser"}
+      |> AuthGuardian.encode_and_sign(
+        %{a_pa: authorization_paths},
+        secret: jwk,
+        allowed_algos: ["RS256"]
+      )
 
-      {:error, _other} ->
-        {:error, :rpc_error}
-    end
+    jwt
+  end
+
+  def gen_jwt_all_access_token do
+    gen_jwt_token([".*::.*"])
   end
 end

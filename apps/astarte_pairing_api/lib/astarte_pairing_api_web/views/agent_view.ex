@@ -14,23 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.Pairing.VerifyCertificateRequest do
-  use Ecto.Schema
-  import Ecto.Changeset
-  alias Astarte.Pairing.API.Pairing.VerifyCertificateRequest
+defmodule Astarte.Pairing.APIWeb.AgentView do
+  use Astarte.Pairing.APIWeb, :view
+  alias Astarte.Pairing.APIWeb.AgentView
 
-  @primary_key false
-  embedded_schema do
-    field :certificate, :string
+  def render("show.json", %{device_registration_response: device_registration_response}) do
+    %{
+      data:
+        render_one(device_registration_response, AgentView, "device_registration_response.json", as: :response)
+    }
   end
 
-  @doc false
-  def changeset(%VerifyCertificateRequest{} = certificate_request, attrs) do
-    certificate_request
-    |> cast(attrs, [:certificate])
-    |> validate_required([:certificate])
+  def render("device_registration_response.json", %{response: response}) do
+    %{credentials_secret: response.credentials_secret}
   end
 end

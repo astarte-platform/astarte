@@ -14,19 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.APIWeb.APIKeyView do
-  use Astarte.Pairing.APIWeb, :view
-  alias Astarte.Pairing.APIWeb.APIKeyView
-
-  def render("show.json", %{api_key: api_key}) do
-    render_one(api_key, APIKeyView, "api_key.json")
-  end
-
-  def render("api_key.json", %{api_key: api_key}) do
-    # apiKey is spelled this way for backwards compatibility
-    %{apiKey: api_key}
-  end
+defmodule Astarte.Pairing.API.Agent.DeviceRegistrationResponse do
+  @enforce_keys [:credentials_secret]
+  defstruct [:credentials_secret]
 end

@@ -14,28 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.APIWeb.TestJWTProducer do
-  use Guardian, otp_app: :astarte_pairing_api
-
-  alias Astarte.Pairing.API.Agent.Realm
-
-  def build_claims(claims, %Realm{realm_name: realm_name}, _opts) do
-    new_claims =
-      claims
-      |> Map.delete("sub")
-      |> Map.put("routingTopic", realm_name)
-
-    {:ok, new_claims}
-  end
-
-  def subject_for_token(%Realm{realm_name: realm_name}, _claims) do
-    {:ok, realm_name}
-  end
-
-  def resource_from_claims(claims) do
-    {:ok, %Realm{realm_name: claims["routingTopic"]}}
-  end
+defmodule Astarte.Pairing.API.Credentials.AstarteMQTTV1.CredentialsStatus do
+  @enforce_keys [
+    :valid,
+    :timestamp,
+    :until,
+    :cause,
+    :details
+  ]
+  defstruct [
+    :valid,
+    :timestamp,
+    :until,
+    :cause,
+    :details
+  ]
 end

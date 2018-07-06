@@ -53,15 +53,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   import: [],
   mappings: [
     # Available options
-    "jwt_public_key_path": [
-      commented: true,
-      datatype: :binary,
-      env_var: "PAIRING_API_JWT_PUBLIC_KEY_PATH",
-      doc: "The path to the public key used to verify the Agent JWT.",
-      hidden: false,
-      required: true,
-      to: "astarte_pairing_api.jwt_public_key_path"
-    ],
     "port": [
       commented: true,
       datatype: :integer,
@@ -79,6 +70,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       default: "0.0.0.0",
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip"
+    ],
+    "disable_authentication": [
+      commented: true,
+      datatype: :atom,
+      env_var: "PAIRING_API_DISABLE_AUTHENTICATION",
+      doc: "Disables JWT authentication for agent's endpoints. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
+      default: false,
+      hidden: false,
+      to: "astarte_pairing_api.disable_authentication"
     ],
     # Hidden options
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host": [
@@ -205,16 +205,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       case :inet.parse_address(charlist_ip) do
         {:ok, tuple_ip} -> tuple_ip
         _ -> raise "Invalid IP address in bind_address"
-      end
-    end,
-    "astarte_pairing_api.jwt_public_key": fn conf ->
-      [{_, public_key_path}] = Conform.Conf.get(conf, "astarte_pairing_api.jwt_public_key_path")
-
-      if public_key_path == nil, do: raise "No JWT public key path configured"
-
-      case JOSE.JWK.from_pem_file(public_key_path) do
-        [] -> raise "Can't load JWT public key from path #{public_key_path}"
-        jwk -> jwk
       end
     end
   ],

@@ -14,10 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.API.Agent.APIKey do
-  @enforce_keys [:api_key]
-  defstruct [:api_key]
+defmodule Astarte.Pairing.APIWeb.Plug.AuthorizePath do
+  alias Astarte.Pairing.API.Config
+  alias Astarte.Pairing.APIWeb.Plug.GuardianAuthorizePath
+
+  def init(opts) do
+    GuardianAuthorizePath.init(opts)
+  end
+
+  def call(conn, opts) do
+    unless Config.authentication_disabled?() do
+      GuardianAuthorizePath.call(conn, opts)
+    else
+      conn
+    end
+  end
 end

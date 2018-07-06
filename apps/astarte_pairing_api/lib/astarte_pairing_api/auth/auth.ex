@@ -14,18 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.APIWeb.BrokerInfoController do
-  use Astarte.Pairing.APIWeb, :controller
+defmodule Astarte.Pairing.API.Auth do
+  alias Astarte.Pairing.API.RPC.Pairing
 
-  alias Astarte.Pairing.API.Info
-
-  action_fallback Astarte.Pairing.APIWeb.FallbackController
-
-  def show(conn, %{}) do
-    broker_info = Info.get_broker_info!()
-    render(conn, "show.json", broker_info: broker_info)
+  def get_public_keys(realm) do
+    Pairing.get_agent_public_key_pems(realm)
   end
 end
