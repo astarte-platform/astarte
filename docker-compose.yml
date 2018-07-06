@@ -5,7 +5,6 @@ services:
     image: astarte/astarte:snapshot
     env_file:
      - ./compose.env
-     - ./compose_generated.env
     environment:
       ASTARTE_CASSANDRA_NODES: "cassandra:9042"
       APPENGINE_API_MQTT_HOST: "vernemq"
