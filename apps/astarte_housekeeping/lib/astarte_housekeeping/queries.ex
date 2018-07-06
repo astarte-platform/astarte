@@ -118,7 +118,6 @@ defmodule Astarte.Housekeeping.Queries do
       path varchar,
       reception_timestamp timestamp,
       reception_timestamp_submillis smallint,
-      endpoint_tokens list<varchar>,
 
       double_value double,
       integer_value int,
