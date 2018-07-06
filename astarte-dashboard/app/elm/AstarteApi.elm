@@ -1,9 +1,12 @@
 module AstarteApi exposing (..)
 
 import Http
+import Task
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
+import Navigation
+import Route
 
 
 -- Types
@@ -14,67 +17,70 @@ import Types.Trigger as Trigger exposing (Trigger)
 import Types.RealmConfig as RealmConfig exposing (Config)
 
 
-type Endpoint
-    = ConfigAuth
-    | UpdateConfigAuth
-    | ListInterfaces
-    | ListInterfaceMajors String
-    | GetInterface String Int
-    | DeleteInterface String Int
-    | NewInterface
-    | ListTriggers
-    | GetTrigger String
-    | NewTrigger
+type AstarteApiError
+    = NeedsLogin
+    | ErrorWithMessage String
 
 
-endpointParams : Session -> Endpoint -> ( String, String )
-endpointParams session endpoint =
-    let
-        realm =
-            case session.credentials of
-                Nothing ->
-                    ""
+handleResponse : (a -> msg) -> (String -> msg) -> msg -> Result AstarteApiError a -> msg
+handleResponse doneMessage errorMessage reloginMessage result =
+    case result of
+        Ok data ->
+            doneMessage data
 
-                Just c ->
-                    c.realm
+        Err (ErrorWithMessage message) ->
+            errorMessage message
 
-        baseUrl =
-            session.realmManagementApiUrl ++ realm
-    in
-        case endpoint of
-            ConfigAuth ->
-                ( "GET", baseUrl ++ "/config/auth" )
-
-            UpdateConfigAuth ->
-                ( "PUT", baseUrl ++ "/config/auth" )
-
-            ListInterfaces ->
-                ( "GET", baseUrl ++ "/interfaces" )
-
-            ListInterfaceMajors interfaceName ->
-                ( "GET", baseUrl ++ "/interfaces/" ++ interfaceName )
-
-            GetInterface interfaceName major ->
-                ( "GET", baseUrl ++ "/interfaces/" ++ interfaceName ++ "/" ++ (toString major) )
-
-            DeleteInterface interfaceName major ->
-                ( "DELETE", baseUrl ++ "/interfaces/" ++ interfaceName ++ "/" ++ (toString major) )
-
-            NewInterface ->
-                ( "POST", baseUrl ++ "/interfaces" )
-
-            ListTriggers ->
-                ( "GET", baseUrl ++ "/triggers" )
-
-            GetTrigger triggerName ->
-                ( "GET", baseUrl ++ "/triggers/" ++ triggerName )
-
-            NewTrigger ->
-                ( "POST", baseUrl ++ "/triggers" )
+        Err NeedsLogin ->
+            reloginMessage
 
 
-headers : Maybe Credentials -> List Http.Header
-headers maybeCredentials =
+requestToCommand : (a -> msg) -> (String -> msg) -> msg -> Http.Request a -> Cmd msg
+requestToCommand doneMessage errorMessage reloginMessage request =
+    request
+        |> Http.toTask
+        |> Task.mapError filterError
+        |> Task.attempt (handleResponse doneMessage errorMessage reloginMessage)
+
+
+filterError : Http.Error -> AstarteApiError
+filterError error =
+    case error of
+        Http.BadUrl string ->
+            ErrorWithMessage <| "Bad url " ++ string
+
+        Http.Timeout ->
+            ErrorWithMessage "Timeout"
+
+        Http.NetworkError ->
+            ErrorWithMessage "Network error"
+
+        Http.BadStatus response ->
+            case response.status.code of
+                401 ->
+                    NeedsLogin
+
+                403 ->
+                    ErrorWithMessage "Forbidden"
+
+                404 ->
+                    ErrorWithMessage "Resource not found"
+
+                422 ->
+                    ErrorWithMessage "Invalid entity"
+
+                500 ->
+                    ErrorWithMessage "Internal server error"
+
+                _ ->
+                    ErrorWithMessage <| "Status code " ++ (toString response.status.code)
+
+        Http.BadPayload debugMessage response ->
+            ErrorWithMessage <| "Bad payload " ++ response.body
+
+
+buildHeaders : Maybe Credentials -> List Http.Header
+buildHeaders maybeCredentials =
     case maybeCredentials of
         Just credentials ->
             [ Http.header "Authorization" ("Bearer " ++ credentials.token) ]
@@ -83,183 +89,207 @@ headers maybeCredentials =
             []
 
 
+getBaseUrl : Session -> String
+getBaseUrl session =
+    let
+        realm =
+            case session.credentials of
+                Nothing ->
+                    ""
+
+                Just c ->
+                    c.realm
+    in
+        session.realmManagementApiUrl ++ realm
+
+
 
 -- Realm config
 
 
-getRealmConfigRequest : Session -> Http.Request Config
-getRealmConfigRequest session =
+realmConfig : Session -> (Config -> msg) -> (String -> msg) -> msg -> Cmd msg
+realmConfig session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session ConfigAuth
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "GET"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/config/auth" ]
             , body = Http.emptyBody
             , expect = Http.expectJson <| field "data" RealmConfig.decoder
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
-updateRealmConfigRequest : Config -> Session -> Http.Request String
-updateRealmConfigRequest config session =
+updateRealmConfig : Config -> Session -> (String -> msg) -> (String -> msg) -> msg -> Cmd msg
+updateRealmConfig config session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session UpdateConfigAuth
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "PUT"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/config/auth" ]
             , body = Http.jsonBody <| Json.Encode.object [ ( "data", RealmConfig.encoder config ) ]
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
 
 -- Interfaces
 
 
-getInterfacesRequest : Session -> Http.Request (List String)
-getInterfacesRequest session =
+listInterfaces : Session -> (List String -> msg) -> (String -> msg) -> msg -> Cmd msg
+listInterfaces session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session ListInterfaces
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "GET"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/interfaces" ]
             , body = Http.emptyBody
             , expect = Http.expectJson <| field "data" (list string)
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
-getInterfaceMajorsRequest : String -> Session -> Http.Request (List Int)
-getInterfaceMajorsRequest interfaceName session =
+listInterfaceMajors : String -> Session -> (List Int -> msg) -> (String -> msg) -> msg -> Cmd msg
+listInterfaceMajors interfaceName session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session <| ListInterfaceMajors interfaceName
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "GET"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/interfaces/", interfaceName ]
             , body = Http.emptyBody
             , expect = Http.expectJson <| field "data" (list int)
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
-getInterfaceRequest : String -> Int -> Session -> Http.Request Interface
-getInterfaceRequest interfaceName major session =
+getInterface : String -> Int -> Session -> (Interface -> msg) -> (String -> msg) -> msg -> Cmd msg
+getInterface interfaceName major session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session <| GetInterface interfaceName major
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "GET"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/interfaces/", interfaceName, "/", toString major ]
             , body = Http.emptyBody
             , expect = Http.expectJson <| field "data" Interface.decoder
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
-deleteInterfaceRequest : String -> Int -> Session -> Http.Request String
-deleteInterfaceRequest interfaceName major session =
+deleteInterface : String -> Int -> Session -> (String -> msg) -> (String -> msg) -> msg -> Cmd msg
+deleteInterface interfaceName major session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session <| DeleteInterface interfaceName major
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "DELETE"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/interfaces/", interfaceName, "/", toString major ]
             , body = Http.emptyBody
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
-addNewInterfaceRequest : Interface -> Session -> Http.Request String
-addNewInterfaceRequest interface session =
+addNewInterface : Interface -> Session -> (String -> msg) -> (String -> msg) -> msg -> Cmd msg
+addNewInterface interface session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session NewInterface
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "POST"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/interfaces" ]
             , body = Http.jsonBody <| Json.Encode.object [ ( "data", Interface.encoder interface ) ]
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
 
 -- Triggers
 
 
-getTriggersRequest : Session -> Http.Request (List String)
-getTriggersRequest session =
+listTriggers : Session -> (List String -> msg) -> (String -> msg) -> msg -> Cmd msg
+listTriggers session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session ListTriggers
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "GET"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/triggers" ]
             , body = Http.emptyBody
             , expect = Http.expectJson <| field "data" (list string)
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
-getTriggerRequest : String -> Session -> Http.Request Trigger
-getTriggerRequest triggerName session =
+getTrigger : String -> Session -> (Trigger -> msg) -> (String -> msg) -> msg -> Cmd msg
+getTrigger triggerName session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session <| GetTrigger triggerName
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "GET"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/triggers/", triggerName ]
             , body = Http.emptyBody
             , expect = Http.expectJson <| field "data" Trigger.decoder
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage
 
 
-addNewTriggerRequest : Trigger -> Session -> Http.Request String
-addNewTriggerRequest trigger session =
+addNewTrigger : Trigger -> Session -> (String -> msg) -> (String -> msg) -> msg -> Cmd msg
+addNewTrigger trigger session doneMessage errorMessage reloginMessage =
     let
-        ( method, url ) =
-            endpointParams session NewTrigger
+        baseUrl =
+            getBaseUrl session
     in
         Http.request
-            { method = method
-            , headers = headers session.credentials
-            , url = url
+            { method = "POST"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/triggers/" ]
             , body = Http.jsonBody <| Json.Encode.object [ ( "data", Trigger.encoder trigger ) ]
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
             }
+            |> requestToCommand doneMessage errorMessage reloginMessage

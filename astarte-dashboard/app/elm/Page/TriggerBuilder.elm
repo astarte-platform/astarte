@@ -1,14 +1,15 @@
 module Page.TriggerBuilder exposing (Model, Msg, init, update, view)
 
 import Regex exposing (regex)
-import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
+import Navigation
 
 
 -- Types
 
+import Route
 import AstarteApi
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -71,25 +72,34 @@ init maybeTriggerName session =
     , case maybeTriggerName of
         Just name ->
             Cmd.batch
-                [ Http.send GetTriggerDone <|
-                    AstarteApi.getTriggerRequest name session
-                , Http.send GetInterfaceListDone <|
-                    AstarteApi.getInterfacesRequest session
+                [ AstarteApi.getTrigger name
+                    session
+                    GetTriggerDone
+                    (ShowError "Cannot retrieve selected trigger.")
+                    RedirectToLogin
+                , AstarteApi.listInterfaces session
+                    GetInterfaceListDone
+                    (ShowError "Cannot retrieve interface list.")
+                    RedirectToLogin
                 ]
 
         Nothing ->
-            Http.send GetInterfaceListDone <|
-                AstarteApi.getInterfacesRequest session
+            AstarteApi.listInterfaces session
+                GetInterfaceListDone
+                (ShowError "Cannot retrieve interface list.")
+                RedirectToLogin
     )
 
 
 type Msg
-    = GetTriggerDone (Result Http.Error Trigger)
+    = GetTriggerDone Trigger
     | AddTrigger
-    | AddTriggerDone (Result Http.Error String)
-    | GetInterfaceListDone (Result Http.Error (List String))
-    | GetInterfaceMajorsDone (Result Http.Error (List Int))
-    | GetInterfaceDone (Result Http.Error Interface)
+    | AddTriggerDone String
+    | GetInterfaceListDone (List String)
+    | GetInterfaceMajorsDone (List Int)
+    | GetInterfaceDone Interface
+    | ShowError String String
+    | RedirectToLogin
     | Forward ExternalMsg
       -- Trigger messages
     | UpdateTriggerName String
@@ -112,7 +122,7 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
-        GetTriggerDone (Ok trigger) ->
+        GetTriggerDone trigger ->
             case trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
                     let
@@ -128,10 +138,17 @@ update session msg model =
                             , selectedKnownValue = knownValueString
                           }
                         , Cmd.batch
-                            [ Http.send GetInterfaceDone <|
-                                AstarteApi.getInterfaceRequest dataTrigger.interfaceName dataTrigger.interfaceMajor session
-                            , Http.send GetInterfaceMajorsDone <|
-                                AstarteApi.getInterfaceMajorsRequest dataTrigger.interfaceName session
+                            [ AstarteApi.getInterface dataTrigger.interfaceName
+                                dataTrigger.interfaceMajor
+                                session
+                                GetInterfaceDone
+                                (ShowError "Cannot retrieve interface.")
+                                RedirectToLogin
+                            , AstarteApi.listInterfaceMajors dataTrigger.interfaceName
+                                session
+                                GetInterfaceMajorsDone
+                                (ShowError "Cannot retrieve interface major versions.")
+                                RedirectToLogin
                             ]
                         , ExternalMsg.Noop
                         )
@@ -145,33 +162,25 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        GetTriggerDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve selected trigger."
-            )
-
-        GetInterfaceListDone (Ok interfaces) ->
+        GetInterfaceListDone interfaces ->
             ( { model | interfaces = interfaces }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
-        GetInterfaceListDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve interface list."
-            )
-
-        GetInterfaceMajorsDone (Ok majors) ->
+        GetInterfaceMajorsDone majors ->
             case ( model.refInterface, majors ) of
                 ( Nothing, major :: tail ) ->
                     ( { model
                         | majors = majors
                         , selectedInterfaceMajor = Just major
                       }
-                    , Http.send GetInterfaceDone <|
-                        AstarteApi.getInterfaceRequest model.selectedInterfaceName major session
+                    , AstarteApi.getInterface model.selectedInterfaceName
+                        major
+                        session
+                        GetInterfaceDone
+                        (ShowError "Cannot retrieve interface.")
+                        RedirectToLogin
                     , ExternalMsg.Noop
                     )
 
@@ -181,13 +190,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        GetInterfaceMajorsDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve major list for selected interface."
-            )
-
-        GetInterfaceDone (Ok interface) ->
+        GetInterfaceDone interface ->
             case model.trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
                     let
@@ -214,13 +217,19 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        GetInterfaceDone (Err err) ->
-            ( { model
-                | refInterface = Nothing
-                , mappingType = Nothing
-              }
+        ShowError actionError errorMessage ->
+            ( model
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve selected interface."
+            , [ actionError, " ", errorMessage ]
+                |> String.concat
+                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            )
+
+        RedirectToLogin ->
+            -- TODO: We should save page context, ask for login and then restore previous context
+            ( model
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
+            , ExternalMsg.Noop
             )
 
         Forward msg ->
@@ -231,22 +240,19 @@ update session msg model =
 
         AddTrigger ->
             ( model
-            , Http.send AddTriggerDone <|
-                AstarteApi.addNewTriggerRequest model.trigger session
+            , AstarteApi.addNewTrigger model.trigger
+                session
+                AddTriggerDone
+                (ShowError "Cannot install trigger.")
+                RedirectToLogin
             , ExternalMsg.Noop
             )
 
-        AddTriggerDone (Ok response) ->
+        AddTriggerDone response ->
             -- redirect to trigger list? or switch to edit mode?
             ( model
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully added."
-            )
-
-        AddTriggerDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Could not add trigger."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed."
             )
 
         UpdateTriggerName newName ->
@@ -330,8 +336,11 @@ update session msg model =
                         , selectedInterfaceName = interfaceName
                         , selectedInterfaceMajor = Nothing
                       }
-                    , Http.send GetInterfaceMajorsDone <|
-                        AstarteApi.getInterfaceMajorsRequest interfaceName session
+                    , AstarteApi.listInterfaceMajors interfaceName
+                        session
+                        GetInterfaceMajorsDone
+                        (ShowError "Cannot retrieve interface major versions.")
+                        RedirectToLogin
                     , ExternalMsg.Noop
                     )
 
@@ -349,8 +358,12 @@ update session msg model =
                             ( { model
                                 | selectedInterfaceMajor = Just newMajor
                               }
-                            , Http.send GetInterfaceDone <|
-                                AstarteApi.getInterfaceRequest model.selectedInterfaceName newMajor session
+                            , AstarteApi.getInterface model.selectedInterfaceName
+                                newMajor
+                                session
+                                GetInterfaceDone
+                                (ShowError "Cannot retrieve interface.")
+                                RedirectToLogin
                             , ExternalMsg.Noop
                             )
 
@@ -576,7 +589,7 @@ view model flashMessages =
                             (if model.editMode then
                                 model.trigger.name
                              else
-                                "Add a new trigger"
+                                "Install a new trigger"
                             )
                         ]
                     ]
@@ -609,7 +622,7 @@ view model flashMessages =
                                     (if model.editMode then
                                         "Edit Trigger"
                                      else
-                                        "Add Trigger"
+                                        "Install Trigger"
                                     )
                                 ]
                             ]
