@@ -20,7 +20,7 @@ $ ./generate-compose-files.sh
 $ docker-compose up -d
 ```
 
-`generate-compose-files.sh` will generate a root CA for devices, a key pair for Housekeeping and Pairing, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
+`generate-compose-files.sh` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
 
 Compose might take some time to bring everything up, but usually within a minute from the containers creation Astarte will be ready. Compose will forward the following ports to your machine:
 
@@ -103,10 +103,16 @@ Depending on what your client supports, you can either compile `stream-qt5-test`
 
 ### Using a container for stream-test
 
-Astarte's `stream-test` can be pulled from Docker Hub. Its most basic invocation (from your `astarte` repository tree) is:
+Astarte's `stream-test` can be pulled from Docker Hub with:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(./generate-astarte-device-id)" -e "PAIRING_HOST=http://localhost:4003" -e "AGENT_KEY=$(./generate-astarte-credentials -t agent -r test -p compose/astarte-keys/pairing.key)" -e "IGNORE_SSL_ERRORS=true" astarte/stream-test:snapshot
+$ docker pull astarte/stream-test:snapshot
+```
+
+Its most basic invocation (from your `astarte` repository tree) is:
+
+```sh
+$ docker run --net="host" -e "DEVICE_ID=$(./generate-astarte-device-id)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(./generate-astarte-credentials -t pairing -p test_realm.key)" -e "IGNORE_SSL_ERRORS=true" astarte/stream-test:snapshot
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
