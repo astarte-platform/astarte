@@ -57,7 +57,6 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
         protocol_revision int,
-        metadata map<ascii, text>,
         credentials_api_key ascii,
         inhibit_pairing boolean,
         cert_serial ascii,
