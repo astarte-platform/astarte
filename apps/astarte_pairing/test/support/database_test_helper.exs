@@ -40,7 +40,6 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
     introspection_minor map<ascii, int>,
     protocol_revision int,
     triggers set<ascii>,
-    metadata map<ascii, text>,
     inhibit_credentials_request boolean,
     credentials_secret ascii,
     cert_serial ascii,
