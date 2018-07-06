@@ -710,7 +710,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
          [aliases: aliases] <- DatabaseResult.head(result),
          {^alias_tag, alias_value} <-
-           Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end) do
+           Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end),
+         {:check, {:ok, ^device_id}} <- {:check, device_alias_to_device_id(client, alias_value)} do
       delete_alias_from_device_statement = """
       DELETE aliases[:alias_tag]
       FROM devices
@@ -753,6 +754,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           {:error, :database_error}
       end
     else
+      {:check, _} ->
+        Logger.warn("delete_alias: incosistent alias for #{inspect(device_id)}/#{alias_tag}")
+        {:error, :database_error}
+
       :empty_dataset ->
         {:error, :device_not_found}
 
