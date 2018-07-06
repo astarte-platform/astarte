@@ -695,38 +695,57 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def delete_alias(client, device_id, alias_tag) do
-    retrieve_aliases_statement = "SELECT aliases FROM devices WHERE device_id = :device_id;"
+    retrieve_aliases_statement = """
+    SELECT aliases
+    FROM devices
+    WHERE device_id = :device_id
+    """
 
     retrieve_aliases_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(retrieve_aliases_statement)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
          [aliases: aliases] <- DatabaseResult.head(result),
          {^alias_tag, alias_value} <-
            Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end) do
-      # TODO: Add IF EXISTS and batch
-      delete_alias_from_device_statement =
-        "DELETE aliases[:alias_tag] FROM devices WHERE device_id = :device_id;"
+      delete_alias_from_device_statement = """
+      DELETE aliases[:alias_tag]
+      FROM devices
+      WHERE device_id = :device_id
+      """
 
       delete_alias_from_device_query =
         DatabaseQuery.new()
         |> DatabaseQuery.statement(delete_alias_from_device_statement)
         |> DatabaseQuery.put(:alias_tag, alias_tag)
         |> DatabaseQuery.put(:device_id, device_id)
+        |> DatabaseQuery.consistency(:each_quorum)
+        |> DatabaseQuery.convert()
 
-      delete_alias_from_names_statement =
-        "DELETE FROM names WHERE object_name = :alias AND object_type = 1;"
+      delete_alias_from_names_statement = """
+      DELETE FROM names
+      WHERE object_name = :alias AND object_type = 1
+      """
 
       delete_alias_from_names_query =
         DatabaseQuery.new()
         |> DatabaseQuery.statement(delete_alias_from_names_statement)
         |> DatabaseQuery.put(:alias, alias_value)
         |> DatabaseQuery.put(:device_id, device_id)
+        |> DatabaseQuery.consistency(:each_quorum)
+        |> DatabaseQuery.convert()
 
-      with {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_device_query),
-           {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_names_query) do
+      delete_batch =
+        CQEx.cql_query_batch(
+          consistency: :each_quorum,
+          mode: :logged,
+          queries: [delete_alias_from_device_query, delete_alias_from_names_query]
+        )
+
+      with {:ok, _result} <- DatabaseQuery.call(client, delete_batch) do
         :ok
       else
         not_ok ->
