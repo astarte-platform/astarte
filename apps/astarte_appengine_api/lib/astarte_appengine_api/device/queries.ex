@@ -613,13 +613,17 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def device_alias_to_device_id(client, device_alias) do
-    device_id_statement =
-      "SELECT object_uuid FROM names WHERE object_name = :device_alias AND object_type = 1;"
+    device_id_statement = """
+    SELECT object_uuid
+    FROM names
+    WHERE object_name = :device_alias AND object_type = 1
+    """
 
     device_id_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(device_id_statement)
       |> DatabaseQuery.put(:device_alias, device_alias)
+      |> DatabaseQuery.consistency(:each_quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, device_id_query),
          [object_uuid: device_id] <- DatabaseResult.head(result) do
@@ -655,12 +659,16 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:alias, alias_value)
       |> DatabaseQuery.put(:device_id, device_id)
 
-    # TODO: avoid to delete and insert again the same alias if it didn't change
-    with :ok <- try_delete_alias(client, device_id, alias_tag),
+    with {:existing, {:error, :device_not_found}} <-
+           {:existing, device_alias_to_device_id(client, alias_value)},
+         :ok <- try_delete_alias(client, device_id, alias_tag),
          {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_names_query),
          {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_device_query) do
       :ok
     else
+      {:existing, {:ok, _device_uuid}} ->
+        {:error, :alias_already_in_use}
+
       {:error, :device_not_found} ->
         {:error, :device_not_found}
 
