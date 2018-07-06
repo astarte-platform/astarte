@@ -43,7 +43,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         introspection_minor map<ascii, int>,
         protocol_revision int,
         triggers set<ascii>,
-        metadata map<ascii, text>,
         inhibit_pairing boolean,
         api_key ascii,
         cert_serial ascii,
