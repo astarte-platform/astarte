@@ -32,6 +32,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  require CQEx
   require Logger
 
   def first_result_row(values) do
@@ -613,13 +614,17 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def device_alias_to_device_id(client, device_alias) do
-    device_id_statement =
-      "SELECT object_uuid FROM names WHERE object_name = :device_alias AND object_type = 1;"
+    device_id_statement = """
+    SELECT object_uuid
+    FROM names
+    WHERE object_name = :device_alias AND object_type = 1
+    """
 
     device_id_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(device_id_statement)
       |> DatabaseQuery.put(:device_alias, device_alias)
+      |> DatabaseQuery.consistency(:each_quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, device_id_query),
          [object_uuid: device_id] <- DatabaseResult.head(result) do
@@ -635,18 +640,25 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def insert_alias(client, device_id, alias_tag, alias_value) do
-    # TODO: Add  IF NOT EXISTS and batch queries together
-    insert_alias_to_names_statement =
-      "INSERT INTO names (object_name, object_type, object_uuid) VALUES (:alias, 1, :device_id);"
+    insert_alias_to_names_statement = """
+    INSERT INTO names
+    (object_name, object_type, object_uuid)
+    VALUES (:alias, 1, :device_id)
+    """
 
     insert_alias_to_names_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(insert_alias_to_names_statement)
       |> DatabaseQuery.put(:alias, alias_value)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.convert()
 
-    insert_alias_to_device_statement =
-      "UPDATE devices SET aliases[:alias_tag] = :alias WHERE device_id = :device_id;"
+    insert_alias_to_device_statement = """
+    UPDATE devices
+    SET aliases[:alias_tag] = :alias
+    WHERE device_id = :device_id
+    """
 
     insert_alias_to_device_query =
       DatabaseQuery.new()
@@ -654,70 +666,121 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:alias_tag, alias_tag)
       |> DatabaseQuery.put(:alias, alias_value)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.convert()
 
-    # TODO: avoid to delete and insert again the same alias if it didn't change
-    with :ok <- try_delete_alias(client, device_id, alias_tag),
-         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_names_query),
-         {:ok, _result} <- DatabaseQuery.call(client, insert_alias_to_device_query) do
+    insert_batch =
+      CQEx.cql_query_batch(
+        consistency: :each_quorum,
+        mode: :logged,
+        queries: [insert_alias_to_names_query, insert_alias_to_device_query]
+      )
+
+    with {:existing, {:error, :device_not_found}} <-
+           {:existing, device_alias_to_device_id(client, alias_value)},
+         :ok <- try_delete_alias(client, device_id, alias_tag),
+         {:ok, _result} <- DatabaseQuery.call(client, insert_batch) do
       :ok
     else
+      {:existing, {:ok, _device_uuid}} ->
+        {:error, :alias_already_in_use}
+
+      {:existing, {:error, reason}} ->
+        {:error, reason}
+
       {:error, :device_not_found} ->
         {:error, :device_not_found}
 
-      not_ok ->
-        Logger.warn("Device.insert_alias: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("insert_alias: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("insert_alias: failed, reason: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
 
   def delete_alias(client, device_id, alias_tag) do
-    retrieve_aliases_statement = "SELECT aliases FROM devices WHERE device_id = :device_id;"
+    retrieve_aliases_statement = """
+    SELECT aliases
+    FROM devices
+    WHERE device_id = :device_id
+    """
 
     retrieve_aliases_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(retrieve_aliases_statement)
       |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
          [aliases: aliases] <- DatabaseResult.head(result),
          {^alias_tag, alias_value} <-
-           Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end) do
-      # TODO: Add IF EXISTS and batch
-      delete_alias_from_device_statement =
-        "DELETE aliases[:alias_tag] FROM devices WHERE device_id = :device_id;"
+           Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end),
+         {:check, {:ok, ^device_id}} <- {:check, device_alias_to_device_id(client, alias_value)} do
+      delete_alias_from_device_statement = """
+      DELETE aliases[:alias_tag]
+      FROM devices
+      WHERE device_id = :device_id
+      """
 
       delete_alias_from_device_query =
         DatabaseQuery.new()
         |> DatabaseQuery.statement(delete_alias_from_device_statement)
         |> DatabaseQuery.put(:alias_tag, alias_tag)
         |> DatabaseQuery.put(:device_id, device_id)
+        |> DatabaseQuery.consistency(:each_quorum)
+        |> DatabaseQuery.convert()
 
-      delete_alias_from_names_statement =
-        "DELETE FROM names WHERE object_name = :alias AND object_type = 1;"
+      delete_alias_from_names_statement = """
+      DELETE FROM names
+      WHERE object_name = :alias AND object_type = 1
+      """
 
       delete_alias_from_names_query =
         DatabaseQuery.new()
         |> DatabaseQuery.statement(delete_alias_from_names_statement)
         |> DatabaseQuery.put(:alias, alias_value)
         |> DatabaseQuery.put(:device_id, device_id)
+        |> DatabaseQuery.consistency(:each_quorum)
+        |> DatabaseQuery.convert()
 
-      with {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_device_query),
-           {:ok, _result} <- DatabaseQuery.call(client, delete_alias_from_names_query) do
+      delete_batch =
+        CQEx.cql_query_batch(
+          consistency: :each_quorum,
+          mode: :logged,
+          queries: [delete_alias_from_device_query, delete_alias_from_names_query]
+        )
+
+      with {:ok, _result} <- DatabaseQuery.call(client, delete_batch) do
         :ok
       else
-        not_ok ->
-          Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+        %{acc: _, msg: error_message} ->
+          Logger.warn("delete_alias: database error: #{error_message}")
+          {:error, :database_error}
+
+        {:error, reason} ->
+          Logger.warn("delete_alias: failed, reason: #{inspect(reason)}.")
           {:error, :database_error}
       end
     else
+      {:check, _} ->
+        Logger.warn("delete_alias: incosistent alias for #{inspect(device_id)}/#{alias_tag}")
+        {:error, :database_error}
+
       :empty_dataset ->
         {:error, :device_not_found}
 
       nil ->
         {:error, :alias_tag_not_found}
 
-      not_ok ->
-        Logger.warn("Device.delete_alias: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("delete_alias: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("delete_alias: failed, reason: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
