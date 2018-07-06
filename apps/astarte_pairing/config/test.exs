@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 use Mix.Config
@@ -30,3 +30,7 @@ config :astarte_pairing, :cfssl_url,
 
 config :cqerl, :cassandra_nodes,
   [{System.get_env("CASSANDRA_DB_HOST") || "scylladb-scylla", System.get_env("CASSANDRA_DB_PORT") || 9042}]
+
+config :argon2_elixir,
+  t_cost: 1,
+  m_cost: 8

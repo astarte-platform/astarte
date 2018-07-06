@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Pairing.Queries do
@@ -27,100 +27,134 @@ defmodule Astarte.Pairing.Queries do
 
   require Logger
 
-  @insert_new_device """
-  INSERT INTO devices
-  (device_id, extended_id, inhibit_pairing, protocol_revision, total_received_bytes, total_received_msgs)
-  VALUES (:device_id, :extended_id, :inhibit_pairing, :protocol_revision, :total_received_bytes, :total_received_msgs)
-  """
+  @protocol_revision 1
 
-  @select_device """
-  SELECT device_id
-  FROM devices
-  WHERE device_id=:device_id
-  """
+  def get_agent_public_key_pems(client) do
+    get_jwt_public_key_pem = """
+    SELECT blobAsVarchar(value)
+    FROM kv_store
+    WHERE group='auth' AND key='jwt_public_key_pem';
+    """
 
-  @select_device_for_pairing """
-  SELECT extended_id, first_pairing, cert_aki, cert_serial
-  FROM devices
-  WHERE device_id=:device_id
-  """
+    # TODO: add additional keys
+    query =
+      Query.new()
+      |> Query.statement(get_jwt_public_key_pem)
 
-  @update_device_after_pairing """
-  UPDATE devices
-  SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_pairing_ip=:last_pairing_ip, first_pairing=:first_pairing
-  WHERE device_id=:device_id
-  """
+    with {:ok, res} <- Query.call(client, query),
+         ["system.blobasvarchar(value)": pem] <- Result.head(res) do
+      {:ok, [pem]}
+    else
+      :empty_dataset ->
+        {:error, :public_key_not_found}
 
-  def insert_device(client, device_uuid, extended_id) do
-    # TODO: use IF NOT EXISTS as soon as Scylla supports it
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
+        {:error, :database_error}
+    end
+  end
+
+  def register_device(client, device_id, extended_id, credentials_secret) do
+    statement = """
+    SELECT first_credentials_request
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
     device_exists_query =
       Query.new()
-      |> Query.statement(@select_device)
-      |> Query.put(:device_id, device_uuid)
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
+      |> Query.consistency(:quorum)
 
-    case Query.call(client, device_exists_query) do
-      {:ok, res} ->
-        if Result.size(res) > 0 do
-          {:error, :device_exists}
-        else
-          insert_not_existing_device(client, device_uuid, extended_id)
-        end
+    with {:ok, res} <- Query.call(client, device_exists_query) do
+      case Result.head(res) do
+        :empty_dataset ->
+          do_register_device(client, device_id, extended_id, credentials_secret)
 
+        [first_credentials_request: nil] ->
+          Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
+          do_register_device(client, device_id, extended_id, credentials_secret)
+
+        [first_credentials_request: _timestamp] ->
+          Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
+          {:error, :already_registered}
+      end
+    else
       error ->
         Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 
-  def select_device_for_pairing(client, device_uuid) do
-    device_query =
-      Query.new()
-      |> Query.statement(@select_device_for_pairing)
-      |> Query.put(:device_id, device_uuid)
+  def select_device_for_credentials_request(client, device_id) do
+    statement = """
+    SELECT extended_id, first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
+    FROM devices
+    WHERE device_id=:device_id
+    """
 
-    case Query.call(client, device_query) do
-      {:ok, res} ->
-        if Enum.empty?(res) do
-          {:error, :device_not_found}
-        else
-          {:ok, Result.head(res)}
-        end
-
-      error ->
-        Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
-    end
+    do_select_device(client, device_id, statement)
   end
 
-  def update_device_after_pairing(client, device_uuid, cert_data, device_ip, :null) do
-    first_pairing_timestamp =
+  def select_device_for_info(client, device_id) do
+    statement = """
+    SELECT credentials_secret, inhibit_credentials_request, first_credentials_request
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    do_select_device(client, device_id, statement)
+  end
+
+  def select_device_for_verify_credentials(client, device_id) do
+    statement = """
+    SELECT credentials_secret
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    do_select_device(client, device_id, statement)
+  end
+
+  def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
+    first_credentials_request_timestamp =
       DateTime.utc_now()
       |> DateTime.to_unix(:milliseconds)
 
-    update_device_after_pairing(
+    update_device_after_credentials_request(
       client,
-      device_uuid,
+      device_id,
       cert_data,
       device_ip,
-      first_pairing_timestamp
+      first_credentials_request_timestamp
     )
   end
 
-  def update_device_after_pairing(
+  def update_device_after_credentials_request(
         client,
-        device_uuid,
+        device_id,
         %{serial: serial, aki: aki} = _cert_data,
         device_ip,
-        first_pairing_timestamp
+        first_credentials_request_timestamp
       ) do
+    statement = """
+    UPDATE devices
+    SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_credentials_request_ip=:last_credentials_request_ip,
+    first_credentials_request=:first_credentials_request
+    WHERE device_id=:device_id
+    """
+
     query =
       Query.new()
-      |> Query.statement(@update_device_after_pairing)
-      |> Query.put(:device_id, device_uuid)
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
       |> Query.put(:cert_aki, aki)
       |> Query.put(:cert_serial, serial)
-      |> Query.put(:last_pairing_ip, device_ip)
-      |> Query.put(:first_pairing, first_pairing_timestamp)
+      |> Query.put(:last_credentials_request_ip, device_ip)
+      |> Query.put(:first_credentials_request, first_credentials_request_timestamp)
+      |> Query.put(:protocol_revision, @protocol_revision)
+      |> Query.consistency(:quorum)
 
     case Query.call(client, query) do
       {:ok, _res} ->
@@ -128,20 +162,48 @@ defmodule Astarte.Pairing.Queries do
 
       error ->
         Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 
-  defp insert_not_existing_device(client, device_uuid, extended_id) do
+  defp do_select_device(client, device_id, select_statement) do
+    device_query =
+      Query.new()
+      |> Query.statement(select_statement)
+      |> Query.put(:device_id, device_id)
+      |> Query.consistency(:quorum)
+
+    with {:ok, res} <- Query.call(client, device_query),
+         device_row when is_list(device_row) <- Result.head(res) do
+      {:ok, device_row}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp do_register_device(client, device_id, extended_id, credentials_secret) do
+    statement = """
+    INSERT INTO devices
+    (device_id, extended_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
+    VALUES (:device_id, :extended_id, :credentials_secret, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
+    """
+
     query =
       Query.new()
-      |> Query.statement(@insert_new_device)
-      |> Query.put(:device_id, device_uuid)
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
       |> Query.put(:extended_id, extended_id)
-      |> Query.put(:inhibit_pairing, false)
+      |> Query.put(:credentials_secret, credentials_secret)
+      |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)
       |> Query.put(:total_received_bytes, 0)
       |> Query.put(:total_received_msgs, 0)
+      |> Query.consistency(:quorum)
 
     case Query.call(client, query) do
       {:ok, _res} ->
@@ -149,7 +211,7 @@ defmodule Astarte.Pairing.Queries do
 
       error ->
         Logger.warn("DB error: #{inspect(error)}")
-        {:error, :db_error}
+        {:error, :database_error}
     end
   end
 end

@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Pairing.Engine do
@@ -22,57 +22,191 @@ defmodule Astarte.Pairing.Engine do
   This module performs the pairing operations requested via RPC.
   """
 
-  alias Astarte.Pairing.APIKey
+  alias Astarte.Core.Device
   alias Astarte.Pairing.CertVerifier
-  alias Astarte.Pairing.CFSSLPairing
+  alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.Pairing.Config
+  alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
-  alias Astarte.Pairing.Utils
   alias CQEx.Client
+
+  require Logger
 
   @version Mix.Project.config()[:version]
 
-  def do_pairing(csr, api_key, device_ip) do
-    with {:ok, %{realm: realm, device_uuid: device_uuid}} <- APIKey.verify(api_key, "api_salt"),
+  def get_agent_public_key_pems(realm) do
+    with cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, jwt_pems} <- Queries.get_agent_public_key_pems(client) do
+      {:ok, jwt_pems}
+    else
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def get_credentials(
+        :astarte_mqtt_v1,
+        %{csr: csr},
+        realm,
+        hardware_id,
+        credentials_secret,
+        device_ip
+      ) do
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
          {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
-         {:ok, device} <- Queries.select_device_for_pairing(client, device_uuid),
-         _ <- CFSSLPairing.revoke(device[:cert_serial], device[:cert_aki]),
+         {:ok, device_row} <- Queries.select_device_for_credentials_request(client, device_id),
+         {:authorized?, true} <-
+           {:authorized?,
+            CredentialsSecret.verify(credentials_secret, device_row[:credentials_secret])},
+         {:credentials_inhibited?, false} <-
+           {:credentials_inhibited?, device_row[:inhibit_credentials_request]},
+         _ <- CFSSLCredentials.revoke(device_row[:cert_serial], device_row[:cert_aki]),
          {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
-           CFSSLPairing.pair(csr, realm, device[:extended_id]),
+           CFSSLCredentials.get_certificate(csr, realm, device_row[:extended_id]),
          :ok <-
-           Queries.update_device_after_pairing(
+           Queries.update_device_after_credentials_request(
              client,
-             device_uuid,
+             device_id,
              cert_data,
              ip_tuple,
-             device[:first_pairing]
+             device_row[:first_credentials_request]
            ) do
-      {:ok, cert}
+      {:ok, %{client_crt: cert}}
+    else
+      {:authorized?, false} ->
+        {:error, :forbidden}
+
+      {:credentials_inhibited?, true} ->
+        {:error, :credentials_request_inhibited}
+
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  def get_info do
-    %{version: @version, url: Config.broker_url!()}
+  def get_credentials(
+        protocol,
+        credentials_params,
+        _realm,
+        _hw_id,
+        _credentials_secret,
+        _device_ip
+      ) do
+    Logger.warn(
+      "get_credentials: unknown protocol #{inspect(protocol)} with params #{
+        inspect(credentials_params)
+      }"
+    )
+
+    {:error, :unknown_protocol}
   end
 
-  def generate_api_key(realm, hardware_id) do
-    with {:ok, device_uuid_bytes} <- Utils.extended_id_to_uuid(hardware_id) do
-      device_uuid_string = :uuid.uuid_to_string(device_uuid_bytes)
+  def get_info(realm, hardware_id, credentials_secret) do
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+         cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, device_row} <- Queries.select_device_for_info(client, device_id),
+         {:authorized?, true} <-
+           {:authorized?,
+            CredentialsSecret.verify(credentials_secret, device_row[:credentials_secret])} do
+      device_status = device_status_string(device_row)
+      protocols = get_protocol_info()
 
-      client =
-        Config.cassandra_node()
-        |> Client.new!(keyspace: realm)
+      {:ok, %{version: @version, device_status: device_status, protocols: protocols}}
+    else
+      {:authorized?, false} ->
+        {:error, :forbidden}
 
-      case Queries.insert_device(client, device_uuid_string, hardware_id) do
-        :ok -> APIKey.generate(realm, device_uuid_bytes, "api_salt")
-        error -> error
-      end
+      {:credentials_inhibited?, true} ->
+        {:error, :credentials_request_inhibited}
+
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  def verify_certificate(pem_cert) do
-    CertVerifier.verify(pem_cert, Config.ca_cert())
+  def register_device(realm, hardware_id) do
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+         cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         credentials_secret <- CredentialsSecret.generate(),
+         secret_hash <- CredentialsSecret.hash(credentials_secret),
+         :ok <- Queries.register_device(client, device_id, hardware_id, secret_hash) do
+      {:ok, credentials_secret}
+    else
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def verify_credentials(:astarte_mqtt_v1, %{client_crt: client_crt}, realm, hardware_id, secret) do
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+         cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, device_row} <- Queries.select_device_for_verify_credentials(client, device_id),
+         {:authorized?, true} <-
+           {:authorized?, CredentialsSecret.verify(secret, device_row[:credentials_secret])} do
+      CertVerifier.verify(client_crt, Config.ca_cert())
+    else
+      {:authorized?, false} ->
+        {:error, :forbidden}
+
+      {:credentials_inhibited?, true} ->
+        {:error, :credentials_request_inhibited}
+
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def verify_credentials(protocol, credentials_map, _realm, _hw_id, _secret) do
+    Logger.warn(
+      "verify_credentials: unknown protocol #{inspect(protocol)} with params #{
+        inspect(credentials_map)
+      }"
+    )
+
+    {:error, :unknown_protocol}
+  end
+
+  defp device_status_string(device_row) do
+    # The device is pending until the first credendtial request
+    cond do
+      Keyword.get(device_row, :inhibit_credentials_request) ->
+        "inhibited"
+
+      Keyword.get(device_row, :first_credentials_request) ->
+        "confirmed"
+
+      true ->
+        "pending"
+    end
+  end
+
+  defp get_protocol_info do
+    # TODO: this should be made modular when we support more protocols
+    %{
+      astarte_mqtt_v1: %{
+        broker_url: Config.broker_url!()
+      }
+    }
   end
 
   defp parse_ip(ip_string) do

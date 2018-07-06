@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.Pairing.Config do
@@ -22,11 +22,11 @@ defmodule Astarte.Pairing.Config do
   This module helps the access to the runtime configuration of Astarte Pairing
   """
 
-  alias Astarte.Pairing.CFSSLPairing
+  alias Astarte.Pairing.CFSSLCredentials
 
   def init! do
     if Application.fetch_env(:astarte_pairing, :ca_cert) == :error do
-      case CFSSLPairing.ca_cert() do
+      case CFSSLCredentials.ca_cert() do
         {:ok, cert} ->
           Application.put_env(:astarte_pairing, :ca_cert, cert)
 
@@ -37,35 +37,12 @@ defmodule Astarte.Pairing.Config do
   end
 
   @doc """
-  Returns the rpc_queue contained in the config.
-
-  Raises if it doesn't exist since it's required.
-  """
-  def rpc_queue! do
-    Application.fetch_env!(:astarte_pairing, :rpc_queue)
-  end
-
-  @doc """
-  Returns the amqp_connection options or an empty list if they're not set.
-  """
-  def amqp_options do
-    Application.get_env(:astarte_pairing, :amqp_connection, [])
-  end
-
-  @doc """
   Returns the broker_url contained in the config.
 
   Raises if it doesn't exist since it's required.
   """
   def broker_url! do
     Application.fetch_env!(:astarte_pairing, :broker_url)
-  end
-
-  @doc """
-  Returns the secret for signing and verifying the API keys.
-  """
-  def secret_key_base do
-    Application.get_env(:astarte_pairing, :secret_key_base)
   end
 
   @doc """
@@ -88,12 +65,5 @@ defmodule Astarte.Pairing.Config do
   """
   def ca_cert do
     Application.fetch_env!(:astarte_pairing, :ca_cert)
-  end
-
-  @doc """
-  Returns the fallback api key verify function as {mod, fun} tuple.
-  """
-  def fallback_api_key_verify_fun do
-    Application.get_env(:astarte_pairing, :fallback_api_key_verify_fun)
   end
 end

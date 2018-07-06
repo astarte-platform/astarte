@@ -14,10 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
-defmodule Astarte.Pairing.CFSSLPairing do
+defmodule Astarte.Pairing.CFSSLCredentials do
   @moduledoc """
   Module implementing pairing using CFSSL
   """
@@ -30,9 +30,9 @@ defmodule Astarte.Pairing.CFSSLPairing do
   require Logger
 
   @doc """
-  Perform the pairing for the device
+  Signs the csr and returns the certificate data
   """
-  def pair(csr, realm, extended_id) do
+  def get_certificate(csr, realm, extended_id) do
     device_common_name = "#{realm}/#{extended_id}"
     subject = %Subject{CN: device_common_name}
 
@@ -54,7 +54,7 @@ defmodule Astarte.Pairing.CFSSLPairing do
   end
 
   # If it was not present in the DB, no need to revoke it
-  def revoke(:null, :null), do: :ok
+  def revoke(nil, nil), do: :ok
 
   def revoke(serial, aki) do
     case CFXXL.revoke(client(), serial, aki, "superseded") do

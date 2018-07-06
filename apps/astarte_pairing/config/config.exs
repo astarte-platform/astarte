@@ -14,17 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
-config :astarte_pairing, :secret_key_base,
-  "42WxT+9X+hKbTlv3n7cmzCrlzO2NpCVjRUlpfPYdWt627wetvY4il7Qpq6RRqeNk"
-
-config :astarte_rpc, :amqp_queue,
-  "pairing_rpc"
+config :lager,
+  handlers: [level: :critical]
 
 import_config "#{Mix.env}.exs"

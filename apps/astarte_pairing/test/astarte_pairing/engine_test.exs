@@ -20,13 +20,13 @@
 defmodule Astarte.Pairing.EngineTest do
   use ExUnit.Case
 
-  alias Astarte.Pairing.APIKey
+  alias Astarte.Core.Device
   alias Astarte.Pairing.Config
+  alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.DatabaseTestHelper
   alias Astarte.Pairing.Engine
   alias Astarte.Pairing.Queries
   alias Astarte.Pairing.TestHelper
-  alias Astarte.Pairing.Utils
   alias CFXXL.CertUtils
 
   @test_csr """
@@ -50,94 +50,269 @@ defmodule Astarte.Pairing.EngineTest do
   """
 
   @test_realm DatabaseTestHelper.test_realm()
+  @astarte_protocol :astarte_mqtt_v1
+  @astarte_credentials_params %{csr: @test_csr}
 
   @valid_ip "2.3.4.5"
 
   setup_all do
-    DatabaseTestHelper.seed_db()
+    DatabaseTestHelper.create_db()
 
     on_exit(fn ->
       DatabaseTestHelper.drop_db()
     end)
   end
 
-  setup do
-    hw_id = TestHelper.random_hw_id()
-    {:ok, api_key} = Engine.generate_api_key(@test_realm, hw_id)
+  describe "get_agent_public_key_pem" do
+    test "fails with non-existing realm" do
+      assert {:error, :realm_not_found} = Engine.get_agent_public_key_pems("nonexisting")
+    end
 
-    {:ok, api_key: api_key}
+    test "successful call" do
+      pems = DatabaseTestHelper.agent_public_key_pems()
+
+      assert {:ok, ^pems} = Engine.get_agent_public_key_pems(@test_realm)
+    end
   end
 
-  test "do_pairing with invalid APIKey" do
-    assert Engine.do_pairing(@test_csr, "invalidapikey", @valid_ip) == {:error, :invalid_api_key}
+  describe "register_device" do
+    setup [:seed_devices]
+
+    test "fails with non-existing realm" do
+      hw_id = TestHelper.random_hw_id()
+      realm = "nonexisting"
+
+      assert {:error, :realm_not_found} = Engine.register_device(realm, hw_id)
+    end
+
+    test "fails with invalid hw_id" do
+      hw_id = "invalid"
+
+      assert {:error, :invalid_device_id} = Engine.register_device(@test_realm, hw_id)
+    end
+
+    test "fails with registered and confirmed device" do
+      hw_id = DatabaseTestHelper.registered_and_confirmed_hw_id()
+
+      assert {:error, :already_registered} = Engine.register_device(@test_realm, hw_id)
+    end
+
+    test "succeeds and generates new credentials_secret with registered and not confirmed device" do
+      hw_id = DatabaseTestHelper.registered_not_confirmed_hw_id()
+
+      assert {:ok, credentials_secret} = Engine.register_device(@test_realm, hw_id)
+
+      assert credentials_secret !=
+               DatabaseTestHelper.registered_not_confirmed_credentials_secret()
+    end
+
+    test "succeeds with unregistered and not confirmed device" do
+      hw_id = DatabaseTestHelper.unregistered_hw_id()
+
+      assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
+    end
   end
 
-  test "do_pairing with invalid IP", %{api_key: api_key} do
-    assert Engine.do_pairing(@test_csr, api_key, "300.3.4.5") == {:error, :invalid_ip}
+  describe "get_credentials" do
+    setup [:seed_devices, :registered_device]
+
+    test "fails with invalid secret", %{hw_id: hw_id} do
+      secret = CredentialsSecret.generate()
+
+      assert {:error, :forbidden} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+    end
+
+    test "fails with invalid protocol", %{hw_id: hw_id} do
+      secret = CredentialsSecret.generate()
+
+      assert {:error, :unknown_protocol} =
+               Engine.get_credentials(
+                 :other_protocol,
+                 %{other: "params"},
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+    end
+
+    test "fails with invalid IP", %{hw_id: hw_id, secret: secret} do
+      invalid_ip = "300.21.251.3"
+
+      assert {:error, :invalid_ip} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 invalid_ip
+               )
+    end
+
+    test "fails with unexisting realm", %{hw_id: hw_id, secret: secret} do
+      realm = "unexisting"
+
+      assert {:error, :realm_not_found} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+    end
+
+    test "fails with not registered device" do
+      secret = CredentialsSecret.generate()
+      hw_id = DatabaseTestHelper.unregistered_hw_id()
+
+      assert {:error, :device_not_found} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+    end
+
+    test "fails with inhibited device" do
+      hw_id = DatabaseTestHelper.registered_and_inhibited_hw_id()
+      secret = DatabaseTestHelper.registered_and_inhibited_credentials_secret()
+
+      assert {:error, :credentials_request_inhibited} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+    end
+
+    test "suceeds with valid pairing", %{hw_id: hw_id, secret: secret} do
+      assert {:ok, _crt} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+    end
+
+    test "revokes the crt if repeated", %{hw_id: hw_id, secret: secret} do
+      assert {:ok, %{client_crt: _first_certificate}} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+
+      assert {:ok, %{client_crt: second_certificate}} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+
+      second_aki = CertUtils.authority_key_identifier!(second_certificate)
+      second_serial = CertUtils.serial_number!(second_certificate)
+
+      {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
+
+      db_client =
+        Config.cassandra_node()
+        |> CQEx.Client.new!(keyspace: @test_realm)
+
+      {:ok, device} = Queries.select_device_for_credentials_request(db_client, device_id)
+
+      assert device[:cert_aki] == second_aki
+      assert device[:cert_serial] == second_serial
+    end
+
+    test "retains first_credentials_request timestamp" do
+      hw_id = DatabaseTestHelper.registered_not_confirmed_hw_id()
+      secret = DatabaseTestHelper.registered_not_confirmed_credentials_secret()
+
+      {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
+
+      db_client =
+        Config.cassandra_node()
+        |> CQEx.Client.new!(keyspace: @test_realm)
+
+      {:ok, no_credentials_requested_device} =
+        Queries.select_device_for_credentials_request(db_client, device_id)
+
+      assert no_credentials_requested_device[:first_credentials_request] == nil
+
+      assert {:ok, %{client_crt: _first_certificate}} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+
+      {:ok, credentials_requested_device} =
+        Queries.select_device_for_credentials_request(db_client, device_id)
+
+      first_credentials_request_timestamp =
+        credentials_requested_device[:first_credentials_request]
+
+      assert first_credentials_request_timestamp != nil
+
+      assert {:ok, %{client_crt: _second_certificate}} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+
+      {:ok, credentials_requested_again_device} =
+        Queries.select_device_for_credentials_request(db_client, device_id)
+
+      assert first_credentials_request_timestamp ==
+               credentials_requested_again_device[:first_credentials_request]
+    end
   end
 
-  test "do_pairing with unexisting realm encoded in API key" do
-    {:ok, device_uuid} =
-      TestHelper.random_hw_id()
-      |> Utils.extended_id_to_uuid()
+  defp seed_devices(_context) do
+    :ok = DatabaseTestHelper.seed_devices()
 
-    {:ok, api_key} = APIKey.generate("unexisting", device_uuid, "api_salt")
-
-    assert Engine.do_pairing(@test_csr, api_key, @valid_ip) == {:error, :shutdown}
+    on_exit(fn ->
+      :ok = DatabaseTestHelper.clean_devices()
+    end)
   end
 
-  test "do_pairing with unexisting device" do
-    # We don't pass through Engine for the APIKey so the device
-    # is never inserted in the DB
-    {:ok, device_uuid} =
-      TestHelper.random_hw_id()
-      |> Utils.extended_id_to_uuid()
+  defp registered_device(_context) do
+    hw_id = DatabaseTestHelper.registered_and_confirmed_hw_id()
+    secret = DatabaseTestHelper.registered_and_confirmed_credentials_secret()
 
-    {:ok, api_key} = APIKey.generate(@test_realm, device_uuid, "api_salt")
-
-    assert Engine.do_pairing(@test_csr, api_key, @valid_ip) == {:error, :device_not_found}
-  end
-
-  test "valid pairing", %{api_key: api_key} do
-    assert {:ok, _crt} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
-  end
-
-  test "revocation if pairing is repeated", %{api_key: api_key} do
-    assert {:ok, _first_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
-    assert {:ok, second_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
-
-    second_aki = CertUtils.authority_key_identifier!(second_certificate)
-    second_serial = CertUtils.serial_number!(second_certificate)
-
-    {:ok, %{realm: realm, device_uuid: device_uuid}} = APIKey.verify(api_key, "api_salt")
-
-    db_client =
-      Config.cassandra_node()
-      |> CQEx.Client.new!(keyspace: realm)
-
-    {:ok, device} = Queries.select_device_for_pairing(db_client, device_uuid)
-
-    assert device[:cert_aki] == second_aki
-    assert device[:cert_serial] == second_serial
-  end
-
-  test "first_pairing timestamp", %{api_key: api_key} do
-    {:ok, %{realm: realm, device_uuid: device_uuid}} = APIKey.verify(api_key, "api_salt")
-
-    db_client =
-      Config.cassandra_node()
-      |> CQEx.Client.new!(keyspace: realm)
-
-    {:ok, no_paired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
-    assert no_paired_device[:first_pairing] == :null
-
-    assert {:ok, _first_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
-    {:ok, paired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
-    first_pairing_timestamp = paired_device[:first_pairing]
-    assert first_pairing_timestamp != :null
-
-    assert {:ok, _second_certificate} = Engine.do_pairing(@test_csr, api_key, @valid_ip)
-    {:ok, repaired_device} = Queries.select_device_for_pairing(db_client, device_uuid)
-    assert first_pairing_timestamp == repaired_device[:first_pairing]
+    {:ok, hw_id: hw_id, secret: secret}
   end
 end
