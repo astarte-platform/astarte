@@ -7,15 +7,13 @@ if [ ! -f ./compose/cfssl-config/ca.pem ] || [ ! -f ./compose/cfssl-config/ca-ke
 	cd -
 fi
 
-# Generate housekeeping & pairing keypairs
-for f in "housekeeping" "pairing"; do
-	if [ ! -f ./compose/astarte-keys/$f.pub ] ; then
-		cd compose/astarte-keys/
-		openssl genrsa -out $f.key 2048
-		openssl rsa -in $f.key -out $f.pub -pubout
-		cd -
-	fi
-done
+# Generate housekeeping keypairs
+if [ ! -f ./compose/astarte-keys/housekeeping.pub ] ; then
+    cd compose/astarte-keys/
+    openssl genrsa -out housekeeping.key 2048
+    openssl rsa -in housekeeping.key -out housekeeping.pub -pubout
+    cd -
+fi
 
 # Generate self-signed VerneMQ certificate if necessary
 if [ ! -f ./compose/vernemq-certs/cert ] ; then
@@ -35,11 +33,4 @@ if [ ! -f ./compose/vernemq-certs/cert ] ; then
 	# Generate VMQ-friendly certificate with the whole chain
 	cat server.crt ca/certs/ca.cert.pem > cert
 	cd -
-fi
-
-# Generate secrets in environment if necessary
-if [ ! -f ./compose_generated.env ] ; then
-cat > compose_generated.env <<EOF
-PAIRING_SECRET_KEY_BASE=$(openssl rand -base64 32)
-EOF
 fi
