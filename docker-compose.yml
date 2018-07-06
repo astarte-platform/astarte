@@ -22,7 +22,6 @@ services:
       ASTARTE_RPC_AMQP_CONNECTION_HOST: "rabbitmq"
       HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping.pub"
       PAIRING_CFSSL_URL: "http://cfssl:8080"
-      PAIRING_API_JWT_PUBLIC_KEY_PATH: "/keys/pairing.pub"
     ports:
       - "4000:4000"
       - "4001:4001"
@@ -30,7 +29,6 @@ services:
       - "4003:4003"
     volumes:
       - ./compose/astarte-keys/housekeeping.pub:/keys/housekeeping.pub
-      - ./compose/astarte-keys/pairing.pub:/keys/pairing.pub
     depends_on:
       - "rabbitmq"
       - "cassandra"
