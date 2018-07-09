@@ -66,8 +66,9 @@ defmodule Astarte.Pairing.Engine do
          {:credentials_inhibited?, false} <-
            {:credentials_inhibited?, device_row[:inhibit_credentials_request]},
          _ <- CFSSLCredentials.revoke(device_row[:cert_serial], device_row[:cert_aki]),
+         encoded_device_id <- Device.encode_device_id(device_id),
          {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
-           CFSSLCredentials.get_certificate(csr, realm, device_row[:extended_id]),
+           CFSSLCredentials.get_certificate(csr, realm, encoded_device_id),
          :ok <-
            Queries.update_device_after_credentials_request(
              client,
