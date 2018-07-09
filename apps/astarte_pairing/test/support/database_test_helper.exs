@@ -24,6 +24,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   alias Astarte.Pairing.CredentialsSecret
   alias CQEx.Query
   alias CQEx.Client
+  alias CQEx.Result
 
   @create_autotestrealm """
   CREATE KEYSPACE autotestrealm
@@ -39,6 +40,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
     introspection_minor map<ascii, int>,
     protocol_revision int,
     triggers set<ascii>,
+    first_registration timestamp,
     inhibit_credentials_request boolean,
     credentials_secret ascii,
     cert_serial ascii,
@@ -102,9 +104,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   @insert_device """
   INSERT INTO devices
-  (device_id, credentials_secret, inhibit_credentials_request,
+  (device_id, credentials_secret, inhibit_credentials_request, first_registration,
   protocol_revision, total_received_bytes, total_received_msgs, first_credentials_request)
-  VALUES (:device_id, :credentials_secret, :inhibit_credentials_request,
+  VALUES (:device_id, :credentials_secret, :inhibit_credentials_request, :first_registration,
   1, 0, 0, :first_credentials_request)
   """
 
@@ -170,6 +172,10 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:device_id, registered_not_confirmed_device_id)
       |> Query.put(:credentials_secret, secret_hash)
       |> Query.put(:inhibit_credentials_request, false)
+      |> Query.put(
+        :first_registration,
+        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+      )
       |> Query.put(:first_credentials_request, nil)
 
     {:ok, registered_and_confirmed_256_device_id} =
@@ -183,6 +189,10 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:device_id, registered_and_confirmed_256_device_id)
       |> Query.put(:credentials_secret, secret_hash)
       |> Query.put(:inhibit_credentials_request, false)
+      |> Query.put(
+        :first_registration,
+        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+      )
       |> Query.put(
         :first_credentials_request,
         DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
@@ -200,6 +210,10 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:credentials_secret, secret_hash)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(
+        :first_registration,
+        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+      )
+      |> Query.put(
         :first_credentials_request,
         DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
       )
@@ -216,6 +230,10 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:credentials_secret, secret_hash)
       |> Query.put(:inhibit_credentials_request, true)
       |> Query.put(
+        :first_registration,
+        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+      )
+      |> Query.put(
         :first_credentials_request,
         DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
       )
@@ -225,6 +243,33 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
          {:ok, _} <- Query.call(client, registered_and_confirmed_128_query),
          {:ok, _} <- Query.call(client, registered_and_inhibited_query) do
       :ok
+    end
+  end
+
+  def get_first_registration(hardware_id) do
+    client =
+      Config.cassandra_node()
+      |> Client.new!(keyspace: @test_realm)
+
+    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+
+    statement = """
+    SELECT first_registration
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    query =
+      Query.new()
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
+
+    with {:ok, result} <- Query.call(client, query),
+         [first_registration: first_registration] <- Result.head(result) do
+      first_registration
+    else
+      :empty_dataset ->
+        nil
     end
   end
 
