@@ -431,8 +431,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , connected
     , last_connection
     , last_disconnection
-    , first_pairing
-    , last_pairing_ip
+    , first_credentials_request
+    , last_credentials_request_ip
     , last_seen_ip
     , total_received_msgs
     , total_received_bytes
@@ -447,8 +447,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       connected: connected,
       last_connection: last_connection,
       last_disconnection: last_disconnection,
-      first_pairing: first_pairing,
-      last_pairing_ip: last_pairing_ip,
+      first_credentials_request: first_pairing,
+      last_credentials_request_ip: last_pairing_ip,
       last_seen_ip: last_seen_ip,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes
