@@ -18,6 +18,8 @@
 #
 
 defmodule Astarte.AppEngine.API.DataTransmitter do
+  alias Astarte.Core.Device
+
   @moduledoc """
   This module allows Astarte to push data to the devices
   """
@@ -105,7 +107,9 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   end
 
   defp make_topic(realm, device_id, interface, "/" <> _rest = path_with_slash) do
-    "#{realm}/#{device_id}/#{interface}#{path_with_slash}"
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    "#{realm}/#{encoded_device_id}/#{interface}#{path_with_slash}"
   end
 
   defp make_topic(realm, device_id, interface, no_slash_path) do
