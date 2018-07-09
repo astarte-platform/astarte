@@ -56,7 +56,7 @@ defmodule Astarte.Pairing.Queries do
 
   def register_device(client, device_id, extended_id, credentials_secret) do
     statement = """
-    SELECT first_credentials_request
+    SELECT first_credentials_request, first_registration
     FROM devices
     WHERE device_id=:device_id
     """
@@ -70,13 +70,17 @@ defmodule Astarte.Pairing.Queries do
     with {:ok, res} <- Query.call(client, device_exists_query) do
       case Result.head(res) do
         :empty_dataset ->
-          do_register_device(client, device_id, credentials_secret)
+          registration_timestamp =
+            DateTime.utc_now()
+            |> DateTime.to_unix(:milliseconds)
 
-        [first_credentials_request: nil] ->
+          do_register_device(client, device_id, credentials_secret, registration_timestamp)
+
+        [first_credentials_request: nil, first_registration: registration_timestamp] ->
           Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
-          do_register_device(client, device_id, credentials_secret)
+          do_register_device(client, device_id, credentials_secret, registration_timestamp)
 
-        [first_credentials_request: _timestamp] ->
+        [first_credentials_request: _timestamp, first_registration: _registration_timestamp] ->
           Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
           {:error, :already_registered}
       end
@@ -186,17 +190,21 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp do_register_device(client, device_id, credentials_secret) do
+  defp do_register_device(client, device_id, credentials_secret, registration_timestamp) do
     statement = """
     INSERT INTO devices
-    (device_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
-    VALUES (:device_id, :credentials_secret, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
+    (device_id, first_registration, credentials_secret, inhibit_credentials_request,
+    protocol_revision, total_received_bytes, total_received_msgs)
+    VALUES
+    (:device_id, :first_registration, :credentials_secret, :inhibit_credentials_request,
+    :protocol_revision, :total_received_bytes, :total_received_msgs)
     """
 
     query =
       Query.new()
       |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
+      |> Query.put(:first_registration, registration_timestamp)
       |> Query.put(:credentials_secret, credentials_secret)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)

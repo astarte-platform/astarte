@@ -100,16 +100,28 @@ defmodule Astarte.Pairing.EngineTest do
     test "succeeds and generates new credentials_secret with registered and not confirmed device" do
       hw_id = DatabaseTestHelper.registered_not_confirmed_hw_id()
 
+      first_registration = DatabaseTestHelper.get_first_registration(hw_id)
+      assert first_registration != nil
+
       assert {:ok, credentials_secret} = Engine.register_device(@test_realm, hw_id)
 
       assert credentials_secret !=
                DatabaseTestHelper.registered_not_confirmed_credentials_secret()
+
+      assert DatabaseTestHelper.get_first_registration(hw_id) == first_registration
     end
 
     test "succeeds with unregistered and not confirmed device with 128 bit id" do
       hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
 
+      assert DatabaseTestHelper.get_first_registration(hw_id) == nil
+
       assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
+
+      first_registration = DatabaseTestHelper.get_first_registration(hw_id)
+      now = DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+
+      assert_in_delta first_registration, now, 1000
     end
 
     test "succeeds with unregistered and not confirmed device with 256 bit id" do
@@ -208,10 +220,11 @@ defmodule Astarte.Pairing.EngineTest do
                )
     end
 
-    test "suceeds with valid CSR and uses encoded 128 bit device_id as common name with 256 bit hw_id", %{
-      hw_id: hw_id,
-      secret: secret
-    } do
+    test "suceeds with valid CSR and uses encoded 128 bit device_id as common name with 256 bit hw_id",
+         %{
+           hw_id: hw_id,
+           secret: secret
+         } do
       assert {:ok, %{client_crt: crt}} =
                Engine.get_credentials(
                  @astarte_protocol,
@@ -252,8 +265,6 @@ defmodule Astarte.Pairing.EngineTest do
 
       assert CertUtils.common_name!(crt) == expected_cn
     end
-
-
 
     test "revokes the crt if repeated", %{hw_id: hw_id, secret: secret} do
       assert {:ok, %{client_crt: _first_certificate}} =
