@@ -62,7 +62,8 @@ defmodule Astarte.Pairing.RPC.Handler do
     {:ok, call_tuple}
   end
 
-  defp call_rpc({:get_agent_public_key_pems, %GetAgentPublicKeyPEMs{realm: realm}}) when is_binary(realm) do
+  defp call_rpc({:get_agent_public_key_pems, %GetAgentPublicKeyPEMs{realm: realm}})
+       when is_binary(realm) do
     with {:ok, pems} <- Engine.get_agent_public_key_pems(realm) do
       %GetAgentPublicKeyPEMsReply{agent_public_key_pems: pems}
       |> encode_reply(:get_agent_public_key_pems_reply)

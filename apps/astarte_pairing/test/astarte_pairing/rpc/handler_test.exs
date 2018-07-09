@@ -148,9 +148,11 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
       pems = DatabaseTestHelper.agent_public_key_pems()
 
       assert %Reply{
-        error: false,
-        reply: {:get_agent_public_key_pems_reply, %GetAgentPublicKeyPEMsReply{agent_public_key_pems: ^pems}}
-      } = Reply.decode(reply)
+               error: false,
+               reply:
+                 {:get_agent_public_key_pems_reply,
+                  %GetAgentPublicKeyPEMsReply{agent_public_key_pems: ^pems}}
+             } = Reply.decode(reply)
     end
   end
 
