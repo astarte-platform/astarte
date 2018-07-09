@@ -525,8 +525,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       :empty_dataset ->
         {:error, :device_not_found}
 
-      not_ok ->
-        Logger.warn("Device.retrieve_device_status: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("retrieve_device_status: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("retrieve_device_status: failed with reason #{inspect(reason)}")
         {:error, :database_error}
     end
   end
@@ -586,8 +590,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:ok, %DevicesList{devices: Enum.reverse(devices_list), last_token: last_token}}
       end
     else
-      not_ok ->
-        Logger.warn("Device.retrieve_devices_list: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("retrieve_devices_list: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("retrieve_devices_list: failed with reason #{inspect(reason)}")
         {:error, :database_error}
     end
   end
