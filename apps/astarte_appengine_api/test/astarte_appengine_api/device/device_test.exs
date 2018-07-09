@@ -66,7 +66,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       hour: 18,
       minute: 25
     },
-    first_pairing: %DateTime{
+    first_credentials_request: %DateTime{
       calendar: Calendar.ISO,
       microsecond: {0, 3},
       second: 0,
@@ -80,7 +80,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       month: 8,
       year: 2016
     },
-    last_pairing_ip: "4.4.4.4",
+    last_credentials_request_ip: "198.51.100.89",
     last_seen_ip: "8.8.8.8",
     total_received_bytes: 4_500_000,
     total_received_msgs: 45000

@@ -88,7 +88,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   VALUES
    (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ',
     :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
-    '8.8.8.8', '4.4.4.4', 45000, :total_received_bytes,
+    '8.8.8.8', '198.51.100.89', 45000, :total_received_bytes,
     {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
      'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1},
     {'com.test.LCDMonitor' : 3, 'com.test.SimpleStreamTest' : 0,
