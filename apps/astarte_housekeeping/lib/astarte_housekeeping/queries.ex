@@ -51,7 +51,6 @@ defmodule Astarte.Housekeeping.Queries do
     """
       CREATE TABLE :realm_name.devices (
         device_id uuid,
-        extended_id ascii,
         aliases map<ascii, varchar>,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
