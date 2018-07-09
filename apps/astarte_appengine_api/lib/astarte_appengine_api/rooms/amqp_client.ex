@@ -45,9 +45,17 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
     {:ok, :not_connected}
   end
 
-  def terminate(_reason, %Channel{conn: conn} = chan) do
+  def terminate(reason, %Channel{conn: conn} = chan) do
+    Logger.warn(
+      "Rooms.AMQPClient terminating with reason #{inspect(reason)}, closing Channel and Connection"
+    )
+
     Channel.close(chan)
     Connection.close(conn)
+  end
+
+  def terminate(reason, :not_connected) do
+    Logger.warn("Rooms.AMQPClient terminating with reason #{inspect(reason)}")
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
