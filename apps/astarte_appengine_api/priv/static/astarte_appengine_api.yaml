@@ -774,16 +774,16 @@ components:
           type: string
           format: date-time
           description: First registration attempt timestamp.
-        first_pairing:
+        first_credentials_request:
           type: string
           format: date-time
-          description: First device pairing timestamp.
+          description: First credentials request timestamp.
         last_seen_ip:
           type: string
           description: Last known device IP address.
-        last_pairing_ip:
+        last_credentials_request_ip:
           type: string
-          description: Last known device IP address used during a pairing.
+          description: Last known device IP address used while obtaining credentials.
         total_received_bytes:
           type: integer
           description: Total ammount of received payload bytes.
