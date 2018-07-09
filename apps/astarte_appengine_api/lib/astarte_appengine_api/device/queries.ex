@@ -600,27 +600,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def retrieve_extended_id(client, device_id) do
-    extended_id_statement = "SELECT extended_id FROM devices WHERE device_id=:device_id"
-
-    extended_id_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(extended_id_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    with {:ok, result} <- DatabaseQuery.call(client, extended_id_query),
-         [extended_id: extended_id] <- DatabaseResult.head(result) do
-      {:ok, extended_id}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      not_ok ->
-        Logger.warn("Device.retrieve_extended_id: database error: #{inspect(not_ok)}")
-        {:error, :database_error}
-    end
-  end
-
   def device_alias_to_device_id(client, device_alias) do
     device_id_statement = """
     SELECT object_uuid

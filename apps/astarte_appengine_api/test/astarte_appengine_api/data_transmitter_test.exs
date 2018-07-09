@@ -36,7 +36,8 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
   @vmq_plugin_destination Protocol.amqp_queue()
 
   @realm "myrealm"
-  @device_id "IwFHF-_aSQ-m1mpuPvINew"
+  @device_id <<35, 1, 71, 23, 239, 218, 73, 15, 166, 214, 106, 110, 62, 242, 13, 123>>
+  @encoded_device_id "IwFHF-_aSQ-m1mpuPvINew"
   @interface "com.My.Interface"
   @path "/my/path"
   @path_tokens String.split(@path, "/", trim: true)
@@ -57,7 +58,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
       encoded_payload = Bson.encode(%{v: @payload})
 
       assert %Publish{
-               topic_tokens: [@realm, @device_id, @interface | @path_tokens],
+               topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: ^encoded_payload,
                qos: 0
              } = publish_call
@@ -76,7 +77,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
       encoded_payload = Bson.encode(%{v: @payload, m: @metadata, t: @timestamp})
 
       assert %Publish{
-               topic_tokens: [@realm, @device_id, @interface | @path_tokens],
+               topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: ^encoded_payload,
                qos: 1
              } = publish_call
@@ -105,7 +106,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
       encoded_payload = Bson.encode(%{v: @payload})
 
       assert %Publish{
-               topic_tokens: [@realm, @device_id, @interface | @path_tokens],
+               topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: ^encoded_payload,
                qos: 2
              } = publish_call
@@ -124,7 +125,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
       encoded_payload = Bson.encode(%{v: @payload, m: @metadata, t: @timestamp})
 
       assert %Publish{
-               topic_tokens: [@realm, @device_id, @interface | @path_tokens],
+               topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: ^encoded_payload,
                qos: 2
              } = publish_call
@@ -151,7 +152,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
       assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
 
       assert %Publish{
-               topic_tokens: [@realm, @device_id, @interface | @path_tokens],
+               topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: <<>>,
                qos: 2
              } = publish_call

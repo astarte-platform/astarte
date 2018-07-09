@@ -170,8 +170,6 @@ defmodule Astarte.AppEngine.API.Device do
 
       mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
-      {:ok, extended_device_id} = Queries.retrieve_extended_id(client, device_id)
-
       Queries.insert_value_into_db(
         client,
         interface_descriptor.storage_type,
@@ -186,7 +184,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       case interface_descriptor.type do
         :properties ->
-          DataTransmitter.set_property(realm_name, extended_device_id, interface, path, value)
+          DataTransmitter.set_property(realm_name, device_id, interface, path, value)
 
         :datastream ->
           Queries.insert_path_into_db(
@@ -199,7 +197,7 @@ defmodule Astarte.AppEngine.API.Device do
             div(timestamp_micro, 1000)
           )
 
-          DataTransmitter.push_datastream(realm_name, extended_device_id, interface, path, value)
+          DataTransmitter.push_datastream(realm_name, device_id, interface, path, value)
       end
 
       {:ok,
@@ -232,8 +230,6 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path) do
       mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
-      {:ok, extended_device_id} = Queries.retrieve_extended_id(client, device_id)
-
       Queries.insert_value_into_db(
         client,
         interface_descriptor.storage_type,
@@ -248,7 +244,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       case interface_descriptor.type do
         :properties ->
-          DataTransmitter.unset_property(realm_name, extended_device_id, interface, path)
+          DataTransmitter.unset_property(realm_name, device_id, interface, path)
 
         :datastream ->
           :ok

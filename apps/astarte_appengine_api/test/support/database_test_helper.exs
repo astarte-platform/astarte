@@ -52,7 +52,6 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   @create_devices_table """
       CREATE TABLE autotestrealm.devices (
         device_id uuid,
-        extended_id ascii,
         aliases map<ascii, varchar>,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
@@ -82,12 +81,11 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
 
   @insert_device_statement """
   INSERT INTO autotestrealm.devices
-   (device_id, extended_id, aliases, connected, last_connection, last_disconnection, first_credentials_request,
+   (device_id, aliases, connected, last_connection, last_disconnection, first_credentials_request,
      last_seen_ip, last_credentials_request_ip, total_received_msgs, total_received_bytes, introspection,
      introspection_minor)
   VALUES
-   (:device_id, 'f0VMRgIBAQAAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ',
-    :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
+   (:device_id, :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
     '198.51.100.81', '198.51.100.89', 45000, :total_received_bytes,
     {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
      'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1},
