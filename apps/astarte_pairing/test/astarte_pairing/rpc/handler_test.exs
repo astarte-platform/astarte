@@ -207,8 +207,8 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
     end
 
     test "successful call with registered device" do
-      hw_id = DatabaseTestHelper.registered_and_confirmed_hw_id()
-      secret = DatabaseTestHelper.registered_and_confirmed_credentials_secret()
+      hw_id = DatabaseTestHelper.registered_and_confirmed_256_hw_id()
+      secret = DatabaseTestHelper.registered_and_confirmed_256_credentials_secret()
 
       encoded =
         %Call{call: {:get_info, %GetInfo{realm: @test_realm, hw_id: hw_id, secret: secret}}}
@@ -443,8 +443,8 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
         DatabaseTestHelper.clean_devices()
       end)
 
-      hw_id = DatabaseTestHelper.registered_and_confirmed_hw_id()
-      secret = DatabaseTestHelper.registered_and_confirmed_credentials_secret()
+      hw_id = DatabaseTestHelper.registered_and_confirmed_256_hw_id()
+      secret = DatabaseTestHelper.registered_and_confirmed_256_credentials_secret()
 
       {:ok, hw_id: hw_id, secret: secret}
     end

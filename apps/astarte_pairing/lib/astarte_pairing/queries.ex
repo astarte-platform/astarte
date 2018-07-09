@@ -70,11 +70,11 @@ defmodule Astarte.Pairing.Queries do
     with {:ok, res} <- Query.call(client, device_exists_query) do
       case Result.head(res) do
         :empty_dataset ->
-          do_register_device(client, device_id, extended_id, credentials_secret)
+          do_register_device(client, device_id, credentials_secret)
 
         [first_credentials_request: nil] ->
           Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
-          do_register_device(client, device_id, extended_id, credentials_secret)
+          do_register_device(client, device_id, credentials_secret)
 
         [first_credentials_request: _timestamp] ->
           Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
@@ -89,7 +89,7 @@ defmodule Astarte.Pairing.Queries do
 
   def select_device_for_credentials_request(client, device_id) do
     statement = """
-    SELECT extended_id, first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
+    SELECT first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
     FROM devices
     WHERE device_id=:device_id
     """
@@ -186,18 +186,17 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp do_register_device(client, device_id, extended_id, credentials_secret) do
+  defp do_register_device(client, device_id, credentials_secret) do
     statement = """
     INSERT INTO devices
-    (device_id, extended_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
-    VALUES (:device_id, :extended_id, :credentials_secret, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
+    (device_id, credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs)
+    VALUES (:device_id, :credentials_secret, :inhibit_credentials_request, :protocol_revision, :total_received_bytes, :total_received_msgs)
     """
 
     query =
       Query.new()
       |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
-      |> Query.put(:extended_id, extended_id)
       |> Query.put(:credentials_secret, credentials_secret)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)

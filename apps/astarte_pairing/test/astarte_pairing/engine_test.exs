@@ -79,7 +79,7 @@ defmodule Astarte.Pairing.EngineTest do
     setup [:seed_devices]
 
     test "fails with non-existing realm" do
-      hw_id = TestHelper.random_hw_id()
+      hw_id = TestHelper.random_128_bit_hw_id()
       realm = "nonexisting"
 
       assert {:error, :realm_not_found} = Engine.register_device(realm, hw_id)
@@ -92,7 +92,7 @@ defmodule Astarte.Pairing.EngineTest do
     end
 
     test "fails with registered and confirmed device" do
-      hw_id = DatabaseTestHelper.registered_and_confirmed_hw_id()
+      hw_id = DatabaseTestHelper.registered_and_confirmed_256_hw_id()
 
       assert {:error, :already_registered} = Engine.register_device(@test_realm, hw_id)
     end
@@ -106,8 +106,14 @@ defmodule Astarte.Pairing.EngineTest do
                DatabaseTestHelper.registered_not_confirmed_credentials_secret()
     end
 
-    test "succeeds with unregistered and not confirmed device" do
-      hw_id = DatabaseTestHelper.unregistered_hw_id()
+    test "succeeds with unregistered and not confirmed device with 128 bit id" do
+      hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+
+      assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
+    end
+
+    test "succeeds with unregistered and not confirmed device with 256 bit id" do
+      hw_id = DatabaseTestHelper.unregistered_256_bit_hw_id()
 
       assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
     end
@@ -174,7 +180,7 @@ defmodule Astarte.Pairing.EngineTest do
 
     test "fails with not registered device" do
       secret = CredentialsSecret.generate()
-      hw_id = DatabaseTestHelper.unregistered_hw_id()
+      hw_id = DatabaseTestHelper.unregistered_256_bit_hw_id()
 
       assert {:error, :device_not_found} =
                Engine.get_credentials(
@@ -202,8 +208,11 @@ defmodule Astarte.Pairing.EngineTest do
                )
     end
 
-    test "suceeds with valid pairing", %{hw_id: hw_id, secret: secret} do
-      assert {:ok, _crt} =
+    test "suceeds with valid CSR and uses encoded 128 bit device_id as common name with 256 bit hw_id", %{
+      hw_id: hw_id,
+      secret: secret
+    } do
+      assert {:ok, %{client_crt: crt}} =
                Engine.get_credentials(
                  @astarte_protocol,
                  @astarte_credentials_params,
@@ -212,7 +221,39 @@ defmodule Astarte.Pairing.EngineTest do
                  secret,
                  @valid_ip
                )
+
+      # Make sure the original hw_id is 256 bit long
+      {:ok, decoded_hw_id} = Base.url_decode64(hw_id, padding: false)
+      assert byte_size(decoded_hw_id) == 32
+
+      {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
+      encoded_device_id = Device.encode_device_id(device_id)
+
+      expected_cn = "#{@test_realm}/#{encoded_device_id}"
+
+      assert CertUtils.common_name!(crt) == expected_cn
     end
+
+    test "suceeds with valid CSR and uses hw_id (== encoded device_id) as common name with 128 bit hw_id" do
+      hw_id = DatabaseTestHelper.registered_and_confirmed_128_hw_id()
+      secret = DatabaseTestHelper.registered_and_confirmed_128_credentials_secret()
+
+      assert {:ok, %{client_crt: crt}} =
+               Engine.get_credentials(
+                 @astarte_protocol,
+                 @astarte_credentials_params,
+                 @test_realm,
+                 hw_id,
+                 secret,
+                 @valid_ip
+               )
+
+      expected_cn = "#{@test_realm}/#{hw_id}"
+
+      assert CertUtils.common_name!(crt) == expected_cn
+    end
+
+
 
     test "revokes the crt if repeated", %{hw_id: hw_id, secret: secret} do
       assert {:ok, %{client_crt: _first_certificate}} =
@@ -310,8 +351,8 @@ defmodule Astarte.Pairing.EngineTest do
   end
 
   defp registered_device(_context) do
-    hw_id = DatabaseTestHelper.registered_and_confirmed_hw_id()
-    secret = DatabaseTestHelper.registered_and_confirmed_credentials_secret()
+    hw_id = DatabaseTestHelper.registered_and_confirmed_256_hw_id()
+    secret = DatabaseTestHelper.registered_and_confirmed_256_credentials_secret()
 
     {:ok, hw_id: hw_id, secret: secret}
   end

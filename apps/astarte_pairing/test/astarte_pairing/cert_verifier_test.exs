@@ -37,7 +37,7 @@ defmodule Astarte.Pairing.CertVerifierTest do
   end
 
   test "valid certificate", %{cfxxl_client: cfxxl_client, ca_crt: ca_crt} do
-    hw_id = TestHelper.random_hw_id()
+    hw_id = TestHelper.random_128_bit_hw_id()
 
     {:ok, %{"certificate" => valid_cert}} =
       CFXXL.newcert(cfxxl_client, [], %DName{O: "Hemera"}, CN: "test/#{hw_id}", profile: "device")
@@ -58,7 +58,7 @@ defmodule Astarte.Pairing.CertVerifierTest do
   end
 
   test "expired certificate", %{cfxxl_client: cfxxl_client, ca_crt: ca_crt} do
-    hw_id = TestHelper.random_hw_id()
+    hw_id = TestHelper.random_128_bit_hw_id()
 
     {:ok, %{"certificate" => valid_cert}} =
       CFXXL.newcert(

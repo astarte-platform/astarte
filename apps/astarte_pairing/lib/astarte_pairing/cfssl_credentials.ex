@@ -32,8 +32,8 @@ defmodule Astarte.Pairing.CFSSLCredentials do
   @doc """
   Signs the csr and returns the certificate data
   """
-  def get_certificate(csr, realm, extended_id) do
-    device_common_name = "#{realm}/#{extended_id}"
+  def get_certificate(csr, realm, encoded_device_id) do
+    device_common_name = "#{realm}/#{encoded_device_id}"
     subject = %Subject{CN: device_common_name}
 
     case CFXXL.sign(client(), csr, subject: subject, profile: "device") do
