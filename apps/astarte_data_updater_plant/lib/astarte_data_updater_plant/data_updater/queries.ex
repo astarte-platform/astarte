@@ -338,7 +338,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def retrieve_device_stats_and_introspection!(db_client, device_id) do
     stats_and_introspection_statement = """
-    SELECT total_received_msgs, total_received_bytes, introspection, extended_id
+    SELECT total_received_msgs, total_received_bytes, introspection
     FROM devices
     WHERE device_id=:device_id
     """
@@ -367,7 +367,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     %{
       introspection: introspection_map,
-      extended_id: device_row[:extended_id],
       total_received_msgs: device_row[:total_received_msgs],
       total_received_bytes: device_row[:total_received_bytes]
     }
