@@ -6,6 +6,7 @@ defmodule Astarte.Pairing.Mixfile do
       app: :astarte_pairing,
       version: "0.1.0",
       elixir: "~> 1.6",
+      elixirc_paths: elixirc_paths(Mix.env),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -25,6 +26,9 @@ defmodule Astarte.Pairing.Mixfile do
       extra_applications: [:logger]
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_),     do: ["lib"]
 
   defp astarte_required_modules("true") do
     [
