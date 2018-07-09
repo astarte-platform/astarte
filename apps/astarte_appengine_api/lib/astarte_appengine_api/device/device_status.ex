@@ -25,8 +25,8 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     :connected,
     :last_connection,
     :last_disconnection,
-    :first_pairing,
-    :last_pairing_ip,
+    :first_credentials_request,
+    :last_credentials_request_ip,
     :last_seen_ip,
     :total_received_msgs,
     :total_received_bytes

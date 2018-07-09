@@ -39,9 +39,9 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
     "introspection" => @expected_introspection,
     "last_connection" => "2017-09-28T03:45:00.000Z",
     "last_disconnection" => "2017-09-29T18:25:00.000Z",
-    "first_pairing" => "2016-08-20T09:44:00.000Z",
-    "last_pairing_ip" => "4.4.4.4",
-    "last_seen_ip" => "8.8.8.8",
+    "first_credentials_request" => "2016-08-20T09:44:00.000Z",
+    "last_credentials_request_ip" => "198.51.100.89",
+    "last_seen_ip" => "198.51.100.81",
     "total_received_bytes" => 4_500_000,
     "total_received_msgs" => 45000
   }

@@ -431,8 +431,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , connected
     , last_connection
     , last_disconnection
-    , first_pairing
-    , last_pairing_ip
+    , first_credentials_request
+    , last_credentials_request_ip
     , last_seen_ip
     , total_received_msgs
     , total_received_bytes
@@ -447,8 +447,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       connected: connected,
       last_connection: last_connection,
       last_disconnection: last_disconnection,
-      first_pairing: first_pairing,
-      last_pairing_ip: last_pairing_ip,
+      first_credentials_request: first_credentials_request,
+      last_credentials_request_ip: last_credentials_request_ip,
       last_seen_ip: last_seen_ip,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes
@@ -478,8 +478,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       connected: connected,
       last_connection: millis_or_null_to_datetime!(last_connection),
       last_disconnection: millis_or_null_to_datetime!(last_disconnection),
-      first_pairing: millis_or_null_to_datetime!(first_pairing),
-      last_pairing_ip: ip_or_null_to_string(last_pairing_ip),
+      first_credentials_request: millis_or_null_to_datetime!(first_credentials_request),
+      last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
       last_seen_ip: ip_or_null_to_string(last_seen_ip),
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes
@@ -525,8 +525,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       :empty_dataset ->
         {:error, :device_not_found}
 
-      not_ok ->
-        Logger.warn("Device.retrieve_device_status: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("retrieve_device_status: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("retrieve_device_status: failed with reason #{inspect(reason)}")
         {:error, :database_error}
     end
   end
@@ -586,8 +590,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:ok, %DevicesList{devices: Enum.reverse(devices_list), last_token: last_token}}
       end
     else
-      not_ok ->
-        Logger.warn("Device.retrieve_devices_list: database error: #{inspect(not_ok)}")
+      %{acc: _, msg: error_message} ->
+        Logger.warn("retrieve_devices_list: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("retrieve_devices_list: failed with reason #{inspect(reason)}")
         {:error, :database_error}
     end
   end
