@@ -79,7 +79,7 @@ defmodule Astarte.Pairing.EngineTest do
     setup [:seed_devices]
 
     test "fails with non-existing realm" do
-      hw_id = TestHelper.random_hw_id()
+      hw_id = TestHelper.random_128_bit_hw_id()
       realm = "nonexisting"
 
       assert {:error, :realm_not_found} = Engine.register_device(realm, hw_id)
@@ -106,8 +106,14 @@ defmodule Astarte.Pairing.EngineTest do
                DatabaseTestHelper.registered_not_confirmed_credentials_secret()
     end
 
-    test "succeeds with unregistered and not confirmed device" do
-      hw_id = DatabaseTestHelper.unregistered_hw_id()
+    test "succeeds with unregistered and not confirmed device with 128 bit id" do
+      hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+
+      assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
+    end
+
+    test "succeeds with unregistered and not confirmed device with 256 bit id" do
+      hw_id = DatabaseTestHelper.unregistered_256_bit_hw_id()
 
       assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
     end
