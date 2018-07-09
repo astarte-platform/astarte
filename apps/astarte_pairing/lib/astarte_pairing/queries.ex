@@ -89,7 +89,7 @@ defmodule Astarte.Pairing.Queries do
 
   def select_device_for_credentials_request(client, device_id) do
     statement = """
-    SELECT extended_id, first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
+    SELECT first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
     FROM devices
     WHERE device_id=:device_id
     """
