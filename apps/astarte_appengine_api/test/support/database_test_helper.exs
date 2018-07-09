@@ -56,6 +56,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
         protocol_revision int,
+        first_registration timestamp,
         credentials_secret ascii,
         inhibit_credentials_request boolean,
         cert_serial ascii,
@@ -81,18 +82,22 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
 
   @insert_device_statement """
   INSERT INTO autotestrealm.devices
-   (device_id, aliases, connected, last_connection, last_disconnection, first_credentials_request,
-     last_seen_ip, last_credentials_request_ip, total_received_msgs, total_received_bytes, introspection,
-     introspection_minor)
+  (
+     device_id, aliases, connected, last_connection, last_disconnection,
+     first_registration, first_credentials_request, last_seen_ip, last_credentials_request_ip,
+     total_received_msgs, total_received_bytes,
+     introspection, introspection_minor
+  )
   VALUES
-   (:device_id, :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940', '2016-08-20 11:05+0121',
-    '198.51.100.81', '198.51.100.89', 45000, :total_received_bytes,
-    {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
-     'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1},
-    {'com.test.LCDMonitor' : 3, 'com.test.SimpleStreamTest' : 0,
-     'com.example.TestObject': 5, 'com.example.PixelsConfiguration': 0
-    }
-  );
+    (
+      :device_id, :aliases, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940',
+      '2016-08-15 11:05+0121', '2016-08-20 11:05+0121', '198.51.100.81', '198.51.100.89',
+      45000, :total_received_bytes,
+      {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
+       'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1},
+      {'com.test.LCDMonitor' : 3, 'com.test.SimpleStreamTest' : 0,
+       'com.example.TestObject': 5, 'com.example.PixelsConfiguration': 0}
+    );
   """
 
   @insert_alias_statement """

@@ -39,6 +39,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
     "introspection" => @expected_introspection,
     "last_connection" => "2017-09-28T03:45:00.000Z",
     "last_disconnection" => "2017-09-29T18:25:00.000Z",
+    "first_registration" => "2016-08-15T09:44:00.000Z",
     "first_credentials_request" => "2016-08-20T09:44:00.000Z",
     "last_credentials_request_ip" => "198.51.100.89",
     "last_seen_ip" => "198.51.100.81",
