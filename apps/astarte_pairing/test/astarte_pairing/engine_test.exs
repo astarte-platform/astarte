@@ -208,8 +208,11 @@ defmodule Astarte.Pairing.EngineTest do
                )
     end
 
-    test "suceeds with valid pairing", %{hw_id: hw_id, secret: secret} do
-      assert {:ok, _crt} =
+    test "suceeds with valid certificate request and uses 128 bit id as common name", %{
+      hw_id: hw_id,
+      secret: secret
+    } do
+      assert {:ok, %{client_crt: crt}} =
                Engine.get_credentials(
                  @astarte_protocol,
                  @astarte_credentials_params,
@@ -218,6 +221,17 @@ defmodule Astarte.Pairing.EngineTest do
                  secret,
                  @valid_ip
                )
+
+      # Make sure the original hw_id is 256 bit long
+      {:ok, decoded_hw_id} = Base.url_decode64(hw_id, padding: false)
+      assert byte_size(decoded_hw_id) == 32
+
+      {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
+      encoded_device_id = Device.encode_device_id(device_id)
+
+      expected_cn = "#{@test_realm}/#{encoded_device_id}"
+
+      assert CertUtils.common_name!(crt) == expected_cn
     end
 
     test "revokes the crt if repeated", %{hw_id: hw_id, secret: secret} do
