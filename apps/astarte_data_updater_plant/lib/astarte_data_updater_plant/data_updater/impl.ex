@@ -1115,10 +1115,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
-  defp ask_clean_session(state) do
+  defp ask_clean_session(%State{realm: realm, device_id: device_id} = state) do
     warn(state, "disconnecting client and asking clean session.")
 
-    with :ok <- VMQPlugin.disconnect("/#{state.realm}/#{state.extended_id}", true) do
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    with :ok <- VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
       :ok
     else
       {:error, reason} ->
@@ -1391,15 +1393,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp resend_all_interface_properties(
-         %State{realm: realm, device_id: device_id, mappings: mappings, extended_id: extended_id} =
-           s,
+         %State{realm: realm, device_id: device_id, mappings: mappings} = _state,
          db_client,
          %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
        ) do
+    encoded_device_id = Device.encode_device_id(device_id)
+
     each_interface_mapping(mappings, interface_descriptor, fn mapping ->
       Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
       |> Enum.each(fn [{:path, path}, {_, value}] ->
-        {:ok, _} = send_value(realm, extended_id, interface_descriptor.name, path, value)
+        {:ok, _} = send_value(realm, encoded_device_id, interface_descriptor.name, path, value)
       end)
     end)
   end

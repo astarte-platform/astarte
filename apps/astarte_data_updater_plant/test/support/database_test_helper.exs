@@ -38,7 +38,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   @create_devices_table """
       CREATE TABLE autotestrealm.devices (
         device_id uuid,
-        extended_id ascii,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
         protocol_revision int,
@@ -62,8 +61,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @insert_device """
-        INSERT INTO autotestrealm.devices (device_id, extended_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
-          VALUES (:device_id, :extended_id, false, :last_connection, :last_disconnection, :first_pairing,
+        INSERT INTO autotestrealm.devices (device_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
+          VALUES (:device_id, false, :last_connection, :last_disconnection, :first_pairing,
           :last_seen_ip, :last_pairing_ip, :total_received_msgs, :total_received_bytes, :introspection);
   """
 
@@ -582,9 +581,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     :ok
   end
 
-  def insert_device(extended_id, opts \\ []) do
+  def insert_device(device_id, opts \\ []) do
     client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
-    device_uuid = extended_id_to_uuid(extended_id)
     last_connection = Keyword.get(opts, :last_connection)
     last_disconnection = Keyword.get(opts, :last_disconnection)
 
@@ -600,8 +598,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_device)
-      |> DatabaseQuery.put(:device_id, device_uuid)
-      |> DatabaseQuery.put(:extended_id, extended_id)
+      |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:last_connection, last_connection)
       |> DatabaseQuery.put(:last_disconnection, last_disconnection)
       |> DatabaseQuery.put(:first_pairing, first_pairing)
@@ -612,13 +609,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       |> DatabaseQuery.put(:introspection, introspection)
 
     DatabaseQuery.call(client, query)
-  end
-
-  def extended_id_to_uuid(extended_id) do
-    <<device_uuid::binary-size(16), _rest::binary>> =
-      Base.url_decode64!(extended_id, padding: false)
-
-    device_uuid
   end
 
   def fake_parent_trigger_id() do

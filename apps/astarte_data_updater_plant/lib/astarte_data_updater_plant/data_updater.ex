@@ -129,7 +129,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   defp get_data_updater_process(realm, encoded_device_id, message_tracker) do
-    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id, allow_extended_id: true) do
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       case Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
         [] ->
           name = {:via, Registry, {Registry.DataUpdater, {realm, device_id}}}
@@ -140,6 +140,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
           pid
       end
     else
+      {:error, :extended_id_not_allowed} ->
+        # TODO: unrecoverable error, discard the message here
+        Logger.info("Received unexpected extended device id: #{encoded_device_id}")
+
       {:error, :invalid_device_id} ->
         Logger.info("Received invalid device id: #{encoded_device_id}")
         # TODO: unrecoverable error, discard the message here
@@ -147,7 +151,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   defp get_message_tracker(realm, encoded_device_id) do
-    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id, allow_extended_id: true) do
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       device = {realm, device_id}
 
       case Registry.lookup(Registry.MessageTracker, device) do
@@ -169,6 +173,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
           pid
       end
     else
+      {:error, :extended_id_not_allowed} ->
+        # TODO: unrecoverable error, discard the message here
+        Logger.info("Received unexpected extended device id: #{encoded_device_id}")
+
       {:error, :invalid_device_id} ->
         Logger.info("Received invalid device id: #{encoded_device_id}")
         # TODO: unrecoverable error, discard the message here
