@@ -12,12 +12,12 @@ import Json.Encode as Encode
 
 import AstarteApi
 import Route
-import Utilities
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping exposing (..)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
 
 
 -- bootstrap components
@@ -449,7 +449,7 @@ view model flashMessages =
             ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ Utilities.renderFlashMessages flashMessages Forward ]
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row []
             [ Grid.col

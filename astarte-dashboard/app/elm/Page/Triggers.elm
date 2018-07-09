@@ -10,10 +10,10 @@ import Navigation
 
 import AstarteApi exposing (..)
 import Route
-import Utilities
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
 
 
 -- bootstrap components
@@ -114,7 +114,7 @@ view model flashMessages =
             ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ Utilities.renderFlashMessages flashMessages Forward ]
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row
             [ Row.middleSm

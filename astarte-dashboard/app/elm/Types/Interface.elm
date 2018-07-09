@@ -5,7 +5,7 @@ import Http
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
-import Utilities
+import JsonHelpers
 import Regex exposing (regex)
 
 
@@ -127,7 +127,7 @@ encoder interface =
       , ( "type", encodeInterfaceType interface.iType )
       , ( "ownership", encodeOwner interface.ownership )
       ]
-    , Utilities.encodeOptionalFields
+    , JsonHelpers.encodeOptionalFields
         [ ( "aggregation", encodeAggregationType interface.aggregation, interface.aggregation == Individual )
         , ( "explicit_timestamp", Json.Encode.bool interface.explicitTimestamp, interface.explicitTimestamp == False )
         , ( "has_metadata", Json.Encode.bool interface.hasMeta, interface.hasMeta == False )
@@ -210,19 +210,19 @@ mappingDictDecoder =
 interfaceTypeDecoder : Decoder InterfaceType
 interfaceTypeDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToInterfaceType >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToInterfaceType >> JsonHelpers.resultToDecoder)
 
 
 ownershipDecoder : Decoder Owner
 ownershipDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToOwner >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToOwner >> JsonHelpers.resultToDecoder)
 
 
 aggregationDecoder : Decoder AggregationType
 aggregationDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToAggregation >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToAggregation >> JsonHelpers.resultToDecoder)
 
 
 stringToInterfaceType : String -> Result String InterfaceType
@@ -265,7 +265,7 @@ stringToAggregation s =
 
 
 
--- Utilities
+-- JsonHelpers
 
 
 mappingsAsList : Interface -> List InterfaceMapping

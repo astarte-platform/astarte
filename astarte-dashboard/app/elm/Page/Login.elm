@@ -9,11 +9,11 @@ import Navigation
 
 -- Types
 
-import Utilities
 import Route
 import Types.Session exposing (Session, LoginType(..))
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
 
 
 -- bootstrap components
@@ -195,7 +195,7 @@ view model flashMessages =
                         ]
                     , Form.row []
                         [ Form.col [ Col.sm12 ]
-                            [ Utilities.renderFlashMessages flashMessages Forward ]
+                            [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
                         ]
                     , Form.row []
                         [ Form.col [ Col.sm12 ]
