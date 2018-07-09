@@ -81,7 +81,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       year: 2016
     },
     last_credentials_request_ip: "198.51.100.89",
-    last_seen_ip: "8.8.8.8",
+    last_seen_ip: "198.51.100.81",
     total_received_bytes: 4_500_000,
     total_received_msgs: 45000
   }
