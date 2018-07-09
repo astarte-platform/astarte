@@ -55,6 +55,7 @@ defmodule Astarte.Housekeeping.Queries do
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
         protocol_revision int,
+        first_registration timestamp,
         credentials_secret ascii,
         inhibit_credentials_request boolean,
         cert_serial ascii,
