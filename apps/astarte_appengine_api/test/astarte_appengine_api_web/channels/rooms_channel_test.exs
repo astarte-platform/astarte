@@ -80,7 +80,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                             }
                             |> Reply.encode()
 
-  @error_string
+  @error_string "unsupported_interface_aggregation"
   @encoded_generic_error_reply %Reply{
                                  error: true,
                                  reply:
