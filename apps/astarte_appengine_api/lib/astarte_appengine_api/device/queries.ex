@@ -431,6 +431,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , connected
     , last_connection
     , last_disconnection
+    , first_registration
     , first_credentials_request
     , last_credentials_request_ip
     , last_seen_ip
@@ -447,6 +448,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       connected: connected,
       last_connection: last_connection,
       last_disconnection: last_disconnection,
+      first_registration: first_registration,
       first_credentials_request: first_credentials_request,
       last_credentials_request_ip: last_credentials_request_ip,
       last_seen_ip: last_seen_ip,
@@ -478,6 +480,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       connected: connected,
       last_connection: millis_or_null_to_datetime!(last_connection),
       last_disconnection: millis_or_null_to_datetime!(last_disconnection),
+      first_registration: millis_or_null_to_datetime!(first_registration),
       first_credentials_request: millis_or_null_to_datetime!(first_credentials_request),
       last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
       last_seen_ip: ip_or_null_to_string(last_seen_ip),

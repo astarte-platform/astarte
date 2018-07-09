@@ -66,6 +66,20 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       hour: 18,
       minute: 25
     },
+    first_registration: %DateTime{
+      calendar: Calendar.ISO,
+      microsecond: {0, 3},
+      second: 0,
+      std_offset: 0,
+      time_zone: "Etc/UTC",
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      day: 15,
+      hour: 9,
+      minute: 44,
+      month: 8,
+      year: 2016
+    },
     first_credentials_request: %DateTime{
       calendar: Calendar.ISO,
       microsecond: {0, 3},
