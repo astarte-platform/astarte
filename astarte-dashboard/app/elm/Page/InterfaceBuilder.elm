@@ -1,7 +1,6 @@
 module Page.InterfaceBuilder exposing (Model, Msg, init, update, view)
 
 import Dict exposing (Dict)
-import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -64,8 +63,12 @@ init maybeInterfaceId session =
       }
     , case maybeInterfaceId of
         Just ( name, major ) ->
-            Http.send GetInterfaceDone <|
-                AstarteApi.getInterfaceRequest name major session
+            AstarteApi.getInterface name
+                major
+                session
+                GetInterfaceDone
+                (ShowError "Cannot retrieve interface.")
+                RedirectToLogin
 
         Nothing ->
             Cmd.none
@@ -79,15 +82,17 @@ type ModalResult
 
 type Msg
     = SetNewMappingVisible Bool
-    | GetInterfaceDone (Result Http.Error Interface)
+    | GetInterfaceDone Interface
     | AddInterface
-    | AddInterfaceDone (Result Http.Error String)
-    | DeleteInterfaceDone (Result Http.Error String)
+    | AddInterfaceDone String
+    | DeleteInterfaceDone String
     | AddMappingToInterface
     | ResetForm
     | ResetMapping
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
+    | ShowError String String
+    | RedirectToLogin
     | Forward ExternalMsg
       -- interface messages
     | UpdateInterfaceName String
@@ -122,7 +127,7 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        GetInterfaceDone (Ok interface) ->
+        GetInterfaceDone interface ->
             ( { model
                 | interface = interface
                 , interfaceEditMode = True
@@ -134,41 +139,26 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        GetInterfaceDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve selected interface."
-            )
-
         AddInterface ->
             ( model
-            , Http.send AddInterfaceDone <|
-                AstarteApi.addNewInterfaceRequest model.interface session
+            , AstarteApi.addNewInterface model.interface
+                session
+                AddInterfaceDone
+                (ShowError "Cannot install interface.")
+                RedirectToLogin
             , ExternalMsg.Noop
             )
 
-        AddInterfaceDone (Ok msg) ->
+        AddInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully added."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed."
             )
 
-        AddInterfaceDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot add the interface."
-            )
-
-        DeleteInterfaceDone (Ok msg) ->
+        DeleteInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted."
-            )
-
-        DeleteInterfaceDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot delete interface."
             )
 
         AddMappingToInterface ->
@@ -213,7 +203,7 @@ update session msg model =
         ShowDeleteModal ->
             ( { model
                 | deleteModalVisibility = Modal.shown
-                , confirmInterfaceName = ""
+                , confirmInterfaceName = "Cannot delete interface."
               }
             , Cmd.none
             , ExternalMsg.Noop
@@ -223,8 +213,12 @@ update session msg model =
             case modalResult of
                 ModalOk ->
                     ( { model | deleteModalVisibility = Modal.hidden }
-                    , Http.send DeleteInterfaceDone <|
-                        AstarteApi.deleteInterfaceRequest model.interface.name model.interface.major session
+                    , AstarteApi.deleteInterface model.interface.name
+                        model.interface.major
+                        session
+                        DeleteInterfaceDone
+                        (ShowError "")
+                        RedirectToLogin
                     , ExternalMsg.Noop
                     )
 
@@ -233,6 +227,21 @@ update session msg model =
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
+
+        ShowError actionError errorMessage ->
+            ( model
+            , Cmd.none
+            , [ actionError, " ", errorMessage ]
+                |> String.concat
+                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            )
+
+        RedirectToLogin ->
+            -- TODO: We should save page context, ask for login and then restore previous context
+            ( model
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
+            , ExternalMsg.Noop
+            )
 
         Forward msg ->
             ( model
@@ -462,7 +471,7 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                             (if interfaceEditMode then
                                 interface.name ++ " v" ++ (toString interface.major)
                              else
-                                "Add a new interface"
+                                "Install a new interface"
                             )
                         , if (interfaceEditMode && interface.major == 0) then
                             Button.button
@@ -666,7 +675,7 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                             (if interfaceEditMode then
                                 "Edit Interface"
                              else
-                                "Add Interface"
+                                "Install Interface"
                             )
                         ]
                     , Button.button

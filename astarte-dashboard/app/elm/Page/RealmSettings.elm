@@ -1,13 +1,14 @@
 module Page.RealmSettings exposing (Model, Msg, init, update, view)
 
-import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
+import Navigation
 
 
 -- Types
 
+import Route
 import AstarteApi exposing (..)
 import Utilities
 import Types.Session exposing (Session)
@@ -38,17 +39,22 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { conf = Nothing
       }
-    , Http.send GetRealmConfDone <|
-        AstarteApi.getRealmConfigRequest session
+    , AstarteApi.realmConfig session
+        GetRealmConfDone
+        GetRealmConfError
+        RedirectToLogin
     )
 
 
 type Msg
     = GetRealmConf
-    | GetRealmConfDone (Result Http.Error Config)
+    | GetRealmConfDone Config
+    | GetRealmConfError String
     | UpdateRealmConf
-    | UpdateRealmConfDone (Result Http.Error String)
+    | UpdateRealmConfDone String
+    | UpdateRealmConfError String
     | UpdatePubKey String
+    | RedirectToLogin
     | Forward ExternalMsg
 
 
@@ -57,29 +63,35 @@ update session msg model =
     case msg of
         GetRealmConf ->
             ( model
-            , Http.send GetRealmConfDone <|
-                AstarteApi.getRealmConfigRequest session
+            , AstarteApi.realmConfig session
+                GetRealmConfDone
+                GetRealmConfError
+                RedirectToLogin
             , ExternalMsg.Noop
             )
 
-        GetRealmConfDone (Ok config) ->
+        GetRealmConfDone config ->
             ( { model | conf = Just config }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
-        GetRealmConfDone (Err err) ->
+        GetRealmConfError errorMessage ->
             ( model
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve the realm configuration."
+            , ("Cannot retrieve the realm configuration. " ++ errorMessage)
+                |> ExternalMsg.AddFlashMessage FlashMessage.Error
             )
 
         UpdateRealmConf ->
             case model.conf of
                 Just config ->
                     ( model
-                    , Http.send UpdateRealmConfDone <|
-                        AstarteApi.updateRealmConfigRequest config session
+                    , AstarteApi.updateRealmConfig config
+                        session
+                        UpdateRealmConfDone
+                        UpdateRealmConfError
+                        RedirectToLogin
                     , ExternalMsg.Noop
                     )
 
@@ -89,16 +101,17 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        UpdateRealmConfDone (Ok response) ->
+        UpdateRealmConfDone response ->
             ( model
             , Cmd.none
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Realm configuration has been successfully applied."
             )
 
-        UpdateRealmConfDone (Err err) ->
+        UpdateRealmConfError errorMessage ->
             ( model
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot apply realm configuration."
+            , ("Cannot apply realm configuration. " ++ errorMessage)
+                |> ExternalMsg.AddFlashMessage FlashMessage.Error
             )
 
         UpdatePubKey newPubKey ->
@@ -115,6 +128,12 @@ update session msg model =
                 , Cmd.none
                 , ExternalMsg.Noop
                 )
+
+        RedirectToLogin ->
+            ( model
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
+            , ExternalMsg.Noop
+            )
 
         Forward msg ->
             ( model

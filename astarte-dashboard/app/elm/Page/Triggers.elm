@@ -1,6 +1,5 @@
 module Page.Triggers exposing (Model, Msg, init, update, view)
 
-import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -37,16 +36,20 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { triggers = []
       }
-    , Http.send GetTriggerListDone <|
-        AstarteApi.getTriggersRequest session
+    , AstarteApi.listTriggers session
+        GetTriggerListDone
+        (ShowError "Cannot retrieve triggers. ")
+        RedirectToLogin
     )
 
 
 type Msg
     = GetTriggerList
-    | GetTriggerListDone (Result Http.Error (List String))
+    | GetTriggerListDone (List String)
     | AddNewTrigger
     | ShowTrigger String
+    | ShowError String String
+    | RedirectToLogin
     | Forward ExternalMsg
 
 
@@ -55,21 +58,17 @@ update session msg model =
     case msg of
         GetTriggerList ->
             ( model
-            , Http.send GetTriggerListDone <|
-                AstarteApi.getTriggersRequest session
+            , AstarteApi.listTriggers session
+                GetTriggerListDone
+                (ShowError "Cannot retrieve triggers. ")
+                RedirectToLogin
             , ExternalMsg.Noop
             )
 
-        GetTriggerListDone (Ok triggerNames) ->
+        GetTriggerListDone triggerNames ->
             ( { model | triggers = triggerNames }
             , Cmd.none
             , ExternalMsg.Noop
-            )
-
-        GetTriggerListDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve triggers."
             )
 
         AddNewTrigger ->
@@ -81,6 +80,20 @@ update session msg model =
         ShowTrigger name ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm <| Route.ShowTrigger name)
+            , ExternalMsg.Noop
+            )
+
+        ShowError actionError errorMessage ->
+            ( model
+            , Cmd.none
+            , [ actionError, " ", errorMessage ]
+                |> String.concat
+                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            )
+
+        RedirectToLogin ->
+            ( model
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
             , ExternalMsg.Noop
             )
 
@@ -121,7 +134,7 @@ view model flashMessages =
                     , Button.attrs [ Spacing.mt2 ]
                     , Button.onClick AddNewTrigger
                     ]
-                    [ text "Add New Trigger ..." ]
+                    [ text "Install a New Trigger ..." ]
                 ]
             ]
         ]

@@ -1,7 +1,6 @@
 module Page.Interfaces exposing (Model, Msg, init, update, view)
 
 import Dict exposing (Dict)
-import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -41,19 +40,23 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { interfaces = Dict.empty
       }
-    , Http.send GetInterfaceListDone <|
-        AstarteApi.getInterfacesRequest session
+    , AstarteApi.listInterfaces session
+        GetInterfaceListDone
+        (ShowError "Cannot retrieve interfaces.")
+        RedirectToLogin
     )
 
 
 type Msg
     = GetInterfaceList
-    | GetInterfaceListDone (Result Http.Error (List String))
+    | GetInterfaceListDone (List String)
     | GetInterfaceMajors String
-    | GetInterfaceMajorsDone String (Result Http.Error (List Int))
+    | GetInterfaceMajorsDone String (List Int)
     | OpenInterfaceBuilder
     | ShowInterface String Int
     | Forward ExternalMsg
+    | ShowError String String
+    | RedirectToLogin
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -61,12 +64,14 @@ update session msg model =
     case msg of
         GetInterfaceList ->
             ( model
-            , Http.send GetInterfaceListDone <|
-                AstarteApi.getInterfacesRequest session
+            , AstarteApi.listInterfaces session
+                GetInterfaceListDone
+                (ShowError "Cannot retrieve interfaces.")
+                RedirectToLogin
             , ExternalMsg.Noop
             )
 
-        GetInterfaceListDone (Ok interfaces) ->
+        GetInterfaceListDone interfaces ->
             ( { model
                 | interfaces =
                     interfaces
@@ -77,31 +82,20 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        GetInterfaceListDone (Err err) ->
-            ( model
-            , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error "Cannot retrieve interfaces."
-            )
-
         GetInterfaceMajors interfaceName ->
             ( model
-            , Http.send (GetInterfaceMajorsDone interfaceName) <|
-                AstarteApi.getInterfaceMajorsRequest interfaceName session
+            , AstarteApi.listInterfaceMajors interfaceName
+                session
+                (GetInterfaceMajorsDone interfaceName)
+                (ShowError <| String.concat [ "Cannot retrieve major versions for ", interfaceName, " interface." ])
+                RedirectToLogin
             , ExternalMsg.Noop
             )
 
-        GetInterfaceMajorsDone interfaceName (Ok majors) ->
+        GetInterfaceMajorsDone interfaceName majors ->
             ( { model | interfaces = Dict.update interfaceName (\_ -> Just majors) model.interfaces }
             , Cmd.none
             , ExternalMsg.Noop
-            )
-
-        GetInterfaceMajorsDone interfaceName (Err err) ->
-            ( model
-            , Cmd.none
-            , [ "Cannot retrieve major versions for ", interfaceName, " interface." ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
             )
 
         OpenInterfaceBuilder ->
@@ -113,6 +107,20 @@ update session msg model =
         ShowInterface name major ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm <| Route.ShowInterface name major)
+            , ExternalMsg.Noop
+            )
+
+        ShowError actionError errorMessage ->
+            ( model
+            , Cmd.none
+            , [ actionError, " ", errorMessage ]
+                |> String.concat
+                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            )
+
+        RedirectToLogin ->
+            ( model
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
             , ExternalMsg.Noop
             )
 
@@ -153,7 +161,7 @@ view model flashMessages =
                     , Button.onClick OpenInterfaceBuilder
                     , Button.attrs [ Spacing.mt2 ]
                     ]
-                    [ text "Add New Interface ..." ]
+                    [ text "Install a New Interface ..." ]
                 ]
             ]
         ]
