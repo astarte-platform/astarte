@@ -1120,7 +1120,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     encoded_device_id = Device.encode_device_id(device_id)
 
-    with :ok <- VMQPlugin.disconnect("/#{realm}/#{encoded_device_id}", true) do
+    with :ok <- VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
       :ok
     else
       {:error, reason} ->
