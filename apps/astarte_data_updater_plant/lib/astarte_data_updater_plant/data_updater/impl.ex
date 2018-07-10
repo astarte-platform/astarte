@@ -670,6 +670,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = resend_all_properties(state)
 
+    {:ok, db_client} = Database.connect(state.realm)
+    :ok = Queries.set_pending_empty_cache(db_client, state.device_id, false)
+
     MessageTracker.ack_delivery(state.message_tracker, message_id)
 
     new_state
@@ -1120,7 +1123,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     encoded_device_id = Device.encode_device_id(device_id)
 
-    with :ok <- VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
+    {:ok, db_client} = Database.connect(state.realm)
+
+    with :ok <- Queries.set_pending_empty_cache(db_client, device_id, true),
+         :ok <- VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
       :ok
     else
       {:error, reason} ->
