@@ -58,6 +58,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, all_paths_query)
   end
 
+  def set_pending_empty_cache(db_client, device_id, pending_empty_cache) do
+    pending_empty_cache_statement = """
+    UPDATE devices
+    SET pending_empty_cache = :pending_empty_cache
+    WHERE device_id = :device_id
+    """
+
+    update_pending =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(pending_empty_cache_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:pending_empty_cache, pending_empty_cache)
+
+    with {:ok, _result} <- DatabaseQuery.call(db_client, update_pending) do
+      :ok
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("set_pending_empty_cache: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        # DB Error
+        Logger.warn("set_pending_empty_cache: failed with reason #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
   def insert_value_into_db(
         db_client,
         device_id,
