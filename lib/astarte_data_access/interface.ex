@@ -26,7 +26,7 @@ defmodule Astarte.DataAccess.Interface do
           {:ok, keyword} | {:error, atom}
   def retrieve_interface_row(client, interface, major_version) do
     interface_statement = """
-    SELECT name, major_version, minor_version, interface_id, type, ownership, flags,
+    SELECT name, major_version, minor_version, interface_id, type, ownership, aggregation,
       storage, storage_type, automaton_transitions, automaton_accepting_states
     FROM interfaces
     WHERE name=:name AND major_version=:major_version
