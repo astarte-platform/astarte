@@ -108,7 +108,7 @@ defmodule Astarte.AppEngine.API.Device do
       do_get_interface_values!(
         client,
         device_id,
-        Aggregation.from_int(interface_row[:flags]),
+        Aggregation.from_int(interface_row[:aggregation]),
         interface_row,
         options
       )
@@ -136,7 +136,7 @@ defmodule Astarte.AppEngine.API.Device do
       do_get_interface_values!(
         client,
         device_id,
-        Aggregation.from_int(interface_row[:flags]),
+        Aggregation.from_int(interface_row[:aggregation]),
         Type.from_int(interface_row[:type]),
         interface_row,
         endpoint_ids,
@@ -272,7 +272,7 @@ defmodule Astarte.AppEngine.API.Device do
           retrieve_endpoint_values(
             client,
             device_id,
-            Aggregation.from_int(interface_row[:flags]),
+            Aggregation.from_int(interface_row[:aggregation]),
             Type.from_int(interface_row[:type]),
             interface_row,
             endpoint_row[:endpoint_id],
@@ -291,7 +291,7 @@ defmodule Astarte.AppEngine.API.Device do
     do_get_interface_values!(
       client,
       device_id,
-      Aggregation.from_int(interface_row[:flags]),
+      Aggregation.from_int(interface_row[:aggregation]),
       Type.from_int(interface_row[:type]),
       interface_row,
       nil,
