@@ -74,7 +74,7 @@ init maybeInterfaceId session =
       , minMinor = 0
       , deleteModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
-      , showSource = False
+      , showSource = True
       , sourceBuffer = Interface.toPrettySource Interface.empty
       , sourceBufferStatus = Valid
       , debouncerControlState = Control.initialState
@@ -110,7 +110,6 @@ type Msg
     | AddInterfaceDone String
     | DeleteInterfaceDone String
     | AddMappingToInterface
-    | ResetForm
     | ResetMapping
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
@@ -209,17 +208,6 @@ update session msg model =
                 , Cmd.none
                 , ExternalMsg.Noop
                 )
-
-        ResetForm ->
-            ( { model
-                | interface = Interface.empty
-                , interfaceMapping = InterfaceMapping.empty
-                , newMappingVisible = False
-                , sourceBuffer = Interface.toPrettySource Interface.empty
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
 
         ResetMapping ->
             ( { model
@@ -848,13 +836,6 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible =
                                 "Install Interface"
                             )
                         ]
-                    , Button.button
-                        [ Button.secondary
-                        , Button.disabled interfaceEditMode
-                        , Button.attrs [ class "float-right" ]
-                        , Button.onClick ResetForm
-                        ]
-                        [ text "Reset" ]
                     ]
                 ]
             ]
