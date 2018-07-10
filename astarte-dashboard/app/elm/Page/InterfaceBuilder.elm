@@ -54,6 +54,7 @@ type alias Model =
     , interfaceEditMode : Bool
     , minMinor : Int
     , deleteModalVisibility : Modal.Visibility
+    , confirmModalVisibility : Modal.Visibility
     , confirmInterfaceName : String
     , showSource : Bool
     , sourceBuffer : String
@@ -77,6 +78,7 @@ init maybeInterfaceId session =
       , interfaceEditMode = False
       , minMinor = 0
       , deleteModalVisibility = Modal.hidden
+      , confirmModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
       , showSource = True
       , sourceBuffer = Interface.toPrettySource Interface.empty
@@ -121,6 +123,8 @@ type Msg
     | ResetMapping
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
+    | ShowConfirmModal
+    | CloseConfirmModal ModalResult
     | ShowError String String
     | RedirectToLogin
     | ToggleSource
@@ -266,6 +270,41 @@ update session msg model =
 
                 ModalCancel ->
                     ( { model | deleteModalVisibility = Modal.hidden }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        ShowConfirmModal ->
+            ( { model | confirmModalVisibility = Modal.shown }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        CloseConfirmModal modalResult ->
+            case modalResult of
+                ModalOk ->
+                    let
+                        command =
+                            if model.interfaceEditMode then
+                                AstarteApi.updateInterface model.interface
+                                    session
+                                    UpdateInterfaceDone
+                                    (ShowError "Cannot apply changes.")
+                                    RedirectToLogin
+                            else
+                                AstarteApi.addNewInterface model.interface
+                                    session
+                                    AddInterfaceDone
+                                    (ShowError "Cannot install interface.")
+                                    RedirectToLogin
+                    in
+                        ( { model | confirmModalVisibility = Modal.hidden }
+                        , command
+                        , ExternalMsg.Noop
+                        )
+
+                ModalCancel ->
+                    ( { model | confirmModalVisibility = Modal.hidden }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
@@ -652,7 +691,9 @@ view model flashMessages =
         , Grid.row []
             [ Grid.col
                 [ Col.sm12 ]
-                [ renderDeleteInterfaceModal model ]
+                [ renderDeleteInterfaceModal model
+                , renderConfirmModal model
+                ]
             ]
         ]
 
@@ -886,20 +927,16 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible acc
 
 renderConfirmButton : Bool -> Html Msg
 renderConfirmButton editMode =
-    if editMode then
-        Button.button
-            [ Button.primary
-            , Button.attrs [ class "float-right", Spacing.ml2 ]
-            , Button.onClick UpdateInterface
-            ]
-            [ text "Apply Changes" ]
-    else
-        Button.button
-            [ Button.primary
-            , Button.attrs [ class "float-right", Spacing.ml2 ]
-            , Button.onClick AddInterface
-            ]
-            [ text "Install Interface" ]
+    Button.button
+        [ Button.primary
+        , Button.attrs [ class "float-right", Spacing.ml2 ]
+        , Button.onClick ShowConfirmModal
+        ]
+        [ if editMode then
+            text "Apply Changes"
+          else
+            text "Install Interface"
+        ]
 
 
 renderAddNewMapping : InterfaceMapping -> Html Msg
@@ -1207,6 +1244,58 @@ renderDeleteInterfaceModal model =
                 [ text "Confirm" ]
             ]
         |> Modal.view model.deleteModalVisibility
+
+
+renderConfirmModal : Model -> Html Msg
+renderConfirmModal model =
+    Modal.config (CloseConfirmModal ModalCancel)
+        |> Modal.large
+        |> Modal.h5 [] [ text "Confirmation Required" ]
+        |> Modal.body []
+            [ Grid.container []
+                [ Grid.row []
+                    [ Grid.col
+                        [ Col.sm12 ]
+                        (confirmModalWarningText
+                            model.interfaceEditMode
+                            model.interface.name
+                            model.interface.major
+                        )
+                    ]
+                ]
+            ]
+        |> Modal.footer []
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick <| CloseConfirmModal ModalCancel
+                ]
+                [ text "Cancel" ]
+            , Button.button
+                [ Button.primary
+                , Button.onClick <| CloseConfirmModal ModalOk
+                ]
+                [ text "Confirm" ]
+            ]
+        |> Modal.view model.confirmModalVisibility
+
+
+confirmModalWarningText : Bool -> String -> Int -> List (Html Msg)
+confirmModalWarningText editMode interfaceName interfaceMajor =
+    if editMode then
+        [ text "Update the interface "
+        , b [] [ text interfaceName ]
+        , text "?"
+        ]
+    else
+        [ text "You are about to install the interface "
+        , b [] [ text interfaceName ]
+        , text "."
+        , if (interfaceMajor > 0) then
+            p [] [ text "Interface major is greater than zero, that means you will not be able to change already installed mappings." ]
+          else
+            p [] [ text "This is a draft interface, so you will be able to delete it afterwards." ]
+        , text "Confirm?"
+        ]
 
 
 mappingTypeToEnglishString : MappingType -> String
