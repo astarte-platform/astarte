@@ -44,7 +44,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   @insert_into_interfaces """
     INSERT INTO interfaces
-      (name, major_version, minor_version, interface_id, storage_type, storage, type, quality, flags, source, automaton_transitions, automaton_accepting_states)
+      (name, major_version, minor_version, interface_id, storage_type, storage, type, ownership, flags, source, automaton_transitions, automaton_accepting_states)
       VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :source, :automaton_transitions, :automaton_accepting_states)
   """
 
