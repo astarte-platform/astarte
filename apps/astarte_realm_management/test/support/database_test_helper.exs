@@ -49,7 +49,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         storage ascii,
         type int,
         ownership int,
-        flags int,
+        aggregation int,
         source varchar,
         automaton_transitions blob,
         automaton_accepting_states blob,
