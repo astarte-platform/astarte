@@ -100,7 +100,7 @@ defmodule Astarte.Housekeeping.Queries do
         storage_type int,
         storage ascii,
         type int,
-        quality int,
+        ownership int,
         flags int,
         source varchar,
         automaton_transitions blob,
