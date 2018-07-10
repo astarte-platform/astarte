@@ -114,7 +114,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         storage ascii,
         type int,
         ownership int,
-        flags int,
+        aggregation int,
         source varchar,
         automaton_transitions blob,
         automaton_accepting_states blob,
@@ -340,22 +340,22 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   ]
 
   @insert_into_interface_0 """
-  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
     ('com.test.LCDMonitor', 1, :automaton_accepting_states, :automaton_transitions, 1, 798b93a5-842e-bbad-2e4d-d20306838051, 3, 1, 'individual_properties', 1, 1)
   """
 
   @insert_into_interface_1 """
-  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
     ('com.test.SimpleStreamTest', 1, :automaton_accepting_states, :automaton_transitions, 1, 0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 0, 1, 'individual_datastreams', 2, 2)
   """
 
   @insert_into_interface_2 """
-  INSERT INTO autotestrealm.interfaces (name, major_version, flags, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+  INSERT INTO autotestrealm.interfaces (name, major_version, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
     ('com.example.TestObject', 1, 2, db576345-80b1-5358-f305-d77ec39b3d84, 5, 1, 'com_example_testobject_v1', 5, 2)
   """
 
   @insert_into_interface_3 """
-  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, flags, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
     ('com.example.PixelsConfiguration', 1, :automaton_accepting_states, :automaton_transitions, 1, 9651f167-a619-3ff5-1c4e-6771fb1929d4, 0, 2, 'individual_properties', 1, 1)
   """
 
