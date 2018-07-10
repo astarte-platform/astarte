@@ -411,10 +411,15 @@ defmodule Astarte.AppEngine.API.Device do
         opts
       )
 
-    if elem(interface_values, 1).data == [] and path != "/" do
-      {:error, :path_not_found}
-    else
-      interface_values
+    cond do
+      path == "/" and interface_values == {:error, :path_not_found} ->
+        {:ok, %InterfaceValues{data: []}}
+
+      path != "/" and elem(interface_values, 1).data == [] ->
+        {:error, :path_not_found}
+
+      true ->
+        interface_values
     end
   end
 
