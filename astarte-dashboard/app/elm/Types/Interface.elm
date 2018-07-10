@@ -281,3 +281,13 @@ isValidInterfaceName interfaceName =
 toPrettySource : Interface -> String
 toPrettySource interface =
     Json.Encode.encode 4 <| encoder interface
+
+
+fromString : String -> Result String Interface
+fromString source =
+    decodeString decoder source
+
+
+compareId : Interface -> Interface -> Bool
+compareId a b =
+    a.name == b.name && a.major == b.major

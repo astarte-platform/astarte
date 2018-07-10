@@ -6,6 +6,10 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
 import Json.Encode as Encode
+import Task
+import Time
+import Control exposing (Control)
+import Control.Debounce as Debounce
 
 
 -- Types
@@ -49,7 +53,16 @@ type alias Model =
     , deleteModalVisibility : Modal.Visibility
     , confirmInterfaceName : String
     , showSource : Bool
+    , sourceBuffer : String
+    , sourceBufferStatus : BufferStatus
+    , debouncerControlState : Control.State Msg
     }
+
+
+type BufferStatus
+    = Valid
+    | Invalid
+    | Typing
 
 
 init : Maybe ( String, Int ) -> Session -> ( Model, Cmd Msg )
@@ -62,6 +75,9 @@ init maybeInterfaceId session =
       , deleteModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
       , showSource = False
+      , sourceBuffer = Interface.toPrettySource Interface.empty
+      , sourceBufferStatus = Valid
+      , debouncerControlState = Control.initialState
       }
     , case maybeInterfaceId of
         Just ( name, major ) ->
@@ -75,6 +91,11 @@ init maybeInterfaceId session =
         Nothing ->
             Cmd.none
     )
+
+
+debounce : Msg -> Msg
+debounce =
+    Debounce.trailing DebounceMsg (1 * Time.second)
 
 
 type ModalResult
@@ -96,6 +117,9 @@ type Msg
     | ShowError String String
     | RedirectToLogin
     | ToggleSource
+    | InterfaceSourceChanged
+    | UpdateSource String
+    | DebounceMsg (Control Msg)
     | Forward ExternalMsg
       -- interface messages
     | UpdateInterfaceName String
@@ -137,6 +161,7 @@ update session msg model =
                 , minMinor = interface.minor
                 , interfaceMapping = InterfaceMapping.empty
                 , newMappingVisible = False
+                , sourceBuffer = Interface.toPrettySource interface
               }
             , Cmd.none
             , ExternalMsg.Noop
@@ -179,6 +204,7 @@ update session msg model =
                     | interface = newInterface
                     , interfaceMapping = InterfaceMapping.empty
                     , newMappingVisible = False
+                    , sourceBuffer = Interface.toPrettySource interface
                   }
                 , Cmd.none
                 , ExternalMsg.Noop
@@ -189,6 +215,7 @@ update session msg model =
                 | interface = Interface.empty
                 , interfaceMapping = InterfaceMapping.empty
                 , newMappingVisible = False
+                , sourceBuffer = Interface.toPrettySource Interface.empty
               }
             , Cmd.none
             , ExternalMsg.Noop
@@ -252,6 +279,53 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        InterfaceSourceChanged ->
+            case Interface.fromString model.sourceBuffer of
+                Ok interface ->
+                    if (not model.interfaceEditMode || Interface.compareId model.interface interface) then
+                        ( { model
+                            | sourceBuffer = Interface.toPrettySource interface
+                            , sourceBufferStatus = Valid
+                            , interface = interface
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( { model | sourceBufferStatus = Invalid }
+                        , Cmd.none
+                        , "Interface name and major do not match"
+                            |> ExternalMsg.AddFlashMessage FlashMessage.Error
+                        )
+
+                Err _ ->
+                    ( { model | sourceBufferStatus = Invalid }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateSource newSource ->
+            ( { model
+                | sourceBuffer = newSource
+                , sourceBufferStatus = Typing
+              }
+            , Task.perform (\_ -> debounce InterfaceSourceChanged) (Task.succeed ())
+            , ExternalMsg.Noop
+            )
+
+        DebounceMsg control ->
+            let
+                ( newModel, command ) =
+                    Control.update
+                        (\newstate -> { model | debouncerControlState = newstate })
+                        model.debouncerControlState
+                        control
+            in
+                ( newModel
+                , command
+                , ExternalMsg.Noop
+                )
+
         Forward msg ->
             ( model
             , Cmd.none
@@ -259,19 +333,33 @@ update session msg model =
             )
 
         UpdateInterfaceName newName ->
-            ( { model | interface = Interface.setName model.interface newName }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setName model.interface newName
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateInterfaceMajor newMajor ->
             case (String.toInt newMajor) of
                 Ok major ->
                     if (major >= 0) then
-                        ( { model | interface = Interface.setMajor model.interface major }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
+                        let
+                            newInterface =
+                                Interface.setMajor model.interface major
+                        in
+                            ( { model
+                                | interface = newInterface
+                                , sourceBuffer = Interface.toPrettySource newInterface
+                              }
+                            , Cmd.none
+                            , ExternalMsg.Noop
+                            )
                     else
                         ( model
                         , Cmd.none
@@ -288,10 +376,17 @@ update session msg model =
             case (String.toInt newMinor) of
                 Ok minor ->
                     if (minor >= model.minMinor) then
-                        ( { model | interface = Interface.setMinor model.interface minor }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
+                        let
+                            newInterface =
+                                Interface.setMinor model.interface minor
+                        in
+                            ( { model
+                                | interface = newInterface
+                                , sourceBuffer = Interface.toPrettySource newInterface
+                              }
+                            , Cmd.none
+                            , ExternalMsg.Noop
+                            )
                     else
                         ( model
                         , Cmd.none
@@ -305,46 +400,95 @@ update session msg model =
                     )
 
         UpdateInterfaceType newInterfaceType ->
-            ( { model | interface = Interface.setType model.interface newInterfaceType }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setType model.interface newInterfaceType
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateInterfaceAggregation newAggregation ->
-            ( { model | interface = Interface.setAggregation model.interface newAggregation }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setAggregation model.interface newAggregation
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateInterfaceOwnership newOwner ->
-            ( { model | interface = Interface.setOwnership model.interface newOwner }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setOwnership model.interface newOwner
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateInterfaceTimestamp timestamp ->
-            ( { model | interface = Interface.setExplicitTimestamp model.interface timestamp }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setExplicitTimestamp model.interface timestamp
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateInterfaceHasMeta hasMeta ->
-            ( { model | interface = Interface.setHasMeta model.interface hasMeta }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setHasMeta model.interface hasMeta
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateInterfaceDescription newDescription ->
-            ( { model | interface = Interface.setDescription model.interface newDescription }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setDescription model.interface newDescription
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateInterfaceDoc newDoc ->
-            ( { model | interface = Interface.setDoc model.interface newDoc }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newInterface =
+                    Interface.setDoc model.interface newDoc
+            in
+                ( { model
+                    | interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateMappingEndpoint newEndpoint ->
             ( { model | interfaceMapping = InterfaceMapping.setEndpoint model.interfaceMapping newEndpoint }
@@ -470,7 +614,7 @@ view model flashMessages =
                   else
                     Col.attrs [ Display.none ]
                 ]
-                [ renderInterfaceSource model.interface ]
+                [ renderInterfaceSource model.interface model.sourceBuffer model.sourceBufferStatus ]
             ]
         , Grid.row []
             [ Grid.col
@@ -872,12 +1016,23 @@ renderAddNewMapping mapping =
         ]
 
 
-renderInterfaceSource : Interface -> Html Msg
-renderInterfaceSource interface =
+renderInterfaceSource : Interface -> String -> BufferStatus -> Html Msg
+renderInterfaceSource interface sourceBuffer status =
     Textarea.textarea
         [ Textarea.id "interfaceSource"
         , Textarea.rows 30
-        , Textarea.value <| Interface.toPrettySource interface
+        , Textarea.value sourceBuffer
+        , case status of
+            Valid ->
+                Textarea.success
+
+            Invalid ->
+                Textarea.danger
+
+            Typing ->
+                Textarea.attrs []
+        , Textarea.onInput UpdateSource
+        , Textarea.attrs [ class "text-monospace" ]
         ]
 
 
