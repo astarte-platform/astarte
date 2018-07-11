@@ -235,7 +235,14 @@ defmodule Astarte.Housekeeping.Queries do
         |> DatabaseQuery.statement(insert_pubkey_statement)
         |> DatabaseQuery.put(:pem, public_key_pem)
 
-      exec_queries(client, initialization_queries ++ [insert_pubkey_query])
+      with :ok <- exec_queries(client, initialization_queries ++ [insert_pubkey_query]) do
+        Logger.info("create_realm: #{realm_name} creation succeed.")
+        :ok
+      else
+        {:error, :database_error} ->
+          Logger.warn("create_realm: #{realm_name} creation failed.")
+          {:error, :database_error}
+      end
     else
       Logger.warn("HouseKeeping.Queries: " <> realm_name <> " is not an allowed realm name.")
       {:error, :realm_not_allowed}
@@ -252,7 +259,14 @@ defmodule Astarte.Housekeeping.Queries do
         String.replace(query, ":replication_factor", replication_factor_str)
       end
 
-    exec_queries(client, queries)
+    with :ok <- exec_queries(client, queries) do
+      Logger.info("Astarte keyspace creation has succeed.")
+      :ok
+    else
+      {:error, :database_error} ->
+        Logger.error("Astarte keyspace creation failed. ASTARTE WILL NOT WORK.")
+        {:error, :database_error}
+    end
   end
 
   def realm_exists?(client, realm_name) do
@@ -312,14 +326,19 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp exec_queries(client, _queries = [query | tail]) do
-    case DatabaseQuery.call(client, query) do
-      {:ok, _} -> exec_queries(client, tail)
-      %{msg: message} -> {:error, message}
-    end
-  end
+  defp exec_queries(client, queries) do
+    Enum.reduce_while(queries, :ok, fn query, acc ->
+      with {:ok, _result} <- DatabaseQuery.call(client, query) do
+        {:cont, :ok}
+      else
+        %{acc: _, msg: error_message} ->
+          Logger.warn("exec_queries: database error: #{error_message}")
+          {:halt, {:error, :database_error}}
 
-  defp exec_queries(_client, _queries = []) do
-    :ok
+        {:error, reason} ->
+          Logger.warn("exec_queries: failed with reason #{inspect(reason)}")
+          {:halt, {:error, :database_error}}
+      end
+    end)
   end
 end
