@@ -594,6 +594,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
     end)
 
+    {added_interfaces, removed_interfaces} =
+      Enum.reduce(diff, {%{}, %{}}, fn {change_type, changed_interfaces}, {add_acc, rm_acc} ->
+        case change_type do
+          :ins ->
+            changed_map = Enum.into(changed_interfaces, %{})
+            {Map.merge(add_acc, changed_map), rm_acc}
+
+          :del ->
+            changed_map = Enum.into(changed_interfaces, %{})
+            {add_acc, Map.merge(rm_acc, changed_map)}
+
+          :eq ->
+            {add_acc, rm_acc}
+        end
+      end)
+
+    readded_introspection =
+      Enum.reduce(added_interfaces, [], fn {iface, _major}, acc ->
+        with {:ok, prev_major} <- Map.fetch(db_introspection_map, iface) do
+          prev_minor = Map.get(db_introspection_minor_map, iface, 0)
+          [{iface, prev_major} | acc]
+        else
+          :error ->
+            acc
+        end
+      end)
+
+    old_introspection =
+      Enum.reduce(removed_interfaces, %{}, fn {iface, _major}, acc ->
+        prev_major = Map.fetch!(db_introspection_map, iface)
+        prev_minor = Map.get(db_introspection_minor_map, iface, 0)
+        Map.put(acc, {iface, prev_major}, prev_minor)
+      end)
+
+    :ok = Queries.add_old_interfaces(db_client, new_state.device_id, old_introspection)
+    :ok = Queries.remove_old_interfaces(db_client, new_state.device_id, readded_introspection)
+
     # TODO: handle triggers for interface minor updates
 
     Queries.update_device_introspection!(
