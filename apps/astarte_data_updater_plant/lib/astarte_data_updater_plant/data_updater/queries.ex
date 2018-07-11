@@ -463,6 +463,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, introspection_update_query)
   end
 
+  def add_old_interfaces(db_client, device_id, old_interfaces) do
+    old_introspection_update_statement = """
+    UPDATE devices
+    SET old_introspection = old_introspection + :introspection
+    WHERE device_id=:device_id
+    """
+
+    old_introspection_update_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(old_introspection_update_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:introspection, old_interfaces)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(db_client, old_introspection_update_query) do
+      :ok
+    end
+  end
+
+  def remove_old_interfaces(db_client, device_id, old_interfaces) do
+    old_introspection_remove_statement = """
+    UPDATE devices
+    SET old_introspection = old_introspection - :old_interfaces
+    WHERE device_id=:device_id
+    """
+
+    old_introspection_remove_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(old_introspection_remove_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:old_interfaces, old_interfaces)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(db_client, old_introspection_remove_query) do
+      :ok
+    end
+  end
+
   def register_device_with_interface(db_client, device_id, interface_name, interface_major) do
     key_insert_statement = """
     INSERT INTO kv_store (group, key)

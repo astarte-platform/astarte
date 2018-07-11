@@ -40,6 +40,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         device_id uuid,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
+        old_introspection map<frozen<tuple<ascii, int>>, int>,
         protocol_revision int,
         triggers set<ascii>,
         inhibit_pairing boolean,
