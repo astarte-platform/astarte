@@ -54,6 +54,7 @@ defmodule Astarte.Housekeeping.Queries do
         aliases map<ascii, varchar>,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
+        old_introspection map<frozen<tuple<ascii, int>>, int>,
         protocol_revision int,
         first_registration timestamp,
         credentials_secret ascii,
