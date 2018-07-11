@@ -36,6 +36,10 @@ defmodule Astarte.Housekeeping.Engine do
   end
 
   def create_realm(realm, public_key_pem, replication_factor, opts \\ []) do
+    Logger.info(
+      "create_realm: creating #{realm} with replication: #{inspect(replication_factor)}"
+    )
+
     client = get_db_client()
 
     if opts[:async] do
