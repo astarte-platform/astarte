@@ -249,9 +249,8 @@ update session msg model =
             )
 
         AddTriggerDone response ->
-            -- redirect to trigger list? or switch to edit mode?
             ( model
-            , Cmd.none
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed."
             )
 
