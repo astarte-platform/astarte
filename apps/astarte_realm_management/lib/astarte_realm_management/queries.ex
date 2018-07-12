@@ -312,7 +312,7 @@ defmodule Astarte.RealmManagement.Queries do
       interface_id: interface_id
     } = interface_descriptor
 
-    {automaton_accepting_states, automaton_transitions} = automaton
+    {automaton_transitions, automaton_accepting_states} = automaton
     automaton_accepting_states_bin = :erlang.term_to_binary(automaton_accepting_states)
     automaton_transitions_bin = :erlang.term_to_binary(automaton_transitions)
 
