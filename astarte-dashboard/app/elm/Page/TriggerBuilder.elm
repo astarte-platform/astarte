@@ -66,7 +66,7 @@ init maybeTriggerName session =
       , mappingType = Nothing
       , selectedInterfaceName = ""
       , selectedInterfaceMajor = Nothing
-      , selectedOperator = ""
+      , selectedOperator = "any"
       , selectedKnownValue = Nothing
       }
     , case maybeTriggerName of

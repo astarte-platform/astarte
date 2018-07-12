@@ -28,7 +28,7 @@ empty : Trigger
 empty =
     { name = ""
     , url = ""
-    , template = Mustache ""
+    , template = NoTemplate
     , simpleTrigger = Data DataTrigger.empty
     }
 
