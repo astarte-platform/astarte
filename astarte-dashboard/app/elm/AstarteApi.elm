@@ -293,3 +293,21 @@ addNewTrigger trigger session doneMessage errorMessage reloginMessage =
             , withCredentials = False
             }
             |> requestToCommand doneMessage errorMessage reloginMessage
+
+
+deleteTrigger : String -> Session -> (String -> msg) -> (String -> msg) -> msg -> Cmd msg
+deleteTrigger triggerName session doneMessage errorMessage reloginMessage =
+    let
+        baseUrl =
+            getBaseUrl session
+    in
+        Http.request
+            { method = "DELETE"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/triggers/", triggerName ]
+            , body = Http.emptyBody
+            , expect = Http.expectString
+            , timeout = Nothing
+            , withCredentials = False
+            }
+            |> requestToCommand doneMessage errorMessage reloginMessage
