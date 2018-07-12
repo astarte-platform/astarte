@@ -33,10 +33,10 @@ defmodule Astarte.Pairing.CredentialsSecret do
   end
 
   @doc """
-  Generates the Argon2 hash from a secret
+  Generates the Bcrypt hash from a secret
   """
   def hash(secret) do
-    Argon2.hash_pwd_salt(secret)
+    Bcrypt.hash_pwd_salt(secret)
   end
 
   @doc """
@@ -55,13 +55,13 @@ defmodule Astarte.Pairing.CredentialsSecret do
   end
 
   def verify(provided_secret, stored_hash) do
-    Argon2.verify_pass(provided_secret, stored_hash)
+    Bcrypt.verify_pass(provided_secret, stored_hash)
   end
 
   @doc """
   Perform a dummy check to avoid timing attacks. Always returns false.
   """
   def dummy_verify do
-    Argon2.no_user_verify()
+    Bcrypt.no_user_verify()
   end
 end
