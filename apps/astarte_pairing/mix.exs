@@ -55,7 +55,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:uuid, "== 1.7.2", hex: :uuid_erl},
       {:cfxxl, "== 0.3.0"},
       {:conform, "== 2.5.2"},
-      {:argon2_elixir, "== 1.3.0"},
+      {:bcrypt_elixir, "== 1.0.8"},
       {:excoveralls, "~> 0.7", only: :test},
       {:distillery, "== 1.5.2", runtime: false}
     ]
