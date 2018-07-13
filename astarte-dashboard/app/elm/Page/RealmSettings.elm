@@ -26,18 +26,25 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 
 
 type alias Model =
     { conf : Maybe Config
+    , initialKey : String
+    , keyChanged : Bool
+    , confirmModalVisibility : Modal.Visibility
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { conf = Nothing
+      , initialKey = ""
+      , keyChanged = False
+      , confirmModalVisibility = Modal.hidden
       }
     , AstarteApi.realmConfig session
         GetRealmConfDone
@@ -46,16 +53,23 @@ init session =
     )
 
 
+type ModalResult
+    = ModalCancel
+    | ModalOk
+
+
 type Msg
     = GetRealmConf
     | GetRealmConfDone Config
     | GetRealmConfError String
-    | UpdateRealmConf
     | UpdateRealmConfDone String
     | UpdateRealmConfError String
     | UpdatePubKey String
     | RedirectToLogin
     | Forward ExternalMsg
+      -- Modal
+    | ShowConfirmModal
+    | CloseConfirmModal ModalResult
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -71,7 +85,11 @@ update session msg model =
             )
 
         GetRealmConfDone config ->
-            ( { model | conf = Just config }
+            ( { model
+                | conf = Just config
+                , initialKey = config.pubKey
+                , keyChanged = False
+              }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -83,27 +101,12 @@ update session msg model =
                 |> ExternalMsg.AddFlashMessage FlashMessage.Error
             )
 
-        UpdateRealmConf ->
-            case model.conf of
-                Just config ->
-                    ( model
-                    , AstarteApi.updateRealmConfig config
-                        session
-                        UpdateRealmConfDone
-                        UpdateRealmConfError
-                        RedirectToLogin
-                    , ExternalMsg.Noop
-                    )
-
-                Nothing ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
         UpdateRealmConfDone response ->
             ( model
-            , Cmd.none
+            , if model.keyChanged then
+                Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
+              else
+                Cmd.none
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Realm configuration has been successfully applied."
             )
 
@@ -124,7 +127,10 @@ update session msg model =
                         Nothing ->
                             { pubKey = newPubKey }
             in
-                ( { model | conf = Just newConfig }
+                ( { model
+                    | conf = Just newConfig
+                    , keyChanged = model.initialKey /= newPubKey
+                  }
                 , Cmd.none
                 , ExternalMsg.Noop
                 )
@@ -140,6 +146,30 @@ update session msg model =
             , Cmd.none
             , msg
             )
+
+        ShowConfirmModal ->
+            ( { model | confirmModalVisibility = Modal.shown }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        CloseConfirmModal result ->
+            case ( result, model.conf ) of
+                ( ModalOk, Just config ) ->
+                    ( { model | confirmModalVisibility = Modal.hidden }
+                    , AstarteApi.updateRealmConfig config
+                        session
+                        UpdateRealmConfDone
+                        UpdateRealmConfError
+                        RedirectToLogin
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( { model | confirmModalVisibility = Modal.hidden }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
 
 view : Model -> List FlashMessage -> Html Msg
@@ -169,12 +199,13 @@ view model flashMessages =
                     [ text "Reload" ]
                 , Button.button
                     [ Button.primary
-                    , Button.onClick UpdateRealmConf
+                    , Button.onClick ShowConfirmModal
                     , Button.attrs [ Spacing.mt2 ]
                     ]
                     [ text "Save" ]
                 ]
             ]
+        , renderConfirmModal model.confirmModalVisibility model.keyChanged
         ]
 
 
@@ -200,3 +231,40 @@ renderConfig mConfig =
 
         Nothing ->
             text ""
+
+
+renderConfirmModal : Modal.Visibility -> Bool -> Html Msg
+renderConfirmModal modalVisibility keyChanged =
+    Modal.config (CloseConfirmModal ModalCancel)
+        |> Modal.large
+        |> Modal.h5 [] [ text "Confirmation Required" ]
+        |> Modal.body []
+            [ Grid.container []
+                [ Grid.row []
+                    [ Grid.col
+                        [ Col.sm12 ]
+                        [ p []
+                            [ text <|
+                                if keyChanged then
+                                    "Realm public key will be changed, users will not be able to make further API calls using their current auth token."
+                                else
+                                    "Realm configuration will be changed."
+                            ]
+                        , text "Confirm?"
+                        ]
+                    ]
+                ]
+            ]
+        |> Modal.footer []
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick <| CloseConfirmModal ModalCancel
+                ]
+                [ text "Cancel" ]
+            , Button.button
+                [ Button.primary
+                , Button.onClick <| CloseConfirmModal ModalOk
+                ]
+                [ text "Confirm" ]
+            ]
+        |> Modal.view modalVisibility
