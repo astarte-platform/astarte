@@ -49,10 +49,12 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
 
   require Logger
 
+  @timeout 30_000
+
   def get_agent_public_key_pems(realm) do
     %GetAgentPublicKeyPEMs{realm: realm}
     |> encode_call(:get_agent_public_key_pems)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
     |> extract_reply()
   end
@@ -60,7 +62,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   def get_info(realm, hw_id, secret) do
     %GetInfo{realm: realm, hw_id: hw_id, secret: secret}
     |> encode_call(:get_info)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
     |> extract_reply()
   end
@@ -68,7 +70,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   def register_device(realm, hw_id) do
     %RegisterDevice{realm: realm, hw_id: hw_id}
     |> encode_call(:register_device)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
     |> extract_reply()
   end
@@ -84,7 +86,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
       credentials_parameters: credentials_parameters
     }
     |> encode_call(:get_credentials)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
     |> extract_reply()
   end
@@ -94,7 +96,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
 
     %VerifyCredentials{realm: realm, hw_id: hw_id, secret: secret, credentials: credentials}
     |> encode_call(:verify_credentials)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
     |> extract_reply()
   end

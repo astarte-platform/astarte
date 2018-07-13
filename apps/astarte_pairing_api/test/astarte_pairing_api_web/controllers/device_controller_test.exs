@@ -60,6 +60,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   @client_crt "not exactly a certificate"
 
   @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
+  @timeout 30_000
 
   describe "create Astarte MQTT V1 credentials" do
     @create_attrs %{"csr" => @csr}
@@ -87,7 +88,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
 
     test "renders credentials when data is valid", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_credentials_response}
       end)
 
@@ -193,7 +194,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
 
     test "renders credentials status when data is valid", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_verify_valid_response}
       end)
 
@@ -221,7 +222,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
 
     test "renders credentials status when credentials are invalid", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_verify_not_valid_response}
       end)
 
@@ -283,7 +284,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
 
     test "renders info status", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_info_response}
       end)
 
@@ -297,7 +298,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
 
     test "renders error with invalid secret", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_forbidden_response}
       end)
 

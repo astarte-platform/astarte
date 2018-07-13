@@ -51,6 +51,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
   @credentials_secret "supersecret"
 
   @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
+  @timeout 30_000
 
   describe "register device" do
     @encoded_pubkey_response %Reply{
@@ -89,10 +90,10 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
     test "renders credentials_secret when data is valid", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_register_response}
       end)
 
@@ -104,10 +105,10 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
       conn: conn
     } do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_register_response}
       end)
 
@@ -117,7 +118,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
     test "renders errors when data is invalid", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
 
@@ -127,7 +128,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
     test "renders errors when hardware id is too short", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
 
@@ -137,7 +138,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
     test "renders errors when hardware id is not valid base64", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
 
@@ -147,10 +148,10 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
     test "renders errors when device already exists", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_already_registered_response}
       end)
 
@@ -160,7 +161,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
     test "renders errors when unauthorized", %{conn: conn} do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
 

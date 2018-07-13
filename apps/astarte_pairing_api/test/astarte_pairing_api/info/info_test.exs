@@ -69,11 +69,12 @@ defmodule Astarte.Pairing.API.InfoTest do
                               |> Reply.encode()
 
   @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
+  @timeout 30_000
 
   describe "device_info" do
     test "returns valid info with authorized call" do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         assert %Call{call: {:get_info, %GetInfo{} = get_info_call}} = Call.decode(serialized_call)
 
         assert %GetInfo{
@@ -93,7 +94,7 @@ defmodule Astarte.Pairing.API.InfoTest do
 
     test "returns forbidden with forbidden call" do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_forbidden_response}
       end)
 
