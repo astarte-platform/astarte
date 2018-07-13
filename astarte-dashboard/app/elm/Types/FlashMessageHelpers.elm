@@ -1,10 +1,8 @@
-module Utilities exposing (..)
+module Types.FlashMessageHelpers exposing (renderFlashMessages)
 
-import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Json.Decode exposing (Decoder)
 
 
 -- Types
@@ -16,16 +14,6 @@ import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 -- bootstrap components
 
 import Bootstrap.ListGroup as ListGroup
-
-
-resultToDecoder : Result String a -> Decoder a
-resultToDecoder result =
-    case result of
-        Ok value ->
-            Json.Decode.succeed value
-
-        Err err ->
-            Json.Decode.fail err
 
 
 renderFlashMessages : List FlashMessage -> (ExternalMsg -> a) -> Html a

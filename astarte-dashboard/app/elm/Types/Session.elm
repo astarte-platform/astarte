@@ -3,7 +3,7 @@ module Types.Session exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (decode, required, hardcoded)
 import Json.Encode as Encode exposing (Value)
-import Utilities
+import JsonHelpers as JsonHelpers
 
 
 type alias Session =
@@ -140,7 +140,7 @@ credentialsDecoder =
 loginTypeDecoder : Decoder LoginType
 loginTypeDecoder =
     Decode.string
-        |> Decode.andThen (stringToLoginType >> Utilities.resultToDecoder)
+        |> Decode.andThen (stringToLoginType >> JsonHelpers.resultToDecoder)
 
 
 stringToLoginType : String -> Result String LoginType

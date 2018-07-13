@@ -19,7 +19,7 @@ import Types.Trigger as Trigger exposing (Trigger)
 import Types.DataTrigger as DataTrigger exposing (DataTrigger, DataTriggerEvent)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger, DeviceTriggerEvent)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Utilities
+import Types.FlashMessageHelpers as FlashMessageHelpers
 
 
 -- bootstrap components
@@ -578,7 +578,7 @@ view model flashMessages =
             ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ Utilities.renderFlashMessages flashMessages Forward ]
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Form.form [ Spacing.mt2Sm ]
             ([ Form.row []

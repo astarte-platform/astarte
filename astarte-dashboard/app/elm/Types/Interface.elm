@@ -5,7 +5,7 @@ import Http
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
-import Utilities
+import JsonHelpers
 import Regex exposing (regex)
 
 
@@ -121,24 +121,29 @@ setDoc interface doc =
 
 encoder : Interface -> Value
 encoder interface =
-    Json.Encode.object
-        [ ( "interface_name", Json.Encode.string interface.name )
-        , ( "version_major", Json.Encode.int interface.major )
-        , ( "version_minor", Json.Encode.int interface.minor )
-        , ( "type", encodeInterfaceType interface.iType )
-        , ( "ownership", encodeOwner interface.ownership )
-        , ( "aggregation", encodeAggregationType interface.aggregation )
-        , ( "explicit_timestamp", Json.Encode.bool interface.explicitTimestamp )
-        , ( "has_metadata", Json.Encode.bool interface.hasMeta )
-        , ( "description", Json.Encode.string interface.description )
-        , ( "doc", Json.Encode.string interface.doc )
-        , ( "mappings"
-          , Json.Encode.list
-                (Dict.values interface.mappings
-                    |> List.map Types.InterfaceMapping.interfaceMappingEncoder
-                )
-          )
+    [ [ ( "interface_name", Json.Encode.string interface.name )
+      , ( "version_major", Json.Encode.int interface.major )
+      , ( "version_minor", Json.Encode.int interface.minor )
+      , ( "type", encodeInterfaceType interface.iType )
+      , ( "ownership", encodeOwner interface.ownership )
+      ]
+    , JsonHelpers.encodeOptionalFields
+        [ ( "aggregation", encodeAggregationType interface.aggregation, interface.aggregation == Individual )
+        , ( "explicit_timestamp", Json.Encode.bool interface.explicitTimestamp, interface.explicitTimestamp == False )
+        , ( "has_metadata", Json.Encode.bool interface.hasMeta, interface.hasMeta == False )
+        , ( "description", Json.Encode.string interface.description, interface.description == "" )
+        , ( "doc", Json.Encode.string interface.doc, interface.doc == "" )
         ]
+    , [ ( "mappings"
+        , Json.Encode.list
+            (Dict.values interface.mappings
+                |> List.map Types.InterfaceMapping.interfaceMappingEncoder
+            )
+        )
+      ]
+    ]
+        |> List.concat
+        |> Json.Encode.object
 
 
 encodeInterfaceType : InterfaceType -> Value
@@ -205,19 +210,19 @@ mappingDictDecoder =
 interfaceTypeDecoder : Decoder InterfaceType
 interfaceTypeDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToInterfaceType >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToInterfaceType >> JsonHelpers.resultToDecoder)
 
 
 ownershipDecoder : Decoder Owner
 ownershipDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToOwner >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToOwner >> JsonHelpers.resultToDecoder)
 
 
 aggregationDecoder : Decoder AggregationType
 aggregationDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToAggregation >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToAggregation >> JsonHelpers.resultToDecoder)
 
 
 stringToInterfaceType : String -> Result String InterfaceType
@@ -260,7 +265,7 @@ stringToAggregation s =
 
 
 
--- Utilities
+-- JsonHelpers
 
 
 mappingsAsList : Interface -> List InterfaceMapping
@@ -271,3 +276,18 @@ mappingsAsList interface =
 isValidInterfaceName : String -> Bool
 isValidInterfaceName interfaceName =
     Regex.contains (regex "^[a-zA-Z]+(\\.[a-zA-Z0-9]+)*$") interfaceName
+
+
+toPrettySource : Interface -> String
+toPrettySource interface =
+    Json.Encode.encode 4 <| encoder interface
+
+
+fromString : String -> Result String Interface
+fromString source =
+    decodeString decoder source
+
+
+compareId : Interface -> Interface -> Bool
+compareId a b =
+    a.name == b.name && a.major == b.major

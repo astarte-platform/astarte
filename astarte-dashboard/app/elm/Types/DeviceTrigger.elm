@@ -3,7 +3,7 @@ module Types.DeviceTrigger exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
-import Utilities
+import JsonHelpers
 
 
 type alias DeviceTrigger =
@@ -90,7 +90,7 @@ decoder =
 deviceTriggerEventDecoder : Decoder DeviceTriggerEvent
 deviceTriggerEventDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToDeviceTriggerEvent >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToDeviceTriggerEvent >> JsonHelpers.resultToDecoder)
 
 
 stringToDeviceTriggerEvent : String -> Result String DeviceTriggerEvent

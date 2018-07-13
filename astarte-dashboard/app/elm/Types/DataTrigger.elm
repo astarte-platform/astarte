@@ -3,7 +3,7 @@ module Types.DataTrigger exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
-import Utilities
+import JsonHelpers
 import Types.InterfaceMapping as InterfaceMapping
 
 
@@ -207,7 +207,7 @@ knownValueDecoder =
 dataTriggerEventDecoder : Decoder DataTriggerEvent
 dataTriggerEventDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToDataTriggerEvent >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToDataTriggerEvent >> JsonHelpers.resultToDecoder)
 
 
 stringToDataTriggerEvent : String -> Result String DataTriggerEvent

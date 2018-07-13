@@ -4,7 +4,7 @@ import Regex exposing (regex)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
-import Utilities
+import JsonHelpers
 
 
 type alias InterfaceMapping =
@@ -128,16 +128,20 @@ setDoc mapping doc =
 
 interfaceMappingEncoder : InterfaceMapping -> Value
 interfaceMappingEncoder mapping =
-    Json.Encode.object
-        [ ( "endpoint", Json.Encode.string mapping.endpoint )
-        , ( "type", encodeMappingType mapping.mType )
-        , ( "reliability", encodeReliability mapping.reliability )
-        , ( "retention", encodeRetention mapping.retention )
-        , ( "expiry", Json.Encode.int mapping.expiry )
-        , ( "allow_unset", Json.Encode.bool mapping.allowUnset )
-        , ( "description", Json.Encode.string mapping.description )
-        , ( "doc", Json.Encode.string mapping.doc )
+    [ [ ( "endpoint", Json.Encode.string mapping.endpoint )
+      , ( "type", encodeMappingType mapping.mType )
+      ]
+    , JsonHelpers.encodeOptionalFields
+        [ ( "reliability", encodeReliability mapping.reliability, mapping.reliability == Unreliable )
+        , ( "retention", encodeRetention mapping.retention, mapping.retention == Discard )
+        , ( "expiry", Json.Encode.int mapping.expiry, mapping.expiry == 0 )
+        , ( "allow_unset", Json.Encode.bool mapping.allowUnset, mapping.allowUnset == False )
+        , ( "description", Json.Encode.string mapping.description, mapping.description == "" )
+        , ( "doc", Json.Encode.string mapping.doc, mapping.doc == "" )
         ]
+    ]
+        |> List.concat
+        |> Json.Encode.object
 
 
 encodeMappingType : MappingType -> Value
@@ -228,19 +232,19 @@ decoder =
 mappingTypeDecoder : Decoder MappingType
 mappingTypeDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToMappingType >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToMappingType >> JsonHelpers.resultToDecoder)
 
 
 reliabilityDecoder : Decoder Reliability
 reliabilityDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToReliability >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToReliability >> JsonHelpers.resultToDecoder)
 
 
 retentionDecoder : Decoder Retention
 retentionDecoder =
     Json.Decode.string
-        |> Json.Decode.andThen (stringToRetention >> Utilities.resultToDecoder)
+        |> Json.Decode.andThen (stringToRetention >> JsonHelpers.resultToDecoder)
 
 
 stringToMappingType : String -> Result String MappingType
@@ -325,7 +329,7 @@ stringToRetention s =
 
 
 
--- Utilities
+-- JsonHelpers
 
 
 isValidType : MappingType -> String -> Bool
