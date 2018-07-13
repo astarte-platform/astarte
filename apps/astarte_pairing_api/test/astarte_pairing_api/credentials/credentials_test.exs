@@ -91,6 +91,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                                      |> Reply.encode()
 
   @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
+  @timeout 30_000
 
   describe "get_astarte_mqtt_v1" do
     alias Astarte.Pairing.API.Credentials.AstarteMQTTV1.Credentials, as: AstarteCredentials
@@ -112,7 +113,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns Credentials with valid data" do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         assert %Call{call: {:get_credentials, %GetCredentials{} = credentials_call}} =
                  Call.decode(serialized_call)
 
@@ -159,7 +160,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns forbidden with invalid secret" do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_forbidden_response}
       end)
 
@@ -175,7 +176,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns forbidden with realm not found" do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_realm_not_found_response}
       end)
 
@@ -191,7 +192,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns forbidden with device not found" do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_device_not_found_response}
       end)
 
@@ -248,7 +249,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "valid call returns CredentialsStatus" do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         assert %Call{call: {:verify_credentials, %VerifyCredentials{} = verify_credentials_call}} =
                  Call.decode(serialized_call)
 
@@ -280,7 +281,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns invalid CertificateStatus" do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         assert %Call{call: {:verify_credentials, %VerifyCredentials{} = verify_credentials_call}} =
                  Call.decode(serialized_call)
 
@@ -308,7 +309,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns forbidden with invalid secret" do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_forbidden_response}
       end)
 
@@ -323,7 +324,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns forbidden with realm not found" do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_realm_not_found_response}
       end)
 
@@ -338,7 +339,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
     test "returns forbidden with device not found" do
       MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_device_not_found_response}
       end)
 

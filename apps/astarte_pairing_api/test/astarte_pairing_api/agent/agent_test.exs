@@ -58,10 +58,11 @@ defmodule Astarte.Pairing.API.AgentTest do
     @invalid_hw_id_attrs %{"hw_id" => "invalid"}
 
     @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
+    @timeout 30_000
 
     test "successful call" do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         assert %Call{call: {:register_device, %RegisterDevice{} = register_call}} =
                  Call.decode(serialized_call)
 
@@ -86,7 +87,7 @@ defmodule Astarte.Pairing.API.AgentTest do
 
     test "returns error if RPC returns error" do
       MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination ->
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
         assert %Call{call: {:register_device, %RegisterDevice{} = register_call}} =
                  Call.decode(serialized_call)
 
