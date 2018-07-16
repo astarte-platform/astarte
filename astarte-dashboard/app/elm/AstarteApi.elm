@@ -237,6 +237,24 @@ addNewInterface interface session doneMessage errorMessage reloginMessage =
             |> requestToCommand doneMessage errorMessage reloginMessage
 
 
+updateInterface : Interface -> Session -> (String -> msg) -> (String -> msg) -> msg -> Cmd msg
+updateInterface interface session doneMessage errorMessage reloginMessage =
+    let
+        baseUrl =
+            getBaseUrl session
+    in
+        Http.request
+            { method = "PUT"
+            , headers = buildHeaders session.credentials
+            , url = String.concat [ baseUrl, "/interfaces/", interface.name, "/", toString interface.major ]
+            , body = Http.jsonBody <| Json.Encode.object [ ( "data", Interface.encoder interface ) ]
+            , expect = Http.expectString
+            , timeout = Nothing
+            , withCredentials = False
+            }
+            |> requestToCommand doneMessage errorMessage reloginMessage
+
+
 
 -- Triggers
 

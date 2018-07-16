@@ -16,6 +16,7 @@ type alias InterfaceMapping =
     , allowUnset : Bool
     , description : String
     , doc : String
+    , draft : Bool
     }
 
 
@@ -29,6 +30,7 @@ empty =
     , allowUnset = False
     , description = ""
     , doc = ""
+    , draft = True
     }
 
 
@@ -122,6 +124,11 @@ setDoc mapping doc =
     { mapping | doc = doc }
 
 
+setDraft : InterfaceMapping -> Bool -> InterfaceMapping
+setDraft mapping draft =
+    { mapping | draft = draft }
+
+
 
 -- Encoding
 
@@ -183,8 +190,7 @@ mappingTypeToString t =
             baseTypeToString baseType
 
         Array baseType ->
-            baseTypeToString baseType
-                |> (++) "array"
+            (baseTypeToString baseType) ++ "array"
 
 
 baseTypeToString : BaseType -> String
@@ -227,6 +233,7 @@ decoder =
         |> optional "allow_unset" bool False
         |> optional "description" string ""
         |> optional "doc" string ""
+        |> hardcoded False
 
 
 mappingTypeDecoder : Decoder MappingType

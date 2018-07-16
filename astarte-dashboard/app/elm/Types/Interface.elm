@@ -11,7 +11,7 @@ import Regex exposing (regex)
 
 -- Types
 
-import Types.InterfaceMapping exposing (InterfaceMapping)
+import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
 import Types.Session exposing (Session)
 
 
@@ -115,6 +115,33 @@ setDoc interface doc =
     { interface | doc = doc }
 
 
+addMapping : InterfaceMapping -> Interface -> Interface
+addMapping mapping interface =
+    { interface
+        | mappings =
+            interface.mappings
+                |> Dict.insert mapping.endpoint mapping
+    }
+
+
+removeMapping : InterfaceMapping -> Interface -> Interface
+removeMapping mapping interface =
+    { interface
+        | mappings =
+            interface.mappings
+                |> Dict.remove mapping.endpoint
+    }
+
+
+sealMappings : Interface -> Interface
+sealMappings interface =
+    { interface
+        | mappings =
+            interface.mappings
+                |> Dict.map (\_ m -> InterfaceMapping.setDraft m False)
+    }
+
+
 
 -- Encoding
 
@@ -137,7 +164,7 @@ encoder interface =
     , [ ( "mappings"
         , Json.Encode.list
             (Dict.values interface.mappings
-                |> List.map Types.InterfaceMapping.interfaceMappingEncoder
+                |> List.map InterfaceMapping.interfaceMappingEncoder
             )
         )
       ]
@@ -198,7 +225,7 @@ decoder =
 
 mappingDictDecoder : Decoder (Dict String InterfaceMapping)
 mappingDictDecoder =
-    list Types.InterfaceMapping.decoder
+    list InterfaceMapping.decoder
         |> Json.Decode.andThen
             (\interfaceMappingList ->
                 List.map (\m -> ( m.endpoint, m )) interfaceMappingList
