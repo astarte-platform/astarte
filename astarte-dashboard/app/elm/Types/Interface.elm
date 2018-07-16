@@ -65,53 +65,53 @@ type AggregationType
 -- Setters
 
 
-setName : Interface -> String -> Interface
-setName interface name =
+setName : String -> Interface -> Interface
+setName name interface =
     { interface | name = name }
 
 
-setMajor : Interface -> Int -> Interface
-setMajor interface major =
+setMajor : Int -> Interface -> Interface
+setMajor major interface =
     { interface | major = major }
 
 
-setMinor : Interface -> Int -> Interface
-setMinor interface minor =
+setMinor : Int -> Interface -> Interface
+setMinor minor interface =
     { interface | minor = minor }
 
 
-setType : Interface -> InterfaceType -> Interface
-setType interface iType =
+setType : InterfaceType -> Interface -> Interface
+setType iType interface =
     { interface | iType = iType }
 
 
-setOwnership : Interface -> Owner -> Interface
-setOwnership interface owner =
+setOwnership : Owner -> Interface -> Interface
+setOwnership owner interface =
     { interface | ownership = owner }
 
 
-setAggregation : Interface -> AggregationType -> Interface
-setAggregation interface aggregation =
+setAggregation : AggregationType -> Interface -> Interface
+setAggregation aggregation interface =
     { interface | aggregation = aggregation }
 
 
-setExplicitTimestamp : Interface -> Bool -> Interface
-setExplicitTimestamp interface explicitTimestamp =
+setExplicitTimestamp : Bool -> Interface -> Interface
+setExplicitTimestamp explicitTimestamp interface =
     { interface | explicitTimestamp = explicitTimestamp }
 
 
-setHasMeta : Interface -> Bool -> Interface
-setHasMeta interface hasMeta =
+setHasMeta : Bool -> Interface -> Interface
+setHasMeta hasMeta interface =
     { interface | hasMeta = hasMeta }
 
 
-setDescription : Interface -> String -> Interface
-setDescription interface description =
+setDescription : String -> Interface -> Interface
+setDescription description interface =
     { interface | description = description }
 
 
-setDoc : Interface -> String -> Interface
-setDoc interface doc =
+setDoc : String -> Interface -> Interface
+setDoc doc interface =
     { interface | doc = doc }
 
 

@@ -386,7 +386,7 @@ update session msg model =
         UpdateInterfaceName newName ->
             let
                 newInterface =
-                    Interface.setName model.interface newName
+                    model.interface |> Interface.setName newName
             in
                 ( { model
                     | interface = newInterface
@@ -402,7 +402,7 @@ update session msg model =
                     if (major >= 0) then
                         let
                             newInterface =
-                                Interface.setMajor model.interface major
+                                model.interface |> Interface.setMajor major
                         in
                             ( { model
                                 | interface = newInterface
@@ -429,7 +429,7 @@ update session msg model =
                     if (minor >= model.minMinor) then
                         let
                             newInterface =
-                                Interface.setMinor model.interface minor
+                                model.interface |> Interface.setMinor minor
                         in
                             ( { model
                                 | interface = newInterface
@@ -453,7 +453,7 @@ update session msg model =
         UpdateInterfaceType newInterfaceType ->
             let
                 newInterface =
-                    Interface.setType model.interface newInterfaceType
+                    model.interface |> Interface.setType newInterfaceType
             in
                 ( { model
                     | interface = newInterface
@@ -466,7 +466,7 @@ update session msg model =
         UpdateInterfaceAggregation newAggregation ->
             let
                 newInterface =
-                    Interface.setAggregation model.interface newAggregation
+                    model.interface |> Interface.setAggregation newAggregation
             in
                 ( { model
                     | interface = newInterface
@@ -479,7 +479,7 @@ update session msg model =
         UpdateInterfaceOwnership newOwner ->
             let
                 newInterface =
-                    Interface.setOwnership model.interface newOwner
+                    model.interface |> Interface.setOwnership newOwner
             in
                 ( { model
                     | interface = newInterface
@@ -492,7 +492,7 @@ update session msg model =
         UpdateInterfaceTimestamp timestamp ->
             let
                 newInterface =
-                    Interface.setExplicitTimestamp model.interface timestamp
+                    model.interface |> Interface.setExplicitTimestamp timestamp
             in
                 ( { model
                     | interface = newInterface
@@ -505,7 +505,7 @@ update session msg model =
         UpdateInterfaceHasMeta hasMeta ->
             let
                 newInterface =
-                    Interface.setHasMeta model.interface hasMeta
+                    model.interface |> Interface.setHasMeta hasMeta
             in
                 ( { model
                     | interface = newInterface
@@ -518,7 +518,7 @@ update session msg model =
         UpdateInterfaceDescription newDescription ->
             let
                 newInterface =
-                    Interface.setDescription model.interface newDescription
+                    model.interface |> Interface.setDescription newDescription
             in
                 ( { model
                     | interface = newInterface
@@ -531,7 +531,7 @@ update session msg model =
         UpdateInterfaceDoc newDoc ->
             let
                 newInterface =
-                    Interface.setDoc model.interface newDoc
+                    model.interface |> Interface.setDoc newDoc
             in
                 ( { model
                     | interface = newInterface
@@ -542,7 +542,7 @@ update session msg model =
                 )
 
         UpdateMappingEndpoint newEndpoint ->
-            ( { model | interfaceMapping = InterfaceMapping.setEndpoint model.interfaceMapping newEndpoint }
+            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setEndpoint newEndpoint }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -550,7 +550,7 @@ update session msg model =
         UpdateMappingType newType ->
             case (InterfaceMapping.stringToMappingType newType) of
                 Ok mappingType ->
-                    ( { model | interfaceMapping = InterfaceMapping.setType model.interfaceMapping mappingType }
+                    ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setType mappingType }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
@@ -564,7 +564,7 @@ update session msg model =
         UpdateMappingReliability newReliability ->
             case (InterfaceMapping.stringToReliability newReliability) of
                 Ok r ->
-                    ( { model | interfaceMapping = InterfaceMapping.setReliability model.interfaceMapping r }
+                    ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setReliability r }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
@@ -578,7 +578,7 @@ update session msg model =
         UpdateMappingRetention newMapRetention ->
             case (InterfaceMapping.stringToRetention newMapRetention) of
                 Ok r ->
-                    ( { model | interfaceMapping = InterfaceMapping.setRetention model.interfaceMapping r }
+                    ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setRetention r }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
@@ -593,7 +593,7 @@ update session msg model =
             case (String.toInt newMappingExpiry) of
                 Ok expiry ->
                     if (expiry >= 0) then
-                        ( { model | interfaceMapping = InterfaceMapping.setExpiry model.interfaceMapping expiry }
+                        ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setExpiry expiry }
                         , Cmd.none
                         , ExternalMsg.Noop
                         )
@@ -610,19 +610,19 @@ update session msg model =
                     )
 
         UpdateMappingAllowUnset allowUnset ->
-            ( { model | interfaceMapping = InterfaceMapping.setAllowUnset model.interfaceMapping allowUnset }
+            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setAllowUnset allowUnset }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
         UpdateMappingDescription newDescription ->
-            ( { model | interfaceMapping = InterfaceMapping.setDescription model.interfaceMapping newDescription }
+            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setDescription newDescription }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
         UpdateMappingDoc newDoc ->
-            ( { model | interfaceMapping = InterfaceMapping.setDoc model.interfaceMapping newDoc }
+            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setDoc newDoc }
             , Cmd.none
             , ExternalMsg.Noop
             )
