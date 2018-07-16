@@ -36,6 +36,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 
@@ -47,6 +48,8 @@ type alias Model =
     , interfaces : List String
     , majors : List Int
     , mappingType : Maybe InterfaceMapping.MappingType
+    , deleteModalVisibility : Modal.Visibility
+    , confirmTriggerName : String
 
     -- decoupled types
     , selectedInterfaceName : String
@@ -68,6 +71,8 @@ init maybeTriggerName session =
       , selectedInterfaceMajor = Nothing
       , selectedOperator = "any"
       , selectedKnownValue = Nothing
+      , confirmTriggerName = ""
+      , deleteModalVisibility = Modal.hidden
       }
     , case maybeTriggerName of
         Just name ->
@@ -91,6 +96,11 @@ init maybeTriggerName session =
     )
 
 
+type ModalResult
+    = ModalCancel
+    | ModalOk
+
+
 type Msg
     = GetTriggerDone Trigger
     | AddTrigger
@@ -98,6 +108,7 @@ type Msg
     | GetInterfaceListDone (List String)
     | GetInterfaceMajorsDone (List Int)
     | GetInterfaceDone Interface
+    | DeleteTriggerDone String
     | ShowError String String
     | RedirectToLogin
     | Forward ExternalMsg
@@ -117,6 +128,10 @@ type Msg
       -- Device Trigger
     | UpdateDeviceTriggerId String
     | UpdateDeviceTriggerCondition String
+      -- Modal
+    | ShowDeleteModal
+    | CloseDeleteModal ModalResult
+    | UpdateConfirmTriggerName String
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -216,6 +231,12 @@ update session msg model =
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
+
+        DeleteTriggerDone response ->
+            ( model
+            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger successfully deleted"
+            )
 
         ShowError actionError errorMessage ->
             ( model
@@ -525,6 +546,39 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
+        ShowDeleteModal ->
+            ( { model
+                | deleteModalVisibility = Modal.shown
+                , confirmTriggerName = ""
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        CloseDeleteModal result ->
+            case result of
+                ModalOk ->
+                    ( { model | deleteModalVisibility = Modal.hidden }
+                    , AstarteApi.deleteTrigger model.trigger.name
+                        session
+                        DeleteTriggerDone
+                        (ShowError "Cannot delete trigger.")
+                        RedirectToLogin
+                    , ExternalMsg.Noop
+                    )
+
+                ModalCancel ->
+                    ( { model | deleteModalVisibility = Modal.hidden }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateConfirmTriggerName newTriggerName ->
+            ( { model | confirmTriggerName = newTriggerName }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 matchPath : String -> List InterfaceMapping -> Maybe InterfaceMapping.MappingType
 matchPath path mappings =
@@ -590,6 +644,15 @@ view model flashMessages =
                              else
                                 "Install a new trigger"
                             )
+                        , if model.editMode then
+                            Button.button
+                                [ Button.warning
+                                , Button.attrs [ Spacing.ml2 ]
+                                , Button.onClick ShowDeleteModal
+                                ]
+                                [ text "Delete..." ]
+                          else
+                            text ""
                         ]
                     ]
                 ]
@@ -628,6 +691,7 @@ view model flashMessages =
                         ]
                    ]
             )
+        , renderDeleteTriggerModal model
         ]
 
 
@@ -925,6 +989,55 @@ renderDeviceTrigger deviceTrigger =
             ]
         ]
     ]
+
+
+renderDeleteTriggerModal : Model -> Html Msg
+renderDeleteTriggerModal model =
+    Modal.config (CloseDeleteModal ModalCancel)
+        |> Modal.large
+        |> Modal.h5 [] [ text "Confirmation Required" ]
+        |> Modal.body []
+            [ Form.form []
+                [ Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ text "You are going to remove "
+                        , b [] [ text <| model.trigger.name ++ ". " ]
+                        , text "This might cause data loss, removed triggers cannot be restored. Are you sure?"
+                        ]
+                    ]
+                , Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ text "Please type "
+                        , b [] [ text model.trigger.name ]
+                        , text " to proceed."
+                        ]
+                    ]
+                , Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ Input.text
+                            [ Input.id "confirmTriggerName"
+                            , Input.placeholder "Trigger Name"
+                            , Input.value model.confirmTriggerName
+                            , Input.onInput UpdateConfirmTriggerName
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        |> Modal.footer []
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick <| CloseDeleteModal ModalCancel
+                ]
+                [ text "Cancel" ]
+            , Button.button
+                [ Button.primary
+                , Button.disabled <| model.trigger.name /= model.confirmTriggerName
+                , Button.onClick <| CloseDeleteModal ModalOk
+                ]
+                [ text "Confirm" ]
+            ]
+        |> Modal.view model.deleteModalVisibility
 
 
 aviableOperators : Maybe InterfaceMapping.MappingType -> List ( String, String )
