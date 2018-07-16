@@ -453,7 +453,13 @@ update session msg model =
         UpdateInterfaceType newInterfaceType ->
             let
                 newInterface =
-                    model.interface |> Interface.setType newInterfaceType
+                    if (newInterfaceType == Interface.Properties) then
+                        model.interface
+                            |> Interface.setType Interface.Properties
+                            |> Interface.setAggregation Interface.Individual
+                    else
+                        model.interface
+                            |> Interface.setType Interface.Datastream
             in
                 ( { model
                     | interface = newInterface
@@ -803,14 +809,14 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible acc
                                 (Radio.radioList "interfaceAggregation"
                                     [ Radio.create
                                         [ Radio.id "iarb1"
-                                        , Radio.disabled interfaceEditMode
+                                        , Radio.disabled <| interfaceEditMode || interface.iType == Interface.Properties
                                         , Radio.checked <| interface.aggregation == Interface.Individual
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Individual
                                         ]
                                         "Individual"
                                     , Radio.create
                                         [ Radio.id "iarb2"
-                                        , Radio.disabled interfaceEditMode
+                                        , Radio.disabled <| interfaceEditMode || interface.iType == Interface.Properties
                                         , Radio.checked <| interface.aggregation == Interface.Object
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Object
                                         ]
