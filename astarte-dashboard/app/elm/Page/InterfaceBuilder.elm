@@ -911,7 +911,7 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible acc
             , Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ (if newMappingVisible then
-                        renderAddNewMapping interfaceMapping
+                        renderAddNewMapping interface.iType interfaceMapping
                        else
                         div []
                             [ (if Dict.isEmpty interface.mappings then
@@ -951,8 +951,8 @@ renderConfirmButton editMode =
         ]
 
 
-renderAddNewMapping : InterfaceMapping -> Html Msg
-renderAddNewMapping mapping =
+renderAddNewMapping : Interface.InterfaceType -> InterfaceMapping -> Html Msg
+renderAddNewMapping interfaceType mapping =
     Form.form []
         [ Form.row []
             [ Form.col [ Col.sm12 ]
@@ -975,7 +975,12 @@ renderAddNewMapping mapping =
                 ]
             ]
         , Form.row []
-            [ Form.col [ Col.sm12 ]
+            [ Form.col
+                [ if (interfaceType == Interface.Properties) then
+                    Col.sm8
+                  else
+                    Col.sm12
+                ]
                 [ Form.group []
                     [ Form.label [ for "mappingTypes" ] [ text "Type" ]
                     , Select.select
@@ -985,9 +990,30 @@ renderAddNewMapping mapping =
                         (List.map (\t -> renderMappingTypeItem (t == mapping.mType) t) InterfaceMapping.mappingTypeList)
                     ]
                 ]
+            , Form.col
+                [ if (interfaceType == Interface.Properties) then
+                    Col.sm4
+                  else
+                    Col.attrs [ Display.none ]
+                ]
+                [ Form.group []
+                    [ Form.label [ for "mappingAllowUnset" ] [ text "Options" ]
+                    , Checkbox.checkbox
+                        [ Checkbox.id "mappingAllowUnset"
+                        , Checkbox.checked mapping.allowUnset
+                        , Checkbox.onCheck UpdateMappingAllowUnset
+                        ]
+                        "Allow unset"
+                    ]
+                ]
             ]
-        , Form.row []
-            [ Form.col [ Col.sm6 ]
+        , Form.row
+            (if (interfaceType == Interface.Datastream) then
+                []
+             else
+                [ Row.attrs [ Display.none ] ]
+            )
+            [ Form.col [ Col.sm4 ]
                 [ Form.group []
                     [ Form.label [ for "mappingReliability" ] [ text "Reliability" ]
                     , Select.select
@@ -1012,7 +1038,7 @@ renderAddNewMapping mapping =
                         ]
                     ]
                 ]
-            , Form.col [ Col.sm6 ]
+            , Form.col [ Col.sm4 ]
                 [ Form.group []
                     [ Form.label [ for "mappingRetention" ] [ text "Retention" ]
                     , Select.select
@@ -1037,9 +1063,12 @@ renderAddNewMapping mapping =
                         ]
                     ]
                 ]
-            ]
-        , Form.row []
-            [ Form.col [ Col.sm6 ]
+            , Form.col
+                [ if (mapping.retention == InterfaceMapping.Discard) then
+                    Col.attrs [ Display.none ]
+                  else
+                    Col.sm4
+                ]
                 [ Form.group []
                     [ Form.label [ for "mappingExpiry" ] [ text "Expiry" ]
                     , Input.number
@@ -1047,17 +1076,6 @@ renderAddNewMapping mapping =
                         , Input.value <| toString mapping.expiry
                         , Input.onInput UpdateMappingExpiry
                         ]
-                    ]
-                ]
-            , Form.col [ Col.sm6 ]
-                [ Form.group []
-                    [ Form.label [ for "mappingAllowUnset" ] [ text "Options" ]
-                    , Checkbox.checkbox
-                        [ Checkbox.id "mappingAllowUnset"
-                        , Checkbox.checked mapping.allowUnset
-                        , Checkbox.onCheck UpdateMappingAllowUnset
-                        ]
-                        "Allow unset"
                     ]
                 ]
             ]
