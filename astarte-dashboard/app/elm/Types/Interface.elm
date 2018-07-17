@@ -82,7 +82,25 @@ setMinor minor interface =
 
 setType : InterfaceType -> Interface -> Interface
 setType iType interface =
-    { interface | iType = iType }
+    let
+        updatedMappings =
+            if iType == Datastream then
+                Dict.map (\_ m -> m |> InterfaceMapping.setAllowUnset False) interface.mappings
+            else
+                Dict.map
+                    (\_ mapping ->
+                        { mapping
+                            | reliability = InterfaceMapping.Unreliable
+                            , retention = InterfaceMapping.Discard
+                            , expiry = 0
+                        }
+                    )
+                    interface.mappings
+    in
+        { interface
+            | iType = iType
+            , mappings = updatedMappings
+        }
 
 
 setOwnership : Owner -> Interface -> Interface
@@ -135,11 +153,35 @@ removeMapping mapping interface =
 
 sealMappings : Interface -> Interface
 sealMappings interface =
-    { interface
-        | mappings =
-            interface.mappings
-                |> Dict.map (\_ m -> InterfaceMapping.setDraft m False)
-    }
+    let
+        newMappings =
+            Dict.map
+                (\_ mapping -> InterfaceMapping.setDraft mapping False)
+                interface.mappings
+    in
+        { interface | mappings = newMappings }
+
+
+setObjectMappingAttributes :
+    InterfaceMapping.Reliability
+    -> InterfaceMapping.Retention
+    -> Int
+    -> Interface
+    -> Interface
+setObjectMappingAttributes reliability retention expiry interface =
+    let
+        newMappings =
+            Dict.map
+                (\_ mapping ->
+                    { mapping
+                        | reliability = reliability
+                        , retention = retention
+                        , expiry = expiry
+                    }
+                )
+                interface.mappings
+    in
+        { interface | mappings = newMappings }
 
 
 

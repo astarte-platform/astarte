@@ -43,6 +43,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Modal as Modal
+import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 
@@ -61,6 +62,11 @@ type alias Model =
     , sourceBufferStatus : BufferStatus
     , debouncerControlState : Control.State Msg
     , accordionState : Accordion.State
+
+    -- common mappings settings
+    , objectReliability : InterfaceMapping.Reliability
+    , objectRetention : InterfaceMapping.Retention
+    , objectExpiry : Int
     }
 
 
@@ -77,6 +83,9 @@ init maybeInterfaceId session =
       , interfaceMapping = InterfaceMapping.empty
       , interfaceEditMode = False
       , minMinor = 0
+      , objectReliability = InterfaceMapping.Unreliable
+      , objectRetention = InterfaceMapping.Discard
+      , objectExpiry = 0
       , deleteModalVisibility = Modal.hidden
       , confirmModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
@@ -152,6 +161,10 @@ type Msg
     | UpdateMappingAllowUnset Bool
     | UpdateMappingDescription String
     | UpdateMappingDoc String
+      -- common mapping messages
+    | UpdateObjectMappingReliability String
+    | UpdateObjectMappingRetention String
+    | UpdateObjectMappingExpiry String
       -- modal
     | UpdateConfirmInterfaceName String
       -- accordion
@@ -589,6 +602,17 @@ update session msg model =
 
         UpdateMappingRetention newMapRetention ->
             case (InterfaceMapping.stringToRetention newMapRetention) of
+                Ok InterfaceMapping.Discard ->
+                    ( { model
+                        | interfaceMapping =
+                            model.interfaceMapping
+                                |> InterfaceMapping.setRetention InterfaceMapping.Discard
+                                |> InterfaceMapping.setExpiry 0
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
                 Ok r ->
                     ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setRetention r }
                     , Cmd.none
@@ -653,6 +677,97 @@ update session msg model =
                 , ExternalMsg.Noop
                 )
 
+        UpdateObjectMappingReliability newReliability ->
+            case (InterfaceMapping.stringToReliability newReliability) of
+                Ok reliability ->
+                    let
+                        newInterface =
+                            model.interface
+                                |> Interface.setObjectMappingAttributes
+                                    reliability
+                                    model.objectRetention
+                                    model.objectExpiry
+                    in
+                        ( { model
+                            | objectReliability = reliability
+                            , interface = newInterface
+                            , sourceBuffer = Interface.toPrettySource newInterface
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                Err err ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateObjectMappingRetention newMapRetention ->
+            case (InterfaceMapping.stringToRetention newMapRetention) of
+                Ok retention ->
+                    let
+                        expiry =
+                            if retention == InterfaceMapping.Discard then
+                                0
+                            else
+                                model.objectExpiry
+
+                        newInterface =
+                            model.interface
+                                |> Interface.setObjectMappingAttributes
+                                    model.objectReliability
+                                    retention
+                                    expiry
+                    in
+                        ( { model
+                            | objectRetention = retention
+                            , objectExpiry = expiry
+                            , interface = newInterface
+                            , sourceBuffer = Interface.toPrettySource newInterface
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                Err err ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateObjectMappingExpiry newExpiry ->
+            case (String.toInt newExpiry) of
+                Ok expiry ->
+                    if (expiry >= 0) then
+                        let
+                            newInterface =
+                                model.interface
+                                    |> Interface.setObjectMappingAttributes
+                                        model.objectReliability
+                                        model.objectRetention
+                                        expiry
+                        in
+                            ( { model
+                                | objectExpiry = expiry
+                                , interface = newInterface
+                                , sourceBuffer = Interface.toPrettySource newInterface
+                              }
+                            , Cmd.none
+                            , ExternalMsg.Noop
+                            )
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
         UpdateConfirmInterfaceName userInput ->
             ( { model | confirmInterfaceName = userInput }
             , Cmd.none
@@ -686,6 +801,7 @@ view model flashMessages =
                     Col.sm12
                 ]
                 [ renderContent
+                    model
                     model.interface
                     model.interfaceEditMode
                     model.interfaceMapping
@@ -710,8 +826,8 @@ view model flashMessages =
         ]
 
 
-renderContent : Interface -> Bool -> InterfaceMapping -> Bool -> Accordion.State -> Html Msg
-renderContent interface interfaceEditMode interfaceMapping newMappingVisible accordionState =
+renderContent : Model -> Interface -> Bool -> InterfaceMapping -> Bool -> Accordion.State -> Html Msg
+renderContent model interface interfaceEditMode interfaceMapping newMappingVisible accordionState =
     Grid.container []
         [ Form.form []
             [ Form.row []
@@ -870,6 +986,7 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible acc
                         ]
                     ]
                 ]
+            , renderCommonMappingSettings model
             , Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ Form.group []
@@ -911,7 +1028,7 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible acc
             , Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ (if newMappingVisible then
-                        renderAddNewMapping interface.iType interfaceMapping
+                        renderAddNewMapping interface interfaceMapping
                        else
                         div []
                             [ (if Dict.isEmpty interface.mappings then
@@ -937,6 +1054,87 @@ renderContent interface interfaceEditMode interfaceMapping newMappingVisible acc
         ]
 
 
+renderCommonMappingSettings : Model -> Html Msg
+renderCommonMappingSettings model =
+    Form.row
+        (if (model.interface.aggregation == Interface.Object) then
+            []
+         else
+            [ Row.attrs [ Display.none ] ]
+        )
+        [ Form.col [ Col.sm4 ]
+            [ Form.group []
+                [ Form.label [ for "objectMappingReliability" ] [ text "Reliability" ]
+                , Select.select
+                    [ Select.id "objectMappingReliability"
+                    , Select.onChange UpdateObjectMappingReliability
+                    ]
+                    [ Select.item
+                        [ value "unreliable"
+                        , selected <| model.objectReliability == InterfaceMapping.Unreliable
+                        ]
+                        [ text "Unreliable" ]
+                    , Select.item
+                        [ value "guaranteed"
+                        , selected <| model.objectReliability == InterfaceMapping.Guaranteed
+                        ]
+                        [ text "Guaranteed" ]
+                    , Select.item
+                        [ value "unique"
+                        , selected <| model.objectReliability == InterfaceMapping.Unique
+                        ]
+                        [ text "Unique" ]
+                    ]
+                ]
+            ]
+        , Form.col
+            [ if (model.objectRetention == InterfaceMapping.Discard) then
+                Col.sm8
+              else
+                Col.sm4
+            ]
+            [ Form.group []
+                [ Form.label [ for "objectMappingRetention" ] [ text "Retention" ]
+                , Select.select
+                    [ Select.id "objectMappingRetention"
+                    , Select.onChange UpdateObjectMappingRetention
+                    ]
+                    [ Select.item
+                        [ value "discard"
+                        , selected <| model.objectRetention == InterfaceMapping.Discard
+                        ]
+                        [ text "Discard" ]
+                    , Select.item
+                        [ value "volatile"
+                        , selected <| model.objectRetention == InterfaceMapping.Volatile
+                        ]
+                        [ text "Volatile" ]
+                    , Select.item
+                        [ value "stored"
+                        , selected <| model.objectRetention == InterfaceMapping.Stored
+                        ]
+                        [ text "Stored" ]
+                    ]
+                ]
+            ]
+        , Form.col
+            [ if (model.objectRetention == InterfaceMapping.Discard) then
+                Col.attrs [ Display.none ]
+              else
+                Col.sm4
+            ]
+            [ Form.group []
+                [ Form.label [ for "objectMappingExpiry" ] [ text "Expiry" ]
+                , Input.number
+                    [ Input.id "objectMappingExpiry"
+                    , Input.value <| toString model.objectExpiry
+                    , Input.onInput UpdateObjectMappingExpiry
+                    ]
+                ]
+            ]
+        ]
+
+
 renderConfirmButton : Bool -> Html Msg
 renderConfirmButton editMode =
     Button.button
@@ -951,8 +1149,8 @@ renderConfirmButton editMode =
         ]
 
 
-renderAddNewMapping : Interface.InterfaceType -> InterfaceMapping -> Html Msg
-renderAddNewMapping interfaceType mapping =
+renderAddNewMapping : Interface -> InterfaceMapping -> Html Msg
+renderAddNewMapping interface mapping =
     Form.form []
         [ Form.row []
             [ Form.col [ Col.sm12 ]
@@ -976,7 +1174,7 @@ renderAddNewMapping interfaceType mapping =
             ]
         , Form.row []
             [ Form.col
-                [ if (interfaceType == Interface.Properties) then
+                [ if (interface.iType == Interface.Properties) then
                     Col.sm8
                   else
                     Col.sm12
@@ -991,7 +1189,7 @@ renderAddNewMapping interfaceType mapping =
                     ]
                 ]
             , Form.col
-                [ if (interfaceType == Interface.Properties) then
+                [ if (interface.iType == Interface.Properties) then
                     Col.sm4
                   else
                     Col.attrs [ Display.none ]
@@ -1008,10 +1206,10 @@ renderAddNewMapping interfaceType mapping =
                 ]
             ]
         , Form.row
-            (if (interfaceType == Interface.Datastream) then
-                []
-             else
+            (if (interface.iType == Interface.Properties || interface.aggregation == Interface.Object) then
                 [ Row.attrs [ Display.none ] ]
+             else
+                []
             )
             [ Form.col [ Col.sm4 ]
                 [ Form.group []
@@ -1038,7 +1236,12 @@ renderAddNewMapping interfaceType mapping =
                         ]
                     ]
                 ]
-            , Form.col [ Col.sm4 ]
+            , Form.col
+                [ if (mapping.retention == InterfaceMapping.Discard) then
+                    Col.sm8
+                  else
+                    Col.sm4
+                ]
                 [ Form.group []
                     [ Form.label [ for "mappingRetention" ] [ text "Retention" ]
                     , Select.select
