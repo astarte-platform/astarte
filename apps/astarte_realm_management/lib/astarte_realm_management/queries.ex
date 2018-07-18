@@ -217,6 +217,8 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def install_new_interface(client, interface_document, automaton) do
+    interface_descriptor = InterfaceDescriptor.from_interface(interface_document)
+
     %InterfaceDescriptor{
       interface_id: interface_id,
       name: interface_name,
@@ -225,7 +227,7 @@ defmodule Astarte.RealmManagement.Queries do
       type: interface_type,
       ownership: interface_ownership,
       aggregation: aggregation
-    } = interface_document.descriptor
+    } = interface_descriptor
 
     table_type =
       if aggregation == :individual do
@@ -238,7 +240,7 @@ defmodule Astarte.RealmManagement.Queries do
       create_interface_table(
         aggregation,
         table_type,
-        interface_document.descriptor,
+        interface_descriptor,
         interface_document.mappings
       )
 
@@ -270,7 +272,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_type))
       |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_ownership))
       |> DatabaseQuery.put(:aggregation, Aggregation.to_int(aggregation))
-      |> DatabaseQuery.put(:source, interface_document.source)
+      |> DatabaseQuery.put(:source, Poison.encode!(interface_document))
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
       |> DatabaseQuery.consistency(:each_quorum)
