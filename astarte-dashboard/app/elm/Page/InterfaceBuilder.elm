@@ -158,6 +158,7 @@ type Msg
     | UpdateConfirmInterfaceName String
     | MappingBuilderMsg MappingBuilder.Msg
     | ShowAddMappingModal
+    | ShowEditMappingModal InterfaceMapping
       -- accordion
     | AccordionMsg Accordion.State
 
@@ -167,13 +168,19 @@ update session msg model =
     case msg of
         GetInterfaceDone interface ->
             let
+                mappingEditMode =
+                    False
+
+                shown =
+                    False
+
                 newMappingBuilderModel =
                     MappingBuilder.init
                         InterfaceMapping.empty
-                        False
+                        mappingEditMode
                         (interface.iType == Interface.Properties)
                         (interface.aggregation == Interface.Object)
-                        False
+                        shown
             in
                 ( { model
                     | interface = interface
@@ -643,40 +650,47 @@ update session msg model =
             )
 
         MappingBuilderMsg msg ->
-            let
-                ( updatedBuilderModel, externalMessage ) =
-                    MappingBuilder.update msg model.mappingBuilderModel
-            in
-                case externalMessage of
-                    MappingBuilder.Noop ->
-                        ( { model | mappingBuilderModel = updatedBuilderModel }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
-
-                    MappingBuilder.AddNewMapping mapping ->
-                        let
-                            newInterface =
-                                Interface.addMapping mapping model.interface
-                        in
-                            ( { model
-                                | interface = newInterface
-                                , sourceBuffer = Interface.toPrettySource newInterface
-                                , mappingBuilderModel = updatedBuilderModel
-                              }
-                            , Cmd.none
-                            , ExternalMsg.Noop
-                            )
+            ( handleMappingBuilderMessages msg model
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         ShowAddMappingModal ->
             let
+                mappingEditMode =
+                    False
+
+                shown =
+                    True
+
                 newMappingBuilderModel =
                     MappingBuilder.init
                         InterfaceMapping.empty
-                        False
+                        mappingEditMode
                         (model.interface.iType == Interface.Properties)
                         (model.interface.aggregation == Interface.Object)
-                        True
+                        shown
+            in
+                ( { model | mappingBuilderModel = newMappingBuilderModel }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
+
+        ShowEditMappingModal mapping ->
+            let
+                mappingEditMode =
+                    True
+
+                shown =
+                    True
+
+                newMappingBuilderModel =
+                    MappingBuilder.init
+                        mapping
+                        mappingEditMode
+                        (model.interface.iType == Interface.Properties)
+                        (model.interface.aggregation == Interface.Object)
+                        shown
             in
                 ( { model | mappingBuilderModel = newMappingBuilderModel }
                 , Cmd.none
@@ -688,6 +702,39 @@ update session msg model =
             , Cmd.none
             , ExternalMsg.Noop
             )
+
+
+handleMappingBuilderMessages : MappingBuilder.Msg -> Model -> Model
+handleMappingBuilderMessages message model =
+    let
+        ( updatedBuilderModel, externalMessage ) =
+            MappingBuilder.update message model.mappingBuilderModel
+    in
+        case externalMessage of
+            MappingBuilder.Noop ->
+                { model | mappingBuilderModel = updatedBuilderModel }
+
+            MappingBuilder.AddNewMapping mapping ->
+                let
+                    newInterface =
+                        Interface.addMapping mapping model.interface
+                in
+                    { model
+                        | interface = newInterface
+                        , sourceBuffer = Interface.toPrettySource newInterface
+                        , mappingBuilderModel = updatedBuilderModel
+                    }
+
+            MappingBuilder.EditMapping mapping ->
+                let
+                    newInterface =
+                        Interface.editMapping mapping model.interface
+                in
+                    { model
+                        | interface = newInterface
+                        , sourceBuffer = Interface.toPrettySource newInterface
+                        , mappingBuilderModel = updatedBuilderModel
+                    }
 
 
 view : Model -> List FlashMessage -> Html Msg
@@ -1125,24 +1172,35 @@ renderMappingHeader : InterfaceMapping -> Accordion.Header Msg
 renderMappingHeader mapping =
     Accordion.headerH4 [] (Accordion.toggle [] [ text mapping.endpoint ])
         |> Accordion.appendHeader
-            [ small
-                [ Display.inline, Spacing.p2 ]
-                [ text <| mappingTypeToEnglishString mapping.mType ]
-            , renderMappingControls mapping
-            ]
+            (if mapping.draft then
+                [ small
+                    [ Display.inline, Spacing.p2 ]
+                    [ text <| mappingTypeToEnglishString mapping.mType ]
+                ]
+                    ++ (renderMappingControls mapping)
+             else
+                [ small
+                    [ Display.inline, Spacing.p2 ]
+                    [ text <| mappingTypeToEnglishString mapping.mType ]
+                ]
+            )
 
 
-renderMappingControls : InterfaceMapping -> Html Msg
+renderMappingControls : InterfaceMapping -> List (Html Msg)
 renderMappingControls mapping =
-    if mapping.draft then
-        Button.button
-            [ Button.primary
-            , Button.attrs [ class "float-right" ]
-            , Button.onClick <| RemoveMapping mapping
-            ]
-            [ text "Remove" ]
-    else
-        text ""
+    [ Button.button
+        [ Button.primary
+        , Button.attrs [ class "float-right" ]
+        , Button.onClick <| RemoveMapping mapping
+        ]
+        [ text "Remove" ]
+    , Button.button
+        [ Button.primary
+        , Button.attrs [ Spacing.mr2Sm, class "float-right" ]
+        , Button.onClick <| ShowEditMappingModal mapping
+        ]
+        [ text "Edit..." ]
+    ]
 
 
 renderDeleteInterfaceModal : Model -> Html Msg

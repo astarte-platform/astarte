@@ -95,6 +95,7 @@ type Msg
 type ExtenalMsg
     = Noop
     | AddNewMapping InterfaceMapping
+    | EditMapping InterfaceMapping
 
 
 update : Msg -> Model -> ( Model, ExtenalMsg )
@@ -107,7 +108,10 @@ update message model =
 
         Close ModalOk ->
             ( { model | visibility = Modal.hidden }
-            , AddNewMapping model.interfaceMapping
+            , if model.editMode then
+                EditMapping model.interfaceMapping
+              else
+                AddNewMapping model.interfaceMapping
             )
 
         UpdateMappingEndpoint newEndpoint ->
@@ -215,6 +219,7 @@ view model =
                 model.interfaceMapping
                 model.interfaceTypeProperties
                 model.interfaceAggregationObject
+                model.editMode
             ]
         |> Modal.footer []
             [ Button.button
@@ -232,8 +237,8 @@ view model =
         |> Modal.view model.visibility
 
 
-renderBody : InterfaceMapping -> Bool -> Bool -> Html Msg
-renderBody mapping isProperties isObject =
+renderBody : InterfaceMapping -> Bool -> Bool -> Bool -> Html Msg
+renderBody mapping isProperties isObject editMode =
     Form.form []
         [ Form.row []
             [ Form.col [ Col.sm12 ]
@@ -242,6 +247,7 @@ renderBody mapping isProperties isObject =
                     , Input.text
                         [ Input.id "Endpoint"
                         , Input.value mapping.endpoint
+                        , Input.disabled editMode
                         , Input.onInput UpdateMappingEndpoint
                         , if (InterfaceMapping.isValidEndpoint mapping.endpoint) then
                             Input.success
