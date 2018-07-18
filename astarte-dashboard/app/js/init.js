@@ -3,8 +3,7 @@ $.getJSON("/user-config/config.json", function(result) {
 
         parameters =
         {
-            realmManagementApiUrl: result.realm_management_api_url,
-            defaultAuthUrl: result.oauth_api_url || null,
+            config: result,
             previousSession: localStorage.session || null
         }
 

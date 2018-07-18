@@ -5,12 +5,14 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
+import Maybe.Extra exposing (isNothing)
 
 
 -- Types
 
 import Route
-import Types.Session exposing (Session, LoginType(..))
+import Types.Config as Config exposing (Config, AuthType(..), AuthConfig(..), getAuthConfig)
+import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
@@ -26,6 +28,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Bootstrap.Utilities.Flex as Flex
@@ -34,26 +37,50 @@ import Bootstrap.Utilities.Flex as Flex
 type alias Model =
     { realm : String
     , authUrl : String
+    , showAuthUrl : Bool
     , token : String
-    , loginType : LoginType
+    , loginType : Config.AuthType
+    , allowSwitching : Bool
     }
 
 
-init : Session -> ( Model, Cmd Msg )
-init session =
+init : Config -> AuthType -> ( Model, Cmd Msg )
+init config requestedAuth =
     let
-        authUrl =
-            case session.loginType of
-                OAuthFromConfig defaultAuthUrl ->
-                    defaultAuthUrl
+        requestedAuthConfig =
+            config
+                |> getAuthConfig requestedAuth
 
-                _ ->
-                    ""
+        ( authType, authConfig ) =
+            case requestedAuthConfig of
+                Nothing ->
+                    ( config.defaultAuth
+                    , config |> Config.defaultAuthConfig
+                    )
+
+                Just reqConfig ->
+                    ( requestedAuth
+                    , reqConfig
+                    )
+
+        ( authUrl, showAuthUrl ) =
+            case authConfig of
+                OAuthConfig maybeUrl ->
+                    ( maybeUrl |> Maybe.withDefault ""
+                    , isNothing maybeUrl
+                    )
+
+                TokenConfig ->
+                    ( ""
+                    , True
+                    )
     in
-        ( { realm = ""
+        ( { realm = config.defaultRealm |> Maybe.withDefault ""
           , token = ""
           , authUrl = authUrl
-          , loginType = session.loginType
+          , showAuthUrl = showAuthUrl
+          , loginType = authType
+          , allowSwitching = (List.length config.enabledAuth) > 1
           }
         , Cmd.none
         )
@@ -75,7 +102,7 @@ update session msg model =
                 Token ->
                     loginWithToken model
 
-                _ ->
+                OAuth ->
                     loginWithOAuth model session.hostUrl
 
         UpdateRealm newRealm ->
@@ -208,7 +235,12 @@ view model flashMessages =
                             ]
                         ]
                     , renderAuthInfo model
-                    , Form.row []
+                    , Form.row
+                        (if model.allowSwitching then
+                            []
+                         else
+                            [ Row.attrs [ Display.none ] ]
+                        )
                         [ Form.col [ Col.sm12 ]
                             [ toggleLoginTypeLink model.loginType ]
                         ]
@@ -232,9 +264,9 @@ view model flashMessages =
         ]
 
 
-toggleLoginTypeLink : LoginType -> Html Msg
-toggleLoginTypeLink loginType =
-    case loginType of
+toggleLoginTypeLink : AuthType -> Html Msg
+toggleLoginTypeLink authType =
+    case authType of
         Token ->
             a
                 [ class "float-right"
@@ -244,7 +276,7 @@ toggleLoginTypeLink loginType =
                 ]
                 [ text "Switch to OAuth login" ]
 
-        _ ->
+        OAuth ->
             a
                 [ class "float-right"
                 , Route.RealmSelection (Just "token")
@@ -271,16 +303,16 @@ renderAuthInfo model =
                 ]
 
         OAuth ->
-            Form.row []
-                [ Form.col [ Col.sm12 ]
-                    [ Input.text
-                        [ Input.id "authUrl"
-                        , Input.placeholder "Authentication server URL"
-                        , Input.value model.authUrl
-                        , Input.onInput UpdateAuthUrl
+            if (model.showAuthUrl) then
+                Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ Input.text
+                            [ Input.id "authUrl"
+                            , Input.placeholder "Authentication server URL"
+                            , Input.value model.authUrl
+                            , Input.onInput UpdateAuthUrl
+                            ]
                         ]
                     ]
-                ]
-
-        OAuthFromConfig _ ->
-            text ""
+            else
+                text ""
