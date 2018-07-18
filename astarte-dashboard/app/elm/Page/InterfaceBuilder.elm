@@ -22,6 +22,7 @@ import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping exposing (..)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
+import Modal.MappingBuilder as MappingBuilder
 
 
 -- bootstrap components
@@ -50,8 +51,6 @@ import Bootstrap.Utilities.Spacing as Spacing
 
 type alias Model =
     { interface : Interface
-    , newMappingVisible : Bool
-    , interfaceMapping : InterfaceMapping
     , interfaceEditMode : Bool
     , minMinor : Int
     , deleteModalVisibility : Modal.Visibility
@@ -67,6 +66,9 @@ type alias Model =
     , objectReliability : InterfaceMapping.Reliability
     , objectRetention : InterfaceMapping.Retention
     , objectExpiry : Int
+
+    -- mapping builder
+    , mappingBuilderModel : MappingBuilder.Model
     }
 
 
@@ -79,8 +81,6 @@ type BufferStatus
 init : Maybe ( String, Int ) -> Session -> ( Model, Cmd Msg )
 init maybeInterfaceId session =
     ( { interface = Interface.empty
-      , newMappingVisible = False
-      , interfaceMapping = InterfaceMapping.empty
       , interfaceEditMode = False
       , minMinor = 0
       , objectReliability = InterfaceMapping.Unreliable
@@ -94,6 +94,7 @@ init maybeInterfaceId session =
       , sourceBufferStatus = Valid
       , debouncerControlState = Control.initialState
       , accordionState = Accordion.initialState
+      , mappingBuilderModel = MappingBuilder.empty
       }
     , case maybeInterfaceId of
         Just ( name, major ) ->
@@ -120,16 +121,13 @@ type ModalResult
 
 
 type Msg
-    = SetNewMappingVisible Bool
-    | GetInterfaceDone Interface
+    = GetInterfaceDone Interface
     | AddInterface
     | AddInterfaceDone String
     | DeleteInterfaceDone String
     | UpdateInterface
     | UpdateInterfaceDone String
-    | AddMappingToInterface
     | RemoveMapping InterfaceMapping
-    | ResetMapping
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
     | ShowConfirmModal
@@ -152,21 +150,14 @@ type Msg
     | UpdateInterfaceHasMeta Bool
     | UpdateInterfaceDescription String
     | UpdateInterfaceDoc String
-      -- mapping messages
-    | UpdateMappingEndpoint String
-    | UpdateMappingType String
-    | UpdateMappingReliability String
-    | UpdateMappingRetention String
-    | UpdateMappingExpiry String
-    | UpdateMappingAllowUnset Bool
-    | UpdateMappingDescription String
-    | UpdateMappingDoc String
       -- common mapping messages
     | UpdateObjectMappingReliability String
     | UpdateObjectMappingRetention String
     | UpdateObjectMappingExpiry String
       -- modal
     | UpdateConfirmInterfaceName String
+    | MappingBuilderMsg MappingBuilder.Msg
+    | ShowAddMappingModal
       -- accordion
     | AccordionMsg Accordion.State
 
@@ -174,24 +165,26 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
-        SetNewMappingVisible visible ->
-            ( { model | newMappingVisible = visible }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
         GetInterfaceDone interface ->
-            ( { model
-                | interface = interface
-                , interfaceEditMode = True
-                , minMinor = interface.minor
-                , interfaceMapping = InterfaceMapping.empty
-                , newMappingVisible = False
-                , sourceBuffer = Interface.toPrettySource interface
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newMappingBuilderModel =
+                    MappingBuilder.init
+                        InterfaceMapping.empty
+                        False
+                        (interface.iType == Interface.Properties)
+                        (interface.aggregation == Interface.Object)
+                        False
+            in
+                ( { model
+                    | interface = interface
+                    , interfaceEditMode = True
+                    , minMinor = interface.minor
+                    , sourceBuffer = Interface.toPrettySource interface
+                    , mappingBuilderModel = newMappingBuilderModel
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         AddInterface ->
             ( model
@@ -232,30 +225,6 @@ update session msg model =
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted."
-            )
-
-        AddMappingToInterface ->
-            let
-                newInterface =
-                    Interface.addMapping model.interfaceMapping model.interface
-            in
-                ( { model
-                    | interface = newInterface
-                    , interfaceMapping = InterfaceMapping.empty
-                    , newMappingVisible = False
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
-
-        ResetMapping ->
-            ( { model
-                | interfaceMapping = InterfaceMapping.empty
-                , newMappingVisible = False
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
             )
 
         ShowDeleteModal ->
@@ -563,103 +532,6 @@ update session msg model =
                 , ExternalMsg.Noop
                 )
 
-        UpdateMappingEndpoint newEndpoint ->
-            ( { model | interfaceMapping = InterfaceMapping.setEndpoint newEndpoint model.interfaceMapping }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
-        UpdateMappingType newType ->
-            case (InterfaceMapping.stringToMappingType newType) of
-                Ok mappingType ->
-                    ( { model | interfaceMapping = InterfaceMapping.setType mappingType model.interfaceMapping }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
-                Err err ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal <| "Parse error. " ++ err
-                    )
-
-        UpdateMappingReliability newReliability ->
-            case (InterfaceMapping.stringToReliability newReliability) of
-                Ok r ->
-                    ( { model | interfaceMapping = InterfaceMapping.setReliability r model.interfaceMapping }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
-                Err err ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal <| "Parse error. " ++ err
-                    )
-
-        UpdateMappingRetention newMapRetention ->
-            case (InterfaceMapping.stringToRetention newMapRetention) of
-                Ok InterfaceMapping.Discard ->
-                    ( { model
-                        | interfaceMapping =
-                            model.interfaceMapping
-                                |> InterfaceMapping.setRetention InterfaceMapping.Discard
-                                |> InterfaceMapping.setExpiry 0
-                      }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
-                Ok r ->
-                    ( { model | interfaceMapping = InterfaceMapping.setRetention r model.interfaceMapping }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
-                Err err ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal <| "Parse error. " ++ err
-                    )
-
-        UpdateMappingExpiry newMappingExpiry ->
-            case (String.toInt newMappingExpiry) of
-                Ok expiry ->
-                    if (expiry >= 0) then
-                        ( { model | interfaceMapping = InterfaceMapping.setExpiry expiry model.interfaceMapping }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
-                    else
-                        ( model
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
-
-                Err _ ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
-        UpdateMappingAllowUnset allowUnset ->
-            ( { model | interfaceMapping = InterfaceMapping.setAllowUnset allowUnset model.interfaceMapping }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
-        UpdateMappingDescription newDescription ->
-            ( { model | interfaceMapping = InterfaceMapping.setDescription newDescription model.interfaceMapping }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
-        UpdateMappingDoc newDoc ->
-            ( { model | interfaceMapping = InterfaceMapping.setDoc newDoc model.interfaceMapping }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
         RemoveMapping mapping ->
             let
                 newInterface =
@@ -770,6 +642,47 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        MappingBuilderMsg msg ->
+            let
+                ( updatedBuilderModel, externalMessage ) =
+                    MappingBuilder.update msg model.mappingBuilderModel
+            in
+                case externalMessage of
+                    MappingBuilder.Noop ->
+                        ( { model | mappingBuilderModel = updatedBuilderModel }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                    MappingBuilder.AddNewMapping mapping ->
+                        let
+                            newInterface =
+                                Interface.addMapping mapping model.interface
+                        in
+                            ( { model
+                                | interface = newInterface
+                                , sourceBuffer = Interface.toPrettySource newInterface
+                                , mappingBuilderModel = updatedBuilderModel
+                              }
+                            , Cmd.none
+                            , ExternalMsg.Noop
+                            )
+
+        ShowAddMappingModal ->
+            let
+                newMappingBuilderModel =
+                    MappingBuilder.init
+                        InterfaceMapping.empty
+                        False
+                        (model.interface.iType == Interface.Properties)
+                        (model.interface.aggregation == Interface.Object)
+                        True
+            in
+                ( { model | mappingBuilderModel = newMappingBuilderModel }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
+
         AccordionMsg state ->
             ( { model | accordionState = state }
             , Cmd.none
@@ -800,8 +713,6 @@ view model flashMessages =
                     model
                     model.interface
                     model.interfaceEditMode
-                    model.interfaceMapping
-                    model.newMappingVisible
                     model.accordionState
                 ]
             , Grid.col
@@ -817,13 +728,14 @@ view model flashMessages =
                 [ Col.sm12 ]
                 [ renderDeleteInterfaceModal model
                 , renderConfirmModal model
+                , Html.map MappingBuilderMsg <| MappingBuilder.view model.mappingBuilderModel
                 ]
             ]
         ]
 
 
-renderContent : Model -> Interface -> Bool -> InterfaceMapping -> Bool -> Accordion.State -> Html Msg
-renderContent model interface interfaceEditMode interfaceMapping newMappingVisible accordionState =
+renderContent : Model -> Interface -> Bool -> Accordion.State -> Html Msg
+renderContent model interface interfaceEditMode accordionState =
     Grid.container []
         [ Form.form []
             [ Form.row []
@@ -1023,23 +935,17 @@ renderContent model interface interfaceEditMode interfaceMapping newMappingVisib
                 ]
             , Form.row []
                 [ Form.col [ Col.sm12 ]
-                    [ (if newMappingVisible then
-                        renderAddNewMapping interface interfaceMapping
+                    [ (if Dict.isEmpty interface.mappings then
+                        text "No mappings added"
                        else
-                        div []
-                            [ (if Dict.isEmpty interface.mappings then
-                                text "No mappings added"
-                               else
-                                text ""
-                              )
-                            , Button.button
-                                [ Button.primary
-                                , Button.attrs [ class "float-right", Spacing.ml2 ]
-                                , Button.onClick <| SetNewMappingVisible True
-                                ]
-                                [ text "Add Mapping ..." ]
-                            ]
+                        text ""
                       )
+                    , Button.button
+                        [ Button.primary
+                        , Button.attrs [ class "float-right", Spacing.ml2 ]
+                        , Button.onClick ShowAddMappingModal
+                        ]
+                        [ text "Add Mapping ..." ]
                     ]
                 ]
             , Form.row [ Row.rightSm ]
@@ -1145,184 +1051,6 @@ renderConfirmButton editMode =
         ]
 
 
-renderAddNewMapping : Interface -> InterfaceMapping -> Html Msg
-renderAddNewMapping interface mapping =
-    Form.form []
-        [ Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ h3 [] [ text "Add a new mapping" ] ]
-            ]
-        , Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "mappingEndpoint" ] [ text "Endpoint" ]
-                    , Input.text
-                        [ Input.id "Endpoint"
-                        , Input.value <| mapping.endpoint
-                        , Input.onInput UpdateMappingEndpoint
-                        , if (InterfaceMapping.isValidEndpoint mapping.endpoint) then
-                            Input.success
-                          else
-                            Input.danger
-                        ]
-                    ]
-                ]
-            ]
-        , Form.row []
-            [ Form.col
-                [ if (interface.iType == Interface.Properties) then
-                    Col.sm8
-                  else
-                    Col.sm12
-                ]
-                [ Form.group []
-                    [ Form.label [ for "mappingTypes" ] [ text "Type" ]
-                    , Select.select
-                        [ Select.id "mappingTypes"
-                        , Select.onChange UpdateMappingType
-                        ]
-                        (List.map (\t -> renderMappingTypeItem (t == mapping.mType) t) InterfaceMapping.mappingTypeList)
-                    ]
-                ]
-            , Form.col
-                [ if (interface.iType == Interface.Properties) then
-                    Col.sm4
-                  else
-                    Col.attrs [ Display.none ]
-                ]
-                [ Form.group []
-                    [ Form.label [ for "mappingAllowUnset" ] [ text "Options" ]
-                    , Checkbox.checkbox
-                        [ Checkbox.id "mappingAllowUnset"
-                        , Checkbox.checked mapping.allowUnset
-                        , Checkbox.onCheck UpdateMappingAllowUnset
-                        ]
-                        "Allow unset"
-                    ]
-                ]
-            ]
-        , Form.row
-            (if (interface.iType == Interface.Properties || interface.aggregation == Interface.Object) then
-                [ Row.attrs [ Display.none ] ]
-             else
-                []
-            )
-            [ Form.col [ Col.sm4 ]
-                [ Form.group []
-                    [ Form.label [ for "mappingReliability" ] [ text "Reliability" ]
-                    , Select.select
-                        [ Select.id "mappingReliability"
-                        , Select.onChange UpdateMappingReliability
-                        ]
-                        [ Select.item
-                            [ value "unreliable"
-                            , selected <| mapping.reliability == InterfaceMapping.Unreliable
-                            ]
-                            [ text "Unreliable" ]
-                        , Select.item
-                            [ value "guaranteed"
-                            , selected <| mapping.reliability == InterfaceMapping.Guaranteed
-                            ]
-                            [ text "Guaranteed" ]
-                        , Select.item
-                            [ value "unique"
-                            , selected <| mapping.reliability == InterfaceMapping.Unique
-                            ]
-                            [ text "Unique" ]
-                        ]
-                    ]
-                ]
-            , Form.col
-                [ if (mapping.retention == InterfaceMapping.Discard) then
-                    Col.sm8
-                  else
-                    Col.sm4
-                ]
-                [ Form.group []
-                    [ Form.label [ for "mappingRetention" ] [ text "Retention" ]
-                    , Select.select
-                        [ Select.id "mappingRetention"
-                        , Select.onChange UpdateMappingRetention
-                        ]
-                        [ Select.item
-                            [ value "discard"
-                            , selected <| mapping.retention == InterfaceMapping.Discard
-                            ]
-                            [ text "Discard" ]
-                        , Select.item
-                            [ value "volatile"
-                            , selected <| mapping.retention == InterfaceMapping.Volatile
-                            ]
-                            [ text "Volatile" ]
-                        , Select.item
-                            [ value "stored"
-                            , selected <| mapping.retention == InterfaceMapping.Stored
-                            ]
-                            [ text "Stored" ]
-                        ]
-                    ]
-                ]
-            , Form.col
-                [ if (mapping.retention == InterfaceMapping.Discard) then
-                    Col.attrs [ Display.none ]
-                  else
-                    Col.sm4
-                ]
-                [ Form.group []
-                    [ Form.label [ for "mappingExpiry" ] [ text "Expiry" ]
-                    , Input.number
-                        [ Input.id "mappingExpiry"
-                        , Input.value <| toString mapping.expiry
-                        , Input.onInput UpdateMappingExpiry
-                        ]
-                    ]
-                ]
-            ]
-        , Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "mappingDescription" ] [ text "Description" ]
-                    , Textarea.textarea
-                        [ Textarea.id "mappingDescription"
-                        , Textarea.rows 1
-                        , Textarea.value <| mapping.description
-                        , Textarea.onInput UpdateMappingDescription
-                        ]
-                    ]
-                ]
-            ]
-        , Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "mappingDoc" ] [ text "Documentation" ]
-                    , Textarea.textarea
-                        [ Textarea.id "mappingDoc"
-                        , Textarea.rows 1
-                        , Textarea.value <| mapping.doc
-                        , Textarea.onInput UpdateMappingDoc
-                        ]
-                    ]
-                ]
-            ]
-        , Form.row [ Row.rightSm ]
-            [ Form.col [ Col.sm4 ]
-                [ Button.button
-                    [ Button.primary
-                    , Button.attrs [ class "float-right", Spacing.ml2 ]
-                    , Button.onClick AddMappingToInterface
-                    ]
-                    [ text "Add Mapping" ]
-                , Button.button
-                    [ Button.secondary
-                    , Button.attrs [ class "float-right" ]
-                    , Button.onClick ResetMapping
-                    ]
-                    [ text "Cancel" ]
-                ]
-            ]
-        ]
-
-
 renderInterfaceSource : Interface -> String -> BufferStatus -> Html Msg
 renderInterfaceSource interface sourceBuffer status =
     Textarea.textarea
@@ -1341,15 +1069,6 @@ renderInterfaceSource interface sourceBuffer status =
         , Textarea.onInput UpdateSource
         , Textarea.attrs [ class "text-monospace" ]
         ]
-
-
-renderMappingTypeItem : Bool -> InterfaceMapping.MappingType -> Select.Item Msg
-renderMappingTypeItem itemSelected mappingType =
-    Select.item
-        [ value <| InterfaceMapping.mappingTypeToString mappingType
-        , selected itemSelected
-        ]
-        [ text <| mappingTypeToEnglishString mappingType ]
 
 
 renderMapping : InterfaceMapping -> Accordion.Card Msg
@@ -1525,78 +1244,6 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
             p [] [ text "This is a draft interface, so you will be able to delete it afterwards." ]
         , text "Confirm?"
         ]
-
-
-mappingTypeToEnglishString : MappingType -> String
-mappingTypeToEnglishString t =
-    case t of
-        Single DoubleMapping ->
-            "Double"
-
-        Single IntMapping ->
-            "Integer"
-
-        Single BoolMapping ->
-            "Boolean"
-
-        Single LongIntMapping ->
-            "Long integer"
-
-        Single StringMapping ->
-            "String"
-
-        Single BinaryBlobMapping ->
-            "Binary blob"
-
-        Single DateTimeMapping ->
-            "Date and time"
-
-        Array DoubleMapping ->
-            "Array of doubles"
-
-        Array IntMapping ->
-            "Array of integers"
-
-        Array BoolMapping ->
-            "Array of booleans"
-
-        Array LongIntMapping ->
-            "Array of long integers"
-
-        Array StringMapping ->
-            "Array of strings"
-
-        Array BinaryBlobMapping ->
-            "Array of binary blobs"
-
-        Array DateTimeMapping ->
-            "Array of date and time"
-
-
-reliabilityToEnglishString : InterfaceMapping.Reliability -> String
-reliabilityToEnglishString reliability =
-    case reliability of
-        InterfaceMapping.Unreliable ->
-            "Unreliable"
-
-        InterfaceMapping.Guaranteed ->
-            "Guaranteed"
-
-        InterfaceMapping.Unique ->
-            "Unique"
-
-
-retentionToEnglishString : InterfaceMapping.Retention -> String
-retentionToEnglishString retention =
-    case retention of
-        InterfaceMapping.Discard ->
-            "Discard"
-
-        InterfaceMapping.Volatile ->
-            "Volatile"
-
-        InterfaceMapping.Stored ->
-            "Stored"
 
 
 
