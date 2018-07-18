@@ -237,8 +237,7 @@ update session msg model =
         AddMappingToInterface ->
             let
                 newInterface =
-                    model.interface
-                        |> Interface.addMapping model.interfaceMapping
+                    Interface.addMapping model.interfaceMapping model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -399,7 +398,7 @@ update session msg model =
         UpdateInterfaceName newName ->
             let
                 newInterface =
-                    model.interface |> Interface.setName newName
+                    Interface.setName newName model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -415,7 +414,7 @@ update session msg model =
                     if (major >= 0) then
                         let
                             newInterface =
-                                model.interface |> Interface.setMajor major
+                                Interface.setMajor major model.interface
                         in
                             ( { model
                                 | interface = newInterface
@@ -442,7 +441,7 @@ update session msg model =
                     if (minor >= model.minMinor) then
                         let
                             newInterface =
-                                model.interface |> Interface.setMinor minor
+                                Interface.setMinor minor model.interface
                         in
                             ( { model
                                 | interface = newInterface
@@ -471,8 +470,7 @@ update session msg model =
                             |> Interface.setType Interface.Properties
                             |> Interface.setAggregation Interface.Individual
                     else
-                        model.interface
-                            |> Interface.setType Interface.Datastream
+                        Interface.setType Interface.Datastream model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -490,8 +488,7 @@ update session msg model =
                             |> Interface.setAggregation Interface.Object
                             |> Interface.setOwnership Interface.Device
                     else
-                        model.interface
-                            |> Interface.setAggregation Interface.Individual
+                        Interface.setAggregation Interface.Individual model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -504,7 +501,7 @@ update session msg model =
         UpdateInterfaceOwnership newOwner ->
             let
                 newInterface =
-                    model.interface |> Interface.setOwnership newOwner
+                    Interface.setOwnership newOwner model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -517,7 +514,7 @@ update session msg model =
         UpdateInterfaceTimestamp timestamp ->
             let
                 newInterface =
-                    model.interface |> Interface.setExplicitTimestamp timestamp
+                    Interface.setExplicitTimestamp timestamp model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -530,7 +527,7 @@ update session msg model =
         UpdateInterfaceHasMeta hasMeta ->
             let
                 newInterface =
-                    model.interface |> Interface.setHasMeta hasMeta
+                    Interface.setHasMeta hasMeta model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -543,7 +540,7 @@ update session msg model =
         UpdateInterfaceDescription newDescription ->
             let
                 newInterface =
-                    model.interface |> Interface.setDescription newDescription
+                    Interface.setDescription newDescription model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -556,7 +553,7 @@ update session msg model =
         UpdateInterfaceDoc newDoc ->
             let
                 newInterface =
-                    model.interface |> Interface.setDoc newDoc
+                    Interface.setDoc newDoc model.interface
             in
                 ( { model
                     | interface = newInterface
@@ -567,7 +564,7 @@ update session msg model =
                 )
 
         UpdateMappingEndpoint newEndpoint ->
-            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setEndpoint newEndpoint }
+            ( { model | interfaceMapping = InterfaceMapping.setEndpoint newEndpoint model.interfaceMapping }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -575,7 +572,7 @@ update session msg model =
         UpdateMappingType newType ->
             case (InterfaceMapping.stringToMappingType newType) of
                 Ok mappingType ->
-                    ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setType mappingType }
+                    ( { model | interfaceMapping = InterfaceMapping.setType mappingType model.interfaceMapping }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
@@ -589,7 +586,7 @@ update session msg model =
         UpdateMappingReliability newReliability ->
             case (InterfaceMapping.stringToReliability newReliability) of
                 Ok r ->
-                    ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setReliability r }
+                    ( { model | interfaceMapping = InterfaceMapping.setReliability r model.interfaceMapping }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
@@ -614,7 +611,7 @@ update session msg model =
                     )
 
                 Ok r ->
-                    ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setRetention r }
+                    ( { model | interfaceMapping = InterfaceMapping.setRetention r model.interfaceMapping }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
@@ -629,7 +626,7 @@ update session msg model =
             case (String.toInt newMappingExpiry) of
                 Ok expiry ->
                     if (expiry >= 0) then
-                        ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setExpiry expiry }
+                        ( { model | interfaceMapping = InterfaceMapping.setExpiry expiry model.interfaceMapping }
                         , Cmd.none
                         , ExternalMsg.Noop
                         )
@@ -646,19 +643,19 @@ update session msg model =
                     )
 
         UpdateMappingAllowUnset allowUnset ->
-            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setAllowUnset allowUnset }
+            ( { model | interfaceMapping = InterfaceMapping.setAllowUnset allowUnset model.interfaceMapping }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
         UpdateMappingDescription newDescription ->
-            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setDescription newDescription }
+            ( { model | interfaceMapping = InterfaceMapping.setDescription newDescription model.interfaceMapping }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
         UpdateMappingDoc newDoc ->
-            ( { model | interfaceMapping = model.interfaceMapping |> InterfaceMapping.setDoc newDoc }
+            ( { model | interfaceMapping = InterfaceMapping.setDoc newDoc model.interfaceMapping }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -666,8 +663,7 @@ update session msg model =
         RemoveMapping mapping ->
             let
                 newInterface =
-                    model.interface
-                        |> Interface.removeMapping mapping
+                    Interface.removeMapping mapping model.interface
             in
                 ( { model
                     | interface = newInterface
