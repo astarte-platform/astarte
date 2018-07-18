@@ -53,6 +53,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         source varchar,
         automaton_transitions blob,
         automaton_accepting_states blob,
+        description varchar,
+        doc varchar,
 
         PRIMARY KEY (name, major_version)
       );
@@ -72,6 +74,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         retention int,
         expiry int,
         allow_unset boolean,
+        description varchar,
+        doc varchar,
 
         PRIMARY KEY ((interface_id), endpoint_id)
       );
