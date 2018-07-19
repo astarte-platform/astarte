@@ -14,11 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
   use Astarte.RealmManagement.APIWeb, :controller
+
+  alias Astarte.Core.Interface
+  alias Astarte.RealmManagement.API.Interfaces
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
@@ -29,37 +32,34 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     render(conn, "index.json", interfaces: interfaces)
   end
 
-  def create(conn, %{"realm_name" => realm_name, "data" => interface_source})
-      when is_map(interface_source) do
-    source_as_string = Poison.encode!(interface_source, pretty: true)
+  def create(conn, %{"realm_name" => realm_name, "data" => %{} = params}) do
+    with {:ok, %Interface{} = interface} <- Interfaces.create_interface(realm_name, params) do
+      location =
+        interface_path(
+          conn,
+          :show,
+          realm_name,
+          interface.name,
+          Integer.to_string(interface.major_version)
+        )
 
-    create(conn, %{"realm_name" => realm_name, "data" => source_as_string})
-  end
+      conn
+      |> put_resp_header("location", location)
+      |> send_resp(:created, "")
+    else
+      {:error, :already_installed_interface = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-  def create(conn, %{"realm_name" => realm_name, "data" => interface_source}) do
-    case Astarte.Core.InterfaceDocument.from_json(interface_source) do
-      :error ->
-        {:error, :invalid}
+      {:error, :invalid_name_casing = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-      {:ok, doc} ->
-        with {:ok, :started} <-
-               Astarte.RealmManagement.API.Interfaces.create_interface!(
-                 realm_name,
-                 interface_source
-               ) do
-          conn
-          |> put_resp_header(
-            "location",
-            interface_path(
-              conn,
-              :show,
-              realm_name,
-              doc.descriptor.name,
-              Integer.to_string(doc.descriptor.major_version)
-            )
-          )
-          |> send_resp(:created, "")
-        end
+      # Let FallbackController handle the rest
+      {:error, other} ->
+        {:error, other}
     end
   end
 
