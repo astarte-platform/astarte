@@ -970,6 +970,22 @@ renderContent model interface interfaceEditMode accordionState =
                 ]
             , Form.row []
                 [ Form.col [ Col.sm12 ]
+                    [ h5 [ Display.inline ]
+                        [ if Dict.isEmpty interface.mappings then
+                            text "No mappings added"
+                          else
+                            text "Mappings"
+                        ]
+                    , Button.button
+                        [ Button.outlinePrimary
+                        , Button.attrs [ class "float-right", Spacing.ml2 ]
+                        , Button.onClick ShowAddMappingModal
+                        ]
+                        [ text "Add new Mapping ..." ]
+                    ]
+                ]
+            , Form.row []
+                [ Form.col [ Col.sm12 ]
                     [ Accordion.config AccordionMsg
                         |> Accordion.withAnimation
                         |> Accordion.cards
@@ -978,21 +994,6 @@ renderContent model interface interfaceEditMode accordionState =
                                 |> List.map renderMapping
                             )
                         |> Accordion.view accordionState
-                    ]
-                ]
-            , Form.row []
-                [ Form.col [ Col.sm12 ]
-                    [ (if Dict.isEmpty interface.mappings then
-                        text "No mappings added"
-                       else
-                        text ""
-                      )
-                    , Button.button
-                        [ Button.primary
-                        , Button.attrs [ class "float-right", Spacing.ml2 ]
-                        , Button.onClick ShowAddMappingModal
-                        ]
-                        [ text "Add Mapping ..." ]
                     ]
                 ]
             , Form.row [ Row.rightSm ]
@@ -1170,7 +1171,7 @@ endpointToHtmlId endpoint =
 
 renderMappingHeader : InterfaceMapping -> Accordion.Header Msg
 renderMappingHeader mapping =
-    Accordion.headerH4 [] (Accordion.toggle [] [ text mapping.endpoint ])
+    Accordion.headerH5 [] (Accordion.toggle [] [ text mapping.endpoint ])
         |> Accordion.appendHeader
             (if mapping.draft then
                 [ small
@@ -1189,13 +1190,13 @@ renderMappingHeader mapping =
 renderMappingControls : InterfaceMapping -> List (Html Msg)
 renderMappingControls mapping =
     [ Button.button
-        [ Button.primary
+        [ Button.outlinePrimary
         , Button.attrs [ class "float-right" ]
         , Button.onClick <| RemoveMapping mapping
         ]
         [ text "Remove" ]
     , Button.button
-        [ Button.primary
+        [ Button.outlinePrimary
         , Button.attrs [ Spacing.mr2Sm, class "float-right" ]
         , Button.onClick <| ShowEditMappingModal mapping
         ]
