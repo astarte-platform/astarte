@@ -83,8 +83,8 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, json_obj} <- Poison.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
+         %InterfaceDocument{description: description, doc: doc} <- interface_doc,
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
-         {:ok, source} <- Poison.encode(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, true} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
@@ -106,7 +106,8 @@ defmodule Astarte.RealmManagement.Engine do
           interface_update,
           new_mappings_list,
           automaton,
-          source
+          description,
+          doc
         ])
 
         {:ok, :started}
@@ -116,7 +117,8 @@ defmodule Astarte.RealmManagement.Engine do
           interface_update,
           new_mappings_list,
           automaton,
-          source
+          description,
+          doc
         )
       end
     else
@@ -157,9 +159,9 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def execute_interface_update(client, interface_descriptor, new_mappings, automaton, source) do
+  def execute_interface_update(client, interface_descriptor, new_mappings, automaton, descr, doc) do
     with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
-      Queries.update_interface(client, interface_descriptor, new_mappings, automaton, source)
+      Queries.update_interface(client, interface_descriptor, new_mappings, automaton, descr, doc)
     end
   end
 
@@ -287,16 +289,10 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def interface_source(realm_name, interface_name, interface_major_version) do
-    case DatabaseClient.new(
-           List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-           keyspace: realm_name
-         ) do
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:ok, client} ->
-        Queries.interface_source(client, interface_name, interface_major_version)
+  def interface_source(realm_name, interface_name, major_version) do
+    with {:ok, client} <- Database.connect(realm_name),
+         {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
+      Poison.encode(interface)
     end
   end
 

@@ -50,7 +50,6 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         type int,
         ownership int,
         aggregation int,
-        source varchar,
         automaton_transitions blob,
         automaton_accepting_states blob,
         description varchar,
