@@ -747,7 +747,15 @@ defmodule Astarte.RealmManagement.EngineTest do
   end
 
   defp unpack_source({:ok, source}) when is_binary(source) do
-    {:ok, Poison.decode!(source)}
+    interface_obj = Poison.decode!(source)
+
+    mappings =
+      interface_obj["mappings"]
+      |> Enum.sort()
+
+    new_obj = Map.put(interface_obj, "mappings", mappings)
+
+    {:ok, new_obj}
   end
 
   defp unpack_source(any) do
