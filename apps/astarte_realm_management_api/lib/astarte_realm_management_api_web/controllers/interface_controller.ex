@@ -66,8 +66,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
   def show(conn, %{"realm_name" => realm_name, "id" => id, "major_version" => major_version}) do
     {parsed_major, ""} = Integer.parse(major_version)
 
-    interface_source =
-      Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, parsed_major)
+    interface_source = Interfaces.get_interface!(realm_name, id, parsed_major)
 
     {:ok, decoded_json} = Poison.decode(interface_source)
     render(conn, "show.json", interface: decoded_json)
@@ -143,7 +142,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     {parsed_major, ""} = Integer.parse(major_version)
 
     with {:ok, :started} <-
-           Astarte.RealmManagement.API.Interfaces.delete_interface!(
+           Interfaces.delete_interface!(
              realm_name,
              interface_name,
              parsed_major
