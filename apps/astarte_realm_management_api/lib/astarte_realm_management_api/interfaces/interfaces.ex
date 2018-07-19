@@ -18,6 +18,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces do
+  alias Astarte.Core.Interface
   alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   require Logger
@@ -36,8 +37,14 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     RealmManagement.get_interface(realm_name, interface_name, interface_major_version)
   end
 
-  def create_interface!(realm_name, interface_source, _attrs \\ %{}) do
-    RealmManagement.install_interface(realm_name, interface_source)
+  def create_interface(realm_name, params) do
+    changeset = Interface.changeset(%Interface{}, params)
+
+    with {:ok, %Interface{} = interface} <- Ecto.Changeset.apply_action(changeset, :insert),
+         {:ok, interface_source} <- Poison.encode(interface),
+         {:ok, :started} <- RealmManagement.install_interface(realm_name, interface_source) do
+      {:ok, interface}
+    end
   end
 
   def update_interface!(realm_name, interface_source, _attrs \\ %{}) do
