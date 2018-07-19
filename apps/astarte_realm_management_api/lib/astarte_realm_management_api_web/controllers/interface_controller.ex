@@ -77,45 +77,61 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
         "realm_name" => realm_name,
         "id" => interface_name,
         "major_version" => major_version,
-        "data" => interface_source
-      })
-      when is_map(interface_source) do
-    source_as_string = Poison.encode!(interface_source, pretty: true)
-
-    update(conn, %{
-      "realm_name" => realm_name,
-      "id" => interface_name,
-      "major_version" => major_version,
-      "data" => source_as_string
-    })
-  end
-
-  def update(conn, %{
-        "realm_name" => realm_name,
-        "id" => interface_name,
-        "major_version" => major_version,
-        "data" => interface_source
+        "data" => %{} = params
       }) do
-    doc_result = Astarte.Core.InterfaceDocument.from_json(interface_source)
+    with {:major_parsing, {parsed_major, ""}} <- {:major_parsing, Integer.parse(major_version)},
+         {:ok, :started} <-
+           Interfaces.update_interface(realm_name, interface_name, parsed_major, params) do
+      send_resp(conn, :no_content, "")
+    else
+      {:major_parsing, _} ->
+        {:error, :invalid_major}
 
-    cond do
-      doc_result == :error ->
-        {:error, :invalid}
+      # API side errors
+      {:error, :name_not_matching = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-      elem(doc_result, 1).descriptor.name != interface_name ->
-        {:error, :conflict}
+      {:error, :major_version_not_matching = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-      {elem(doc_result, 1).descriptor.major_version, ""} != Integer.parse(major_version) ->
-        {:error, :conflict}
+      # Backend side errors
+      {:error, :interface_major_version_does_not_exist = err_atom} ->
+        conn
+        |> put_status(:not_found)
+        |> render(err_atom)
 
-      true ->
-        with {:ok, :started} <-
-               Astarte.RealmManagement.API.Interfaces.update_interface!(
-                 realm_name,
-                 interface_source
-               ) do
-          send_resp(conn, :no_content, "")
-        end
+      {:error, :minor_version_not_increased = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :invalid_update = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :downgrade_not_allowed = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :missing_endpoints = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :incompatible_endpoint_change = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      # Let FallbackController handle the rest
+      {:error, other} ->
+        {:error, other}
     end
   end
 
