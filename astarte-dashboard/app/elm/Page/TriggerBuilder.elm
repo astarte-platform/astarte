@@ -5,6 +5,10 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
+import Task
+import Time
+import Control exposing (Control)
+import Control.Debounce as Debounce
 
 
 -- Types
@@ -50,6 +54,10 @@ type alias Model =
     , mappingType : Maybe InterfaceMapping.MappingType
     , deleteModalVisibility : Modal.Visibility
     , confirmTriggerName : String
+    , showSource : Bool
+    , sourceBuffer : String
+    , sourceBufferStatus : BufferStatus
+    , debouncerControlState : Control.State Msg
 
     -- decoupled types
     , selectedInterfaceName : String
@@ -57,6 +65,12 @@ type alias Model =
     , selectedOperator : String
     , selectedKnownValue : Maybe String
     }
+
+
+type BufferStatus
+    = Valid
+    | Invalid
+    | Typing
 
 
 init : Maybe String -> Session -> ( Model, Cmd Msg )
@@ -72,6 +86,10 @@ init maybeTriggerName session =
       , selectedOperator = "any"
       , selectedKnownValue = Nothing
       , confirmTriggerName = ""
+      , showSource = True
+      , sourceBuffer = Trigger.toPrettySource Trigger.empty
+      , sourceBufferStatus = Valid
+      , debouncerControlState = Control.initialState
       , deleteModalVisibility = Modal.hidden
       }
     , case maybeTriggerName of
@@ -111,6 +129,10 @@ type Msg
     | DeleteTriggerDone String
     | ShowError String String
     | RedirectToLogin
+    | ToggleSource
+    | TriggerSourceChanged
+    | UpdateSource String
+    | DebounceMsg (Control Msg)
     | Forward ExternalMsg
       -- Trigger messages
     | UpdateTriggerName String
@@ -134,6 +156,11 @@ type Msg
     | UpdateConfirmTriggerName String
 
 
+debounce : Msg -> Msg
+debounce =
+    Debounce.trailing DebounceMsg (1 * Time.second)
+
+
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
@@ -151,6 +178,8 @@ update session msg model =
                             , selectedInterfaceMajor = Just dataTrigger.interfaceMajor
                             , selectedOperator = operatorString
                             , selectedKnownValue = knownValueString
+                            , sourceBuffer = Trigger.toPrettySource trigger
+                            , sourceBufferStatus = Valid
                           }
                         , Cmd.batch
                             [ AstarteApi.getInterface dataTrigger.interfaceName
@@ -184,20 +213,31 @@ update session msg model =
             )
 
         GetInterfaceMajorsDone majors ->
-            case ( model.refInterface, majors ) of
-                ( Nothing, major :: tail ) ->
-                    ( { model
-                        | majors = majors
-                        , selectedInterfaceMajor = Just major
-                      }
-                    , AstarteApi.getInterface model.selectedInterfaceName
-                        major
-                        session
-                        GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
-                        RedirectToLogin
-                    , ExternalMsg.Noop
-                    )
+            case ( model.trigger.simpleTrigger, model.refInterface, majors ) of
+                ( Trigger.Data dataTrigger, Nothing, major :: tail ) ->
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setInterfaceMajor major
+                                |> Trigger.Data
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
+                        ( { model
+                            | majors = majors
+                            , selectedInterfaceMajor = Just major
+                            , trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                          }
+                        , AstarteApi.getInterface model.selectedInterfaceName
+                            major
+                            session
+                            GetInterfaceDone
+                            (ShowError "Cannot retrieve interface.")
+                            RedirectToLogin
+                        , ExternalMsg.Noop
+                        )
 
                 _ ->
                     ( { model | majors = majors }
@@ -253,6 +293,59 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        ToggleSource ->
+            ( { model | showSource = not model.showSource }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        TriggerSourceChanged ->
+            case Trigger.fromString model.sourceBuffer of
+                Ok trigger ->
+                    if (not model.editMode || model.trigger.name == trigger.name) then
+                        ( { model
+                            | sourceBuffer = Trigger.toPrettySource trigger
+                            , sourceBufferStatus = Valid
+                            , trigger = trigger
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( { model | sourceBufferStatus = Invalid }
+                        , Cmd.none
+                        , "Trigger name cannot be changed"
+                            |> ExternalMsg.AddFlashMessage FlashMessage.Error
+                        )
+
+                Err _ ->
+                    ( { model | sourceBufferStatus = Invalid }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateSource newSource ->
+            ( { model
+                | sourceBuffer = newSource
+                , sourceBufferStatus = Typing
+              }
+            , Task.perform (\_ -> debounce TriggerSourceChanged) (Task.succeed ())
+            , ExternalMsg.Noop
+            )
+
+        DebounceMsg control ->
+            let
+                ( newModel, command ) =
+                    Control.update
+                        (\newstate -> { model | debouncerControlState = newstate })
+                        model.debouncerControlState
+                        control
+            in
+                ( newModel
+                , command
+                , ExternalMsg.Noop
+                )
+
         Forward msg ->
             ( model
             , Cmd.none
@@ -276,16 +369,30 @@ update session msg model =
             )
 
         UpdateTriggerName newName ->
-            ( { model | trigger = Trigger.setName newName model.trigger }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newTrigger =
+                    Trigger.setName newName model.trigger
+            in
+                ( { model
+                    | trigger = newTrigger
+                    , sourceBuffer = Trigger.toPrettySource newTrigger
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateTriggerUrl newUrl ->
-            ( { model | trigger = Trigger.setUrl newUrl model.trigger }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            let
+                newTrigger =
+                    Trigger.setUrl newUrl model.trigger
+            in
+                ( { model
+                    | trigger = newTrigger
+                    , sourceBuffer = Trigger.toPrettySource newTrigger
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateTriggerTemplate template ->
             let
@@ -296,8 +403,14 @@ update session msg model =
 
                         _ ->
                             Trigger.NoTemplate
+
+                newTrigger =
+                    Trigger.setTemplate t model.trigger
             in
-                ( { model | trigger = Trigger.setTemplate t model.trigger }
+                ( { model
+                    | trigger = newTrigger
+                    , sourceBuffer = Trigger.toPrettySource newTrigger
+                  }
                 , Cmd.none
                 , ExternalMsg.Noop
                 )
@@ -305,10 +418,17 @@ update session msg model =
         UpdateMustachePayload payload ->
             case model.trigger.template of
                 Trigger.Mustache _ ->
-                    ( { model | trigger = Trigger.setTemplate (Trigger.Mustache payload) model.trigger }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+                    let
+                        newTrigger =
+                            Trigger.setTemplate (Trigger.Mustache payload) model.trigger
+                    in
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
                 _ ->
                     ( model
@@ -322,9 +442,13 @@ update session msg model =
                     let
                         newSimpleTrigger =
                             Trigger.Data DataTrigger.empty
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
                     in
                         ( { model
-                            | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
                             , refInterface = Nothing
                           }
                         , Cmd.none
@@ -335,8 +459,14 @@ update session msg model =
                     let
                         newSimpleTrigger =
                             Trigger.Device DeviceTrigger.empty
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
                     in
-                        ( { model | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger }
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                          }
                         , Cmd.none
                         , ExternalMsg.Noop
                         )
@@ -350,19 +480,30 @@ update session msg model =
         UpdateDataTriggerInterfaceName interfaceName ->
             case model.trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
-                    ( { model
-                        | majors = []
-                        , refInterface = Nothing
-                        , selectedInterfaceName = interfaceName
-                        , selectedInterfaceMajor = Nothing
-                      }
-                    , AstarteApi.listInterfaceMajors interfaceName
-                        session
-                        GetInterfaceMajorsDone
-                        (ShowError "Cannot retrieve interface major versions.")
-                        RedirectToLogin
-                    , ExternalMsg.Noop
-                    )
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setInterfaceName interfaceName
+                                |> Trigger.Data
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                            , majors = []
+                            , refInterface = Nothing
+                            , selectedInterfaceName = interfaceName
+                            , selectedInterfaceMajor = Nothing
+                          }
+                        , AstarteApi.listInterfaceMajors interfaceName
+                            session
+                            GetInterfaceMajorsDone
+                            (ShowError "Cannot retrieve interface major versions.")
+                            RedirectToLogin
+                        , ExternalMsg.Noop
+                        )
 
                 _ ->
                     ( model
@@ -371,27 +512,30 @@ update session msg model =
                     )
 
         UpdateDataTriggerInterfaceMajor interfaceMajor ->
-            case model.trigger.simpleTrigger of
-                Trigger.Data dataTrigger ->
-                    case (String.toInt interfaceMajor) of
-                        Ok newMajor ->
-                            ( { model
-                                | selectedInterfaceMajor = Just newMajor
-                              }
-                            , AstarteApi.getInterface model.selectedInterfaceName
-                                newMajor
-                                session
-                                GetInterfaceDone
-                                (ShowError "Cannot retrieve interface.")
-                                RedirectToLogin
-                            , ExternalMsg.Noop
-                            )
+            case ( model.trigger.simpleTrigger, String.toInt interfaceMajor ) of
+                ( Trigger.Data dataTrigger, Ok newMajor ) ->
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setInterfaceMajor newMajor
+                                |> Trigger.Data
 
-                        Err _ ->
-                            ( model
-                            , Cmd.none
-                            , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. interface major is not a number"
-                            )
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
+                        ( { model
+                            | selectedInterfaceMajor = Just newMajor
+                            , trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                          }
+                        , AstarteApi.getInterface model.selectedInterfaceName
+                            newMajor
+                            session
+                            GetInterfaceDone
+                            (ShowError "Cannot retrieve interface.")
+                            RedirectToLogin
+                        , ExternalMsg.Noop
+                        )
 
                 _ ->
                     ( model
@@ -405,8 +549,14 @@ update session msg model =
                     let
                         newSimpleTrigger =
                             Trigger.Data { dataTrigger | on = newTriggerEvent }
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
                     in
-                        ( { model | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger }
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                          }
                         , Cmd.none
                         , ExternalMsg.Noop
                         )
@@ -434,9 +584,13 @@ update session msg model =
 
                                 Nothing ->
                                     Nothing
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
                     in
                         ( { model
-                            | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
                             , mappingType = mapping
                           }
                         , Cmd.none
@@ -450,49 +604,75 @@ update session msg model =
                     )
 
         UpdateDataTriggerOperator operator ->
-            case model.trigger.simpleTrigger of
-                Trigger.Data dataTrigger ->
-                    case operator of
-                        "any" ->
-                            let
-                                newSimpleTrigger =
-                                    dataTrigger
-                                        |> DataTrigger.setOperator DataTrigger.Any
-                                        |> Trigger.Data
-                            in
-                                ( { model
-                                    | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger
-                                    , selectedOperator = operator
-                                    , selectedKnownValue = Nothing
-                                  }
-                                , Cmd.none
-                                , ExternalMsg.Noop
-                                )
+            case ( model.trigger.simpleTrigger, stringsToOperator operator (Just "") ) of
+                ( Trigger.Data dataTrigger, Ok DataTrigger.Any ) ->
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setOperator DataTrigger.Any
+                                |> Trigger.Data
 
-                        _ ->
-                            ( { model
-                                | selectedOperator = operator
-                                , selectedKnownValue = Nothing
-                              }
-                            , Cmd.none
-                            , ExternalMsg.Noop
-                            )
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                            , selectedOperator = operator
+                            , selectedKnownValue = Nothing
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
-                Trigger.Device _ ->
+                ( Trigger.Data dataTrigger, Ok triggerOperator ) ->
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setOperator triggerOperator
+                                |> Trigger.Data
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                            , selectedOperator = operator
+                            , selectedKnownValue = Nothing
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                _ ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
 
         UpdateDataTriggerKnownValue value ->
-            case model.trigger.simpleTrigger of
-                Trigger.Data dataTrigger ->
-                    ( { model | selectedKnownValue = Just value }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+            case ( model.trigger.simpleTrigger, stringsToOperator model.selectedOperator (Just value) ) of
+                ( Trigger.Data dataTrigger, Ok operator ) ->
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setOperator operator
+                                |> Trigger.Data
 
-                Trigger.Device _ ->
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                            , selectedKnownValue = Just value
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                _ ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -506,8 +686,14 @@ update session msg model =
                             deviceTrigger
                                 |> DeviceTrigger.setDeviceId deviceId
                                 |> Trigger.Device
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
                     in
-                        ( { model | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger }
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
+                          }
                         , Cmd.none
                         , ExternalMsg.Noop
                         )
@@ -528,8 +714,14 @@ update session msg model =
                                     deviceTrigger
                                         |> DeviceTrigger.setOn triggerEvent
                                         |> Trigger.Device
+
+                                newTrigger =
+                                    Trigger.setSimpleTrigger newSimpleTrigger model.trigger
                             in
-                                ( { model | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger }
+                                ( { model
+                                    | trigger = newTrigger
+                                    , sourceBuffer = Trigger.toPrettySource newTrigger
+                                  }
                                 , Cmd.none
                                 , ExternalMsg.Noop
                                 )
@@ -634,65 +826,94 @@ view model flashMessages =
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
-        , Form.form [ Spacing.mt2Sm ]
-            ([ Form.row []
-                [ Form.col [ Col.sm12 ]
-                    [ h3 []
-                        [ text
-                            (if model.editMode then
-                                model.trigger.name
-                             else
-                                "Install a new trigger"
-                            )
-                        , if model.editMode then
-                            Button.button
-                                [ Button.warning
-                                , Button.attrs [ Spacing.ml2 ]
-                                , Button.onClick ShowDeleteModal
-                                ]
-                                [ text "Delete..." ]
-                          else
-                            text ""
-                        ]
-                    ]
+        , Grid.row []
+            [ Grid.col
+                [ if model.showSource then
+                    Col.sm6
+                  else
+                    Col.sm12
                 ]
-             , Form.row []
-                [ Form.col [ Col.sm12 ]
-                    [ Form.group []
-                        [ Form.label [ for "triggerName" ] [ text "Name" ]
-                        , Input.text
-                            [ Input.id "triggerName"
-                            , Input.readonly model.editMode
-                            , Input.value model.trigger.name
-                            , Input.onInput UpdateTriggerName
-                            ]
-                        ]
-                    ]
+                [ renderContent model ]
+            , Grid.col
+                [ if model.showSource then
+                    Col.sm6
+                  else
+                    Col.attrs [ Display.none ]
                 ]
-             ]
-                ++ renderSimpleTrigger model
-                ++ renderTriggerAction model
-                ++ [ Form.row [ Row.rightSm ]
-                        [ Form.col [ Col.sm4 ]
-                            [ Button.button
-                                [ Button.primary
-                                , Button.disabled model.editMode
-                                , Button.attrs [ class "float-right", Spacing.ml2 ]
-                                , Button.onClick AddTrigger
-                                ]
-                                [ text
-                                    (if model.editMode then
-                                        "Edit Trigger"
-                                     else
-                                        "Install Trigger"
-                                    )
-                                ]
-                            ]
-                        ]
-                   ]
-            )
-        , renderDeleteTriggerModal model
+                [ renderTriggerSource model.trigger model.sourceBuffer model.sourceBufferStatus ]
+            ]
+        , Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ renderDeleteTriggerModal model ]
+            ]
         ]
+
+
+renderContent : Model -> Html Msg
+renderContent model =
+    Form.form [ Spacing.mt2Sm ]
+        ([ Form.row []
+            [ Form.col [ Col.sm12 ]
+                [ h3 []
+                    [ text
+                        (if model.editMode then
+                            model.trigger.name
+                         else
+                            "Install a new trigger"
+                        )
+                    , if model.editMode then
+                        Button.button
+                            [ Button.warning
+                            , Button.attrs [ Spacing.ml2 ]
+                            , Button.onClick ShowDeleteModal
+                            ]
+                            [ text "Delete..." ]
+                      else
+                        text ""
+                    , Button.button
+                        [ Button.secondary
+                        , Button.attrs [ class "float-right" ]
+                        , Button.onClick ToggleSource
+                        ]
+                        [ text "->" ]
+                    ]
+                ]
+            ]
+         , Form.row []
+            [ Form.col [ Col.sm12 ]
+                [ Form.group []
+                    [ Form.label [ for "triggerName" ] [ text "Name" ]
+                    , Input.text
+                        [ Input.id "triggerName"
+                        , Input.readonly model.editMode
+                        , Input.value model.trigger.name
+                        , Input.onInput UpdateTriggerName
+                        ]
+                    ]
+                ]
+            ]
+         ]
+            ++ renderSimpleTrigger model
+            ++ renderTriggerAction model
+            ++ [ Form.row [ Row.rightSm ]
+                    [ Form.col [ Col.sm4 ]
+                        [ Button.button
+                            [ Button.primary
+                            , Button.disabled model.editMode
+                            , Button.attrs [ class "float-right", Spacing.ml2 ]
+                            , Button.onClick AddTrigger
+                            ]
+                            [ text
+                                (if model.editMode then
+                                    "Edit Trigger"
+                                 else
+                                    "Install Trigger"
+                                )
+                            ]
+                        ]
+                    ]
+               ]
+        )
 
 
 renderTriggerAction : Model -> List (Html Msg)
@@ -989,6 +1210,26 @@ renderDeviceTrigger deviceTrigger =
             ]
         ]
     ]
+
+
+renderTriggerSource : Trigger -> String -> BufferStatus -> Html Msg
+renderTriggerSource trigger sourceBuffer status =
+    Textarea.textarea
+        [ Textarea.id "triggerSource"
+        , Textarea.rows 30
+        , Textarea.value sourceBuffer
+        , case status of
+            Valid ->
+                Textarea.success
+
+            Invalid ->
+                Textarea.danger
+
+            Typing ->
+                Textarea.attrs []
+        , Textarea.onInput UpdateSource
+        , Textarea.attrs [ class "text-monospace" ]
+        ]
 
 
 renderDeleteTriggerModal : Model -> Html Msg

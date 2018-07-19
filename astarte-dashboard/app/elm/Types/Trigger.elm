@@ -166,3 +166,17 @@ simpleTriggerDecoder =
                     _ ->
                         Json.Decode.fail <| "Uknown trigger type " ++ str
             )
+
+
+
+-- JsonHelpers
+
+
+fromString : String -> Result String Trigger
+fromString source =
+    decodeString decoder source
+
+
+toPrettySource : Trigger -> String
+toPrettySource trigger =
+    Json.Encode.encode 4 <| encoder trigger
