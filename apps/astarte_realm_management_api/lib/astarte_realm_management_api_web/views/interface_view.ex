@@ -67,4 +67,12 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceView do
   def render("incompatible_endpoint_change.json", _assigns) do
     %{errors: %{detail: "Interface update contains incompatible endpoint changes"}}
   end
+
+  def render("delete_forbidden.json", _assigns) do
+    %{errors: %{detail: "Interface can't be deleted"}}
+  end
+
+  def render("cannot_delete_currently_used_interface.json", _assigns) do
+    %{errors: %{detail: "Interface can't be deleted since it's currently used"}}
+  end
 end
