@@ -736,6 +736,9 @@ pageSubscriptions page =
         Realm _ (InterfaceBuilderPage submodel) ->
             Sub.map InterfaceBuilderMsg <| InterfaceBuilder.subscriptions submodel
 
+        Realm _ (InterfacesPage submodel) ->
+            Sub.map InterfacesMsg <| Interfaces.subscriptions submodel
+
         _ ->
             Sub.none
 
