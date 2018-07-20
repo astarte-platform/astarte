@@ -88,6 +88,7 @@ type Msg
     | UpdateMappingRetention String
     | UpdateMappingExpiry String
     | UpdateMappingAllowUnset Bool
+    | UpdateMappingTimestamp Bool
     | UpdateMappingDescription String
     | UpdateMappingDoc String
 
@@ -190,6 +191,11 @@ update message model =
 
         UpdateMappingAllowUnset allowUnset ->
             ( { model | interfaceMapping = InterfaceMapping.setAllowUnset allowUnset model.interfaceMapping }
+            , Noop
+            )
+
+        UpdateMappingTimestamp timestamp ->
+            ( { model | interfaceMapping = InterfaceMapping.setExplicitTimestamp timestamp model.interfaceMapping }
             , Noop
             )
 
@@ -364,6 +370,16 @@ renderBody mapping isProperties isObject editMode =
                         , Input.value <| toString mapping.expiry
                         , Input.onInput UpdateMappingExpiry
                         ]
+                    ]
+                ]
+            , Form.col [ Col.sm3 ]
+                [ Form.group []
+                    [ Checkbox.checkbox
+                        [ Checkbox.id "mappingExpTimestamp"
+                        , Checkbox.checked mapping.explicitTimestamp
+                        , Checkbox.onCheck UpdateMappingTimestamp
+                        ]
+                        "Explicit timestamp"
                     ]
                 ]
             ]
