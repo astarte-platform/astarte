@@ -92,18 +92,6 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
-  @query_interface_versions """
-    SELECT major_version, minor_version FROM interfaces WHERE name=:interface_name;
-  """
-
-  @query_interface_available_major """
-    SELECT COUNT(*) FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
-  """
-
-  @query_interfaces """
-    SELECT DISTINCT name FROM interfaces;
-  """
-
   @query_jwt_public_key_pem """
     SELECT blobAsVarchar(value)
     FROM kv_store
@@ -661,28 +649,61 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def interface_available_versions(client, interface_name) do
+    interface_versions_statement = """
+    SELECT major_version, minor_version
+    FROM interfaces
+    WHERE name = :interface_name
+    """
+
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_interface_versions)
+      |> DatabaseQuery.statement(interface_versions_statement)
       |> DatabaseQuery.put(:interface_name, interface_name)
+      |> DatabaseQuery.consistency(:each_quorum)
 
-    DatabaseQuery.call!(client, query)
-    |> Enum.to_list()
+    with {:ok, result} <- DatabaseQuery.call(client, query),
+         [head | tail] <- Enum.to_list(result) do
+      {:ok, [head | tail]}
+    else
+      [] ->
+        {:error, :interface_not_found}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("interface_available_versions: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("interface_available_versions: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
   end
 
   def is_interface_major_available?(client, interface_name, interface_major) do
+    interface_available_major_statement = """
+    SELECT COUNT(*)
+    FROM interfaces
+    WHERE name = :interface_name AND major_version = :interface_major
+    """
+
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_interface_available_major)
+      |> DatabaseQuery.statement(interface_available_major_statement)
       |> DatabaseQuery.put(:interface_name, interface_name)
       |> DatabaseQuery.put(:interface_major, interface_major)
+      |> DatabaseQuery.consistency(:each_quorum)
 
-    count =
-      DatabaseQuery.call!(client, query)
-      |> Enum.to_list()
-      |> List.first()
+    with {:ok, result} <- DatabaseQuery.call(client, query),
+         [count: count] <- DatabaseResult.head(result) do
+      {:ok, count != 0}
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("is_interface_major_available?: database error: #{error_message}")
+        {:error, :database_error}
 
-    count != [count: 0]
+      {:error, reason} ->
+        Logger.warn("is_interface_major_available?: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
   end
 
   def check_correct_casing(client, interface_name) do
@@ -827,16 +848,30 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def get_interfaces_list(client) do
+    interfaces_list_statement = """
+    SELECT DISTINCT name FROM interfaces
+    """
+
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_interfaces)
+      |> DatabaseQuery.statement(interfaces_list_statement)
+      |> DatabaseQuery.consistency(:each_quorum)
 
-    rows =
-      DatabaseQuery.call!(client, query)
-      |> Enum.to_list()
+    with {:ok, result} <- DatabaseQuery.call(client, query) do
+      list =
+        Enum.map(result, fn row ->
+          Keyword.fetch!(row, :name)
+        end)
 
-    for result <- rows do
-      result[:name]
+      {:ok, list}
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("get_interfaces_list: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("get_interfaces_list: failed, reason: #{inspect(reason)}.")
+        {:error, :database_error}
     end
   end
 

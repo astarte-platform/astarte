@@ -263,30 +263,35 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, false}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) == []
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:error, :interface_not_found}
 
-    assert Queries.get_interfaces_list(client) == []
+    assert Queries.get_interfaces_list(client) == {:ok, []}
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == true
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, true}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) == [
-             [
-               major_version: major_version,
-               minor_version: minor_version
-             ]
-           ]
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:ok,
+              [
+                [
+                  major_version: major_version,
+                  minor_version: minor_version
+                ]
+              ]}
 
-    assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
+    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog"]}
 
     DatabaseQuery.call!(client, @insert_log_line0_device_a)
     DatabaseQuery.call!(client, @insert_log_line1_device_a)
@@ -369,30 +374,35 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, false}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) == []
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:error, :interface_not_found}
 
-    assert Queries.get_interfaces_list(client) == []
+    assert Queries.get_interfaces_list(client) == {:ok, []}
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == true
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, true}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) == [
-             [
-               major_version: major_version,
-               minor_version: minor_version
-             ]
-           ]
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:ok,
+              [
+                [
+                  major_version: major_version,
+                  minor_version: minor_version
+                ]
+              ]}
 
-    assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
+    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog.Status"]}
 
     endpoint =
       find_endpoint(

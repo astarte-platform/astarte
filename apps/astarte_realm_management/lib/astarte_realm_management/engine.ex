@@ -44,7 +44,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
-         {:interface_avail, false} <-
+         {:interface_avail, {:ok, false}} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
          :ok <- Queries.check_correct_casing(client, name),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
@@ -72,7 +72,7 @@ defmodule Astarte.RealmManagement.Engine do
       {:error, :database_error} ->
         {:error, :database_error}
 
-      {:interface_avail, true} ->
+      {:interface_avail, {:ok, true}} ->
         {:error, :already_installed_interface}
 
       {:error, :invalid_name_casing} ->
@@ -93,7 +93,7 @@ defmodule Astarte.RealmManagement.Engine do
          %InterfaceDocument{description: description, doc: doc} <- interface_doc,
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
-         {:interface_avail, true} <-
+         {:interface_avail, {:ok, true}} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
          {:ok, installed_interface} <- Interface.fetch_interface_descriptor(client, name, major),
          :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
@@ -145,7 +145,7 @@ defmodule Astarte.RealmManagement.Engine do
       {:error, :database_error} ->
         {:error, :database_error}
 
-      {:interface_avail, false} ->
+      {:interface_avail, {:ok, false}} ->
         {:error, :interface_major_version_does_not_exist}
 
       {:error, :same_version} ->
@@ -265,7 +265,7 @@ defmodule Astarte.RealmManagement.Engine do
 
     with {:major, 0} <- {:major, major},
          {:ok, client} <- Database.connect(realm_name),
-         {:major_is_avail, true} <-
+         {:major_is_avail, {:ok, true}} <-
            {:major_is_avail, Queries.is_interface_major_available?(client, name, 0)},
          {:devices, {:ok, false}} <-
            {:devices, Queries.is_any_device_using_interface?(client, name)},
@@ -283,7 +283,7 @@ defmodule Astarte.RealmManagement.Engine do
       {:major, _} ->
         {:error, :forbidden}
 
-      {:major_is_avail, false} ->
+      {:major_is_avail, {:ok, false}} ->
         {:error, :interface_major_version_does_not_exist}
 
       {:devices, {:ok, true}} ->
@@ -317,35 +317,26 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def list_interface_versions(realm_name, interface_name) do
-    case DatabaseClient.new(
-           List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-           keyspace: realm_name
-         ) do
-      {:error, :shutdown} ->
+    with {:ok, client} <- Database.connect(realm_name) do
+      Queries.interface_available_versions(client, interface_name)
+    else
+      {:error, :database_connection_error} ->
         {:error, :realm_not_found}
 
-      {:ok, client} ->
-        result = Queries.interface_available_versions(client, interface_name)
-
-        if result != [] do
-          {:ok, result}
-        else
-          {:error, :interface_not_found}
-        end
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
   def get_interfaces_list(realm_name) do
-    case DatabaseClient.new(
-           List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-           keyspace: realm_name
-         ) do
-      {:error, :shutdown} ->
+    with {:ok, client} <- Database.connect(realm_name) do
+      Queries.get_interfaces_list(client)
+    else
+      {:error, :database_connection_error} ->
         {:error, :realm_not_found}
 
-      {:ok, client} ->
-        result = Queries.get_interfaces_list(client)
-        {:ok, result}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
