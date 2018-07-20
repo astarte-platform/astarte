@@ -83,6 +83,21 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
     end
   end
 
+  describe "show" do
+    test "shows existing interface", %{conn: conn} do
+      post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
+      assert response(post_conn, 201) == ""
+
+      show_conn = get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))
+      assert json_response(show_conn, 200)["data"]["interface_name"] == @interface_name
+    end
+
+    test "renders error on non-existing interface", %{conn: conn} do
+      conn = get(conn, interface_path(conn, :show, @realm, "com.Nonexisting", @interface_major_str))
+      assert json_response(conn, 404)["errors"] != %{}
+    end
+  end
+
   describe "create interface" do
     test "renders interface when data is valid", %{conn: conn} do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
