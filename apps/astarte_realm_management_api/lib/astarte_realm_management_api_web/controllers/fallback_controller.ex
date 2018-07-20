@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.APIWeb.FallbackController do
@@ -41,6 +41,12 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     conn
     |> put_status(:unauthorized)
     |> render(Astarte.RealmManagement.APIWeb.ErrorView, :"401")
+  end
+
+  def call(conn, {:error, :invalid_major}) do
+    conn
+    |> put_status(:not_found)
+    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :invalid_major)
   end
 
   # This is called when no JWT token is present
