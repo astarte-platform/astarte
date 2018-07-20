@@ -263,10 +263,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, false}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
     assert Queries.interface_available_versions(client, interface_name) ==
              {:error, :interface_not_found}
@@ -275,10 +276,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == true
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, true}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
     assert Queries.interface_available_versions(client, interface_name) ==
              {:ok,
@@ -372,10 +374,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, false}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
     assert Queries.interface_available_versions(client, interface_name) ==
              {:error, :interface_not_found}
@@ -384,10 +387,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) == true
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+             {:ok, true}
 
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
-             false
+             {:ok, false}
 
     assert Queries.interface_available_versions(client, interface_name) ==
              {:ok,

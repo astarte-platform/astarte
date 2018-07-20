@@ -92,10 +92,6 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
-  @query_interface_available_major """
-    SELECT COUNT(*) FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
-  """
-
   @query_jwt_public_key_pem """
     SELECT blobAsVarchar(value)
     FROM kv_store
@@ -683,18 +679,31 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def is_interface_major_available?(client, interface_name, interface_major) do
+    interface_available_major_statement = """
+    SELECT COUNT(*)
+    FROM interfaces
+    WHERE name = :interface_name AND major_version = :interface_major
+    """
+
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_interface_available_major)
+      |> DatabaseQuery.statement(interface_available_major_statement)
       |> DatabaseQuery.put(:interface_name, interface_name)
       |> DatabaseQuery.put(:interface_major, interface_major)
+      |> DatabaseQuery.consistency(:each_quorum)
 
-    count =
-      DatabaseQuery.call!(client, query)
-      |> Enum.to_list()
-      |> List.first()
+    with {:ok, result} <- DatabaseQuery.call(client, query),
+         [count: count] <- DatabaseResult.head(result) do
+      {:ok, count != 0}
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("is_interface_major_available?: database error: #{error_message}")
+        {:error, :database_error}
 
-    count != [count: 0]
+      {:error, reason} ->
+        Logger.warn("is_interface_major_available?: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
   end
 
   def check_correct_casing(client, interface_name) do
