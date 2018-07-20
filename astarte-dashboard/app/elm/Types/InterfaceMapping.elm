@@ -61,6 +61,15 @@ type Retention
     | Stored
 
 
+isValid : InterfaceMapping -> Bool
+isValid mapping =
+    [ isValidEndpoint mapping.endpoint
+    , (mapping.retention == Discard && mapping.expiry == 0)
+        || (mapping.retention /= Discard && mapping.expiry >= 0)
+    ]
+        |> List.all ((==) True)
+
+
 mappingTypeList : List MappingType
 mappingTypeList =
     [ Single DoubleMapping
@@ -407,3 +416,79 @@ toList arrayString =
 isValidEndpoint : String -> Bool
 isValidEndpoint endpoint =
     Regex.contains (regex "^(/(%{([a-zA-Z][a-zA-Z0-9]*)}|[a-zA-Z][a-zA-Z0-9]*)){1,64}") endpoint
+
+
+
+-- String helpers
+
+
+mappingTypeToEnglishString : MappingType -> String
+mappingTypeToEnglishString t =
+    case t of
+        Single DoubleMapping ->
+            "Double"
+
+        Single IntMapping ->
+            "Integer"
+
+        Single BoolMapping ->
+            "Boolean"
+
+        Single LongIntMapping ->
+            "Long integer"
+
+        Single StringMapping ->
+            "String"
+
+        Single BinaryBlobMapping ->
+            "Binary blob"
+
+        Single DateTimeMapping ->
+            "Date and time"
+
+        Array DoubleMapping ->
+            "Array of doubles"
+
+        Array IntMapping ->
+            "Array of integers"
+
+        Array BoolMapping ->
+            "Array of booleans"
+
+        Array LongIntMapping ->
+            "Array of long integers"
+
+        Array StringMapping ->
+            "Array of strings"
+
+        Array BinaryBlobMapping ->
+            "Array of binary blobs"
+
+        Array DateTimeMapping ->
+            "Array of date and time"
+
+
+reliabilityToEnglishString : Reliability -> String
+reliabilityToEnglishString reliability =
+    case reliability of
+        Unreliable ->
+            "Unreliable"
+
+        Guaranteed ->
+            "Guaranteed"
+
+        Unique ->
+            "Unique"
+
+
+retentionToEnglishString : Retention -> String
+retentionToEnglishString retention =
+    case retention of
+        Discard ->
+            "Discard"
+
+        Volatile ->
+            "Volatile"
+
+        Stored ->
+            "Stored"

@@ -135,11 +135,41 @@ setDoc doc interface =
 
 addMapping : InterfaceMapping -> Interface -> Interface
 addMapping mapping interface =
-    { interface
-        | mappings =
-            interface.mappings
-                |> Dict.insert mapping.endpoint mapping
-    }
+    let
+        previousItem =
+            Dict.get mapping.endpoint interface.mappings
+    in
+        case previousItem of
+            Nothing ->
+                insertMapping mapping interface
+
+            Just m ->
+                if m.draft then
+                    insertMapping mapping interface
+                else
+                    interface
+
+
+editMapping : InterfaceMapping -> Interface -> Interface
+editMapping mapping interface =
+    let
+        previousItem =
+            Dict.get mapping.endpoint interface.mappings
+    in
+        case previousItem of
+            Nothing ->
+                interface
+
+            Just m ->
+                if m.draft then
+                    insertMapping mapping interface
+                else
+                    interface
+
+
+insertMapping : InterfaceMapping -> Interface -> Interface
+insertMapping mapping interface =
+    { interface | mappings = Dict.insert mapping.endpoint mapping interface.mappings }
 
 
 removeMapping : InterfaceMapping -> Interface -> Interface
