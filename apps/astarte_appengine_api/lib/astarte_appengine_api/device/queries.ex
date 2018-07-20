@@ -105,7 +105,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   def retrieve_mapping(db_client, interface_id, endpoint_id) do
     mapping_statement = """
-    SELECT endpoint, value_type, reliabilty, retention, expiry, allow_unset, endpoint_id,
+    SELECT endpoint, value_type, reliability, retention, expiry, allow_unset, endpoint_id,
            interface_id
     FROM endpoints
     WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id
