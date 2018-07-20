@@ -10,6 +10,16 @@ defmodule Astarte.RealmManagement.Mock.DB do
     Agent.update(__MODULE__, &Map.put(&1, :interfaces, %{}))
   end
 
+  def delete_interface(realm, name, major) do
+    if get_interface(realm, name, major) == nil do
+      {:error, :interface_not_found}
+    else
+      Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
+        %{state | interfaces: Map.delete(interfaces, {realm, name, major})}
+      end)
+    end
+  end
+
   def get_interfaces_list(realm) do
     Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
       keys = Map.keys(interfaces)
