@@ -144,11 +144,13 @@ defmodule Astarte.RealmManagement.EngineTest do
    "mappings": [
       {
         "endpoint": "/x",
-        "type": "double"
+        "type": "double",
+        "explicit_timestamp": true
       },
       {
         "endpoint": "/y",
-        "type": "double"
+        "type": "double",
+        "explicit_timestamp": true
       }
     ]
   }
@@ -167,19 +169,23 @@ defmodule Astarte.RealmManagement.EngineTest do
    "mappings": [
       {
         "endpoint": "/x",
-        "type": "double"
+        "type": "double",
+        "explicit_timestamp": true
       },
       {
         "endpoint": "/y",
-        "type": "double"
+        "type": "double",
+        "explicit_timestamp": true
       },
       {
         "endpoint": "/z",
-        "type": "double"
+        "type": "double",
+        "explicit_timestamp": true
       },
       {
         "endpoint": "/speed",
-        "type": "double"
+        "type": "double",
+        "explicit_timestamp": true
       }
 
     ]

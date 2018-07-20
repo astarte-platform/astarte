@@ -140,8 +140,10 @@ defmodule Astarte.RealmManagement.Queries do
 
     columns = create_one_object_columns_for_mappings(mappings)
 
+    [%Mapping{explicit_timestamp: explicit_timestamp} | _tail] = mappings
+
     {value_timestamp, key_timestamp} =
-      if interface_descriptor.explicit_timestamp do
+      if explicit_timestamp do
         {"value_timestamp timestamp,", "value_timestamp,"}
       else
         {"", ""}
@@ -279,12 +281,12 @@ defmodule Astarte.RealmManagement.Queries do
     (
       interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
       interface_type, endpoint, value_type, reliability, retention, expiry, allow_unset,
-      description, doc
+      explicit_timestamp, description, doc
     )
     VALUES (
       :interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version,
       :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset,
-      :description, :doc
+      :explicit_timestamp, :description, :doc
     )
     """
 
@@ -302,6 +304,7 @@ defmodule Astarte.RealmManagement.Queries do
     |> DatabaseQuery.put(:retention, Retention.to_int(mapping.retention))
     |> DatabaseQuery.put(:expiry, mapping.expiry)
     |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
+    |> DatabaseQuery.put(:explicit_timestamp, mapping.explicit_timestamp)
     |> DatabaseQuery.put(:description, mapping.description)
     |> DatabaseQuery.put(:doc, mapping.doc)
     |> DatabaseQuery.consistency(:each_quorum)
@@ -785,6 +788,7 @@ defmodule Astarte.RealmManagement.Queries do
           %{
             endpoint_id: endpoint_id,
             allow_unset: allow_unset,
+            explicit_timestamp: explicit_timestamp,
             endpoint: endpoint,
             expiry: expiry,
             reliability: reliability,
@@ -797,6 +801,7 @@ defmodule Astarte.RealmManagement.Queries do
           %Mapping{
             endpoint_id: endpoint_id,
             allow_unset: allow_unset,
+            explicit_timestamp: explicit_timestamp,
             endpoint: endpoint,
             expiry: expiry,
             reliability: Reliability.from_int(reliability),
