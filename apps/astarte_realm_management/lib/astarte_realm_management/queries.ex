@@ -289,7 +289,7 @@ defmodule Astarte.RealmManagement.Queries do
     INSERT INTO endpoints
     (
       interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
-      interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset,
+      interface_type, endpoint, value_type, reliability, retention, expiry, allow_unset,
       description, doc
     )
     VALUES (
@@ -765,7 +765,7 @@ defmodule Astarte.RealmManagement.Queries do
             allow_unset: allow_unset,
             endpoint: endpoint,
             expiry: expiry,
-            reliabilty: reliability,
+            reliability: reliability,
             retention: retention,
             value_type: value_type,
             description: mapping_description,
