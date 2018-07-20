@@ -268,7 +268,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
              false
 
-    assert Queries.interface_available_versions(client, interface_name) == []
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:error, :interface_not_found}
 
     assert Queries.get_interfaces_list(client) == {:ok, []}
 
@@ -279,12 +280,14 @@ defmodule Astarte.RealmManagement.QueriesTest do
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
              false
 
-    assert Queries.interface_available_versions(client, interface_name) == [
-             [
-               major_version: major_version,
-               minor_version: minor_version
-             ]
-           ]
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:ok,
+              [
+                [
+                  major_version: major_version,
+                  minor_version: minor_version
+                ]
+              ]}
 
     assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog"]}
 
@@ -374,7 +377,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
              false
 
-    assert Queries.interface_available_versions(client, interface_name) == []
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:error, :interface_not_found}
 
     assert Queries.get_interfaces_list(client) == {:ok, []}
 
@@ -385,12 +389,14 @@ defmodule Astarte.RealmManagement.QueriesTest do
     assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
              false
 
-    assert Queries.interface_available_versions(client, interface_name) == [
-             [
-               major_version: major_version,
-               minor_version: minor_version
-             ]
-           ]
+    assert Queries.interface_available_versions(client, interface_name) ==
+             {:ok,
+              [
+                [
+                  major_version: major_version,
+                  minor_version: minor_version
+                ]
+              ]}
 
     assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog.Status"]}
 

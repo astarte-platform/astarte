@@ -317,21 +317,14 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def list_interface_versions(realm_name, interface_name) do
-    case DatabaseClient.new(
-           List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-           keyspace: realm_name
-         ) do
-      {:error, :shutdown} ->
+    with {:ok, client} <- Database.connect(realm_name) do
+      Queries.interface_available_versions(client, interface_name)
+    else
+      {:error, :database_connection_error} ->
         {:error, :realm_not_found}
 
-      {:ok, client} ->
-        result = Queries.interface_available_versions(client, interface_name)
-
-        if result != [] do
-          {:ok, result}
-        else
-          {:error, :interface_not_found}
-        end
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

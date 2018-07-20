@@ -92,10 +92,6 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
-  @query_interface_versions """
-    SELECT major_version, minor_version FROM interfaces WHERE name=:interface_name;
-  """
-
   @query_interface_available_major """
     SELECT COUNT(*) FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
   """
@@ -657,13 +653,33 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def interface_available_versions(client, interface_name) do
+    interface_versions_statement = """
+    SELECT major_version, minor_version
+    FROM interfaces
+    WHERE name = :interface_name
+    """
+
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_interface_versions)
+      |> DatabaseQuery.statement(interface_versions_statement)
       |> DatabaseQuery.put(:interface_name, interface_name)
+      |> DatabaseQuery.consistency(:each_quorum)
 
-    DatabaseQuery.call!(client, query)
-    |> Enum.to_list()
+    with {:ok, result} <- DatabaseQuery.call(client, query),
+         [head | tail] <- Enum.to_list(result) do
+      {:ok, [head | tail]}
+    else
+      [] ->
+        {:error, :interface_not_found}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("interface_available_versions: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("interface_available_versions: database error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
   end
 
   def is_interface_major_available?(client, interface_name, interface_major) do
