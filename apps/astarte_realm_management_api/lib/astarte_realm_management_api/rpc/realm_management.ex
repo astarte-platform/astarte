@@ -220,19 +220,20 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   end
 
   defp extract_result({:get_interface_versions_list_reply, get_interface_versions_list_reply}) do
-    for version <- get_interface_versions_list_reply.versions do
-      [major_version: version.major_version, minor_version: version.minor_version]
-    end
+    result =
+      for version <- get_interface_versions_list_reply.versions do
+        [major_version: version.major_version, minor_version: version.minor_version]
+      end
+
+    {:ok, result}
   end
 
   defp extract_result({:get_interfaces_list_reply, get_interfaces_list_reply}) do
-    for interface_name <- get_interfaces_list_reply.interfaces_names do
-      interface_name
-    end
+    {:ok, get_interfaces_list_reply.interfaces_names}
   end
 
   defp extract_result({:get_interface_source_reply, get_interface_source_reply}) do
-    get_interface_source_reply.source
+    {:ok, get_interface_source_reply.source}
   end
 
   defp extract_result({:get_jwt_public_key_pem_reply, get_jwt_public_key_pem_reply}) do
