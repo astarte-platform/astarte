@@ -336,16 +336,14 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def get_interfaces_list(realm_name) do
-    case DatabaseClient.new(
-           List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-           keyspace: realm_name
-         ) do
-      {:error, :shutdown} ->
+    with {:ok, client} <- Database.connect(realm_name) do
+      Queries.get_interfaces_list(client)
+    else
+      {:error, :database_connection_error} ->
         {:error, :realm_not_found}
 
-      {:ok, client} ->
-        result = Queries.get_interfaces_list(client)
-        {:ok, result}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

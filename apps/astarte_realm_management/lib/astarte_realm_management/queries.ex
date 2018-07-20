@@ -100,10 +100,6 @@ defmodule Astarte.RealmManagement.Queries do
     SELECT COUNT(*) FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
   """
 
-  @query_interfaces """
-    SELECT DISTINCT name FROM interfaces;
-  """
-
   @query_jwt_public_key_pem """
     SELECT blobAsVarchar(value)
     FROM kv_store
@@ -827,16 +823,30 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def get_interfaces_list(client) do
+    interfaces_list_statement = """
+    SELECT DISTINCT name FROM interfaces
+    """
+
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_interfaces)
+      |> DatabaseQuery.statement(interfaces_list_statement)
+      |> DatabaseQuery.consistency(:each_quorum)
 
-    rows =
-      DatabaseQuery.call!(client, query)
-      |> Enum.to_list()
+    with {:ok, result} <- DatabaseQuery.call(client, query) do
+      list =
+        Enum.map(result, fn row ->
+          Keyword.fetch!(row, :name)
+        end)
 
-    for result <- rows do
-      result[:name]
+      {:ok, list}
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("get_interfaces_list: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("get_interfaces_list: failed, reason: #{inspect(reason)}.")
+        {:error, :database_error}
     end
   end
 

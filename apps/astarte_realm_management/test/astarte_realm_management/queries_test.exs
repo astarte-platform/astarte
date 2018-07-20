@@ -270,7 +270,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.interface_available_versions(client, interface_name) == []
 
-    assert Queries.get_interfaces_list(client) == []
+    assert Queries.get_interfaces_list(client) == {:ok, []}
 
     Queries.install_new_interface(client, intdoc, automaton)
 
@@ -286,7 +286,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
              ]
            ]
 
-    assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
+    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog"]}
 
     DatabaseQuery.call!(client, @insert_log_line0_device_a)
     DatabaseQuery.call!(client, @insert_log_line1_device_a)
@@ -376,7 +376,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.interface_available_versions(client, interface_name) == []
 
-    assert Queries.get_interfaces_list(client) == []
+    assert Queries.get_interfaces_list(client) == {:ok, []}
 
     Queries.install_new_interface(client, intdoc, automaton)
 
@@ -392,7 +392,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
              ]
            ]
 
-    assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
+    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog.Status"]}
 
     endpoint =
       find_endpoint(
