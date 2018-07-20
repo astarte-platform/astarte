@@ -46,8 +46,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.RealmManagement.API.InterfaceNotFoundError
-  alias Astarte.RealmManagement.API.RealmNotFoundError
   alias Astarte.RealmManagement.API.Config
 
   @rpc_client Config.rpc_client()
@@ -275,11 +273,11 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   defp extract_error(
          {:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}
        ) do
-    raise InterfaceNotFoundError
+    {:error, :interface_not_found}
   end
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
-    raise RealmNotFoundError
+    {:error, :realm_not_found}
   end
 
   # Install errors
