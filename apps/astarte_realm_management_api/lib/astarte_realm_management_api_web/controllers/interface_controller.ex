@@ -155,6 +155,20 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
              parsed_major
            ) do
       send_resp(conn, :no_content, "")
+    else
+      {:error, :forbidden} ->
+        conn
+        |> put_status(:forbidden)
+        |> render(:delete_forbidden)
+
+      {:error, :cannot_delete_currently_used_interface = err_atom} ->
+        conn
+        |> put_status(:forbidden)
+        |> render(err_atom)
+
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
     end
   end
 end
