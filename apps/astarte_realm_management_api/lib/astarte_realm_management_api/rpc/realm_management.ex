@@ -336,6 +336,19 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     {:error, :incompatible_endpoint_change}
   end
 
+  # Delete errors
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "forbidden"}}) do
+    {:error, :forbidden}
+  end
+
+  defp extract_error(
+         {:generic_error_reply,
+          %GenericErrorReply{error_name: "cannot_delete_currently_used_interface"}}
+       ) do
+    {:error, :cannot_delete_currently_used_interface}
+  end
+
   # Trigger errors
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "trigger_not_found"}}) do
