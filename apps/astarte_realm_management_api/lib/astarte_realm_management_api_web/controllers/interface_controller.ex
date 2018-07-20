@@ -28,8 +28,9 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
   plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
 
   def index(conn, %{"realm_name" => realm_name}) do
-    interfaces = Astarte.RealmManagement.API.Interfaces.list_interfaces!(realm_name)
-    render(conn, "index.json", interfaces: interfaces)
+    with {:ok, interfaces} <- Astarte.RealmManagement.API.Interfaces.list_interfaces(realm_name) do
+      render(conn, "index.json", interfaces: interfaces)
+    end
   end
 
   def create(conn, %{"realm_name" => realm_name, "data" => %{} = params}) do
@@ -64,12 +65,18 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => id, "major_version" => major_version}) do
-    {parsed_major, ""} = Integer.parse(major_version)
+    with {:major_parsing, {parsed_major, ""}} <- {:major_parsing, Integer.parse(major_version)},
+         {:ok, interface_source} <- Interfaces.get_interface(realm_name, id, parsed_major),
+         {:ok, decoded_json} <- Poison.decode(interface_source) do
+      render(conn, "show.json", interface: decoded_json)
+    else
+      {:major_parsing, _} ->
+        {:error, :invalid_major}
 
-    interface_source = Interfaces.get_interface!(realm_name, id, parsed_major)
-
-    {:ok, decoded_json} = Poison.decode(interface_source)
-    render(conn, "show.json", interface: decoded_json)
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
+    end
   end
 
   def update(conn, %{
@@ -142,12 +149,26 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     {parsed_major, ""} = Integer.parse(major_version)
 
     with {:ok, :started} <-
-           Interfaces.delete_interface!(
+           Interfaces.delete_interface(
              realm_name,
              interface_name,
              parsed_major
            ) do
       send_resp(conn, :no_content, "")
+    else
+      {:error, :forbidden} ->
+        conn
+        |> put_status(:forbidden)
+        |> render(:delete_forbidden)
+
+      {:error, :cannot_delete_currently_used_interface = err_atom} ->
+        conn
+        |> put_status(:forbidden)
+        |> render(err_atom)
+
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
     end
   end
 end

@@ -46,8 +46,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.RealmManagement.API.InterfaceNotFoundError
-  alias Astarte.RealmManagement.API.RealmNotFoundError
   alias Astarte.RealmManagement.API.Config
 
   @rpc_client Config.rpc_client()
@@ -222,19 +220,20 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   end
 
   defp extract_result({:get_interface_versions_list_reply, get_interface_versions_list_reply}) do
-    for version <- get_interface_versions_list_reply.versions do
-      [major_version: version.major_version, minor_version: version.minor_version]
-    end
+    result =
+      for version <- get_interface_versions_list_reply.versions do
+        [major_version: version.major_version, minor_version: version.minor_version]
+      end
+
+    {:ok, result}
   end
 
   defp extract_result({:get_interfaces_list_reply, get_interfaces_list_reply}) do
-    for interface_name <- get_interfaces_list_reply.interfaces_names do
-      interface_name
-    end
+    {:ok, get_interfaces_list_reply.interfaces_names}
   end
 
   defp extract_result({:get_interface_source_reply, get_interface_source_reply}) do
-    get_interface_source_reply.source
+    {:ok, get_interface_source_reply.source}
   end
 
   defp extract_result({:get_jwt_public_key_pem_reply, get_jwt_public_key_pem_reply}) do
@@ -275,11 +274,11 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   defp extract_error(
          {:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}
        ) do
-    raise InterfaceNotFoundError
+    {:error, :interface_not_found}
   end
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
-    raise RealmNotFoundError
+    {:error, :realm_not_found}
   end
 
   # Install errors
@@ -335,6 +334,19 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
          {:generic_error_reply, %GenericErrorReply{error_name: "incompatible_endpoint_change"}}
        ) do
     {:error, :incompatible_endpoint_change}
+  end
+
+  # Delete errors
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "forbidden"}}) do
+    {:error, :forbidden}
+  end
+
+  defp extract_error(
+         {:generic_error_reply,
+          %GenericErrorReply{error_name: "cannot_delete_currently_used_interface"}}
+       ) do
+    {:error, :cannot_delete_currently_used_interface}
   end
 
   # Trigger errors

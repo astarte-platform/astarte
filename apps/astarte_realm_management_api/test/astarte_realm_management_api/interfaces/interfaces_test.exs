@@ -71,7 +71,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert [@interface_name] = Interfaces.list_interfaces!(@realm)
+      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(@realm)
     end
 
     test "fails with already installed interface" do
@@ -109,8 +109,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                  update_attrs
                )
 
-      assert interface_source =
-               Interfaces.get_interface!(@realm, @interface_name, @interface_major)
+      assert {:ok, interface_source} =
+               Interfaces.get_interface(@realm, @interface_name, @interface_major)
 
       assert {:ok, map} = Poison.decode(interface_source)
 
@@ -132,7 +132,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert ["com.Some.Interface"] = Interfaces.list_interfaces!(@realm)
+      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(@realm)
     end
 
     test "fails with not installed interface" do

@@ -23,17 +23,17 @@ defmodule Astarte.RealmManagement.API.Interfaces do
 
   require Logger
 
-  def list_interfaces!(realm_name) do
+  def list_interfaces(realm_name) do
     RealmManagement.get_interfaces_list(realm_name)
   end
 
-  def list_interface_major_versions!(realm_name, id) do
+  def list_interface_major_versions(realm_name, id) do
     for interface_version <- RealmManagement.get_interface_versions_list(realm_name, id) do
       interface_version[:major_version]
     end
   end
 
-  def get_interface!(realm_name, interface_name, interface_major_version) do
+  def get_interface(realm_name, interface_name, interface_major_version) do
     RealmManagement.get_interface(realm_name, interface_name, interface_major_version)
   end
 
@@ -67,7 +67,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     end
   end
 
-  def delete_interface!(realm_name, interface_name, interface_major_version, _attrs \\ %{}) do
+  def delete_interface(realm_name, interface_name, interface_major_version, _attrs \\ %{}) do
     RealmManagement.delete_interface(realm_name, interface_name, interface_major_version)
   end
 end

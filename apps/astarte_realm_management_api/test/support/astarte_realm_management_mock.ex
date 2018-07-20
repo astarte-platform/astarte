@@ -1,6 +1,7 @@
 defmodule Astarte.RealmManagement.Mock do
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
+    DeleteInterface,
     GenericErrorReply,
     GenericOkReply,
     GetInterfaceSource,
@@ -32,6 +33,25 @@ defmodule Astarte.RealmManagement.Mock do
     call_tuple
   end
 
+  defp execute_rpc(
+         {:delete_interface,
+          %DeleteInterface{
+            realm_name: realm_name,
+            interface_name: name,
+            interface_major_version: major
+          }}
+       ) do
+    case DB.delete_interface(realm_name, name, major) do
+      :ok ->
+        generic_ok()
+        |> ok_wrap()
+
+      {:error, reason} ->
+        generic_error(reason)
+        |> ok_wrap()
+    end
+  end
+
   defp execute_rpc({:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}}) do
     list = DB.get_interfaces_list(realm_name)
 
@@ -56,11 +76,14 @@ defmodule Astarte.RealmManagement.Mock do
             interface_major_version: major
           }}
        ) do
-    source = DB.get_interface_source(realm_name, name, major)
-
-    %GetInterfaceSourceReply{source: source}
-    |> encode_reply(:get_interface_source_reply)
-    |> ok_wrap
+    if source = DB.get_interface_source(realm_name, name, major) do
+      %GetInterfaceSourceReply{source: source}
+      |> encode_reply(:get_interface_source_reply)
+      |> ok_wrap
+    else
+      generic_error(:interface_not_found)
+      |> ok_wrap
+    end
   end
 
   defp execute_rpc(
