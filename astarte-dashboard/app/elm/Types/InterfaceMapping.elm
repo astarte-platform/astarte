@@ -84,43 +84,43 @@ mappingTypeList =
 -- Setters
 
 
-setEndpoint : InterfaceMapping -> String -> InterfaceMapping
-setEndpoint mapping endpoint =
+setEndpoint : String -> InterfaceMapping -> InterfaceMapping
+setEndpoint endpoint mapping =
     { mapping | endpoint = endpoint }
 
 
-setType : InterfaceMapping -> MappingType -> InterfaceMapping
-setType mapping mType =
+setType : MappingType -> InterfaceMapping -> InterfaceMapping
+setType mType mapping =
     { mapping | mType = mType }
 
 
-setReliability : InterfaceMapping -> Reliability -> InterfaceMapping
-setReliability mapping reliability =
+setReliability : Reliability -> InterfaceMapping -> InterfaceMapping
+setReliability reliability mapping =
     { mapping | reliability = reliability }
 
 
-setRetention : InterfaceMapping -> Retention -> InterfaceMapping
-setRetention mapping retention =
+setRetention : Retention -> InterfaceMapping -> InterfaceMapping
+setRetention retention mapping =
     { mapping | retention = retention }
 
 
-setExpiry : InterfaceMapping -> Int -> InterfaceMapping
-setExpiry mapping expiry =
+setExpiry : Int -> InterfaceMapping -> InterfaceMapping
+setExpiry expiry mapping =
     { mapping | expiry = expiry }
 
 
-setAllowUnset : InterfaceMapping -> Bool -> InterfaceMapping
-setAllowUnset mapping allow =
+setAllowUnset : Bool -> InterfaceMapping -> InterfaceMapping
+setAllowUnset allow mapping =
     { mapping | allowUnset = allow }
 
 
-setDescription : InterfaceMapping -> String -> InterfaceMapping
-setDescription mapping description =
+setDescription : String -> InterfaceMapping -> InterfaceMapping
+setDescription description mapping =
     { mapping | description = description }
 
 
-setDoc : InterfaceMapping -> String -> InterfaceMapping
-setDoc mapping doc =
+setDoc : String -> InterfaceMapping -> InterfaceMapping
+setDoc doc mapping =
     { mapping | doc = doc }
 
 
