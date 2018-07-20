@@ -49,12 +49,6 @@ defmodule Astarte.RealmManagement.Queries do
       VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :automaton_transitions, :automaton_accepting_states, :description, :doc)
   """
 
-  @insert_into_endpoints """
-  INSERT INTO endpoints
-    (interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version, interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset)
-    VALUES (:interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
-  """
-
   @create_datastream_individual_multiinterface_table """
     CREATE TABLE IF NOT EXISTS individual_datastreams (
       device_id uuid,
@@ -291,8 +285,22 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping) do
+    insert_mapping_statement = """
+    INSERT INTO endpoints
+    (
+      interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
+      interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset,
+      description, doc
+    )
+    VALUES (
+      :interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version,
+      :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset,
+      :description, :doc
+    )
+    """
+
     DatabaseQuery.new()
-    |> DatabaseQuery.statement(@insert_into_endpoints)
+    |> DatabaseQuery.statement(insert_mapping_statement)
     |> DatabaseQuery.put(:interface_id, interface_id)
     |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
     |> DatabaseQuery.put(:interface_name, interface_name)
@@ -305,6 +313,8 @@ defmodule Astarte.RealmManagement.Queries do
     |> DatabaseQuery.put(:retention, Retention.to_int(mapping.retention))
     |> DatabaseQuery.put(:expiry, mapping.expiry)
     |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
+    |> DatabaseQuery.put(:description, mapping.description)
+    |> DatabaseQuery.put(:doc, mapping.doc)
     |> DatabaseQuery.consistency(:each_quorum)
   end
 
@@ -758,8 +768,8 @@ defmodule Astarte.RealmManagement.Queries do
             reliabilty: reliability,
             retention: retention,
             value_type: value_type,
-            description: description,
-            doc: doc
+            description: mapping_description,
+            doc: mapping_doc
           } = Enum.into(mapping_row, %{})
 
           %Mapping{
@@ -770,8 +780,8 @@ defmodule Astarte.RealmManagement.Queries do
             reliability: Reliability.from_int(reliability),
             retention: Retention.from_int(retention),
             value_type: ValueType.from_int(value_type),
-            description: description,
-            doc: doc
+            description: mapping_description,
+            doc: mapping_doc
           }
         end)
 

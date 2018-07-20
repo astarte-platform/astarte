@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -211,6 +212,7 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  # TODO: Mappings documentation changes are discarded
   defp extract_new_mappings(db_client, %{mappings: upd_mappings} = interface_doc) do
     descriptor = InterfaceDescriptor.from_interface(interface_doc)
 
@@ -222,7 +224,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       maybe_new_mappings =
         Enum.reduce_while(mappings, upd_mappings_map, fn mapping, acc ->
-          case Map.get(upd_mappings_map, mapping.endpoint_id) do
+          case drop_mapping_doc(Map.get(upd_mappings_map, mapping.endpoint_id)) do
             nil ->
               {:halt, {:error, :missing_endpoints}}
 
@@ -240,6 +242,14 @@ defmodule Astarte.RealmManagement.Engine do
         maybe_new_mappings
       end
     end
+  end
+
+  defp drop_mapping_doc(%Mapping{} = mapping) do
+    %{mapping | description: nil, doc: nil}
+  end
+
+  defp drop_mapping_doc(nil) do
+    nil
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do

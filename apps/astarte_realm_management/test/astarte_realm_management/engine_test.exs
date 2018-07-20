@@ -139,6 +139,8 @@ defmodule Astarte.RealmManagement.EngineTest do
    "type": "datastream",
    "ownership": "device",
    "aggregation": "object",
+   "description": "Interface description.",
+   "doc": "Interface documentation.",
    "mappings": [
       {
         "endpoint": "/x",
@@ -160,6 +162,8 @@ defmodule Astarte.RealmManagement.EngineTest do
    "type": "datastream",
    "ownership": "device",
    "aggregation": "object",
+   "description": "Interface description.",
+   "doc": "Interface documentation.",
    "mappings": [
       {
         "endpoint": "/x",
@@ -192,11 +196,14 @@ defmodule Astarte.RealmManagement.EngineTest do
    "mappings": [
       {
         "endpoint": "/%{sensorId}/realValues",
-        "type": "double"
+        "type": "double",
+        "description": "A real values test mapping.",
+        "doc": "Real values mappings documentation."
       },
       {
         "endpoint": "/%{sensorId}/integerValues",
-        "type": "integer"
+        "type": "integer",
+        "description": "A integer values test mapping."
       }
     ]
   }
@@ -212,11 +219,14 @@ defmodule Astarte.RealmManagement.EngineTest do
    "mappings": [
       {
         "endpoint": "/%{sensorId}/realValues",
-        "type": "double"
+        "type": "double",
+        "description": "A real values test mapping.",
+        "doc": "Real values mappings documentation."
       },
       {
         "endpoint": "/%{sensorId}/integerValues",
-        "type": "integer"
+        "type": "integer",
+        "description": "A integer values test mapping."
       },
       {
         "endpoint": "/%{sensorId}/stringValues",
