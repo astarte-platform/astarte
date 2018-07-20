@@ -284,9 +284,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    # TODO: here we need to set value_timestamp to reception_timestamp if custom timestamp
-    # is not allowed
-
     with maybe_descriptor <- Map.get(new_state.interfaces, interface),
          {:ok, interface_descriptor, new_state} <-
            maybe_handle_cache_miss(maybe_descriptor, interface, new_state, db_client),
@@ -297,6 +294,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          {value, value_timestamp, metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp) do
       device_id_string = Device.encode_device_id(new_state.device_id)
+
+      maybe_explicit_value_timestamp =
+        if endpoint.explicit_timestamp do
+          value_timestamp
+        else
+          div(timestamp, 10000)
+        end
 
       execute_incoming_data_triggers(
         new_state,
@@ -367,7 +371,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   interface_descriptor,
                   endpoint,
                   path,
-                  value_timestamp,
+                  maybe_explicit_value_timestamp,
                   timestamp
                 )
             end
@@ -390,7 +394,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           endpoint,
           path,
           value,
-          value_timestamp,
+          maybe_explicit_value_timestamp,
           timestamp
         )
 
