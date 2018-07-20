@@ -337,27 +337,6 @@ paths:
           description: Success
         '404':
           description: Trigger not found
-    put:
-      tags:
-        - trigger
-      summary: Update trigger configuration
-      description: >-
-        Updates an existing trigger's configuration.
-        Please note that the new configuration will apply only to events
-        queued after the operation takes place. Any events queued before then
-        will still be processed according to the previous configuration.
-      operationId: updateTrigger
-      security:
-        - JWT: []
-      responses:
-        '200':
-          description: Success
-        '404':
-          description: Trigger Not Found
-        '405':
-          description: Invalid Trigger Configuration
-      requestBody:
-        $ref: '#/components/requestBodies/installTriggerBody'
     delete:
       tags:
         - trigger
