@@ -23,6 +23,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
+  alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Ownership
@@ -44,14 +45,8 @@ defmodule Astarte.RealmManagement.Queries do
 
   @insert_into_interfaces """
     INSERT INTO interfaces
-      (name, major_version, minor_version, interface_id, storage_type, storage, type, ownership, aggregation, source, automaton_transitions, automaton_accepting_states)
-      VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :source, :automaton_transitions, :automaton_accepting_states)
-  """
-
-  @insert_into_endpoints """
-  INSERT INTO endpoints
-    (interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version, interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset)
-    VALUES (:interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version, :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset)
+      (name, major_version, minor_version, interface_id, storage_type, storage, type, ownership, aggregation, automaton_transitions, automaton_accepting_states, description, doc)
+      VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :automaton_transitions, :automaton_accepting_states, :description, :doc)
   """
 
   @create_datastream_individual_multiinterface_table """
@@ -103,10 +98,6 @@ defmodule Astarte.RealmManagement.Queries do
 
   @query_interface_available_major """
     SELECT COUNT(*) FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
-  """
-
-  @query_interface_source """
-    SELECT source FROM interfaces WHERE name=:interface_name AND major_version=:interface_major;
   """
 
   @query_interfaces """
@@ -217,6 +208,8 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def install_new_interface(client, interface_document, automaton) do
+    interface_descriptor = InterfaceDescriptor.from_interface(interface_document)
+
     %InterfaceDescriptor{
       interface_id: interface_id,
       name: interface_name,
@@ -225,7 +218,12 @@ defmodule Astarte.RealmManagement.Queries do
       type: interface_type,
       ownership: interface_ownership,
       aggregation: aggregation
-    } = interface_document.descriptor
+    } = interface_descriptor
+
+    %InterfaceDocument{
+      description: description,
+      doc: doc
+    } = interface_document
 
     table_type =
       if aggregation == :individual do
@@ -238,7 +236,7 @@ defmodule Astarte.RealmManagement.Queries do
       create_interface_table(
         aggregation,
         table_type,
-        interface_document.descriptor,
+        interface_descriptor,
         interface_document.mappings
       )
 
@@ -270,9 +268,10 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_type))
       |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_ownership))
       |> DatabaseQuery.put(:aggregation, Aggregation.to_int(aggregation))
-      |> DatabaseQuery.put(:source, interface_document.source)
       |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
       |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
+      |> DatabaseQuery.put(:description, description)
+      |> DatabaseQuery.put(:doc, doc)
       |> DatabaseQuery.consistency(:each_quorum)
       |> DatabaseQuery.convert()
 
@@ -286,8 +285,22 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping) do
+    insert_mapping_statement = """
+    INSERT INTO endpoints
+    (
+      interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
+      interface_type, endpoint, value_type, reliabilty, retention, expiry, allow_unset,
+      description, doc
+    )
+    VALUES (
+      :interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version,
+      :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset,
+      :description, :doc
+    )
+    """
+
     DatabaseQuery.new()
-    |> DatabaseQuery.statement(@insert_into_endpoints)
+    |> DatabaseQuery.statement(insert_mapping_statement)
     |> DatabaseQuery.put(:interface_id, interface_id)
     |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
     |> DatabaseQuery.put(:interface_name, interface_name)
@@ -300,10 +313,12 @@ defmodule Astarte.RealmManagement.Queries do
     |> DatabaseQuery.put(:retention, Retention.to_int(mapping.retention))
     |> DatabaseQuery.put(:expiry, mapping.expiry)
     |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
+    |> DatabaseQuery.put(:description, mapping.description)
+    |> DatabaseQuery.put(:doc, mapping.doc)
     |> DatabaseQuery.consistency(:each_quorum)
   end
 
-  def update_interface(client, interface_descriptor, new_mappings, automaton, source) do
+  def update_interface(client, interface_descriptor, new_mappings, automaton, description, doc) do
     %InterfaceDescriptor{
       name: interface_name,
       major_version: major,
@@ -319,7 +334,7 @@ defmodule Astarte.RealmManagement.Queries do
     update_interface_statement = """
     UPDATE interfaces
     SET minor_version=:minor_version, automaton_accepting_states=:automaton_accepting_states,
-      automaton_transitions=:automaton_transitions, source=:source
+      automaton_transitions = :automaton_transitions, description = :description, doc = :doc
     WHERE name=:name AND major_version=:major_version
     """
 
@@ -331,7 +346,8 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:minor_version, minor)
       |> DatabaseQuery.put(:automaton_accepting_states, automaton_accepting_states_bin)
       |> DatabaseQuery.put(:automaton_transitions, automaton_transitions_bin)
-      |> DatabaseQuery.put(:source, source)
+      |> DatabaseQuery.put(:description, description)
+      |> DatabaseQuery.put(:doc, doc)
       |> DatabaseQuery.consistency(:each_quorum)
       |> DatabaseQuery.convert()
 
@@ -712,22 +728,100 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def interface_source(client, interface_name, interface_major) do
+  def fetch_interface(client, interface_name, interface_major) do
+    all_interface_cols_statement = """
+    SELECT *
+    FROM interfaces
+    WHERE name = :name AND major_version = :major_version
+    """
+
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_interface_source)
-      |> DatabaseQuery.put(:interface_name, interface_name)
-      |> DatabaseQuery.put(:interface_major, interface_major)
+      |> DatabaseQuery.statement(all_interface_cols_statement)
+      |> DatabaseQuery.put(:name, interface_name)
+      |> DatabaseQuery.put(:major_version, interface_major)
+      |> DatabaseQuery.consistency(:each_quorum)
 
-    result_row =
-      DatabaseQuery.call!(client, query)
-      |> Enum.to_list()
-      |> List.first()
+    all_endpoints_cols_statement = """
+    SELECT *
+    FROM endpoints
+    WHERE interface_id = :interface_id
+    """
 
-    if result_row != nil do
-      {:ok, result_row[:source]}
+    endpoints_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(all_endpoints_cols_statement)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(client, query),
+         interface_row when is_list(interface_row) <- DatabaseResult.head(result),
+         {:ok, interface_id} <- Keyword.fetch(interface_row, :interface_id),
+         endpoints_query <- DatabaseQuery.put(endpoints_query, :interface_id, interface_id),
+         {:ok, endpoints_result} <- DatabaseQuery.call(client, endpoints_query) do
+      mappings =
+        Enum.map(endpoints_result, fn mapping_row ->
+          %{
+            endpoint_id: endpoint_id,
+            allow_unset: allow_unset,
+            endpoint: endpoint,
+            expiry: expiry,
+            reliabilty: reliability,
+            retention: retention,
+            value_type: value_type,
+            description: mapping_description,
+            doc: mapping_doc
+          } = Enum.into(mapping_row, %{})
+
+          %Mapping{
+            endpoint_id: endpoint_id,
+            allow_unset: allow_unset,
+            endpoint: endpoint,
+            expiry: expiry,
+            reliability: Reliability.from_int(reliability),
+            retention: Retention.from_int(retention),
+            value_type: ValueType.from_int(value_type),
+            description: mapping_description,
+            doc: mapping_doc
+          }
+        end)
+
+      %{
+        name: name,
+        major_version: major_version,
+        minor_version: minor_version,
+        interface_id: interface_id,
+        type: type,
+        ownership: ownership,
+        aggregation: aggregation,
+        description: description,
+        doc: doc
+      } = Enum.into(interface_row, %{})
+
+      interface = %InterfaceDocument{
+        name: name,
+        major_version: major_version,
+        minor_version: minor_version,
+        interface_id: interface_id,
+        type: InterfaceType.from_int(type),
+        ownership: Ownership.from_int(ownership),
+        aggregation: Aggregation.from_int(aggregation),
+        mappings: mappings,
+        description: description,
+        doc: doc
+      }
+
+      {:ok, interface}
     else
-      {:error, :interface_not_found}
+      :empty_dataset ->
+        {:error, :interface_not_found}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("interface_source: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("interface_source: failed, reason: #{inspect(reason)}.")
+        {:error, :database_error}
     end
   end
 

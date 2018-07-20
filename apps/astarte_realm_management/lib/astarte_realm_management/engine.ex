@@ -14,14 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017,2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.Engine do
   require Logger
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.Core.InterfaceDocument
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -36,9 +37,10 @@ defmodule Astarte.RealmManagement.Engine do
 
   def install_interface(realm_name, interface_json, opts \\ []) do
     with {:ok, client} <- Database.connect(realm_name),
-         {:interface, {:ok, interface_doc}} <-
-           {:interface, InterfaceDocument.from_json(interface_json)},
-         %InterfaceDocument{descriptor: interface_descriptor} <- interface_doc,
+         {:ok, json_obj} <- Poison.decode(interface_json),
+         interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
+         {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
+         interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, false} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
@@ -52,15 +54,19 @@ defmodule Astarte.RealmManagement.Engine do
         Queries.install_new_interface(client, interface_doc, automaton)
       end
     else
+      {:error, {:invalid, _invalid_str, _invalid_pos}} ->
+        Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
+        {:error, :invalid_interface_document}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        Logger.warn("Received invalid interface: #{inspect(changeset)}")
+        {:error, :invalid_interface_document}
+
       {:error, :database_connection_error} ->
         {:error, :realm_not_found}
 
       {:error, :database_error} ->
         {:error, :database_error}
-
-      {:interface, :error} ->
-        Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
-        {:error, :invalid_interface_document}
 
       {:interface_avail, true} ->
         {:error, :already_installed_interface}
@@ -75,9 +81,11 @@ defmodule Astarte.RealmManagement.Engine do
 
   def update_interface(realm_name, interface_json, opts \\ []) do
     with {:ok, client} <- Database.connect(realm_name),
-         {:interface, {:ok, interface_doc}} <-
-           {:interface, InterfaceDocument.from_json(interface_json)},
-         %InterfaceDocument{descriptor: interface_descriptor, source: source} <- interface_doc,
+         {:ok, json_obj} <- Poison.decode(interface_json),
+         interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
+         {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
+         %InterfaceDocument{description: description, doc: doc} <- interface_doc,
+         interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, true} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
@@ -99,7 +107,8 @@ defmodule Astarte.RealmManagement.Engine do
           interface_update,
           new_mappings_list,
           automaton,
-          source
+          description,
+          doc
         ])
 
         {:ok, :started}
@@ -109,19 +118,24 @@ defmodule Astarte.RealmManagement.Engine do
           interface_update,
           new_mappings_list,
           automaton,
-          source
+          description,
+          doc
         )
       end
     else
+      {:error, {:invalid, _invalid_str, _invalid_pos}} ->
+        Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
+        {:error, :invalid_interface_document}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        Logger.warn("Received invalid interface: #{inspect(changeset)}")
+        {:error, :invalid_interface_document}
+
       {:error, :database_connection_error} ->
         {:error, :realm_not_found}
 
       {:error, :database_error} ->
         {:error, :database_error}
-
-      {:interface, :error} ->
-        Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
-        {:error, :invalid_interface_document}
 
       {:interface_avail, false} ->
         {:error, :interface_major_version_does_not_exist}
@@ -146,9 +160,9 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def execute_interface_update(client, interface_descriptor, new_mappings, automaton, source) do
+  def execute_interface_update(client, interface_descriptor, new_mappings, automaton, descr, doc) do
     with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
-      Queries.update_interface(client, interface_descriptor, new_mappings, automaton, source)
+      Queries.update_interface(client, interface_descriptor, new_mappings, automaton, descr, doc)
     end
   end
 
@@ -198,7 +212,10 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp extract_new_mappings(db_client, %{descriptor: descriptor, mappings: upd_mappings}) do
+  # TODO: Mappings documentation changes are discarded
+  defp extract_new_mappings(db_client, %{mappings: upd_mappings} = interface_doc) do
+    descriptor = InterfaceDescriptor.from_interface(interface_doc)
+
     with {:ok, mappings} <- Mappings.fetch_interface_mappings(db_client, descriptor.interface_id) do
       upd_mappings_map =
         Enum.into(upd_mappings, %{}, fn mapping ->
@@ -207,7 +224,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       maybe_new_mappings =
         Enum.reduce_while(mappings, upd_mappings_map, fn mapping, acc ->
-          case Map.get(upd_mappings_map, mapping.endpoint_id) do
+          case drop_mapping_doc(Map.get(upd_mappings_map, mapping.endpoint_id)) do
             nil ->
               {:halt, {:error, :missing_endpoints}}
 
@@ -225,6 +242,14 @@ defmodule Astarte.RealmManagement.Engine do
         maybe_new_mappings
       end
     end
+  end
+
+  defp drop_mapping_doc(%Mapping{} = mapping) do
+    %{mapping | description: nil, doc: nil}
+  end
+
+  defp drop_mapping_doc(nil) do
+    nil
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do
@@ -274,16 +299,10 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def interface_source(realm_name, interface_name, interface_major_version) do
-    case DatabaseClient.new(
-           List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-           keyspace: realm_name
-         ) do
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:ok, client} ->
-        Queries.interface_source(client, interface_name, interface_major_version)
+  def interface_source(realm_name, interface_name, major_version) do
+    with {:ok, client} <- Database.connect(realm_name),
+         {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
+      Poison.encode(interface)
     end
   end
 
@@ -348,7 +367,8 @@ defmodule Astarte.RealmManagement.Engine do
 
   def install_trigger(realm_name, trigger_name, action, serialized_tagged_simple_triggers) do
     with {:ok, client} <- get_database_client(realm_name),
-         {:exists?, {:error, :trigger_not_found}} <- {:exists?, Queries.retrieve_trigger_uuid(client, trigger_name)} do
+         {:exists?, {:error, :trigger_not_found}} <-
+           {:exists?, Queries.retrieve_trigger_uuid(client, trigger_name)} do
       simple_triggers =
         for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
           %TaggedSimpleTrigger{
@@ -411,6 +431,7 @@ defmodule Astarte.RealmManagement.Engine do
     else
       {:exists?, _} ->
         {:error, :already_installed_trigger}
+
       any ->
         any
     end

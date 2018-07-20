@@ -14,13 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017,2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
   alias CQEx.Query, as: DatabaseQuery
+  alias Astarte.Core.Interface, as: InterfaceDocument
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Queries
 
@@ -249,58 +251,40 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
     client = connect_to_test_realm("autotestrealm")
 
-    {:ok, intdoc} = Astarte.Core.InterfaceDocument.from_json(@object_datastream_interface_json)
+    json_obj = Poison.decode!(@object_datastream_interface_json)
+    interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
+    {:ok, intdoc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
+
+    %{
+      name: interface_name,
+      major_version: major_version,
+      minor_version: minor_version
+    } = InterfaceDescriptor.from_interface(intdoc)
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) == false
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version - 1
-           ) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+             false
 
-    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
-
-    assert Queries.interface_source(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == {:error, :interface_not_found}
+    assert Queries.interface_available_versions(client, interface_name) == []
 
     assert Queries.get_interfaces_list(client) == []
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == true
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) == true
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version - 1
-           ) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+             false
 
-    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [
+    assert Queries.interface_available_versions(client, interface_name) == [
              [
-               major_version: intdoc.descriptor.major_version,
-               minor_version: intdoc.descriptor.minor_version
+               major_version: major_version,
+               minor_version: minor_version
              ]
            ]
-
-    assert Queries.interface_source(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == {:ok, intdoc.source}
 
     assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog"]
 
@@ -373,59 +357,40 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
     client = connect_to_test_realm("autotestrealm")
 
-    {:ok, intdoc} =
-      Astarte.Core.InterfaceDocument.from_json(@individual_property_device_owned_interface)
+    json_obj = Poison.decode!(@individual_property_device_owned_interface)
+    interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
+    {:ok, intdoc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
+
+    %{
+      name: interface_name,
+      major_version: major_version,
+      minor_version: minor_version
+    } = InterfaceDescriptor.from_interface(intdoc)
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) == false
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version - 1
-           ) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+             false
 
-    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == []
-
-    assert Queries.interface_source(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == {:error, :interface_not_found}
+    assert Queries.interface_available_versions(client, interface_name) == []
 
     assert Queries.get_interfaces_list(client) == []
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == true
+    assert Queries.is_interface_major_available?(client, interface_name, major_version) == true
 
-    assert Queries.is_interface_major_available?(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version - 1
-           ) == false
+    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+             false
 
-    assert Queries.interface_available_versions(client, intdoc.descriptor.name) == [
+    assert Queries.interface_available_versions(client, interface_name) == [
              [
-               major_version: intdoc.descriptor.major_version,
-               minor_version: intdoc.descriptor.minor_version
+               major_version: major_version,
+               minor_version: minor_version
              ]
            ]
-
-    assert Queries.interface_source(
-             client,
-             intdoc.descriptor.name,
-             intdoc.descriptor.major_version
-           ) == {:ok, intdoc.source}
 
     assert Queries.get_interfaces_list(client) == ["com.ispirata.Hemera.DeviceLog.Status"]
 
@@ -504,10 +469,9 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
     client = connect_to_test_realm("autotestrealm")
 
-    {:ok, doc} =
-      Astarte.Core.InterfaceDocument.from_json(
-        @individual_datastream_with_explicit_timestamp_interface_json
-      )
+    json_obj = Poison.decode!(@individual_datastream_with_explicit_timestamp_interface_json)
+    interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
+    {:ok, doc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
     Queries.install_new_interface(client, doc, automaton)

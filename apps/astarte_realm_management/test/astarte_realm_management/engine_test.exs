@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017,2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.EngineTest do
@@ -31,10 +31,10 @@ defmodule Astarte.RealmManagement.EngineTest do
      "version_major": 1,
      "version_minor": 0,
      "type": "properties",
-     "quality": "producer",
+     "ownership": "device",
      "mappings": [
         {
-          "path": "/filterRules/%{ruleId}/%{filterKey}/value",
+          "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
           "type": "string",
           "allow_unset": true
         }
@@ -48,10 +48,10 @@ defmodule Astarte.RealmManagement.EngineTest do
      "version_major": 1,
      "version_minor": 2,
      "type": "properties",
-     "quality": "producer",
+     "ownership": "device",
      "mappings": [
        {
-         "path": "/filterRules/%{ruleId}/%{filterKey}/value",
+         "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
          "type": "string",
          "allow_unset": true
        }
@@ -65,10 +65,10 @@ defmodule Astarte.RealmManagement.EngineTest do
      "version_major": 2,
      "version_minor": 2,
      "type": "properties",
-     "quality": "producer",
+     "ownership": "device",
      "mappings": [
        {
-         "path": "/filterRules/%{ruleId}/%{filterKey}/value",
+         "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
          "type": "string",
          "allow_unset": true
        }
@@ -82,10 +82,10 @@ defmodule Astarte.RealmManagement.EngineTest do
      "version_major": 2,
      "version_minor": 2,
      "type": "properties",
-     "quality": "producer",
+     "ownership": "device",
      "mappings": [
        {
-         "path": "/filterRules/%{ruleId}/%{filterKey}/value",
+         "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
          "type": "string",
          "allow_unset": true
        }
@@ -99,10 +99,10 @@ defmodule Astarte.RealmManagement.EngineTest do
     "version_major": 1,
     "version_minor": 0,
     "type": "properties",
-    "quality": "consumer",
+    "ownership": "server",
     "mappings": [
       {
-        "path": "/filterRules/%{ruleId}/%{filterKey}/value",
+        "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
         "type": "string",
         "allow_unset": true
       }
@@ -116,17 +116,16 @@ defmodule Astarte.RealmManagement.EngineTest do
     "version_major": 0,
     "version_minor": 2,
     "type": "properties",
-    "quality": "consumer",
+    "ownership": "server",
     "mappings": [
       {
-        "path": "/filterRules/%{ruleId}/%{filterKey}/value",
+        "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
         "type": "string",
         "allow_unset": true
       },
       {
-        "path": "/filterRules/%{ruleId}/%{filterKey}/foo",
-        "type": "boolean",
-        "allow_unset": false
+        "endpoint": "/filterRules/%{ruleId}/%{filterKey}/foo",
+        "type": "boolean"
       }
     ]
   }
@@ -138,15 +137,17 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 3,
    "type": "datastream",
-   "quality": "producer",
+   "ownership": "device",
    "aggregation": "object",
+   "description": "Interface description.",
+   "doc": "Interface documentation.",
    "mappings": [
       {
-        "path": "/x",
+        "endpoint": "/x",
         "type": "double"
       },
       {
-        "path": "/y",
+        "endpoint": "/y",
         "type": "double"
       }
     ]
@@ -159,23 +160,25 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 4,
    "type": "datastream",
-   "quality": "producer",
+   "ownership": "device",
    "aggregation": "object",
+   "description": "Interface description.",
+   "doc": "Interface documentation.",
    "mappings": [
       {
-        "path": "/x",
+        "endpoint": "/x",
         "type": "double"
       },
       {
-        "path": "/y",
+        "endpoint": "/y",
         "type": "double"
       },
       {
-        "path": "/z",
+        "endpoint": "/z",
         "type": "double"
       },
       {
-        "path": "/speed",
+        "endpoint": "/speed",
         "type": "double"
       }
 
@@ -189,15 +192,18 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 10,
    "type": "datastream",
-   "quality": "producer",
+   "ownership": "device",
    "mappings": [
       {
-        "path": "/%{sensorId}/realValues",
-        "type": "double"
+        "endpoint": "/%{sensorId}/realValues",
+        "type": "double",
+        "description": "A real values test mapping.",
+        "doc": "Real values mappings documentation."
       },
       {
-        "path": "/%{sensorId}/integerValues",
-        "type": "integer"
+        "endpoint": "/%{sensorId}/integerValues",
+        "type": "integer",
+        "description": "A integer values test mapping."
       }
     ]
   }
@@ -209,22 +215,25 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 15,
    "type": "datastream",
-   "quality": "producer",
+   "ownership": "device",
    "mappings": [
       {
-        "path": "/%{sensorId}/realValues",
-        "type": "double"
+        "endpoint": "/%{sensorId}/realValues",
+        "type": "double",
+        "description": "A real values test mapping.",
+        "doc": "Real values mappings documentation."
       },
       {
-        "path": "/%{sensorId}/integerValues",
-        "type": "integer"
+        "endpoint": "/%{sensorId}/integerValues",
+        "type": "integer",
+        "description": "A integer values test mapping."
       },
       {
-        "path": "/%{sensorId}/stringValues",
+        "endpoint": "/%{sensorId}/stringValues",
         "type": "string"
       },
       {
-        "path": "/testLong/something",
+        "endpoint": "/testLong/something",
         "type": "longinteger"
       }
     ]
@@ -237,22 +246,22 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 14,
    "type": "datastream",
-   "quality": "producer",
+   "ownership": "device",
    "mappings": [
       {
-        "path": "/%{sensorId}/realValues",
+        "endpoint": "/%{sensorId}/realValues",
         "type": "double"
       },
       {
-        "path": "/%{sensorId}/integerValues",
+        "endpoint": "/%{sensorId}/integerValues",
         "type": "integer"
       },
       {
-        "path": "/%{sensorId}/stringValues",
+        "endpoint": "/%{sensorId}/stringValues",
         "type": "string"
       },
       {
-        "path": "/testLong/something/downgrade",
+        "endpoint": "/testLong/something/downgrade",
         "type": "longinteger"
       }
     ]
@@ -265,22 +274,22 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 15,
    "type": "properties",
-   "quality": "producer",
+   "ownership": "device",
    "mappings": [
       {
-        "path": "/%{sensorId}/realValues",
+        "endpoint": "/%{sensorId}/realValues",
         "type": "double"
       },
       {
-        "path": "/%{sensorId}/integerValues",
+        "endpoint": "/%{sensorId}/integerValues",
         "type": "integer"
       },
       {
-        "path": "/%{sensorId}/stringValues",
+        "endpoint": "/%{sensorId}/stringValues",
         "type": "string"
       },
       {
-        "path": "/testLong/something",
+        "endpoint": "/testLong/something",
         "type": "longinteger"
       }
     ]
@@ -293,22 +302,22 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 15,
    "type": "datastream",
-   "quality": "producer",
+   "ownership": "device",
    "mappings": [
       {
-        "path": "/%{sensorId}/realValues",
+        "endpoint": "/%{sensorId}/realValues",
         "type": "double"
       },
       {
-        "path": "/%{sensorId}/integerValues",
+        "endpoint": "/%{sensorId}/integerValues",
         "type": "double"
       },
       {
-        "path": "/%{sensorId}/stringValues",
+        "endpoint": "/%{sensorId}/stringValues",
         "type": "string"
       },
       {
-        "path": "/testLong/something",
+        "endpoint": "/testLong/something",
         "type": "longinteger"
       }
     ]
@@ -321,10 +330,10 @@ defmodule Astarte.RealmManagement.EngineTest do
    "version_major": 0,
    "version_minor": 20,
    "type": "datastream",
-   "quality": "producer",
+   "ownership": "device",
    "mappings": [
       {
-        "path": "/%{sensorId}/realValues",
+        "endpoint": "/%{sensorId}/realValues",
         "type": "double"
       }
     ]
@@ -364,23 +373,29 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.delete_interface("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 1) ==
              {:error, :forbidden}
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 1) ==
-             {:ok, @test_interface_a_0}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 1)
+           ) == unpack_source({:ok, @test_interface_a_0})
 
-    assert Engine.interface_source(
-             "autotestrealm",
-             "com.ispirata.Hemera.DeviceLog.Configuration",
-             1
-           ) == {:ok, @test_interface_b_0}
+    assert unpack_source(
+             Engine.interface_source(
+               "autotestrealm",
+               "com.ispirata.Hemera.DeviceLog.Configuration",
+               1
+             )
+           ) == unpack_source({:ok, @test_interface_b_0})
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 2) ==
-             {:ok, @test_interface_a_2}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.Hemera.DeviceLog.Status", 2)
+           ) == unpack_source({:ok, @test_interface_a_2})
 
-    assert Engine.interface_source(
-             "autotestrealm",
-             "com.ispirata.Hemera.DeviceLog.Missing",
-             1
-           ) == {:error, :interface_not_found}
+    assert unpack_source(
+             Engine.interface_source(
+               "autotestrealm",
+               "com.ispirata.Hemera.DeviceLog.Missing",
+               1
+             )
+           ) == unpack_source({:error, :interface_not_found})
 
     assert Engine.list_interface_versions(
              "autotestrealm",
@@ -416,8 +431,8 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.Draft"]}
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.Draft", 0) ==
-             {:ok, @test_draft_interface_a_0}
+    assert unpack_source(Engine.interface_source("autotestrealm", "com.ispirata.Draft", 0)) ==
+             unpack_source({:ok, @test_draft_interface_a_0})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
@@ -463,8 +478,8 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.Draft"]}
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.Draft", 0) ==
-             {:ok, @test_draft_interface_a_0}
+    assert unpack_source(Engine.interface_source("autotestrealm", "com.ispirata.Draft", 0)) ==
+             unpack_source({:ok, @test_draft_interface_a_0})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
@@ -555,8 +570,9 @@ defmodule Astarte.RealmManagement.EngineTest do
   test "update individual datastream interface" do
     assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_0}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_0})
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
@@ -565,8 +581,9 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_1}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_1})
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
@@ -577,8 +594,8 @@ defmodule Astarte.RealmManagement.EngineTest do
   test "update object aggregated interface" do
     assert Engine.install_interface("autotestrealm", @test_draft_interface_b_0) == :ok
 
-    assert Engine.interface_source("autotestrealm", "com.ObjectAggregation", 0) ==
-             {:ok, @test_draft_interface_b_0}
+    assert unpack_source(Engine.interface_source("autotestrealm", "com.ObjectAggregation", 0)) ==
+             unpack_source({:ok, @test_draft_interface_b_0})
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
 
@@ -587,8 +604,8 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_b_1) == :ok
 
-    assert Engine.interface_source("autotestrealm", "com.ObjectAggregation", 0) ==
-             {:ok, @test_draft_interface_b_1}
+    assert unpack_source(Engine.interface_source("autotestrealm", "com.ObjectAggregation", 0)) ==
+             unpack_source({:ok, @test_draft_interface_b_1})
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
 
@@ -626,8 +643,9 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_1}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_1})
 
     assert Engine.install_interface("autotestrealm", @test_draft_interface_c_wrong_update) ==
              {:error, :already_installed_interface}
@@ -649,8 +667,9 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_invalid_change) ==
              {:error, :invalid_update}
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_0}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_0})
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
@@ -669,8 +688,9 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_incompatible_change) ==
              {:error, :incompatible_endpoint_change}
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_0}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_0})
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
@@ -681,16 +701,18 @@ defmodule Astarte.RealmManagement.EngineTest do
   test "fail on interface downgrade" do
     assert Engine.install_interface("autotestrealm", @test_draft_interface_c_0) == :ok
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_0}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_0})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 10]]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_1}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_1})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 15]]}
@@ -698,8 +720,9 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_downgrade) ==
              {:error, :downgrade_not_allowed}
 
-    assert Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0) ==
-             {:ok, @test_draft_interface_c_1}
+    assert unpack_source(
+             Engine.interface_source("autotestrealm", "com.ispirata.TestDatastream", 0)
+           ) == unpack_source({:ok, @test_draft_interface_c_1})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 15]]}
@@ -731,5 +754,21 @@ defmodule Astarte.RealmManagement.EngineTest do
 
   test "update JWT public key PEM with unexisting realm" do
     assert Engine.get_jwt_public_key_pem("notexisting") == {:error, :realm_not_found}
+  end
+
+  defp unpack_source({:ok, source}) when is_binary(source) do
+    interface_obj = Poison.decode!(source)
+
+    mappings =
+      interface_obj["mappings"]
+      |> Enum.sort()
+
+    new_obj = Map.put(interface_obj, "mappings", mappings)
+
+    {:ok, new_obj}
+  end
+
+  defp unpack_source(any) do
+    any
   end
 end
