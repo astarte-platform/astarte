@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.APIWeb.InterfaceView do
@@ -26,5 +26,45 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceView do
 
   def render("show.json", %{interface: interface}) do
     %{data: interface}
+  end
+
+  def render("already_installed_interface.json", _assigns) do
+    %{errors: %{detail: "Interface already exists"}}
+  end
+
+  def render("invalid_name_casing.json", _assigns) do
+    %{errors: %{detail: "Interface already exists with a different casing name"}}
+  end
+
+  def render("name_not_matching.json", _assigns) do
+    %{errors: %{detail: "Interface name doesn't match the one in the interface json"}}
+  end
+
+  def render("major_version_not_matching.json", _assigns) do
+    %{errors: %{detail: "Interface major version doesn't match the one in the interface json"}}
+  end
+
+  def render("interface_major_version_does_not_exist.json", _assigns) do
+    %{errors: %{detail: "Interface major not found"}}
+  end
+
+  def render("minor_version_not_increased.json", _assigns) do
+    %{errors: %{detail: "Interface minor version was not increased"}}
+  end
+
+  def render("invalid_update.json", _assigns) do
+    %{errors: %{detail: "Invalid update"}}
+  end
+
+  def render("downgrade_not_allowed.json", _assigns) do
+    %{errors: %{detail: "Interface downgrade not allowed"}}
+  end
+
+  def render("missing_endpoints.json", _assigns) do
+    %{errors: %{detail: "Interface update has missing endpoints"}}
+  end
+
+  def render("incompatible_endpoint_change.json", _assigns) do
+    %{errors: %{detail: "Interface update contains incompatible endpoint changes"}}
   end
 end

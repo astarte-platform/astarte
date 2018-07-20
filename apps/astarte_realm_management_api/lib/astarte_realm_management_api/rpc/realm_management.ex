@@ -46,10 +46,8 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.RealmManagement.API.AlreadyInstalledInterfaceError
   alias Astarte.RealmManagement.API.InterfaceNotFoundError
   alias Astarte.RealmManagement.API.RealmNotFoundError
-  alias Astarte.RealmManagement.API.InvalidInterfaceDocumentError
   alias Astarte.RealmManagement.API.Config
 
   @rpc_client Config.rpc_client()
@@ -284,17 +282,62 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     raise RealmNotFoundError
   end
 
+  # Install errors
+
   defp extract_error(
          {:generic_error_reply, %GenericErrorReply{error_name: "already_installed_interface"}}
        ) do
-    raise AlreadyInstalledInterfaceError
+    {:error, :already_installed_interface}
+  end
+
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "invalid_name_casing"}}
+       ) do
+    {:error, :invalid_name_casing}
   end
 
   defp extract_error(
          {:generic_error_reply, %GenericErrorReply{error_name: "invalid_interface_document"}}
        ) do
-    raise InvalidInterfaceDocumentError
+    {:error, :invalid_interface_document}
   end
+
+  # Update errors
+
+  defp extract_error(
+         {:generic_error_reply,
+          %GenericErrorReply{error_name: "interface_major_version_does_not_exist"}}
+       ) do
+    {:error, :interface_major_version_does_not_exist}
+  end
+
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "minor_version_not_increased"}}
+       ) do
+    {:error, :minor_version_not_increased}
+  end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "invalid_update"}}) do
+    {:error, :invalid_update}
+  end
+
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "downgrade_not_allowed"}}
+       ) do
+    {:error, :downgrade_not_allowed}
+  end
+
+  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "missing_endpoints"}}) do
+    {:error, :missing_endpoints}
+  end
+
+  defp extract_error(
+         {:generic_error_reply, %GenericErrorReply{error_name: "incompatible_endpoint_change"}}
+       ) do
+    {:error, :incompatible_endpoint_change}
+  end
+
+  # Trigger errors
 
   defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "trigger_not_found"}}) do
     {:error, :not_found}

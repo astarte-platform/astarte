@@ -14,11 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017-2018 Ispirata Srl
 #
 
 defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
   use Astarte.RealmManagement.APIWeb, :controller
+
+  alias Astarte.Core.Interface
+  alias Astarte.RealmManagement.API.Interfaces
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
@@ -29,45 +32,41 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     render(conn, "index.json", interfaces: interfaces)
   end
 
-  def create(conn, %{"realm_name" => realm_name, "data" => interface_source})
-      when is_map(interface_source) do
-    source_as_string = Poison.encode!(interface_source, pretty: true)
+  def create(conn, %{"realm_name" => realm_name, "data" => %{} = params}) do
+    with {:ok, %Interface{} = interface} <- Interfaces.create_interface(realm_name, params) do
+      location =
+        interface_path(
+          conn,
+          :show,
+          realm_name,
+          interface.name,
+          Integer.to_string(interface.major_version)
+        )
 
-    create(conn, %{"realm_name" => realm_name, "data" => source_as_string})
-  end
+      conn
+      |> put_resp_header("location", location)
+      |> send_resp(:created, "")
+    else
+      {:error, :already_installed_interface = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-  def create(conn, %{"realm_name" => realm_name, "data" => interface_source}) do
-    case Astarte.Core.InterfaceDocument.from_json(interface_source) do
-      :error ->
-        {:error, :invalid}
+      {:error, :invalid_name_casing = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-      {:ok, doc} ->
-        with {:ok, :started} <-
-               Astarte.RealmManagement.API.Interfaces.create_interface!(
-                 realm_name,
-                 interface_source
-               ) do
-          conn
-          |> put_resp_header(
-            "location",
-            interface_path(
-              conn,
-              :show,
-              realm_name,
-              doc.descriptor.name,
-              Integer.to_string(doc.descriptor.major_version)
-            )
-          )
-          |> send_resp(:created, "")
-        end
+      # Let FallbackController handle the rest
+      {:error, other} ->
+        {:error, other}
     end
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => id, "major_version" => major_version}) do
     {parsed_major, ""} = Integer.parse(major_version)
 
-    interface_source =
-      Astarte.RealmManagement.API.Interfaces.get_interface!(realm_name, id, parsed_major)
+    interface_source = Interfaces.get_interface!(realm_name, id, parsed_major)
 
     {:ok, decoded_json} = Poison.decode(interface_source)
     render(conn, "show.json", interface: decoded_json)
@@ -77,45 +76,61 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
         "realm_name" => realm_name,
         "id" => interface_name,
         "major_version" => major_version,
-        "data" => interface_source
-      })
-      when is_map(interface_source) do
-    source_as_string = Poison.encode!(interface_source, pretty: true)
-
-    update(conn, %{
-      "realm_name" => realm_name,
-      "id" => interface_name,
-      "major_version" => major_version,
-      "data" => source_as_string
-    })
-  end
-
-  def update(conn, %{
-        "realm_name" => realm_name,
-        "id" => interface_name,
-        "major_version" => major_version,
-        "data" => interface_source
+        "data" => %{} = params
       }) do
-    doc_result = Astarte.Core.InterfaceDocument.from_json(interface_source)
+    with {:major_parsing, {parsed_major, ""}} <- {:major_parsing, Integer.parse(major_version)},
+         {:ok, :started} <-
+           Interfaces.update_interface(realm_name, interface_name, parsed_major, params) do
+      send_resp(conn, :no_content, "")
+    else
+      {:major_parsing, _} ->
+        {:error, :invalid_major}
 
-    cond do
-      doc_result == :error ->
-        {:error, :invalid}
+      # API side errors
+      {:error, :name_not_matching = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-      elem(doc_result, 1).descriptor.name != interface_name ->
-        {:error, :conflict}
+      {:error, :major_version_not_matching = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
 
-      {elem(doc_result, 1).descriptor.major_version, ""} != Integer.parse(major_version) ->
-        {:error, :conflict}
+      # Backend side errors
+      {:error, :interface_major_version_does_not_exist = err_atom} ->
+        conn
+        |> put_status(:not_found)
+        |> render(err_atom)
 
-      true ->
-        with {:ok, :started} <-
-               Astarte.RealmManagement.API.Interfaces.update_interface!(
-                 realm_name,
-                 interface_source
-               ) do
-          send_resp(conn, :no_content, "")
-        end
+      {:error, :minor_version_not_increased = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :invalid_update = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :downgrade_not_allowed = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :missing_endpoints = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      {:error, :incompatible_endpoint_change = err_atom} ->
+        conn
+        |> put_status(:conflict)
+        |> render(err_atom)
+
+      # Let FallbackController handle the rest
+      {:error, other} ->
+        {:error, other}
     end
   end
 
@@ -127,7 +142,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
     {parsed_major, ""} = Integer.parse(major_version)
 
     with {:ok, :started} <-
-           Astarte.RealmManagement.API.Interfaces.delete_interface!(
+           Interfaces.delete_interface!(
              realm_name,
              interface_name,
              parsed_major

@@ -3,14 +3,19 @@ defmodule Astarte.RealmManagement.Mock do
     Call,
     GenericErrorReply,
     GenericOkReply,
+    GetInterfaceSource,
+    GetInterfaceSourceReply,
     GetInterfacesList,
     GetInterfacesListReply,
     GetJWTPublicKeyPEM,
     GetJWTPublicKeyPEMReply,
+    InstallInterface,
     Reply,
+    UpdateInterface,
     UpdateJWTPublicKeyPEM
   }
 
+  alias Astarte.Core.Interface
   alias Astarte.RealmManagement.API.Realms.Realm
   alias Astarte.RealmManagement.Mock.DB
 
@@ -44,6 +49,59 @@ defmodule Astarte.RealmManagement.Mock do
   end
 
   defp execute_rpc(
+         {:get_interface_source,
+          %GetInterfaceSource{
+            realm_name: realm_name,
+            interface_name: name,
+            interface_major_version: major
+          }}
+       ) do
+    source = DB.get_interface_source(realm_name, name, major)
+
+    %GetInterfaceSourceReply{source: source}
+    |> encode_reply(:get_interface_source_reply)
+    |> ok_wrap
+  end
+
+  defp execute_rpc(
+         {:install_interface,
+          %InstallInterface{realm_name: realm_name, interface_json: interface_json}}
+       ) do
+    {:ok, params} = Poison.decode(interface_json)
+
+    {:ok, interface} =
+      Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
+
+    with :ok <- DB.install_interface(realm_name, interface) do
+      generic_ok(true)
+      |> ok_wrap
+    else
+      {:error, reason} ->
+        generic_error(reason)
+        |> ok_wrap
+    end
+  end
+
+  defp execute_rpc(
+         {:update_interface,
+          %UpdateInterface{realm_name: realm_name, interface_json: interface_json}}
+       ) do
+    {:ok, params} = Poison.decode(interface_json)
+
+    {:ok, interface} =
+      Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
+
+    with :ok <- DB.update_interface(realm_name, interface) do
+      generic_ok(true)
+      |> ok_wrap
+    else
+      {:error, reason} ->
+        generic_error(reason)
+        |> ok_wrap
+    end
+  end
+
+  defp execute_rpc(
          {:update_jwt_public_key_pem,
           %UpdateJWTPublicKeyPEM{realm_name: realm_name, jwt_public_key_pem: pem}}
        ) do
@@ -53,18 +111,20 @@ defmodule Astarte.RealmManagement.Mock do
     |> ok_wrap
   end
 
-  defp generic_ok do
-    %GenericOkReply{async_operation: false}
+  defp generic_ok(async_operation \\ false) do
+    %GenericOkReply{async_operation: async_operation}
     |> encode_reply(:generic_ok_reply)
   end
 
   defp generic_error(error_name) do
     %GenericErrorReply{error_name: to_string(error_name)}
-    |> encode_reply(:generic_error_reply)
+    |> encode_reply(:generic_error_reply, error: true)
   end
 
-  defp encode_reply(reply, reply_type) do
-    %Reply{reply: {reply_type, reply}}
+  defp encode_reply(reply, reply_type, opts \\ []) do
+    error = Keyword.get(opts, :error, false)
+
+    %Reply{reply: {reply_type, reply}, error: error}
     |> Reply.encode()
   end
 
