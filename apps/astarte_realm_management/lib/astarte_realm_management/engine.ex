@@ -36,6 +36,8 @@ defmodule Astarte.RealmManagement.Engine do
   alias CQEx.Client, as: DatabaseClient
 
   def install_interface(realm_name, interface_json, opts \\ []) do
+    Logger.debug("Going to install a new interface on realm #{realm_name}.")
+
     with {:ok, client} <- Database.connect(realm_name),
          {:ok, json_obj} <- Poison.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
@@ -46,6 +48,8 @@ defmodule Astarte.RealmManagement.Engine do
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
          :ok <- Queries.check_correct_casing(client, name),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
+      Logger.info("Installing interface #{name} v#{Integer.to_string(major)} on #{realm_name}.")
+
       if opts[:async] do
         Task.start(Queries, :install_new_interface, [client, interface_doc, automaton])
 
@@ -80,6 +84,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def update_interface(realm_name, interface_json, opts \\ []) do
+    Logger.debug("Going to update an interface on realm #{realm_name}.")
+
     with {:ok, client} <- Database.connect(realm_name),
          {:ok, json_obj} <- Poison.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
@@ -94,6 +100,8 @@ defmodule Astarte.RealmManagement.Engine do
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
          {:ok, new_mappings} <- extract_new_mappings(client, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
+      Logger.info("Updating interface #{name} v#{Integer.to_string(major)} on #{realm_name}.")
+
       new_mappings_list = Map.values(new_mappings)
 
       interface_update =
@@ -253,6 +261,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do
+    Logger.debug("Going to delete #{name} v#{Integer.to_string(major)} on #{realm_name}.")
+
     with {:major, 0} <- {:major, major},
          {:ok, client} <- Database.connect(realm_name),
          {:major_is_avail, true} <-

@@ -242,6 +242,7 @@ defmodule Astarte.RealmManagement.Queries do
 
     {:ok, _} =
       if create_table_statement != "" do
+        Logger.debug("install_new_interface: creating new table.")
         DatabaseQuery.call(client, create_table_statement)
       else
         {:ok, nil}
