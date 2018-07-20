@@ -36,6 +36,10 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("interface_not_found.json", _assigns) do
+    %{errors: %{detail: "Interface not found"}}
+  end
+
   def render("invalid_major.json", _assigns) do
     %{errors: %{detail: "Invalid major version"}}
   end
