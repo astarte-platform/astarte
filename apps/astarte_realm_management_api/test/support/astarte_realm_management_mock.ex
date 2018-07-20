@@ -56,11 +56,14 @@ defmodule Astarte.RealmManagement.Mock do
             interface_major_version: major
           }}
        ) do
-    source = DB.get_interface_source(realm_name, name, major)
-
-    %GetInterfaceSourceReply{source: source}
-    |> encode_reply(:get_interface_source_reply)
-    |> ok_wrap
+    if source = DB.get_interface_source(realm_name, name, major) do
+      %GetInterfaceSourceReply{source: source}
+      |> encode_reply(:get_interface_source_reply)
+      |> ok_wrap
+    else
+      generic_error(:interface_not_found)
+      |> ok_wrap
+    end
   end
 
   defp execute_rpc(
