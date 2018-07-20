@@ -48,206 +48,229 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.API.Config
 
+  require Logger
+
   @rpc_client Config.rpc_client()
   @destination Astarte.RPC.Protocol.RealmManagement.amqp_queue()
 
   def get_interface_versions_list(realm_name, interface_name) do
-    {:ok, payload} =
-      %GetInterfaceVersionsList{
-        realm_name: realm_name,
-        interface_name: interface_name
-      }
-      |> encode_and_call(:get_interface_versions_list)
-
-    payload_to_result(payload)
+    %GetInterfaceVersionsList{
+      realm_name: realm_name,
+      interface_name: interface_name
+    }
+    |> encode_call(:get_interface_versions_list)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def get_interfaces_list(realm_name) do
-    {:ok, payload} =
-      %GetInterfacesList{
-        realm_name: realm_name
-      }
-      |> encode_and_call(:get_interfaces_list)
-
-    payload_to_result(payload)
+    %GetInterfacesList{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_interfaces_list)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def get_interface(realm_name, interface_name, interface_major_version) do
-    {:ok, payload} =
-      %GetInterfaceSource{
-        realm_name: realm_name,
-        interface_name: interface_name,
-        interface_major_version: interface_major_version
-      }
-      |> encode_and_call(:get_interface_source)
-
-    payload_to_result(payload)
+    %GetInterfaceSource{
+      realm_name: realm_name,
+      interface_name: interface_name,
+      interface_major_version: interface_major_version
+    }
+    |> encode_call(:get_interface_source)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def install_interface(realm_name, interface_json) do
-    {:ok, payload} =
-      %InstallInterface{
-        realm_name: realm_name,
-        interface_json: interface_json,
-        async_operation: true
-      }
-      |> encode_and_call(:install_interface)
-
-    payload_to_result(payload)
+    %InstallInterface{
+      realm_name: realm_name,
+      interface_json: interface_json,
+      async_operation: true
+    }
+    |> encode_call(:install_interface)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def update_interface(realm_name, interface_json) do
-    {:ok, payload} =
-      %UpdateInterface{
-        realm_name: realm_name,
-        interface_json: interface_json,
-        async_operation: true
-      }
-      |> encode_and_call(:update_interface)
-
-    payload_to_result(payload)
+    %UpdateInterface{
+      realm_name: realm_name,
+      interface_json: interface_json,
+      async_operation: true
+    }
+    |> encode_call(:update_interface)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def delete_interface(realm_name, interface_name, interface_major_version) do
-    {:ok, payload} =
-      %DeleteInterface{
-        realm_name: realm_name,
-        interface_name: interface_name,
-        interface_major_version: interface_major_version,
-        async_operation: true
-      }
-      |> encode_and_call(:delete_interface)
-
-    payload_to_result(payload)
+    %DeleteInterface{
+      realm_name: realm_name,
+      interface_name: interface_name,
+      interface_major_version: interface_major_version,
+      async_operation: true
+    }
+    |> encode_call(:delete_interface)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def get_jwt_public_key_pem(realm_name) do
-    {:ok, payload} =
-      %GetJWTPublicKeyPEM{
-        realm_name: realm_name
-      }
-      |> encode_and_call(:get_jwt_public_key_pem)
-
-    payload_to_result(payload)
+    %GetJWTPublicKeyPEM{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_jwt_public_key_pem)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
-    {:ok, payload} =
-      %UpdateJWTPublicKeyPEM{
-        realm_name: realm_name,
-        jwt_public_key_pem: jwt_public_key_pem
-      }
-      |> encode_and_call(:update_jwt_public_key_pem)
-
-    payload_to_result(payload)
+    %UpdateJWTPublicKeyPEM{
+      realm_name: realm_name,
+      jwt_public_key_pem: jwt_public_key_pem
+    }
+    |> encode_call(:update_jwt_public_key_pem)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def install_trigger(realm_name, trigger_name, action, tagged_simple_triggers) do
     serialized_tagged_simple_triggers =
       Enum.map(tagged_simple_triggers, &TaggedSimpleTrigger.encode/1)
 
-    {:ok, payload} =
-      %InstallTrigger{
-        realm_name: realm_name,
-        trigger_name: trigger_name,
-        action: action,
-        serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
-      }
-      |> encode_and_call(:install_trigger)
-
-    payload_to_result(payload)
+    %InstallTrigger{
+      realm_name: realm_name,
+      trigger_name: trigger_name,
+      action: action,
+      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+    }
+    |> encode_call(:install_trigger)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def get_trigger(realm_name, trigger_name) do
-    {:ok, payload} =
-      %GetTrigger{
-        realm_name: realm_name,
-        trigger_name: trigger_name
-      }
-      |> encode_and_call(:get_trigger)
-
-    payload_to_result(payload)
+    %GetTrigger{
+      realm_name: realm_name,
+      trigger_name: trigger_name
+    }
+    |> encode_call(:get_trigger)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def get_triggers_list(realm_name) do
-    {:ok, payload} =
-      %GetTriggersList{
-        realm_name: realm_name
-      }
-      |> encode_and_call(:get_triggers_list)
-
-    payload_to_result(payload)
+    %GetTriggersList{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_triggers_list)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def delete_trigger(realm_name, trigger_name) do
-    {:ok, payload} =
-      %DeleteTrigger{
-        realm_name: realm_name,
-        trigger_name: trigger_name
-      }
-      |> encode_and_call(:delete_trigger)
-
-    payload_to_result(payload)
-  end
-
-  defp encode_and_call(call, call_name) do
-    %Call{
-      call: {call_name, call}
+    %DeleteTrigger{
+      realm_name: realm_name,
+      trigger_name: trigger_name
     }
-    |> Call.encode()
+    |> encode_call(:delete_trigger)
     |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
-  defp payload_to_result(payload) do
-    Reply.decode(payload)
-    |> unpack_reply
+  defp encode_call(call, callname) do
+    %Call{call: {callname, call}}
+    |> Call.encode()
   end
 
-  defp unpack_reply(%Reply{error: false, reply: reply}) do
-    extract_result(reply)
+  defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
+    %Reply{reply: reply} = Reply.decode(encoded_reply)
+    reply
   end
 
-  defp unpack_reply(%Reply{error: true, reply: reply}) do
-    extract_error(reply)
+  defp decode_reply({:error, reason}) do
+    {:error, reason}
   end
 
-  defp extract_result({:generic_ok_reply, %GenericOkReply{async_operation: true}}) do
-    {:ok, :started}
+  defp extract_reply({:generic_ok_reply, %GenericOkReply{async_operation: async}}) do
+    if async do
+      {:ok, :started}
+    else
+      :ok
+    end
   end
 
-  defp extract_result({:generic_ok_reply, _generic_reply}) do
-    :ok
+  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: name}}) do
+    try do
+      reason = String.to_existing_atom(name)
+      {:error, reason}
+    rescue
+      ArgumentError ->
+        Logger.warn("Received unknown error: #{inspect(name)}")
+        {:error, :unknown}
+    end
   end
 
-  defp extract_result({:get_interface_versions_list_reply, get_interface_versions_list_reply}) do
+  defp extract_reply(
+         {:get_interface_versions_list_reply, %GetInterfaceVersionsListReply{versions: versions}}
+       ) do
     result =
-      for version <- get_interface_versions_list_reply.versions do
-        [major_version: version.major_version, minor_version: version.minor_version]
+      for version <- versions do
+        %GetInterfaceVersionsListReplyVersionTuple{
+          major_version: major_version,
+          minor_version: minor_version
+        } = version
+
+        [major_version: major_version, minor_version: minor_version]
       end
 
     {:ok, result}
   end
 
-  defp extract_result({:get_interfaces_list_reply, get_interfaces_list_reply}) do
-    {:ok, get_interfaces_list_reply.interfaces_names}
+  defp extract_reply(
+         {:get_interfaces_list_reply, %GetInterfacesListReply{interfaces_names: list}}
+       ) do
+    {:ok, list}
   end
 
-  defp extract_result({:get_interface_source_reply, get_interface_source_reply}) do
-    {:ok, get_interface_source_reply.source}
+  defp extract_reply({:get_interface_source_reply, %GetInterfaceSourceReply{source: source}}) do
+    {:ok, source}
   end
 
-  defp extract_result({:get_jwt_public_key_pem_reply, get_jwt_public_key_pem_reply}) do
-    {:ok, get_jwt_public_key_pem_reply.jwt_public_key_pem}
+  defp extract_reply(
+         {:get_jwt_public_key_pem_reply, %GetJWTPublicKeyPEMReply{jwt_public_key_pem: pem}}
+       ) do
+    {:ok, pem}
   end
 
-  defp extract_result({:get_trigger_reply, get_trigger_reply}) do
+  defp extract_reply(
+         {:get_trigger_reply,
+          %GetTriggerReply{
+            trigger_data: trigger_data,
+            serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+          }}
+       ) do
     %Trigger{
       name: trigger_name,
       action: trigger_action
-    } = Trigger.decode(get_trigger_reply.trigger_data)
+    } = Trigger.decode(trigger_data)
 
     tagged_simple_triggers =
-      for serialized_tagged_simple_trigger <- get_trigger_reply.serialized_tagged_simple_triggers do
+      for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
         TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
       end
 
@@ -261,97 +284,7 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     }
   end
 
-  defp extract_result({:get_triggers_list_reply, get_triggers_list_reply}) do
-    {:ok, get_triggers_list_reply.triggers_names}
-  end
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "public_key_not_found"}}
-       ) do
-    {:error, :public_key_not_found}
-  end
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "interface_not_found"}}
-       ) do
-    {:error, :interface_not_found}
-  end
-
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
-    {:error, :realm_not_found}
-  end
-
-  # Install errors
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "already_installed_interface"}}
-       ) do
-    {:error, :already_installed_interface}
-  end
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "invalid_name_casing"}}
-       ) do
-    {:error, :invalid_name_casing}
-  end
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "invalid_interface_document"}}
-       ) do
-    {:error, :invalid_interface_document}
-  end
-
-  # Update errors
-
-  defp extract_error(
-         {:generic_error_reply,
-          %GenericErrorReply{error_name: "interface_major_version_does_not_exist"}}
-       ) do
-    {:error, :interface_major_version_does_not_exist}
-  end
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "minor_version_not_increased"}}
-       ) do
-    {:error, :minor_version_not_increased}
-  end
-
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "invalid_update"}}) do
-    {:error, :invalid_update}
-  end
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "downgrade_not_allowed"}}
-       ) do
-    {:error, :downgrade_not_allowed}
-  end
-
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "missing_endpoints"}}) do
-    {:error, :missing_endpoints}
-  end
-
-  defp extract_error(
-         {:generic_error_reply, %GenericErrorReply{error_name: "incompatible_endpoint_change"}}
-       ) do
-    {:error, :incompatible_endpoint_change}
-  end
-
-  # Delete errors
-
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "forbidden"}}) do
-    {:error, :forbidden}
-  end
-
-  defp extract_error(
-         {:generic_error_reply,
-          %GenericErrorReply{error_name: "cannot_delete_currently_used_interface"}}
-       ) do
-    {:error, :cannot_delete_currently_used_interface}
-  end
-
-  # Trigger errors
-
-  defp extract_error({:generic_error_reply, %GenericErrorReply{error_name: "trigger_not_found"}}) do
-    {:error, :not_found}
+  defp extract_reply({:get_triggers_list_reply, %GetTriggersListReply{triggers_names: triggers}}) do
+    {:ok, triggers}
   end
 end
