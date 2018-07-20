@@ -84,7 +84,7 @@ defmodule Astarte.Housekeeping.Queries do
         interface_type int,
         endpoint ascii,
         value_type int,
-        reliabilty int,
+        reliability int,
         retention int,
         expiry int,
         allow_unset boolean,
