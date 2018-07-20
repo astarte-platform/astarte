@@ -15,6 +15,9 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
 
   use ExUnit.CaseTemplate
 
+  alias Astarte.RealmManagement.Mock
+  alias Astarte.RealmManagement.API.JWTTestHelper
+
   using do
     quote do
       # Import conveniences for testing with connections
@@ -27,11 +30,15 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
   end
 
   setup _tags do
+    on_exit(fn ->
+      Mock.DB.drop_interfaces()
+    end)
+
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 
   setup_all do
-    Astarte.RealmManagement.Mock.DB.start_link()
+    Mock.DB.start_link()
     :ok
   end
 end
