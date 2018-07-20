@@ -8,6 +8,8 @@ import Ports
 import Navigation exposing (Location)
 import Json.Decode as Decode exposing (at, string, Value)
 import Json.Encode as Encode
+import Task
+import Time exposing (Time)
 
 
 -- Types
@@ -141,6 +143,8 @@ type Msg
     | RealmSettingsMsg RealmSettings.Msg
     | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
+    | NewFlashMessage Severity String Time
+    | ClearOldFlashMessages Time
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -170,6 +174,46 @@ update msg model =
             , Cmd.none
             )
 
+        NewFlashMessage severity message createdAt ->
+            let
+                displayTime =
+                    case severity of
+                        FlashMessage.Notice ->
+                            3 * Time.second
+
+                        FlashMessage.Warning ->
+                            6 * Time.second
+
+                        FlashMessage.Error ->
+                            10 * Time.second
+
+                        FlashMessage.Fatal ->
+                            24 * Time.hour
+
+                dismissAt =
+                    createdAt + displayTime
+
+                newFlashMessage =
+                    FlashMessage.new model.messageCounter message severity dismissAt
+            in
+                ( { model
+                    | flashMessages = newFlashMessage :: model.flashMessages
+                    , messageCounter = model.messageCounter + 1
+                  }
+                , Cmd.none
+                )
+
+        ClearOldFlashMessages now ->
+            let
+                filteredMessages =
+                    List.filter
+                        (\m -> m.dismissAt > now)
+                        model.flashMessages
+            in
+                ( { model | flashMessages = filteredMessages }
+                , Cmd.none
+                )
+
         -- Page specific messages
         _ ->
             updatePage model.selectedPage msg model
@@ -193,11 +237,14 @@ updatePublicPage publicPage msg model =
                 ( newModel, pageCommand, externalMsg ) =
                     Login.update model.session subMsg subModel
 
-                updatedModel =
+                ( updatedModel, newCommands ) =
                     handleExternalMessage model externalMsg
             in
                 ( { updatedModel | selectedPage = Public (LoginPage newModel) }
-                , Cmd.map LoginMsg pageCommand
+                , Cmd.batch
+                    [ newCommands
+                    , Cmd.map LoginMsg pageCommand
+                    ]
                 )
 
         -- Ignore messages from not matching pages
@@ -231,11 +278,11 @@ updateRealmPage realm realmPage msg model =
                 ( _, _ ) ->
                     ( model.selectedPage, Cmd.none, Noop )
 
-        updatedModel =
+        ( updatedModel, newCommands ) =
             handleExternalMessage model externalMsg
     in
         ( { updatedModel | selectedPage = page }
-        , command
+        , Cmd.batch [ newCommands, command ]
         )
 
 
@@ -247,24 +294,23 @@ updateRealmPageHelper realm ( newSubModel, pageCommand, msg ) subMsgTagger pageT
     )
 
 
-handleExternalMessage : Model -> ExternalMsg -> Model
+handleExternalMessage : Model -> ExternalMsg -> ( Model, Cmd Msg )
 handleExternalMessage model externalMsg =
     case externalMsg of
         Noop ->
-            model
+            ( model
+            , Cmd.none
+            )
 
         AddFlashMessage severity message ->
-            let
-                newFlashMessage =
-                    FlashMessage.new model.messageCounter message severity
-            in
-                { model
-                    | flashMessages = model.flashMessages ++ [ newFlashMessage ]
-                    , messageCounter = model.messageCounter + 1
-                }
+            ( model
+            , Task.perform (NewFlashMessage severity message) Time.now
+            )
 
         DismissFlashMessage messageId ->
-            { model | flashMessages = List.filter (\message -> message.id /= messageId) model.flashMessages }
+            ( { model | flashMessages = List.filter (\message -> message.id /= messageId) model.flashMessages }
+            , Cmd.none
+            )
 
 
 pageInit : RealmRoute -> Credentials -> Config -> Session -> ( Page, Cmd Msg )
@@ -678,6 +724,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Navbar.subscriptions model.navbarState NavbarMsg
+        , Time.every Time.second ClearOldFlashMessages
         , Sub.map UpdateSession sessionChange
         , pageSubscriptions model.selectedPage
         ]
