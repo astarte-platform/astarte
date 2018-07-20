@@ -88,6 +88,7 @@ defmodule Astarte.Housekeeping.Queries do
         retention int,
         expiry int,
         allow_unset boolean,
+        explicit_timestamp boolean,
         description varchar,
         doc varchar,
 
