@@ -1,5 +1,5 @@
 %{
-  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "4e02cc4057642e8d42b8c7d69532bd2e1eb4e2c6", []},
+  "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "5510cd01113d92c6af1c1019b48537a0ed23ac5b", []},
   "certifi": {:hex, :certifi, "2.3.1", "d0f424232390bf47d82da8478022301c561cf6445b5b5fb6a84d49a9e76d2639", [:rebar3], [{:parse_trans, "3.2.0", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
   "cqerl": {:git, "https://github.com/matehat/cqerl.git", "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", [ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9"]},
