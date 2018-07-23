@@ -1,4 +1,4 @@
-module Page.TriggerBuilder exposing (Model, Msg, init, update, view)
+module Page.TriggerBuilder exposing (Model, Msg, init, update, view, subscriptions)
 
 import Regex exposing (regex)
 import Html exposing (..)
@@ -9,6 +9,7 @@ import Task
 import Time
 import Control exposing (Control)
 import Control.Debounce as Debounce
+import Spinner
 
 
 -- Types
@@ -58,6 +59,8 @@ type alias Model =
     , sourceBuffer : String
     , sourceBufferStatus : BufferStatus
     , debouncerControlState : Control.State Msg
+    , spinner : Spinner.Model
+    , showSpinner : Bool
 
     -- decoupled types
     , selectedInterfaceName : String
@@ -91,6 +94,8 @@ init maybeTriggerName session =
       , sourceBufferStatus = Valid
       , debouncerControlState = Control.initialState
       , deleteModalVisibility = Modal.hidden
+      , spinner = Spinner.init
+      , showSpinner = True
       }
     , case maybeTriggerName of
         Just name ->
@@ -154,6 +159,8 @@ type Msg
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
     | UpdateConfirmTriggerName String
+      -- spinner
+    | SpinnerMsg Spinner.Msg
 
 
 debounce : Msg -> Msg
@@ -207,7 +214,10 @@ update session msg model =
                     )
 
         GetInterfaceListDone interfaces ->
-            ( { model | interfaces = interfaces }
+            ( { model
+                | interfaces = interfaces
+                , showSpinner = False
+              }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -279,7 +289,7 @@ update session msg model =
             )
 
         ShowError actionError errorMessage ->
-            ( model
+            ( { model | showSpinner = False }
             , Cmd.none
             , [ actionError, " ", errorMessage ]
                 |> String.concat
@@ -771,6 +781,12 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        SpinnerMsg msg ->
+            ( { model | spinner = Spinner.update msg model.spinner }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 matchPath : String -> List InterfaceMapping -> Maybe InterfaceMapping.MappingType
 matchPath path mappings =
@@ -842,6 +858,10 @@ view model flashMessages =
                 ]
                 [ renderTriggerSource model.trigger model.sourceBuffer model.sourceBufferStatus ]
             ]
+        , if model.showSpinner then
+            Spinner.view Spinner.defaultConfig model.spinner
+          else
+            text ""
         , Grid.row []
             [ Grid.col [ Col.sm12 ]
                 [ renderDeleteTriggerModal model ]
@@ -1440,3 +1460,11 @@ renderOption optionValue isSelected optionLabel =
         , selected isSelected
         ]
         [ text optionLabel ]
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    if model.showSpinner then
+        Sub.map SpinnerMsg Spinner.subscription
+    else
+        Sub.none

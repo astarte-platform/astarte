@@ -739,6 +739,12 @@ pageSubscriptions page =
         Realm _ (InterfacesPage submodel) ->
             Sub.map InterfacesMsg <| Interfaces.subscriptions submodel
 
+        Realm _ (TriggerBuilderPage submodel) ->
+            Sub.map TriggerBuilderMsg <| TriggerBuilder.subscriptions submodel
+
+        Realm _ (TriggersPage submodel) ->
+            Sub.map TriggersMsg <| Triggers.subscriptions submodel
+
         _ ->
             Sub.none
 

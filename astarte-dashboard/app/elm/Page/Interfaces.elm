@@ -6,6 +6,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
 import Json.Decode as Decode
+import Spinner
 
 
 -- Types
@@ -39,6 +40,8 @@ import Bootstrap.Utilities.Spacing as Spacing
 type alias Model =
     { interfaces : Dict String (List Int)
     , accordionState : Accordion.State
+    , spinner : Spinner.Model
+    , showSpinner : Bool
     }
 
 
@@ -46,6 +49,8 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { interfaces = Dict.empty
       , accordionState = Accordion.initialState
+      , spinner = Spinner.init
+      , showSpinner = True
       }
     , AstarteApi.listInterfaces session
         GetInterfaceListDone
@@ -66,13 +71,15 @@ type Msg
     | RedirectToLogin
       -- accordion
     | AccordionMsg Accordion.State
+      -- spinner
+    | SpinnerMsg Spinner.Msg
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
         GetInterfaceList ->
-            ( model
+            ( { model | showSpinner = True }
             , AstarteApi.listInterfaces session
                 GetInterfaceListDone
                 (ShowError "Cannot retrieve interfaces.")
@@ -86,6 +93,7 @@ update session msg model =
                     interfaces
                         |> List.map (\x -> ( x, [] ))
                         |> Dict.fromList
+                , showSpinner = not (List.isEmpty interfaces)
               }
             , interfaces
                 |> List.map (\name -> getInterfaceMajorsHelper name session)
@@ -106,6 +114,7 @@ update session msg model =
                         interfaceName
                         (\_ -> Just <| List.reverse majors)
                         model.interfaces
+                , showSpinner = False
               }
             , Cmd.none
             , ExternalMsg.Noop
@@ -124,7 +133,7 @@ update session msg model =
             )
 
         ShowError actionError errorMessage ->
-            ( model
+            ( { model | showSpinner = False }
             , Cmd.none
             , [ actionError, " ", errorMessage ]
                 |> String.concat
@@ -145,6 +154,12 @@ update session msg model =
 
         AccordionMsg state ->
             ( { model | accordionState = state }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        SpinnerMsg msg ->
+            ( { model | spinner = Spinner.update msg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -171,6 +186,10 @@ view model flashMessages =
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
+        , if model.showSpinner then
+            Spinner.view Spinner.defaultConfig model.spinner
+          else
+            text ""
         , Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
@@ -268,4 +287,10 @@ renderMajor interfaceName major =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Accordion.subscriptions model.accordionState AccordionMsg
+    if model.showSpinner then
+        Sub.batch
+            [ Accordion.subscriptions model.accordionState AccordionMsg
+            , Sub.map SpinnerMsg Spinner.subscription
+            ]
+    else
+        Accordion.subscriptions model.accordionState AccordionMsg

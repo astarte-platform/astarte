@@ -10,6 +10,7 @@ import Task
 import Time
 import Control exposing (Control)
 import Control.Debounce as Debounce
+import Spinner
 
 
 -- Types
@@ -61,6 +62,8 @@ type alias Model =
     , sourceBufferStatus : BufferStatus
     , debouncerControlState : Control.State Msg
     , accordionState : Accordion.State
+    , spinner : Spinner.Model
+    , showSpinner : Bool
 
     -- common mappings settings
     , objectReliability : InterfaceMapping.Reliability
@@ -81,35 +84,45 @@ type BufferStatus
 
 init : Maybe ( String, Int ) -> Session -> ( Model, Cmd Msg )
 init maybeInterfaceId session =
-    ( { interface = Interface.empty
-      , interfaceEditMode = False
-      , minMinor = 0
-      , objectReliability = InterfaceMapping.Unreliable
-      , objectRetention = InterfaceMapping.Discard
-      , objectExpiry = 0
-      , objectExplicitTimestamp = False
-      , deleteModalVisibility = Modal.hidden
-      , confirmModalVisibility = Modal.hidden
-      , confirmInterfaceName = ""
-      , showSource = True
-      , sourceBuffer = Interface.toPrettySource Interface.empty
-      , sourceBufferStatus = Valid
-      , debouncerControlState = Control.initialState
-      , accordionState = Accordion.initialState
-      , mappingBuilderModel = MappingBuilder.empty
-      }
-    , case maybeInterfaceId of
-        Just ( name, major ) ->
-            AstarteApi.getInterface name
-                major
-                session
-                GetInterfaceDone
-                (ShowError "Cannot retrieve interface.")
-                RedirectToLogin
+    let
+        ( showSpinner, initialCommand ) =
+            case maybeInterfaceId of
+                Just ( name, major ) ->
+                    ( True
+                    , AstarteApi.getInterface name
+                        major
+                        session
+                        GetInterfaceDone
+                        (ShowError "Cannot retrieve interface.")
+                        RedirectToLogin
+                    )
 
-        Nothing ->
-            Cmd.none
-    )
+                Nothing ->
+                    ( False
+                    , Cmd.none
+                    )
+    in
+        ( { interface = Interface.empty
+          , interfaceEditMode = False
+          , minMinor = 0
+          , objectReliability = InterfaceMapping.Unreliable
+          , objectRetention = InterfaceMapping.Discard
+          , objectExpiry = 0
+          , objectExplicitTimestamp = False
+          , deleteModalVisibility = Modal.hidden
+          , confirmModalVisibility = Modal.hidden
+          , confirmInterfaceName = ""
+          , showSource = True
+          , sourceBuffer = Interface.toPrettySource Interface.empty
+          , sourceBufferStatus = Valid
+          , debouncerControlState = Control.initialState
+          , accordionState = Accordion.initialState
+          , spinner = Spinner.init
+          , showSpinner = showSpinner
+          , mappingBuilderModel = MappingBuilder.empty
+          }
+        , initialCommand
+        )
 
 
 debounce : Msg -> Msg
@@ -163,6 +176,8 @@ type Msg
     | ShowEditMappingModal InterfaceMapping
       -- accordion
     | AccordionMsg Accordion.State
+      -- spinner
+    | SpinnerMsg Spinner.Msg
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -213,6 +228,7 @@ update session msg model =
                     , objectRetention = objectRetention
                     , objectExpiry = objectExpiry
                     , objectExplicitTimestamp = objectExplicitTimestamp
+                    , showSpinner = False
                   }
                 , Cmd.none
                 , ExternalMsg.Noop
@@ -323,7 +339,7 @@ update session msg model =
                     )
 
         ShowError actionError errorMessage ->
-            ( model
+            ( { model | showSpinner = False }
             , Cmd.none
             , [ actionError, " ", errorMessage ]
                 |> String.concat
@@ -758,6 +774,12 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        SpinnerMsg msg ->
+            ( { model | spinner = Spinner.update msg model.spinner }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 handleMappingBuilderMessages : MappingBuilder.Msg -> Model -> Model
 handleMappingBuilderMessages message model =
@@ -833,6 +855,10 @@ view model flashMessages =
                 , Html.map MappingBuilderMsg <| MappingBuilder.view model.mappingBuilderModel
                 ]
             ]
+        , if model.showSpinner then
+            Spinner.view Spinner.defaultConfig model.spinner
+          else
+            text ""
         ]
 
 
@@ -1387,4 +1413,10 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Accordion.subscriptions model.accordionState AccordionMsg
+    if model.showSpinner then
+        Sub.batch
+            [ Accordion.subscriptions model.accordionState AccordionMsg
+            , Sub.map SpinnerMsg Spinner.subscription
+            ]
+    else
+        Accordion.subscriptions model.accordionState AccordionMsg
