@@ -26,6 +26,8 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     DeleteTrigger,
     GenericErrorReply,
     GenericOkReply,
+    GetHealth,
+    GetHealthReply,
     GetInterfacesList,
     GetInterfacesListReply,
     GetInterfaceSource,
@@ -50,6 +52,22 @@ defmodule Astarte.RealmManagement.RPC.Handler do
   alias Astarte.RealmManagement.Engine
 
   require Logger
+
+  def get_health(:get_health, {:ok, %{status: status}}) do
+    protobuf_status =
+      case status do
+        :ready -> :READY
+        :degraded -> :DEGRADED
+        :bad -> :BAD
+        :error -> :ERROR
+      end
+
+    msg = %GetHealthReply{
+      status: protobuf_status
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_health_reply, msg}})}
+  end
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
     msg = %GetInterfaceSourceReply{
@@ -155,6 +173,9 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     case Call.decode(payload) do
       %Call{call: call_tuple} when call_tuple != nil ->
         case call_tuple do
+          {:get_health, %GetHealth{}} ->
+            encode_reply(:get_health, Engine.get_health())
+
           {:install_interface,
            %InstallInterface{
              realm_name: realm_name,

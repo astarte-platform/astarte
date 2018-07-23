@@ -197,6 +197,33 @@ defmodule Astarte.RealmManagement.Queries do
     end)
   end
 
+  def check_astarte_health(client, consistency) do
+    realms_count_statement = """
+    SELECT COUNT(*)
+    FROM astarte.realms
+    """
+
+    realms_count_statement =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(realms_count_statement)
+      |> DatabaseQuery.consistency(consistency)
+
+    with {:ok, result} <- DatabaseQuery.call(client, realms_count_statement),
+         [count: _count] <- DatabaseResult.head(result) do
+      :ok
+    else
+      %{acc: _, msg: err_msg} ->
+        Logger.warn("Health is not good: #{err_msg}")
+
+        {:error, :health_check_bad}
+
+      {:error, err} ->
+        Logger.warn("Health is not good, reason: #{inspect(err)}.")
+
+        {:error, :health_check_bad}
+    end
+  end
+
   def install_new_interface(client, interface_document, automaton) do
     interface_descriptor = InterfaceDescriptor.from_interface(interface_document)
 
