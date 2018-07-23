@@ -8,6 +8,9 @@ defmodule Astarte.RealmManagement.Mock do
     GetInterfaceSourceReply,
     GetInterfacesList,
     GetInterfacesListReply,
+    GetInterfaceVersionsList,
+    GetInterfaceVersionsListReply,
+    GetInterfaceVersionsListReplyVersionTuple,
     GetJWTPublicKeyPEM,
     GetJWTPublicKeyPEMReply,
     InstallInterface,
@@ -57,6 +60,22 @@ defmodule Astarte.RealmManagement.Mock do
 
     %GetInterfacesListReply{interfaces_names: list}
     |> encode_reply(:get_interfaces_list_reply)
+    |> ok_wrap
+  end
+
+  defp execute_rpc({:get_interface_versions_list, %GetInterfaceVersionsList{realm_name: realm_name, interface_name: name}}) do
+    list = DB.get_interface_versions_list(realm_name, name)
+
+    versions =
+      for el <- list do
+        %GetInterfaceVersionsListReplyVersionTuple{
+          major_version: el[:major_version],
+          minor_version: el[:minor_version]
+        }
+      end
+
+    %GetInterfaceVersionsListReply{versions: versions}
+    |> encode_reply(:get_interface_versions_list_reply)
     |> ok_wrap
   end
 
