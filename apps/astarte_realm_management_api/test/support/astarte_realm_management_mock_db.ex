@@ -31,6 +31,23 @@ defmodule Astarte.RealmManagement.Mock.DB do
     end)
   end
 
+  def get_interface_versions_list(realm, name) do
+    Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
+      keys = Map.keys(interfaces)
+
+      majors =
+        for {^realm, ^name, major} <- keys do
+          major
+        end
+
+      versions =
+        for major <- majors do
+          %Interface{minor_version: minor} = Map.get(interfaces, {realm, name, major})
+          [major_version: major, minor_version: minor]
+        end
+    end)
+  end
+
   def get_interface_source(realm, name, major) do
     if interface = get_interface(realm, name, major) do
       Poison.encode!(interface)
