@@ -1,10 +1,11 @@
-module Page.Interfaces exposing (Model, Msg, init, update, view)
+module Page.Interfaces exposing (Model, Msg, init, update, view, subscriptions)
 
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
+import Json.Decode as Decode
 
 
 -- Types
@@ -20,25 +21,31 @@ import Types.FlashMessageHelpers as FlashMessageHelpers
 
 -- bootstrap components
 
+import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.ButtonGroup as ButtonGroup exposing (LinkButtonItem)
+import Bootstrap.Card as Card
+import Bootstrap.Card.Block as Block
 import Bootstrap.Form as Form
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Utilities.Size as Size
+import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 
 
 type alias Model =
     { interfaces : Dict String (List Int)
+    , accordionState : Accordion.State
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { interfaces = Dict.empty
+      , accordionState = Accordion.initialState
       }
     , AstarteApi.listInterfaces session
         GetInterfaceListDone
@@ -57,6 +64,8 @@ type Msg
     | Forward ExternalMsg
     | ShowError String String
     | RedirectToLogin
+      -- accordion
+    | AccordionMsg Accordion.State
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -78,22 +87,26 @@ update session msg model =
                         |> List.map (\x -> ( x, [] ))
                         |> Dict.fromList
               }
-            , Cmd.none
+            , interfaces
+                |> List.map (\name -> getInterfaceMajorsHelper name session)
+                |> Cmd.batch
             , ExternalMsg.Noop
             )
 
         GetInterfaceMajors interfaceName ->
             ( model
-            , AstarteApi.listInterfaceMajors interfaceName
-                session
-                (GetInterfaceMajorsDone interfaceName)
-                (ShowError <| String.concat [ "Cannot retrieve major versions for ", interfaceName, " interface." ])
-                RedirectToLogin
+            , getInterfaceMajorsHelper interfaceName session
             , ExternalMsg.Noop
             )
 
         GetInterfaceMajorsDone interfaceName majors ->
-            ( { model | interfaces = Dict.update interfaceName (\_ -> Just majors) model.interfaces }
+            ( { model
+                | interfaces =
+                    Dict.update
+                        interfaceName
+                        (\_ -> Just <| List.reverse majors)
+                        model.interfaces
+              }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -130,6 +143,21 @@ update session msg model =
             , msg
             )
 
+        AccordionMsg state ->
+            ( { model | accordionState = state }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+
+getInterfaceMajorsHelper : String -> Session -> Cmd Msg
+getInterfaceMajorsHelper interfaceName session =
+    AstarteApi.listInterfaceMajors interfaceName
+        session
+        (GetInterfaceMajorsDone interfaceName)
+        (ShowError <| String.concat [ "Cannot retrieve major versions for ", interfaceName, " interface." ])
+        RedirectToLogin
+
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
@@ -144,61 +172,100 @@ view model flashMessages =
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row
-            [ Row.middleSm
-            , Row.topSm
-            ]
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ ListGroup.ul <| renderInterfaces model.interfaces
-                , Button.button
-                    [ Button.primary
-                    , Button.onClick GetInterfaceList
-                    , Button.attrs [ Spacing.mt2, Spacing.mr1 ]
+                [ h5 [ Display.inline ]
+                    [ if Dict.isEmpty model.interfaces then
+                        text "No interfaces installed"
+                      else
+                        text "Interfaces"
                     ]
-                    [ text "Reload" ]
                 , Button.button
                     [ Button.primary
                     , Button.onClick OpenInterfaceBuilder
-                    , Button.attrs [ Spacing.mt2 ]
+                    , Button.attrs [ class "float-right" ]
                     ]
                     [ text "Install a New Interface ..." ]
+                , Button.button
+                    [ Button.primary
+                    , Button.onClick GetInterfaceList
+                    , Button.attrs [ class "float-right", Spacing.mr1 ]
+                    ]
+                    [ text "Reload" ]
+                ]
+            ]
+        , Grid.row []
+            [ Grid.col
+                [ Col.sm12 ]
+                [ Accordion.config AccordionMsg
+                    |> Accordion.withAnimation
+                    |> Accordion.cards
+                        (model.interfaces
+                            |> Dict.toList
+                            |> List.map renderInterfaceCard
+                        )
+                    |> Accordion.view model.accordionState
                 ]
             ]
         ]
 
 
-renderInterfaces : Dict String (List Int) -> List (ListGroup.Item Msg)
-renderInterfaces interfaces =
-    Dict.toList interfaces
-        |> List.map renderSingleInterface
-
-
-renderSingleInterface : ( String, List Int ) -> ListGroup.Item Msg
-renderSingleInterface ( interfaceName, majors ) =
-    ListGroup.li []
-        [ ButtonGroup.linkButtonGroup [] <|
-            (++)
-                [ ButtonGroup.linkButton
-                    [ Button.roleLink
-                    , Button.outlineSecondary
-                    , Button.onClick <| GetInterfaceMajors interfaceName
-                    ]
+renderInterfaceCard : ( String, List Int ) -> Accordion.Card Msg
+renderInterfaceCard ( interfaceName, majors ) =
+    Accordion.card
+        { id = interfaceNameToHtmlId interfaceName
+        , options = [ Card.attrs [ Spacing.mt2 ] ]
+        , header =
+            Accordion.headerH4
+                [ onClick <| GetInterfaceMajors interfaceName ]
+                (Accordion.toggle []
                     [ text interfaceName ]
-                ]
-                (renderInterfaceMajors interfaceName majors)
+                )
+        , blocks =
+            [ Accordion.listGroup
+                (if List.isEmpty majors then
+                    [ ListGroup.li [] [ text "Loading..." ] ]
+                 else
+                    List.map (renderMajor interfaceName) majors
+                )
+            ]
+        }
+
+
+interfaceNameToHtmlId : String -> String
+interfaceNameToHtmlId name =
+    name
+        |> String.map
+            (\c ->
+                if c == '.' then
+                    '-'
+                else
+                    c
+            )
+        |> String.append "m"
+
+
+renderMajor : String -> Int -> ListGroup.Item Msg
+renderMajor interfaceName major =
+    ListGroup.li []
+        [ a
+            [ href "#"
+            , Html.Events.onWithOptions
+                "click"
+                { stopPropagation = True
+                , preventDefault = True
+                }
+                (Decode.succeed <| ShowInterface interfaceName major)
+            ]
+            [ text <| interfaceName ++ " v" ++ (toString major) ]
         ]
 
 
-renderInterfaceMajors : String -> List Int -> List (LinkButtonItem Msg)
-renderInterfaceMajors interfaceName majors =
-    List.map (\v -> renderSingleMajor interfaceName v) majors
+
+-- SUBSCRIPTIONS
 
 
-renderSingleMajor : String -> Int -> LinkButtonItem Msg
-renderSingleMajor interfaceName major =
-    ButtonGroup.linkButton
-        [ Button.roleLink
-        , Button.outlineSecondary
-        , Button.onClick <| ShowInterface interfaceName major
-        ]
-        [ text <| "v" ++ (toString major) ]
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Accordion.subscriptions model.accordionState AccordionMsg
