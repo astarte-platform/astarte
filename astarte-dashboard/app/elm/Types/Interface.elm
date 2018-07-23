@@ -22,7 +22,6 @@ type alias Interface =
     , iType : InterfaceType
     , ownership : Owner
     , aggregation : AggregationType
-    , explicitTimestamp : Bool
     , hasMeta : Bool
     , description : String
     , doc : String
@@ -38,7 +37,6 @@ empty =
     , iType = Properties
     , ownership = Device
     , aggregation = Individual
-    , explicitTimestamp = False
     , hasMeta = False
     , description = ""
     , doc = ""
@@ -93,6 +91,7 @@ setType iType interface =
                             | reliability = InterfaceMapping.Unreliable
                             , retention = InterfaceMapping.Discard
                             , expiry = 0
+                            , explicitTimestamp = False
                         }
                     )
                     interface.mappings
@@ -111,11 +110,6 @@ setOwnership owner interface =
 setAggregation : AggregationType -> Interface -> Interface
 setAggregation aggregation interface =
     { interface | aggregation = aggregation }
-
-
-setExplicitTimestamp : Bool -> Interface -> Interface
-setExplicitTimestamp explicitTimestamp interface =
-    { interface | explicitTimestamp = explicitTimestamp }
 
 
 setHasMeta : Bool -> Interface -> Interface
@@ -196,9 +190,10 @@ setObjectMappingAttributes :
     InterfaceMapping.Reliability
     -> InterfaceMapping.Retention
     -> Int
+    -> Bool
     -> Interface
     -> Interface
-setObjectMappingAttributes reliability retention expiry interface =
+setObjectMappingAttributes reliability retention expiry explicitTimestamp interface =
     let
         newMappings =
             Dict.map
@@ -207,6 +202,7 @@ setObjectMappingAttributes reliability retention expiry interface =
                         | reliability = reliability
                         , retention = retention
                         , expiry = expiry
+                        , explicitTimestamp = explicitTimestamp
                     }
                 )
                 interface.mappings
@@ -228,7 +224,6 @@ encoder interface =
       ]
     , JsonHelpers.encodeOptionalFields
         [ ( "aggregation", encodeAggregationType interface.aggregation, interface.aggregation == Individual )
-        , ( "explicit_timestamp", Json.Encode.bool interface.explicitTimestamp, interface.explicitTimestamp == False )
         , ( "has_metadata", Json.Encode.bool interface.hasMeta, interface.hasMeta == False )
         , ( "description", Json.Encode.string interface.description, interface.description == "" )
         , ( "doc", Json.Encode.string interface.doc, interface.doc == "" )
@@ -288,7 +283,6 @@ decoder =
         |> required "type" interfaceTypeDecoder
         |> required "ownership" ownershipDecoder
         |> optional "aggregation" aggregationDecoder Individual
-        |> optional "explicit_timestamp" bool False
         |> optional "has_metadata" bool False
         |> optional "description" string ""
         |> optional "doc" string ""

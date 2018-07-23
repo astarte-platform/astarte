@@ -66,6 +66,7 @@ type alias Model =
     , objectReliability : InterfaceMapping.Reliability
     , objectRetention : InterfaceMapping.Retention
     , objectExpiry : Int
+    , objectExplicitTimestamp : Bool
 
     -- mapping builder
     , mappingBuilderModel : MappingBuilder.Model
@@ -86,6 +87,7 @@ init maybeInterfaceId session =
       , objectReliability = InterfaceMapping.Unreliable
       , objectRetention = InterfaceMapping.Discard
       , objectExpiry = 0
+      , objectExplicitTimestamp = False
       , deleteModalVisibility = Modal.hidden
       , confirmModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
@@ -146,7 +148,6 @@ type Msg
     | UpdateInterfaceType Interface.InterfaceType
     | UpdateInterfaceAggregation Interface.AggregationType
     | UpdateInterfaceOwnership Interface.Owner
-    | UpdateInterfaceTimestamp Bool
     | UpdateInterfaceHasMeta Bool
     | UpdateInterfaceDescription String
     | UpdateInterfaceDoc String
@@ -154,6 +155,7 @@ type Msg
     | UpdateObjectMappingReliability String
     | UpdateObjectMappingRetention String
     | UpdateObjectMappingExpiry String
+    | UpdateObjectMappingExplicitTimestamp Bool
       -- modal
     | UpdateConfirmInterfaceName String
     | MappingBuilderMsg MappingBuilder.Msg
@@ -171,6 +173,9 @@ update session msg model =
                 mappingEditMode =
                     False
 
+                isObject =
+                    interface.aggregation == Interface.Object
+
                 shown =
                     False
 
@@ -179,8 +184,24 @@ update session msg model =
                         InterfaceMapping.empty
                         mappingEditMode
                         (interface.iType == Interface.Properties)
-                        (interface.aggregation == Interface.Object)
+                        isObject
                         shown
+
+                ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
+                    case ( isObject, Interface.mappingsAsList interface ) of
+                        ( True, mapping :: [] ) ->
+                            ( mapping.reliability
+                            , mapping.retention
+                            , mapping.expiry
+                            , mapping.explicitTimestamp
+                            )
+
+                        _ ->
+                            ( InterfaceMapping.Unreliable
+                            , InterfaceMapping.Discard
+                            , 0
+                            , False
+                            )
             in
                 ( { model
                     | interface = interface
@@ -188,6 +209,10 @@ update session msg model =
                     , minMinor = interface.minor
                     , sourceBuffer = Interface.toPrettySource interface
                     , mappingBuilderModel = newMappingBuilderModel
+                    , objectReliability = objectReliability
+                    , objectRetention = objectRetention
+                    , objectExpiry = objectExpiry
+                    , objectExplicitTimestamp = objectExplicitTimestamp
                   }
                 , Cmd.none
                 , ExternalMsg.Noop
@@ -322,14 +347,35 @@ update session msg model =
             case Interface.fromString model.sourceBuffer of
                 Ok interface ->
                     if (not model.interfaceEditMode || Interface.compareId model.interface interface) then
-                        ( { model
-                            | sourceBuffer = Interface.toPrettySource interface
-                            , sourceBufferStatus = Valid
-                            , interface = interface
-                          }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
+                        let
+                            ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
+                                case ( interface.aggregation, Interface.mappingsAsList interface ) of
+                                    ( Interface.Object, mapping :: [] ) ->
+                                        ( mapping.reliability
+                                        , mapping.retention
+                                        , mapping.expiry
+                                        , mapping.explicitTimestamp
+                                        )
+
+                                    _ ->
+                                        ( InterfaceMapping.Unreliable
+                                        , InterfaceMapping.Discard
+                                        , 0
+                                        , False
+                                        )
+                        in
+                            ( { model
+                                | sourceBuffer = Interface.toPrettySource interface
+                                , sourceBufferStatus = Valid
+                                , interface = interface
+                                , objectReliability = objectReliability
+                                , objectRetention = objectRetention
+                                , objectExpiry = objectExpiry
+                                , objectExplicitTimestamp = objectExplicitTimestamp
+                              }
+                            , Cmd.none
+                            , ExternalMsg.Noop
+                            )
                     else
                         ( { model | sourceBufferStatus = Invalid }
                         , Cmd.none
@@ -487,19 +533,6 @@ update session msg model =
                 , ExternalMsg.Noop
                 )
 
-        UpdateInterfaceTimestamp timestamp ->
-            let
-                newInterface =
-                    Interface.setExplicitTimestamp timestamp model.interface
-            in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
-
         UpdateInterfaceHasMeta hasMeta ->
             let
                 newInterface =
@@ -562,6 +595,7 @@ update session msg model =
                                     reliability
                                     model.objectRetention
                                     model.objectExpiry
+                                    model.objectExplicitTimestamp
                     in
                         ( { model
                             | objectReliability = reliability
@@ -594,6 +628,7 @@ update session msg model =
                                     model.objectReliability
                                     retention
                                     expiry
+                                    model.objectExplicitTimestamp
                     in
                         ( { model
                             | objectRetention = retention
@@ -622,6 +657,7 @@ update session msg model =
                                         model.objectReliability
                                         model.objectRetention
                                         expiry
+                                        model.objectExplicitTimestamp
                         in
                             ( { model
                                 | objectExpiry = expiry
@@ -642,6 +678,25 @@ update session msg model =
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
+
+        UpdateObjectMappingExplicitTimestamp explicitTimestamp ->
+            let
+                newInterface =
+                    model.interface
+                        |> Interface.setObjectMappingAttributes
+                            model.objectReliability
+                            model.objectRetention
+                            model.objectExpiry
+                            explicitTimestamp
+            in
+                ( { model
+                    | objectExplicitTimestamp = explicitTimestamp
+                    , interface = newInterface
+                    , sourceBuffer = Interface.toPrettySource newInterface
+                  }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
 
         UpdateConfirmInterfaceName userInput ->
             ( { model | confirmInterfaceName = userInput }
@@ -851,7 +906,7 @@ renderContent model interface interfaceEditMode accordionState =
                     ]
                 ]
             , Form.row []
-                [ Form.col [ Col.sm3 ]
+                [ Form.col [ Col.sm4 ]
                     [ Form.group []
                         [ Form.label [ for "interfaceType" ] [ text "Type" ]
                         , Fieldset.config
@@ -877,7 +932,7 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.view
                         ]
                     ]
-                , Form.col [ Col.sm3 ]
+                , Form.col [ Col.sm4 ]
                     [ Form.group []
                         [ Form.label [ for "interfaceAggregation" ] [ text "Aggregation" ]
                         , Fieldset.config
@@ -903,7 +958,7 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.view
                         ]
                     ]
-                , Form.col [ Col.sm3 ]
+                , Form.col [ Col.sm4 ]
                     [ Form.group []
                         [ Form.label [ for "interfaceOwnership" ] [ text "Ownership" ]
                         , Fieldset.config
@@ -927,17 +982,6 @@ renderContent model interface interfaceEditMode accordionState =
                                     ]
                                 )
                             |> Fieldset.view
-                        ]
-                    ]
-                , Form.col [ Col.sm3 ]
-                    [ Form.group []
-                        [ Checkbox.checkbox
-                            [ Checkbox.id "intExpTimestamp"
-                            , Checkbox.disabled interfaceEditMode
-                            , Checkbox.checked interface.explicitTimestamp
-                            , Checkbox.onCheck UpdateInterfaceTimestamp
-                            ]
-                            "Explicit timestamp"
                         ]
                     ]
                 ]
@@ -1017,6 +1061,7 @@ renderCommonMappingSettings model =
                 [ Form.label [ for "objectMappingReliability" ] [ text "Reliability" ]
                 , Select.select
                     [ Select.id "objectMappingReliability"
+                    , Select.disabled model.interfaceEditMode
                     , Select.onChange UpdateObjectMappingReliability
                     ]
                     [ Select.item
@@ -1047,6 +1092,7 @@ renderCommonMappingSettings model =
                 [ Form.label [ for "objectMappingRetention" ] [ text "Retention" ]
                 , Select.select
                     [ Select.id "objectMappingRetention"
+                    , Select.disabled model.interfaceEditMode
                     , Select.onChange UpdateObjectMappingRetention
                     ]
                     [ Select.item
@@ -1077,9 +1123,21 @@ renderCommonMappingSettings model =
                 [ Form.label [ for "objectMappingExpiry" ] [ text "Expiry" ]
                 , Input.number
                     [ Input.id "objectMappingExpiry"
+                    , Input.disabled model.interfaceEditMode
                     , Input.value <| toString model.objectExpiry
                     , Input.onInput UpdateObjectMappingExpiry
                     ]
+                ]
+            ]
+        , Form.col [ Col.sm6 ]
+            [ Form.group []
+                [ Checkbox.checkbox
+                    [ Checkbox.id "objectMappingExpTimestamp"
+                    , Checkbox.disabled model.interfaceEditMode
+                    , Checkbox.checked model.objectExplicitTimestamp
+                    , Checkbox.onCheck UpdateObjectMappingExplicitTimestamp
+                    ]
+                    "Explicit timestamp"
                 ]
             ]
         ]

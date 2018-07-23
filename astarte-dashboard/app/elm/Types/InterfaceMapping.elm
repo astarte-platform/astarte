@@ -14,6 +14,7 @@ type alias InterfaceMapping =
     , retention : Retention
     , expiry : Int
     , allowUnset : Bool
+    , explicitTimestamp : Bool
     , description : String
     , doc : String
     , draft : Bool
@@ -28,6 +29,7 @@ empty =
     , retention = Discard
     , expiry = 0
     , allowUnset = False
+    , explicitTimestamp = False
     , description = ""
     , doc = ""
     , draft = True
@@ -123,6 +125,11 @@ setAllowUnset allow mapping =
     { mapping | allowUnset = allow }
 
 
+setExplicitTimestamp : Bool -> InterfaceMapping -> InterfaceMapping
+setExplicitTimestamp explicitTimestamp mapping =
+    { mapping | explicitTimestamp = explicitTimestamp }
+
+
 setDescription : String -> InterfaceMapping -> InterfaceMapping
 setDescription description mapping =
     { mapping | description = description }
@@ -152,6 +159,7 @@ interfaceMappingEncoder mapping =
         , ( "retention", encodeRetention mapping.retention, mapping.retention == Discard )
         , ( "expiry", Json.Encode.int mapping.expiry, mapping.expiry == 0 )
         , ( "allow_unset", Json.Encode.bool mapping.allowUnset, mapping.allowUnset == False )
+        , ( "explicit_timestamp", Json.Encode.bool mapping.explicitTimestamp, mapping.explicitTimestamp == False )
         , ( "description", Json.Encode.string mapping.description, mapping.description == "" )
         , ( "doc", Json.Encode.string mapping.doc, mapping.doc == "" )
         ]
@@ -240,6 +248,7 @@ decoder =
         |> optional "retention" retentionDecoder Discard
         |> optional "expiry" int 0
         |> optional "allow_unset" bool False
+        |> optional "explicit_timestamp" bool False
         |> optional "description" string ""
         |> optional "doc" string ""
         |> hardcoded False
