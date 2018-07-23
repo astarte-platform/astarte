@@ -35,6 +35,28 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.RealmManagement.Queries
   alias CQEx.Client, as: DatabaseClient
 
+  def get_health() do
+    with {:ok, client} <- Database.connect(),
+         :ok <- Queries.check_astarte_health(client, :each_quorum) do
+      {:ok, %{status: :ready}}
+    else
+      {:error, :health_check_bad} ->
+        with {:ok, client} <- Database.connect(),
+             :ok <- Queries.check_astarte_health(client, :one) do
+          {:ok, %{status: :degraded}}
+        else
+          {:error, :health_check_bad} ->
+            {:ok, %{status: :bad}}
+
+          {:error, :database_connection_error} ->
+            {:ok, %{status: :error}}
+        end
+
+      {:error, :database_connection_error} ->
+        {:ok, %{status: :error}}
+    end
+  end
+
   def install_interface(realm_name, interface_json, opts \\ []) do
     Logger.debug("Going to install a new interface on realm #{realm_name}.")
 
