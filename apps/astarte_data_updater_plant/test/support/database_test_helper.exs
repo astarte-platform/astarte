@@ -27,6 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
+  alias CQEx.Result, as: DatabaseResult
 
   @create_autotestrealm """
     CREATE KEYSPACE autotestrealm
@@ -611,6 +612,29 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       |> DatabaseQuery.put(:introspection, introspection)
 
     DatabaseQuery.call(client, query)
+  end
+
+  def fetch_old_introspection(db_client, device_id) do
+    old_introspection_statement = """
+    SELECT old_introspection
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    old_introspection_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(old_introspection_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(db_client, old_introspection_query),
+         [old_introspection: introspection_minors] when is_list(introspection_minors) <-
+           DatabaseResult.head(result) do
+      {:ok, Enum.into(introspection_minors, %{})}
+    else
+      [old_introspection: nil] ->
+        {:ok, %{}}
+    end
   end
 
   def fake_parent_trigger_id() do
