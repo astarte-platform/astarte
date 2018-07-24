@@ -614,10 +614,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         end
       end)
 
+    {:ok, old_minors} = Queries.fetch_device_introspection_minors(db_client, state.device_id)
+
     readded_introspection =
       Enum.reduce(added_interfaces, [], fn {iface, _major}, acc ->
-        with {:ok, prev_major} <- Map.fetch(db_introspection_map, iface) do
-          prev_minor = Map.get(db_introspection_minor_map, iface, 0)
+        with {:ok, prev_major} <- Map.fetch(state.introspection, iface) do
+          prev_minor = Map.get(old_minors, iface, 0)
           [{iface, prev_major} | acc]
         else
           :error ->
@@ -627,8 +629,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     old_introspection =
       Enum.reduce(removed_interfaces, %{}, fn {iface, _major}, acc ->
-        prev_major = Map.fetch!(db_introspection_map, iface)
-        prev_minor = Map.get(db_introspection_minor_map, iface, 0)
+        prev_major = Map.fetch!(state.introspection, iface)
+        prev_minor = Map.get(old_minors, iface, 0)
         Map.put(acc, {iface, prev_major}, prev_minor)
       end)
 
