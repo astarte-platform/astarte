@@ -840,7 +840,12 @@ view model flashMessages =
                   else
                     Col.attrs [ Display.none ]
                 ]
-                [ renderTriggerSource model.trigger model.sourceBuffer model.sourceBufferStatus ]
+                [ renderTriggerSource
+                    model.trigger
+                    model.sourceBuffer
+                    model.sourceBufferStatus
+                    model.editMode
+                ]
             ]
         , Grid.row []
             [ Grid.col [ Col.sm12 ]
@@ -895,21 +900,19 @@ renderContent model =
          ]
             ++ renderSimpleTrigger model
             ++ renderTriggerAction model
-            ++ [ Form.row [ Row.rightSm ]
+            ++ [ Form.row
+                    [ if model.editMode then
+                        Row.attrs [ Display.none ]
+                      else
+                        Row.rightSm
+                    ]
                     [ Form.col [ Col.sm4 ]
                         [ Button.button
                             [ Button.primary
-                            , Button.disabled model.editMode
                             , Button.attrs [ class "float-right", Spacing.ml2 ]
                             , Button.onClick AddTrigger
                             ]
-                            [ text
-                                (if model.editMode then
-                                    "Edit Trigger"
-                                 else
-                                    "Install Trigger"
-                                )
-                            ]
+                            [ text "Install Trigger" ]
                         ]
                     ]
                ]
@@ -924,6 +927,7 @@ renderTriggerAction model =
                 [ Form.label [ for "triggerActionType" ] [ text "Action type" ]
                 , Select.select
                     [ Select.id "triggerActionType"
+                    , Select.disabled model.editMode
                     ]
                     [ Select.item
                         [ value "http" ]
@@ -938,6 +942,7 @@ renderTriggerAction model =
                 [ Form.label [ for "triggerUrl" ] [ text "POST URL" ]
                 , Input.text
                     [ Input.id "triggerUrl"
+                    , Input.readonly model.editMode
                     , Input.value model.trigger.url
                     , Input.onInput UpdateTriggerUrl
                     ]
@@ -945,12 +950,12 @@ renderTriggerAction model =
             ]
         ]
     , Form.row []
-        (renderTriggerTemplate model.trigger.template)
+        (renderTriggerTemplate model.trigger.template model.editMode)
     ]
 
 
-renderTriggerTemplate : Trigger.Template -> List (Form.Col Msg)
-renderTriggerTemplate template =
+renderTriggerTemplate : Trigger.Template -> Bool -> List (Form.Col Msg)
+renderTriggerTemplate template editMode =
     let
         isMustache =
             case template of
@@ -965,6 +970,7 @@ renderTriggerTemplate template =
                 [ Form.label [ for "triggerTemplateType" ] [ text "Payload type" ]
                 , Select.select
                     [ Select.id "triggerTemplateType"
+                    , Select.disabled editMode
                     , Select.onChange UpdateTriggerTemplate
                     ]
                     [ Select.item
@@ -979,13 +985,13 @@ renderTriggerTemplate template =
                         [ text "Mustache Template" ]
                     ]
                 ]
-            , renderTemplateBody template
+            , renderTemplateBody template editMode
             ]
         ]
 
 
-renderTemplateBody : Trigger.Template -> Html Msg
-renderTemplateBody template =
+renderTemplateBody : Trigger.Template -> Bool -> Html Msg
+renderTemplateBody template editMode =
     case template of
         Trigger.NoTemplate ->
             text ""
@@ -995,6 +1001,7 @@ renderTemplateBody template =
                 [ Form.label [ for "actionPayload" ] [ text "Payload" ]
                 , Textarea.textarea
                     [ Textarea.id "actionPayload"
+                    , Textarea.attrs [ readonly editMode ]
                     , Textarea.value templateBody
                     , Textarea.onInput UpdateMustachePayload
                     ]
@@ -1018,6 +1025,7 @@ renderSimpleTrigger model =
                     [ Form.label [ for "triggerSimpleTriggerType" ] [ text "Trigger type" ]
                     , Select.select
                         [ Select.id "triggerSimpleTriggerType"
+                        , Select.disabled model.editMode
                         , Select.onChange UpdateSimpleTriggerType
                         ]
                         [ Select.item
@@ -1040,7 +1048,7 @@ renderSimpleTrigger model =
                         renderDataTrigger dataTrigger model
 
                     Trigger.Device deviceTrigger ->
-                        renderDeviceTrigger deviceTrigger
+                        renderDeviceTrigger deviceTrigger model.editMode
                )
 
 
@@ -1052,6 +1060,7 @@ renderDataTrigger dataTrigger model =
                 [ Form.label [ for "triggerInterfaceName" ] [ text "Interface name" ]
                 , Select.select
                     [ Select.id "triggerInterfaceName"
+                    , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerInterfaceName
                     , case model.refInterface of
                         Nothing ->
@@ -1068,6 +1077,7 @@ renderDataTrigger dataTrigger model =
                 [ Form.label [ for "triggerInterfaceMajor" ] [ text "Interface major" ]
                 , Select.select
                     [ Select.id "triggerInterfaceMajor"
+                    , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerInterfaceMajor
                     , case model.refInterface of
                         Nothing ->
@@ -1086,6 +1096,7 @@ renderDataTrigger dataTrigger model =
                 [ Form.label [ for "triggerCondition" ] [ text "Trigger condition" ]
                 , Select.select
                     [ Select.id "triggerCondition"
+                    , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerCondition
                     ]
                     (List.map
@@ -1107,6 +1118,7 @@ renderDataTrigger dataTrigger model =
                 [ Form.label [ for "triggerPath" ] [ text "Path" ]
                 , Input.text
                     [ Input.id "triggerPath"
+                    , Input.readonly model.editMode
                     , Input.value dataTrigger.path
                     , Input.onInput UpdateDataTriggerPath
                     , case model.mappingType of
@@ -1125,6 +1137,7 @@ renderDataTrigger dataTrigger model =
                 [ Form.label [ for "triggerOperator" ] [ text "Operator" ]
                 , Select.select
                     [ Select.id "triggerCondition"
+                    , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerOperator
                     ]
                     (renderAvailableOperators model.selectedOperator model.mappingType)
@@ -1140,6 +1153,7 @@ renderDataTrigger dataTrigger model =
                         [ Form.label [ for "triggerKnownValue" ] [ text "Value" ]
                         , Input.text
                             [ Input.id "triggerKnownValue"
+                            , Input.readonly model.editMode
                             , Input.value (model.selectedKnownValue |> Maybe.withDefault "")
                             , Input.onInput UpdateDataTriggerKnownValue
                             , if isValidKnownValue model.mappingType model.selectedKnownValue then
@@ -1176,14 +1190,15 @@ renderAvailableOperators selectedOperator mappingType =
             )
 
 
-renderDeviceTrigger : DeviceTrigger -> List (Html Msg)
-renderDeviceTrigger deviceTrigger =
+renderDeviceTrigger : DeviceTrigger -> Bool -> List (Html Msg)
+renderDeviceTrigger deviceTrigger editMode =
     [ Form.row []
         [ Form.col [ Col.sm12 ]
             [ Form.group []
                 [ Form.label [ for "triggerDeviceId" ] [ text "Device id" ]
                 , Input.text
                     [ Input.id "triggerDeviceId"
+                    , Input.readonly editMode
                     , Input.value deviceTrigger.deviceId
                     , Input.onInput UpdateDeviceTriggerId
                     ]
@@ -1196,6 +1211,7 @@ renderDeviceTrigger deviceTrigger =
                 [ Form.label [ for "triggerDeviceOn" ] [ text "Trigger condition" ]
                 , Select.select
                     [ Select.id "triggerDeviceOn"
+                    , Select.disabled editMode
                     , Select.onChange UpdateDeviceTriggerCondition
                     ]
                     (List.map
@@ -1212,10 +1228,11 @@ renderDeviceTrigger deviceTrigger =
     ]
 
 
-renderTriggerSource : Trigger -> String -> BufferStatus -> Html Msg
-renderTriggerSource trigger sourceBuffer status =
+renderTriggerSource : Trigger -> String -> BufferStatus -> Bool -> Html Msg
+renderTriggerSource trigger sourceBuffer status editMode =
     Textarea.textarea
         [ Textarea.id "triggerSource"
+        , Textarea.attrs [ readonly editMode ]
         , Textarea.rows 30
         , Textarea.value sourceBuffer
         , case status of
