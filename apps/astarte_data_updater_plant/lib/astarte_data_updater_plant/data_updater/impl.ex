@@ -616,16 +616,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     {:ok, old_minors} = Queries.fetch_device_introspection_minors(db_client, state.device_id)
 
-    readded_introspection =
-      Enum.reduce(added_interfaces, [], fn {iface, _major}, acc ->
-        with {:ok, prev_major} <- Map.fetch(state.introspection, iface) do
-          prev_minor = Map.get(old_minors, iface, 0)
-          [{iface, prev_major} | acc]
-        else
-          :error ->
-            acc
-        end
-      end)
+    readded_introspection = Enum.to_list(added_interfaces)
 
     old_introspection =
       Enum.reduce(removed_interfaces, %{}, fn {iface, _major}, acc ->
@@ -641,7 +632,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     # Removed/updated interfaces must be purged away, otherwise data will be written using old
     # interface_id.
-    interfaces_to_drop_list = Map.keys(removed_interfaces)
+    remove_interfaces_list = Map.keys(removed_interfaces)
+
+    {interfaces_to_drop_map, _} = Map.split(new_state.interfaces, remove_interfaces_list)
+    interfaces_to_drop_list = Map.keys(interfaces_to_drop_map)
+
+    # Forget interfaces wants a list of already loaded interfaces, otherwise it will crash
     new_state = forget_interfaces(new_state, interfaces_to_drop_list)
 
     Queries.update_device_introspection!(
