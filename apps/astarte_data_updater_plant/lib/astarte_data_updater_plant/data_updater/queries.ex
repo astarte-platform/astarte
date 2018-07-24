@@ -445,6 +445,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, device_update_query)
   end
 
+  def fetch_device_introspection_minors(db_client, device_id) do
+    introspection_minor_statement = """
+    SELECT introspection_minor
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    introspection_minor_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(introspection_minor_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(db_client, introspection_minor_query),
+         [introspection_minor: introspection_minors] when is_list(introspection_minors) <-
+           DatabaseResult.head(result) do
+      {:ok, Enum.into(introspection_minors, %{})}
+    else
+      [introspection_minor: nil] ->
+        {:ok, %{}}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("fetch_device_introspection_minors: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("fetch_device_introspection_minors: failed with reason #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
   def update_device_introspection!(db_client, device_id, introspection, introspection_minor) do
     introspection_update_statement = """
     UPDATE devices
