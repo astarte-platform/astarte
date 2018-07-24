@@ -841,8 +841,8 @@ renderContent model interface interfaceEditMode accordionState =
     Grid.container []
         [ Form.form []
             [ Form.row []
-                [ Form.col [ Col.sm12 ]
-                    [ h3 []
+                [ Form.col [ Col.sm11 ]
+                    [ h3 [ class "text-truncate" ]
                         [ text
                             (if interfaceEditMode then
                                 interface.name
@@ -858,13 +858,15 @@ renderContent model interface interfaceEditMode accordionState =
                                 [ text "Delete..." ]
                           else
                             text ""
-                        , Button.button
-                            [ Button.secondary
-                            , Button.attrs [ class "float-right" ]
-                            , Button.onClick ToggleSource
-                            ]
-                            [ text "->" ]
                         ]
+                    ]
+                , Form.col [ Col.sm1 ]
+                    [ Button.button
+                        [ Button.secondary
+                        , Button.attrs [ class "float-right" ]
+                        , Button.onClick ToggleSource
+                        ]
+                        [ text "->" ]
                     ]
                 ]
             , Form.row []
