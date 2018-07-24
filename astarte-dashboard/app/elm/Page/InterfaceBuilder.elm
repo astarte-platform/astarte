@@ -188,8 +188,8 @@ update session msg model =
                         shown
 
                 ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
-                    case ( isObject, Interface.mappingsAsList interface ) of
-                        ( True, mapping :: [] ) ->
+                    case ( isObject, List.head <| Interface.mappingsAsList interface ) of
+                        ( True, Just mapping ) ->
                             ( mapping.reliability
                             , mapping.retention
                             , mapping.expiry
@@ -349,8 +349,8 @@ update session msg model =
                     if (not model.interfaceEditMode || Interface.compareId model.interface interface) then
                         let
                             ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
-                                case ( interface.aggregation, Interface.mappingsAsList interface ) of
-                                    ( Interface.Object, mapping :: [] ) ->
+                                case ( interface.aggregation, List.head <| Interface.mappingsAsList interface ) of
+                                    ( Interface.Object, Just mapping ) ->
                                         ( mapping.reliability
                                         , mapping.retention
                                         , mapping.expiry
