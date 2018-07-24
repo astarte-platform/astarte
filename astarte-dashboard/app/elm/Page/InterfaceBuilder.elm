@@ -262,7 +262,7 @@ update session msg model =
         ShowDeleteModal ->
             ( { model
                 | deleteModalVisibility = Modal.shown
-                , confirmInterfaceName = "Cannot delete interface."
+                , confirmInterfaceName = ""
               }
             , Cmd.none
             , ExternalMsg.Noop
