@@ -1023,6 +1023,80 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert AMQPTestHelper.awaiting_messages_count() == 0
   end
 
+  test "test introspection with interface update" do
+    AMQPTestHelper.clean_queue()
+
+    realm = "autotestrealm"
+
+    encoded_device_id =
+      :crypto.strong_rand_bytes(16)
+      |> Base.url_encode64(padding: false)
+
+    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
+
+    DatabaseTestHelper.insert_device(device_id)
+    db_client = connect_to_db(realm)
+
+    DataUpdater.handle_connection(
+      realm,
+      encoded_device_id,
+      "10.0.0.1",
+      gen_tracking_id(),
+      make_timestamp("2017-12-09T14:00:32+00:00")
+    )
+
+    new_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
+
+    DataUpdater.handle_introspection(
+      realm,
+      encoded_device_id,
+      new_introspection_string,
+      gen_tracking_id(),
+      make_timestamp("2017-10-09T14:00:32+00:00")
+    )
+
+    DataUpdater.dump_state(realm, encoded_device_id)
+    assert DatabaseTestHelper.fetch_old_introspection(db_client, device_id) == {:ok, %{}}
+
+    new_introspection_string = "com.test.LCDMonitor:2:0;com.test.SimpleStreamTest:1:0"
+
+    DataUpdater.handle_introspection(
+      realm,
+      encoded_device_id,
+      new_introspection_string,
+      gen_tracking_id(),
+      make_timestamp("2017-10-09T15:00:32+00:00")
+    )
+
+    DataUpdater.dump_state(realm, encoded_device_id)
+    DatabaseTestHelper.fetch_old_introspection(db_client, device_id)
+
+    assert DatabaseTestHelper.fetch_old_introspection(db_client, device_id) ==
+             {:ok,
+              %{
+                ["com.test.LCDMonitor", 1] => 0
+              }}
+
+    new_introspection_string = "com.test.LCDMonitor:2:0"
+
+    DataUpdater.handle_introspection(
+      realm,
+      encoded_device_id,
+      new_introspection_string,
+      gen_tracking_id(),
+      make_timestamp("2017-10-09T16:00:32+00:00")
+    )
+
+    DataUpdater.dump_state(realm, encoded_device_id)
+
+    assert DatabaseTestHelper.fetch_old_introspection(db_client, device_id) ==
+             {:ok,
+              %{
+                ["com.test.LCDMonitor", 1] => 0,
+                ["com.test.SimpleStreamTest", 1] => 0
+              }}
+  end
+
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
     query =
       DatabaseQuery.new()
@@ -1051,6 +1125,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       List.first(Application.get_env(:cqerl, :cassandra_nodes)),
       keyspace: realm
     )
+  end
+
+  defp make_timestamp(timestamp_string) do
+    {:ok, date_time, _} = DateTime.from_iso8601("2017-10-09T16:00:32+00:00")
+
+    DateTime.to_unix(date_time, :milliseconds) * 10000
   end
 
   defp gen_tracking_id() do
