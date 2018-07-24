@@ -637,6 +637,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     # TODO: handle triggers for interface minor updates
 
+    # Removed/updated interfaces must be purged away, otherwise data will be written using old
+    # interface_id.
+    interfaces_to_drop_list = Map.keys(removed_interfaces)
+    new_state = forget_interfaces(new_state, interfaces_to_drop_list)
+
     Queries.update_device_introspection!(
       db_client,
       new_state.device_id,
