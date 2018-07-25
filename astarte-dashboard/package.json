@@ -3,15 +3,10 @@
   "version": "0.9.0",
   "description": "Astarte dashboard",
   "main": "public/index.html",
-  "scripts": {
-    "deploy": "brunch build --production",
-    "start": "brunch watch --server"
-  },
   "keywords": [
-    "elm",
-    "template",
-    "empty",
-    "project"
+    "astarte",
+    "dashboard",
+    "iot"
   ],
   "contributors": [
     {
@@ -21,10 +16,40 @@
     }
   ],
   "license": "GPL-3.0",
+  "scripts": {
+    "start": "webpack-dev-server --hot --inline --config webpack.dev.js",
+    "prebuild": "rimraf dist",
+    "build": "webpack --config webpack.prod.js",
+    "deploy": "webpack --config webpack.prod.js",
+    "reinstall": "npm i rimraf && rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install"
+  },
   "devDependencies": {
-    "auto-reload-brunch": "^2.7.1",
-    "brunch": "^2.10.12",
+    "@babel/core": "latest",
+    "@babel/generator": "latest",
+    "autoprefixer": "^9.0.1",
+    "bootstrap": "^4.1.3",
+    "copy-webpack-plugin": "^4.5.2",
+    "css-loader": "^1.0.0",
     "elm": "^0.18.0",
-    "elm-brunch": "^0.10.0"
+    "elm-assets-loader": "^0.4.0",
+    "elm-webpack-loader": "^4.5.0",
+    "extract-text-webpack-plugin": "^4.0.0-beta.0",
+    "file-loader": "^1.1.11",
+    "html-webpack-plugin": "^3.2.0",
+    "jquery": "^3.3.1",
+    "mini-css-extract-plugin": "^0.4.1",
+    "node-sass": "^4.9.2",
+    "optimize-css-assets-webpack-plugin": "^5.0.0",
+    "postcss-cssnext": "^3.1.0",
+    "postcss-loader": "^2.1.6",
+    "rimraf": "^2.6.2",
+    "sass-loader": "^7.0.3",
+    "style-loader": "^0.21.0",
+    "uglifyjs-webpack-plugin": "^1.2.7",
+    "url-loader": "^1.0.1",
+    "webpack": "^4.16.2",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5",
+    "webpack-merge": "^4.1.3"
   }
 }

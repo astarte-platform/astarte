@@ -2,7 +2,6 @@ module Main exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
 import Http
 import Ports
 import Navigation exposing (Location)
@@ -14,6 +13,7 @@ import Time exposing (Time)
 
 -- Types
 
+import Assets
 import Types.Config as Config exposing (Config)
 import Route exposing (Route, RealmRoute)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
@@ -34,11 +34,11 @@ import Page.RealmSettings as RealmSettings
 -- bootstrap components
 
 import Bootstrap.Grid as Grid
-import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Utilities.Spacing as Spacing
 
 
+main : Program Value Model Msg
 main =
     Navigation.programWithFlags (NewLocation)
         { init = init
@@ -592,7 +592,7 @@ renderNavbar model =
                 |> Navbar.brand
                     [ href "#" ]
                     [ img
-                        [ src "/logo.svg"
+                        [ src <| Assets.path Assets.dashboardIcon
                         , style [ ( "height", "3em" ) ]
                         , Spacing.mr2
                         ]
