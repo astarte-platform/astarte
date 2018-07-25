@@ -188,8 +188,8 @@ update session msg model =
                         shown
 
                 ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
-                    case ( isObject, Interface.mappingsAsList interface ) of
-                        ( True, mapping :: [] ) ->
+                    case ( isObject, List.head <| Interface.mappingsAsList interface ) of
+                        ( True, Just mapping ) ->
                             ( mapping.reliability
                             , mapping.retention
                             , mapping.expiry
@@ -349,8 +349,8 @@ update session msg model =
                     if (not model.interfaceEditMode || Interface.compareId model.interface interface) then
                         let
                             ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
-                                case ( interface.aggregation, Interface.mappingsAsList interface ) of
-                                    ( Interface.Object, mapping :: [] ) ->
+                                case ( interface.aggregation, List.head <| Interface.mappingsAsList interface ) of
+                                    ( Interface.Object, Just mapping ) ->
                                         ( mapping.reliability
                                         , mapping.retention
                                         , mapping.expiry
@@ -1186,34 +1186,50 @@ renderMapping mapping =
         , options = [ Card.attrs [ Spacing.mb2 ] ]
         , header = renderMappingHeader mapping
         , blocks =
-            [ Accordion.block []
-                [ Block.titleH5 [] [ text "Reliability" ]
-                , Block.text [] [ text <| reliabilityToEnglishString mapping.reliability ]
-                ]
-            , Accordion.block []
-                [ Block.titleH5 [] [ text "Retention" ]
-                , Block.text [] [ text <| retentionToEnglishString mapping.retention ]
-                ]
-            , Accordion.block []
-                [ Block.titleH5 [] [ text "Description" ]
-                , Block.text []
-                    [ if mapping.description == "" then
-                        text "None"
-                      else
-                        text mapping.description
-                    ]
-                ]
-            , Accordion.block []
-                [ Block.titleH5 [] [ text "Doc" ]
-                , Block.text []
-                    [ if mapping.doc == "" then
-                        text "None"
-                      else
-                        text mapping.doc
-                    ]
-                ]
+            [ ( textBlock "Description" mapping.description
+              , String.isEmpty mapping.description
+              )
+            , ( textBlock "Reliability" <| reliabilityToEnglishString mapping.reliability
+              , mapping.reliability == InterfaceMapping.Unreliable
+              )
+            , ( textBlock "Retention" <| retentionToEnglishString mapping.retention
+              , mapping.retention == InterfaceMapping.Discard
+              )
+            , ( textBlock "Expiry" <| toString mapping.expiry
+              , mapping.retention == InterfaceMapping.Discard || mapping.expiry == 0
+              )
+            , ( textBlock "Explicit timestamp" <| toString mapping.explicitTimestamp
+              , not mapping.explicitTimestamp
+              )
+            , ( textBlock "Allow unset" <| toString mapping.allowUnset
+              , not mapping.allowUnset
+              )
+            , ( textBlock "Doc" mapping.doc
+              , String.isEmpty mapping.doc
+              )
             ]
+                |> List.filterMap
+                    (\( block, default ) ->
+                        if default then
+                            Nothing
+                        else
+                            Just block
+                    )
         }
+
+
+textBlock : String -> String -> Accordion.CardBlock Msg
+textBlock title content =
+    Accordion.block []
+        [ Block.titleH5
+            [ Display.inline
+            , Spacing.mr2
+            ]
+            [ text title ]
+        , Block.text
+            [ Display.inline ]
+            [ text content ]
+        ]
 
 
 endpointToHtmlId : String -> String
