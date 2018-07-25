@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017 Ispirata Srl
+# Copyright (C) 2017,2018 Ispirata Srl
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
@@ -32,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.IntrospectionTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.DataAccess.Database
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
@@ -69,7 +70,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id, insert_opts)
 
-    db_client = connect_to_db(realm)
+    {:ok, db_client} = Database.connect(realm)
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -865,7 +866,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id)
 
-    db_client = connect_to_db(realm)
+    {:ok, db_client} = Database.connect(realm)
 
     # Install a volatile introspection test trigger
     simple_trigger_data =
@@ -1018,7 +1019,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
     DatabaseTestHelper.insert_device(device_id)
-    db_client = connect_to_db(realm)
+    {:ok, db_client} = Database.connect(realm)
 
     DataUpdater.handle_connection(
       realm,
@@ -1101,13 +1102,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
 
     endpoint_id
-  end
-
-  defp connect_to_db(realm) do
-    DatabaseClient.new!(
-      List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-      keyspace: realm
-    )
   end
 
   defp make_timestamp(timestamp_string) do
