@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
+import Json.Decode as Decode
 
 
 -- Types
@@ -117,36 +118,53 @@ view model flashMessages =
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row
-            [ Row.middleSm
-            , Row.topSm
-            ]
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ ListGroup.ul <| List.map renderSingleTrigger model.triggers
+                [ h5 [ Display.inline ]
+                    [ if List.isEmpty model.triggers then
+                        text "No trigger installed"
+                      else
+                        text "Triggers"
+                    ]
                 , Button.button
                     [ Button.primary
-                    , Button.attrs [ Spacing.mt2, Spacing.mr2 ]
+                    , Button.onClick AddNewTrigger
+                    , Button.attrs [ class "float-right" ]
+                    ]
+                    [ text "Install a New trigger ..." ]
+                , Button.button
+                    [ Button.primary
                     , Button.onClick GetTriggerList
+                    , Button.attrs [ class "float-right", Spacing.mr1 ]
                     ]
                     [ text "Reload" ]
-                , Button.button
-                    [ Button.primary
-                    , Button.attrs [ Spacing.mt2 ]
-                    , Button.onClick AddNewTrigger
-                    ]
-                    [ text "Install a New Trigger ..." ]
                 ]
+            ]
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col
+                [ Col.sm12 ]
+                [ ListGroup.ul <| List.map renderSingleTrigger model.triggers ]
             ]
         ]
 
 
 renderSingleTrigger : String -> ListGroup.Item Msg
 renderSingleTrigger triggerName =
-    ListGroup.li []
-        [ Button.button
-            [ Button.roleLink
-            , Button.outlineSecondary
-            , Button.onClick <| ShowTrigger triggerName
+    ListGroup.li
+        [ ListGroup.attrs [ Spacing.p0, Spacing.mb2 ] ]
+        [ h4
+            [ class "card-header" ]
+            [ a
+                [ href "#"
+                , Html.Events.onWithOptions
+                    "click"
+                    { stopPropagation = True
+                    , preventDefault = True
+                    }
+                    (Decode.succeed <| ShowTrigger triggerName)
+                ]
+                [ text triggerName ]
             ]
-            [ text triggerName ]
         ]
