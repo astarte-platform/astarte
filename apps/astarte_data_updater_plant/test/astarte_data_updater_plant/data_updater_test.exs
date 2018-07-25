@@ -119,8 +119,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       "10.0.0.1",
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -183,8 +182,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       existing_introspection_string,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -247,8 +245,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/time/from",
       Bson.encode(%{"v" => 9000}),
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:10:32+00:00")
     )
 
     DataUpdater.handle_data(
@@ -258,8 +255,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/weekSchedule/9/start",
       Bson.encode(%{"v" => 9}),
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:10:32+00:00")
     )
 
     # Install a volatile value change applied test trigger
@@ -368,8 +364,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/weekSchedule/10/start",
       Bson.encode(%{"v" => 10}),
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:10:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:10:32+00:00")
     )
 
     {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
@@ -434,8 +429,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/0/value",
       Bson.encode(%{"v" => 5}),
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:15:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:15:32+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -517,8 +511,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       "com.test.LCDMonitor:1:0;com.example.TestObject:1:5;com.test.SimpleStreamTest:1:0",
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
     {introspection_event, introspection_headers, _meta} = AMQPTestHelper.wait_and_get_message()
@@ -558,8 +551,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/",
       payload0,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:49+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-26T08:48:49+00:00")
     )
 
     payload1 = Bson.encode(%{"string" => "Hello World');"})
@@ -571,8 +563,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/",
       payload1,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:50+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-26T08:48:50+00:00")
     )
 
     payload2 = Bson.encode(%{"v" => %{"value" => 0}})
@@ -584,8 +575,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/",
       payload2,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-26T08:48:51+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-26T08:48:51+00:00")
     )
 
     # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
@@ -598,8 +588,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/",
       payload3,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-09-30T07:13:00+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-09-30T07:13:00+00:00")
     )
 
     payload4 = Bson.encode(%{})
@@ -611,8 +600,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/",
       payload4,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-30T07:13:00+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-30T07:13:00+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -698,8 +686,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/producer/properties",
       data,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -816,8 +803,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/weekSchedule/10/start",
       <<>>,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T15:10:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T15:10:32+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -846,8 +832,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       realm,
       encoded_device_id,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:30:45+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:30:45+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -930,8 +915,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       "10.0.0.1",
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-12-09T14:00:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-12-09T14:00:32+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -953,8 +937,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       new_introspection_string,
       gen_tracking_id(),
-      DateTime.to_unix(elem(DateTime.from_iso8601("2017-10-09T14:00:32+00:00"), 1), :milliseconds) *
-        10000
+      make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -1128,7 +1111,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   end
 
   defp make_timestamp(timestamp_string) do
-    {:ok, date_time, _} = DateTime.from_iso8601("2017-10-09T16:00:32+00:00")
+    {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
     DateTime.to_unix(date_time, :milliseconds) * 10000
   end
