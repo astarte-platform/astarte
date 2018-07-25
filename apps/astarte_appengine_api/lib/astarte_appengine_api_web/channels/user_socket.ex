@@ -46,6 +46,7 @@ defmodule Astarte.AppEngine.APIWeb.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   def connect(%{"realm" => realm} = payload, socket) do
+    Logger.debug("New socket connection request")
     with token <- Map.get(payload, "token"),
          {:ok, %RoomsUser{} = user} <- authorized_user(realm, token) do
       authorized_socket =
