@@ -853,7 +853,7 @@ renderContent : Model -> Html Msg
 renderContent model =
     Form.form [ Spacing.mt2Sm ]
         ([ Form.row []
-            [ Form.col [ Col.sm12 ]
+            [ Form.col [ Col.sm11 ]
                 [ h3 []
                     [ text
                         (if model.editMode then
@@ -870,13 +870,15 @@ renderContent model =
                             [ text "Delete..." ]
                       else
                         text ""
-                    , Button.button
-                        [ Button.secondary
-                        , Button.attrs [ class "float-right" ]
-                        , Button.onClick ToggleSource
-                        ]
-                        [ text "->" ]
                     ]
+                ]
+            , Form.col [ Col.sm1 ]
+                [ Button.button
+                    [ Button.secondary
+                    , Button.attrs [ class "float-right" ]
+                    , Button.onClick ToggleSource
+                    ]
+                    [ text "->" ]
                 ]
             ]
          , Form.row []
