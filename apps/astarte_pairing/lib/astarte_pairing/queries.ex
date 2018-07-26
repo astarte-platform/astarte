@@ -74,6 +74,7 @@ defmodule Astarte.Pairing.Queries do
             DateTime.utc_now()
             |> DateTime.to_unix(:milliseconds)
 
+          Logger.info("register request for new device: #{inspect(extended_id)}")
           do_register_device(client, device_id, credentials_secret, registration_timestamp)
 
         [first_credentials_request: nil, first_registration: registration_timestamp] ->
