@@ -22,6 +22,8 @@ defmodule Astarte.Pairing.CredentialsSecret do
   This module is responsible for generating and verifying the credential secrets
   """
 
+  alias Astarte.Pairing.CredentialsSecret.Cache
+
   @secret_bytes_length 32
 
   @doc """
@@ -36,7 +38,11 @@ defmodule Astarte.Pairing.CredentialsSecret do
   Generates the Bcrypt hash from a secret
   """
   def hash(secret) do
-    Bcrypt.hash_pwd_salt(secret)
+    sha_hash = :crypto.hash(:sha256, secret)
+    bcrypt_hash = Bcrypt.hash_pwd_salt(secret)
+    Cache.put(sha_hash, bcrypt_hash)
+
+    bcrypt_hash
   end
 
   @doc """
@@ -47,21 +53,25 @@ defmodule Astarte.Pairing.CredentialsSecret do
   If the secret or the stored hash are nil, it performs a dummy check to avoid timing attacks.
   """
   def verify(nil, _stored_hash) do
-    dummy_verify()
+    false
   end
 
   def verify(_provided_secret, nil) do
-    dummy_verify()
+    false
   end
 
   def verify(provided_secret, stored_hash) do
-    Bcrypt.verify_pass(provided_secret, stored_hash)
-  end
-
-  @doc """
-  Perform a dummy check to avoid timing attacks. Always returns false.
-  """
-  def dummy_verify do
-    Bcrypt.no_user_verify()
+    sha_hash = :crypto.hash(:sha256, provided_secret)
+    with {:ok, bcrypt_hash} <- Cache.fetch(sha_hash) do
+      bcrypt_hash == stored_hash
+    else
+      :error ->
+        if Bcrypt.verify_pass(provided_secret, stored_hash) do
+          Cache.put(sha_hash, stored_hash)
+          true
+        else
+          false
+        end
+    end
   end
 end
