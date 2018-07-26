@@ -22,6 +22,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.TestHelper
   alias Astarte.Pairing.CredentialsSecret
+  alias Astarte.Pairing.CredentialsSecret.Cache
   alias CQEx.Query
   alias CQEx.Client
   alias CQEx.Result
@@ -279,6 +280,8 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Client.new!(keyspace: @test_realm)
 
     Query.call!(client, "TRUNCATE devices")
+    # Also clean the cache
+    Cache.flush()
 
     :ok
   end
@@ -289,5 +292,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Client.new!()
 
     Query.call(client, @drop_autotestrealm)
+    # Also clean the cache
+    Cache.flush()
   end
 end
