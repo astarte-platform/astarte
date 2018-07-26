@@ -31,7 +31,8 @@ defmodule Astarte.Pairing do
     Config.init!()
 
     children = [
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
+      {Astarte.Pairing.CredentialsSecret.Cache, []}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
