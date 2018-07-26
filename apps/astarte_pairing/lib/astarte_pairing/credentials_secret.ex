@@ -53,11 +53,11 @@ defmodule Astarte.Pairing.CredentialsSecret do
   If the secret or the stored hash are nil, it performs a dummy check to avoid timing attacks.
   """
   def verify(nil, _stored_hash) do
-    dummy_verify()
+    false
   end
 
   def verify(_provided_secret, nil) do
-    dummy_verify()
+    false
   end
 
   def verify(provided_secret, stored_hash) do
@@ -73,12 +73,5 @@ defmodule Astarte.Pairing.CredentialsSecret do
           false
         end
     end
-  end
-
-  @doc """
-  Perform a dummy check to avoid timing attacks. Always returns false.
-  """
-  def dummy_verify do
-    Bcrypt.no_user_verify()
   end
 end
