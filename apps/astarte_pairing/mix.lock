@@ -3,7 +3,7 @@
   "amqp_client": {:hex, :amqp_client, "3.7.5", "ee5ff6209ca4be0ff950e92775f4e4aab272c74003abd84ded9cff64af1b597a", [:make, :rebar3], [{:rabbit_common, "3.7.5", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "astarte_core": {:git, "https://git.ispirata.com/Astarte-NG/astarte_core", "cadca7e1ff0855bb541ce5dabb30723384a3cd63", []},
   "astarte_data_access": {:git, "https://git.ispirata.com/Astarte-NG/astarte_data_access", "3337f7d1f178bd3960e3bc18a7baef4b1aac3027", []},
-  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "1cafc9250aafa99bf1f61caea0c3d8522a465158", []},
+  "astarte_rpc": {:git, "https://git.ispirata.com/Astarte-NG/astarte_rpc", "84f95acb54301f57128739576de078f323a98c7d", []},
   "bcrypt_elixir": {:hex, :bcrypt_elixir, "1.0.8", "940ce8156519574142a3c6e925e7a0eea7367c55b2817b3bd18806b0bbd4254e", [:make, :mix], [{:elixir_make, "~> 0.4", [hex: :elixir_make, repo: "hexpm", optional: false]}], "hexpm"},
   "certifi": {:hex, :certifi, "2.3.1", "d0f424232390bf47d82da8478022301c561cf6445b5b5fb6a84d49a9e76d2639", [:rebar3], [{:parse_trans, "3.2.0", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},
   "cfxxl": {:hex, :cfxxl, "0.3.0", "7d69bf5533ce0949b0c08ab29766375c704ac42ea4a5c26af93eeff76ff70122", [:mix], [{:httpoison, "~> 0.13", [hex: :httpoison, repo: "hexpm", optional: false]}, {:poison, "~> 3.1", [hex: :poison, repo: "hexpm", optional: false]}], "hexpm"},
