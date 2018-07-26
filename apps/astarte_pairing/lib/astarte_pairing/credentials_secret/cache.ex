@@ -44,4 +44,10 @@ defmodule Astarte.Pairing.CredentialsSecret.Cache do
   def fetch(sha_hash) do
     Agent.get(__MODULE__, &Map.fetch(&1, sha_hash))
   end
+
+  if Mix.env() == :test do
+    def flush do
+      Agent.update(__MODULE__, fn _ -> %{} end)
+    end
+  end
 end
