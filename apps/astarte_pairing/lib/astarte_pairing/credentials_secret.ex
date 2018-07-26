@@ -22,6 +22,8 @@ defmodule Astarte.Pairing.CredentialsSecret do
   This module is responsible for generating and verifying the credential secrets
   """
 
+  alias Astarte.Pairing.CredentialsSecret.Cache
+
   @secret_bytes_length 32
 
   @doc """
@@ -36,7 +38,11 @@ defmodule Astarte.Pairing.CredentialsSecret do
   Generates the Bcrypt hash from a secret
   """
   def hash(secret) do
-    Bcrypt.hash_pwd_salt(secret)
+    sha_hash = :crypto.hash(:sha256, secret)
+    bcrypt_hash = Bcrypt.hash_pwd_salt(secret)
+    Cache.put(sha_hash, bcrypt_hash)
+
+    bcrypt_hash
   end
 
   @doc """
