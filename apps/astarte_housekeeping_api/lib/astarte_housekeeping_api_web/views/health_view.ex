@@ -14,21 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with Astarte.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2017-2018 Ispirata Srl
+# Copyright (C) 2018 Ispirata Srl
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Router do
-  use Astarte.Housekeeping.APIWeb, :router
+defmodule Astarte.Housekeeping.APIWeb.HealthView do
+  use Astarte.Housekeeping.APIWeb, :view
+  alias Astarte.Housekeeping.APIWeb.HealthView
 
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
-  end
-
-  scope "/v1", Astarte.Housekeeping.APIWeb do
-    pipe_through :api
-
-    resources "/realms", RealmController, except: [:new, :edit, :delete]
-    get "/health", HealthController, :show
+  def render("show.json", %{backend_health: backend_health}) do
+    %{
+      data: %{
+        status: backend_health.status
+      }
+    }
   end
 end
