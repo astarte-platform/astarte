@@ -294,6 +294,33 @@ defmodule Astarte.Housekeeping.Queries do
     match?({:ok, _}, DatabaseQuery.call(client, query))
   end
 
+  def check_astarte_health(client, consistency) do
+    realms_count_statement = """
+    SELECT COUNT(*)
+    FROM astarte.realms
+    """
+
+    realms_count_statement =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(realms_count_statement)
+      |> DatabaseQuery.consistency(consistency)
+
+    with {:ok, result} <- DatabaseQuery.call(client, realms_count_statement),
+         [count: _count] <- DatabaseResult.head(result) do
+      :ok
+    else
+      %{acc: _, msg: err_msg} ->
+        Logger.warn("Health is not good: #{err_msg}")
+
+        {:error, :health_check_bad}
+
+      {:error, err} ->
+        Logger.warn("Health is not good, reason: #{inspect(err)}.")
+
+        {:error, :health_check_bad}
+    end
+  end
+
   def realms_list(client) do
     query =
       DatabaseQuery.new()

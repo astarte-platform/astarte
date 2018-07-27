@@ -52,6 +52,28 @@ defmodule Astarte.Housekeeping.Engine do
     end
   end
 
+  def get_health() do
+    with {:ok, client} <- DatabaseClient.new(),
+         :ok <- Queries.check_astarte_health(client, :each_quorum) do
+      {:ok, %{status: :ready}}
+    else
+      {:error, :health_check_bad} ->
+        with {:ok, client} <- DatabaseClient.new(),
+             :ok <- Queries.check_astarte_health(client, :one) do
+          {:ok, %{status: :degraded}}
+        else
+          {:error, :health_check_bad} ->
+            {:ok, %{status: :bad}}
+
+          {:error, :database_connection_error} ->
+            {:ok, %{status: :error}}
+        end
+
+      {:error, :database_connection_error} ->
+        {:ok, %{status: :error}}
+    end
+  end
+
   def get_realm(realm) do
     get_db_client()
     |> Queries.get_realm(realm)
