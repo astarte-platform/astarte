@@ -25,6 +25,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
 
   action_fallback Astarte.Housekeeping.APIWeb.FallbackController
 
+  plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
+
   def index(conn, _params) do
     realms = Realms.list_realms()
     render(conn, "index.json", realms: realms)
