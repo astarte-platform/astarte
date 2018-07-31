@@ -44,23 +44,23 @@ paths:
         - config
       summary: Get auth configuration
       description: Get a JSON that describes the auth configuration of the realm
-      operationId: getAuthConfiguration
+      operationId: getAuthConfig
       security:
         - JWT: []
       parameters:
         - name: realm_name
           in: path
-          description: The realm the configuration belongs to
+          description: Target realm
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthConfigBody'
+          $ref: '#/components/responses/GetAuthConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     put:
       tags:
         - config
@@ -69,28 +69,27 @@ paths:
         Installs a auth configuration for the realm. The body must contain the
         full auth configuration. Validation is performed, and an error is
         returned if the configuration cannot be installed or validated.
-      operationId: putAuthConfiguration
+      operationId: putAuthConfig
       security:
         - JWT: []
       parameters:
         - name: realm_name
           in: path
-          description: The realm which the configuration belongs to
+          description: Target realm
           required: true
           schema:
             type: string
       responses:
         '204':
           description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '422':
-          description: Bad request
+          $ref: '#/components/responses/ConfigValidationError'
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AuthConfigBody'
-        description: AuthConfig object with the new configuration
-        required: true
+        $ref: '#/components/requestBodies/PutAuthConfig'
   '/{realm_name}/interfaces':
     get:
       tags:
@@ -354,6 +353,48 @@ paths:
         '404':
           description: Trigger Not Found
 components:
+  responses:
+    ConfigValidationError:
+      description: The provided configuration is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            errors:
+              jwt_public_key_pem:
+                - is not a valid PEM public key
+    Forbidden:
+      description: >-
+        Authorization failed for the resource. This could also result from
+        unexisting resources.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Forbidden
+    GetAuthConfig:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/AuthConfig'
+    Unauthorized:
+      description: Authorization information is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Unauthorized
   securitySchemes:
     JWT:
       type: apiKey
@@ -380,26 +421,50 @@ components:
             $ref: '#/components/schemas/Interface'
       description: A JSON object representing an Astarte Interface.
       required: true
+    PutAuthConfig:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/AuthConfig'
+      description: AuthConfig object with the new configuration
+      required: true
   schemas:
     Interface:
       type: object
-    AuthConfigBody:
+    AuthConfig:
+      type: object
+      properties:
+        jwt_public_key_pem:
+          type: string
+          example: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+    GenericError:
       type: object
       required:
-        - data
+        - errors
       properties:
-        data:
+        errors:
           type: object
           properties:
-            jwt_public_key_pem:
+            detail:
               type: string
-              example: |
-                -----BEGIN PUBLIC KEY-----
-                MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
-                eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
-                1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
-                4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
-                htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
-                f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
-                VwIDAQAB
-                -----END PUBLIC KEY-----
+    ValidationError:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: object
