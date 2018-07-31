@@ -1,10 +1,11 @@
-module Page.Triggers exposing (Model, Msg, init, update, view)
+module Page.Triggers exposing (Model, Msg, init, update, view, subscriptions)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Navigation
 import Json.Decode as Decode
+import Spinner
 
 
 -- Types
@@ -30,12 +31,16 @@ import Bootstrap.Utilities.Spacing as Spacing
 
 type alias Model =
     { triggers : List String
+    , spinner : Spinner.Model
+    , showSpinner : Bool
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( { triggers = []
+      , spinner = Spinner.init
+      , showSpinner = True
       }
     , AstarteApi.listTriggers session
         GetTriggerListDone
@@ -52,13 +57,15 @@ type Msg
     | ShowError String String
     | RedirectToLogin
     | Forward ExternalMsg
+      -- spinner
+    | SpinnerMsg Spinner.Msg
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
         GetTriggerList ->
-            ( model
+            ( { model | showSpinner = True }
             , AstarteApi.listTriggers session
                 GetTriggerListDone
                 (ShowError "Cannot retrieve triggers. ")
@@ -67,7 +74,10 @@ update session msg model =
             )
 
         GetTriggerListDone triggerNames ->
-            ( { model | triggers = triggerNames }
+            ( { model
+                | triggers = triggerNames
+                , showSpinner = False
+              }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -85,7 +95,7 @@ update session msg model =
             )
 
         ShowError actionError errorMessage ->
-            ( model
+            ( { model | showSpinner = False }
             , Cmd.none
             , [ actionError, " ", errorMessage ]
                 |> String.concat
@@ -104,6 +114,12 @@ update session msg model =
             , msg
             )
 
+        SpinnerMsg msg ->
+            ( { model | spinner = Spinner.update msg model.spinner }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
@@ -117,6 +133,10 @@ view model flashMessages =
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
+        , if model.showSpinner then
+            Spinner.view Spinner.defaultConfig model.spinner
+          else
+            text ""
         , Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
@@ -168,3 +188,11 @@ renderSingleTrigger triggerName =
                 [ text triggerName ]
             ]
         ]
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    if model.showSpinner then
+        Sub.map SpinnerMsg Spinner.subscription
+    else
+        Sub.none
