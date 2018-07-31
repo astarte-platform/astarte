@@ -3,12 +3,12 @@ servers:
   - url: '{base_url}/v1'
     variables:
       base_url:
-        default: http://localhost:4000
+        default: 'http://localhost:4000'
         description: >-
-          The base URL you're serving Astarte from. This should point to the base
-          path from which Realm Management API is served. In case you are running
-          a local installation, this is likely `http://localhost:4000`. If you
-          are on a multi-domain instance, it is likely
+          The base URL you're serving Astarte from. This should point to the
+          base path from which Realm Management API is served. In case you are
+          running a local installation, this is likely `http://localhost:4000`.
+          If you are on a multi-domain instance, it is likely
           `https://realm.api.<your host>/`. In case you have a single domain
           instance, it is most likely `https://<your host>/realm`.
 info:
@@ -23,8 +23,8 @@ info:
 tags:
   - name: config
     description: >-
-      Realm Configuration Management. These APIs configure the global behavior of
-      the Realm and how it can be accessed.
+      Realm Configuration Management. These APIs configure the global behavior
+      of the Realm and how it can be accessed.
   - name: interface
     description: >-
       Interface management. These APIs are used for installing, deleting (if
@@ -342,9 +342,9 @@ paths:
         - trigger
       summary: Delete trigger
       description: >-
-        Deletes an existing trigger with a given `trigger_name`.
-        Please note that triggers which have been already queued might still
-        be delivered for a short time even after trigger deletion.
+        Deletes an existing trigger with a given `trigger_name`. Please note
+        that triggers which have been already queued might still be delivered
+        for a short time even after trigger deletion.
       operationId: deleteTrigger
       security:
         - JWT: []
@@ -360,9 +360,9 @@ components:
       name: Authorization
       in: header
       description: >
-        To access APIs a valid JWT token must be passed in all requests
-        in the `Authorization` header. This token should be signed with
-        the private key associated with the realm the request refers to.
+        To access APIs a valid JWT token must be passed in all requests in the
+        `Authorization` header. This token should be signed with the private key
+        associated with the realm the request refers to.
 
 
         The following syntax must be used in the `Authorization` header :
