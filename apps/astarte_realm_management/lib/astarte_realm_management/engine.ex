@@ -219,7 +219,6 @@ defmodule Astarte.RealmManagement.Engine do
       type: type,
       ownership: ownership,
       aggregation: aggregation,
-      has_metadata: has_metadata,
       interface_id: interface_id
     } = installed_descriptor
 
@@ -229,7 +228,6 @@ defmodule Astarte.RealmManagement.Engine do
            type: ^type,
            ownership: ^ownership,
            aggregation: ^aggregation,
-           has_metadata: ^has_metadata,
            interface_id: ^interface_id
          } <- new_descriptor do
       :ok
