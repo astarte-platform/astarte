@@ -12,7 +12,7 @@ variables:
 mix:test-ci:
     image: elixir:1.6.5
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
     stage: build
     script:
         - export MIX_ENV=test
@@ -29,7 +29,7 @@ mix:test-ci:
 mix:build:
     image: elixir:1.6.5
     services:
-        - scylladb/scylla:latest
+        - cassandra:3.11.2
     stage: build
     script:
         - export MIX_ENV=test
@@ -46,7 +46,7 @@ mix:build:
 mix:release-build:
     image: elixir:1.6.5
     services:
-        - rabbitmq:3.6
+        - cassandra:3.11.2
     stage: build
     script:
         - export MIX_ENV=prod
