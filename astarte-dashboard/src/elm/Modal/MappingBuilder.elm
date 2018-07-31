@@ -1,14 +1,11 @@
 module Modal.MappingBuilder exposing (..)
 
-import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
 
 
 -- Types
 
-import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping exposing (..)
 
 
@@ -17,18 +14,13 @@ import Types.InterfaceMapping as InterfaceMapping exposing (..)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Form.Fieldset as Fieldset
 import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Radio as Radio
 import Bootstrap.Form.Select as Select
 import Bootstrap.Form.Textarea as Textarea
-import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
-import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
-import Bootstrap.Utilities.Spacing as Spacing
 
 
 type alias Model =

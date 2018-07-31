@@ -3,9 +3,7 @@ module Page.InterfaceBuilder exposing (Model, Msg, init, update, view, subscript
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
 import Navigation
-import Json.Encode as Encode
 import Task
 import Time
 import Control exposing (Control)
@@ -29,7 +27,6 @@ import Modal.MappingBuilder as MappingBuilder
 -- bootstrap components
 
 import Bootstrap.Accordion as Accordion
-import Bootstrap.Alert as Alert
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Card.Block as Block
@@ -43,9 +40,7 @@ import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Modal as Modal
-import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 

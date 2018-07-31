@@ -4,7 +4,6 @@ import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
 import JsonHelpers
-import Types.InterfaceMapping as InterfaceMapping
 
 
 type alias DataTrigger =

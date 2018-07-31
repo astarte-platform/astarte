@@ -1,7 +1,6 @@
 module Types.Interface exposing (..)
 
 import Dict exposing (Dict)
-import Http
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
@@ -12,7 +11,6 @@ import Regex exposing (regex)
 -- Types
 
 import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
-import Types.Session exposing (Session)
 
 
 type alias Interface =

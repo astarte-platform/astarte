@@ -3,10 +3,7 @@ module AstarteApi exposing (..)
 import Http
 import Task
 import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
 import Json.Encode
-import Navigation
-import Route
 
 
 -- Types

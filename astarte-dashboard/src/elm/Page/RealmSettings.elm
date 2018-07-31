@@ -2,7 +2,6 @@ module Page.RealmSettings exposing (Model, Msg, init, update, view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
 import Navigation
 
 
@@ -25,9 +24,7 @@ import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Modal as Modal
-import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 
 
