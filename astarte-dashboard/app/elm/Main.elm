@@ -722,12 +722,19 @@ renderProtectedPage flashMessages realm page =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ Navbar.subscriptions model.navbarState NavbarMsg
-        , Time.every Time.second ClearOldFlashMessages
-        , Sub.map UpdateSession sessionChange
-        , pageSubscriptions model.selectedPage
-        ]
+    if List.isEmpty model.flashMessages then
+        Sub.batch
+            [ Navbar.subscriptions model.navbarState NavbarMsg
+            , Sub.map UpdateSession sessionChange
+            , pageSubscriptions model.selectedPage
+            ]
+    else
+        Sub.batch
+            [ Navbar.subscriptions model.navbarState NavbarMsg
+            , Time.every Time.second ClearOldFlashMessages
+            , Sub.map UpdateSession sessionChange
+            , pageSubscriptions model.selectedPage
+            ]
 
 
 pageSubscriptions : Page -> Sub Msg
