@@ -41,7 +41,9 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
+import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 
 
@@ -811,17 +813,19 @@ handleMappingBuilderMessages message model =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.container
-        [ Spacing.mt5Sm ]
+    Grid.containerFluid
+        [ class "bg-white"
+        , Border.rounded
+        , Spacing.pb3
+        ]
         [ Grid.row
-            [ Row.middleSm
-            , Row.topSm
-            ]
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
-        , Grid.row []
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ if model.showSource then
                     Col.sm6
@@ -859,11 +863,16 @@ view model flashMessages =
 
 renderContent : Model -> Interface -> Bool -> Accordion.State -> Html Msg
 renderContent model interface interfaceEditMode accordionState =
-    Grid.container []
+    Grid.containerFluid []
         [ Form.form []
             [ Form.row []
                 [ Form.col [ Col.sm11 ]
-                    [ h3 [ class "text-truncate" ]
+                    [ h5
+                        [ Display.inline
+                        , class "align-middle"
+                        , class "font-weight-normal"
+                        , class "text-truncate"
+                        ]
                         [ text
                             (if interfaceEditMode then
                                 interface.name
@@ -873,10 +882,12 @@ renderContent model interface interfaceEditMode accordionState =
                         , if (interfaceEditMode && interface.major == 0) then
                             Button.button
                                 [ Button.warning
-                                , Button.attrs [ Spacing.ml2 ]
+                                , Button.attrs [ Spacing.ml2, class "text-secondary" ]
                                 , Button.onClick ShowDeleteModal
                                 ]
-                                [ text "Delete..." ]
+                                [ i [ class "fas", class "fa-times", Spacing.mr2 ] []
+                                , text "Delete..."
+                                ]
                           else
                             text ""
                         ]
@@ -887,7 +898,7 @@ renderContent model interface interfaceEditMode accordionState =
                         , Button.attrs [ class "float-right" ]
                         , Button.onClick ToggleSource
                         ]
-                        [ text "->" ]
+                        [ i [ class "fas", class "fa-arrows-alt-h" ] [] ]
                     ]
                 ]
             , Form.row []
@@ -1037,7 +1048,11 @@ renderContent model interface interfaceEditMode accordionState =
                 ]
             , Form.row []
                 [ Form.col [ Col.sm12 ]
-                    [ h5 [ Display.inline ]
+                    [ h5
+                        [ Display.inline
+                        , class "font-weight-normal"
+                        , class "align-middle"
+                        ]
                         [ if Dict.isEmpty interface.mappings then
                             text "No mappings added"
                           else
@@ -1048,7 +1063,9 @@ renderContent model interface interfaceEditMode accordionState =
                         , Button.attrs [ class "float-right", Spacing.ml2 ]
                         , Button.onClick ShowAddMappingModal
                         ]
-                        [ text "Add new Mapping ..." ]
+                        [ i [ class "fas", class "fa-plus", Spacing.mr2 ] []
+                        , text "Add new Mapping ..."
+                        ]
                     ]
                 ]
             , Form.row []
@@ -1196,7 +1213,7 @@ renderInterfaceSource interface sourceBuffer status =
             Typing ->
                 Textarea.attrs []
         , Textarea.onInput UpdateSource
-        , Textarea.attrs [ class "text-monospace" ]
+        , Textarea.attrs [ class "text-monospace", Size.h100 ]
         ]
 
 

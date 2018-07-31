@@ -35,6 +35,7 @@ import Page.RealmSettings as RealmSettings
 
 import Bootstrap.Grid as Grid
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Spacing as Spacing
 
 
@@ -570,11 +571,13 @@ processRealmRoute maybeToken realmRoute config session =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ Grid.containerFluid
-            [ class "bg-light" ]
-            [ renderNavbar model ]
-        , renderPage model model.selectedPage
+    body []
+        [ renderNavbar model
+        , div
+            [ class "main-content"
+            , Spacing.p3
+            ]
+            [ renderPage model model.selectedPage ]
         ]
 
 
@@ -584,43 +587,107 @@ renderNavbar model =
         Public (LoginPage _) ->
             text ""
 
-        _ ->
+        Realm realmName _ ->
             Navbar.config NavbarMsg
                 |> Navbar.withAnimation
+                |> Navbar.attrs
+                    [ classList
+                        [ ( "navbar-vertical", True )
+                        , ( "fixed-left", True )
+                        ]
+                    ]
                 |> Navbar.collapseMedium
-                |> Navbar.container
                 |> Navbar.brand
                     [ href "#" ]
                     [ img
                         [ src <| Assets.path Assets.dashboardIcon
                         , style [ ( "height", "3em" ) ]
-                        , Spacing.mr2
+                        , Spacing.mr3
                         ]
                         []
-                    , text "Realm Management"
-                    ]
-                |> Navbar.items
-                    [ (pageLinkRenderer model.selectedPage isInterfacesRelated)
-                        [ href <| Route.toString (Route.Realm Route.ListInterfaces) ]
-                        [ text "Interfaces" ]
-                    , (pageLinkRenderer model.selectedPage isTriggersRelated)
-                        [ href <| Route.toString (Route.Realm Route.ListTriggers) ]
-                        [ text "Triggers" ]
-                    , (pageLinkRenderer model.selectedPage isSettingsRelated)
-                        [ href <| Route.toString (Route.Realm Route.RealmSettings) ]
-                        [ text "Settings" ]
+                    , div
+                        [ class "realm-brand" ]
+                        [ p [ Spacing.mb0 ] [ text realmName ]
+                        , small [ class "font-weight-light" ] [ text "dashboard" ]
+                        ]
                     ]
                 |> Navbar.customItems
-                    (renderLogoutButton model.session.credentials)
+                    [ navbarLinks model.selectedPage ]
                 |> Navbar.view model.navbarState
 
 
-pageLinkRenderer : Page -> (Page -> Bool) -> (List (Attribute msg) -> List (Html msg) -> Navbar.Item msg)
-pageLinkRenderer page checker =
-    if (checker page) then
-        Navbar.itemLinkActive
-    else
-        Navbar.itemLink
+
+{-
+   as for elm-bootstrap 4.1.0, vertical navbars are not supported.
+   This is the implementation using bootstrap css classes
+-}
+
+
+navbarLinks : Page -> Navbar.CustomItem Msg
+navbarLinks selectedPage =
+    Navbar.customItem <|
+        Grid.container
+            [ Flex.col ]
+            [ hr [] []
+            , ul
+                [ class "navbar-nav" ]
+                [ li [ class "navbar-item" ]
+                    [ a
+                        [ classList
+                            [ ( "nav-link", True )
+                            , ( "active", isInterfacesRelated selectedPage )
+                            ]
+                        , href <| Route.toString (Route.Realm Route.ListInterfaces)
+                        ]
+                        [ span
+                            [ class "icon-spacer" ]
+                            [ i [ class "fas", class "fa-stream" ] [] ]
+                        , text "Interfaces"
+                        ]
+                    ]
+                , li [ class "navbar-item" ]
+                    [ a
+                        [ classList
+                            [ ( "nav-link", True )
+                            , ( "active", isTriggersRelated selectedPage )
+                            ]
+                        , href <| Route.toString (Route.Realm Route.ListTriggers)
+                        ]
+                        [ span
+                            [ class "icon-spacer" ]
+                            [ i [ class "fas", class "fa-bolt" ] [] ]
+                        , text "Triggers"
+                        ]
+                    ]
+                , li [ class "navbar-item" ]
+                    [ a
+                        [ classList
+                            [ ( "nav-link", True )
+                            , ( "active", isSettingsRelated selectedPage )
+                            ]
+                        , href <| Route.toString (Route.Realm Route.RealmSettings)
+                        ]
+                        [ span
+                            [ class "icon-spacer" ]
+                            [ i [ class "fas", class "fa-cog" ] [] ]
+                        , text "Settings"
+                        ]
+                    ]
+                , li [ class "navbar-item" ]
+                    [ hr [] [] ]
+                , li [ class "navbar-item" ]
+                    [ a
+                        [ class "nav-link"
+                        , href <| Route.toString (Route.Realm Route.Logout)
+                        ]
+                        [ span
+                            [ class "icon-spacer" ]
+                            [ i [ class "fas", class "fa-sign-out-alt" ] [] ]
+                        , text "Logout"
+                        ]
+                    ]
+                ]
+            ]
 
 
 isInterfacesRelated : Page -> Bool
@@ -657,21 +724,6 @@ isSettingsRelated page =
 
         _ ->
             False
-
-
-renderLogoutButton : Maybe Credentials -> List (Navbar.CustomItem Msg)
-renderLogoutButton maybeCredentials =
-    case maybeCredentials of
-        Just _ ->
-            [ Navbar.textItem []
-                [ a
-                    [ href <| Route.toString (Route.Realm Route.Logout) ]
-                    [ text "Logout" ]
-                ]
-            ]
-
-        Nothing ->
-            []
 
 
 renderPage : Model -> Page -> Html Msg

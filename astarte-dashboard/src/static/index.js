@@ -1,3 +1,4 @@
+require( '../../node_modules/@fortawesome/fontawesome-free/js/all.js' );
 require( './styles/main.scss' );
 var $ = jQuery = require( '../../node_modules/jquery/dist/jquery.js' );
 

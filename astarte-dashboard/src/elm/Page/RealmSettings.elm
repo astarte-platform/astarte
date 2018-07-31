@@ -25,6 +25,8 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
+import Bootstrap.Utilities.Border as Border
+import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 
 
@@ -171,20 +173,32 @@ update session msg model =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.container
-        [ Spacing.mt5Sm ]
+    Grid.containerFluid
+        [ class "bg-white"
+        , Border.rounded
+        , Spacing.pb3
+        ]
         [ Grid.row
-            [ Row.middleSm
-            , Row.topSm
-            ]
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row
-            [ Row.middleSm
-            , Row.topSm
+            [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col
+                [ Col.sm12 ]
+                [ h5
+                    [ Display.inline
+                    , class "text-secondary"
+                    , class "font-weight-normal"
+                    , class "align-middle"
+                    ]
+                    [ text "Realm settings" ]
+                ]
             ]
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
                 [ renderConfig model.conf
@@ -193,7 +207,9 @@ view model flashMessages =
                     , Button.onClick GetRealmConf
                     , Button.attrs [ Spacing.mt2, Spacing.mr1 ]
                     ]
-                    [ text "Reload" ]
+                    [ i [ class "fas", class "fa-sync-alt", Spacing.mr2 ] []
+                    , text "Reload"
+                    ]
                 , Button.button
                     [ Button.primary
                     , Button.onClick ShowConfirmModal
