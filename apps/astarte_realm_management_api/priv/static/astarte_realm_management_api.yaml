@@ -94,62 +94,59 @@ paths:
     get:
       tags:
         - interface
-      summary: Get interfaces list
-      description: Get a list of all installed interfaces.
-      operationId: getInterfaces
+      summary: Get interface list
+      description: Get a list of all installed interface names.
+      operationId: getInterfaceList
       security:
         - JWT: []
       parameters:
         - name: realm_name
           in: path
-          description: The realm which the interface belongs to
+          description: Target realm
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: string
-                example:
-                  data:
-                    - com.example.InterfaceFoo
-                    - com.example.InterfaceBar
+          $ref: '#/components/responses/GetInterfaceList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags:
         - interface
-      summary: Add a new interface to the realm
+      summary: Install a new interface to the realm
       description: >-
         Install a new interface, or a newer major version for a given interface.
         Validation is performed, and an error is returned if interface cannot be
-        installed, afterwards installation is performed.
-      operationId: addInterface
+        installed. The installation is performed asynchronously.
+      operationId: installInterface
       security:
         - JWT: []
       parameters:
         - name: realm_name
           in: path
-          description: The realm which the interface belongs to
+          description: Target realm
           required: true
           schema:
             type: string
       responses:
-        '405':
-          description: Validation exception
+        '201':
+          $ref: '#/components/responses/InstallInterface'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/InterfaceValidationError'
       requestBody:
-        $ref: '#/components/requestBodies/Interface'
+        $ref: '#/components/requestBodies/InstallInterface'
   '/{realm_name}/interfaces/{interface_name}':
     parameters:
       - name: realm_name
         in: path
-        description: The realm which the interface belongs to
+        description: Target realm
         required: true
         schema:
           type: string
@@ -163,35 +160,24 @@ paths:
       tags:
         - interface
       summary: Get interface major versions
-      description: >-
-        An interface might have multiple major versions, list all of them.
-        Previous minor versions for a given major version are not retrieved,
-        only the most recent interface for each interface major is returned.
-      operationId: getInterfacesMajorVersions
+      description: 'An interface might have multiple major versions, list all of them.'
+      operationId: getInterfaceMajorVersions
       security:
         - JWT: []
       responses:
         '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: string
-                example:
-                  data:
-                    - 1
-                    - 2
-                    - 10
+          $ref: '#/components/responses/GetInterfaceMajorVersions'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/InterfaceNotFound'
   '/{realm_name}/interfaces/{interface_name}/{major_version}':
     parameters:
       - name: realm_name
         in: path
-        description: The realm which the interface belongs to
+        description: Target realm
         required: true
         schema:
           type: string
@@ -212,29 +198,51 @@ paths:
         - interface
       summary: Updates an existing interface to a new minor release
       description: >-
-        Replace an existing interface with a certain major version with a newer
+        Replace an existing interface with a certain major version with a new
         one (that must have same major version and a higher minor version).
-        Server side validation is performed and afterwards interface upgrade is
-        performed. This operation cannot be reverted.
+        Server side validation is performed and the interface upgrade is
+        performed aynchronously. For more information about what is allowed when
+        updating an interface, see [the
+        doc](https://docs.astarte-platform.org/snapshot/030-interface.html#versioning).
+        This operation cannot be reverted.
       operationId: updateInterface
       security:
         - JWT: []
       responses:
-        '405':
-          description: Validation exception
+        '204':
+          description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/InterfaceNotFound'
+        '409':
+          $ref: '#/components/responses/UpdateConflict'
+        '422':
+          $ref: '#/components/responses/InterfaceValidationError'
       requestBody:
-        $ref: '#/components/requestBodies/Interface'
+        $ref: '#/components/requestBodies/UpdateInterface'
     get:
       tags:
         - interface
       summary: Get an interface
-      description: Previously uploaded interface source file is retrieved.
+      description: >-
+        Show a previously installed interface. Previous minor versions for a
+        given major version are not retrieved, only the most recent interface
+        for each interface major is returned.
       operationId: getInterface
       security:
         - JWT: []
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/GetInterface'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/InterfaceNotFound'
     delete:
       tags:
         - interface
@@ -248,9 +256,13 @@ paths:
         - JWT: []
       responses:
         '204':
-          description: No Content
+          description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/InterfaceNotFound'
   '/{realm_name}/triggers':
     parameters:
       - name: realm_name
@@ -306,7 +318,7 @@ paths:
         '405':
           description: Invalid Trigger Configuration
       requestBody:
-        $ref: '#/components/requestBodies/installTriggerBody'
+        $ref: '#/components/requestBodies/InstallTriggerBody'
   '/{realm_name}/triggers/{trigger_name}':
     parameters:
       - name: realm_name
@@ -386,6 +398,79 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/AuthConfig'
+    GetInterface:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/Interface'
+    GetInterfaceList:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+            example:
+              data:
+                - com.example.InterfaceFoo
+                - com.example.InterfaceBar
+    GetInterfaceMajorVersions:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  type: integer
+            example:
+              data:
+                - 1
+                - 2
+                - 10
+    InstallInterface:
+      description: Interface installation succesfully started
+      headers:
+        Location:
+          description: URL of the installed interface
+          schema:
+            type: string
+    InterfaceNotFound:
+      description: Requested interface was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Interface not found
+    InterfaceValidationError:
+      description: The provided interface is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            errors:
+              mappings:
+                type:
+                  - is invalid
     Unauthorized:
       description: Authorization information is missing or invalid.
       content:
@@ -395,6 +480,17 @@ components:
           example:
             errors:
               detail: Unauthorized
+    UpdateConflict:
+      description: >-
+        The updated interface is valid, but there's a conflict with the existing
+        one
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Interface minor version was not increased
   securitySchemes:
     JWT:
       type: apiKey
@@ -409,16 +505,21 @@ components:
         The following syntax must be used in the `Authorization` header :
           `Bearer xxxxxx.yyyyyyy.zzzzzz`
   requestBodies:
-    installTriggerBody:
+    InstallTriggerBody:
       content:
         application/json:
           schema:
             type: string
-    Interface:
+    InstallInterface:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Interface'
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/Interface'
       description: A JSON object representing an Astarte Interface.
       required: true
     PutAuthConfig:
@@ -433,9 +534,44 @@ components:
                 $ref: '#/components/schemas/AuthConfig'
       description: AuthConfig object with the new configuration
       required: true
+    UpdateInterface:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/Interface'
+          example:
+            data:
+              interface_name: org.astarteplatform.Values
+              version_major: 0
+              version_minor: 2
+              type: datastream
+              ownership: device
+              mappings:
+                - endpoint: /realValue
+                  type: double
+                  explicit_timestamp: true
+                - endpoint: /anotherValue
+                  type: string
+      description: A JSON object representing the updated Astarte Interface.
+      required: true
   schemas:
     Interface:
       type: object
+      example:
+        interface_name: org.astarteplatform.Values
+        version_major: 0
+        version_minor: 1
+        type: datastream
+        ownership: device
+        mappings:
+          - endpoint: /realValue
+            type: double
+            explicit_timestamp: true
     AuthConfig:
       type: object
       properties:
