@@ -234,39 +234,24 @@ paths:
           $ref: '#/components/responses/InterfaceNotFound'
   '/{realm_name}/triggers':
     parameters:
-      - name: realm_name
-        in: path
-        description: The realm which the trigger belongs to
-        required: true
-        schema:
-          type: string
+      - $ref: '#/components/parameters/Realm'
     get:
       tags:
         - trigger
-      summary: Get triggers list
+      summary: Get trigger list
       description: >-
         Get a list of all installed triggers. The trigger name for each
         installed trigger is reported.
-      operationId: getTriggersList
+      operationId: getTriggerList
       security:
         - JWT: []
       responses:
         '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: string
-                example:
-                  data:
-                    - new_data_on_test_interface
-                    - connected_device
-                    - value_above_threshold_alarm
+          $ref: '#/components/responses/GetTriggerList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
     post:
       tags:
         - trigger
@@ -280,43 +265,37 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          description: Success
-        '404':
-          description: Trigger Not Found
-        '405':
-          description: Invalid Trigger Configuration
+        '201':
+          $ref: '#/components/responses/InstallTrigger'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/TriggerValidationError'
       requestBody:
-        $ref: '#/components/requestBodies/InstallTriggerBody'
+        $ref: '#/components/requestBodies/InstallTrigger'
   '/{realm_name}/triggers/{trigger_name}':
     parameters:
-      - name: realm_name
-        in: path
-        description: The realm which the trigger belongs to
-        required: true
-        schema:
-          type: string
-      - name: trigger_name
-        in: path
-        description: Trigger name
-        required: true
-        schema:
-          type: string
+      - $ref: '#/components/parameters/Realm'
+      - $ref: '#/components/parameters/TriggerName'
     get:
       tags:
         - trigger
       summary: Get trigger configuration
-      description: >-
-        Retrieve installed trigger configuration. A trigger JSON representation
-        is returned.
+      description: Retrieve installed trigger configuration.
       operationId: getTrigger
       security:
         - JWT: []
       responses:
         '200':
-          description: Success
+          $ref: '#/components/responses/GetTrigger'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Trigger not found
+          $ref: '#/components/responses/NotFound'
     delete:
       tags:
         - trigger
@@ -329,10 +308,14 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
+        '204':
           description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          description: Trigger Not Found
+          $ref: '#/components/responses/NotFound'
 components:
   responses:
     ConfigValidationError:
@@ -413,6 +396,44 @@ components:
                 - 1
                 - 2
                 - 10
+    GetTrigger:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: string
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/TriggerConfig'
+            example:
+              data:
+                name: my_device_connected
+                action:
+                  http_post_url: 'http://example.com/my_post_url'
+                simple_triggers:
+                  - type: device_trigger
+                    'on': device_connected
+                    device_id: glO6LullTKmwxebForU-eg
+    GetTriggerList:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+            example:
+              data:
+                - new_data_on_test_interface
+                - connected_device
+                - value_above_threshold_alarm
     InstallInterface:
       description: Interface installation succesfully started
       headers:
@@ -420,6 +441,22 @@ components:
           description: URL of the installed interface
           schema:
             type: string
+    InstallTrigger:
+      description: Success
+      headers:
+        Location:
+          description: URL of the installed trigger
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/TriggerConfig'
     InterfaceNotFound:
       description: Requested interface was not found
       content:
@@ -440,6 +477,26 @@ components:
               mappings:
                 type:
                   - is invalid
+    TriggerValidationError:
+      description: The provided trigger configuration is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            errors:
+              simple_triggers:
+                - device_id:
+                    - is not a valid device_id
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Not found
     Unauthorized:
       description: Authorization information is missing or invalid.
       content:
@@ -474,11 +531,16 @@ components:
         The following syntax must be used in the `Authorization` header :
           `Bearer xxxxxx.yyyyyyy.zzzzzz`
   requestBodies:
-    InstallTriggerBody:
+    InstallTrigger:
       content:
         application/json:
           schema:
-            type: string
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/TriggerConfig'
     InstallInterface:
       content:
         application/json:
@@ -550,6 +612,13 @@ components:
       required: true
       schema:
         type: integer
+    TriggerName:
+      name: trigger_name
+      in: path
+      description: Trigger name
+      required: true
+      schema:
+        type: string
 
   schemas:
     Interface:
@@ -564,6 +633,24 @@ components:
           - endpoint: /realValue
             type: double
             explicit_timestamp: true
+    TriggerConfig:
+      type: object
+      required:
+        - name
+        - action
+        - simple_triggers
+      example:
+        name: value_above_threshold_alarm
+        action:
+          http_post_url: 'http://example.com/my_post_url'
+        simple_triggers:
+          - type: data_trigger
+            'on': incoming_data
+            interface_name: org.astarteplatform.Values
+            interface_major: 0
+            match_path: /realValue
+            value_match_operator: '>'
+            known_value: 0.6
     AuthConfig:
       type: object
       properties:
