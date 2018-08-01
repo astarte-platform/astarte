@@ -619,10 +619,116 @@ components:
       required: true
       schema:
         type: string
-
   schemas:
+    AuthConfig:
+      type: object
+      properties:
+        jwt_public_key_pem:
+          type: string
+          example: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
     Interface:
       type: object
+      properties:
+        interface_name:
+          type: string
+          pattern: >-
+            ^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
+          minLength: 1
+          maxLength: 128
+          description: >-
+            The name of the interface. This has to be an unique, alphanumeric
+            reverse internet domain name, shorther than 128 characters.
+        version_major:
+          type: integer
+          description: >-
+            A Major version qualifier for this interface. Interfaces with the
+            same id and different version_major number are deemed incompatible.
+            It is then acceptable to redefine any property of the interface when
+            changing the major version number.
+        version_minor:
+          type: integer
+          description: >-
+            A Minor version qualifier for this interface. Interfaces with the
+            same id and major version number and different version_minor number
+            are deemed compatible between each other. When changing the minor
+            number, it is then only possible to insert further mappings. Any
+            other modification might lead to incompatibilities and undefined
+            behavior.
+        type:
+          type: string
+          enum:
+            - datastream
+            - properties
+          description: >-
+            Identifies the type of this Interface. Currently two types are
+            supported: datastream and properties. datastream should be used when
+            dealing with streams of non-persistent data, where a single path
+            receives updates and there's no concept of state. properties,
+            instead, are meant to be an actual state and as such they have only
+            a change history, and are retained.
+        ownership:
+          type: string
+          enum:
+            - device
+            - server
+          description: >-
+            Identifies the ownership of the interface. Interfaces are meant to
+            be unidirectional, and this property defines who's sending or
+            receiving data. device means the device/gateway is sending data to
+            Astarte, server means the device/gateway is receiving data from
+            Astarte. Bidirectional mode is not supported, you should instantiate
+            another interface for that.
+        aggregation:
+          type: string
+          enum:
+            - individual
+            - object
+          default: individual
+          description: >-
+            Identifies the aggregation of the mappings of the interface.
+            Individual means every mapping changes state or streams data
+            independently, whereas an object aggregation treats the interface as
+            an object, making all the mappings changes interdependent. Choosing
+            the right aggregation might drastically improve performances.
+        description:
+          type: string
+          description: An optional description of the interface.
+        doc:
+          type: string
+          description: >-
+            A string containing documentation that will be injected in the
+            generated client code.
+        mappings:
+          type: array
+          description: >-
+            Mappings define the endpoint of the interface, where actual data is
+            stored/streamed. They are defined as relative URLs (e.g. /my/path)
+            and can be parametrized (e.g.: /%{myparam}/path). A valid interface
+            must have no mappings clash, which means that every mapping must
+            resolve to a unique path or collection of paths (including
+            parametrization). Every mapping acquires type, quality and
+            aggregation of the interface.
+          items:
+            $ref: '#/components/schemas/Mapping'
+          minItems: 1
+          maxItems: 1024
+          uniqueItems: true
+      required:
+        - interface_name
+        - version_minor
+        - version_major
+        - type
+        - ownership
+        - mappings
       example:
         interface_name: org.astarteplatform.Values
         version_major: 0
@@ -633,8 +739,124 @@ components:
           - endpoint: /realValue
             type: double
             explicit_timestamp: true
+    Mapping:
+      type: object
+      description: >-
+        Identifies a mapping for an interface. A mapping must consist at least
+        of an endpoint and a type.
+      properties:
+        endpoint:
+          type: string
+          pattern: '^(/(%{([a-zA-Z][a-zA-Z0-9]*)}|[a-zA-Z][a-zA-Z0-9]*)){1,64}$'
+          minLength: 2
+          maxLength: 256
+          description: >-
+            The template of the path. This is a UNIX-like path (e.g. /my/path)
+            and can be parametrized. Parameters are in the %{name} form, and can
+            be used to create interfaces which represent dictionaries of
+            mappings. When the interface aggregation is object, an object is
+            composed by all the mappings for one specific parameter combination.
+            /timestamp is a reserved path for timestamps, so every mapping on a
+            datastream must not have any endpoint that ends with /timestamp.
+        type:
+          type: string
+          enum:
+            - double
+            - integer
+            - boolean
+            - longinteger
+            - string
+            - binaryblob
+            - datetime
+            - doublearray
+            - integerarray
+            - booleanarray
+            - longintegerarray
+            - stringarray
+            - binaryblobarray
+            - datetimearray
+          description: Defines the type of the mapping.
+        reliability:
+          type: string
+          enum:
+            - unreliable
+            - guaranteed
+            - unique
+          default: unreliable
+          description: >-
+            Useful only with datastream. Defines whether the sent data should be
+            considered delivered when the transport successfully sends the data
+            (unreliable), when we know that the data has been received at least
+            once (guaranteed) or when we know that the data has been received
+            exactly once (unique). unreliable by default. When using reliable
+            data, consider you might incur in additional resource usage on both
+            the transport and the device's end.
+        retention:
+          type: string
+          enum:
+            - discard
+            - volatile
+            - stored
+          default: discard
+          description: >-
+            Useful only with datastream. Defines whether the sent data should be
+            discarded if the transport is temporarily uncapable of delivering it
+            (discard) or should be kept in a cache in memory (volatile) or on
+            disk (stored), and guaranteed to be delivered in the timeframe
+            defined by the expiry. discard by default.
+        expiry:
+          type: integer
+          default: 0
+          description: >-
+            Useful when retention is stored. Defines after how many seconds a
+            specific data entry should be kept before giving up and erasing it
+            from the persistent cache. A value <= 0 means the persistent cache
+            never expires, and is the default.
+        allow_unset:
+          type: boolean
+          default: false
+          description: >-
+            Used only with properties. Used with producers, it generates a
+            method to unset the property. Used with consumers, it generates code
+            to call an unset method when an empty payload is received.
+        explicit_timestamp:
+          type: boolean
+          default: false
+          description: >-
+            Allow to set a custom timestamp, otherwise a timestamp is added when
+            the message is received. If true explicit timestamp will also be
+            used for sorting. This feature is only supported on datastreams.
+        description:
+          type: string
+          description: An optional description of the mapping.
+        doc:
+          type: string
+          description: >-
+            A string containing documentation that will be injected in the
+            generated client code.
+      required:
+        - endpoint
+        - type
     TriggerConfig:
       type: object
+      properties:
+        name:
+          description: Name of the trigger
+          type: string
+        action:
+          oneOf:
+            - $ref: '#/components/schemas/HTTPPostAction'
+        simple_triggers:
+          description: >-
+            Simple triggers that will trigger the action. For now only a single
+            simple trigger is supported.
+          type: array
+          minLength: 1
+          maxLength: 1
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/DataSimpleTrigger'
+              - $ref: '#/components/schemas/DeviceSimpleTrigger'
       required:
         - name
         - action
@@ -651,21 +873,116 @@ components:
             match_path: /realValue
             value_match_operator: '>'
             known_value: 0.6
-    AuthConfig:
+    HTTPPostAction:
       type: object
+      description: >-
+        An object describing an HTTP post action that will be executed by the
+        trigger
       properties:
-        jwt_public_key_pem:
+        http_post_url:
+          description: The target URL for the POST
           type: string
-          example: |
-            -----BEGIN PUBLIC KEY-----
-            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
-            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
-            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
-            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
-            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
-            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
-            VwIDAQAB
-            -----END PUBLIC KEY-----
+        template_type:
+          description: >-
+            The type of template used for the POST request, if any. If not
+            specified, the payload of the POST will be a JSON object
+            representing the event.
+          type: string
+          enum:
+            - mustache
+        template:
+          description: >-
+            If a template_type is specified, this should contain the template to
+            be applied.
+          type: string
+          example: 'Just received {{value}} from {{device_id}}'
+      required:
+        - http_post_url
+    DataSimpleTrigger:
+      type: object
+      description: An object describing a simple trigger reacting to published data.
+      properties:
+        type:
+          description: 'The type of the simple trigger, must be data_trigger.'
+          type: string
+          enum:
+            - data_trigger
+        interface_name:
+          description: The name of the target interface or * to match all interfaces.
+          type: string
+        interface_major:
+          description: >-
+            The major version of the target interface. Ignored if interface_name
+            is *.
+          type: integer
+        match_path:
+          description: >-
+            The target endpoint path for the trigger or /* to match all the
+            endpoints of the target interface.
+          type: string
+        'on':
+          description: The type of data event the trigger will react to
+          type: string
+          enum:
+            - incoming_data
+            - value_change
+            - value_change_applied
+            - path_created
+            - path_removed
+            - value_stored
+        known_value:
+          description: >-
+            Used with value_match_operator to determine whether to activate the
+            trigger or not. The known value is used in the right hand side of
+            the comparison, e.g. if known_value is 0.6 and value_match_operator
+            is >, the trigger will be activated only if the published value is >
+            0.6. The type of this value must be the same of the published value.
+            Ignored if value_match_operator is *.
+        value_match_operator:
+          description: >-
+            A comparison operator used with known_value or * to match
+            everything. See also known_value.
+          type: string
+          enum:
+            - '*'
+            - ==
+            - '!='
+            - '>'
+            - '>='
+            - <
+            - <=
+            - contains
+            - not_contains
+      required:
+        - type
+        - interface_name
+        - match_path
+        - 'on'
+        - value_match_operator
+    DeviceSimpleTrigger:
+      type: object
+      description: An object describing a simple trigger reacting to device state changes.
+      properties:
+        type:
+          description: 'The type of the simple trigger, must be device_trigger.'
+          type: string
+          enum:
+            - device_trigger
+        'on':
+          description: The type of device event the trigger will react to.
+          type: string
+          enum:
+            - device_connected
+            - device_disconnected
+            - device_empty_cache_received
+            - device_error
+        device_id:
+          description: The device id of the target device or * to match all devices.
+          type: string
+      required:
+        - type
+        - 'on'
+        - device_id
     GenericError:
       type: object
       required:
