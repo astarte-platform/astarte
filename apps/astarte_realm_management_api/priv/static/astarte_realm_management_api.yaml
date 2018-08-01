@@ -39,6 +39,8 @@ tags:
       url: 'https://docs.astarte-platform.org/snapshot/060-triggers.html'
 paths:
   '/{realm_name}/config/auth':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
     get:
       tags:
         - config
@@ -47,13 +49,6 @@ paths:
       operationId: getAuthConfig
       security:
         - JWT: []
-      parameters:
-        - name: realm_name
-          in: path
-          description: Target realm
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           $ref: '#/components/responses/GetAuthConfig'
@@ -72,13 +67,6 @@ paths:
       operationId: putAuthConfig
       security:
         - JWT: []
-      parameters:
-        - name: realm_name
-          in: path
-          description: Target realm
-          required: true
-          schema:
-            type: string
       responses:
         '204':
           description: Success
@@ -91,6 +79,8 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/PutAuthConfig'
   '/{realm_name}/interfaces':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
     get:
       tags:
         - interface
@@ -99,13 +89,6 @@ paths:
       operationId: getInterfaceList
       security:
         - JWT: []
-      parameters:
-        - name: realm_name
-          in: path
-          description: Target realm
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           $ref: '#/components/responses/GetInterfaceList'
@@ -124,13 +107,6 @@ paths:
       operationId: installInterface
       security:
         - JWT: []
-      parameters:
-        - name: realm_name
-          in: path
-          description: Target realm
-          required: true
-          schema:
-            type: string
       responses:
         '201':
           $ref: '#/components/responses/InstallInterface'
@@ -144,18 +120,8 @@ paths:
         $ref: '#/components/requestBodies/InstallInterface'
   '/{realm_name}/interfaces/{interface_name}':
     parameters:
-      - name: realm_name
-        in: path
-        description: Target realm
-        required: true
-        schema:
-          type: string
-      - name: interface_name
-        in: path
-        description: Interface name
-        required: true
-        schema:
-          type: string
+      - $ref: '#/components/parameters/Realm'
+      - $ref: '#/components/parameters/InterfaceName'
     get:
       tags:
         - interface
@@ -175,6 +141,9 @@ paths:
           $ref: '#/components/responses/InterfaceNotFound'
   '/{realm_name}/interfaces/{interface_name}/{major_version}':
     parameters:
+      - $ref: '#/components/parameters/Realm'
+      - $ref: '#/components/parameters/InterfaceName'
+      - $ref: '#/components/parameters/InterfaceMajor'
       - name: realm_name
         in: path
         description: Target realm
@@ -559,6 +528,29 @@ components:
                   type: string
       description: A JSON object representing the updated Astarte Interface.
       required: true
+  parameters:
+    Realm:
+      name: realm_name
+      in: path
+      description: Target realm
+      required: true
+      schema:
+        type: string
+    InterfaceName:
+      name: interface_name
+      in: path
+      description: Interface name
+      required: true
+      schema:
+        type: string
+    InterfaceMajor:
+      name: major_version
+      in: path
+      description: Interface major version
+      required: true
+      schema:
+        type: integer
+
   schemas:
     Interface:
       type: object
