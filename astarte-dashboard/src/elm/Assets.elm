@@ -18,9 +18,9 @@ path (AssetPath str) =
 
 loginImage : AssetPath
 loginImage =
-    AssetPath "static/img/login.svg"
+    AssetPath "/static/img/login.svg"
 
 
 dashboardIcon : AssetPath
 dashboardIcon =
-    AssetPath "static/img/logo.svg"
+    AssetPath "/static/img/logo.svg"

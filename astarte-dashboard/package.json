@@ -26,6 +26,7 @@
   "devDependencies": {
     "@babel/core": "latest",
     "@babel/generator": "latest",
+    "@fortawesome/fontawesome-free": "^5.2.0",
     "autoprefixer": "^9.0.1",
     "bootstrap": "^4.1.3",
     "copy-webpack-plugin": "^4.5.2",

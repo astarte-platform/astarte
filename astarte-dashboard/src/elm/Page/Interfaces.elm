@@ -28,6 +28,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
+import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 
@@ -171,12 +172,13 @@ getInterfaceMajorsHelper interfaceName session =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.container
-        [ Spacing.mt5Sm ]
+    Grid.containerFluid
+        [ class "bg-white"
+        , Border.rounded
+        , Spacing.pb3
+        ]
         [ Grid.row
-            [ Row.middleSm
-            , Row.topSm
-            ]
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
@@ -189,7 +191,12 @@ view model flashMessages =
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ h5 [ Display.inline ]
+                [ h5
+                    [ Display.inline
+                    , class "text-secondary"
+                    , class "font-weight-normal"
+                    , class "align-middle"
+                    ]
                     [ if Dict.isEmpty model.interfaces then
                         text "No interfaces installed"
                       else
@@ -206,7 +213,9 @@ view model flashMessages =
                     , Button.onClick GetInterfaceList
                     , Button.attrs [ class "float-right", Spacing.mr1 ]
                     ]
-                    [ text "Reload" ]
+                    [ i [ class "fas", class "fa-sync-alt", Spacing.mr2 ] []
+                    , text "Reload"
+                    ]
                 ]
             ]
         , Grid.row []

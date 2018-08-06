@@ -37,7 +37,9 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
+import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 
 
@@ -828,16 +830,19 @@ isPlaceholder token =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.container [ Spacing.mt3Sm ]
+    Grid.containerFluid
+        [ class "bg-white"
+        , Border.rounded
+        , Spacing.pb3
+        ]
         [ Grid.row
-            [ Row.middleSm
-            , Row.topSm
-            ]
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
-        , Grid.row []
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ if model.showSource then
                     Col.sm6
@@ -874,7 +879,12 @@ renderContent model =
     Form.form [ Spacing.mt2Sm ]
         ([ Form.row []
             [ Form.col [ Col.sm11 ]
-                [ h3 []
+                [ h5
+                    [ Display.inline
+                    , class "align-middle"
+                    , class "font-weight-normal"
+                    , class "text-truncate"
+                    ]
                     [ text
                         (if model.editMode then
                             model.trigger.name
@@ -884,10 +894,12 @@ renderContent model =
                     , if model.editMode then
                         Button.button
                             [ Button.warning
-                            , Button.attrs [ Spacing.ml2 ]
+                            , Button.attrs [ Spacing.ml2, class "text-secondary" ]
                             , Button.onClick ShowDeleteModal
                             ]
-                            [ text "Delete..." ]
+                            [ i [ class "fas", class "fa-times", Spacing.mr2 ] []
+                            , text "Delete..."
+                            ]
                       else
                         text ""
                     ]
@@ -898,7 +910,7 @@ renderContent model =
                     , Button.attrs [ class "float-right" ]
                     , Button.onClick ToggleSource
                     ]
-                    [ text "->" ]
+                    [ i [ class "fas", class "fa-arrows-alt-h" ] [] ]
                 ]
             ]
          , Form.row []
@@ -1262,7 +1274,7 @@ renderTriggerSource trigger sourceBuffer status editMode =
             Typing ->
                 Textarea.attrs []
         , Textarea.onInput UpdateSource
-        , Textarea.attrs [ class "text-monospace" ]
+        , Textarea.attrs [ class "text-monospace", Size.h100 ]
         ]
 
 

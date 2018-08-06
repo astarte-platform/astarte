@@ -1,3 +1,55 @@
-$body-bg: #fff;
+$body-bg:               #eee;
+
+$font-weight-light:     200;
+$font-weight-normal:    300;
+$font-weight-bold:      700;
+$small-font-size:       70%;
+
+$primary:               #7086C0;
+$input-disabled-bg:     #fafafa;
 
 @import "./node_modules/bootstrap/scss/bootstrap";
+
+// Custom components
+
+$navbar-width: 300px;
+
+.navbar-vertical.navbar-expand-lg {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    display: block;
+    overflow-y: auto;
+    width: 100%;
+    max-width: $navbar-width;
+}
+
+.navbar-vertical.navbar-expand-lg.fixed-left + .main-content {
+    margin-left: $navbar-width;
+}
+
+.navbar-vertical.navbar-expand-lg .navbar-nav {
+    flex-direction: column;
+}
+
+.icon-spacer {
+    width: 1.7rem;
+    display: inline-block;
+    text-align: center;
+}
+
+.nav-link {
+    padding-left: 1rem;
+}
+
+.login-logo {
+    position: relative;
+    top: 10px;
+    z-index: 2;
+}
+
+.realm-brand {
+    display: inline-block;
+    vertical-align: bottom;
+    line-height: 1.3rem;
+}

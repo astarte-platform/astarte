@@ -27,6 +27,7 @@ import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
@@ -197,28 +198,30 @@ queryPair ( key, value ) =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.container
-        [ Spacing.mt5Sm ]
+    Grid.container []
         [ Grid.row
-            [ Row.middleSm
-            , Row.centerSm
-            , Row.attrs [ style [ ( "min-height", "60vh" ) ] ]
+            [ Row.centerSm
+            , Row.attrs [ Spacing.mt5 ]
             ]
+            [ Grid.col [ Col.sm3 ]
+                [ img
+                    [ src <| Assets.path Assets.loginImage
+                    , Size.w100
+                    , class "login-logo"
+                    ]
+                    []
+                ]
+            ]
+        , Grid.row
+            [ Row.centerSm ]
             [ Grid.col
                 [ Col.sm5 ]
                 [ Form.form
-                    []
-                    [ Form.row
-                        [ Row.centerSm ]
-                        [ Form.col [ Col.sm7 ]
-                            [ img
-                                [ src <| Assets.path Assets.loginImage
-                                , Size.w100
-                                ]
-                                []
-                            ]
-                        ]
-                    , Form.row []
+                    [ class "bg-white"
+                    , Spacing.p3
+                    , Border.rounded
+                    ]
+                    [ Form.row []
                         [ Form.col [ Col.sm12 ]
                             [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
                         ]
