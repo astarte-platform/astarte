@@ -47,7 +47,6 @@ defmodule Astarte.DataAccess.InterfacesTest do
          7 => <<239, 249, 87, 207, 3, 223, 222, 237, 151, 132, 168, 112, 142, 61, 140, 185>>,
          8 => <<52, 108, 128, 228, 202, 153, 98, 116, 129, 246, 123, 28, 27, 229, 149, 33>>
        }},
-    has_metadata: false,
     interface_id: @simplestreamtest_interface_id,
     major_version: 1,
     minor_version: 0,
