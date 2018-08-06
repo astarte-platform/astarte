@@ -3,13 +3,13 @@ module Page.Login exposing (Model, Msg, init, update, view)
 import Http
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
 import Navigation
 import Maybe.Extra exposing (isNothing)
 
 
 -- Types
 
+import Assets
 import Route
 import Types.Config as Config exposing (Config, AuthType(..), AuthConfig(..), getAuthConfig)
 import Types.Session exposing (Session)
@@ -27,11 +27,9 @@ import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
-import Bootstrap.Utilities.Flex as Flex
 
 
 type alias Model =
@@ -214,7 +212,7 @@ view model flashMessages =
                         [ Row.centerSm ]
                         [ Form.col [ Col.sm7 ]
                             [ img
-                                [ src "login.svg"
+                                [ src <| Assets.path Assets.loginImage
                                 , Size.w100
                                 ]
                                 []

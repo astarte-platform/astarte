@@ -4,7 +4,7 @@
     "repository": "https://github.com/astarte-platform/astarte-dashboard.git",
     "license": "GPL-3.0",
     "source-directories": [
-        "app/elm"
+        "src/elm"
     ],
     "exposed-modules": [],
     "dependencies": {

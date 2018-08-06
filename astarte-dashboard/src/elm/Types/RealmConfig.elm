@@ -1,8 +1,6 @@
 module Types.RealmConfig exposing (..)
 
-import Http
 import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
 import Json.Encode
 
 

@@ -1,3 +1,6 @@
+require( './styles/main.scss' );
+var $ = jQuery = require( '../../node_modules/jquery/dist/jquery.js' );
+
 $.getJSON("/user-config/config.json", function(result) {
     if (result.realm_management_api_url) {
 
@@ -8,7 +11,7 @@ $.getJSON("/user-config/config.json", function(result) {
         }
 
         //init app
-        var app = require('js/elm-app.js').Main.fullscreen(parameters);
+        var app = require('../elm/Main').Main.fullscreen(parameters);
 
         /* begin Elm ports */
         app.ports.storeSession.subscribe(function(session) {

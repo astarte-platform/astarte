@@ -15,7 +15,6 @@ import AstarteApi exposing (..)
 import Route
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.Interface exposing (Interface)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 
@@ -24,15 +23,11 @@ import Types.FlashMessageHelpers as FlashMessageHelpers
 
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
-import Bootstrap.ButtonGroup as ButtonGroup exposing (LinkButtonItem)
 import Bootstrap.Card as Card
-import Bootstrap.Card.Block as Block
-import Bootstrap.Form as Form
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.ListGroup as ListGroup
-import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 

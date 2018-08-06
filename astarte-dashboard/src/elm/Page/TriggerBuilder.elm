@@ -3,7 +3,6 @@ module Page.TriggerBuilder exposing (Model, Msg, init, update, view, subscriptio
 import Regex exposing (regex)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
 import Navigation
 import Task
 import Time
@@ -31,16 +30,12 @@ import Types.FlashMessageHelpers as FlashMessageHelpers
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
-import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Form.Fieldset as Fieldset
 import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Radio as Radio
 import Bootstrap.Form.Select as Select
 import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing

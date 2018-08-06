@@ -1,6 +1,5 @@
 module JsonHelpers exposing (resultToDecoder, encodeOptionalFields)
 
-import Http
 import Json.Decode exposing (Decoder, Value)
 
 
