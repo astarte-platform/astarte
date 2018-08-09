@@ -1192,7 +1192,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     candidate_triggers = Map.get(state.data_triggers, key, nil)
 
     if candidate_triggers do
-      path_tokens = String.split(path, "/")
+      ["" | path_tokens] = String.split(path, "/")
 
       for trigger <- candidate_triggers,
           path_matches?(path_tokens, trigger.path_match_tokens) and
@@ -1269,11 +1269,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         %InterfaceDescriptor{automaton: automaton} =
           Map.get(state.interfaces, Map.get(state.interface_ids_to_name, interface_id))
 
-        {:ok, endpoint_id} =
+        path_no_root =
           path_match_tokens
+          |> Enum.map(&replace_empty_token/1)
           |> Enum.join("/")
-          |> String.replace(~r/\/\//, "/%{}/")
-          |> EndpointsAutomaton.resolve_path(automaton)
+
+        {:ok, endpoint_id} = EndpointsAutomaton.resolve_path("/#{path_no_root}", automaton)
 
         endpoint_id
       else
@@ -1281,6 +1282,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
 
     {event_type, interface_id, endpoint}
+  end
+
+  defp replace_empty_token(token) do
+    case token do
+      "" ->
+        "%{}"
+
+      not_empty ->
+        not_empty
+    end
   end
 
   # TODO: implement: on_value_change, on_value_changed, on_path_created, on_value_stored
