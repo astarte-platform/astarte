@@ -49,12 +49,11 @@ mix:release-build:
         - cassandra:3.11.2
     stage: build
     script:
-        - export MIX_ENV=prod
+        - export MIX_ENV=test
         - mix deps.get
         - mix deps.compile
         - mix compile
-        - mix test
-        - mix release
+        - mix coveralls
     cache:
         paths:
             - deps
