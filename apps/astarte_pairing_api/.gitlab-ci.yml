@@ -52,13 +52,14 @@ mix:release-build:
         - rabbitmq:3.6
     stage: build
     script:
-        - export MIX_ENV=prod
+        - export MIX_ENV=test
         - mix deps.get
         - mix deps.compile
         - mix compile
-        - mix test
+        - mix coveralls
+        - export MIX_ENV=prod
         - mix conform.configure
-        - mix release --env=prod
+        - mix release
     cache:
         paths:
             - deps
