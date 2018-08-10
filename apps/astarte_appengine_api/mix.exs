@@ -23,7 +23,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def project do
     [
       app: :astarte_appengine_api,
-      version: "0.10.0-beta.1",
+      version: "0.10.0-beta.2",
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
