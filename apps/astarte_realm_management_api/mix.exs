@@ -4,7 +4,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   def project do
     [
       app: :astarte_realm_management_api,
-      version: "0.10.0-beta.1",
+      version: "0.10.0-beta.2",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
