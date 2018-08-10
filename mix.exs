@@ -32,7 +32,11 @@ defmodule Astarte.DataAccess.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      description: description(),
+      package: package(),
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      source_url: "https://github.com/astarte-platform/astarte_data_access",
+      homepage_url: "https://astarte-platform.org/"
     ]
   end
 
@@ -64,6 +68,24 @@ defmodule Astarte.DataAccess.Mixfile do
       {:conform, "== 2.5.2"},
       {:dialyxir, "== 0.5.1", only: [:dev], runtime: false},
       {:excoveralls, "== 0.9.1", only: :test}
+    ]
+  end
+
+  defp description do
+    """
+    Astarte Data Access defines astarte_data_access.cassandra_nodes config entry.
+    """
+  end
+
+  defp package do
+    [
+      maintainers: ["Davide Bettio", "Riccardo Binetti"],
+      licenses: ["LGPL-3.0-or-later"],
+      links: %{
+        "Astarte" => "https://astarte-platform.org",
+        "Ispirata" => "https://ispirata.com",
+        "GitHub" => "https://github.com/astarte-platform/astarte_data_access"
+      }
     ]
   end
 end
