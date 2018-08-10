@@ -59,12 +59,13 @@ mix:release-build:
         - rabbitmq:3.6
     stage: build
     script:
-        - export MIX_ENV=prod
+        - export MIX_ENV=test
         - mix deps.get
         - mix deps.compile
         - mix compile
-        - mix test --exclude cassandra_only
-        - mix release --env=prod
+        - mix coveralls --exclude cassandra_only
+        - export MIX_ENV=prod
+        - mix release
     cache:
         paths:
             - deps
