@@ -4,7 +4,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "0.10.0-dev",
+      version: "0.10.0-beta.1",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
