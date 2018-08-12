@@ -3,7 +3,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   def project do
     [app: :astarte_housekeeping_api,
-     version: "0.0.1",
+     version: "0.10.0-dev",
      elixir: "~> 1.6",
      elixirc_paths: elixirc_paths(Mix.env),
      compilers: [:phoenix, :gettext] ++ Mix.compilers,
