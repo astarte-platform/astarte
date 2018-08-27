@@ -2,7 +2,7 @@ version: '2'
 services:
   # Astarte main services
   astarte-standalone:
-    image: astarte/astarte:0.10.0-beta.1
+    image: astarte/astarte:snapshot
     env_file:
      - ./compose.env
     environment:
@@ -35,7 +35,7 @@ services:
     # We don't wait for anything, as supervisord will restart stuff until it hits.
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:0.10.0-beta.1
+    image: astarte/astarte-dashboard:snapshot
     ports:
       - "4040:80"
     volumes:
