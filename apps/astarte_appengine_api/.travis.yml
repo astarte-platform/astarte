@@ -13,5 +13,10 @@ matrix:
 before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
+  # Declare events exchange
+  - sudo rabbitmq-plugins enable rabbitmq_management
+  - sudo wget http://guest:guest@localhost:15672/cli/rabbitmqadmin -O /usr/local/bin/rabbitmqadmin
+  - sudo chmod +x /usr/local/bin/rabbitmqadmin
+  - rabbitmqadmin declare exchange name=astarte_events type=direct
 after_script:
   - mix coveralls.travis
