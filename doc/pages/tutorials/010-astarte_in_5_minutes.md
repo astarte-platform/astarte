@@ -97,22 +97,22 @@ curl -X GET http://localhost:4000/v1/test/triggers/my_trigger -H "Authorization:
 
 ## Stream data
 
-If you already have an Astarte compliant device, you can configure it and connect it straight away, and it will just work with your new installation - provided you skip SSL checks on the broker's certificate. If you don't, you can use Astarte's `stream-test` to emulate an Astarte device and generate a `datastream`. You can do this either on the same machine where you are running Astarte, or from another machine or device on the same network.
+If you already have an Astarte compliant device, you can configure it and connect it straight away, and it will just work with your new installation - provided you skip SSL checks on the broker's certificate. If you don't, you can use Astarte's `stream-qt5-test` to emulate an Astarte device and generate a `datastream`. You can do this either on the same machine where you are running Astarte, or from another machine or device on the same network.
 
 Depending on what your client supports, you can either compile `stream-qt5-test` (this will take some more time), or you can use a ready to use Docker container to launch it. Docker is the easiest and painless way, but this guide will cover both methods.
 
-### Using a container for stream-test
+### Using a container for stream-qt5-test
 
-Astarte's `stream-test` can be pulled from Docker Hub with:
+Astarte's `stream-qt5-test` can be pulled from Docker Hub with:
 
 ```sh
-$ docker pull astarte/stream-test:snapshot
+$ docker pull astarte/astarte-stream-qt5-test:snapshot
 ```
 
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(./generate-astarte-device-id)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(./generate-astarte-credentials -t pairing -p test_realm.key)" -e "IGNORE_SSL_ERRORS=true" astarte/stream-test:snapshot
+$ docker run --net="host" -e "DEVICE_ID=$(./generate-astarte-device-id)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(./generate-astarte-credentials -t pairing -p test_realm.key)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:snapshot
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
@@ -150,7 +150,7 @@ You can now run `stream-qt5-test` from your last build directory. Refer to its [
 
 ## Grab your tea
 
-Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-test`, you can get the last sent value via cURL:
+Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-qt5-test`, you can get the last sent value via cURL:
 
 ```sh
 $ curl -X GET "http://localhost:4002/v1/test/devices/<your device id>/interfaces/org.astarteplatform.Values/realValue?limit=1" -H "Authorization: Bearer $(./generate-astarte-credentials -t appengine -p test_realm.key)"
