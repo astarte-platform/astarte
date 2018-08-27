@@ -158,7 +158,9 @@ $ curl -X GET "http://localhost:4002/v1/test/devices/<your device id>/interfaces
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
 
-From here on, you can use all of Astarte's APIs and features from your own installations. You can add devices, experiment with interfaces, or develop your own applications on top of Astarte's triggers or AppEngine's APIs. And have a lot of fun!
+Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `./generate-astarte-credentials -t realm -p test_realm.key`. Grant a longer expiration by using the `-e` parameter to avoid being logged out too quickly.
+
+From here on, you can use all of Astarte's APIs and features from your own installation. You can add devices, experiment with interfaces, or develop your own applications on top of Astarte's triggers or AppEngine's APIs. And have a lot of fun!
 
 ## Cleaning up
 
