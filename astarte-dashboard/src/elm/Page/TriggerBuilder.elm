@@ -211,17 +211,33 @@ update session msg model =
                     )
 
         GetInterfaceListDone interfaces ->
-            ( { model
-                | interfaces = interfaces
-                , showSpinner = False
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
+            case ( List.head interfaces, String.isEmpty model.selectedInterfaceName ) of
+                ( Just interfaceName, True ) ->
+                    ( { model
+                        | interfaces = interfaces
+                        , selectedInterfaceName = interfaceName
+                        , showSpinner = False
+                      }
+                    , AstarteApi.listInterfaceMajors interfaceName
+                        session
+                        GetInterfaceMajorsDone
+                        (ShowError "Cannot retrieve interface major versions.")
+                        RedirectToLogin
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( { model
+                        | interfaces = interfaces
+                        , showSpinner = False
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
         GetInterfaceMajorsDone majors ->
-            case ( model.trigger.simpleTrigger, model.refInterface, majors ) of
-                ( Trigger.Data dataTrigger, Nothing, major :: tail ) ->
+            case ( model.trigger.simpleTrigger, model.refInterface, List.head majors ) of
+                ( Trigger.Data dataTrigger, Nothing, Just major ) ->
                     let
                         newSimpleTrigger =
                             dataTrigger
