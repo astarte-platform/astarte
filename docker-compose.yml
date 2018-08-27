@@ -34,6 +34,15 @@ services:
       - "vernemq"
     # We don't wait for anything, as supervisord will restart stuff until it hits.
 
+  astarte-dashboard:
+    image: astarte/astarte-dashboard:snapshot
+    ports:
+      - "4040:80"
+    volumes:
+      - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json
+    depends_on:
+      - "astarte-standalone"
+
   # RabbitMQ
   rabbitmq:
     image: rabbitmq:3.7
