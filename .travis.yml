@@ -3,7 +3,7 @@ sudo: required
 services:
   - cassandra
 env:
-  - MIX_ENV=test
+  - CASSANDRA_DB_HOST=localhost MIX_ENV=test
 matrix:
   include:
     - elixir: 1.6.5
