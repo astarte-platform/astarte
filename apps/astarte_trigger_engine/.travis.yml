@@ -1,6 +1,11 @@
 language: elixir
+# Needed for Cassandra
+sudo: required
+services:
+  - cassandra
+  - rabbitmq
 env:
-  - MIX_ENV=test
+  - CASSANDRA_DB_HOST=localhost RABBITMQ_HOST=localhost MIX_ENV=test
 matrix:
   include:
     - elixir: 1.6.5
