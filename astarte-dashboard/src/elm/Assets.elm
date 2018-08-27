@@ -4,6 +4,7 @@ module Assets
         , path
         , loginImage
         , dashboardIcon
+        , homepageImage
         )
 
 
@@ -24,3 +25,8 @@ loginImage =
 dashboardIcon : AssetPath
 dashboardIcon =
     AssetPath "/static/img/logo.svg"
+
+
+homepageImage : AssetPath
+homepageImage =
+    AssetPath "/static/img/homemascotte.svg"
