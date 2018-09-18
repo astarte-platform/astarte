@@ -17,13 +17,23 @@ _Sample Response_
     "data": {
         "total_received_msgs": 221,
         "total_received_bytes": 11660,
-        "last_seen_ip": "1.2.3.4",
-        "last_pairing_ip": "4.3.2.1",
+        "last_seen_ip": "203.0.113.89",
+        "last_credentials_request_ip": "203.0.113.201",
         "last_disconnection": "2018-02-07T18:38:57.266Z",
         "last_connection": "2018-02-08T09:49:26.556Z",
         "id": "f0VMRgIBAQAAAAAAAAAAAA",
-        "first_pairing": "2018-01-31T17:10:59.270Z",
-        "connected": true
+        "first_registration": "2018-01-31T17:10:59.270Z",
+        "connected": true,
+        "introspection" : {
+            "com.example.ExampleInterface" : {
+                "major" : 1,
+                "minor" : 0
+            },
+            "org.example.TestInterface" : {
+                "major" : 0,
+                "minor" : 2
+            }
+        }
     }
 }
 ```
@@ -39,10 +49,8 @@ _Sample Response_
 ```json
 {
     "data": [
-        "com.my.Interface1",
-        "com.my.Interface2",
-        "com.my.Interface3",
-        "com.my.Interface4"
+        "com.example.ExampleInterface",
+        "com.example.TestInterface"
     ]
 }
 ```
@@ -53,22 +61,17 @@ Depending on the aggregation and ownership of the Interface, you can `GET`/`PUT`
 
 Get data from an `aggregate` `device` `properties` interface:
 ```
-GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.my.Interface1
+GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.ExampleInterface
 ```
 
 Get last sent value from an `individual` `device` `datastream` interface:
 ```
-GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.my.Interface2/myValue?limit=1
-```
-
-Set values in an `aggregate` `server` `properties` interface:
-```
-PUT app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.my.Interface3
+GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestInterface/myValue?limit=1
 ```
 
 Set values in an `individual` `server` `datastream` interface:
 ```
-POST app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.my.Interface4/myOtherValue
+POST app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.OtherTestInterface/myOtherValue
 ```
 
 In general, to query AppEngine, the following things must be kept in mind
