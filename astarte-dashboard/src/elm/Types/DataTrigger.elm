@@ -1,8 +1,8 @@
 module Types.DataTrigger exposing (..)
 
-import Json.Decode exposing (..)
+import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Json.Encode
+import Json.Encode as Encode
 import JsonHelpers
 
 
@@ -12,6 +12,8 @@ type alias DataTrigger =
     , on : DataTriggerEvent
     , path : String
     , operator : Operator
+    , knownValue : String
+    , knownValueType : JsonType
     }
 
 
@@ -22,6 +24,8 @@ empty =
     , on = IncomingData
     , path = ""
     , operator = Any
+    , knownValue = ""
+    , knownValueType = JString
     }
 
 
@@ -36,14 +40,23 @@ type DataTriggerEvent
 
 type Operator
     = Any
-    | EqualTo String
-    | NotEqualTo String
-    | GreaterThan String
-    | GreaterOrEqualTo String
-    | LessThan String
-    | LessOrEqualTo String
-    | Contains String
-    | NotContains String
+    | EqualTo
+    | NotEqualTo
+    | GreaterThan
+    | GreaterOrEqualTo
+    | LessThan
+    | LessOrEqualTo
+    | Contains
+    | NotContains
+
+
+type JsonType
+    = JBool
+    | JNumber
+    | JString
+    | JBoolArray
+    | JNumberArray
+    | JStringArray
 
 
 
@@ -75,75 +88,103 @@ setOperator operator dataTrigger =
     { dataTrigger | operator = operator }
 
 
+setKnownValue : String -> DataTrigger -> DataTrigger
+setKnownValue value dataTrigger =
+    { dataTrigger | knownValue = value }
+
+
+setKnownValueType : JsonType -> DataTrigger -> DataTrigger
+setKnownValueType jType dataTrigger =
+    { dataTrigger | knownValueType = jType }
+
+
 
 -- Encoding
 
 
 encoder : DataTrigger -> Value
 encoder dataTrigger =
-    Json.Encode.object
-        ([ ( "type", Json.Encode.string "data_trigger" )
-         , ( "interface_name", Json.Encode.string dataTrigger.interfaceName )
-         , ( "interface_major", Json.Encode.int dataTrigger.interfaceMajor )
+    Encode.object
+        ([ ( "type", Encode.string "data_trigger" )
+         , ( "interface_name", Encode.string dataTrigger.interfaceName )
+         , ( "interface_major", Encode.int dataTrigger.interfaceMajor )
          , ( "on", dataTriggerEventEncoder dataTrigger.on )
-         , ( "match_path", Json.Encode.string dataTrigger.path )
+         , ( "match_path", Encode.string dataTrigger.path )
          ]
-            ++ operatorEncoder dataTrigger.operator
+            ++ operatorEncoder dataTrigger.operator dataTrigger.knownValue dataTrigger.knownValueType
         )
 
 
-operatorEncoder : Operator -> List ( String, Value )
-operatorEncoder o =
-    case o of
-        Any ->
-            [ ( "value_match_operator", Json.Encode.string "*" ) ]
+operatorEncoder : Operator -> String -> JsonType -> List ( String, Value )
+operatorEncoder operator value valueType =
+    let
+        encodedValue =
+            case valueType of
+                JBool ->
+                    value
+                        |> String.toLower
+                        |> (==) "true"
+                        |> Encode.bool
 
-        EqualTo value ->
-            [ ( "value_match_operator", Json.Encode.string "==" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+                JNumber ->
+                    value
+                        |> String.toFloat
+                        |> Result.withDefault 0
+                        |> Encode.float
 
-        NotEqualTo value ->
-            [ ( "value_match_operator", Json.Encode.string "!=" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+                _ ->
+                    Encode.string value
+    in
+        case operator of
+            Any ->
+                [ ( "value_match_operator", Encode.string "*" ) ]
 
-        GreaterThan value ->
-            [ ( "value_match_operator", Json.Encode.string ">" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+            EqualTo ->
+                [ ( "value_match_operator", Encode.string "==" )
+                , ( "known_value", encodedValue )
+                ]
 
-        GreaterOrEqualTo value ->
-            [ ( "value_match_operator", Json.Encode.string ">=" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+            NotEqualTo ->
+                [ ( "value_match_operator", Encode.string "!=" )
+                , ( "known_value", encodedValue )
+                ]
 
-        LessThan value ->
-            [ ( "value_match_operator", Json.Encode.string "<" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+            GreaterThan ->
+                [ ( "value_match_operator", Encode.string ">" )
+                , ( "known_value", encodedValue )
+                ]
 
-        LessOrEqualTo value ->
-            [ ( "value_match_operator", Json.Encode.string "<=" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+            GreaterOrEqualTo ->
+                [ ( "value_match_operator", Encode.string ">=" )
+                , ( "known_value", encodedValue )
+                ]
 
-        Contains value ->
-            [ ( "value_match_operator", Json.Encode.string "contains" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+            LessThan ->
+                [ ( "value_match_operator", Encode.string "<" )
+                , ( "known_value", encodedValue )
+                ]
 
-        NotContains value ->
-            [ ( "value_match_operator", Json.Encode.string "not_contains" )
-            , ( "known_value", Json.Encode.string value )
-            ]
+            LessOrEqualTo ->
+                [ ( "value_match_operator", Encode.string "<=" )
+                , ( "known_value", encodedValue )
+                ]
+
+            Contains ->
+                [ ( "value_match_operator", Encode.string "contains" )
+                , ( "known_value", encodedValue )
+                ]
+
+            NotContains ->
+                [ ( "value_match_operator", Encode.string "not_contains" )
+                , ( "known_value", encodedValue )
+                ]
 
 
 dataTriggerEventEncoder : DataTriggerEvent -> Value
 dataTriggerEventEncoder dataEvent =
     dataEvent
         |> dataTriggerEventToString
-        |> Json.Encode.string
+        |> Encode.string
 
 
 dataTriggerEventToString : DataTriggerEvent -> String
@@ -174,39 +215,46 @@ dataTriggerEventToString d =
 
 decoder : Decoder DataTrigger
 decoder =
-    let
-        toDecoder : String -> Int -> DataTriggerEvent -> String -> String -> Maybe String -> Decoder DataTrigger
-        toDecoder iName iMajor on path operatorString maybeKnownValue =
-            case (stringsToOperator operatorString maybeKnownValue) of
-                Ok operator ->
-                    Json.Decode.succeed <| DataTrigger iName iMajor on path operator
-
-                Err err ->
-                    Json.Decode.fail err
-    in
-        decode toDecoder
-            |> required "interface_name" string
-            |> required "interface_major" int
-            |> required "on" dataTriggerEventDecoder
-            |> required "match_path" string
-            |> required "value_match_operator" string
-            |> optional "known_value" (nullable knownValueDecoder) Nothing
-            |> resolve
+    decode toDecoder
+        |> required "interface_name" string
+        |> required "interface_major" int
+        |> required "on" dataTriggerEventDecoder
+        |> required "match_path" string
+        |> required "value_match_operator" dataTriggerOperatorDecoder
+        |> optional "known_value" (nullable knownValueDecoder) Nothing
+        |> resolve
 
 
-knownValueDecoder : Decoder String
+toDecoder : String -> Int -> DataTriggerEvent -> String -> Operator -> Maybe ( String, JsonType ) -> Decoder DataTrigger
+toDecoder iName iMajor on path operator maybeKnownValue =
+    case maybeKnownValue of
+        Just ( value, jType ) ->
+            Decode.succeed (DataTrigger iName iMajor on path operator value jType)
+
+        Nothing ->
+            Decode.succeed (DataTrigger iName iMajor on path operator "" JString)
+
+
+knownValueDecoder : Decoder ( String, JsonType )
 knownValueDecoder =
-    Json.Decode.oneOf
-        [ string
-        , Json.Decode.map toString int
-        , Json.Decode.map toString float
+    Decode.oneOf
+        [ Decode.map (\value -> ( toString value, JBool )) bool
+        , Decode.map (\value -> ( toString value, JNumber )) int
+        , Decode.map (\value -> ( toString value, JNumber )) float
+        , Decode.map (\value -> ( value, JString )) string
         ]
 
 
 dataTriggerEventDecoder : Decoder DataTriggerEvent
 dataTriggerEventDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToDataTriggerEvent >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToDataTriggerEvent >> JsonHelpers.resultToDecoder)
+
+
+dataTriggerOperatorDecoder : Decoder Operator
+dataTriggerOperatorDecoder =
+    Decode.string
+        |> Decode.andThen (stringToOperator >> JsonHelpers.resultToDecoder)
 
 
 stringToDataTriggerEvent : String -> Result String DataTriggerEvent
@@ -231,41 +279,38 @@ stringToDataTriggerEvent s =
             Ok ValueStored
 
         _ ->
-            Err <| "Uknown data trigger event: " ++ s
+            Err <| "Unknown data trigger event: " ++ s
 
 
-stringsToOperator : String -> Maybe String -> Result String Operator
-stringsToOperator operatorString maybeKnownValue =
-    case ( operatorString, maybeKnownValue ) of
-        ( "*", _ ) ->
+stringToOperator : String -> Result String Operator
+stringToOperator operatorString =
+    case operatorString of
+        "*" ->
             Ok Any
 
-        ( "==", Just value ) ->
-            Ok <| EqualTo value
+        "==" ->
+            Ok EqualTo
 
-        ( "!=", Just value ) ->
-            Ok <| NotEqualTo value
+        "!=" ->
+            Ok NotEqualTo
 
-        ( ">", Just value ) ->
-            Ok <| GreaterThan value
+        ">" ->
+            Ok GreaterThan
 
-        ( ">=", Just value ) ->
-            Ok <| GreaterOrEqualTo value
+        ">=" ->
+            Ok GreaterOrEqualTo
 
-        ( "<", Just value ) ->
-            Ok <| LessThan value
+        "<" ->
+            Ok LessThan
 
-        ( "<=", Just value ) ->
-            Ok <| LessOrEqualTo value
+        "<=" ->
+            Ok LessOrEqualTo
 
-        ( "contains", Just value ) ->
-            Ok <| Contains value
+        "contains" ->
+            Ok Contains
 
-        ( "not_contains", Just value ) ->
-            Ok <| NotContains value
+        "not_contains" ->
+            Ok NotContains
 
-        ( _, Nothing ) ->
-            Err <| "Missing known_value required by the operator " ++ operatorString
-
-        ( _, _ ) ->
+        _ ->
             Err <| "Unknown operator " ++ operatorString
