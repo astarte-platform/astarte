@@ -14,9 +14,9 @@ However, rather than implementing the whole Astarte protocol over MQTT, it is us
 
 ### Authentication/Pairing
 
-Depending on how you plan on implementing [Astarte's pairing mechanism](050-pairing_mechanism.html), your devices might need an Agent for their first authentication or not. However, once they retrieve their API key, they can implement Astarte's standard pairing routine to rotate their SSL certificate for accessing the transport.
+Depending on how you plan on implementing [Astarte's pairing mechanism](050-pairing_mechanism.html), your devices might need an Agent for their first authentication or not. However, once they retrieve their Credentials Secret, they can implement Astarte's standard pairing routine to rotate their SSL certificate for accessing the transport.
 
-In the most likely scenario in which you are using one of Astarte's SDKs, the SDK takes care of the whole pairing routine under the hood and, depending on your agent implementation, you just need to feed the SDK with either the API key or the Agent Key.
+In the most likely scenario in which you are using one of Astarte's SDKs, the SDK takes care of the whole pairing routine under the hood and, depending on your agent implementation, you just need to feed the SDK with either the Credentials Secret or the Agent Key.
 
 ### Exchanging data
 
