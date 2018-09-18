@@ -201,10 +201,12 @@ update session msg model =
                         , ExternalMsg.Noop
                         )
 
-                _ ->
+                Trigger.Device deviceTrigger ->
                     ( { model
                         | trigger = trigger
                         , editMode = True
+                        , sourceBuffer = Trigger.toPrettySource trigger
+                        , sourceBufferStatus = Valid
                       }
                     , Cmd.none
                     , ExternalMsg.Noop
