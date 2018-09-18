@@ -1,6 +1,5 @@
 module Types.Trigger exposing (..)
 
-import Dict exposing (Dict)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import Json.Encode
