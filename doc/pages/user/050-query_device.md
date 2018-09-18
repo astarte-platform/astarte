@@ -8,7 +8,7 @@ First things first, you can check if your device is correctly registered in Asta
 
 _Sample Request_
 ```
-GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA
+GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA
 ```
 
 _Sample Response_
@@ -42,7 +42,7 @@ A Device's status includes a number of useful information, among which whether i
 
 _Sample Request_
 ```
-GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces
+GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces
 ```
 
 _Sample Response_
@@ -61,17 +61,17 @@ Depending on the aggregation and ownership of the Interface, you can `GET`/`PUT`
 
 Get data from an `aggregate` `device` `properties` interface:
 ```
-GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.ExampleInterface
+GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.ExampleInterface
 ```
 
 Get last sent value from an `individual` `device` `datastream` interface:
 ```
-GET app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestInterface/myValue?limit=1
+GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestInterface/myValue?limit=1
 ```
 
 Set values in an `individual` `server` `datastream` interface:
 ```
-POST app.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.OtherTestInterface/myOtherValue
+POST appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.OtherTestInterface/myOtherValue
 ```
 
 In general, to query AppEngine, the following things must be kept in mind
