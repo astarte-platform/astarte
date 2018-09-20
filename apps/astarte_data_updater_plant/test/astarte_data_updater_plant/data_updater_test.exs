@@ -238,6 +238,50 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              trigger_target_data
            ) == :ok
 
+    # Install a volatile test trigger that won't match, to check that multiple triggers
+    # for a single interface/endpoint are correctly loaded
+    non_matching_simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_name: "com.test.SimpleStreamTest",
+            interface_major: 1,
+            data_trigger_type: :INCOMING_DATA,
+            match_path: "/0/value",
+            value_match_operator: :GREATER_THAN,
+            known_value: Bson.encode(%{v: 1000})
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    non_matching_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    non_matching_volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    # Install the non-matching trigger twice to check that this installs 2 trigger_targets
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             encoded_device_id,
+             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
+             2,
+             non_matching_volatile_trigger_parent_id,
+             non_matching_volatile_trigger_id,
+             non_matching_simple_trigger_data,
+             trigger_target_data
+           ) == :ok
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             encoded_device_id,
+             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
+             2,
+             non_matching_volatile_trigger_parent_id,
+             non_matching_volatile_trigger_id,
+             non_matching_simple_trigger_data,
+             trigger_target_data
+           ) == :ok
+
     # Incoming data sub-test
     DataUpdater.handle_data(
       realm,
@@ -423,6 +467,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              version: 1
            }
 
+    # This should trigger matching_simple_trigger
     DataUpdater.handle_data(
       realm,
       encoded_device_id,
@@ -433,7 +478,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-09T14:15:32+00:00")
     )
 
-    DataUpdater.dump_state(realm, encoded_device_id)
+    state = DataUpdater.dump_state(realm, encoded_device_id)
 
     {incoming_volatile_event, incoming_volatile_headers, _meta} =
       AMQPTestHelper.wait_and_get_message()
@@ -462,6 +507,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: volatile_trigger_id,
              version: 1
            }
+
+    # We check that all 3 on_incoming_data triggers were correctly installed
+    interface_id = CQLUtils.interface_id("com.test.SimpleStreamTest", 1)
+    endpoint_id = retrieve_endpoint_id(db_client, "com.test.SimpleStreamTest", 1, "/0/value")
+    trigger_key = {:on_incoming_data, interface_id, endpoint_id}
+    incoming_data_0_value_triggers = Map.get(state.data_triggers, trigger_key)
+
+    # The length is 2 since greater-then triggers are merged into one because they are congruent
+    assert length(incoming_data_0_value_triggers) == 2
+    # Extract greater-than trigger
+    assert [gt_trigger] =
+             Enum.filter(incoming_data_0_value_triggers, fn data_trigger ->
+               data_trigger.value_match_operator == :GREATER_THAN
+             end)
+
+    # It should have 2 targets
+    assert length(gt_trigger.trigger_targets) == 2
 
     endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/time/from")
 
