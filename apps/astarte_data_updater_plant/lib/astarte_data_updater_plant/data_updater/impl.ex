@@ -1296,49 +1296,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   # TODO: implement: on_value_change, on_value_changed, on_path_created, on_value_stored
   defp load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
-    data_trigger =
+    new_data_trigger =
       SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
 
     data_triggers = state.data_triggers
 
     event_type = EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
-    data_trigger_key = data_trigger_to_key(state, data_trigger, event_type)
+    data_trigger_key = data_trigger_to_key(state, new_data_trigger, event_type)
+    existing_triggers_for_key = Map.get(data_triggers, data_trigger_key, [])
 
-    candidate_triggers = Map.get(data_triggers, data_trigger_key)
+    # Extract all the targets belonging to the (eventual) existing congruent trigger
+    congruent_targets =
+      existing_triggers_for_key
+      |> Enum.filter(&DataTrigger.are_congruent?(&1, new_data_trigger))
+      |> Enum.flat_map(fn congruent_trigger -> congruent_trigger.trigger_targets end)
 
-    existing_trigger =
-      if candidate_triggers do
-        Enum.find(candidate_triggers, fn candidate ->
-          DataTrigger.are_congruent?(candidate, data_trigger)
-        end)
-      else
-        nil
-      end
+    new_targets = [trigger_target | congruent_targets]
+    new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
 
-    targets =
-      if existing_trigger do
-        existing_trigger.trigger_targets
-      else
-        []
-      end
+    # Replace the (eventual) congruent existing trigger with the new one
+    new_data_triggers_for_key = [
+      new_data_trigger_with_targets
+      | Enum.reject(
+          existing_triggers_for_key,
+          &DataTrigger.are_congruent?(&1, new_data_trigger_with_targets)
+        )
+    ]
 
-    new_targets = [trigger_target | targets]
-    new_data_trigger = %{data_trigger | trigger_targets: new_targets}
-
-    new_triggers_chain =
-      if candidate_triggers do
-        List.foldl(candidate_triggers, [], fn t, acc ->
-          if DataTrigger.are_congruent?(t, new_data_trigger) do
-            [new_data_trigger | acc]
-          else
-            [t | acc]
-          end
-        end)
-      else
-        [new_data_trigger]
-      end
-
-    next_data_triggers = Map.put(data_triggers, data_trigger_key, new_triggers_chain)
+    next_data_triggers = Map.put(data_triggers, data_trigger_key, new_data_triggers_for_key)
     Map.put(state, :data_triggers, next_data_triggers)
   end
 
