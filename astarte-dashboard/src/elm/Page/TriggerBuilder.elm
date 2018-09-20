@@ -62,8 +62,6 @@ type alias Model =
     -- decoupled types
     , selectedInterfaceName : String
     , selectedInterfaceMajor : Maybe Int
-    , selectedOperator : String
-    , selectedKnownValue : Maybe String
     }
 
 
@@ -83,8 +81,6 @@ init maybeTriggerName session =
       , mappingType = Nothing
       , selectedInterfaceName = ""
       , selectedInterfaceMajor = Nothing
-      , selectedOperator = "any"
-      , selectedKnownValue = Nothing
       , confirmTriggerName = ""
       , showSource = True
       , sourceBuffer = Trigger.toPrettySource Trigger.empty
@@ -171,40 +167,36 @@ update session msg model =
         GetTriggerDone trigger ->
             case trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
-                    let
-                        ( operatorString, knownValueString ) =
-                            decoupleOperator dataTrigger.operator
-                    in
-                        ( { model
-                            | trigger = trigger
-                            , editMode = True
-                            , selectedInterfaceName = dataTrigger.interfaceName
-                            , selectedInterfaceMajor = Just dataTrigger.interfaceMajor
-                            , selectedOperator = operatorString
-                            , selectedKnownValue = knownValueString
-                            , sourceBuffer = Trigger.toPrettySource trigger
-                            , sourceBufferStatus = Valid
-                          }
-                        , Cmd.batch
-                            [ AstarteApi.getInterface dataTrigger.interfaceName
-                                dataTrigger.interfaceMajor
-                                session
-                                GetInterfaceDone
-                                (ShowError "Cannot retrieve interface.")
-                                RedirectToLogin
-                            , AstarteApi.listInterfaceMajors dataTrigger.interfaceName
-                                session
-                                GetInterfaceMajorsDone
-                                (ShowError "Cannot retrieve interface major versions.")
-                                RedirectToLogin
-                            ]
-                        , ExternalMsg.Noop
-                        )
-
-                _ ->
                     ( { model
                         | trigger = trigger
                         , editMode = True
+                        , selectedInterfaceName = dataTrigger.interfaceName
+                        , selectedInterfaceMajor = Just dataTrigger.interfaceMajor
+                        , sourceBuffer = Trigger.toPrettySource trigger
+                        , sourceBufferStatus = Valid
+                      }
+                    , Cmd.batch
+                        [ AstarteApi.getInterface dataTrigger.interfaceName
+                            dataTrigger.interfaceMajor
+                            session
+                            GetInterfaceDone
+                            (ShowError "Cannot retrieve interface.")
+                            RedirectToLogin
+                        , AstarteApi.listInterfaceMajors dataTrigger.interfaceName
+                            session
+                            GetInterfaceMajorsDone
+                            (ShowError "Cannot retrieve interface major versions.")
+                            RedirectToLogin
+                        ]
+                    , ExternalMsg.Noop
+                    )
+
+                Trigger.Device deviceTrigger ->
+                    ( { model
+                        | trigger = trigger
+                        , editMode = True
+                        , sourceBuffer = Trigger.toPrettySource trigger
+                        , sourceBufferStatus = Valid
                       }
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -272,16 +264,20 @@ update session msg model =
             case model.trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
                     let
+                        mappingType =
+                            matchPath dataTrigger.path <| Interface.mappingsAsList interface
+
                         newSimpleTrigger =
                             dataTrigger
                                 |> DataTrigger.setInterfaceName interface.name
                                 |> DataTrigger.setInterfaceMajor interface.major
+                                |> DataTrigger.setKnownValueType (mappingTypeToJsonType mappingType)
                                 |> Trigger.Data
                     in
                         ( { model
                             | trigger = Trigger.setSimpleTrigger newSimpleTrigger model.trigger
                             , refInterface = Just interface
-                            , mappingType = matchPath dataTrigger.path <| Interface.mappingsAsList interface
+                            , mappingType = mappingType
                             , selectedInterfaceName = interface.name
                             , selectedInterfaceMajor = Just interface.major
                           }
@@ -594,11 +590,6 @@ update session msg model =
             case model.trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
                     let
-                        newSimpleTrigger =
-                            dataTrigger
-                                |> DataTrigger.setPath path
-                                |> Trigger.Data
-
                         mapping =
                             case model.refInterface of
                                 Just interface ->
@@ -607,6 +598,12 @@ update session msg model =
 
                                 Nothing ->
                                     Nothing
+
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setPath path
+                                |> DataTrigger.setKnownValueType (mappingTypeToJsonType mapping)
+                                |> Trigger.Data
 
                         newTrigger =
                             Trigger.setSimpleTrigger newSimpleTrigger model.trigger
@@ -626,57 +623,9 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        UpdateDataTriggerOperator operator ->
-            case ( model.trigger.simpleTrigger, stringsToOperator operator (Just "") ) of
-                ( Trigger.Data dataTrigger, Ok DataTrigger.Any ) ->
-                    let
-                        newSimpleTrigger =
-                            dataTrigger
-                                |> DataTrigger.setOperator DataTrigger.Any
-                                |> Trigger.Data
-
-                        newTrigger =
-                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
-                    in
-                        ( { model
-                            | trigger = newTrigger
-                            , sourceBuffer = Trigger.toPrettySource newTrigger
-                            , selectedOperator = operator
-                            , selectedKnownValue = Nothing
-                          }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
-
-                ( Trigger.Data dataTrigger, Ok triggerOperator ) ->
-                    let
-                        newSimpleTrigger =
-                            dataTrigger
-                                |> DataTrigger.setOperator triggerOperator
-                                |> Trigger.Data
-
-                        newTrigger =
-                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
-                    in
-                        ( { model
-                            | trigger = newTrigger
-                            , sourceBuffer = Trigger.toPrettySource newTrigger
-                            , selectedOperator = operator
-                            , selectedKnownValue = Nothing
-                          }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
-
-                _ ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
-        UpdateDataTriggerKnownValue value ->
-            case ( model.trigger.simpleTrigger, stringsToOperator model.selectedOperator (Just value) ) of
-                ( Trigger.Data dataTrigger, Ok operator ) ->
+        UpdateDataTriggerOperator operatorString ->
+            case ( model.trigger.simpleTrigger, idToOperator operatorString ) of
+                ( Trigger.Data dataTrigger, operator ) ->
                     let
                         newSimpleTrigger =
                             dataTrigger
@@ -689,7 +638,32 @@ update session msg model =
                         ( { model
                             | trigger = newTrigger
                             , sourceBuffer = Trigger.toPrettySource newTrigger
-                            , selectedKnownValue = Just value
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateDataTriggerKnownValue value ->
+            case model.trigger.simpleTrigger of
+                Trigger.Data dataTrigger ->
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setKnownValue value
+                                |> Trigger.Data
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
+                        ( { model
+                            | trigger = newTrigger
+                            , sourceBuffer = Trigger.toPrettySource newTrigger
                           }
                         , Cmd.none
                         , ExternalMsg.Noop
@@ -1185,12 +1159,12 @@ renderDataTrigger dataTrigger model =
                     , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerOperator
                     ]
-                    (renderAvailableOperators model.selectedOperator model.mappingType)
+                    (renderAvailableOperators dataTrigger.operator model.mappingType)
                 ]
             ]
         , Form.col [ Col.sm8 ]
-            [ case model.selectedOperator of
-                "any" ->
+            [ case dataTrigger.operator of
+                DataTrigger.Any ->
                     text ""
 
                 _ ->
@@ -1199,9 +1173,9 @@ renderDataTrigger dataTrigger model =
                         , Input.text
                             [ Input.id "triggerKnownValue"
                             , Input.readonly model.editMode
-                            , Input.value (model.selectedKnownValue |> Maybe.withDefault "")
+                            , Input.value dataTrigger.knownValue
                             , Input.onInput UpdateDataTriggerKnownValue
-                            , if isValidKnownValue model.mappingType model.selectedKnownValue then
+                            , if isValidKnownValue model.mappingType dataTrigger.knownValue then
                                 Input.success
                               else
                                 Input.danger
@@ -1212,24 +1186,24 @@ renderDataTrigger dataTrigger model =
     ]
 
 
-isValidKnownValue : Maybe InterfaceMapping.MappingType -> Maybe String -> Bool
-isValidKnownValue maybeType maybeValue =
-    case ( maybeType, maybeValue ) of
-        ( Just mType, Just value ) ->
+isValidKnownValue : Maybe InterfaceMapping.MappingType -> String -> Bool
+isValidKnownValue maybeType value =
+    case maybeType of
+        Just mType ->
             InterfaceMapping.isValidType mType value
 
-        _ ->
+        Nothing ->
             False
 
 
-renderAvailableOperators : String -> Maybe InterfaceMapping.MappingType -> List (Select.Item Msg)
+renderAvailableOperators : DataTrigger.Operator -> Maybe InterfaceMapping.MappingType -> List (Select.Item Msg)
 renderAvailableOperators selectedOperator mappingType =
     aviableOperators mappingType
         |> List.map
             (\( id, txt ) ->
                 Select.item
                     [ value id
-                    , selected <| id == selectedOperator
+                    , selected <| id == operatorToId selectedOperator
                     ]
                     [ text txt ]
             )
@@ -1393,72 +1367,118 @@ allOperators =
     ]
 
 
-decoupleOperator : DataTrigger.Operator -> ( String, Maybe String )
-decoupleOperator operator =
+operatorToId : DataTrigger.Operator -> String
+operatorToId operator =
     case operator of
         DataTrigger.Any ->
-            ( "any", Nothing )
+            "any"
 
-        DataTrigger.EqualTo value ->
-            ( "equalTo", Just value )
+        DataTrigger.EqualTo ->
+            "equalTo"
 
-        DataTrigger.NotEqualTo value ->
-            ( "notEqualTo", Just value )
+        DataTrigger.NotEqualTo ->
+            "notEqualTo"
 
-        DataTrigger.GreaterThan value ->
-            ( "greaterThan", Just value )
+        DataTrigger.GreaterThan ->
+            "greaterThan"
 
-        DataTrigger.GreaterOrEqualTo value ->
-            ( "greaterOrEqualTo", Just value )
+        DataTrigger.GreaterOrEqualTo ->
+            "greaterOrEqualTo"
 
-        DataTrigger.LessThan value ->
-            ( "lessThan", Just value )
+        DataTrigger.LessThan ->
+            "lessThan"
 
-        DataTrigger.LessOrEqualTo value ->
-            ( "lessOrEqualTo", Just value )
+        DataTrigger.LessOrEqualTo ->
+            "lessOrEqualTo"
 
-        DataTrigger.Contains value ->
-            ( "contains", Just value )
+        DataTrigger.Contains ->
+            "contains"
 
-        DataTrigger.NotContains value ->
-            ( "notContains", Just value )
+        DataTrigger.NotContains ->
+            "notContains"
 
 
-stringsToOperator : String -> Maybe String -> Result String DataTrigger.Operator
-stringsToOperator htmlId knownValue =
-    case ( htmlId, knownValue ) of
-        ( "any", _ ) ->
-            Ok <| DataTrigger.Any
+idToOperator : String -> DataTrigger.Operator
+idToOperator operatorString =
+    case operatorString of
+        "any" ->
+            DataTrigger.Any
 
-        ( "equalTo", Just value ) ->
-            Ok <| DataTrigger.EqualTo value
+        "equalTo" ->
+            DataTrigger.EqualTo
 
-        ( "notEqualTo", Just value ) ->
-            Ok <| DataTrigger.NotEqualTo value
+        "notEqualTo" ->
+            DataTrigger.NotEqualTo
 
-        ( "greaterThan", Just value ) ->
-            Ok <| DataTrigger.GreaterThan value
+        "greaterThan" ->
+            DataTrigger.GreaterThan
 
-        ( "greaterOrEqualTo", Just value ) ->
-            Ok <| DataTrigger.GreaterOrEqualTo value
+        "greaterOrEqualTo" ->
+            DataTrigger.GreaterOrEqualTo
 
-        ( "lessThan", Just value ) ->
-            Ok <| DataTrigger.LessThan value
+        "lessThan" ->
+            DataTrigger.LessThan
 
-        ( "lessOrEqualTo", Just value ) ->
-            Ok <| DataTrigger.LessOrEqualTo value
+        "lessOrEqualTo" ->
+            DataTrigger.LessOrEqualTo
 
-        ( "contains", Just value ) ->
-            Ok <| DataTrigger.Contains value
+        "contains" ->
+            DataTrigger.Contains
 
-        ( "notContains", Just value ) ->
-            Ok <| DataTrigger.NotContains value
+        "notContains" ->
+            DataTrigger.NotContains
 
-        ( _, Nothing ) ->
-            Err "Known value required"
+        _ ->
+            DataTrigger.Any
 
-        ( _, _ ) ->
-            Err <| "unknown operator " ++ htmlId
+
+mappingTypeToJsonType : Maybe InterfaceMapping.MappingType -> DataTrigger.JsonType
+mappingTypeToJsonType mType =
+    case mType of
+        Just (Single InterfaceMapping.DoubleMapping) ->
+            DataTrigger.JNumber
+
+        Just (Single InterfaceMapping.IntMapping) ->
+            DataTrigger.JNumber
+
+        Just (Single InterfaceMapping.BoolMapping) ->
+            DataTrigger.JBool
+
+        Just (Single InterfaceMapping.LongIntMapping) ->
+            DataTrigger.JString
+
+        Just (Single InterfaceMapping.StringMapping) ->
+            DataTrigger.JString
+
+        Just (Single InterfaceMapping.BinaryBlobMapping) ->
+            DataTrigger.JString
+
+        Just (Single InterfaceMapping.DateTimeMapping) ->
+            DataTrigger.JString
+
+        Just (Array InterfaceMapping.DoubleMapping) ->
+            DataTrigger.JNumberArray
+
+        Just (Array InterfaceMapping.IntMapping) ->
+            DataTrigger.JNumberArray
+
+        Just (Array InterfaceMapping.BoolMapping) ->
+            DataTrigger.JBoolArray
+
+        Just (Array InterfaceMapping.LongIntMapping) ->
+            DataTrigger.JStringArray
+
+        Just (Array InterfaceMapping.StringMapping) ->
+            DataTrigger.JStringArray
+
+        Just (Array InterfaceMapping.BinaryBlobMapping) ->
+            DataTrigger.JStringArray
+
+        Just (Array InterfaceMapping.DateTimeMapping) ->
+            DataTrigger.JStringArray
+
+        Nothing ->
+            DataTrigger.JString
 
 
 interfacesOption : String -> String -> Select.Item Msg
