@@ -775,7 +775,13 @@ defmodule Astarte.AppEngine.API.Device do
     avg_bucket_size = max(1, (count - 2) / (downsampled_size - 2))
 
     sample_to_x_fun = fn sample -> Keyword.get(sample, :value_timestamp) end
-    sample_to_y_fun = fn [{:value_timestamp, _timestamp}, {_key, value}] -> value end
+
+    sample_to_y_fun = fn sample ->
+      timestamp_keys = [:value_timestamp, :reception_timestamp, :reception_timestamp_submillis]
+      [{_key, value}] = Keyword.drop(sample, timestamp_keys)
+      value
+    end
+
     xy_to_sample_fun = fn x, y -> [{:value_timestamp, x}, {:generic_key, y}] end
 
     ExLTTB.Stream.downsample(

@@ -130,6 +130,20 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
       assert json_response(datastream_conn, 200)["data"] == expected_reply
 
       expected_reply = [
+        %{"timestamp" => "2017-09-28T04:05:00.000Z", "value" => 0},
+        %{"timestamp" => "2017-09-28T04:07:00.000Z", "value" => 2},
+        %{"timestamp" => "2017-09-30T07:10:00.000Z", "value" => 4}
+      ]
+
+      downsampled_conn =
+        get(
+          conn,
+          "/v1/autotestrealm/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.test.SimpleStreamTest/0/value?downsample_to=3"
+        )
+
+      assert json_response(downsampled_conn, 200)["data"] == expected_reply
+
+      expected_reply = [
         %{"string" => "aaa", "timestamp" => "2017-09-30T07:10:00.000Z", "value" => 1.1},
         %{"string" => "bbb", "timestamp" => "2017-09-30T07:12:00.000Z", "value" => 2.2},
         %{"string" => "ccc", "timestamp" => "2017-09-30T07:13:00.000Z", "value" => 3.3}
