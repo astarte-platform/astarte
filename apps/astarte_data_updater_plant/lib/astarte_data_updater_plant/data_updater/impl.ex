@@ -294,7 +294,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          endpoint_id <- endpoint.endpoint_id,
          {value, value_timestamp, metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp),
-         :ok <- validate_value_type(endpoint.value_type, value) do
+         expected_types <-
+           extract_expected_types(path, interface_descriptor, endpoint, new_state.mappings),
+         :ok <- validate_value_type(expected_types, value) do
       device_id_string = Device.encode_device_id(new_state.device_id)
 
       maybe_explicit_value_timestamp =
@@ -467,11 +469,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
+
+      {:error, :unexpected_object_key} ->
+        warn(state, "object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.")
+
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
     end
   end
 
-  def validate_value_type(_, %{} = value) do
-    :ok
+  def validate_value_type(expected_types, %{} = object) do
+    Enum.reduce_while(object, :ok, fn {path, value}, _acc ->
+      key = Atom.to_string(path)
+
+      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+           :ok <- ValueType.validate_value(expected_type, value) do
+        {:cont, :ok}
+      else
+        {:error, :unexpected_value_type} ->
+          {:halt, {:error, :unexpected_value_type}}
+
+        :error ->
+          {:halt, {:error, :unexpected_object_key}}
+      end
+    end)
   end
 
   def validate_value_type(expected_type, value) do
@@ -479,6 +501,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       ValueType.validate_value(expected_type, value)
     else
       :ok
+    end
+  end
+
+  defp extract_expected_types(path, interface_descriptor, endpoint, mappings) do
+    case interface_descriptor.aggregation do
+      :individual ->
+        endpoint.value_type
+
+      :object ->
+        # TODO: we should probably cache this
+        Enum.flat_map(mappings, fn {_id, mapping} ->
+          if mapping.interface_id == interface_descriptor.interface_id do
+            expected_key =
+              mapping.endpoint
+              |> String.split("/")
+              |> List.last()
+
+            [{expected_key, mapping.value_type}]
+          else
+            []
+          end
+        end)
+        |> Enum.into(%{})
     end
   end
 
