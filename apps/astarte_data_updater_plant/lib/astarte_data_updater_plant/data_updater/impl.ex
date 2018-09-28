@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
@@ -292,7 +293,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          {:ok, endpoint} <- resolve_path(path, interface_descriptor, new_state.mappings),
          endpoint_id <- endpoint.endpoint_id,
          {value, value_timestamp, metadata} <-
-           PayloadsDecoder.decode_bson_payload(payload, timestamp) do
+           PayloadsDecoder.decode_bson_payload(payload, timestamp),
+         :ok <- validate_value_type(endpoint.value_type, value) do
       device_id_string = Device.encode_device_id(new_state.device_id)
 
       maybe_explicit_value_timestamp =
@@ -459,6 +461,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
+
+      {:error, :unexpected_value_type} ->
+        warn(state, "received invalid value: #{inspect(payload)} sent to #{interface}#{path}.")
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
+    end
+  end
+
+  def validate_value_type(_, %{} = value) do
+    :ok
+  end
+
+  def validate_value_type(expected_type, value) do
+    if value != nil do
+      ValueType.validate_value(expected_type, value)
+    else
+      :ok
     end
   end
 
