@@ -15,6 +15,7 @@ type Route
 
 type RealmRoute
     = Auth (Maybe String) (Maybe String)
+    | Home
     | Logout
     | RealmSettings
     | ListInterfaces
@@ -37,7 +38,8 @@ route =
 realmRoute : Parser (RealmRoute -> a) a
 realmRoute =
     oneOf
-        [ Url.map Auth (s "auth" <?> stringParam "realm" <?> stringParam "authUrl")
+        [ Url.map Home top
+        , Url.map Auth (s "auth" <?> stringParam "realm" <?> stringParam "authUrl")
         , Url.map Logout (s "logout")
         , Url.map RealmSettings (s "settings")
         , Url.map ListInterfaces (s "interfaces")
@@ -82,6 +84,9 @@ toString route =
 
                         _ ->
                             [ "" ]
+
+                Realm Home ->
+                    []
 
                 Realm Logout ->
                     [ "logout" ]
