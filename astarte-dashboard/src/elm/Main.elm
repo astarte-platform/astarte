@@ -23,6 +23,7 @@ import Types.ExternalMessage exposing (ExternalMsg(..))
 
 -- Pages
 
+import Page.Home as Home
 import Page.Login as Login
 import Page.Interfaces as Interfaces
 import Page.InterfaceBuilder as InterfaceBuilder
@@ -122,7 +123,8 @@ type PublicPage
 
 
 type RealmPage
-    = InterfacesPage Interfaces.Model
+    = HomePage Home.Model
+    | InterfacesPage Interfaces.Model
     | InterfaceBuilderPage InterfaceBuilder.Model
     | TriggersPage Triggers.Model
     | TriggerBuilderPage TriggerBuilder.Model
@@ -139,6 +141,7 @@ type Msg
     | SetRoute Route
     | UpdateSession (Maybe Session)
     | LoginMsg Login.Msg
+    | HomeMsg Home.Msg
     | InterfacesMsg Interfaces.Msg
     | InterfaceBuilderMsg InterfaceBuilder.Msg
     | RealmSettingsMsg RealmSettings.Msg
@@ -321,6 +324,9 @@ pageInit realmRoute credentials config session =
             -- already logged in
             initInterfacesPage session credentials.realm
 
+        Route.Home ->
+            initHomePage session credentials.realm
+
         Route.Logout ->
             let
                 ( page, command ) =
@@ -375,6 +381,17 @@ initLoginPage config maybeAuthType session =
     in
         ( Public (LoginPage initialSubModel)
         , Cmd.map LoginMsg initialPageCommand
+        )
+
+
+initHomePage : Session -> String -> ( Page, Cmd Msg )
+initHomePage session realm =
+    let
+        ( initialModel, initialCommand ) =
+            Home.init session
+    in
+        ( Realm realm (HomePage initialModel)
+        , Cmd.map HomeMsg initialCommand
         )
 
 
@@ -462,7 +479,7 @@ processRoute config session ( maybeRoute, maybeToken ) =
                         ==> session
 
                 _ ->
-                    processRealmRoute maybeToken Route.ListInterfaces config session
+                    processRealmRoute maybeToken Route.Home config session
 
         Just Route.Root ->
             case session.credentials of
@@ -471,7 +488,7 @@ processRoute config session ( maybeRoute, maybeToken ) =
                         ==> session
 
                 _ ->
-                    processRealmRoute maybeToken Route.ListInterfaces config session
+                    processRealmRoute maybeToken Route.Home config session
 
         Just (Route.RealmSelection loginTypeString) ->
             case session.credentials of
@@ -598,7 +615,7 @@ renderNavbar model =
                     ]
                 |> Navbar.collapseMedium
                 |> Navbar.brand
-                    [ href "#" ]
+                    [ href "/" ]
                     [ img
                         [ src <| Assets.path Assets.dashboardIcon
                         , style [ ( "height", "3em" ) ]
@@ -632,6 +649,20 @@ navbarLinks selectedPage =
             , ul
                 [ class "navbar-nav" ]
                 [ li [ class "navbar-item" ]
+                    [ a
+                        [ classList
+                            [ ( "nav-link", True )
+                            , ( "active", isHomeRelated selectedPage )
+                            ]
+                        , href <| Route.toString (Route.Realm Route.Home)
+                        ]
+                        [ span
+                            [ class "icon-spacer" ]
+                            [ i [ class "fas", class "fa-home" ] [] ]
+                        , text "Home"
+                        ]
+                    ]
+                , li [ class "navbar-item" ]
                     [ a
                         [ classList
                             [ ( "nav-link", True )
@@ -688,6 +719,16 @@ navbarLinks selectedPage =
                     ]
                 ]
             ]
+
+
+isHomeRelated : Page -> Bool
+isHomeRelated page =
+    case page of
+        Realm _ (HomePage _) ->
+            True
+
+        _ ->
+            False
 
 
 isInterfacesRelated : Page -> Bool
@@ -747,6 +788,10 @@ renderPublicPage flashMessages page =
 renderProtectedPage : List FlashMessage -> String -> RealmPage -> Html Msg
 renderProtectedPage flashMessages realm page =
     case page of
+        HomePage submodel ->
+            Home.view submodel flashMessages
+                |> Html.map HomeMsg
+
         InterfacesPage submodel ->
             Interfaces.view submodel flashMessages
                 |> Html.map InterfacesMsg
