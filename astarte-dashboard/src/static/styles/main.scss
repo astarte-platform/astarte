@@ -53,3 +53,38 @@ $navbar-width: 300px;
     vertical-align: bottom;
     line-height: 1.3rem;
 }
+
+.suggestion {
+    position: absolute;
+    top: 2.4rem;
+    right: 1.4rem;
+}
+
+.suggestion-icon {
+    color: $warning;
+}
+
+.suggestion-bubble {
+    position: absolute;
+    top: 4.2rem;
+    right: -0.1rem;
+    background-color: white;
+    border: 1px solid $warning;
+    border-radius: 3px;
+    padding: 0.6rem;
+    max-width: 20rem;
+    z-index: $zindex-popover;
+
+    &::before {
+        content: ' ';
+        position: absolute;
+        top: -0.5rem;
+        right: 1.4rem;
+        width: 1rem;
+        height: 1rem;
+        background-color: white;
+        border-top: 1.4px solid $warning;
+        border-left: 1.4px solid $warning;
+        transform: rotate(45deg);
+    }
+}
