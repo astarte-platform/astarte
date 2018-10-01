@@ -8,7 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.10.0-beta.2] - Unreleased
 ### Added
+- Encode data trigger known value according to matching interface path.
+- Add dockerignore file to prevent build output from being copied in the docker volume.
 - Home page.
+
+### Fixed
+- Device triggers showing as Data triggers in the trigger builder.
 
 ## [0.10.0-beta.1] - 2018-08-27
 ### Added
