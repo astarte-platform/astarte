@@ -103,6 +103,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"422_unexpected_value_type", expected: expected)
   end
 
+  def call(conn, {:error, :value_size_exceeded}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"422_value_size_exceeded")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
