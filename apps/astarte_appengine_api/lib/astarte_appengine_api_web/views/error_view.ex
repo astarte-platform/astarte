@@ -24,6 +24,14 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Bad request"}}
   end
 
+  def render("422_unexpected_value_type.json", %{expected: expected} = _assigns) do
+    %{errors: %{detail: "Unexpected value type", expected_type: expected}}
+  end
+
+  def render("422_value_size_exceeded.json", _assigns) do
+    %{errors: %{detail: "Value size exceeds size limits"}}
+  end
+
   def render("403_cannot_write_to_device_owned.json", _assigns) do
     %{errors: %{detail: "Cannot write to device owned resource"}}
   end
