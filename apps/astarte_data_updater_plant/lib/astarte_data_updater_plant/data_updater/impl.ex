@@ -470,9 +470,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
+      {:error, :value_size_exceeded} ->
+        warn(state, "received huge payload: #{inspect(payload)} sent to #{interface}#{path}.")
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
+
       {:error, :unexpected_object_key} ->
         warn(state, "object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.")
-
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
@@ -487,8 +492,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            :ok <- ValueType.validate_value(expected_type, value) do
         {:cont, :ok}
       else
-        {:error, :unexpected_value_type} ->
-          {:halt, {:error, :unexpected_value_type}}
+        {:error, reason} ->
+          {:halt, {:error, reason}}
 
         :error ->
           {:halt, {:error, :unexpected_object_key}}
