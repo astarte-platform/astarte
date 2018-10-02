@@ -97,6 +97,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"401")
   end
 
+  def call(conn, {:error, :unexpected_value_type, expected: expected}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"422_unexpected_value_type", expected: expected)
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
