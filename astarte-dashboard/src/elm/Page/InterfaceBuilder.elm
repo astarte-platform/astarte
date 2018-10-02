@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Navigation
 import Task
-import Time
+import Time exposing (Time)
 import Control exposing (Control)
 import Control.Debounce as Debounce
 import Spinner
@@ -21,6 +21,7 @@ import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping exposing (..)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
+import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
 import Modal.MappingBuilder as MappingBuilder
 
 
@@ -61,6 +62,7 @@ type alias Model =
     , accordionState : Accordion.State
     , spinner : Spinner.Model
     , showSpinner : Bool
+    , interfaceNameSuggestionPopup : SuggestionPopup
 
     -- common mappings settings
     , objectReliability : InterfaceMapping.Reliability
@@ -98,6 +100,9 @@ init maybeInterfaceId session =
                     ( False
                     , Cmd.none
                     )
+
+        interfaceNameSuggestionPopup =
+            SuggestionPopup.new "Interface name should be prefixed with a reverse domain name, and should use PascalCase (e.g. com.example.MyInterface)."
     in
         ( { interface = Interface.empty
           , interfaceEditMode = False
@@ -116,6 +121,7 @@ init maybeInterfaceId session =
           , accordionState = Accordion.initialState
           , spinner = Spinner.init
           , showSpinner = showSpinner
+          , interfaceNameSuggestionPopup = interfaceNameSuggestionPopup
           , mappingBuilderModel = MappingBuilder.empty
           }
         , initialCommand
@@ -175,6 +181,8 @@ type Msg
     | AccordionMsg Accordion.State
       -- spinner
     | SpinnerMsg Spinner.Msg
+      -- SuggestionPopup
+    | SuggestionPopupMsg SuggestionPopup.Msg
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -777,6 +785,15 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        SuggestionPopupMsg msg ->
+            ( { model
+                | interfaceNameSuggestionPopup =
+                    SuggestionPopup.update model.interfaceNameSuggestionPopup msg
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 handleMappingBuilderMessages : MappingBuilder.Msg -> Model -> Model
 handleMappingBuilderMessages message model =
@@ -904,8 +921,8 @@ renderContent model interface interfaceEditMode accordionState =
             , Form.row []
                 [ Form.col [ Col.sm6 ]
                     [ Form.group []
-                        [ Form.label [ for "interfaceName" ] [ text "Name" ]
-                        , Input.text
+                        ([ Form.label [ for "interfaceName" ] [ text "Name" ]
+                         , Input.text
                             [ Input.id "interfaceName"
                             , Input.readonly interfaceEditMode
                             , Input.value interface.name
@@ -915,7 +932,14 @@ renderContent model interface interfaceEditMode accordionState =
                               else
                                 Input.danger
                             ]
-                        ]
+                         ]
+                            ++ if not (Interface.isGoodInterfaceName interface.name || interfaceEditMode) then
+                                List.map
+                                    (Html.map SuggestionPopupMsg)
+                                    (SuggestionPopup.view model.interfaceNameSuggestionPopup)
+                               else
+                                []
+                        )
                     ]
                 , Form.col [ Col.sm3 ]
                     [ Form.group []
@@ -1425,10 +1449,13 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.showSpinner then
-        Sub.batch
-            [ Accordion.subscriptions model.accordionState AccordionMsg
-            , Sub.map SpinnerMsg Spinner.subscription
-            ]
-    else
-        Accordion.subscriptions model.accordionState AccordionMsg
+    Sub.batch
+        ([ Accordion.subscriptions model.accordionState AccordionMsg
+         , Sub.map SuggestionPopupMsg <| SuggestionPopup.subs model.interfaceNameSuggestionPopup
+         ]
+            ++ (if model.showSpinner then
+                    [ Sub.map SpinnerMsg Spinner.subscription ]
+                else
+                    []
+               )
+        )

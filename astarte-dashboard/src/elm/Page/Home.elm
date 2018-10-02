@@ -110,7 +110,7 @@ view model flashMessages =
                         [ text "Here you can easily manage your interfaces and triggers."
                         , br [] []
                         , text "Read the"
-                        , a [ href "https://docs.astarte-platform.org/" ] [ text " docs " ]
+                        , a [ target "_blank", href "https://docs.astarte-platform.org/" ] [ text " docs " ]
                         , text "for more detailed informations on Astarte."
                         ]
                     ]

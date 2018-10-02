@@ -322,7 +322,7 @@ pageInit realmRoute credentials config session =
     case realmRoute of
         Route.Auth _ _ ->
             -- already logged in
-            initInterfacesPage session credentials.realm
+            initHomePage session credentials.realm
 
         Route.Home ->
             initHomePage session credentials.realm
@@ -564,7 +564,7 @@ processRealmRoute maybeToken realmRoute config session =
                                         |> Session.setCredentials (Just updatedCredentials)
 
                                 ( page, command ) =
-                                    pageInit Route.ListInterfaces updatedCredentials config updatedSession
+                                    pageInit Route.Home updatedCredentials config updatedSession
                             in
                                 ( page
                                 , Cmd.batch [ storeSession updatedSession, command ]

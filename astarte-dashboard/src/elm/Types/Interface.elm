@@ -369,6 +369,11 @@ isValidInterfaceName interfaceName =
     Regex.contains (regex "^[a-zA-Z]+(\\.[a-zA-Z0-9]+)*$") interfaceName
 
 
+isGoodInterfaceName : String -> Bool
+isGoodInterfaceName interfaceName =
+    Regex.contains (regex "^([a-z]{2,3}\\.){1,2}[a-zA-z]+\\.[a-zA-Z][a-zA-Z0-9]*$") interfaceName
+
+
 toPrettySource : Interface -> String
 toPrettySource interface =
     Json.Encode.encode 4 <| encoder interface
