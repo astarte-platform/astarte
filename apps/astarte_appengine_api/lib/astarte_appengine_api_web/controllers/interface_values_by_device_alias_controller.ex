@@ -79,7 +79,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
           "device_alias" => device_alias,
           "id" => interface,
           "path" => path,
-          "value" => value
+          "data" => value
         } = parameters
       ) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
