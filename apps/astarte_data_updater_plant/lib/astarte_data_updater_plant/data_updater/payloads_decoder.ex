@@ -18,6 +18,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
+  alias Astarte.Core.Interface
+
   @max_uncompressed_payload_size 10_485_760
 
   @doc """
@@ -181,7 +183,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
              {major_version, ""} <- Integer.parse(major_version_string),
              {minor_version, ""} <- Integer.parse(minor_version_string) do
           cond do
-            String.match?(interface_name, ~r/^[a-zA-Z]+(\.[a-zA-Z0-9]+)*$/) == false ->
+            String.match?(interface_name, Interface.interface_name_regex()) == false ->
               false
 
             major_version < 0 ->
