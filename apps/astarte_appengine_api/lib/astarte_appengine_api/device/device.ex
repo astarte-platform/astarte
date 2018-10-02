@@ -163,12 +163,13 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
-         {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path) do
+         {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path),
+         mapping <-
+           Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
+         :ok <- validate_value_type(mapping.value_type, value) do
       timestamp_micro =
         DateTime.utc_now()
         |> DateTime.to_unix(:microseconds)
-
-      mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
       Queries.insert_value_into_db(
         client,
@@ -210,6 +211,21 @@ defmodule Astarte.AppEngine.API.Device do
 
       {:error, :endpoint_guess_not_allowed} ->
         {:error, :read_only_resource}
+
+      {:error, :unexpected_value_type, expected: value_type} ->
+        {:error, :unexpected_value_type, expected: value_type}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp validate_value_type(value_type, value) do
+    with :ok <- ValueType.validate_value(value_type, value) do
+      :ok
+    else
+      {:error, :unexpected_value_type} ->
+        {:error, :unexpected_value_type, expected: value_type}
 
       {:error, reason} ->
         {:error, reason}
