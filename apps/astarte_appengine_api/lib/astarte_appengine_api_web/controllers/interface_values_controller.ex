@@ -60,7 +60,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
           "device_id" => device_id,
           "id" => interface,
           "path" => path,
-          "value" => value
+          "data" => value
         } = parameters
       ) do
     with {:ok, %InterfaceValues{} = interface_values} <-
