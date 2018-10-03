@@ -31,7 +31,7 @@ empty : Interface
 empty =
     { name = ""
     , major = 0
-    , minor = 0
+    , minor = 1
     , iType = Properties
     , ownership = Device
     , aggregation = Individual

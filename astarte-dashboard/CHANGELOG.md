@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Home page.
 
 ### Fixed
+- Disallow interface minor to be 0 when major is also 0
 - Device triggers showing as Data triggers in the trigger builder.
 
 ## [0.10.0-beta.1] - 2018-08-27

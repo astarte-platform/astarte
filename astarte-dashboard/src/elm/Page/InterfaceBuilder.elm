@@ -454,7 +454,7 @@ update session msg model =
         UpdateInterfaceMajor newMajor ->
             case (String.toInt newMajor) of
                 Ok major ->
-                    if (major >= 0) then
+                    if major > 0 || (major == 0 && model.interface.minor > 0) then
                         let
                             newInterface =
                                 Interface.setMajor major model.interface
@@ -481,7 +481,7 @@ update session msg model =
         UpdateInterfaceMinor newMinor ->
             case (String.toInt newMinor) of
                 Ok minor ->
-                    if (minor >= model.minMinor) then
+                    if (minor >= model.minMinor && not (model.interface.major == 0 && minor == 0)) then
                         let
                             newInterface =
                                 Interface.setMinor minor model.interface
