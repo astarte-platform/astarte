@@ -30,7 +30,7 @@ Consider, for example, a simple value and timestamp payload. The encoded JSON ve
 
 The hexdump of the same message encoded with BSON is:
 ```
-0000000 1b 00 00 00 12 74 00 ec e0 01 f1 65 01 00 00 01
+0000000 1b 00 00 00 09 74 00 ec e0 01 f1 65 01 00 00 01
 0000020 76 00 8c 13 5f ed 28 5e 39 40 00
 ```
 
