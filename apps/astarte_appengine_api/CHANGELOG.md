@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Added value type and size validation.
 
+### Fixed
+- Fix POST to a datastream endpoint.
+
 ### Changed
 - "data" key is used instead of "value" when PUT/POSTing a value to an interface.
 
