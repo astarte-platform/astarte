@@ -782,7 +782,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_control(state, "/emptyCache", _payload, message_id, _timestamp) do
     Logger.debug("Received /emptyCache")
 
-    new_state = resend_all_properties(state)
+    new_state =
+      state
+      |> send_control_consumer_properties()
+      |> resend_all_properties()
 
     {:ok, db_client} = Database.connect(state.realm)
     :ok = Queries.set_pending_empty_cache(db_client, state.device_id, false)
@@ -1484,6 +1487,58 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
+  defp reduce_interface_mapping(mappings, interface_descriptor, initial_acc, fun) do
+    Enum.reduce(mappings, initial_acc, fn {_endpoint_id, mapping}, acc ->
+      if mapping.interface_id == interface_descriptor.interface_id do
+        fun.(mapping, acc)
+      end
+    end)
+  end
+
+  defp send_control_consumer_properties(state) do
+    {:ok, db_client} = Database.connect(state.realm)
+
+    Logger.debug(
+      "send_control_consumer_properties: device introspection: #{inspect(state.introspection)}"
+    )
+
+    Enum.each(state.introspection, fn {interface, _} ->
+      with {:ok, interface_descriptor, new_state} <-
+             maybe_handle_cache_miss(
+               Map.get(state.interfaces, interface),
+               interface,
+               state,
+               db_client
+             ) do
+        abs_paths_list = gather_interface_properties(new_state, db_client, interface_descriptor)
+        send_consumer_properties_payload(new_state.realm, new_state.device_id, abs_paths_list)
+      else
+        {:error, :interface_loading_failed} ->
+          warn(state, "resend_all_properties: failed #{interface} interface loading.")
+          {:error, :sending_properties_to_interface_failed}
+      end
+    end)
+
+    state
+  end
+
+  defp gather_interface_properties(
+         %State{realm: realm, device_id: device_id, mappings: mappings} = _state,
+         db_client,
+         %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
+       ) do
+    reduce_interface_mapping(mappings, interface_descriptor, [], fn mapping, i_acc ->
+      Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
+      |> Enum.reduce(i_acc, fn [{:path, path}, {_, value}], acc ->
+        ["#{interface_descriptor.name}#{path}" | acc]
+      end)
+    end)
+  end
+
+  defp gather_interface_properties(_state, _db, %InterfaceDescriptor{} = _descriptor) do
+    :ok
+  end
+
   defp resend_all_properties(state) do
     {:ok, db_client} = Database.connect(state.realm)
 
@@ -1525,6 +1580,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp resend_all_interface_properties(_state, _db, %InterfaceDescriptor{} = _descriptor) do
     :ok
+  end
+
+  defp send_consumer_properties_payload(realm, device_id, abs_paths_list) do
+    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/consumer/properties"
+
+    uncompressed_payload = Enum.join(abs_paths_list, ";")
+
+    payload_size = byte_size(uncompressed_payload)
+    compressed_payload = :zlib.compress(uncompressed_payload)
+
+    payload = <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
+
+    case VMQPlugin.publish(topic, payload, 2) do
+      :ok ->
+        {:ok, byte_size(topic) + byte_size(payload)}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp send_value(realm, device_id_string, interface_name, path, value) do
