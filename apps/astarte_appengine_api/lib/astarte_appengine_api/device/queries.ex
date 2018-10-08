@@ -290,7 +290,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         value_timestamp,
         reception_timestamp
       ) do
-    property_table = String.replace(interface_descriptor.storage, "datastream", "property")
+    property_table = String.replace(interface_descriptor.storage, "datastreams", "properties")
 
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
