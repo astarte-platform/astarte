@@ -70,6 +70,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.port"
     ],
+    "enable_compression": [
+      commented: true,
+      datatype: :atom,
+      default: false,
+      env_var: "APPENGINE_API_ENABLE_COMPRESSION",
+      doc: "If true, HTTP compression will be enabled.",
+      hidden: false,
+      to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.compress"
+    ],
     "rooms_amqp_client_options.host": [
       commented: true,
       datatype: :binary,
