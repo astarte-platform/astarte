@@ -56,7 +56,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: true,
       datatype: :integer,
       default: 10000,
-      env_var: "APPENGINE_MAX_RESULTS_LIMIT",
+      env_var: "APPENGINE_API_MAX_RESULTS_LIMIT",
       doc: "The max number of data points returned by AppEngine API with a single call. Defaults to 10000. If <= 0, results are unlimited.",
       hidden: false,
       to: "astarte_appengine_api.max_results_limit"
