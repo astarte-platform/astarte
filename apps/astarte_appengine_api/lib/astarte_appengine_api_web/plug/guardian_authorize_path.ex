@@ -54,15 +54,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     with %{"realm_name" => realm} <- conn.path_params,
          authorize_path_info <- Map.get(conn.assigns, :original_path_info, conn.path_info),
          [^realm | rest] <- Enum.drop_while(authorize_path_info, fn token -> token != realm end),
-         path_prefix <- Enum.join(rest, "/") do
-      path_suffix =
-        if Map.has_key?(conn.query_params, "path") do
-          "/#{Map.get(conn.query_params, "path")}"
-        else
-          ""
-        end
-
-      {:ok, "#{path_prefix}#{path_suffix}"}
+         auth_path <- Enum.join(rest, "/") do
+      {:ok, auth_path}
     else
       _ ->
         {:error, :invalid_auth_path}
