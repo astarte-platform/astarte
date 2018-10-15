@@ -94,7 +94,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         nil,
         _value_timestamp,
-        _reception_timestamp
+        _reception_timestamp,
+        _opts
       ) do
     if endpoint.allow_unset == false do
       Logger.warn("Tried to unset value on allow_unset=false mapping.")
@@ -127,7 +128,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         value,
         _value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        _opts
       ) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
@@ -162,8 +164,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         value,
         value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        opts
       ) do
+    ttl_string = get_ttl_string(opts)
+
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
@@ -173,7 +178,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
           "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{
             CQLUtils.type_to_db_column_name(endpoint.value_type)
           }) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value);"
+          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value) #{
+            ttl_string
+          };"
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
@@ -198,8 +205,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         value,
         value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        opts
       ) do
+    ttl_string = get_ttl_string(opts)
+
     # TODO: we should cache endpoints by interface_id
     endpoint_query =
       DatabaseQuery.new()
@@ -250,7 +260,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
         "INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
-          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
+          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{
+            ttl_string
+          };"
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:path, path)
@@ -264,6 +276,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, insert_query)
 
     :ok
+  end
+
+  defp get_ttl_string(opts) do
+    with {:ok, value} when is_integer(value) <- Keyword.fetch(opts, :ttl) do
+      "USING TTL #{to_string(value)}"
+    else
+      _any_error ->
+        ""
+    end
   end
 
   def insert_path_into_db(

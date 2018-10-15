@@ -75,7 +75,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     stats_and_introspection =
       Queries.retrieve_device_stats_and_introspection!(db_client, device_id)
 
+    {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(db_client)
+
     Map.merge(new_state, stats_and_introspection)
+    |> Map.put(:datastream_maximum_storage_retention, ttl)
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
@@ -399,7 +402,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           path,
           value,
           maybe_explicit_value_timestamp,
-          timestamp
+          timestamp,
+          ttl: state.datastream_maximum_storage_retention
         )
 
       :ok = insert_result
