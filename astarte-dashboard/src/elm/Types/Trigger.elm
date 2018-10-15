@@ -1,12 +1,22 @@
-module Types.Trigger exposing (..)
+module Types.Trigger
+    exposing
+        ( Trigger
+        , Template(..)
+        , SimpleTrigger(..)
+        , encode
+        , decoder
+        , empty
+        , setName
+        , setUrl
+        , setTemplate
+        , setSimpleTrigger
+        , fromString
+        , toPrettySource
+        )
 
-import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
-import Json.Encode
-
-
--- Types
-
+import Json.Decode as Decode exposing (Value, Decoder, decodeString, map, andThen, field, index, nullable, string)
+import Json.Decode.Pipeline exposing (decode, required, requiredAt, optionalAt, resolve)
+import Json.Encode as Encode
 import Types.DataTrigger as DataTrigger exposing (DataTrigger)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger)
 
@@ -70,18 +80,18 @@ setSimpleTrigger simpleTrigger trigger =
 -- Encoding
 
 
-encoder : Trigger -> Value
-encoder t =
-    Json.Encode.object
-        [ ( "name", Json.Encode.string t.name )
+encode : Trigger -> Value
+encode t =
+    Encode.object
+        [ ( "name", Encode.string t.name )
         , ( "action"
-          , Json.Encode.object
-                ([ ( "http_post_url", Json.Encode.string t.url ) ]
+          , Encode.object
+                ([ ( "http_post_url", Encode.string t.url ) ]
                     ++ (templateEncoder t.template)
                 )
           )
         , ( "simple_triggers"
-          , Json.Encode.list
+          , Encode.list
                 [ simpleTriggerEncoder t.simpleTrigger ]
           )
         ]
@@ -94,8 +104,8 @@ templateEncoder template =
             []
 
         Mustache mustacheTemplate ->
-            [ ( "template_type", Json.Encode.string "mustache" )
-            , ( "template", Json.Encode.string mustacheTemplate )
+            [ ( "template_type", Encode.string "mustache" )
+            , ( "template", Encode.string mustacheTemplate )
             ]
 
 
@@ -103,10 +113,10 @@ simpleTriggerEncoder : SimpleTrigger -> Value
 simpleTriggerEncoder simpleTrigger =
     case simpleTrigger of
         Data dataTrigger ->
-            DataTrigger.encoder dataTrigger
+            DataTrigger.encode dataTrigger
 
         Device deviceTrigger ->
-            DeviceTrigger.encoder deviceTrigger
+            DeviceTrigger.encode deviceTrigger
 
 
 
@@ -120,10 +130,10 @@ decoder =
         toDecoder name url maybeTemplateType maybeTemplate simpleTrigger =
             case (stringsToTemplate maybeTemplateType maybeTemplate) of
                 Ok template ->
-                    Json.Decode.succeed <| Trigger name url template simpleTrigger
+                    Decode.succeed <| Trigger name url template simpleTrigger
 
                 Err err ->
-                    Json.Decode.fail err
+                    Decode.fail err
     in
         decode toDecoder
             |> required "name" string
@@ -163,7 +173,7 @@ simpleTriggerDecoder =
                         map Device DeviceTrigger.decoder
 
                     _ ->
-                        Json.Decode.fail <| "Uknown trigger type " ++ str
+                        Decode.fail <| "Uknown trigger type " ++ str
             )
 
 
@@ -178,4 +188,4 @@ fromString source =
 
 toPrettySource : Trigger -> String
 toPrettySource trigger =
-    Json.Encode.encode 4 <| encoder trigger
+    Encode.encode 4 <| encode trigger

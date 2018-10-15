@@ -1,8 +1,19 @@
-module Types.DeviceTrigger exposing (..)
+module Types.DeviceTrigger
+    exposing
+        ( DeviceTrigger
+        , DeviceTriggerEvent(..)
+        , empty
+        , setDeviceId
+        , setOn
+        , encode
+        , decoder
+        , stringToDeviceTriggerEvent
+        , deviceTriggerEventToString
+        )
 
-import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
-import Json.Encode
+import Json.Decode as Decode exposing (Decoder, Value, string)
+import Json.Decode.Pipeline exposing (decode, required)
+import Json.Encode as Encode
 import JsonHelpers
 
 
@@ -44,11 +55,11 @@ setOn deviceTriggerEvent deviceTrigger =
 -- Encoding
 
 
-encoder : DeviceTrigger -> Value
-encoder deviceTrigger =
-    Json.Encode.object
-        [ ( "type", Json.Encode.string "device_trigger" )
-        , ( "device_id", Json.Encode.string deviceTrigger.deviceId )
+encode : DeviceTrigger -> Value
+encode deviceTrigger =
+    Encode.object
+        [ ( "type", Encode.string "device_trigger" )
+        , ( "device_id", Encode.string deviceTrigger.deviceId )
         , ( "on", deviceTriggerEventEncoder deviceTrigger.on )
         ]
 
@@ -57,7 +68,7 @@ deviceTriggerEventEncoder : DeviceTriggerEvent -> Value
 deviceTriggerEventEncoder deviceEvent =
     deviceEvent
         |> deviceTriggerEventToString
-        |> Json.Encode.string
+        |> Encode.string
 
 
 deviceTriggerEventToString : DeviceTriggerEvent -> String
@@ -89,8 +100,8 @@ decoder =
 
 deviceTriggerEventDecoder : Decoder DeviceTriggerEvent
 deviceTriggerEventDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToDeviceTriggerEvent >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToDeviceTriggerEvent >> JsonHelpers.resultToDecoder)
 
 
 stringToDeviceTriggerEvent : String -> Result String DeviceTriggerEvent

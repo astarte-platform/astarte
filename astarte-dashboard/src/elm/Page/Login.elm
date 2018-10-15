@@ -1,14 +1,10 @@
 module Page.Login exposing (Model, Msg, init, update, view)
 
 import Http
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, text, a, img)
+import Html.Attributes exposing (class, href, placeholder, src)
 import Navigation
 import Maybe.Extra exposing (isNothing)
-
-
--- Types
-
 import Assets
 import Route
 import Types.Config as Config exposing (Config, AuthType(..), AuthConfig(..), getAuthConfig)

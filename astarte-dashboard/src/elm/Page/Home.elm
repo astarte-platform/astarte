@@ -1,12 +1,8 @@
 module Page.Home exposing (Model, Msg, init, update, view)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, div, img, text, br, h2, h5, a, p)
+import Html.Attributes exposing (class, src, href, target)
 import Spinner
-
-
--- Types
-
 import Assets
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)

@@ -1,18 +1,14 @@
 module Page.TriggerBuilder exposing (Model, Msg, init, update, view, subscriptions)
 
 import Regex exposing (regex)
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, text, h5, b, i)
+import Html.Attributes exposing (class, value, readonly, selected, for)
 import Navigation
 import Task
 import Time
 import Control exposing (Control)
 import Control.Debounce as Debounce
 import Spinner
-
-
--- Types
-
 import Route
 import AstarteApi
 import Types.Session exposing (Session)

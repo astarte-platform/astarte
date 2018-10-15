@@ -1,9 +1,40 @@
-module Types.InterfaceMapping exposing (..)
+module Types.InterfaceMapping
+    exposing
+        ( InterfaceMapping
+        , MappingType(..)
+        , BaseType(..)
+        , Reliability(..)
+        , Retention(..)
+        , empty
+        , encode
+        , decoder
+        , setEndpoint
+        , setType
+        , setReliability
+        , setRetention
+        , setExpiry
+        , setAllowUnset
+        , setExplicitTimestamp
+        , setDescription
+        , setDoc
+        , setDraft
+        , isValid
+        , isValidEndpoint
+        , isValidType
+        , stringToMappingType
+        , stringToReliability
+        , stringToRetention
+        , mappingTypeList
+        , mappingTypeToString
+        , reliabilityToEnglishString
+        , retentionToEnglishString
+        , mappingTypeToEnglishString
+        )
 
 import Regex exposing (regex)
-import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
-import Json.Encode
+import Json.Decode as Decode exposing (Value, Decoder, decodeString, list, bool, int, string)
+import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
+import Json.Encode as Encode
 import JsonHelpers
 
 
@@ -149,55 +180,55 @@ setDraft mapping draft =
 -- Encoding
 
 
-interfaceMappingEncoder : InterfaceMapping -> Value
-interfaceMappingEncoder mapping =
-    [ [ ( "endpoint", Json.Encode.string mapping.endpoint )
+encode : InterfaceMapping -> Value
+encode mapping =
+    [ [ ( "endpoint", Encode.string mapping.endpoint )
       , ( "type", encodeMappingType mapping.mType )
       ]
     , JsonHelpers.encodeOptionalFields
         [ ( "reliability", encodeReliability mapping.reliability, mapping.reliability == Unreliable )
         , ( "retention", encodeRetention mapping.retention, mapping.retention == Discard )
-        , ( "expiry", Json.Encode.int mapping.expiry, mapping.expiry == 0 )
-        , ( "allow_unset", Json.Encode.bool mapping.allowUnset, mapping.allowUnset == False )
-        , ( "explicit_timestamp", Json.Encode.bool mapping.explicitTimestamp, mapping.explicitTimestamp == False )
-        , ( "description", Json.Encode.string mapping.description, mapping.description == "" )
-        , ( "doc", Json.Encode.string mapping.doc, mapping.doc == "" )
+        , ( "expiry", Encode.int mapping.expiry, mapping.expiry == 0 )
+        , ( "allow_unset", Encode.bool mapping.allowUnset, mapping.allowUnset == False )
+        , ( "explicit_timestamp", Encode.bool mapping.explicitTimestamp, mapping.explicitTimestamp == False )
+        , ( "description", Encode.string mapping.description, mapping.description == "" )
+        , ( "doc", Encode.string mapping.doc, mapping.doc == "" )
         ]
     ]
         |> List.concat
-        |> Json.Encode.object
+        |> Encode.object
 
 
 encodeMappingType : MappingType -> Value
 encodeMappingType t =
     mappingTypeToString t
-        |> Json.Encode.string
+        |> Encode.string
 
 
 encodeReliability : Reliability -> Value
 encodeReliability r =
     case r of
         Unreliable ->
-            Json.Encode.string "unreliable"
+            Encode.string "unreliable"
 
         Guaranteed ->
-            Json.Encode.string "guaranteed"
+            Encode.string "guaranteed"
 
         Unique ->
-            Json.Encode.string "unique"
+            Encode.string "unique"
 
 
 encodeRetention : Retention -> Value
 encodeRetention r =
     case r of
         Discard ->
-            Json.Encode.string "discard"
+            Encode.string "discard"
 
         Volatile ->
-            Json.Encode.string "volatile"
+            Encode.string "volatile"
 
         Stored ->
-            Json.Encode.string "stored"
+            Encode.string "stored"
 
 
 mappingTypeToString : MappingType -> String
@@ -256,20 +287,20 @@ decoder =
 
 mappingTypeDecoder : Decoder MappingType
 mappingTypeDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToMappingType >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToMappingType >> JsonHelpers.resultToDecoder)
 
 
 reliabilityDecoder : Decoder Reliability
 reliabilityDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToReliability >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToReliability >> JsonHelpers.resultToDecoder)
 
 
 retentionDecoder : Decoder Retention
 retentionDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToRetention >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToRetention >> JsonHelpers.resultToDecoder)
 
 
 stringToMappingType : String -> Result String MappingType

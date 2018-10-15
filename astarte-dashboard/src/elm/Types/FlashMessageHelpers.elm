@@ -1,12 +1,7 @@
 module Types.FlashMessageHelpers exposing (renderFlashMessages)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, text)
 import Html.Events exposing (onClick)
-
-
--- Types
-
 import Types.ExternalMessage exposing (ExternalMsg(..))
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 
