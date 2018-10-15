@@ -425,7 +425,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
       end
 
-      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{})
+      ttl = state.datastream_maximum_storage_retention
+      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{}, ttl)
       new_state = %{new_state | paths_cache: paths_cache}
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)

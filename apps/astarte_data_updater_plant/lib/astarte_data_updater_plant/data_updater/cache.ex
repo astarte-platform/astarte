@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
     {size, %{}}
   end
 
-  def put({size, map}, key, value) do
+  def put({size, map}, key, value, ttl) do
     next_map =
       cond do
         Map.has_key?(map, key) ->
@@ -35,20 +35,48 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
         is_map(map) ->
           map
       end
-      |> Map.put(key, value)
+      |> Map.put(key, {value, expiry_timestamp(ttl)})
 
     {size, next_map}
   end
 
-  def get({_size, map}, key, default \\ nil) do
-    Map.get(map, key, default)
+  defp expiry_timestamp(nil) do
+    nil
+  end
+
+  defp expiry_timestamp(ttl) do
+    System.system_time(:second) + ttl
+  end
+
+  def get({_size, map} = cache, key, default \\ nil) do
+    with {:ok, value} <- fetch(cache, key) do
+      value
+    else
+      :error ->
+        default
+    end
   end
 
   def fetch({_size, map}, key) do
-    Map.fetch(map, key)
+    with {:ok, {value, expiry}} <- Map.fetch(map, key) do
+      if is_expired?(expiry) do
+        {:ok, value}
+      else
+        :error
+      end
+    end
   end
 
   def has_key?({_size, map}, key) do
-    Map.has_key?(map, key)
+    with {:ok, {_value, expiry}} <- Map.fetch(map, key) do
+      not is_expired?(expiry)
+    else
+      :error ->
+        false
+    end
+  end
+
+  defp is_expired?(expiry) do
+    expiry == nil or expiry > System.system_time(:second)
   end
 end
