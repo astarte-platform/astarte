@@ -673,4 +673,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   defp insert_consistency(_interface_descriptor, _mapping) do
     :one
   end
+
+  def fetch_datastream_maximum_storage_retention(client) do
+    maximum_storage_retention_statement = """
+    SELECT blobAsInt(value)
+    FROM kv_store
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(maximum_storage_retention_statement)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, res} <- DatabaseQuery.call(client, query),
+         ["system.blobasint(value)": maximum_storage_retention] <- DatabaseResult.head(res) do
+      {:ok, maximum_storage_retention}
+    else
+      :empty_dataset ->
+        {:ok, nil}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn(
+          "fetch_datastream_maximum_storage_retention: database error: #{error_message}"
+        )
+
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("fetch_datastream_maximum_storage_retention: failed:  #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
 end
