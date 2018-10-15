@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.10.0-beta.2] - Unreleased
 ### Added
+- Added automating begin and end delimiter to auth regular expressions.
 - Added value type and size validation.
 - Added the option to enable HTTP compression
 
 ### Fixed
+- Fix authorization path building, path was added twice resulting in failures in authorization.
 - Fix POST to a datastream endpoint.
 
 ### Changed
