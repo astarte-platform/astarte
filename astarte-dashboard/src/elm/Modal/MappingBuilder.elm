@@ -1,12 +1,8 @@
-module Modal.MappingBuilder exposing (..)
+module Modal.MappingBuilder exposing (Model, Msg(..), ExternalMsg(..), empty, init, update, view)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
-
-
--- Types
-
-import Types.InterfaceMapping as InterfaceMapping exposing (..)
+import Html exposing (Html, text)
+import Html.Attributes exposing (value, selected, for)
+import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
 
 
 -- bootstrap components
@@ -85,13 +81,13 @@ type Msg
     | UpdateMappingDoc String
 
 
-type ExtenalMsg
+type ExternalMsg
     = Noop
     | AddNewMapping InterfaceMapping
     | EditMapping InterfaceMapping
 
 
-update : Msg -> Model -> ( Model, ExtenalMsg )
+update : Msg -> Model -> ( Model, ExternalMsg )
 update message model =
     case message of
         Close ModalCancel ->

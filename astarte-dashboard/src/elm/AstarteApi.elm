@@ -1,14 +1,24 @@
-module AstarteApi exposing (..)
+module AstarteApi
+    exposing
+        ( realmConfig
+        , updateRealmConfig
+        , listInterfaces
+        , listInterfaceMajors
+        , getInterface
+        , deleteInterface
+        , addNewInterface
+        , updateInterface
+        , listTriggers
+        , getTrigger
+        , addNewTrigger
+        , deleteTrigger
+        )
 
 import Http
 import Task
-import Json.Decode exposing (..)
-import Json.Encode
-
-
--- Types
-
-import Types.Session exposing (..)
+import Json.Decode exposing (int, string, list, field)
+import Json.Encode as Encode
+import Types.Session exposing (Session, Credentials)
 import Types.Interface as Interface exposing (Interface)
 import Types.Trigger as Trigger exposing (Trigger)
 import Types.RealmConfig as RealmConfig exposing (Config)
@@ -132,7 +142,7 @@ updateRealmConfig config session doneMessage errorMessage reloginMessage =
             { method = "PUT"
             , headers = buildHeaders session.credentials
             , url = String.concat [ baseUrl, "/config/auth" ]
-            , body = Http.jsonBody <| Json.Encode.object [ ( "data", RealmConfig.encoder config ) ]
+            , body = Http.jsonBody <| Encode.object [ ( "data", RealmConfig.encode config ) ]
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
@@ -226,7 +236,7 @@ addNewInterface interface session doneMessage errorMessage reloginMessage =
             { method = "POST"
             , headers = buildHeaders session.credentials
             , url = String.concat [ baseUrl, "/interfaces" ]
-            , body = Http.jsonBody <| Json.Encode.object [ ( "data", Interface.encoder interface ) ]
+            , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
@@ -244,7 +254,7 @@ updateInterface interface session doneMessage errorMessage reloginMessage =
             { method = "PUT"
             , headers = buildHeaders session.credentials
             , url = String.concat [ baseUrl, "/interfaces/", interface.name, "/", toString interface.major ]
-            , body = Http.jsonBody <| Json.Encode.object [ ( "data", Interface.encoder interface ) ]
+            , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
@@ -302,7 +312,7 @@ addNewTrigger trigger session doneMessage errorMessage reloginMessage =
             { method = "POST"
             , headers = buildHeaders session.credentials
             , url = String.concat [ baseUrl, "/triggers/" ]
-            , body = Http.jsonBody <| Json.Encode.object [ ( "data", Trigger.encoder trigger ) ]
+            , body = Http.jsonBody <| Encode.object [ ( "data", Trigger.encode trigger ) ]
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
