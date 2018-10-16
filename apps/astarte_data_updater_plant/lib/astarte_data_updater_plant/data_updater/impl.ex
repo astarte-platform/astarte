@@ -295,7 +295,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          interface_id <- interface_descriptor.interface_id,
          {:ok, endpoint} <- resolve_path(path, interface_descriptor, new_state.mappings),
          endpoint_id <- endpoint.endpoint_id,
-         {value, value_timestamp, metadata} <-
+         {value, value_timestamp, _metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp),
          expected_types <-
            extract_expected_types(path, interface_descriptor, endpoint, new_state.mappings),
@@ -550,7 +550,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp extract_expected_types(path, interface_descriptor, endpoint, mappings) do
+  defp extract_expected_types(_path, interface_descriptor, endpoint, mappings) do
     case interface_descriptor.aggregation do
       :individual ->
         endpoint.value_type
@@ -1112,7 +1112,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Enum.reduce(interfaces_to_drop, state.data_triggers, fn iface, data_triggers ->
         interface_id = Map.fetch!(state.interfaces, iface).interface_id
 
-        Enum.reject(data_triggers, fn {{event_type, iface_id, endpoint}, val} ->
+        Enum.reject(data_triggers, fn {{_event_type, iface_id, _endpoint}, _val} ->
           iface_id == interface_id
         end)
         |> Enum.into(%{})
@@ -1122,7 +1122,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Enum.reduce(interfaces_to_drop, state.mappings, fn iface, mappings ->
         interface_id = Map.fetch!(state.interfaces, iface).interface_id
 
-        Enum.reject(mappings, fn {endpoint_id, mapping} ->
+        Enum.reject(mappings, fn {_endpoint_id, mapping} ->
           mapping.interface_id == interface_id
         end)
         |> Enum.into(%{})
@@ -1564,13 +1564,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp gather_interface_properties(
-         %State{realm: realm, device_id: device_id, mappings: mappings} = _state,
+         %State{device_id: device_id, mappings: mappings} = _state,
          db_client,
          %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
        ) do
     reduce_interface_mapping(mappings, interface_descriptor, [], fn mapping, i_acc ->
       Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
-      |> Enum.reduce(i_acc, fn [{:path, path}, {_, value}], acc ->
+      |> Enum.reduce(i_acc, fn [{:path, path}, {_, _value}], acc ->
         ["#{interface_descriptor.name}#{path}" | acc]
       end)
     end)
