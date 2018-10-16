@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ## [0.10.0-beta.2] - Unreleased
+### Added
+- Allow to expire old data using Cassandra TTL.
+- Publish set properties list to `/control/consumer/properties`.
+
 ### Fixed
 - Validate all incoming values before performing any further computation on them, to avoid crash loops.
 - Fix a bug preventing data triggers to be correctly loaded

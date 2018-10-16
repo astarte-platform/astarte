@@ -75,7 +75,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     stats_and_introspection =
       Queries.retrieve_device_stats_and_introspection!(db_client, device_id)
 
+    {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(db_client)
+
     Map.merge(new_state, stats_and_introspection)
+    |> Map.put(:datastream_maximum_storage_retention, ttl)
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
@@ -292,7 +295,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          interface_id <- interface_descriptor.interface_id,
          {:ok, endpoint} <- resolve_path(path, interface_descriptor, new_state.mappings),
          endpoint_id <- endpoint.endpoint_id,
-         {value, value_timestamp, metadata} <-
+         {value, value_timestamp, _metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp),
          expected_types <-
            extract_expected_types(path, interface_descriptor, endpoint, new_state.mappings),
@@ -359,13 +362,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               Cache.has_key?(new_state.paths_cache, {interface, path}) ->
                 :ok
 
-              Data.path_exists?(
-                db_client,
-                new_state.device_id,
-                interface_descriptor,
-                endpoint,
-                path
-              ) == {:ok, true} ->
+              is_still_valid?(
+                Queries.fetch_path_expiry(
+                  db_client,
+                  new_state.device_id,
+                  interface_descriptor,
+                  endpoint,
+                  path
+                ),
+                state.datastream_maximum_storage_retention
+              ) ->
                 :ok
 
               true ->
@@ -376,7 +382,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   endpoint,
                   path,
                   maybe_explicit_value_timestamp,
-                  timestamp
+                  timestamp,
+                  ttl: path_ttl(state.datastream_maximum_storage_retention)
                 )
             end
 
@@ -399,7 +406,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           path,
           value,
           maybe_explicit_value_timestamp,
-          timestamp
+          timestamp,
+          ttl: state.datastream_maximum_storage_retention
         )
 
       :ok = insert_result
@@ -417,7 +425,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
       end
 
-      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{})
+      ttl = state.datastream_maximum_storage_retention
+      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{}, ttl)
       new_state = %{new_state | paths_cache: paths_cache}
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)
@@ -484,6 +493,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
+  defp path_ttl(nil) do
+    nil
+  end
+
+  defp path_ttl(retention_secs) do
+    retention_secs * 2 + div(retention_secs, 2)
+  end
+
+  defp is_still_valid?({:error, :property_not_set}, _ttl) do
+    false
+  end
+
+  defp is_still_valid?({:ok, :no_expiry}, _ttl) do
+    true
+  end
+
+  defp is_still_valid?({:ok, _expiry_date}, nil) do
+    false
+  end
+
+  defp is_still_valid?({:ok, expiry_date}, ttl) do
+    expiry_secs = DateTime.to_unix(expiry_date)
+
+    now_secs =
+      DateTime.utc_now()
+      |> DateTime.to_unix()
+
+    # 3600 seconds is one hour
+    # this adds 1 hour of tolerance to clock synchronization issues
+    now_secs + ttl + 3600 < expiry_secs
+  end
+
   def validate_value_type(expected_types, %{} = object) do
     Enum.reduce_while(object, :ok, fn {path, value}, _acc ->
       key = Atom.to_string(path)
@@ -509,7 +550,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp extract_expected_types(path, interface_descriptor, endpoint, mappings) do
+  defp extract_expected_types(_path, interface_descriptor, endpoint, mappings) do
     case interface_descriptor.aggregation do
       :individual ->
         endpoint.value_type
@@ -782,7 +823,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_control(state, "/emptyCache", _payload, message_id, _timestamp) do
     Logger.debug("Received /emptyCache")
 
-    new_state = resend_all_properties(state)
+    new_state =
+      state
+      |> send_control_consumer_properties()
+      |> resend_all_properties()
 
     {:ok, db_client} = Database.connect(state.realm)
     :ok = Queries.set_pending_empty_cache(db_client, state.device_id, false)
@@ -1068,7 +1112,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Enum.reduce(interfaces_to_drop, state.data_triggers, fn iface, data_triggers ->
         interface_id = Map.fetch!(state.interfaces, iface).interface_id
 
-        Enum.reject(data_triggers, fn {{event_type, iface_id, endpoint}, val} ->
+        Enum.reject(data_triggers, fn {{_event_type, iface_id, _endpoint}, _val} ->
           iface_id == interface_id
         end)
         |> Enum.into(%{})
@@ -1078,7 +1122,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Enum.reduce(interfaces_to_drop, state.mappings, fn iface, mappings ->
         interface_id = Map.fetch!(state.interfaces, iface).interface_id
 
-        Enum.reject(mappings, fn {endpoint_id, mapping} ->
+        Enum.reject(mappings, fn {_endpoint_id, mapping} ->
           mapping.interface_id == interface_id
         end)
         |> Enum.into(%{})
@@ -1484,6 +1528,58 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
+  defp reduce_interface_mapping(mappings, interface_descriptor, initial_acc, fun) do
+    Enum.reduce(mappings, initial_acc, fn {_endpoint_id, mapping}, acc ->
+      if mapping.interface_id == interface_descriptor.interface_id do
+        fun.(mapping, acc)
+      end
+    end)
+  end
+
+  defp send_control_consumer_properties(state) do
+    {:ok, db_client} = Database.connect(state.realm)
+
+    Logger.debug(
+      "send_control_consumer_properties: device introspection: #{inspect(state.introspection)}"
+    )
+
+    Enum.each(state.introspection, fn {interface, _} ->
+      with {:ok, interface_descriptor, new_state} <-
+             maybe_handle_cache_miss(
+               Map.get(state.interfaces, interface),
+               interface,
+               state,
+               db_client
+             ) do
+        abs_paths_list = gather_interface_properties(new_state, db_client, interface_descriptor)
+        send_consumer_properties_payload(new_state.realm, new_state.device_id, abs_paths_list)
+      else
+        {:error, :interface_loading_failed} ->
+          warn(state, "resend_all_properties: failed #{interface} interface loading.")
+          {:error, :sending_properties_to_interface_failed}
+      end
+    end)
+
+    state
+  end
+
+  defp gather_interface_properties(
+         %State{device_id: device_id, mappings: mappings} = _state,
+         db_client,
+         %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
+       ) do
+    reduce_interface_mapping(mappings, interface_descriptor, [], fn mapping, i_acc ->
+      Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
+      |> Enum.reduce(i_acc, fn [{:path, path}, {_, _value}], acc ->
+        ["#{interface_descriptor.name}#{path}" | acc]
+      end)
+    end)
+  end
+
+  defp gather_interface_properties(_state, _db, %InterfaceDescriptor{} = _descriptor) do
+    :ok
+  end
+
   defp resend_all_properties(state) do
     {:ok, db_client} = Database.connect(state.realm)
 
@@ -1525,6 +1621,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp resend_all_interface_properties(_state, _db, %InterfaceDescriptor{} = _descriptor) do
     :ok
+  end
+
+  defp send_consumer_properties_payload(realm, device_id, abs_paths_list) do
+    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/consumer/properties"
+
+    uncompressed_payload = Enum.join(abs_paths_list, ";")
+
+    payload_size = byte_size(uncompressed_payload)
+    compressed_payload = :zlib.compress(uncompressed_payload)
+
+    payload = <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
+
+    case VMQPlugin.publish(topic, payload, 2) do
+      :ok ->
+        {:ok, byte_size(topic) + byte_size(payload)}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp send_value(realm, device_id_string, interface_name, path, value) do
