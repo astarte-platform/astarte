@@ -498,7 +498,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp path_ttl(retention_secs) do
-    retention_secs * 2
+    retention_secs * 2 + div(retention_secs, 2)
   end
 
   defp is_still_valid?({:error, :property_not_set}, _ttl) do
