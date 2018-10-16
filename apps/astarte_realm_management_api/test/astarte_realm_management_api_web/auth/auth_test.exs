@@ -26,6 +26,7 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
   @realm "testrealm"
   @request_path "/v1/#{@realm}/interfaces"
   @valid_auth_path "^interfaces$"
+  @valid_auth_path_no_delim "interfaces"
   @non_exact_match_valid_auth_path "^interf.*$"
   @non_matching_auth_path "^stats.*$"
 
@@ -66,6 +67,30 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
         |> get(@request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
+    end
+
+    test "valid token without delimiters returns the data", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@valid_auth_path_no_delim}"])}"
+        )
+        |> get(@request_path)
+
+      assert json_response(conn, 200)["data"] == @expected_data
+    end
+
+    test "valid token for prefix returns 403", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@valid_auth_path_no_delim}"])}"
+        )
+        |> get("#{@request_path}/suffix")
+
+      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
     test "token for another path returns 403", %{conn: conn} do
