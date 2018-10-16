@@ -75,7 +75,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     stats_and_introspection =
       Queries.retrieve_device_stats_and_introspection!(db_client, device_id)
 
+    {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(db_client)
+
     Map.merge(new_state, stats_and_introspection)
+    |> Map.put(:datastream_maximum_storage_retention, ttl)
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
@@ -359,13 +362,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               Cache.has_key?(new_state.paths_cache, {interface, path}) ->
                 :ok
 
-              Data.path_exists?(
-                db_client,
-                new_state.device_id,
-                interface_descriptor,
-                endpoint,
-                path
-              ) == {:ok, true} ->
+              is_still_valid?(
+                Queries.fetch_path_expiry(
+                  db_client,
+                  new_state.device_id,
+                  interface_descriptor,
+                  endpoint,
+                  path
+                ),
+                state.datastream_maximum_storage_retention
+              ) ->
                 :ok
 
               true ->
@@ -376,7 +382,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   endpoint,
                   path,
                   maybe_explicit_value_timestamp,
-                  timestamp
+                  timestamp,
+                  ttl: path_ttl(state.datastream_maximum_storage_retention)
                 )
             end
 
@@ -399,7 +406,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           path,
           value,
           maybe_explicit_value_timestamp,
-          timestamp
+          timestamp,
+          ttl: state.datastream_maximum_storage_retention
         )
 
       :ok = insert_result
@@ -417,7 +425,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
       end
 
-      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{})
+      ttl = state.datastream_maximum_storage_retention
+      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{}, ttl)
       new_state = %{new_state | paths_cache: paths_cache}
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)
@@ -482,6 +491,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
     end
+  end
+
+  defp path_ttl(nil) do
+    nil
+  end
+
+  defp path_ttl(retention_secs) do
+    retention_secs * 2 + div(retention_secs, 2)
+  end
+
+  defp is_still_valid?({:error, :property_not_set}, _ttl) do
+    false
+  end
+
+  defp is_still_valid?({:ok, :no_expiry}, _ttl) do
+    true
+  end
+
+  defp is_still_valid?({:ok, _expiry_date}, nil) do
+    false
+  end
+
+  defp is_still_valid?({:ok, expiry_date}, ttl) do
+    expiry_secs = DateTime.to_unix(expiry_date)
+
+    now_secs =
+      DateTime.utc_now()
+      |> DateTime.to_unix()
+
+    # 3600 seconds is one hour
+    # this adds 1 hour of tolerance to clock synchronization issues
+    now_secs + ttl + 3600 < expiry_secs
   end
 
   def validate_value_type(expected_types, %{} = object) do

@@ -94,7 +94,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         nil,
         _value_timestamp,
-        _reception_timestamp
+        _reception_timestamp,
+        _opts
       ) do
     if endpoint.allow_unset == false do
       Logger.warn("Tried to unset value on allow_unset=false mapping.")
@@ -127,7 +128,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         value,
         _value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        _opts
       ) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
@@ -162,8 +164,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         value,
         value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        opts
       ) do
+    ttl_string = get_ttl_string(opts)
+
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
@@ -173,7 +178,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
           "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{
             CQLUtils.type_to_db_column_name(endpoint.value_type)
           }) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value);"
+          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value) #{
+            ttl_string
+          };"
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
@@ -198,8 +205,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path,
         value,
         value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        opts
       ) do
+    ttl_string = get_ttl_string(opts)
+
     # TODO: we should cache endpoints by interface_id
     endpoint_query =
       DatabaseQuery.new()
@@ -250,7 +260,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
         "INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
-          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
+          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{
+            ttl_string
+          };"
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:path, path)
@@ -266,6 +278,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
+  defp get_ttl_string(opts) do
+    with {:ok, value} when is_integer(value) <- Keyword.fetch(opts, :ttl) do
+      "USING TTL #{to_string(value)}"
+    else
+      _any_error ->
+        ""
+    end
+  end
+
   def insert_path_into_db(
         db_client,
         device_id,
@@ -274,7 +295,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         mapping,
         path,
         value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        opts
       ) do
     insert_path(
       db_client,
@@ -283,7 +305,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       mapping,
       path,
       value_timestamp,
-      reception_timestamp
+      reception_timestamp,
+      opts
     )
   end
 
@@ -294,7 +317,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         mapping,
         path,
         value_timestamp,
-        reception_timestamp
+        reception_timestamp,
+        opts
       ) do
     insert_path(
       db_client,
@@ -303,7 +327,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       mapping,
       path,
       value_timestamp,
-      reception_timestamp
+      reception_timestamp,
+      opts
     )
   end
 
@@ -314,15 +339,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
          endpoint,
          path,
          value_timestamp,
-         reception_timestamp
+         reception_timestamp,
+         opts
        ) do
+    ttl_string = get_ttl_string(opts)
+
     # TODO: do not hardcode individual_properties here
     insert_statement = """
     INSERT INTO individual_properties
         (device_id, interface_id, endpoint_id, path,
         reception_timestamp, reception_timestamp_submillis, datetime_value)
     VALUES (:device_id, :interface_id, :endpoint_id, :path,
-        :reception_timestamp, :reception_timestamp_submillis, :datetime_value)
+        :reception_timestamp, :reception_timestamp_submillis, :datetime_value) #{ttl_string}
     """
 
     insert_query =
@@ -672,5 +700,82 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   defp insert_consistency(_interface_descriptor, _mapping) do
     :one
+  end
+
+  def fetch_datastream_maximum_storage_retention(client) do
+    maximum_storage_retention_statement = """
+    SELECT blobAsInt(value)
+    FROM kv_store
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(maximum_storage_retention_statement)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, res} <- DatabaseQuery.call(client, query),
+         ["system.blobasint(value)": maximum_storage_retention] <- DatabaseResult.head(res) do
+      {:ok, maximum_storage_retention}
+    else
+      :empty_dataset ->
+        {:ok, nil}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn(
+          "fetch_datastream_maximum_storage_retention: database error: #{error_message}"
+        )
+
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("fetch_datastream_maximum_storage_retention: failed:  #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  def fetch_path_expiry(db_client, device_id, interface_descriptor, %Mapping{} = mapping, path)
+      when is_binary(device_id) and is_binary(path) do
+    # TODO: do not hardcode individual_properties here
+    fetch_property_value_statement = """
+    SELECT TTL(datetime_value)
+    FROM individual_properties
+    WHERE device_id=:device_id AND interface_id=:interface_id
+      AND endpoint_id=:endpoint_id AND path=:path
+    """
+
+    fetch_property_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(fetch_property_value_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(db_client, fetch_property_query),
+         ["ttl(datetime_value)": ttl] when is_integer(ttl) <- DatabaseResult.head(result) do
+      expiry_datetime =
+        DateTime.utc_now()
+        |> DateTime.to_unix()
+        |> :erlang.+(ttl)
+        |> DateTime.from_unix!()
+
+      {:ok, expiry_datetime}
+    else
+      :empty_dataset ->
+        {:error, :property_not_set}
+
+      ["ttl(datetime_value)": nil] ->
+        {:ok, :no_expiry}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("path_exists?: database error: #{error_message}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Database error while retrieving property: #{inspect(reason)}")
+        {:error, :database_error}
+    end
   end
 end
