@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.10.0-beta.2] - Unreleased
+### Added
+- Automatically add begin and end delimiters to authorization regular expressions.
+
 ## [0.10.0-beta.1] - 2018-08-10
 ### Added
 - First Astarte release.
