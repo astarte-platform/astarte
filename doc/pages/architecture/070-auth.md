@@ -38,7 +38,7 @@ Examples of valid regular expressions on AppEngine API are:
 Examples of valid regular expressions on Realm Management API are:
 
  * `POST::interfaces\/.*`: Allows installing new interfaces in the realm.
- * `GET::interfaces\/.*`: Allows listing all interfaces in the realm.
+ * `GET::interfaces\/.*`: Allows inspecting every interface in the realm.
  * `PUT::interfaces\/.*\/0`: Allows updating all draft interfaces in the realm.
 
 Other valid examples are:
