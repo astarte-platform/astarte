@@ -39,8 +39,8 @@ Authenticating against Astarte is out of the scope of this guide, especially due
 
 ```json
 {
-    "a_aea": "^.*$:^.*$",
-    "a_rma": "^.*$:^.*$"
+    "a_aea": ".*:.*",
+    "a_rma": ".*:.*"
 }
 ```
 

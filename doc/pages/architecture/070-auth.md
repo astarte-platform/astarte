@@ -30,20 +30,22 @@ Paths are given in form of a set of [Perl-like Regular Expressions](https://perl
 
 Examples of valid regular expressions on AppEngine API are:
 
- * `^POST$::^devices/.*/interfaces/com\\.my\\.interface/.*$`: Allows to set individual values on the `com.my.interface` interface on any individual device in the realm.
- * `^.*$::^.*/interfaces/com\\.my\\.monitoring\\.interface.*$`: Allows to get/set/delete either the aggregate or the individual values of the `com.my.monitoring.interface$` interface on any device or device aggregation in the realm.
- * `^.*$::^devices/j0zbvbQp9ZNnanwvh4uOCw.*$`: Allows every operation on device `j0zbvbQp9ZNnanwvh4uOCw`
- * `^GET$::^devices/[a-zA-Z0-9-_]*$`: Allows to get every individual device's status, but denies access to any additional information/operation on them.
+ * `POST::devices/.*/interfaces/com\\.my\\.interface/.*`: Allows to set individual values on the `com.my.interface` interface on any individual device in the realm.
+ * `.*::.*/interfaces/com\\.my\\.monitoring\\.interface.*`: Allows to get/set/delete either the aggregate or the individual values of the `com.my.monitoring.interface` interface on any device or device aggregation in the realm.
+ * `.*::devices/j0zbvbQp9ZNnanwvh4uOCw.*`: Allows every operation on device `j0zbvbQp9ZNnanwvh4uOCw`
+ * `GET::devices/[a-zA-Z0-9-_]*`: Allows to get every individual device's status, but denies access to any additional information/operation on them.
 
 Examples of valid regular expressions on Realm Management API are:
 
- * `^POST$::^interfaces\/.*$`: Allows installing new interfaces in the realm.
- * `^GET$::^interfaces\/.*$`: Allows listing all interfaces in the realm.
- * `^PUT$::^interfaces\/.*\/0$`: Allows updating all draft interfaces in the realm.
+ * `POST::interfaces\/.*`: Allows installing new interfaces in the realm.
+ * `GET::interfaces\/.*`: Allows inspecting every interface in the realm.
+ * `PUT::interfaces\/.*\/0`: Allows updating all draft interfaces in the realm.
 
 Other valid examples are:
 
- * `^.*$::^.*$`: Allows any operation on the given API.
+ * `.*::.*`: Allows any operation on the given API.
+
+Both verb and path regular expressions are implicitly delimited by adding `^` before and `$` after the regular expression string. For example, if you use `GET::interfaces` as regular expression in Realm Management API, the path will be matched against `^GET$` and the path will be matched against `^interfaces$`. This way the only operation allowed will be listing all the interfaces, while all operation on `interfaces/` subpaths will be denied.
 
 ### Token claims and formats
 
@@ -63,10 +65,10 @@ An example of a valid token claim is:
 
 ```json
 {
-	"a_aea": ["^GET$::^devices/[a-zA-Z0-9-_]*$",
-	         "^.*$::^.*/interfaces/com\\.my\\.monitoring\\.interface.*$",
-	         "^.*$::^devices/j0zbvbQp9ZNnanwvh4uOCw.*$"],
-	"a_rma": ["^GET$::^.*$"]
+	"a_aea": ["GET::devices/[a-zA-Z0-9-_]*",
+	         ".*::.*/interfaces/com\\.my\\.monitoring\\.interface.*",
+	         ".*::devices/j0zbvbQp9ZNnanwvh4uOCw.*"],
+	"a_rma": ["GET::.*"]
 }
 ```
 
