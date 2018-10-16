@@ -8,10 +8,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.10.0-beta.2] - Unreleased
 ### Added
-- Added value type and size validation.
+- Automatically add begin and end delimiters to authorization regular expressions.
+- Value type and size validation.
+- Option to enable HTTP compression.
+
+### Fixed
+- Path was added twice in authorization path, resulting in failures in authorization.
+- POST to a datastream endpoint doesn't crash anymore.
 
 ### Changed
 - "data" key is used instead of "value" when PUT/POSTing a value to an interface.
+- APPENGINE_MAX_RESULTS_LIMIT env var was renamed to APPENGINE_API_MAX_RESULTS_LIMIT.
 
 ## [0.10.0-beta.1] - 2018-08-10
 ### Added

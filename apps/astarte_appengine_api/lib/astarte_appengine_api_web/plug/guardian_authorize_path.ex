@@ -54,15 +54,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     with %{"realm_name" => realm} <- conn.path_params,
          authorize_path_info <- Map.get(conn.assigns, :original_path_info, conn.path_info),
          [^realm | rest] <- Enum.drop_while(authorize_path_info, fn token -> token != realm end),
-         path_prefix <- Enum.join(rest, "/") do
-      path_suffix =
-        if Map.has_key?(conn.query_params, "path") do
-          "/#{Map.get(conn.query_params, "path")}"
-        else
-          ""
-        end
-
-      {:ok, "#{path_prefix}#{path_suffix}"}
+         auth_path <- Enum.join(rest, "/") do
+      {:ok, auth_path}
     else
       _ ->
         {:error, :invalid_auth_path}
@@ -92,11 +85,9 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do
-    # TODO: right now regex have to be terminated with $ manually, otherwise they also match prefix.
-    # We can think about always terminating them here appending a $ to the string
     with [method_auth, _opts, path_auth] <- String.split(authorization_string, ":", parts: 3),
-         {:ok, method_regex} <- Regex.compile(method_auth),
-         {:ok, path_regex} <- Regex.compile(path_auth) do
+         {:ok, method_regex} <- build_regex(method_auth),
+         {:ok, path_regex} <- build_regex(path_auth) do
       {:ok, {method_regex, path_regex}}
     else
       [] ->
@@ -105,5 +96,28 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
       _ ->
         {:error, :invalid_regex}
     end
+  end
+
+  defp build_regex(auth_string) do
+    has_begin_delimiter = String.starts_with?(auth_string, "^")
+    has_end_delimiter = String.ends_with?(auth_string, "$")
+
+    delimited_auth_string =
+      cond do
+        has_begin_delimiter and has_end_delimiter ->
+          auth_string
+
+        has_begin_delimiter ->
+          "#{auth_string}$"
+
+        has_end_delimiter ->
+          "^#{auth_string}"
+
+        # No delimiters
+        true ->
+          "^#{auth_string}$"
+      end
+
+    Regex.compile(delimited_auth_string)
   end
 end
