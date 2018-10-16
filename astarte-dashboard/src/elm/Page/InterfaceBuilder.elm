@@ -1,24 +1,26 @@
 module Page.InterfaceBuilder exposing (Model, Msg, init, update, view, subscriptions)
 
 import Dict exposing (Dict)
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, text, h5, p, b, i, small)
+import Html.Attributes exposing (class, value, for, selected)
 import Navigation
 import Task
 import Time exposing (Time)
 import Control exposing (Control)
 import Control.Debounce as Debounce
 import Spinner
-
-
--- Types
-
 import AstarteApi
 import Route
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.Interface as Interface exposing (Interface)
-import Types.InterfaceMapping as InterfaceMapping exposing (..)
+import Types.InterfaceMapping as InterfaceMapping
+    exposing
+        ( InterfaceMapping
+        , mappingTypeToEnglishString
+        , reliabilityToEnglishString
+        , retentionToEnglishString
+        )
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
@@ -454,7 +456,7 @@ update session msg model =
         UpdateInterfaceMajor newMajor ->
             case (String.toInt newMajor) of
                 Ok major ->
-                    if (major >= 0) then
+                    if major > 0 || (major == 0 && model.interface.minor > 0) then
                         let
                             newInterface =
                                 Interface.setMajor major model.interface
@@ -481,7 +483,7 @@ update session msg model =
         UpdateInterfaceMinor newMinor ->
             case (String.toInt newMinor) of
                 Ok minor ->
-                    if (minor >= model.minMinor) then
+                    if (minor >= model.minMinor && not (model.interface.major == 0 && minor == 0)) then
                         let
                             newInterface =
                                 Interface.setMinor minor model.interface

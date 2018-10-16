@@ -1,7 +1,13 @@
-module Route exposing (..)
+module Route
+    exposing
+        ( Route(..)
+        , RealmRoute(..)
+        , toString
+        , fromLocation
+        )
 
 import Navigation exposing (Location)
-import UrlParser as Url exposing (..)
+import UrlParser as Url exposing (top, parsePath, stringParam, int, string, s, oneOf, (</>), (<?>))
 
 
 -- ROUTING --
@@ -26,7 +32,7 @@ type RealmRoute
     | ShowTrigger String
 
 
-route : Parser (Route -> a) a
+route : Url.Parser (Route -> a) a
 route =
     oneOf
         [ Url.map Root (s "")
@@ -35,7 +41,7 @@ route =
         ]
 
 
-realmRoute : Parser (RealmRoute -> a) a
+realmRoute : Url.Parser (RealmRoute -> a) a
 realmRoute =
     oneOf
         [ Url.map Home top

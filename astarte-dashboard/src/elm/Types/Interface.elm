@@ -1,15 +1,40 @@
-module Types.Interface exposing (..)
+module Types.Interface
+    exposing
+        ( Interface
+        , InterfaceType(..)
+        , Owner(..)
+        , AggregationType(..)
+        , empty
+        , encode
+        , decoder
+        , setName
+        , setMajor
+        , setMinor
+        , setType
+        , setOwnership
+        , setAggregation
+        , setHasMeta
+        , setDescription
+        , setDoc
+        , addMapping
+        , removeMapping
+        , editMapping
+        , sealMappings
+        , setObjectMappingAttributes
+        , mappingsAsList
+        , compareId
+        , isValidInterfaceName
+        , isGoodInterfaceName
+        , toPrettySource
+        , fromString
+        )
 
 import Dict exposing (Dict)
-import Json.Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
-import Json.Encode
+import Json.Decode as Decode exposing (Decoder, Value, list, int, bool, string, decodeString)
+import Json.Decode.Pipeline exposing (decode, required, optional)
+import Json.Encode as Encode
 import JsonHelpers
 import Regex exposing (regex)
-
-
--- Types
-
 import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
 
 
@@ -31,7 +56,7 @@ empty : Interface
 empty =
     { name = ""
     , major = 0
-    , minor = 0
+    , minor = 1
     , iType = Properties
     , ownership = Device
     , aggregation = Individual
@@ -212,60 +237,60 @@ setObjectMappingAttributes reliability retention expiry explicitTimestamp interf
 -- Encoding
 
 
-encoder : Interface -> Value
-encoder interface =
-    [ [ ( "interface_name", Json.Encode.string interface.name )
-      , ( "version_major", Json.Encode.int interface.major )
-      , ( "version_minor", Json.Encode.int interface.minor )
+encode : Interface -> Value
+encode interface =
+    [ [ ( "interface_name", Encode.string interface.name )
+      , ( "version_major", Encode.int interface.major )
+      , ( "version_minor", Encode.int interface.minor )
       , ( "type", encodeInterfaceType interface.iType )
       , ( "ownership", encodeOwner interface.ownership )
       ]
     , JsonHelpers.encodeOptionalFields
         [ ( "aggregation", encodeAggregationType interface.aggregation, interface.aggregation == Individual )
-        , ( "has_metadata", Json.Encode.bool interface.hasMeta, interface.hasMeta == False )
-        , ( "description", Json.Encode.string interface.description, interface.description == "" )
-        , ( "doc", Json.Encode.string interface.doc, interface.doc == "" )
+        , ( "has_metadata", Encode.bool interface.hasMeta, interface.hasMeta == False )
+        , ( "description", Encode.string interface.description, interface.description == "" )
+        , ( "doc", Encode.string interface.doc, interface.doc == "" )
         ]
     , [ ( "mappings"
-        , Json.Encode.list
+        , Encode.list
             (Dict.values interface.mappings
-                |> List.map InterfaceMapping.interfaceMappingEncoder
+                |> List.map InterfaceMapping.encode
             )
         )
       ]
     ]
         |> List.concat
-        |> Json.Encode.object
+        |> Encode.object
 
 
 encodeInterfaceType : InterfaceType -> Value
 encodeInterfaceType o =
     case o of
         Datastream ->
-            Json.Encode.string "datastream"
+            Encode.string "datastream"
 
         Properties ->
-            Json.Encode.string "properties"
+            Encode.string "properties"
 
 
 encodeOwner : Owner -> Value
 encodeOwner o =
     case o of
         Device ->
-            Json.Encode.string "device"
+            Encode.string "device"
 
         Server ->
-            Json.Encode.string "server"
+            Encode.string "server"
 
 
 encodeAggregationType : AggregationType -> Value
 encodeAggregationType a =
     case a of
         Individual ->
-            Json.Encode.string "individual"
+            Encode.string "individual"
 
         Object ->
-            Json.Encode.string "object"
+            Encode.string "object"
 
 
 
@@ -290,30 +315,30 @@ decoder =
 mappingDictDecoder : Decoder (Dict String InterfaceMapping)
 mappingDictDecoder =
     list InterfaceMapping.decoder
-        |> Json.Decode.andThen
+        |> Decode.andThen
             (\interfaceMappingList ->
                 List.map (\m -> ( m.endpoint, m )) interfaceMappingList
                     |> Dict.fromList
-                    |> Json.Decode.succeed
+                    |> Decode.succeed
             )
 
 
 interfaceTypeDecoder : Decoder InterfaceType
 interfaceTypeDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToInterfaceType >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToInterfaceType >> JsonHelpers.resultToDecoder)
 
 
 ownershipDecoder : Decoder Owner
 ownershipDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToOwner >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToOwner >> JsonHelpers.resultToDecoder)
 
 
 aggregationDecoder : Decoder AggregationType
 aggregationDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (stringToAggregation >> JsonHelpers.resultToDecoder)
+    Decode.string
+        |> Decode.andThen (stringToAggregation >> JsonHelpers.resultToDecoder)
 
 
 stringToInterfaceType : String -> Result String InterfaceType
@@ -376,7 +401,7 @@ isGoodInterfaceName interfaceName =
 
 toPrettySource : Interface -> String
 toPrettySource interface =
-    Json.Encode.encode 4 <| encoder interface
+    Encode.encode 4 <| encode interface
 
 
 fromString : String -> Result String Interface

@@ -1,4 +1,4 @@
-module Types.ExternalMessage exposing (..)
+module Types.ExternalMessage exposing (ExternalMsg(..))
 
 import Types.FlashMessage exposing (FlashMessageId, Severity)
 

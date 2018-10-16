@@ -1,7 +1,7 @@
-module Main exposing (..)
+module Main exposing (main)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, div, span, hr, ul, li, a, i, p, img, body, small, text)
+import Html.Attributes exposing (class, classList, src, href, style)
 import Http
 import Ports
 import Navigation exposing (Location)
@@ -9,13 +9,9 @@ import Json.Decode as Decode exposing (at, string, Value)
 import Json.Encode as Encode
 import Task
 import Time exposing (Time)
-
-
--- Types
-
 import Assets
-import Types.Config as Config exposing (Config)
 import Route exposing (Route, RealmRoute)
+import Types.Config as Config exposing (Config)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.Session as Session exposing (Session, Credentials, LoginType(..))
 import Types.ExternalMessage exposing (ExternalMsg(..))

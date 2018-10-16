@@ -1,14 +1,10 @@
 module Page.RealmSettings exposing (Model, Msg, init, update, view)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, text, h5, p, i)
+import Html.Attributes exposing (class, for)
 import Navigation
-
-
--- Types
-
 import Route
-import AstarteApi exposing (..)
+import AstarteApi
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.RealmConfig exposing (Config)

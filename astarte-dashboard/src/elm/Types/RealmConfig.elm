@@ -1,7 +1,12 @@
-module Types.RealmConfig exposing (..)
+module Types.RealmConfig
+    exposing
+        ( Config
+        , encode
+        , decoder
+        )
 
-import Json.Decode exposing (..)
-import Json.Encode
+import Json.Decode as Decode exposing (Value, Decoder, map, field, string)
+import Json.Encode as Encode
 
 
 type alias Config =
@@ -9,10 +14,10 @@ type alias Config =
     }
 
 
-encoder : Config -> Value
-encoder config =
-    Json.Encode.object
-        [ ( "jwt_public_key_pem", Json.Encode.string config.pubKey ) ]
+encode : Config -> Value
+encode config =
+    Encode.object
+        [ ( "jwt_public_key_pem", Encode.string config.pubKey ) ]
 
 
 decoder : Decoder Config

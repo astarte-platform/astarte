@@ -1,7 +1,24 @@
-module Types.DataTrigger exposing (..)
+module Types.DataTrigger
+    exposing
+        ( DataTrigger
+        , DataTriggerEvent(..)
+        , Operator(..)
+        , JsonType(..)
+        , empty
+        , setInterfaceName
+        , setInterfaceMajor
+        , setPath
+        , setOperator
+        , setKnownValue
+        , setKnownValueType
+        , encode
+        , decoder
+        , dataTriggerEventToString
+        , stringToDataTriggerEvent
+        )
 
-import Json.Decode as Decode exposing (..)
-import Json.Decode.Pipeline exposing (..)
+import Json.Decode as Decode exposing (Decoder, Value, nullable, int, float, bool, string)
+import Json.Decode.Pipeline exposing (decode, required, optional, resolve)
 import Json.Encode as Encode
 import JsonHelpers
 
@@ -102,8 +119,8 @@ setKnownValueType jType dataTrigger =
 -- Encoding
 
 
-encoder : DataTrigger -> Value
-encoder dataTrigger =
+encode : DataTrigger -> Value
+encode dataTrigger =
     Encode.object
         ([ ( "type", Encode.string "data_trigger" )
          , ( "interface_name", Encode.string dataTrigger.interfaceName )

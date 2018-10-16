@@ -1,16 +1,12 @@
 module Page.Triggers exposing (Model, Msg, init, update, view, subscriptions)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, text, h4, h5, a, i)
+import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick, onInput)
 import Navigation
 import Json.Decode as Decode
 import Spinner
-
-
--- Types
-
-import AstarteApi exposing (..)
+import AstarteApi
 import Route
 import Types.Session exposing (Session)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
