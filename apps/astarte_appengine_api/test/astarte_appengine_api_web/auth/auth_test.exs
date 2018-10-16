@@ -80,6 +80,30 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
+    test "token returns the data also with explicity regex delimiters", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::^#{@valid_auth_path}$"])}"
+        )
+        |> get(@request_path)
+
+      assert json_response(conn, 200)["data"] == @expected_data
+    end
+
+    test "token only matches exact path", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@valid_auth_path}"])}"
+        )
+        |> get("#{@request_path}/with/suffix")
+
+      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+    end
+
     test "token for another device returns 403", %{conn: conn} do
       conn =
         put_req_header(
@@ -127,6 +151,20 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["GET::devices/#{@device_id}/.*"])}"
+        )
+        |> get(@request_path)
+
+      assert json_response(conn, 200)["data"] == @expected_data
+    end
+
+    test "token with generic matching regexp and explicit regex delimiters returns the data", %{
+      conn: conn
+    } do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::^devices/#{@device_id}/.*$"])}"
         )
         |> get(@request_path)
 
