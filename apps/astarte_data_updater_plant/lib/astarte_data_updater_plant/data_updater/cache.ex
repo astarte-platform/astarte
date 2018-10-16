@@ -48,7 +48,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
     System.system_time(:second) + ttl
   end
 
-  def get({_size, map} = cache, key, default \\ nil) do
+  def get(cache, key, default \\ nil) do
     with {:ok, value} <- fetch(cache, key) do
       value
     else
