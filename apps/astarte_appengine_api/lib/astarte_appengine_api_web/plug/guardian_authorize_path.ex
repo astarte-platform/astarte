@@ -99,25 +99,6 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
   end
 
   defp build_regex(auth_string) do
-    has_begin_delimiter = String.starts_with?(auth_string, "^")
-    has_end_delimiter = String.ends_with?(auth_string, "$")
-
-    delimited_auth_string =
-      cond do
-        has_begin_delimiter and has_end_delimiter ->
-          auth_string
-
-        has_begin_delimiter ->
-          "#{auth_string}$"
-
-        has_end_delimiter ->
-          "^#{auth_string}"
-
-        # No delimiters
-        true ->
-          "^#{auth_string}$"
-      end
-
-    Regex.compile(delimited_auth_string)
+    Regex.compile("^#{auth_string}$")
   end
 end
