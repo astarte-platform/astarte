@@ -1579,7 +1579,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp gather_interface_properties(_state, _db, %InterfaceDescriptor{} = _descriptor) do
-    :ok
+    []
   end
 
   defp resend_all_properties(state) do
