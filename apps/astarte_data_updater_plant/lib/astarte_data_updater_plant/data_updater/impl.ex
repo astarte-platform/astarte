@@ -1532,6 +1532,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Enum.reduce(mappings, initial_acc, fn {_endpoint_id, mapping}, acc ->
       if mapping.interface_id == interface_descriptor.interface_id do
         fun.(mapping, acc)
+      else
+        acc
       end
     end)
   end
