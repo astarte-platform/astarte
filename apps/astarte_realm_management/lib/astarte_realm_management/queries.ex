@@ -265,14 +265,14 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, nil}
       end
 
-    {transitions, accepting_states} = automaton
+    {transitions, accepting_states_no_ids} = automaton
 
-    accepting_states =
-      Enum.reduce(accepting_states, %{}, fn state, new_states ->
-        {state_index, endpoint} = state
+    transitions_bin = :erlang.term_to_binary(transitions)
 
-        Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_name, major, endpoint))
-      end)
+    accepting_states_bin =
+      accepting_states_no_ids
+      |> replace_automaton_acceptings_with_ids(interface_name, major)
+      |> :erlang.term_to_binary()
 
     insert_interface_query =
       DatabaseQuery.new()
@@ -286,8 +286,8 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_type))
       |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_ownership))
       |> DatabaseQuery.put(:aggregation, Aggregation.to_int(aggregation))
-      |> DatabaseQuery.put(:automaton_transitions, :erlang.term_to_binary(transitions))
-      |> DatabaseQuery.put(:automaton_accepting_states, :erlang.term_to_binary(accepting_states))
+      |> DatabaseQuery.put(:automaton_transitions, transitions_bin)
+      |> DatabaseQuery.put(:automaton_accepting_states, accepting_states_bin)
       |> DatabaseQuery.put(:description, description)
       |> DatabaseQuery.put(:doc, doc)
       |> DatabaseQuery.consistency(:each_quorum)
@@ -337,6 +337,16 @@ defmodule Astarte.RealmManagement.Queries do
     |> DatabaseQuery.consistency(:each_quorum)
   end
 
+  # TODO: this was needed when Cassandra used to generate endpoint IDs
+  # it might be a good idea to drop this and generate those IDs in A.C.Mapping.EndpointsAutomaton
+  defp replace_automaton_acceptings_with_ids(accepting_states, interface_name, major) do
+    Enum.reduce(accepting_states, %{}, fn state, new_states ->
+      {state_index, endpoint} = state
+
+      Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_name, major, endpoint))
+    end)
+  end
+
   def update_interface(client, interface_descriptor, new_mappings, automaton, description, doc) do
     %InterfaceDescriptor{
       name: interface_name,
@@ -346,8 +356,13 @@ defmodule Astarte.RealmManagement.Queries do
       interface_id: interface_id
     } = interface_descriptor
 
-    {automaton_transitions, automaton_accepting_states} = automaton
-    automaton_accepting_states_bin = :erlang.term_to_binary(automaton_accepting_states)
+    {automaton_transitions, automaton_accepting_states_no_ids} = automaton
+
+    automaton_accepting_states_bin =
+      automaton_accepting_states_no_ids
+      |> replace_automaton_acceptings_with_ids(interface_name, major)
+      |> :erlang.term_to_binary()
+
     automaton_transitions_bin = :erlang.term_to_binary(automaton_transitions)
 
     update_interface_statement = """
