@@ -1532,6 +1532,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Enum.reduce(mappings, initial_acc, fn {_endpoint_id, mapping}, acc ->
       if mapping.interface_id == interface_descriptor.interface_id do
         fun.(mapping, acc)
+      else
+        acc
       end
     end)
   end
@@ -1577,7 +1579,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp gather_interface_properties(_state, _db, %InterfaceDescriptor{} = _descriptor) do
-    :ok
+    []
   end
 
   defp resend_all_properties(state) do
