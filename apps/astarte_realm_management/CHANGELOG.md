@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.10.0-beta.2] - Unreleased
+### Fixed
+- Interface update, it was applying a broken update.
+
 ## [0.10.0-beta.1] - 2018-08-10
 ### Added
 - First Astarte release.
