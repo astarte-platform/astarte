@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.10.0-beta.2] - Unreleased
+## [0.10.0-beta.2] - 2018-10-19
 ### Added
 - Advice user about interface names.
 - Update mapping endpoint validation.
