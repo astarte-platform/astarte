@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.10.0-beta.3] - Unreleased
 ### Fixed
+- Enter key press behavior: close confirm message instead of reloading page.
 - Accept `/*` as a valid Data Trigger path.
 
 ## [0.10.0-beta.2] - 2018-10-19
