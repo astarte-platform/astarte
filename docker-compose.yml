@@ -44,7 +44,7 @@ services:
       - "astarte-standalone"
 
   astarte-grafana:
-    image: astarte/grafana:0.10-snapshot
+    image: astarte/grafana:snapshot
     ports:
       - "3000:3000"
     depends_on:
@@ -83,7 +83,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:0.10-snapshot
+    image: astarte/vernemq:snapshot
     env_file:
      - ./compose.env
     environment:
