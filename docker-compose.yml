@@ -43,6 +43,13 @@ services:
     depends_on:
       - "astarte-standalone"
 
+  astarte-grafana:
+    image: astarte/grafana:0.10-snapshot
+    ports:
+      - "3000:3000"
+    depends_on:
+      - "astarte-standalone"
+
   # RabbitMQ
   rabbitmq:
     image: rabbitmq:3.7
