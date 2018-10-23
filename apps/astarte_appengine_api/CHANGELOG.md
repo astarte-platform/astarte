@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
 
-## [0.10.0-beta.2] - Unreleased
+## [0.10.0-beta.3] - Unreleased
+
+## [0.10.0-beta.2] - 2018-10-19
 ### Added
 - Automatically add begin and end delimiters to authorization regular expressions.
 - Value type and size validation.
