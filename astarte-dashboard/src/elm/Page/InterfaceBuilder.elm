@@ -142,10 +142,8 @@ type ModalResult
 
 type Msg
     = GetInterfaceDone Interface
-    | AddInterface
     | AddInterfaceDone String
     | DeleteInterfaceDone String
-    | UpdateInterface
     | UpdateInterfaceDone String
     | RemoveMapping InterfaceMapping
     | ShowDeleteModal
@@ -241,30 +239,10 @@ update session msg model =
                 , ExternalMsg.Noop
                 )
 
-        AddInterface ->
-            ( model
-            , AstarteApi.addNewInterface model.interface
-                session
-                AddInterfaceDone
-                (ShowError "Cannot install interface.")
-                RedirectToLogin
-            , ExternalMsg.Noop
-            )
-
         AddInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed."
-            )
-
-        UpdateInterface ->
-            ( model
-            , AstarteApi.updateInterface model.interface
-                session
-                UpdateInterfaceDone
-                (ShowError "Cannot apply changes.")
-                RedirectToLogin
-            , ExternalMsg.Noop
             )
 
         UpdateInterfaceDone response ->
