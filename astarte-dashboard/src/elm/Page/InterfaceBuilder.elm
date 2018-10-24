@@ -1,7 +1,7 @@
 module Page.InterfaceBuilder exposing (Model, Msg, init, update, view, subscriptions)
 
 import Dict exposing (Dict)
-import Html exposing (Html, text, h5, p, b, i, small)
+import Html exposing (Html, text, h5, p, br, b, i, small)
 import Html.Attributes exposing (class, value, for, selected)
 import Navigation
 import Task
@@ -1434,14 +1434,22 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
         , text "?"
         ]
     else
-        [ text "You are about to install the interface "
-        , b [] [ text interfaceName ]
-        , text "."
+        [ p []
+            [ text "You are about to install the interface "
+            , b [] [ text interfaceName ]
+            , text "."
+            ]
         , if (interfaceMajor > 0) then
             p [] [ text "Interface major is greater than zero, that means you will not be able to change already installed mappings." ]
           else
-            p [] [ text "This is a draft interface, so you will be able to delete it afterwards." ]
-        , text "Confirm?"
+            p []
+                [ text "As its major version is 0, this is a draft interface, which can be deleted."
+                , br [] []
+                , text "In such a case, any data sent through this interface will be lost."
+                , br [] []
+                , text "Draft Interfaces should be used for development and testing purposes only."
+                ]
+        , text "Are you sure you want to continue?"
         ]
 
 
