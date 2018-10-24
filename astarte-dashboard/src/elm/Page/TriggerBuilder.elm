@@ -1136,12 +1136,10 @@ renderDataTrigger dataTrigger model =
                     , Input.readonly model.editMode
                     , Input.value dataTrigger.path
                     , Input.onInput UpdateDataTriggerPath
-                    , case model.mappingType of
-                        Nothing ->
-                            Input.danger
-
-                        Just _ ->
-                            Input.success
+                    , if (dataTrigger.path /= "/*") && (model.mappingType == Nothing) then
+                        Input.danger
+                      else
+                        Input.success
                     ]
                 ]
             ]
