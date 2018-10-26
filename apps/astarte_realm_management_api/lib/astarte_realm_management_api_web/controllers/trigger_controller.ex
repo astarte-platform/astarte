@@ -38,6 +38,14 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerController do
       |> put_status(:created)
       |> put_resp_header("location", trigger_path(conn, :show, realm_name, trigger))
       |> render("show.json", trigger: trigger)
+    else
+      {:error, :already_installed_trigger} ->
+        conn
+        |> put_status(:conflict)
+        |> render("show.json", error: :already_installed_trigger)
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
     end
   end
 
