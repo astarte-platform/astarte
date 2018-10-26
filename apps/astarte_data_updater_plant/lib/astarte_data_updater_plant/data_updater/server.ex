@@ -31,10 +31,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:ok, nil}
   end
 
-  def handle_info({:initialize, realm, device_id, message_tracker}, nil) do
-    {:noreply, Impl.init_state(realm, device_id, message_tracker)}
-  end
-
   def handle_cast({:handle_connection, ip_address, message_id, timestamp}, state) do
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
       new_state = Impl.handle_connection(state, ip_address, message_id, timestamp)
@@ -108,6 +104,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   def handle_call({:dump_state}, _from, state) do
     {:reply, state, state}
+  end
+
+  def handle_info({:initialize, realm, device_id, message_tracker}, nil) do
+    {:noreply, Impl.init_state(realm, device_id, message_tracker)}
   end
 
   def handle_info({:DOWN, _, :process, _pid, _reason}, state) do
