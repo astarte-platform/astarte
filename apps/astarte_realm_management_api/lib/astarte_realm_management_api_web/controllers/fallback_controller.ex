@@ -67,6 +67,12 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     |> render(Astarte.RealmManagement.APIWeb.ErrorView, :interface_not_found)
   end
 
+  def call(conn, {:error, :overlapping_mappings}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :overlapping_mappings)
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
