@@ -1335,13 +1335,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp populate_triggers_for_object!(state, client, object_id, object_type) do
-    object_type_int =
-      case object_type do
-        :device -> 1
-        :interface -> 2
-        :any_interface -> 3
-        :any_device -> 4
-      end
+    object_type_int = SimpleTriggersProtobufUtils.object_type_to_int!(object_type)
 
     simple_triggers_rows = Queries.query_simple_triggers!(client, object_id, object_type_int)
 
