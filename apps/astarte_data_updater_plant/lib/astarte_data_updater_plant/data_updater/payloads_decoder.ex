@@ -19,6 +19,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   alias Astarte.Core.Interface
+  alias Bson.Decoder.Error, as: BsonError
 
   @max_uncompressed_payload_size 10_485_760
 
@@ -46,6 +47,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
 
         %{v: bson_value} ->
           {bson_value, div(reception_timestamp, 10000), %{}}
+
+        %BsonError{} ->
+          {:error, :undecodable_bson_payload}
 
         %{} = bson_value ->
           # Handling old format object aggregation

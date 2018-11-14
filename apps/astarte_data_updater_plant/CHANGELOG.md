@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.10.0-beta.3] - Unreleased
 ### Fixed
+- Undecodable BSON payloads handling (handle Bson.Decoder.Error struct).
 - Discard invalid introspection payloads instead of crashing the data updater process.
 
 ## [0.10.0-beta.2] - 2018-10-19
