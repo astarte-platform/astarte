@@ -583,11 +583,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_introspection(state, payload, message_id, timestamp) do
+    with {:ok, new_introspection_list} <- PayloadsDecoder.parse_introspection(payload) do
+      process_introspection(state, new_introspection_list, payload, message_id, timestamp)
+    else
+      {:error, :invalid_introspection} ->
+        warn(state, "discarding invalid introspection: #{inspect(payload)}.")
+        ask_clean_session(state)
+        MessageTracker.discard(state.message_tracker, message_id)
+        update_stats(state, "", "", payload)
+    end
+  end
+
+  def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
     {:ok, db_client} = Database.connect(state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
-
-    {:ok, new_introspection_list} = PayloadsDecoder.parse_introspection(payload)
 
     {db_introspection_map, db_introspection_minor_map} =
       List.foldl(new_introspection_list, {%{}, %{}}, fn {interface, major, minor},
