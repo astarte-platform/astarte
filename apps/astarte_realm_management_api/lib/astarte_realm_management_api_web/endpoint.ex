@@ -20,14 +20,16 @@
 defmodule Astarte.RealmManagement.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_realm_management_api
 
-  socket "/socket", Astarte.RealmManagement.APIWeb.UserSocket
+  socket("/socket", Astarte.RealmManagement.APIWeb.UserSocket)
 
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phoenix.digest
   # when deploying your static files in production.
   plug Plug.Static,
-    at: "/", from: :astarte_realm_management_api, gzip: false,
+    at: "/",
+    from: :astarte_realm_management_api,
+    gzip: false,
     only: ~w(css fonts images js favicon.ico robots.txt)
 
   # Code reloading can be explicitly enabled under the

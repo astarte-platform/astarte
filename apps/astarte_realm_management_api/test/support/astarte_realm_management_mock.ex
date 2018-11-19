@@ -63,7 +63,10 @@ defmodule Astarte.RealmManagement.Mock do
     |> ok_wrap
   end
 
-  defp execute_rpc({:get_interface_versions_list, %GetInterfaceVersionsList{realm_name: realm_name, interface_name: name}}) do
+  defp execute_rpc(
+         {:get_interface_versions_list,
+          %GetInterfaceVersionsList{realm_name: realm_name, interface_name: name}}
+       ) do
     list = DB.get_interface_versions_list(realm_name, name)
 
     versions =

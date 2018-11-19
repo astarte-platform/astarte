@@ -58,7 +58,10 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
   def call(conn, {:error, :interface_major_version_does_not_exist}) do
     conn
     |> put_status(:not_found)
-    |> render(Astarte.RealmManagement.APIWeb.InterfaceView, :interface_major_version_does_not_exist)
+    |> render(
+      Astarte.RealmManagement.APIWeb.InterfaceView,
+      :interface_major_version_does_not_exist
+    )
   end
 
   def call(conn, {:error, :interface_not_found}) do
