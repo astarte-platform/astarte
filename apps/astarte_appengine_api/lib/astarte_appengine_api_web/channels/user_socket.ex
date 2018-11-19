@@ -31,7 +31,7 @@ defmodule Astarte.AppEngine.APIWeb.UserSocket do
   channel "rooms:*", Astarte.AppEngine.APIWeb.RoomsChannel
 
   ## Transports
-  transport :websocket, Phoenix.Transports.WebSocket
+  transport(:websocket, Phoenix.Transports.WebSocket)
   # transport :longpoll, Phoenix.Transports.LongPoll
 
   # Socket params are passed from the client and can
@@ -47,6 +47,7 @@ defmodule Astarte.AppEngine.APIWeb.UserSocket do
   # performing token verification on connect.
   def connect(%{"realm" => realm} = payload, socket) do
     Logger.debug("New socket connection request")
+
     with token <- Map.get(payload, "token"),
          {:ok, %RoomsUser{} = user} <- authorized_user(realm, token) do
       authorized_socket =

@@ -230,6 +230,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   @impl true
   def handle_info({:DOWN, _ref, :process, pid, _reason}, %{clients: clients} = state) do
     new_clients = MapSet.delete(clients, pid)
+
     if Enum.empty?(new_clients) do
       room_cleanup(state)
       {:stop, :normal, %{state | watch_id_to_request: %{}, watch_name_to_id: %{}}}
