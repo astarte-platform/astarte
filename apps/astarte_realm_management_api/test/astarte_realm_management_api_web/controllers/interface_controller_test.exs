@@ -88,12 +88,16 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
 
-      show_conn = get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))
+      show_conn =
+        get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))
+
       assert json_response(show_conn, 200)["data"]["interface_name"] == @interface_name
     end
 
     test "renders error on non-existing interface", %{conn: conn} do
-      conn = get(conn, interface_path(conn, :show, @realm, "com.Nonexisting", @interface_major_str))
+      conn =
+        get(conn, interface_path(conn, :show, @realm, "com.Nonexisting", @interface_major_str))
+
       assert json_response(conn, 404)["errors"] != %{}
     end
   end
@@ -103,7 +107,9 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
 
-      get_conn = get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))
+      get_conn =
+        get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))
+
       assert json_response(get_conn, 200)["data"] == @valid_attrs
     end
 
@@ -129,30 +135,67 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       new_mapping = %{"endpoint" => "/other", "type" => "string"}
       updated_mappings = [new_mapping | @valid_attrs["mappings"]]
       new_minor = @valid_attrs["version_minor"] + 1
-      update_attrs = %{@valid_attrs | "version_minor" => new_minor, "mappings" => updated_mappings}
-      update_conn = put(conn, interface_path(conn, :update, @realm, @interface_name, @interface_major_str), data: update_attrs)
 
-      get_conn = get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))
+      update_attrs = %{
+        @valid_attrs
+        | "version_minor" => new_minor,
+          "mappings" => updated_mappings
+      }
+
+      update_conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: update_attrs
+        )
+
+      get_conn =
+        get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))
+
       assert json_response(get_conn, 200)["data"] == update_attrs
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = put(conn, interface_path(conn, :update, @realm, @interface_name, @interface_major_str), data: @invalid_attrs)
+      conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: @invalid_attrs
+        )
+
       assert json_response(conn, 422)["errors"] != %{}
     end
 
     test "renders error when major is not a number", %{conn: conn} do
-      conn = put(conn, interface_path(conn, :update, @realm, @interface_name, "notanumber"), data: @valid_attrs)
+      conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, "notanumber"),
+          data: @valid_attrs
+        )
+
       assert json_response(conn, 404)["errors"] != %{}
     end
 
     test "renders error when name doesn't match", %{conn: conn} do
-      conn = put(conn, interface_path(conn, :update, @realm, "com.Other.Interface", @interface_major_str), data: @valid_attrs)
+      conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, "com.Other.Interface", @interface_major_str),
+          data: @valid_attrs
+        )
+
       assert json_response(conn, 409)["errors"] != %{}
     end
 
     test "renders error when major doesn't match", %{conn: conn} do
-      conn = put(conn, interface_path(conn, :update, @realm, @interface_name, "42"), data: @valid_attrs)
+      conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, "42"),
+          data: @valid_attrs
+        )
+
       assert json_response(conn, 409)["errors"] != %{}
     end
 
@@ -176,12 +219,16 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
 
-      delete_conn = get(conn, interface_path(conn, :delete, @realm, @interface_name, @interface_major_str))
+      delete_conn =
+        get(conn, interface_path(conn, :delete, @realm, @interface_name, @interface_major_str))
+
       assert response(delete_conn, 200)
     end
 
     test "renders error on non-existing interface", %{conn: conn} do
-      delete_conn = get(conn, interface_path(conn, :delete, @realm, "com.Nonexisting", @interface_major_str))
+      delete_conn =
+        get(conn, interface_path(conn, :delete, @realm, "com.Nonexisting", @interface_major_str))
+
       assert json_response(delete_conn, 404)["errors"] != %{}
     end
   end
