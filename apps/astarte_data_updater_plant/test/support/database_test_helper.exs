@@ -449,7 +449,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :object_id,
             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051")
           )
-          |> DatabaseQuery.put(:object_type, SimpleTriggersProtobufUtils.object_type_to_int!(:interface))
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:interface)
+          )
           |> DatabaseQuery.put(:simple_trigger_id, greater_than_incoming_trigger_id())
           |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
@@ -487,7 +490,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :object_id,
             :uuid.string_to_uuid("f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177")
           )
-          |> DatabaseQuery.put(:object_type, SimpleTriggersProtobufUtils.object_type_to_int!(:any_interface))
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:any_interface)
+          )
           |> DatabaseQuery.put(:simple_trigger_id, interface_added_trigger_id())
           |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
@@ -524,7 +530,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :object_id,
             :uuid.string_to_uuid("7f454c46-0201-0100-0000-000000000000")
           )
-          |> DatabaseQuery.put(:object_type, SimpleTriggersProtobufUtils.object_type_to_int!(:device))
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:device)
+          )
           |> DatabaseQuery.put(:simple_trigger_id, device_connected_trigger_id())
           |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
@@ -564,7 +573,10 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             :object_id,
             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051")
           )
-          |> DatabaseQuery.put(:object_type, SimpleTriggersProtobufUtils.object_type_to_int!(:interface))
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:interface)
+          )
           |> DatabaseQuery.put(:simple_trigger_id, path_removed_trigger_id())
           |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
           |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
