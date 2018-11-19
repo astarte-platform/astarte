@@ -52,16 +52,17 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [:astarte_data_access, :astarte_rpc],
   import: [],
   mappings: [
-    "max_results_limit": [
+    max_results_limit: [
       commented: true,
       datatype: :integer,
       default: 10000,
       env_var: "APPENGINE_API_MAX_RESULTS_LIMIT",
-      doc: "The max number of data points returned by AppEngine API with a single call. Defaults to 10000. If <= 0, results are unlimited.",
+      doc:
+        "The max number of data points returned by AppEngine API with a single call. Defaults to 10000. If <= 0, results are unlimited.",
       hidden: false,
       to: "astarte_appengine_api.max_results_limit"
     ],
-    "port": [
+    port: [
       commented: true,
       datatype: :integer,
       default: 4002,
@@ -70,7 +71,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.port"
     ],
-    "enable_compression": [
+    enable_compression: [
       commented: true,
       datatype: :atom,
       default: false,
@@ -124,7 +125,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_appengine_api.rooms_amqp_client_options.port"
     ],
-    "bind_address": [
+    bind_address: [
       commented: true,
       datatype: :binary,
       env_var: "APPENGINE_API_BIND_ADDRESS",
@@ -133,16 +134,17 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.ip"
     ],
-    "disable_authentication": [
+    disable_authentication: [
       commented: true,
       datatype: :atom,
       env_var: "APPENGINE_API_DISABLE_AUTHENTICATION",
-      doc: "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
+      doc:
+        "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
       default: false,
       hidden: false,
       to: "astarte_appengine_api.disable_authentication"
     ],
-    "swagger_ui": [
+    swagger_ui: [
       commented: true,
       datatype: :boolean,
       default: true,
@@ -164,7 +166,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :binary,
       default: "localhost",
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.url.host here.",
+      doc:
+        "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.url.host here.",
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.url.host"
     ],
@@ -172,7 +175,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :binary,
       default: "oLTSqHyMVoBtu3Gu504Dn6HFN1qdFXtkJ0yFViRDbXckOHgTjFs1XaRS0QaKZ8KL",
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.secret_key_base here.",
+      doc:
+        "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.secret_key_base here.",
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.secret_key_base"
     ],
@@ -180,7 +184,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: Astarte.AppEngine.APIWeb.ErrorView,
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.render_errors.view here.",
+      doc:
+        "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.render_errors.view here.",
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.render_errors.view"
     ],
@@ -192,7 +197,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       default: [
         "json"
       ],
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.render_errors.accepts here.",
+      doc:
+        "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.render_errors.accepts here.",
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.render_errors.accepts"
     ],
@@ -200,7 +206,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: Astarte.AppEngine.API.PubSub,
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.pubsub.name here.",
+      doc:
+        "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.pubsub.name here.",
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.pubsub.name"
     ],
@@ -208,7 +215,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: Phoenix.PubSub.PG2,
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.pubsub.adapter here.",
+      doc:
+        "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.pubsub.adapter here.",
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.pubsub.adapter"
     ],
@@ -216,7 +224,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: false,
-      doc: "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.check_origin here.",
+      doc:
+        "Provide documentation for astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.check_origin here.",
       hidden: true,
       to: "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.check_origin"
     ],
@@ -253,7 +262,11 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   ],
   transforms: [
     "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.ip": fn conf ->
-      [{_, ip}] = Conform.Conf.get(conf, "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.ip")
+      [{_, ip}] =
+        Conform.Conf.get(
+          conf,
+          "astarte_appengine_api.Elixir.Astarte.AppEngine.APIWeb.Endpoint.http.ip"
+        )
 
       charlist_ip = to_charlist(ip)
 

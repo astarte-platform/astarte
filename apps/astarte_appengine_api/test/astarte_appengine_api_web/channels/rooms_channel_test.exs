@@ -248,7 +248,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -277,7 +279,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -309,7 +313,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       regex_trigger =
         @data_simple_trigger
@@ -369,7 +375,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -411,7 +419,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
         {:ok, @encoded_generic_error_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -440,7 +450,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -487,13 +499,17 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       unexisting_room_serialized_event =
         %{@simple_event | parent_trigger_id: Utils.get_uuid()}
         |> SimpleEvent.encode()
 
-      assert {:error, :no_room_for_event} = EventsDispatcher.dispatch(unexisting_room_serialized_event)
+      assert {:error, :no_room_for_event} =
+               EventsDispatcher.dispatch(unexisting_room_serialized_event)
+
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
 
       leave_and_wait(socket)
@@ -519,7 +535,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
 
@@ -527,7 +545,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
         %{@simple_event | parent_trigger_id: room_uuid}
         |> SimpleEvent.encode()
 
-      assert {:error, :trigger_not_found} = EventsDispatcher.dispatch(existing_room_serialized_event)
+      assert {:error, :trigger_not_found} =
+               EventsDispatcher.dispatch(existing_room_serialized_event)
+
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
 
       leave_and_wait(socket)
@@ -550,7 +570,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination -> {:ok, @encoded_generic_ok_reply} end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -572,6 +594,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       assert :ok = EventsDispatcher.dispatch(existing_room_serialized_event)
       assert_broadcast "new_event", %{"device_id" => @device_id, "event" => event}
+
       assert %{
                "type" => "incoming_data",
                "interface" => @interface_exact,

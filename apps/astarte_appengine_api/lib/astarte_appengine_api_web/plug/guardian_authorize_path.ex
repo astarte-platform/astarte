@@ -13,6 +13,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     otp_app: :astarte_appengine_api,
     module: Astarte.AppEngine.APIWeb.AuthGuardian,
     error_handler: FallbackController
+
   plug Astarte.AppEngine.APIWeb.Plug.VerifyHeader
   plug Guardian.Plug.EnsureAuthenticated
   plug Guardian.Plug.LoadResource
