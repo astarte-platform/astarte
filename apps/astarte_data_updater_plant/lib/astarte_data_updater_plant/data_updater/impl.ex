@@ -1118,10 +1118,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp forget_interfaces(state, interfaces_to_drop) do
-    updated_triggers =
-      Enum.reduce(interfaces_to_drop, state.data_triggers, fn iface, data_triggers ->
-        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+    iface_ids_to_drop =
+      Enum.filter(interfaces_to_drop, &Map.has_key?(state.interfaces, &1))
+      |> Enum.map(fn iface ->
+        Map.fetch!(state.interfaces, iface).interface_id
+      end)
 
+    updated_triggers =
+      Enum.reduce(iface_ids_to_drop, state.data_triggers, fn interface_id, data_triggers ->
         Enum.reject(data_triggers, fn {{_event_type, iface_id, _endpoint}, _val} ->
           iface_id == interface_id
         end)
@@ -1129,9 +1133,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end)
 
     updated_mappings =
-      Enum.reduce(interfaces_to_drop, state.mappings, fn iface, mappings ->
-        interface_id = Map.fetch!(state.interfaces, iface).interface_id
-
+      Enum.reduce(iface_ids_to_drop, state.mappings, fn interface_id, mappings ->
         Enum.reject(mappings, fn {_endpoint_id, mapping} ->
           mapping.interface_id == interface_id
         end)
@@ -1139,8 +1141,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end)
 
     updated_ids =
-      Enum.reduce(interfaces_to_drop, state.interface_ids_to_name, fn iface, ids ->
-        interface_id = Map.fetch!(state.interfaces, iface).interface_id
+      Enum.reduce(iface_ids_to_drop, state.interface_ids_to_name, fn interface_id, ids ->
         Map.delete(ids, interface_id)
       end)
 
