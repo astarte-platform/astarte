@@ -525,6 +525,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     now_secs + ttl + 3600 < expiry_secs
   end
 
+  def validate_value_type(expected_type, %Bson.UTC{} = value) do
+    ValueType.validate_value(expected_type, value)
+  end
+
+  def validate_value_type(expected_type, %Bson.Bin{} = value) do
+    ValueType.validate_value(expected_type, value)
+  end
+
+  # Explicitly match on all structs to avoid pattern matching them as maps below
+  def validate_value_type(_expected_type, %_{} = _unsupported_struct) do
+    {:error, :unexpected_value_type}
+  end
+
   def validate_value_type(expected_types, %{} = object) do
     Enum.reduce_while(object, :ok, fn {path, value}, _acc ->
       key = Atom.to_string(path)
