@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.10.0-beta.3] - Unreleased
 ### Fixed
+- Correctly handle Bson.UTC and Bson.Bin incoming data.
+- Fix crash when an interface that has been previously removed from the device introspection expires from cache.
 - Undecodable BSON payloads handling (handle Bson.Decoder.Error struct).
 - Discard invalid introspection payloads instead of crashing the data updater process.
 
