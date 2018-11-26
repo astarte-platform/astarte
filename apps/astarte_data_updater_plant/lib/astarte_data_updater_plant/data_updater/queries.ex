@@ -631,6 +631,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     ms
   end
 
+  defp to_db_friendly_type(%Bson.Bin{bin: bin}) do
+    bin
+  end
+
   defp to_db_friendly_type(value) do
     value
   end
