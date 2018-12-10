@@ -105,8 +105,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
       }) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
-         :ok <-
-           Device.delete_interface_values(realm_name, encoded_device_id, interface, path) do
+         :ok <- Device.delete_interface_values(realm_name, encoded_device_id, interface, path) do
       send_resp(conn, :no_content, "")
     end
   end

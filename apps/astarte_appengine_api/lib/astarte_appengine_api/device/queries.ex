@@ -224,9 +224,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       "SELECT value_timestamp, reception_timestamp, reception_timestamp_submillis, #{
         CQLUtils.type_to_db_column_name(value_type)
       } #{metadata_column} FROM #{table_name} #{where_clause}",
-      "SELECT count(value_timestamp) FROM #{
-        table_name
-      } #{where_clause}",
+      "SELECT count(value_timestamp) FROM #{table_name} #{where_clause}",
       query
     }
   end

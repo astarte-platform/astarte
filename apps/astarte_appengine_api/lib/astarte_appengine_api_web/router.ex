@@ -32,15 +32,25 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     pipe_through :api
 
     resources "/:realm_name/devices", DeviceStatusController, only: [:index, :show, :update]
-    resources "/:realm_name/devices-by-alias", DeviceStatusByAliasController, only: [:index, :show, :update]
-    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController, except: [:new, :edit]
-    resources "/:realm_name/devices-by-alias/:device_alias/interfaces", InterfaceValuesByDeviceAliasController, except: [:new, :edit]
+
+    resources "/:realm_name/devices-by-alias", DeviceStatusByAliasController,
+      only: [:index, :show, :update]
+
+    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController,
+      except: [:new, :edit]
+
+    resources "/:realm_name/devices-by-alias/:device_alias/interfaces",
+              InterfaceValuesByDeviceAliasController,
+              except: [:new, :edit]
   end
 
   scope "/swagger" do
     pipe_through :swagger
 
-    forward "/", PhoenixSwagger.Plug.SwaggerUI, otp_app: :astarte_appengine_api, swagger_file: "astarte_appengine_api.yaml", disable_validator: true
+    forward "/", PhoenixSwagger.Plug.SwaggerUI,
+      otp_app: :astarte_appengine_api,
+      swagger_file: "astarte_appengine_api.yaml",
+      disable_validator: true
   end
 
   defp maybe_halt_swagger(conn, _opts) do

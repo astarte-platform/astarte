@@ -100,7 +100,11 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
   def call(conn, {:error, :unexpected_value_type, expected: expected}) do
     conn
     |> put_status(:unprocessable_entity)
-    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"422_unexpected_value_type", expected: expected)
+    |> render(
+      Astarte.AppEngine.APIWeb.ErrorView,
+      :"422_unexpected_value_type",
+      expected: expected
+    )
   end
 
   def call(conn, {:error, :value_size_exceeded}) do
