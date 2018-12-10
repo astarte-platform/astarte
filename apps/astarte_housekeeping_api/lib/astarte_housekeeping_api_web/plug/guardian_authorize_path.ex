@@ -32,6 +32,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.GuardianAuthorizePath do
     otp_app: :astarte_housekeeping_api,
     module: Astarte.Housekeeping.APIWeb.AuthGuardian,
     error_handler: FallbackController
+
   plug Astarte.Housekeeping.APIWeb.Plug.VerifyHeader
   plug Guardian.Plug.EnsureAuthenticated
   plug Guardian.Plug.LoadResource
@@ -44,13 +45,23 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.GuardianAuthorizePath do
       conn
     else
       {:error, :invalid_auth_path} ->
-        Logger.warn("Can't build auth_path with path_params: #{inspect conn.path_params} path_info: #{inspect conn.path_info} query_params: #{inspect conn.query_params}")
+        Logger.warn(
+          "Can't build auth_path with path_params: #{inspect(conn.path_params)} path_info: #{
+            inspect(conn.path_info)
+          } query_params: #{inspect(conn.query_params)}"
+        )
+
         conn
         |> FallbackController.auth_error({:unauthorized, :invalid_auth_path}, opts)
         |> halt()
 
       {:error, {:unauthorized, method, auth_path, authorizations}} ->
-        Logger.info("Unauthorized request: #{method} #{auth_path} failed with authorizations #{inspect authorizations}")
+        Logger.info(
+          "Unauthorized request: #{method} #{auth_path} failed with authorizations #{
+            inspect(authorizations)
+          }"
+        )
+
         conn
         |> FallbackController.auth_error({:unauthorized, :authorization_path_not_matched}, opts)
         |> halt()
@@ -72,6 +83,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.GuardianAuthorizePath do
         case get_auth_regex(auth_string) do
           {:ok, {method_regex, path_regex}} ->
             Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)
+
           _ ->
             false
         end
@@ -84,17 +96,18 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations), do: {:error, {:unauthorized, method, auth_path, authorizations}}
+  defp is_path_authorized?(method, auth_path, authorizations),
+    do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do
     with [method_auth, _opts, path_auth] <- String.split(authorization_string, ":", parts: 3),
          {:ok, method_regex} <- build_regex(method_auth),
          {:ok, path_regex} <- build_regex(path_auth) do
-
       {:ok, {method_regex, path_regex}}
     else
       [] ->
         {:error, :invalid_authorization_string}
+
       _ ->
         {:error, :invalid_regex}
     end

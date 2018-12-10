@@ -28,7 +28,11 @@ defmodule Astarte.Housekeeping.API.JWTTestHelper do
 
     {:ok, jwt, _claims} =
       %User{id: "testuser"}
-      |> AuthGuardian.encode_and_sign(%{"a_ha": authorization_paths}, secret: jwk, allowed_algos: ["RS256"])
+      |> AuthGuardian.encode_and_sign(
+        %{a_ha: authorization_paths},
+        secret: jwk,
+        allowed_algos: ["RS256"]
+      )
 
     jwt
   end

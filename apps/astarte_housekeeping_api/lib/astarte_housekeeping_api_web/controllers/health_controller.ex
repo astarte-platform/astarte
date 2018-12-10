@@ -31,11 +31,14 @@ defmodule Astarte.Housekeeping.APIWeb.HealthController do
         case status do
           :ready ->
             put_status(conn, :ok)
+
           :degraded ->
             # Some Cassandra nodes are available so it's still ok
             put_status(conn, :ok)
+
           :bad ->
             put_status(conn, :unavailable)
+
           :error ->
             put_status(conn, :unavailable)
         end
