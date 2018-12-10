@@ -32,6 +32,7 @@ defmodule Astarte.RealmManagement.APIWeb.Plug.GuardianAuthorizePath do
     otp_app: :astarte_realm_management_api,
     module: Astarte.RealmManagement.APIWeb.AuthGuardian,
     error_handler: FallbackController
+
   plug Astarte.RealmManagement.APIWeb.Plug.VerifyHeader
   plug Guardian.Plug.EnsureAuthenticated
   plug Guardian.Plug.LoadResource
