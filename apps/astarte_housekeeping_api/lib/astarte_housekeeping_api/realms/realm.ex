@@ -43,7 +43,8 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   end
 
   def error_changeset(realm, params \\ %{}) do
-    changeset = realm
+    changeset =
+      realm
       |> cast(params, @required_fields)
 
     %{changeset | valid?: false}
@@ -53,6 +54,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
 
   defp validate_pem_public_key(changeset, field) do
     pem = get_field(changeset, field, "")
+
     try do
       case :public_key.pem_decode(pem) do
         [{:SubjectPublicKeyInfo, _, _}] ->

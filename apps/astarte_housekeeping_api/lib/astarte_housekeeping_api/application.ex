@@ -30,7 +30,7 @@ defmodule Astarte.Housekeeping.API.Application do
       # Start the endpoint when the application starts
       supervisor(Astarte.Housekeeping.APIWeb.Endpoint, []),
       # Start your own worker by calling: Astarte.Housekeeping.API.Worker.start_link(arg1, arg2, arg3)
-      worker(Astarte.RPC.AMQP.Client, []),
+      worker(Astarte.RPC.AMQP.Client, [])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

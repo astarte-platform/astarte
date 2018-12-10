@@ -37,10 +37,22 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   """
 
   @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => @pubkey}}
-  @explicit_replication_attrs %{"data" => %{"realm_name" => "testrealm2", "jwt_public_key_pem" => @pubkey, "replication_factor" => 3}}
+  @explicit_replication_attrs %{
+    "data" => %{
+      "realm_name" => "testrealm2",
+      "jwt_public_key_pem" => @pubkey,
+      "replication_factor" => 3
+    }
+  }
   @update_attrs %{"data" => %{}}
   @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}}
-  @invalid_replication_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => @pubkey, "replication_factor" => -3}}
+  @invalid_replication_attrs %{
+    "data" => %{
+      "realm_name" => "testrealm",
+      "jwt_public_key_pem" => @pubkey,
+      "replication_factor" => -3
+    }
+  }
   @no_pubkey_attrs %{"data" => %{"realm_name" => "valid"}}
   @invalid_pubkey_attrs %{"data" => %{"realm_name" => "valid", "jwt_public_key_pem" => "invalid"}}
   @malformed_pubkey_attrs %{
@@ -135,7 +147,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     assert json_response(conn, 422)["errors"] != %{}
   end
 
-  test "does not create realm and renders errors when replication_factor is invalid", %{conn: conn} do
+  test "does not create realm and renders errors when replication_factor is invalid", %{
+    conn: conn
+  } do
     conn = post(conn, realm_path(conn, :create), @invalid_replication_attrs)
     assert json_response(conn, 422)["errors"] != %{}
   end

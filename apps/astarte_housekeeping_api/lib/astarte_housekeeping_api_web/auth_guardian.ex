@@ -28,10 +28,9 @@ defmodule Astarte.Housekeeping.APIWeb.AuthGuardian do
 
   def resource_from_claims(claims) do
     {:ok,
-      %User{
-        id: claims["sub"],
-        authorizations: Map.get(claims, "a_ha", [])
-      }
-    }
+     %User{
+       id: claims["sub"],
+       authorizations: Map.get(claims, "a_ha", [])
+     }}
   end
 end
