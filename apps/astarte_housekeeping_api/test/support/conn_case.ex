@@ -57,5 +57,4 @@ defmodule Astarte.Housekeeping.APIWeb.ConnCase do
 
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
-
 end

@@ -49,9 +49,18 @@ defmodule Astarte.Housekeeping.Mock do
 
   defp execute_rpc(
          {:create_realm,
-          %CreateRealm{realm: realm, async_operation: async, jwt_public_key_pem: pem, replication_factor: rep}}
+          %CreateRealm{
+            realm: realm,
+            async_operation: async,
+            jwt_public_key_pem: pem,
+            replication_factor: rep
+          }}
        ) do
-    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{realm_name: realm, jwt_public_key_pem: pem, replication_factor: rep})
+    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
+      realm_name: realm,
+      jwt_public_key_pem: pem,
+      replication_factor: rep
+    })
 
     %GenericOkReply{async_operation: async}
     |> encode_reply(:generic_ok_reply)
@@ -93,7 +102,7 @@ defmodule Astarte.Housekeeping.Mock do
 
   defp encode_reply(reply, reply_type) do
     %Reply{reply: {reply_type, reply}}
-    |> Reply.encode
+    |> Reply.encode()
   end
 
   defp ok_wrap(result) do

@@ -24,6 +24,7 @@ defmodule Astarte.Housekeeping.API.Auth do
     case Config.jwt_public_key_pem() do
       nil ->
         {:error, :no_jwt_public_key_pem_configured}
+
       pem ->
         {:ok, pem}
     end

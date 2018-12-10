@@ -38,7 +38,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.VerifyHeader do
 
     merged_opts =
       opts
-      |> Keyword.merge([secret: secret])
+      |> Keyword.merge(secret: secret)
 
     GuardianVerifyHeader.call(conn, merged_opts)
   end
@@ -49,7 +49,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.VerifyHeader do
       jwk
     else
       {:error, reason} ->
-        Logger.warn("Couldn't get JWT public key PEM: #{inspect reason}")
+        Logger.warn("Couldn't get JWT public key PEM: #{inspect(reason)}")
         nil
     end
   end

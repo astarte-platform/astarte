@@ -26,23 +26,31 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     alias Astarte.Housekeeping.API.Realms.Realm
 
     @pubkey """
------BEGIN PUBLIC KEY-----
-MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE6ssZpULEsn+wSQdc+DI2+4aj98a1hDKM
-+bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
------END PUBLIC KEY-----
-"""
+    -----BEGIN PUBLIC KEY-----
+    MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE6ssZpULEsn+wSQdc+DI2+4aj98a1hDKM
+    +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
+    -----END PUBLIC KEY-----
+    """
     @malformed_pubkey """
------BEGIN PUBLIC KEY-----
-MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
-  +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
------END PUBLIC KEY-----
-"""
+    -----BEGIN PUBLIC KEY-----
+    MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
+      +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
+    -----END PUBLIC KEY-----
+    """
     @valid_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey}
-    @explicit_replication_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey, replication_factor: 3}
+    @explicit_replication_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_factor: 3
+    }
     @update_attrs %{}
     @invalid_name_attrs %{realm_name: "0invalid", jwt_public_key_pem: @pubkey}
     @invalid_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: "invalid"}
-    @invalid_replication_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey, replication_factor: "invalid"}
+    @invalid_replication_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_factor: "invalid"
+    }
     @malformed_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: @malformed_pubkey}
     @empty_name_attrs %{realm_name: "", jwt_public_key_pem: @pubkey}
     @empty_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: nil}

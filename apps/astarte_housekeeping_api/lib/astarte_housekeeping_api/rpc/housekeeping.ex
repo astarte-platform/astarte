@@ -33,6 +33,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     GetRealmsListReply,
     Reply
   }
+
   alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Realms.Realm
 
@@ -103,7 +104,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   end
 
   defp extract_reply({:get_realms_list_reply, %GetRealmsListReply{realms_names: realms_list}}) do
-    Enum.map(realms_list, fn(realm_name) -> %Realm{realm_name: realm_name} end)
+    Enum.map(realms_list, fn realm_name -> %Realm{realm_name: realm_name} end)
   end
 
   defp extract_reply({:get_health_reply, %GetHealthReply{status: status}}) do
@@ -145,7 +146,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
 
     # Add the available infos from the error map
     error_changeset =
-      Enum.reduce(error_map, changeset, fn({k, v}, acc) ->
+      Enum.reduce(error_map, changeset, fn {k, v}, acc ->
         if v do
           Ecto.Changeset.add_error(acc, k, v)
         else
