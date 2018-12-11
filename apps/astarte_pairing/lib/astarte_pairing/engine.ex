@@ -56,7 +56,10 @@ defmodule Astarte.Pairing.Engine do
         credentials_secret,
         device_ip
       ) do
-    Logger.debug("get_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
+    Logger.debug(
+      "get_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
+    )
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
          {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
@@ -113,6 +116,7 @@ defmodule Astarte.Pairing.Engine do
 
   def get_info(realm, hardware_id, credentials_secret) do
     Logger.debug("get_info request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          cassandra_node <- Config.cassandra_node(),
          {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
@@ -140,7 +144,10 @@ defmodule Astarte.Pairing.Engine do
   end
 
   def register_device(realm, hardware_id) do
-    Logger.debug("register_device request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
+    Logger.debug(
+      "register_device request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
+    )
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          cassandra_node <- Config.cassandra_node(),
          {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
@@ -158,7 +165,10 @@ defmodule Astarte.Pairing.Engine do
   end
 
   def verify_credentials(:astarte_mqtt_v1, %{client_crt: client_crt}, realm, hardware_id, secret) do
-    Logger.debug("verify_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
+    Logger.debug(
+      "verify_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
+    )
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          cassandra_node <- Config.cassandra_node(),
          {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
