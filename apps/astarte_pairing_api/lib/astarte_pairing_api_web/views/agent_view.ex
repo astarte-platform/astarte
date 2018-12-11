@@ -24,7 +24,12 @@ defmodule Astarte.Pairing.APIWeb.AgentView do
   def render("show.json", %{device_registration_response: device_registration_response}) do
     %{
       data:
-        render_one(device_registration_response, AgentView, "device_registration_response.json", as: :response)
+        render_one(
+          device_registration_response,
+          AgentView,
+          "device_registration_response.json",
+          as: :response
+        )
     }
   end
 

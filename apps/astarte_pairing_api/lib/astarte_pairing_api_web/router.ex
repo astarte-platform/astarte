@@ -30,12 +30,13 @@ defmodule Astarte.Pairing.APIWeb.Router do
     post "/:realm_name/agent/devices", AgentController, :create
 
     get "/:realm_name/devices/:hw_id", DeviceController, :show_info
-    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials",
-      DeviceController,
-      :create_credentials
-    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials/verify",
-      DeviceController,
-      :verify_credentials
 
+    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials",
+         DeviceController,
+         :create_credentials
+
+    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials/verify",
+         DeviceController,
+         :verify_credentials
   end
 end

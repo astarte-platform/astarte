@@ -98,7 +98,8 @@ defmodule Astarte.Pairing.API.InfoTest do
         {:ok, @encoded_forbidden_response}
       end)
 
-      assert {:error, :forbidden} = Info.get_device_info(@test_realm, @test_hw_id, @wrong_credentials_secret)
+      assert {:error, :forbidden} =
+               Info.get_device_info(@test_realm, @test_hw_id, @wrong_credentials_secret)
     end
   end
 end

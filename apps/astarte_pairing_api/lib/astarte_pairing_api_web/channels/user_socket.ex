@@ -24,7 +24,7 @@ defmodule Astarte.Pairing.APIWeb.UserSocket do
   # channel "room:*", Astarte.Pairing.APIWeb.RoomChannel
 
   ## Transports
-  transport :websocket, Phoenix.Transports.WebSocket
+  transport(:websocket, Phoenix.Transports.WebSocket)
   # transport :longpoll, Phoenix.Transports.LongPoll
 
   # Socket params are passed from the client and can

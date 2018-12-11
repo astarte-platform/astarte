@@ -25,11 +25,16 @@ defmodule Astarte.Pairing.API.Mixfile do
       app: :astarte_pairing_api,
       version: "0.10.0-beta.3",
       elixir: "~> 1.6",
-      elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
-      start_permanent: Mix.env == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
+      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -46,19 +51,19 @@ defmodule Astarte.Pairing.API.Mixfile do
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
       {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
