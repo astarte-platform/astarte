@@ -152,7 +152,7 @@ defmodule Astarte.AppEngine.API.Device do
         encoded_device_id,
         interface,
         no_prefix_path,
-        value,
+        raw_value,
         _params
       ) do
     with {:ok, client} <- Database.connect(realm_name),
@@ -166,6 +166,7 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path),
          mapping <-
            Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
+         {:ok, value} <- cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value) do
       timestamp_micro =
         DateTime.utc_now()
@@ -230,6 +231,67 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp cast_value(:datetime, value) when is_binary(value) do
+    with {:ok, datetime} <- DateTime.from_iso8601(value) do
+      {:ok, datetime}
+    else
+      :error ->
+        {:error, :unexpected_value_type, expected: :datetime}
+    end
+  end
+
+  defp cast_value(:datetime, value) when is_integer(value) do
+    with {:ok, datetime} <- DateTime.from_unix(value, :millisecond) do
+      {:ok, datetime}
+    else
+      :error ->
+        {:error, :unexpected_value_type, expected: :datetime}
+    end
+  end
+
+  defp cast_value(:datetime, _value) do
+    {:error, :unexpected_value_type, expected: :datetime}
+  end
+
+  defp cast_value(:binaryblob, value) when is_binary(value) do
+    with {:ok, binvalue} <- Base.decode64(value) do
+      {:ok, binvalue}
+    else
+      :error ->
+        {:error, :unexpected_value_type, expected: :binaryblob}
+    end
+  end
+
+  defp cast_value(:binaryblob, _value) do
+    {:error, :unexpected_value_type, expected: :binaryblob}
+  end
+
+  defp cast_value(:datetimearray, values) do
+    Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
+      with {:ok, casted_value} <- cast_value(:datetime, value) do
+        {:cont, {:ok, [casted_value | acc]}}
+      else
+        {:error, :unexpected_value_type, expected: :datetime} ->
+          {:halt, {:error, :unexpected_value_type, expected: :datetimearray}}
+      end
+    end)
+  end
+
+  defp cast_value(:binaryblobarray, values) do
+    Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
+      with {:ok, casted_value} <- cast_value(:binaryblob, value) do
+        {:cont, {:ok, [casted_value | acc]}}
+      else
+        {:error, :unexpected_value_type, expected: :binaryblob} ->
+          {:halt, {:error, :unexpected_value_type, expected: :binaryblobarray}}
+      end
+    end)
+  end
+
+  defp cast_value(_anytype, anyvalue) do
+    {:ok, anyvalue}
   end
 
   # TODO: we should probably allow delete for every path regardless of the interface type
