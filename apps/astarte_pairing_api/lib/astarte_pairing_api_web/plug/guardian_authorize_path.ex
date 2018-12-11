@@ -32,6 +32,7 @@ defmodule Astarte.Pairing.APIWeb.Plug.GuardianAuthorizePath do
     otp_app: :astarte_pairing_api,
     module: Astarte.Pairing.APIWeb.AuthGuardian,
     error_handler: FallbackController
+
   plug Astarte.Pairing.APIWeb.Plug.VerifyHeader
   plug Guardian.Plug.EnsureAuthenticated
   plug Guardian.Plug.LoadResource

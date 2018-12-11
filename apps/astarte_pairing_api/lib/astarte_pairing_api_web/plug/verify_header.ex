@@ -35,8 +35,8 @@ defmodule Astarte.Pairing.APIWeb.Plug.VerifyHeader do
   def call(conn, opts) do
     secrets = get_secrets(conn)
 
-	# TODO: support multiple secrets
-	secret = List.first(secrets)
+    # TODO: support multiple secrets
+    secret = List.first(secrets)
 
     merged_opts =
       opts
@@ -48,9 +48,9 @@ defmodule Astarte.Pairing.APIWeb.Plug.VerifyHeader do
   defp get_secrets(conn) do
     with %{"realm_name" => realm} <- conn.path_params,
          {:ok, [_pem | _] = public_key_pems} <- Auth.get_public_keys(realm) do
-	  for public_key_pem <- public_key_pems do
+      for public_key_pem <- public_key_pems do
         JWK.from_pem(public_key_pem)
-	  end
+      end
     else
       _ ->
         []
