@@ -184,9 +184,11 @@ defmodule Astarte.AppEngine.API.Device do
         timestamp_micro
       )
 
+      wrapped_value = wrap_to_bson_struct(mapping.value_type, value)
+
       case interface_descriptor.type do
         :properties ->
-          DataTransmitter.set_property(realm_name, device_id, interface, path, value)
+          DataTransmitter.set_property(realm_name, device_id, interface, path, wrapped_value)
 
         :datastream ->
           Queries.insert_path_into_db(
@@ -199,7 +201,7 @@ defmodule Astarte.AppEngine.API.Device do
             div(timestamp_micro, 1000)
           )
 
-          DataTransmitter.push_datastream(realm_name, device_id, interface, path, value)
+          DataTransmitter.push_datastream(realm_name, device_id, interface, path, wrapped_value)
       end
 
       {:ok,
@@ -292,6 +294,20 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp cast_value(_anytype, anyvalue) do
     {:ok, anyvalue}
+  end
+
+  defp wrap_to_bson_struct(:binaryblob, value) do
+    %Bson.Bin{bin: value, subtype: Bson.Bin.subtyx(:binary)}
+  end
+
+  defp wrap_to_bson_struct(:binaryblobarray, values) do
+    for value <- values do
+      %Bson.Bin{bin: value, subtype: Bson.Bin.subtyx(:binary)}
+    end
+  end
+
+  defp wrap_to_bson_struct(_anytype, value) do
+    value
   end
 
   # TODO: we should probably allow delete for every path regardless of the interface type
