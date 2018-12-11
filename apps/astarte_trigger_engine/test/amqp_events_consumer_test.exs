@@ -1,4 +1,4 @@
-#mqp
+#
 # This file is part of Astarte.
 #
 # Astarte is free software: you can redistribute it and/or modify

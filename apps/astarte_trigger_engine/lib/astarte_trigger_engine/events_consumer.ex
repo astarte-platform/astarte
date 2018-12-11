@@ -91,9 +91,9 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp event_to_headers(realm, _device_id, _event_type, _event, %{
-        "template" => _template,
-        "template_type" => "mustache"
-      }) do
+         "template" => _template,
+         "template_type" => "mustache"
+       }) do
     {:ok, ["Astarte-Realm": realm, "Content-Type": "text/plain"]}
   end
 
@@ -102,9 +102,9 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp event_to_payload(realm, device_id, event_type, event, %{
-        "template" => template,
-        "template_type" => "mustache"
-      }) do
+         "template" => template,
+         "template_type" => "mustache"
+       }) do
     values = build_values_map(realm, device_id, event_type, event)
 
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
