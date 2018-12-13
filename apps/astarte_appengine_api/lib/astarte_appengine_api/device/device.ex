@@ -206,7 +206,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       {:ok,
        %InterfaceValues{
-         data: value
+         data: raw_value
        }}
     else
       {:ownership, :device} ->
