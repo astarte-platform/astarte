@@ -152,7 +152,7 @@ defmodule Astarte.AppEngine.API.Device do
         encoded_device_id,
         interface,
         no_prefix_path,
-        value,
+        raw_value,
         _params
       ) do
     with {:ok, client} <- Database.connect(realm_name),
@@ -166,6 +166,7 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path),
          mapping <-
            Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
+         {:ok, value} <- cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value) do
       timestamp_micro =
         DateTime.utc_now()
@@ -183,9 +184,11 @@ defmodule Astarte.AppEngine.API.Device do
         timestamp_micro
       )
 
+      wrapped_value = wrap_to_bson_struct(mapping.value_type, value)
+
       case interface_descriptor.type do
         :properties ->
-          DataTransmitter.set_property(realm_name, device_id, interface, path, value)
+          DataTransmitter.set_property(realm_name, device_id, interface, path, wrapped_value)
 
         :datastream ->
           Queries.insert_path_into_db(
@@ -198,7 +201,7 @@ defmodule Astarte.AppEngine.API.Device do
             div(timestamp_micro, 1000)
           )
 
-          DataTransmitter.push_datastream(realm_name, device_id, interface, path, value)
+          DataTransmitter.push_datastream(realm_name, device_id, interface, path, wrapped_value)
       end
 
       {:ok,
@@ -230,6 +233,81 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp cast_value(:datetime, value) when is_binary(value) do
+    with {:ok, datetime} <- DateTime.from_iso8601(value) do
+      {:ok, datetime}
+    else
+      :error ->
+        {:error, :unexpected_value_type, expected: :datetime}
+    end
+  end
+
+  defp cast_value(:datetime, value) when is_integer(value) do
+    with {:ok, datetime} <- DateTime.from_unix(value, :millisecond) do
+      {:ok, datetime}
+    else
+      :error ->
+        {:error, :unexpected_value_type, expected: :datetime}
+    end
+  end
+
+  defp cast_value(:datetime, _value) do
+    {:error, :unexpected_value_type, expected: :datetime}
+  end
+
+  defp cast_value(:binaryblob, value) when is_binary(value) do
+    with {:ok, binvalue} <- Base.decode64(value) do
+      {:ok, binvalue}
+    else
+      :error ->
+        {:error, :unexpected_value_type, expected: :binaryblob}
+    end
+  end
+
+  defp cast_value(:binaryblob, _value) do
+    {:error, :unexpected_value_type, expected: :binaryblob}
+  end
+
+  defp cast_value(:datetimearray, values) do
+    Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
+      with {:ok, casted_value} <- cast_value(:datetime, value) do
+        {:cont, {:ok, [casted_value | acc]}}
+      else
+        {:error, :unexpected_value_type, expected: :datetime} ->
+          {:halt, {:error, :unexpected_value_type, expected: :datetimearray}}
+      end
+    end)
+  end
+
+  defp cast_value(:binaryblobarray, values) do
+    Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
+      with {:ok, casted_value} <- cast_value(:binaryblob, value) do
+        {:cont, {:ok, [casted_value | acc]}}
+      else
+        {:error, :unexpected_value_type, expected: :binaryblob} ->
+          {:halt, {:error, :unexpected_value_type, expected: :binaryblobarray}}
+      end
+    end)
+  end
+
+  defp cast_value(_anytype, anyvalue) do
+    {:ok, anyvalue}
+  end
+
+  defp wrap_to_bson_struct(:binaryblob, value) do
+    %Bson.Bin{bin: value, subtype: Bson.Bin.subtyx(:binary)}
+  end
+
+  defp wrap_to_bson_struct(:binaryblobarray, values) do
+    for value <- values do
+      %Bson.Bin{bin: value, subtype: Bson.Bin.subtyx(:binary)}
+    end
+  end
+
+  defp wrap_to_bson_struct(_anytype, value) do
+    value
   end
 
   # TODO: we should probably allow delete for every path regardless of the interface type
