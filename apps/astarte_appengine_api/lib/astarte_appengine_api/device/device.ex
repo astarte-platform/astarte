@@ -206,7 +206,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       {:ok,
        %InterfaceValues{
-         data: value
+         data: raw_value
        }}
     else
       {:ownership, :device} ->
@@ -236,8 +236,9 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp cast_value(:datetime, value) when is_binary(value) do
-    with {:ok, datetime} <- DateTime.from_iso8601(value) do
-      {:ok, datetime}
+    with {:ok, datetime, _utc_off} <- DateTime.from_iso8601(value) do
+      millis = DateTime.to_unix(datetime, :milliseconds)
+      {:ok, millis}
     else
       :error ->
         {:error, :unexpected_value_type, expected: :datetime}
@@ -245,8 +246,8 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp cast_value(:datetime, value) when is_integer(value) do
-    with {:ok, datetime} <- DateTime.from_unix(value, :millisecond) do
-      {:ok, datetime}
+    with {:ok, _datetime} <- DateTime.from_unix(value, :millisecond) do
+      {:ok, value}
     else
       :error ->
         {:error, :unexpected_value_type, expected: :datetime}
@@ -294,6 +295,16 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp cast_value(_anytype, anyvalue) do
     {:ok, anyvalue}
+  end
+
+  defp wrap_to_bson_struct(:datetime, value) do
+    %Bson.UTC{ms: value}
+  end
+
+  defp wrap_to_bson_struct(:datetimearray, values) do
+    for value <- values do
+      %Bson.UTC{ms: value}
+    end
   end
 
   defp wrap_to_bson_struct(:binaryblob, value) do
