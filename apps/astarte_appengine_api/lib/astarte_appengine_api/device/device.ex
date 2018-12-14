@@ -236,7 +236,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp cast_value(:datetime, value) when is_binary(value) do
-    with {:ok, datetime} <- DateTime.from_iso8601(value) do
+    with {:ok, datetime, _utc_off} <- DateTime.from_iso8601(value) do
       {:ok, datetime}
     else
       :error ->
