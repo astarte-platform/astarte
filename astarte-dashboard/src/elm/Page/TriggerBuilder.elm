@@ -3,6 +3,7 @@ module Page.TriggerBuilder exposing (Model, Msg, init, update, view, subscriptio
 import Regex exposing (regex)
 import Html exposing (Html, text, h5, b, i)
 import Html.Attributes exposing (class, value, readonly, selected, for)
+import Html.Events exposing (onSubmit)
 import Navigation
 import Task
 import Time
@@ -88,17 +89,11 @@ init maybeTriggerName session =
       }
     , case maybeTriggerName of
         Just name ->
-            Cmd.batch
-                [ AstarteApi.getTrigger name
-                    session
-                    GetTriggerDone
-                    (ShowError "Cannot retrieve selected trigger.")
-                    RedirectToLogin
-                , AstarteApi.listInterfaces session
-                    GetInterfaceListDone
-                    (ShowError "Cannot retrieve interface list.")
-                    RedirectToLogin
-                ]
+            AstarteApi.getTrigger name
+                session
+                GetTriggerDone
+                (ShowError "Cannot retrieve selected trigger.")
+                RedirectToLogin
 
         Nothing ->
             AstarteApi.listInterfaces session
@@ -166,24 +161,19 @@ update session msg model =
                     ( { model
                         | trigger = trigger
                         , editMode = True
+                        , interfaces = [ dataTrigger.interfaceName ]
+                        , majors = [ dataTrigger.interfaceMajor ]
                         , selectedInterfaceName = dataTrigger.interfaceName
                         , selectedInterfaceMajor = Just dataTrigger.interfaceMajor
                         , sourceBuffer = Trigger.toPrettySource trigger
                         , sourceBufferStatus = Valid
                       }
-                    , Cmd.batch
-                        [ AstarteApi.getInterface dataTrigger.interfaceName
-                            dataTrigger.interfaceMajor
-                            session
-                            GetInterfaceDone
-                            (ShowError "Cannot retrieve interface.")
-                            RedirectToLogin
-                        , AstarteApi.listInterfaceMajors dataTrigger.interfaceName
-                            session
-                            GetInterfaceMajorsDone
-                            (ShowError "Cannot retrieve interface major versions.")
-                            RedirectToLogin
-                        ]
+                    , AstarteApi.getInterface dataTrigger.interfaceName
+                        dataTrigger.interfaceMajor
+                        session
+                        GetInterfaceDone
+                        (ShowError "Cannot retrieve interface.")
+                        RedirectToLogin
                     , ExternalMsg.Noop
                     )
 
@@ -193,6 +183,7 @@ update session msg model =
                         , editMode = True
                         , sourceBuffer = Trigger.toPrettySource trigger
                         , sourceBufferStatus = Valid
+                        , showSpinner = False
                       }
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -276,6 +267,7 @@ update session msg model =
                             , mappingType = mappingType
                             , selectedInterfaceName = interface.name
                             , selectedInterfaceMajor = Just interface.major
+                            , showSpinner = False
                           }
                         , Cmd.none
                         , ExternalMsg.Noop
@@ -743,14 +735,20 @@ update session msg model =
         CloseDeleteModal result ->
             case result of
                 ModalOk ->
-                    ( { model | deleteModalVisibility = Modal.hidden }
-                    , AstarteApi.deleteTrigger model.trigger.name
-                        session
-                        DeleteTriggerDone
-                        (ShowError "Cannot delete trigger.")
-                        RedirectToLogin
-                    , ExternalMsg.Noop
-                    )
+                    if (model.trigger.name == model.confirmTriggerName) then
+                        ( { model | deleteModalVisibility = Modal.hidden }
+                        , AstarteApi.deleteTrigger model.trigger.name
+                            session
+                            DeleteTriggerDone
+                            (ShowError "Cannot delete trigger.")
+                            RedirectToLogin
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
                 ModalCancel ->
                     ( { model | deleteModalVisibility = Modal.hidden }
@@ -1268,7 +1266,7 @@ renderDeleteTriggerModal model =
         |> Modal.large
         |> Modal.h5 [] [ text "Confirmation Required" ]
         |> Modal.body []
-            [ Form.form []
+            [ Form.form [ onSubmit (CloseDeleteModal ModalOk) ]
                 [ Form.row []
                     [ Form.col [ Col.sm12 ]
                         [ text "You are going to remove "
