@@ -3,6 +3,7 @@ module Page.TriggerBuilder exposing (Model, Msg, init, update, view, subscriptio
 import Regex exposing (regex)
 import Html exposing (Html, text, h5, b, i)
 import Html.Attributes exposing (class, value, readonly, selected, for)
+import Html.Events exposing (onSubmit)
 import Navigation
 import Task
 import Time
@@ -734,14 +735,20 @@ update session msg model =
         CloseDeleteModal result ->
             case result of
                 ModalOk ->
-                    ( { model | deleteModalVisibility = Modal.hidden }
-                    , AstarteApi.deleteTrigger model.trigger.name
-                        session
-                        DeleteTriggerDone
-                        (ShowError "Cannot delete trigger.")
-                        RedirectToLogin
-                    , ExternalMsg.Noop
-                    )
+                    if (model.trigger.name == model.confirmTriggerName) then
+                        ( { model | deleteModalVisibility = Modal.hidden }
+                        , AstarteApi.deleteTrigger model.trigger.name
+                            session
+                            DeleteTriggerDone
+                            (ShowError "Cannot delete trigger.")
+                            RedirectToLogin
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
                 ModalCancel ->
                     ( { model | deleteModalVisibility = Modal.hidden }
@@ -1259,7 +1266,7 @@ renderDeleteTriggerModal model =
         |> Modal.large
         |> Modal.h5 [] [ text "Confirmation Required" ]
         |> Modal.body []
-            [ Form.form []
+            [ Form.form [ onSubmit (CloseDeleteModal ModalOk) ]
                 [ Form.row []
                     [ Form.col [ Col.sm12 ]
                         [ text "You are going to remove "

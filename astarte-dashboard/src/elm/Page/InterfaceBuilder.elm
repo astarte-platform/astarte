@@ -3,6 +3,7 @@ module Page.InterfaceBuilder exposing (Model, Msg, init, update, view, subscript
 import Dict exposing (Dict)
 import Html exposing (Html, text, h5, p, br, b, i, small)
 import Html.Attributes exposing (class, value, for, selected)
+import Html.Events exposing (onSubmit)
 import Navigation
 import Task
 import Time exposing (Time)
@@ -142,10 +143,8 @@ type ModalResult
 
 type Msg
     = GetInterfaceDone Interface
-    | AddInterface
     | AddInterfaceDone String
     | DeleteInterfaceDone String
-    | UpdateInterface
     | UpdateInterfaceDone String
     | RemoveMapping InterfaceMapping
     | ShowDeleteModal
@@ -241,30 +240,10 @@ update session msg model =
                 , ExternalMsg.Noop
                 )
 
-        AddInterface ->
-            ( model
-            , AstarteApi.addNewInterface model.interface
-                session
-                AddInterfaceDone
-                (ShowError "Cannot install interface.")
-                RedirectToLogin
-            , ExternalMsg.Noop
-            )
-
         AddInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed."
-            )
-
-        UpdateInterface ->
-            ( model
-            , AstarteApi.updateInterface model.interface
-                session
-                UpdateInterfaceDone
-                (ShowError "Cannot apply changes.")
-                RedirectToLogin
-            , ExternalMsg.Noop
             )
 
         UpdateInterfaceDone response ->
@@ -294,15 +273,21 @@ update session msg model =
         CloseDeleteModal modalResult ->
             case modalResult of
                 ModalOk ->
-                    ( { model | deleteModalVisibility = Modal.hidden }
-                    , AstarteApi.deleteInterface model.interface.name
-                        model.interface.major
-                        session
-                        DeleteInterfaceDone
-                        (ShowError "")
-                        RedirectToLogin
-                    , ExternalMsg.Noop
-                    )
+                    if model.interface.name == model.confirmInterfaceName then
+                        ( { model | deleteModalVisibility = Modal.hidden }
+                        , AstarteApi.deleteInterface model.interface.name
+                            model.interface.major
+                            session
+                            DeleteInterfaceDone
+                            (ShowError "")
+                            RedirectToLogin
+                        , ExternalMsg.Noop
+                        )
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
                 ModalCancel ->
                     ( { model | deleteModalVisibility = Modal.hidden }
@@ -1350,7 +1335,7 @@ renderDeleteInterfaceModal model =
         |> Modal.large
         |> Modal.h5 [] [ text "Confirmation Required" ]
         |> Modal.body []
-            [ Form.form []
+            [ Form.form [ onSubmit (CloseDeleteModal ModalOk) ]
                 [ Form.row []
                     [ Form.col [ Col.sm12 ]
                         [ text "You are going to remove "
