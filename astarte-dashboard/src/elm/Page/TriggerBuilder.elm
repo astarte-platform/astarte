@@ -88,17 +88,11 @@ init maybeTriggerName session =
       }
     , case maybeTriggerName of
         Just name ->
-            Cmd.batch
-                [ AstarteApi.getTrigger name
-                    session
-                    GetTriggerDone
-                    (ShowError "Cannot retrieve selected trigger.")
-                    RedirectToLogin
-                , AstarteApi.listInterfaces session
-                    GetInterfaceListDone
-                    (ShowError "Cannot retrieve interface list.")
-                    RedirectToLogin
-                ]
+            AstarteApi.getTrigger name
+                session
+                GetTriggerDone
+                (ShowError "Cannot retrieve selected trigger.")
+                RedirectToLogin
 
         Nothing ->
             AstarteApi.listInterfaces session
@@ -166,24 +160,19 @@ update session msg model =
                     ( { model
                         | trigger = trigger
                         , editMode = True
+                        , interfaces = [ dataTrigger.interfaceName ]
+                        , majors = [ dataTrigger.interfaceMajor ]
                         , selectedInterfaceName = dataTrigger.interfaceName
                         , selectedInterfaceMajor = Just dataTrigger.interfaceMajor
                         , sourceBuffer = Trigger.toPrettySource trigger
                         , sourceBufferStatus = Valid
                       }
-                    , Cmd.batch
-                        [ AstarteApi.getInterface dataTrigger.interfaceName
-                            dataTrigger.interfaceMajor
-                            session
-                            GetInterfaceDone
-                            (ShowError "Cannot retrieve interface.")
-                            RedirectToLogin
-                        , AstarteApi.listInterfaceMajors dataTrigger.interfaceName
-                            session
-                            GetInterfaceMajorsDone
-                            (ShowError "Cannot retrieve interface major versions.")
-                            RedirectToLogin
-                        ]
+                    , AstarteApi.getInterface dataTrigger.interfaceName
+                        dataTrigger.interfaceMajor
+                        session
+                        GetInterfaceDone
+                        (ShowError "Cannot retrieve interface.")
+                        RedirectToLogin
                     , ExternalMsg.Noop
                     )
 
@@ -193,6 +182,7 @@ update session msg model =
                         , editMode = True
                         , sourceBuffer = Trigger.toPrettySource trigger
                         , sourceBufferStatus = Valid
+                        , showSpinner = False
                       }
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -276,6 +266,7 @@ update session msg model =
                             , mappingType = mappingType
                             , selectedInterfaceName = interface.name
                             , selectedInterfaceMajor = Just interface.major
+                            , showSpinner = False
                           }
                         , Cmd.none
                         , ExternalMsg.Noop
