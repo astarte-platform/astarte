@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.10.0-beta.3] - Unreleased
+## [0.10.0-beta.3] - 2018-12-19
 ### Fixed
 - Change recommended interface name regexp.
 - Enter key press behavior: close confirm message instead of reloading page.
