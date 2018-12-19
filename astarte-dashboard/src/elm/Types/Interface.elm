@@ -396,7 +396,7 @@ isValidInterfaceName interfaceName =
 
 isGoodInterfaceName : String -> Bool
 isGoodInterfaceName interfaceName =
-    Regex.contains (regex "^([a-z]{2,3}\\.){1,2}[a-zA-z]+\\.[a-zA-Z][a-zA-Z0-9]*$") interfaceName
+    Regex.contains (regex "^([a-z]{2,}\\.){2,}[A-Z][a-zA-Z0-9]*$") interfaceName
 
 
 toPrettySource : Interface -> String
