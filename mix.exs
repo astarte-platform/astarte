@@ -22,7 +22,7 @@ defmodule Astarte.DataAccess.Mixfile do
   def project do
     [
       app: :astarte_data_access,
-      version: "0.10.0-beta.3",
+      version: "0.10.0-rc.0",
       elixir: "~> 1.5",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
