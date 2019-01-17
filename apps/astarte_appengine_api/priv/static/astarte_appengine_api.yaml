@@ -37,7 +37,7 @@ info:
     an impact on devices and their data. Most Astarte applications would want to
     use this API to interact with devices, stream and receive data, and oversee
     their fleet.
-  version: 0.10.0-beta.3
+  version: 0.10.0
   title: Astarte App Engine API
   contact:
     email: info@ispirata.com
