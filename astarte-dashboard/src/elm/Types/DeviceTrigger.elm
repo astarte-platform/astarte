@@ -1,15 +1,14 @@
-module Types.DeviceTrigger
-    exposing
-        ( DeviceTrigger
-        , DeviceTriggerEvent(..)
-        , empty
-        , setDeviceId
-        , setOn
-        , encode
-        , decoder
-        , stringToDeviceTriggerEvent
-        , deviceTriggerEventToString
-        )
+module Types.DeviceTrigger exposing
+    ( DeviceTrigger
+    , DeviceTriggerEvent(..)
+    , decoder
+    , deviceTriggerEventToString
+    , empty
+    , encode
+    , setDeviceId
+    , setOn
+    , stringToDeviceTriggerEvent
+    )
 
 import Json.Decode as Decode exposing (Decoder, Value, string)
 import Json.Decode.Pipeline exposing (decode, required)

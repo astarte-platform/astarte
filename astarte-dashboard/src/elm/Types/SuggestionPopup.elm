@@ -1,14 +1,10 @@
-module Types.SuggestionPopup exposing (SuggestionPopup, Msg, new, update, view, subs)
+module Types.SuggestionPopup exposing (Msg, SuggestionPopup, new, subs, update, view)
 
+import Bootstrap.Utilities.Display as Display
 import Html exposing (Html, div, i, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onMouseLeave)
 import Time exposing (Time)
-
-
--- bootstrap components
-
-import Bootstrap.Utilities.Display as Display
 
 
 type SuggestionPopup
@@ -47,6 +43,7 @@ update (SuggestionPopup status) msg =
                         | timeoutCounter = 0
                         , visible = False
                     }
+
             else
                 SuggestionPopup
                     { status
@@ -60,6 +57,7 @@ update (SuggestionPopup status) msg =
         CountDown now ->
             if status.timeoutCounter > 1 then
                 SuggestionPopup { status | timeoutCounter = status.timeoutCounter - 1 }
+
             else
                 SuggestionPopup
                     { status
@@ -86,6 +84,7 @@ view (SuggestionPopup status) =
         , onMouseLeave AutoHide
         , if status.visible then
             Display.block
+
           else
             Display.none
         ]
@@ -97,5 +96,6 @@ subs : SuggestionPopup -> Sub Msg
 subs (SuggestionPopup status) =
     if status.timeoutCounter > 0 then
         Time.every Time.second CountDown
+
     else
         Sub.none

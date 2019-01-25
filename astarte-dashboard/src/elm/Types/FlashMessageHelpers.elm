@@ -1,20 +1,17 @@
 module Types.FlashMessageHelpers exposing (renderFlashMessages)
 
+import Bootstrap.ListGroup as ListGroup
 import Html exposing (Html, text)
 import Html.Events exposing (onClick)
 import Types.ExternalMessage exposing (ExternalMsg(..))
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 
 
--- bootstrap components
-
-import Bootstrap.ListGroup as ListGroup
-
-
 renderFlashMessages : List FlashMessage -> (ExternalMsg -> a) -> Html a
 renderFlashMessages messages tagger =
     if List.isEmpty messages then
         text ""
+
     else
         List.map renderFlashMessage messages
             |> ListGroup.ul

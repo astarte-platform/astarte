@@ -1,41 +1,40 @@
-module Types.InterfaceMapping
-    exposing
-        ( InterfaceMapping
-        , MappingType(..)
-        , BaseType(..)
-        , Reliability(..)
-        , Retention(..)
-        , empty
-        , encode
-        , decoder
-        , setEndpoint
-        , setType
-        , setReliability
-        , setRetention
-        , setExpiry
-        , setAllowUnset
-        , setExplicitTimestamp
-        , setDescription
-        , setDoc
-        , setDraft
-        , isValid
-        , isValidEndpoint
-        , isValidType
-        , stringToMappingType
-        , stringToReliability
-        , stringToRetention
-        , mappingTypeList
-        , mappingTypeToString
-        , reliabilityToEnglishString
-        , retentionToEnglishString
-        , mappingTypeToEnglishString
-        )
+module Types.InterfaceMapping exposing
+    ( BaseType(..)
+    , InterfaceMapping
+    , MappingType(..)
+    , Reliability(..)
+    , Retention(..)
+    , decoder
+    , empty
+    , encode
+    , isValid
+    , isValidEndpoint
+    , isValidType
+    , mappingTypeList
+    , mappingTypeToEnglishString
+    , mappingTypeToString
+    , reliabilityToEnglishString
+    , retentionToEnglishString
+    , setAllowUnset
+    , setDescription
+    , setDoc
+    , setDraft
+    , setEndpoint
+    , setExpiry
+    , setExplicitTimestamp
+    , setReliability
+    , setRetention
+    , setType
+    , stringToMappingType
+    , stringToReliability
+    , stringToRetention
+    )
 
-import Regex exposing (regex)
-import Json.Decode as Decode exposing (Value, Decoder, decodeString, list, bool, int, string)
-import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
+import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, int, list, string)
+import Json.Decode.Pipeline exposing (decode, hardcoded, optional, required)
 import Json.Encode as Encode
 import JsonHelpers
+import Regex exposing (regex)
 
 
 type alias InterfaceMapping =
@@ -238,7 +237,7 @@ mappingTypeToString t =
             baseTypeToString baseType
 
         Array baseType ->
-            (baseTypeToString baseType) ++ "array"
+            baseTypeToString baseType ++ "array"
 
 
 baseTypeToString : BaseType -> String
@@ -404,7 +403,7 @@ validateBaseType : BaseType -> String -> Bool
 validateBaseType baseType value =
     case baseType of
         DoubleMapping ->
-            case (String.toFloat value) of
+            case String.toFloat value of
                 Ok _ ->
                     True
 
@@ -412,7 +411,7 @@ validateBaseType baseType value =
                     False
 
         IntMapping ->
-            case (String.toInt value) of
+            case String.toInt value of
                 Ok _ ->
                     True
 
@@ -420,7 +419,7 @@ validateBaseType baseType value =
                     False
 
         BoolMapping ->
-            case (String.toLower value) of
+            case String.toLower value of
                 "true" ->
                     True
 

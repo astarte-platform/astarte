@@ -1,19 +1,6 @@
 module Page.RealmSettings exposing (Model, Msg, init, update, view)
 
-import Html exposing (Html, text, h5, p, i)
-import Html.Attributes exposing (class, for)
-import Navigation
-import Route
 import AstarteApi
-import Types.Session exposing (Session)
-import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.RealmConfig exposing (Config)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.FlashMessageHelpers as FlashMessageHelpers
-
-
--- bootstrap components
-
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Textarea as Textarea
@@ -24,6 +11,15 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
+import Html exposing (Html, h5, i, p, text)
+import Html.Attributes exposing (class, for)
+import Navigation
+import Route
+import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
+import Types.RealmConfig exposing (Config)
+import Types.Session exposing (Session)
 
 
 type alias Model =
@@ -100,6 +96,7 @@ update session msg model =
             ( model
             , if model.keyChanged then
                 Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
+
               else
                 Cmd.none
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Realm configuration has been successfully applied."
@@ -122,13 +119,13 @@ update session msg model =
                         Nothing ->
                             { pubKey = newPubKey }
             in
-                ( { model
-                    | conf = Just newConfig
-                    , keyChanged = model.initialKey /= newPubKey
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | conf = Just newConfig
+                , keyChanged = model.initialKey /= newPubKey
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         RedirectToLogin ->
             ( model
@@ -256,6 +253,7 @@ renderConfirmModal modalVisibility keyChanged =
                             [ text <|
                                 if keyChanged then
                                     "Realm public key will be changed, users will not be able to make further API calls using their current auth token."
+
                                 else
                                     "Realm configuration will be changed."
                             ]

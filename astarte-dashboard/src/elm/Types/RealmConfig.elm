@@ -1,11 +1,10 @@
-module Types.RealmConfig
-    exposing
-        ( Config
-        , encode
-        , decoder
-        )
+module Types.RealmConfig exposing
+    ( Config
+    , decoder
+    , encode
+    )
 
-import Json.Decode as Decode exposing (Value, Decoder, map, field, string)
+import Json.Decode as Decode exposing (Decoder, Value, field, map, string)
 import Json.Encode as Encode
 
 

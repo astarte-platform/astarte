@@ -1,44 +1,36 @@
 module Main exposing (main)
 
-import Html exposing (Html, div, span, hr, ul, li, a, i, p, img, body, small, text)
-import Html.Attributes exposing (class, classList, src, href, style)
-import Http
-import Ports
-import Navigation exposing (Location)
-import Json.Decode as Decode exposing (at, string, Value)
-import Json.Encode as Encode
-import Task
-import Time exposing (Time)
 import Assets
-import Route exposing (Route, RealmRoute)
-import Types.Config as Config exposing (Config)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.Session as Session exposing (Session, Credentials, LoginType(..))
-import Types.ExternalMessage exposing (ExternalMsg(..))
-
-
--- Pages
-
-import Page.Home as Home
-import Page.Login as Login
-import Page.Interfaces as Interfaces
-import Page.InterfaceBuilder as InterfaceBuilder
-import Page.Triggers as Triggers
-import Page.TriggerBuilder as TriggerBuilder
-import Page.RealmSettings as RealmSettings
-
-
--- bootstrap components
-
 import Bootstrap.Grid as Grid
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Spacing as Spacing
+import Html exposing (Html, a, body, div, hr, i, img, li, p, small, span, text, ul)
+import Html.Attributes exposing (class, classList, href, src, style)
+import Http
+import Json.Decode as Decode exposing (Value, at, string)
+import Json.Encode as Encode
+import Navigation exposing (Location)
+import Page.Home as Home
+import Page.InterfaceBuilder as InterfaceBuilder
+import Page.Interfaces as Interfaces
+import Page.Login as Login
+import Page.RealmSettings as RealmSettings
+import Page.TriggerBuilder as TriggerBuilder
+import Page.Triggers as Triggers
+import Ports
+import Route exposing (RealmRoute, Route)
+import Task
+import Time exposing (Time)
+import Types.Config as Config exposing (Config)
+import Types.ExternalMessage exposing (ExternalMsg(..))
+import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.Session as Session exposing (Credentials, LoginType(..), Session)
 
 
 main : Program Value Model Msg
 main =
-    Navigation.programWithFlags (NewLocation)
+    Navigation.programWithFlags NewLocation
         { init = init
         , view = view
         , update = update
@@ -101,12 +93,12 @@ init jsParam location =
             , config = configFromJavascript
             }
     in
-        ( initialModel
-        , Cmd.batch
-            [ navbarCmd
-            , initialCommand
-            ]
-        )
+    ( initialModel
+    , Cmd.batch
+        [ navbarCmd
+        , initialCommand
+        ]
+    )
 
 
 type Page
@@ -196,12 +188,12 @@ update msg model =
                 newFlashMessage =
                     FlashMessage.new model.messageCounter message severity dismissAt
             in
-                ( { model
-                    | flashMessages = newFlashMessage :: model.flashMessages
-                    , messageCounter = model.messageCounter + 1
-                  }
-                , Cmd.none
-                )
+            ( { model
+                | flashMessages = newFlashMessage :: model.flashMessages
+                , messageCounter = model.messageCounter + 1
+              }
+            , Cmd.none
+            )
 
         ClearOldFlashMessages now ->
             let
@@ -210,9 +202,9 @@ update msg model =
                         (\m -> m.dismissAt > now)
                         model.flashMessages
             in
-                ( { model | flashMessages = filteredMessages }
-                , Cmd.none
-                )
+            ( { model | flashMessages = filteredMessages }
+            , Cmd.none
+            )
 
         -- Page specific messages
         _ ->
@@ -240,12 +232,12 @@ updatePublicPage publicPage msg model =
                 ( updatedModel, newCommands ) =
                     handleExternalMessage model externalMsg
             in
-                ( { updatedModel | selectedPage = Public (LoginPage newModel) }
-                , Cmd.batch
-                    [ newCommands
-                    , Cmd.map LoginMsg pageCommand
-                    ]
-                )
+            ( { updatedModel | selectedPage = Public (LoginPage newModel) }
+            , Cmd.batch
+                [ newCommands
+                , Cmd.map LoginMsg pageCommand
+                ]
+            )
 
         -- Ignore messages from not matching pages
         ( _, _ ) ->
@@ -260,19 +252,19 @@ updateRealmPage realm realmPage msg model =
         ( page, command, externalMsg ) =
             case ( msg, realmPage ) of
                 ( InterfacesMsg subMsg, InterfacesPage subModel ) ->
-                    updateRealmPageHelper realm (Interfaces.update model.session subMsg subModel) (InterfacesMsg) (InterfacesPage)
+                    updateRealmPageHelper realm (Interfaces.update model.session subMsg subModel) InterfacesMsg InterfacesPage
 
                 ( InterfaceBuilderMsg subMsg, InterfaceBuilderPage subModel ) ->
-                    updateRealmPageHelper realm (InterfaceBuilder.update model.session subMsg subModel) (InterfaceBuilderMsg) (InterfaceBuilderPage)
+                    updateRealmPageHelper realm (InterfaceBuilder.update model.session subMsg subModel) InterfaceBuilderMsg InterfaceBuilderPage
 
                 ( RealmSettingsMsg subMsg, RealmSettingsPage subModel ) ->
-                    updateRealmPageHelper realm (RealmSettings.update model.session subMsg subModel) (RealmSettingsMsg) (RealmSettingsPage)
+                    updateRealmPageHelper realm (RealmSettings.update model.session subMsg subModel) RealmSettingsMsg RealmSettingsPage
 
                 ( TriggersMsg subMsg, TriggersPage subModel ) ->
-                    updateRealmPageHelper realm (Triggers.update model.session subMsg subModel) (TriggersMsg) (TriggersPage)
+                    updateRealmPageHelper realm (Triggers.update model.session subMsg subModel) TriggersMsg TriggersPage
 
                 ( TriggerBuilderMsg subMsg, TriggerBuilderPage subModel ) ->
-                    updateRealmPageHelper realm (TriggerBuilder.update model.session subMsg subModel) (TriggerBuilderMsg) (TriggerBuilderPage)
+                    updateRealmPageHelper realm (TriggerBuilder.update model.session subMsg subModel) TriggerBuilderMsg TriggerBuilderPage
 
                 -- Ignore messages from not matching pages
                 ( _, _ ) ->
@@ -281,9 +273,9 @@ updateRealmPage realm realmPage msg model =
         ( updatedModel, newCommands ) =
             handleExternalMessage model externalMsg
     in
-        ( { updatedModel | selectedPage = page }
-        , Cmd.batch [ newCommands, command ]
-        )
+    ( { updatedModel | selectedPage = page }
+    , Cmd.batch [ newCommands, command ]
+    )
 
 
 updateRealmPageHelper : String -> ( a, Cmd b, ExternalMsg ) -> (b -> Msg) -> (a -> RealmPage) -> ( Page, Cmd Msg, ExternalMsg )
@@ -337,12 +329,12 @@ pageInit realmRoute credentials config session =
                             [ authUrl, "/logout?redirect_uri=", Http.encodeUri session.hostUrl ]
                                 |> String.concat
             in
-                ( page
-                , Cmd.batch
-                    [ Ports.storeSession Nothing
-                    , Navigation.load <| logoutPath
-                    ]
-                )
+            ( page
+            , Cmd.batch
+                [ Ports.storeSession Nothing
+                , Navigation.load <| logoutPath
+                ]
+            )
 
         Route.RealmSettings ->
             initSettingsPage session credentials.realm
@@ -375,9 +367,9 @@ initLoginPage config maybeAuthType session =
         ( initialSubModel, initialPageCommand ) =
             Login.init config authType
     in
-        ( Public (LoginPage initialSubModel)
-        , Cmd.map LoginMsg initialPageCommand
-        )
+    ( Public (LoginPage initialSubModel)
+    , Cmd.map LoginMsg initialPageCommand
+    )
 
 
 initHomePage : Session -> String -> ( Page, Cmd Msg )
@@ -386,9 +378,9 @@ initHomePage session realm =
         ( initialModel, initialCommand ) =
             Home.init session
     in
-        ( Realm realm (HomePage initialModel)
-        , Cmd.map HomeMsg initialCommand
-        )
+    ( Realm realm (HomePage initialModel)
+    , Cmd.map HomeMsg initialCommand
+    )
 
 
 initInterfacesPage : Session -> String -> ( Page, Cmd Msg )
@@ -397,9 +389,9 @@ initInterfacesPage session realm =
         ( initialModel, initialCommand ) =
             Interfaces.init session
     in
-        ( Realm realm (InterfacesPage initialModel)
-        , Cmd.map InterfacesMsg initialCommand
-        )
+    ( Realm realm (InterfacesPage initialModel)
+    , Cmd.map InterfacesMsg initialCommand
+    )
 
 
 initInterfaceBuilderPage : Maybe ( String, Int ) -> Session -> String -> ( Page, Cmd Msg )
@@ -408,9 +400,9 @@ initInterfaceBuilderPage maybeInterfaceId session realm =
         ( initialModel, initialCommand ) =
             InterfaceBuilder.init maybeInterfaceId session
     in
-        ( Realm realm (InterfaceBuilderPage initialModel)
-        , Cmd.map InterfaceBuilderMsg initialCommand
-        )
+    ( Realm realm (InterfaceBuilderPage initialModel)
+    , Cmd.map InterfaceBuilderMsg initialCommand
+    )
 
 
 initTriggersPage : Session -> String -> ( Page, Cmd Msg )
@@ -419,9 +411,9 @@ initTriggersPage session realm =
         ( initialModel, initialCommand ) =
             Triggers.init session
     in
-        ( Realm realm (TriggersPage initialModel)
-        , Cmd.map TriggersMsg initialCommand
-        )
+    ( Realm realm (TriggersPage initialModel)
+    , Cmd.map TriggersMsg initialCommand
+    )
 
 
 initTriggerBuilderPage : Maybe String -> Session -> String -> ( Page, Cmd Msg )
@@ -430,9 +422,9 @@ initTriggerBuilderPage maybeTriggerName session realm =
         ( initialModel, initialCommand ) =
             TriggerBuilder.init maybeTriggerName session
     in
-        ( Realm realm (TriggerBuilderPage initialModel)
-        , Cmd.map TriggerBuilderMsg initialCommand
-        )
+    ( Realm realm (TriggerBuilderPage initialModel)
+    , Cmd.map TriggerBuilderMsg initialCommand
+    )
 
 
 initSettingsPage : Session -> String -> ( Page, Cmd Msg )
@@ -441,9 +433,9 @@ initSettingsPage session realm =
         ( initialModel, initialCommand ) =
             RealmSettings.init session
     in
-        ( Realm realm (RealmSettingsPage initialModel)
-        , Cmd.map RealmSettingsMsg initialCommand
-        )
+    ( Realm realm (RealmSettingsPage initialModel)
+    , Cmd.map RealmSettingsMsg initialCommand
+    )
 
 
 
@@ -498,8 +490,8 @@ processRoute config session ( maybeRoute, maybeToken ) =
                                 _ ->
                                     Just Config.OAuth
                     in
-                        initLoginPage config requestedLoginType session
-                            ==> session
+                    initLoginPage config requestedLoginType session
+                        ==> session
 
                 _ ->
                     processRealmRoute maybeToken Route.ListInterfaces config session
@@ -526,10 +518,10 @@ processRealmRoute maybeToken realmRoute config session =
                         ( page, command ) =
                             pageInit realmRoute updatedCredentials config updatedSession
                     in
-                        ( page
-                        , Cmd.batch [ storeSession updatedSession, command ]
-                        , updatedSession
-                        )
+                    ( page
+                    , Cmd.batch [ storeSession updatedSession, command ]
+                    , updatedSession
+                    )
 
                 Nothing ->
                     -- access granted
@@ -562,10 +554,10 @@ processRealmRoute maybeToken realmRoute config session =
                                 ( page, command ) =
                                     pageInit Route.Home updatedCredentials config updatedSession
                             in
-                                ( page
-                                , Cmd.batch [ storeSession updatedSession, command ]
-                                , updatedSession
-                                )
+                            ( page
+                            , Cmd.batch [ storeSession updatedSession, command ]
+                            , updatedSession
+                            )
 
                         _ ->
                             -- missing parameters
@@ -821,6 +813,7 @@ subscriptions model =
             , Sub.map UpdateSession sessionChange
             , pageSubscriptions model.selectedPage
             ]
+
     else
         Sub.batch
             [ Navbar.subscriptions model.navbarState NavbarMsg

@@ -1,4 +1,4 @@
-module JsonHelpers exposing (resultToDecoder, encodeOptionalFields)
+module JsonHelpers exposing (encodeOptionalFields, resultToDecoder)
 
 import Json.Decode exposing (Decoder, Value)
 
@@ -22,5 +22,6 @@ encodeOptionalHelper : ( String, Value, Bool ) -> Maybe ( String, Value )
 encodeOptionalHelper ( fieldName, value, isDefault ) =
     if isDefault then
         Nothing
+
     else
         Just ( fieldName, value )

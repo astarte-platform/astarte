@@ -1,21 +1,20 @@
-module Types.Trigger
-    exposing
-        ( Trigger
-        , Template(..)
-        , SimpleTrigger(..)
-        , encode
-        , decoder
-        , empty
-        , setName
-        , setUrl
-        , setTemplate
-        , setSimpleTrigger
-        , fromString
-        , toPrettySource
-        )
+module Types.Trigger exposing
+    ( SimpleTrigger(..)
+    , Template(..)
+    , Trigger
+    , decoder
+    , empty
+    , encode
+    , fromString
+    , setName
+    , setSimpleTrigger
+    , setTemplate
+    , setUrl
+    , toPrettySource
+    )
 
-import Json.Decode as Decode exposing (Value, Decoder, decodeString, map, andThen, field, index, nullable, string)
-import Json.Decode.Pipeline exposing (decode, required, requiredAt, optionalAt, resolve)
+import Json.Decode as Decode exposing (Decoder, Value, andThen, decodeString, field, index, map, nullable, string)
+import Json.Decode.Pipeline exposing (decode, optionalAt, required, requiredAt, resolve)
 import Json.Encode as Encode
 import Types.DataTrigger as DataTrigger exposing (DataTrigger)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger)
@@ -87,7 +86,7 @@ encode t =
         , ( "action"
           , Encode.object
                 ([ ( "http_post_url", Encode.string t.url ) ]
-                    ++ (templateEncoder t.template)
+                    ++ templateEncoder t.template
                 )
           )
         , ( "simple_triggers"
@@ -128,20 +127,20 @@ decoder =
     let
         toDecoder : String -> String -> Maybe String -> Maybe String -> SimpleTrigger -> Decoder Trigger
         toDecoder name url maybeTemplateType maybeTemplate simpleTrigger =
-            case (stringsToTemplate maybeTemplateType maybeTemplate) of
+            case stringsToTemplate maybeTemplateType maybeTemplate of
                 Ok template ->
                     Decode.succeed <| Trigger name url template simpleTrigger
 
                 Err err ->
                     Decode.fail err
     in
-        decode toDecoder
-            |> required "name" string
-            |> requiredAt [ "action", "http_post_url" ] string
-            |> optionalAt [ "action", "template_type" ] (nullable string) Nothing
-            |> optionalAt [ "action", "template" ] (nullable string) Nothing
-            |> required "simple_triggers" (index 0 simpleTriggerDecoder)
-            |> resolve
+    decode toDecoder
+        |> required "name" string
+        |> requiredAt [ "action", "http_post_url" ] string
+        |> optionalAt [ "action", "template_type" ] (nullable string) Nothing
+        |> optionalAt [ "action", "template" ] (nullable string) Nothing
+        |> required "simple_triggers" (index 0 simpleTriggerDecoder)
+        |> resolve
 
 
 stringsToTemplate : Maybe String -> Maybe String -> Result String Template
