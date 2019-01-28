@@ -1,16 +1,15 @@
-module Types.Config
-    exposing
-        ( Config
-        , AuthType(..)
-        , AuthConfig(..)
-        , empty
-        , getAuthConfig
-        , defaultAuthConfig
-        , decoder
-        )
+module Types.Config exposing
+    ( AuthConfig(..)
+    , AuthType(..)
+    , Config
+    , decoder
+    , defaultAuthConfig
+    , empty
+    , getAuthConfig
+    )
 
-import Json.Decode as Decode exposing (Decoder, string, nullable, list, field, maybe, andThen)
-import Json.Decode.Pipeline exposing (decode, required, optional)
+import Json.Decode as Decode exposing (Decoder, andThen, field, list, maybe, nullable, string)
+import Json.Decode.Pipeline exposing (decode, optional, required)
 import JsonHelpers as JsonHelpers
 
 
@@ -91,7 +90,7 @@ authTypeDecoder =
 
 stringToAuthType : String -> Result String AuthType
 stringToAuthType s =
-    case (String.toLower s) of
+    case String.toLower s of
         "oauth" ->
             Ok OAuth
 

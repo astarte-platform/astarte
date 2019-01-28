@@ -1,11 +1,10 @@
-module Assets
-    exposing
-        ( AssetPath(..)
-        , path
-        , loginImage
-        , dashboardIcon
-        , homepageImage
-        )
+module Assets exposing
+    ( AssetPath(..)
+    , dashboardIcon
+    , homepageImage
+    , loginImage
+    , path
+    )
 
 
 type AssetPath

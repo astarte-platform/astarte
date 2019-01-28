@@ -1,13 +1,13 @@
-module Route
-    exposing
-        ( Route(..)
-        , RealmRoute(..)
-        , toString
-        , fromLocation
-        )
+module Route exposing
+    ( RealmRoute(..)
+    , Route(..)
+    , fromLocation
+    , toString
+    )
 
 import Navigation exposing (Location)
-import UrlParser as Url exposing (top, parsePath, stringParam, int, string, s, oneOf, (</>), (<?>))
+import UrlParser as Url exposing ((</>), (<?>), int, oneOf, parsePath, s, string, stringParam, top)
+
 
 
 -- ROUTING --
@@ -37,7 +37,7 @@ route =
     oneOf
         [ Url.map Root (s "")
         , Url.map RealmSelection (s "login" <?> stringParam "type")
-        , Url.map Realm (realmRoute)
+        , Url.map Realm realmRoute
         ]
 
 
@@ -118,13 +118,14 @@ toString route =
                 Realm (ShowTrigger name) ->
                     [ "triggers", name ]
     in
-        "/" ++ String.join "/" pieces
+    "/" ++ String.join "/" pieces
 
 
 parseToken : String -> Maybe String
 parseToken hash =
     if String.isEmpty hash then
         Nothing
+
     else
         String.split "&" hash
             |> List.filter (String.contains "access_token")

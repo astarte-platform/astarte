@@ -1,11 +1,4 @@
-module Modal.MappingBuilder exposing (Model, Msg(..), ExternalMsg(..), empty, init, update, view)
-
-import Html exposing (Html, text)
-import Html.Attributes exposing (value, selected, for)
-import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
-
-
--- bootstrap components
+module Modal.MappingBuilder exposing (ExternalMsg(..), Model, Msg(..), empty, init, update, view)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
@@ -17,6 +10,9 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Display as Display
+import Html exposing (Html, text)
+import Html.Attributes exposing (for, selected, value)
+import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
 
 
 type alias Model =
@@ -47,6 +43,7 @@ init interfaceMapping editMode isProperties isObject shown =
     , visibility =
         if shown then
             Modal.shown
+
         else
             Modal.hidden
     }
@@ -99,6 +96,7 @@ update message model =
             ( { model | visibility = Modal.hidden }
             , if model.editMode then
                 EditMapping model.interfaceMapping
+
               else
                 AddNewMapping model.interfaceMapping
             )
@@ -109,7 +107,7 @@ update message model =
             )
 
         UpdateMappingType newType ->
-            case (InterfaceMapping.stringToMappingType newType) of
+            case InterfaceMapping.stringToMappingType newType of
                 Ok mappingType ->
                     ( { model | interfaceMapping = InterfaceMapping.setType mappingType model.interfaceMapping }
                     , Noop
@@ -121,7 +119,7 @@ update message model =
                     )
 
         UpdateMappingReliability newReliability ->
-            case (InterfaceMapping.stringToReliability newReliability) of
+            case InterfaceMapping.stringToReliability newReliability of
                 Ok reliability ->
                     ( { model
                         | interfaceMapping =
@@ -136,7 +134,7 @@ update message model =
                     )
 
         UpdateMappingRetention newMapRetention ->
-            case (InterfaceMapping.stringToRetention newMapRetention) of
+            case InterfaceMapping.stringToRetention newMapRetention of
                 Ok InterfaceMapping.Discard ->
                     ( { model
                         | interfaceMapping =
@@ -161,12 +159,13 @@ update message model =
                     )
 
         UpdateMappingExpiry newMappingExpiry ->
-            case (String.toInt newMappingExpiry) of
+            case String.toInt newMappingExpiry of
                 Ok expiry ->
-                    if (expiry >= 0) then
+                    if expiry >= 0 then
                         ( { model | interfaceMapping = InterfaceMapping.setExpiry expiry model.interfaceMapping }
                         , Noop
                         )
+
                     else
                         ( model
                         , Noop
@@ -205,6 +204,7 @@ view model =
         |> Modal.h5 []
             [ if model.editMode then
                 text "Edit mapping"
+
               else
                 text "Add new mapping"
             ]
@@ -243,8 +243,9 @@ renderBody mapping isProperties isObject editMode =
                         , Input.value mapping.endpoint
                         , Input.disabled editMode
                         , Input.onInput UpdateMappingEndpoint
-                        , if (InterfaceMapping.isValidEndpoint mapping.endpoint) then
+                        , if InterfaceMapping.isValidEndpoint mapping.endpoint then
                             Input.success
+
                           else
                             Input.danger
                         ]
@@ -255,6 +256,7 @@ renderBody mapping isProperties isObject editMode =
             [ Form.col
                 [ if isProperties then
                     Col.sm8
+
                   else
                     Col.sm12
                 ]
@@ -270,6 +272,7 @@ renderBody mapping isProperties isObject editMode =
             , Form.col
                 [ if isProperties then
                     Col.sm4
+
                   else
                     Col.attrs [ Display.none ]
                 ]
@@ -285,8 +288,9 @@ renderBody mapping isProperties isObject editMode =
                 ]
             ]
         , Form.row
-            (if (isProperties || isObject) then
+            (if isProperties || isObject then
                 [ Row.attrs [ Display.none ] ]
+
              else
                 []
             )
@@ -316,8 +320,9 @@ renderBody mapping isProperties isObject editMode =
                     ]
                 ]
             , Form.col
-                [ if (mapping.retention == InterfaceMapping.Discard) then
+                [ if mapping.retention == InterfaceMapping.Discard then
                     Col.sm8
+
                   else
                     Col.sm4
                 ]
@@ -346,8 +351,9 @@ renderBody mapping isProperties isObject editMode =
                     ]
                 ]
             , Form.col
-                [ if (mapping.retention == InterfaceMapping.Discard) then
+                [ if mapping.retention == InterfaceMapping.Discard then
                     Col.attrs [ Display.none ]
+
                   else
                     Col.sm4
                 ]

@@ -1,19 +1,18 @@
-module Types.Session
-    exposing
-        ( Session
-        , Credentials
-        , LoginType(..)
-        , encode
-        , decoder
-        , init
-        , setCredentials
-        , setRealmManagementApiUrl
-        , setHostUrl
-        , setToken
-        )
+module Types.Session exposing
+    ( Credentials
+    , LoginType(..)
+    , Session
+    , decoder
+    , encode
+    , init
+    , setCredentials
+    , setHostUrl
+    , setRealmManagementApiUrl
+    , setToken
+    )
 
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (decode, required, hardcoded)
+import Json.Decode.Pipeline exposing (decode, hardcoded, required)
 import Json.Encode as Encode exposing (Value)
 import JsonHelpers as JsonHelpers
 

@@ -1,24 +1,23 @@
-module Types.DataTrigger
-    exposing
-        ( DataTrigger
-        , DataTriggerEvent(..)
-        , Operator(..)
-        , JsonType(..)
-        , empty
-        , setInterfaceName
-        , setInterfaceMajor
-        , setPath
-        , setOperator
-        , setKnownValue
-        , setKnownValueType
-        , encode
-        , decoder
-        , dataTriggerEventToString
-        , stringToDataTriggerEvent
-        )
+module Types.DataTrigger exposing
+    ( DataTrigger
+    , DataTriggerEvent(..)
+    , JsonType(..)
+    , Operator(..)
+    , dataTriggerEventToString
+    , decoder
+    , empty
+    , encode
+    , setInterfaceMajor
+    , setInterfaceName
+    , setKnownValue
+    , setKnownValueType
+    , setOperator
+    , setPath
+    , stringToDataTriggerEvent
+    )
 
-import Json.Decode as Decode exposing (Decoder, Value, nullable, int, float, bool, string)
-import Json.Decode.Pipeline exposing (decode, required, optional, resolve)
+import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, nullable, string)
+import Json.Decode.Pipeline exposing (decode, optional, required, resolve)
 import Json.Encode as Encode
 import JsonHelpers
 
@@ -152,49 +151,49 @@ operatorEncoder operator value valueType =
                 _ ->
                     Encode.string value
     in
-        case operator of
-            Any ->
-                [ ( "value_match_operator", Encode.string "*" ) ]
+    case operator of
+        Any ->
+            [ ( "value_match_operator", Encode.string "*" ) ]
 
-            EqualTo ->
-                [ ( "value_match_operator", Encode.string "==" )
-                , ( "known_value", encodedValue )
-                ]
+        EqualTo ->
+            [ ( "value_match_operator", Encode.string "==" )
+            , ( "known_value", encodedValue )
+            ]
 
-            NotEqualTo ->
-                [ ( "value_match_operator", Encode.string "!=" )
-                , ( "known_value", encodedValue )
-                ]
+        NotEqualTo ->
+            [ ( "value_match_operator", Encode.string "!=" )
+            , ( "known_value", encodedValue )
+            ]
 
-            GreaterThan ->
-                [ ( "value_match_operator", Encode.string ">" )
-                , ( "known_value", encodedValue )
-                ]
+        GreaterThan ->
+            [ ( "value_match_operator", Encode.string ">" )
+            , ( "known_value", encodedValue )
+            ]
 
-            GreaterOrEqualTo ->
-                [ ( "value_match_operator", Encode.string ">=" )
-                , ( "known_value", encodedValue )
-                ]
+        GreaterOrEqualTo ->
+            [ ( "value_match_operator", Encode.string ">=" )
+            , ( "known_value", encodedValue )
+            ]
 
-            LessThan ->
-                [ ( "value_match_operator", Encode.string "<" )
-                , ( "known_value", encodedValue )
-                ]
+        LessThan ->
+            [ ( "value_match_operator", Encode.string "<" )
+            , ( "known_value", encodedValue )
+            ]
 
-            LessOrEqualTo ->
-                [ ( "value_match_operator", Encode.string "<=" )
-                , ( "known_value", encodedValue )
-                ]
+        LessOrEqualTo ->
+            [ ( "value_match_operator", Encode.string "<=" )
+            , ( "known_value", encodedValue )
+            ]
 
-            Contains ->
-                [ ( "value_match_operator", Encode.string "contains" )
-                , ( "known_value", encodedValue )
-                ]
+        Contains ->
+            [ ( "value_match_operator", Encode.string "contains" )
+            , ( "known_value", encodedValue )
+            ]
 
-            NotContains ->
-                [ ( "value_match_operator", Encode.string "not_contains" )
-                , ( "known_value", encodedValue )
-                ]
+        NotContains ->
+            [ ( "value_match_operator", Encode.string "not_contains" )
+            , ( "known_value", encodedValue )
+            ]
 
 
 dataTriggerEventEncoder : DataTriggerEvent -> Value

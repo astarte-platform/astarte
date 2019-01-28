@@ -1,22 +1,6 @@
-module Page.Interfaces exposing (Model, Msg, init, update, view, subscriptions)
+module Page.Interfaces exposing (Model, Msg, init, subscriptions, update, view)
 
-import Dict exposing (Dict)
-import Html exposing (Html, text, h5, a, i)
-import Html.Attributes exposing (class, href)
-import Html.Events exposing (onClick, onInput)
-import Navigation
-import Json.Decode as Decode
-import Spinner
 import AstarteApi
-import Route
-import Types.Session exposing (Session)
-import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.FlashMessageHelpers as FlashMessageHelpers
-
-
--- bootstrap components
-
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -27,6 +11,18 @@ import Bootstrap.ListGroup as ListGroup
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
+import Dict exposing (Dict)
+import Html exposing (Html, a, h5, i, text)
+import Html.Attributes exposing (class, href)
+import Html.Events exposing (onClick, onInput)
+import Json.Decode as Decode
+import Navigation
+import Route
+import Spinner
+import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
+import Types.Session exposing (Session)
 
 
 type alias Model =
@@ -181,6 +177,7 @@ view model flashMessages =
             ]
         , if model.showSpinner then
             Spinner.view Spinner.defaultConfig model.spinner
+
           else
             text ""
         , Grid.row
@@ -195,6 +192,7 @@ view model flashMessages =
                     ]
                     [ if Dict.isEmpty model.interfaces then
                         text "No interfaces installed"
+
                       else
                         text "Interfaces"
                     ]
@@ -245,6 +243,7 @@ renderInterfaceCard ( interfaceName, majors ) =
             [ Accordion.listGroup
                 (if List.isEmpty majors then
                     [ ListGroup.li [] [ text "Loading..." ] ]
+
                  else
                     List.map (renderMajor interfaceName) majors
                 )
@@ -259,6 +258,7 @@ interfaceNameToHtmlId name =
             (\c ->
                 if c == '.' then
                     '-'
+
                 else
                     c
             )
@@ -277,7 +277,7 @@ renderMajor interfaceName major =
                 }
                 (Decode.succeed <| ShowInterface interfaceName major)
             ]
-            [ text <| interfaceName ++ " v" ++ (toString major) ]
+            [ text <| interfaceName ++ " v" ++ toString major ]
         ]
 
 
@@ -292,5 +292,6 @@ subscriptions model =
             [ Accordion.subscriptions model.accordionState AccordionMsg
             , Sub.map SpinnerMsg Spinner.subscription
             ]
+
     else
         Accordion.subscriptions model.accordionState AccordionMsg

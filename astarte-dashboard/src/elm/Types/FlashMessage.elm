@@ -1,10 +1,9 @@
-module Types.FlashMessage
-    exposing
-        ( FlashMessage
-        , FlashMessageId
-        , Severity(..)
-        , new
-        )
+module Types.FlashMessage exposing
+    ( FlashMessage
+    , FlashMessageId
+    , Severity(..)
+    , new
+    )
 
 import Time exposing (Time)
 

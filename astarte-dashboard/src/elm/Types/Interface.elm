@@ -1,37 +1,36 @@
-module Types.Interface
-    exposing
-        ( Interface
-        , InterfaceType(..)
-        , Owner(..)
-        , AggregationType(..)
-        , empty
-        , encode
-        , decoder
-        , setName
-        , setMajor
-        , setMinor
-        , setType
-        , setOwnership
-        , setAggregation
-        , setHasMeta
-        , setDescription
-        , setDoc
-        , addMapping
-        , removeMapping
-        , editMapping
-        , sealMappings
-        , setObjectMappingAttributes
-        , mappingsAsList
-        , compareId
-        , isValidInterfaceName
-        , isGoodInterfaceName
-        , toPrettySource
-        , fromString
-        )
+module Types.Interface exposing
+    ( AggregationType(..)
+    , Interface
+    , InterfaceType(..)
+    , Owner(..)
+    , addMapping
+    , compareId
+    , decoder
+    , editMapping
+    , empty
+    , encode
+    , fromString
+    , isGoodInterfaceName
+    , isValidInterfaceName
+    , mappingsAsList
+    , removeMapping
+    , sealMappings
+    , setAggregation
+    , setDescription
+    , setDoc
+    , setHasMeta
+    , setMajor
+    , setMinor
+    , setName
+    , setObjectMappingAttributes
+    , setOwnership
+    , setType
+    , toPrettySource
+    )
 
 import Dict exposing (Dict)
-import Json.Decode as Decode exposing (Decoder, Value, list, int, bool, string, decodeString)
-import Json.Decode.Pipeline exposing (decode, required, optional)
+import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, int, list, string)
+import Json.Decode.Pipeline exposing (decode, optional, required)
 import Json.Encode as Encode
 import JsonHelpers
 import Regex exposing (regex)
@@ -107,6 +106,7 @@ setType iType interface =
         updatedMappings =
             if iType == Datastream then
                 Dict.map (\_ m -> m |> InterfaceMapping.setAllowUnset False) interface.mappings
+
             else
                 Dict.map
                     (\_ mapping ->
@@ -119,10 +119,10 @@ setType iType interface =
                     )
                     interface.mappings
     in
-        { interface
-            | iType = iType
-            , mappings = updatedMappings
-        }
+    { interface
+        | iType = iType
+        , mappings = updatedMappings
+    }
 
 
 setOwnership : Owner -> Interface -> Interface
@@ -156,15 +156,16 @@ addMapping mapping interface =
         previousItem =
             Dict.get mapping.endpoint interface.mappings
     in
-        case previousItem of
-            Nothing ->
+    case previousItem of
+        Nothing ->
+            insertMapping mapping interface
+
+        Just m ->
+            if m.draft then
                 insertMapping mapping interface
 
-            Just m ->
-                if m.draft then
-                    insertMapping mapping interface
-                else
-                    interface
+            else
+                interface
 
 
 editMapping : InterfaceMapping -> Interface -> Interface
@@ -173,15 +174,16 @@ editMapping mapping interface =
         previousItem =
             Dict.get mapping.endpoint interface.mappings
     in
-        case previousItem of
-            Nothing ->
-                interface
+    case previousItem of
+        Nothing ->
+            interface
 
-            Just m ->
-                if m.draft then
-                    insertMapping mapping interface
-                else
-                    interface
+        Just m ->
+            if m.draft then
+                insertMapping mapping interface
+
+            else
+                interface
 
 
 insertMapping : InterfaceMapping -> Interface -> Interface
@@ -206,7 +208,7 @@ sealMappings interface =
                 (\_ mapping -> InterfaceMapping.setDraft mapping False)
                 interface.mappings
     in
-        { interface | mappings = newMappings }
+    { interface | mappings = newMappings }
 
 
 setObjectMappingAttributes :
@@ -230,7 +232,7 @@ setObjectMappingAttributes reliability retention expiry explicitTimestamp interf
                 )
                 interface.mappings
     in
-        { interface | mappings = newMappings }
+    { interface | mappings = newMappings }
 
 
 
@@ -343,7 +345,7 @@ aggregationDecoder =
 
 stringToInterfaceType : String -> Result String InterfaceType
 stringToInterfaceType s =
-    case (String.toLower s) of
+    case String.toLower s of
         "datastream" ->
             Ok Datastream
 
