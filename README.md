@@ -52,7 +52,9 @@ If you don't fancy containers, we plan on providing standalone binary packages s
 
 ## Looks great! I want to contribute!
 
-That's awesome! Astarte is quite young as an Open Source project, so we're still setting up bits and pieces to make contributions easier and more effective, such as a shared roadmap, a proper contributor guide and Slack/IRC channels. For the time being, you can head over to the repository you want to contribute to and set up a Pull Request. There's a CLA to be signed, as we plan on moving Astarte to a more permissive license very soon.
+That's awesome! Astarte is quite young as an Open Source project, so we're still setting up bits and pieces to make contributions easier and more effective, such as a shared roadmap, a proper contributor guide. For the time being, you can head over to the repository you want to contribute to and set up a Pull Request. There's a CLA to be signed, as we plan on moving Astarte to a more permissive license very soon.
+
+You can also join us on [#astarte slack channel on Elixir Slack](https://elixir-slackin.herokuapp.com/) and on [#astarte IRC channel on freenode](ircs://chat.freenode.net:6697/#astarte).
 
 We accept all kind of quality contributions, as long as they adhere with the project goals and philosophy, and have some tests.
 
@@ -65,3 +67,9 @@ Yup. Some infrastructure and cloud providers are working on releasing Astarte-ba
 Glad you asked. Astarte is developed by [Ispirata](https://ispirata.com), who fuels its development thanks to the generosity of many customers running it in production. Besides consultancy, installation, maintenance, long-term support and customizations, Ispirata also commercializes Astarte Enterprise, an Astarte variant packing in some additional goodies and features, such as a Kubernetes Operator.
 
 [Get in touch](https://ispirata.com/contact/) to find out how we can help you in getting Astarte in its best possible shape for your specific needs.
+
+# License
+
+Astarte source code is released under Apache 2 License.
+
+Check LICENSE file for more information.
