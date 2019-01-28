@@ -67,3 +67,9 @@ Yup. Some infrastructure and cloud providers are working on releasing Astarte-ba
 Glad you asked. Astarte is developed by [Ispirata](https://ispirata.com), who fuels its development thanks to the generosity of many customers running it in production. Besides consultancy, installation, maintenance, long-term support and customizations, Ispirata also commercializes Astarte Enterprise, an Astarte variant packing in some additional goodies and features, such as a Kubernetes Operator.
 
 [Get in touch](https://ispirata.com/contact/) to find out how we can help you in getting Astarte in its best possible shape for your specific needs.
+
+# License
+
+Astarte source code is released under Apache 2 License.
+
+Check LICENSE file for more information.
