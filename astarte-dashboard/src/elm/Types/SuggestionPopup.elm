@@ -85,11 +85,16 @@ update (SuggestionPopup status) msg =
                     }
 
 
-view : SuggestionPopup -> List (Html Msg)
-view (SuggestionPopup status) =
-    [ div
+view : SuggestionPopup -> Bool -> Html Msg
+view (SuggestionPopup status) showIcon =
+    div
         [ class "suggestion"
         , onClick ToggleVisibility
+        , if showIcon then
+            Display.inline
+
+          else
+            Display.none
         ]
         [ i
             [ class "suggestion-icon"
@@ -97,18 +102,17 @@ view (SuggestionPopup status) =
             , class "fa-exclamation-circle"
             ]
             []
-        ]
-    , div
-        [ class "suggestion-bubble"
-        , onMouseLeave AutoHide
-        , if status.visible then
-            Display.block
+        , div
+            [ class "suggestion-bubble"
+            , onMouseLeave AutoHide
+            , if status.visible then
+                Display.block
 
-          else
-            Display.none
+              else
+                Display.none
+            ]
+            [ text status.message ]
         ]
-        [ text status.message ]
-    ]
 
 
 subs : SuggestionPopup -> Sub Msg
