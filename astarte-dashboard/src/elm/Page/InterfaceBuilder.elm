@@ -799,8 +799,22 @@ handleMappingBuilderMessages message model =
 
         MappingBuilder.AddNewMapping mapping ->
             let
+                updatedMapping =
+                    if
+                        (model.interface.aggregation == Interface.Object)
+                            && (model.interface.iType == Interface.Datastream)
+                    then
+                        mapping
+                            |> InterfaceMapping.setRetention model.objectRetention
+                            |> InterfaceMapping.setReliability model.objectReliability
+                            |> InterfaceMapping.setExpiry model.objectExpiry
+                            |> InterfaceMapping.setExplicitTimestamp model.objectExplicitTimestamp
+
+                    else
+                        mapping
+
                 newInterface =
-                    Interface.addMapping mapping model.interface
+                    Interface.addMapping updatedMapping model.interface
             in
             { model
                 | interface = newInterface
