@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
 
-## [0.10.0-beta.3] - Unreleased
+## [0.10.0-rc.0] - Unreleased
+
+## [0.10.0-beta.3] - 2018-12-19
 ### Fixed
 - Correctly serialize triggers on the special "*" interface and device.
 
