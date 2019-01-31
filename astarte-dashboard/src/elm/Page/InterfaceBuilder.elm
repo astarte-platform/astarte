@@ -28,6 +28,7 @@ import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Fieldset as Fieldset
 import Bootstrap.Form.Input as Input
+import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Form.Radio as Radio
 import Bootstrap.Form.Select as Select
 import Bootstrap.Form.Textarea as Textarea
@@ -1222,12 +1223,16 @@ renderCommonMappingSettings model =
             ]
             [ Form.group []
                 [ Form.label [ for "objectMappingExpiry" ] [ text "Expiry" ]
-                , Input.number
+                , InputGroup.number
                     [ Input.id "objectMappingExpiry"
                     , Input.disabled model.interfaceEditMode
                     , Input.value <| toString model.objectExpiry
                     , Input.onInput UpdateObjectMappingExpiry
                     ]
+                    |> InputGroup.config
+                    |> InputGroup.successors
+                        [ InputGroup.span [] [ text "ms" ] ]
+                    |> InputGroup.view
                 ]
             ]
         , Form.col [ Col.sm6 ]

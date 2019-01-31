@@ -4,6 +4,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Input as Input
+import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Form.Select as Select
 import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Grid.Col as Col
@@ -359,11 +360,15 @@ renderBody mapping isProperties isObject editMode =
                 ]
                 [ Form.group []
                     [ Form.label [ for "mappingExpiry" ] [ text "Expiry" ]
-                    , Input.number
+                    , InputGroup.number
                         [ Input.id "mappingExpiry"
                         , Input.value <| toString mapping.expiry
                         , Input.onInput UpdateMappingExpiry
                         ]
+                        |> InputGroup.config
+                        |> InputGroup.successors
+                            [ InputGroup.span [] [ text "ms" ] ]
+                        |> InputGroup.view
                     ]
                 ]
             , Form.col [ Col.sm3 ]
