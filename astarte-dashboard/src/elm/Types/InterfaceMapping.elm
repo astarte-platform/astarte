@@ -1,41 +1,59 @@
-module Types.InterfaceMapping
-    exposing
-        ( InterfaceMapping
-        , MappingType(..)
-        , BaseType(..)
-        , Reliability(..)
-        , Retention(..)
-        , empty
-        , encode
-        , decoder
-        , setEndpoint
-        , setType
-        , setReliability
-        , setRetention
-        , setExpiry
-        , setAllowUnset
-        , setExplicitTimestamp
-        , setDescription
-        , setDoc
-        , setDraft
-        , isValid
-        , isValidEndpoint
-        , isValidType
-        , stringToMappingType
-        , stringToReliability
-        , stringToRetention
-        , mappingTypeList
-        , mappingTypeToString
-        , reliabilityToEnglishString
-        , retentionToEnglishString
-        , mappingTypeToEnglishString
-        )
+{-
+   This file is part of Astarte.
 
-import Regex exposing (regex)
-import Json.Decode as Decode exposing (Value, Decoder, decodeString, list, bool, int, string)
-import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
+   Copyright 2018 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-}
+
+
+module Types.InterfaceMapping exposing
+    ( BaseType(..)
+    , InterfaceMapping
+    , MappingType(..)
+    , Reliability(..)
+    , Retention(..)
+    , decoder
+    , empty
+    , encode
+    , isValid
+    , isValidEndpoint
+    , isValidType
+    , mappingTypeList
+    , mappingTypeToEnglishString
+    , mappingTypeToString
+    , reliabilityToEnglishString
+    , retentionToEnglishString
+    , setAllowUnset
+    , setDescription
+    , setDoc
+    , setDraft
+    , setEndpoint
+    , setExpiry
+    , setExplicitTimestamp
+    , setReliability
+    , setRetention
+    , setType
+    , stringToMappingType
+    , stringToReliability
+    , stringToRetention
+    )
+
+import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, int, list, string)
+import Json.Decode.Pipeline exposing (decode, hardcoded, optional, required)
 import Json.Encode as Encode
 import JsonHelpers
+import Regex exposing (regex)
 
 
 type alias InterfaceMapping =
@@ -238,7 +256,7 @@ mappingTypeToString t =
             baseTypeToString baseType
 
         Array baseType ->
-            (baseTypeToString baseType) ++ "array"
+            baseTypeToString baseType ++ "array"
 
 
 baseTypeToString : BaseType -> String
@@ -404,7 +422,7 @@ validateBaseType : BaseType -> String -> Bool
 validateBaseType baseType value =
     case baseType of
         DoubleMapping ->
-            case (String.toFloat value) of
+            case String.toFloat value of
                 Ok _ ->
                     True
 
@@ -412,7 +430,7 @@ validateBaseType baseType value =
                     False
 
         IntMapping ->
-            case (String.toInt value) of
+            case String.toInt value of
                 Ok _ ->
                     True
 
@@ -420,7 +438,7 @@ validateBaseType baseType value =
                     False
 
         BoolMapping ->
-            case (String.toLower value) of
+            case String.toLower value of
                 "true" ->
                     True
 

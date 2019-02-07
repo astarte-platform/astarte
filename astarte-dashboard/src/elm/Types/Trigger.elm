@@ -1,21 +1,39 @@
-module Types.Trigger
-    exposing
-        ( Trigger
-        , Template(..)
-        , SimpleTrigger(..)
-        , encode
-        , decoder
-        , empty
-        , setName
-        , setUrl
-        , setTemplate
-        , setSimpleTrigger
-        , fromString
-        , toPrettySource
-        )
+{-
+   This file is part of Astarte.
 
-import Json.Decode as Decode exposing (Value, Decoder, decodeString, map, andThen, field, index, nullable, string)
-import Json.Decode.Pipeline exposing (decode, required, requiredAt, optionalAt, resolve)
+   Copyright 2018 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-}
+
+
+module Types.Trigger exposing
+    ( SimpleTrigger(..)
+    , Template(..)
+    , Trigger
+    , decoder
+    , empty
+    , encode
+    , fromString
+    , setName
+    , setSimpleTrigger
+    , setTemplate
+    , setUrl
+    , toPrettySource
+    )
+
+import Json.Decode as Decode exposing (Decoder, Value, andThen, decodeString, field, index, map, nullable, string)
+import Json.Decode.Pipeline exposing (decode, optionalAt, required, requiredAt, resolve)
 import Json.Encode as Encode
 import Types.DataTrigger as DataTrigger exposing (DataTrigger)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger)
@@ -87,7 +105,7 @@ encode t =
         , ( "action"
           , Encode.object
                 ([ ( "http_post_url", Encode.string t.url ) ]
-                    ++ (templateEncoder t.template)
+                    ++ templateEncoder t.template
                 )
           )
         , ( "simple_triggers"
@@ -128,20 +146,20 @@ decoder =
     let
         toDecoder : String -> String -> Maybe String -> Maybe String -> SimpleTrigger -> Decoder Trigger
         toDecoder name url maybeTemplateType maybeTemplate simpleTrigger =
-            case (stringsToTemplate maybeTemplateType maybeTemplate) of
+            case stringsToTemplate maybeTemplateType maybeTemplate of
                 Ok template ->
                     Decode.succeed <| Trigger name url template simpleTrigger
 
                 Err err ->
                     Decode.fail err
     in
-        decode toDecoder
-            |> required "name" string
-            |> requiredAt [ "action", "http_post_url" ] string
-            |> optionalAt [ "action", "template_type" ] (nullable string) Nothing
-            |> optionalAt [ "action", "template" ] (nullable string) Nothing
-            |> required "simple_triggers" (index 0 simpleTriggerDecoder)
-            |> resolve
+    decode toDecoder
+        |> required "name" string
+        |> requiredAt [ "action", "http_post_url" ] string
+        |> optionalAt [ "action", "template_type" ] (nullable string) Nothing
+        |> optionalAt [ "action", "template" ] (nullable string) Nothing
+        |> required "simple_triggers" (index 0 simpleTriggerDecoder)
+        |> resolve
 
 
 stringsToTemplate : Maybe String -> Maybe String -> Result String Template

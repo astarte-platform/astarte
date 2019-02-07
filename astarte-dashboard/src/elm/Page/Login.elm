@@ -1,21 +1,25 @@
+{-
+   This file is part of Astarte.
+
+   Copyright 2018 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-}
+
+
 module Page.Login exposing (Model, Msg, init, update, view)
 
-import Http
-import Html exposing (Html, text, a, img)
-import Html.Attributes exposing (class, href, placeholder, src)
-import Navigation
-import Maybe.Extra exposing (isNothing)
 import Assets
-import Route
-import Types.Config as Config exposing (Config, AuthType(..), AuthConfig(..), getAuthConfig)
-import Types.Session exposing (Session)
-import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.FlashMessageHelpers as FlashMessageHelpers
-
-
--- bootstrap components
-
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
@@ -27,6 +31,17 @@ import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
+import Html exposing (Html, a, img, text)
+import Html.Attributes exposing (class, href, placeholder, src)
+import Http
+import Maybe.Extra exposing (isNothing)
+import Navigation
+import Route
+import Types.Config as Config exposing (AuthConfig(..), AuthType(..), Config, getAuthConfig)
+import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
+import Types.Session exposing (Session)
 
 
 type alias Model =
@@ -70,15 +85,15 @@ init config requestedAuth =
                     , True
                     )
     in
-        ( { realm = config.defaultRealm |> Maybe.withDefault ""
-          , token = ""
-          , authUrl = authUrl
-          , showAuthUrl = showAuthUrl
-          , loginType = authType
-          , allowSwitching = (List.length config.enabledAuth) > 1
-          }
-        , Cmd.none
-        )
+    ( { realm = config.defaultRealm |> Maybe.withDefault ""
+      , token = ""
+      , authUrl = authUrl
+      , showAuthUrl = showAuthUrl
+      , loginType = authType
+      , allowSwitching = List.length config.enabledAuth > 1
+      }
+    , Cmd.none
+    )
 
 
 type Msg
@@ -127,11 +142,12 @@ update session msg model =
 
 loginWithToken : Model -> ( Model, Cmd Msg, ExternalMsg )
 loginWithToken model =
-    if (String.isEmpty model.realm || String.isEmpty model.token) then
+    if String.isEmpty model.realm || String.isEmpty model.token then
         ( model
         , Cmd.none
         , ExternalMsg.Noop
         )
+
     else
         let
             tokenHash =
@@ -142,19 +158,20 @@ loginWithToken model =
                     |> Route.Realm
                     |> Route.toString
         in
-            ( model
-            , Navigation.modifyUrl <| authUrl ++ tokenHash
-            , ExternalMsg.Noop
-            )
+        ( model
+        , Navigation.modifyUrl <| authUrl ++ tokenHash
+        , ExternalMsg.Noop
+        )
 
 
 loginWithOAuth : Model -> String -> ( Model, Cmd Msg, ExternalMsg )
 loginWithOAuth model hostUrl =
-    if (String.isEmpty model.realm || String.isEmpty model.authUrl) then
+    if String.isEmpty model.realm || String.isEmpty model.authUrl then
         ( model
         , Cmd.none
         , ExternalMsg.Noop
         )
+
     else
         let
             returnUri =
@@ -171,10 +188,10 @@ loginWithOAuth model hostUrl =
                     , ( "redirect_uri", returnUri )
                     ]
         in
-            ( model
-            , Navigation.load fullUrl
-            , ExternalMsg.Noop
-            )
+        ( model
+        , Navigation.load fullUrl
+        , ExternalMsg.Noop
+        )
 
 
 buildUrl : String -> List ( String, String ) -> String
@@ -189,7 +206,7 @@ buildUrl baseUrl args =
 
 queryPair : ( String, String ) -> String
 queryPair ( key, value ) =
-    (Http.encodeUri key) ++ "=" ++ (Http.encodeUri value)
+    Http.encodeUri key ++ "=" ++ Http.encodeUri value
 
 
 view : Model -> List FlashMessage -> Html Msg
@@ -235,6 +252,7 @@ view model flashMessages =
                     , Form.row
                         (if model.allowSwitching then
                             []
+
                          else
                             [ Row.attrs [ Display.none ] ]
                         )
@@ -291,7 +309,7 @@ renderAuthInfo model =
                 [ Form.col [ Col.sm12 ]
                     [ Textarea.textarea
                         [ Textarea.id "authToken"
-                        , Textarea.attrs [ (placeholder "Auth Token") ]
+                        , Textarea.attrs [ placeholder "Auth Token" ]
                         , Textarea.rows 4
                         , Textarea.value model.token
                         , Textarea.onInput UpdateToken
@@ -300,7 +318,7 @@ renderAuthInfo model =
                 ]
 
         OAuth ->
-            if (model.showAuthUrl) then
+            if model.showAuthUrl then
                 Form.row []
                     [ Form.col [ Col.sm12 ]
                         [ Input.text
@@ -311,5 +329,6 @@ renderAuthInfo model =
                             ]
                         ]
                     ]
+
             else
                 text ""

@@ -1,17 +1,25 @@
+{-
+   This file is part of Astarte.
+
+   Copyright 2018 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-}
+
+
 module Page.Home exposing (Model, Msg, init, update, view)
 
-import Html exposing (Html, div, img, text, br, h2, h5, a, p)
-import Html.Attributes exposing (class, src, href, target)
-import Spinner
 import Assets
-import Types.Session exposing (Session)
-import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.FlashMessageHelpers as FlashMessageHelpers
-
-
--- bootstrap components
-
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
@@ -19,6 +27,13 @@ import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Spacing as Spacing
+import Html exposing (Html, a, br, div, h2, h5, img, p, text)
+import Html.Attributes exposing (class, href, src, target)
+import Spinner
+import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
+import Types.Session exposing (Session)
 
 
 type alias Model =
@@ -73,6 +88,7 @@ view model flashMessages =
             ]
         , if model.showSpinner then
             Spinner.view Spinner.defaultConfig model.spinner
+
           else
             text ""
         , Grid.row
@@ -126,5 +142,6 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     if model.showSpinner then
         Sub.map SpinnerMsg Spinner.subscription
+
     else
         Sub.none

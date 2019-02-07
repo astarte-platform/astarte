@@ -1,16 +1,34 @@
-module Types.Config
-    exposing
-        ( Config
-        , AuthType(..)
-        , AuthConfig(..)
-        , empty
-        , getAuthConfig
-        , defaultAuthConfig
-        , decoder
-        )
+{-
+   This file is part of Astarte.
 
-import Json.Decode as Decode exposing (Decoder, string, nullable, list, field, maybe, andThen)
-import Json.Decode.Pipeline exposing (decode, required, optional)
+   Copyright 2018 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-}
+
+
+module Types.Config exposing
+    ( AuthConfig(..)
+    , AuthType(..)
+    , Config
+    , decoder
+    , defaultAuthConfig
+    , empty
+    , getAuthConfig
+    )
+
+import Json.Decode as Decode exposing (Decoder, andThen, field, list, maybe, nullable, string)
+import Json.Decode.Pipeline exposing (decode, optional, required)
 import JsonHelpers as JsonHelpers
 
 
@@ -91,7 +109,7 @@ authTypeDecoder =
 
 stringToAuthType : String -> Result String AuthType
 stringToAuthType s =
-    case (String.toLower s) of
+    case String.toLower s of
         "oauth" ->
             Ok OAuth
 

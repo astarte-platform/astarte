@@ -1,35 +1,25 @@
-module Page.InterfaceBuilder exposing (Model, Msg, init, update, view, subscriptions)
+{-
+   This file is part of Astarte.
 
-import Dict exposing (Dict)
-import Html exposing (Html, text, h5, p, br, b, i, small)
-import Html.Attributes exposing (class, value, for, selected)
-import Html.Events exposing (onSubmit)
-import Navigation
-import Task
-import Time exposing (Time)
-import Control exposing (Control)
-import Control.Debounce as Debounce
-import Spinner
+   Copyright 2018 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-}
+
+
+module Page.InterfaceBuilder exposing (Model, Msg, init, subscriptions, update, view)
+
 import AstarteApi
-import Route
-import Types.Session exposing (Session)
-import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.Interface as Interface exposing (Interface)
-import Types.InterfaceMapping as InterfaceMapping
-    exposing
-        ( InterfaceMapping
-        , mappingTypeToEnglishString
-        , reliabilityToEnglishString
-        , retentionToEnglishString
-        )
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.FlashMessageHelpers as FlashMessageHelpers
-import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
-import Modal.MappingBuilder as MappingBuilder
-
-
--- bootstrap components
-
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -49,6 +39,31 @@ import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
+import Control exposing (Control)
+import Control.Debounce as Debounce
+import Dict exposing (Dict)
+import Html exposing (Html, b, br, h5, i, p, small, text)
+import Html.Attributes exposing (class, for, selected, value)
+import Html.Events exposing (onSubmit)
+import Modal.MappingBuilder as MappingBuilder
+import Navigation
+import Route
+import Spinner
+import Task
+import Time exposing (Time)
+import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessageHelpers as FlashMessageHelpers
+import Types.Interface as Interface exposing (Interface)
+import Types.InterfaceMapping as InterfaceMapping
+    exposing
+        ( InterfaceMapping
+        , mappingTypeToEnglishString
+        , reliabilityToEnglishString
+        , retentionToEnglishString
+        )
+import Types.Session exposing (Session)
+import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
 
 
 type alias Model =
@@ -107,28 +122,28 @@ init maybeInterfaceId session =
         interfaceNameSuggestionPopup =
             SuggestionPopup.new "Interface name should be prefixed with a reverse domain name, and should use PascalCase (e.g. com.example.MyInterface)."
     in
-        ( { interface = Interface.empty
-          , interfaceEditMode = False
-          , minMinor = 0
-          , objectReliability = InterfaceMapping.Unreliable
-          , objectRetention = InterfaceMapping.Discard
-          , objectExpiry = 0
-          , objectExplicitTimestamp = False
-          , deleteModalVisibility = Modal.hidden
-          , confirmModalVisibility = Modal.hidden
-          , confirmInterfaceName = ""
-          , showSource = True
-          , sourceBuffer = Interface.toPrettySource Interface.empty
-          , sourceBufferStatus = Valid
-          , debouncerControlState = Control.initialState
-          , accordionState = Accordion.initialState
-          , spinner = Spinner.init
-          , showSpinner = showSpinner
-          , interfaceNameSuggestionPopup = interfaceNameSuggestionPopup
-          , mappingBuilderModel = MappingBuilder.empty
-          }
-        , initialCommand
-        )
+    ( { interface = Interface.empty
+      , interfaceEditMode = False
+      , minMinor = 0
+      , objectReliability = InterfaceMapping.Unreliable
+      , objectRetention = InterfaceMapping.Discard
+      , objectExpiry = 0
+      , objectExplicitTimestamp = False
+      , deleteModalVisibility = Modal.hidden
+      , confirmModalVisibility = Modal.hidden
+      , confirmInterfaceName = ""
+      , showSource = True
+      , sourceBuffer = Interface.toPrettySource Interface.empty
+      , sourceBufferStatus = Valid
+      , debouncerControlState = Control.initialState
+      , accordionState = Accordion.initialState
+      , spinner = Spinner.init
+      , showSpinner = showSpinner
+      , interfaceNameSuggestionPopup = interfaceNameSuggestionPopup
+      , mappingBuilderModel = MappingBuilder.empty
+      }
+    , initialCommand
+    )
 
 
 debounce : Msg -> Msg
@@ -224,21 +239,21 @@ update session msg model =
                             , False
                             )
             in
-                ( { model
-                    | interface = interface
-                    , interfaceEditMode = True
-                    , minMinor = interface.minor
-                    , sourceBuffer = Interface.toPrettySource interface
-                    , mappingBuilderModel = newMappingBuilderModel
-                    , objectReliability = objectReliability
-                    , objectRetention = objectRetention
-                    , objectExpiry = objectExpiry
-                    , objectExplicitTimestamp = objectExplicitTimestamp
-                    , showSpinner = False
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = interface
+                , interfaceEditMode = True
+                , minMinor = interface.minor
+                , sourceBuffer = Interface.toPrettySource interface
+                , mappingBuilderModel = newMappingBuilderModel
+                , objectReliability = objectReliability
+                , objectRetention = objectRetention
+                , objectExpiry = objectExpiry
+                , objectExplicitTimestamp = objectExplicitTimestamp
+                , showSpinner = False
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         AddInterfaceDone response ->
             ( model
@@ -283,6 +298,7 @@ update session msg model =
                             RedirectToLogin
                         , ExternalMsg.Noop
                         )
+
                     else
                         ( model
                         , Cmd.none
@@ -312,6 +328,7 @@ update session msg model =
                                     UpdateInterfaceDone
                                     (ShowError "Cannot apply changes.")
                                     RedirectToLogin
+
                             else
                                 AstarteApi.addNewInterface model.interface
                                     session
@@ -319,10 +336,10 @@ update session msg model =
                                     (ShowError "Cannot install interface.")
                                     RedirectToLogin
                     in
-                        ( { model | confirmModalVisibility = Modal.hidden }
-                        , command
-                        , ExternalMsg.Noop
-                        )
+                    ( { model | confirmModalVisibility = Modal.hidden }
+                    , command
+                    , ExternalMsg.Noop
+                    )
 
                 ModalCancel ->
                     ( { model | confirmModalVisibility = Modal.hidden }
@@ -354,7 +371,7 @@ update session msg model =
         InterfaceSourceChanged ->
             case Interface.fromString model.sourceBuffer of
                 Ok interface ->
-                    if (not model.interfaceEditMode || Interface.compareId model.interface interface) then
+                    if not model.interfaceEditMode || Interface.compareId model.interface interface then
                         let
                             ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
                                 case ( interface.aggregation, List.head <| Interface.mappingsAsList interface ) of
@@ -372,18 +389,19 @@ update session msg model =
                                         , False
                                         )
                         in
-                            ( { model
-                                | sourceBuffer = Interface.toPrettySource interface
-                                , sourceBufferStatus = Valid
-                                , interface = interface
-                                , objectReliability = objectReliability
-                                , objectRetention = objectRetention
-                                , objectExpiry = objectExpiry
-                                , objectExplicitTimestamp = objectExplicitTimestamp
-                              }
-                            , Cmd.none
-                            , ExternalMsg.Noop
-                            )
+                        ( { model
+                            | sourceBuffer = Interface.toPrettySource interface
+                            , sourceBufferStatus = Valid
+                            , interface = interface
+                            , objectReliability = objectReliability
+                            , objectRetention = objectRetention
+                            , objectExpiry = objectExpiry
+                            , objectExplicitTimestamp = objectExplicitTimestamp
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
                     else
                         ( { model | sourceBufferStatus = Invalid }
                         , Cmd.none
@@ -414,10 +432,10 @@ update session msg model =
                         model.debouncerControlState
                         control
             in
-                ( newModel
-                , command
-                , ExternalMsg.Noop
-                )
+            ( newModel
+            , command
+            , ExternalMsg.Noop
+            )
 
         Forward msg ->
             ( model
@@ -430,29 +448,30 @@ update session msg model =
                 newInterface =
                     Interface.setName newName model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateInterfaceMajor newMajor ->
-            case (String.toInt newMajor) of
+            case String.toInt newMajor of
                 Ok major ->
                     if major > 0 || (major == 0 && model.interface.minor > 0) then
                         let
                             newInterface =
                                 Interface.setMajor major model.interface
                         in
-                            ( { model
-                                | interface = newInterface
-                                , sourceBuffer = Interface.toPrettySource newInterface
-                              }
-                            , Cmd.none
-                            , ExternalMsg.Noop
-                            )
+                        ( { model
+                            | interface = newInterface
+                            , sourceBuffer = Interface.toPrettySource newInterface
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
                     else
                         ( model
                         , Cmd.none
@@ -466,20 +485,21 @@ update session msg model =
                     )
 
         UpdateInterfaceMinor newMinor ->
-            case (String.toInt newMinor) of
+            case String.toInt newMinor of
                 Ok minor ->
-                    if (minor >= model.minMinor && not (model.interface.major == 0 && minor == 0)) then
+                    if minor >= model.minMinor && not (model.interface.major == 0 && minor == 0) then
                         let
                             newInterface =
                                 Interface.setMinor minor model.interface
                         in
-                            ( { model
-                                | interface = newInterface
-                                , sourceBuffer = Interface.toPrettySource newInterface
-                              }
-                            , Cmd.none
-                            , ExternalMsg.Noop
-                            )
+                        ( { model
+                            | interface = newInterface
+                            , sourceBuffer = Interface.toPrettySource newInterface
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
                     else
                         ( model
                         , Cmd.none
@@ -495,106 +515,108 @@ update session msg model =
         UpdateInterfaceType newInterfaceType ->
             let
                 newInterface =
-                    if (newInterfaceType == Interface.Properties) then
+                    if newInterfaceType == Interface.Properties then
                         model.interface
                             |> Interface.setType Interface.Properties
                             |> Interface.setAggregation Interface.Individual
+
                     else
                         Interface.setType Interface.Datastream model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateInterfaceAggregation newAggregation ->
             let
                 newInterface =
-                    if (newAggregation == Interface.Object) then
+                    if newAggregation == Interface.Object then
                         model.interface
                             |> Interface.setAggregation Interface.Object
                             |> Interface.setOwnership Interface.Device
+
                     else
                         Interface.setAggregation Interface.Individual model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateInterfaceOwnership newOwner ->
             let
                 newInterface =
                     Interface.setOwnership newOwner model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateInterfaceHasMeta hasMeta ->
             let
                 newInterface =
                     Interface.setHasMeta hasMeta model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateInterfaceDescription newDescription ->
             let
                 newInterface =
                     Interface.setDescription newDescription model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateInterfaceDoc newDoc ->
             let
                 newInterface =
                     Interface.setDoc newDoc model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         RemoveMapping mapping ->
             let
                 newInterface =
                     Interface.removeMapping mapping model.interface
             in
-                ( { model
-                    | interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateObjectMappingReliability newReliability ->
-            case (InterfaceMapping.stringToReliability newReliability) of
+            case InterfaceMapping.stringToReliability newReliability of
                 Ok reliability ->
                     let
                         newInterface =
@@ -605,14 +627,14 @@ update session msg model =
                                     model.objectExpiry
                                     model.objectExplicitTimestamp
                     in
-                        ( { model
-                            | objectReliability = reliability
-                            , interface = newInterface
-                            , sourceBuffer = Interface.toPrettySource newInterface
-                          }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
+                    ( { model
+                        | objectReliability = reliability
+                        , interface = newInterface
+                        , sourceBuffer = Interface.toPrettySource newInterface
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
                 Err err ->
                     ( model
@@ -621,12 +643,13 @@ update session msg model =
                     )
 
         UpdateObjectMappingRetention newMapRetention ->
-            case (InterfaceMapping.stringToRetention newMapRetention) of
+            case InterfaceMapping.stringToRetention newMapRetention of
                 Ok retention ->
                     let
                         expiry =
                             if retention == InterfaceMapping.Discard then
                                 0
+
                             else
                                 model.objectExpiry
 
@@ -638,15 +661,15 @@ update session msg model =
                                     expiry
                                     model.objectExplicitTimestamp
                     in
-                        ( { model
-                            | objectRetention = retention
-                            , objectExpiry = expiry
-                            , interface = newInterface
-                            , sourceBuffer = Interface.toPrettySource newInterface
-                          }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
+                    ( { model
+                        | objectRetention = retention
+                        , objectExpiry = expiry
+                        , interface = newInterface
+                        , sourceBuffer = Interface.toPrettySource newInterface
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
                 Err err ->
                     ( model
@@ -655,9 +678,9 @@ update session msg model =
                     )
 
         UpdateObjectMappingExpiry newExpiry ->
-            case (String.toInt newExpiry) of
+            case String.toInt newExpiry of
                 Ok expiry ->
-                    if (expiry >= 0) then
+                    if expiry >= 0 then
                         let
                             newInterface =
                                 model.interface
@@ -667,14 +690,15 @@ update session msg model =
                                         expiry
                                         model.objectExplicitTimestamp
                         in
-                            ( { model
-                                | objectExpiry = expiry
-                                , interface = newInterface
-                                , sourceBuffer = Interface.toPrettySource newInterface
-                              }
-                            , Cmd.none
-                            , ExternalMsg.Noop
-                            )
+                        ( { model
+                            | objectExpiry = expiry
+                            , interface = newInterface
+                            , sourceBuffer = Interface.toPrettySource newInterface
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
                     else
                         ( model
                         , Cmd.none
@@ -697,14 +721,14 @@ update session msg model =
                             model.objectExpiry
                             explicitTimestamp
             in
-                ( { model
-                    | objectExplicitTimestamp = explicitTimestamp
-                    , interface = newInterface
-                    , sourceBuffer = Interface.toPrettySource newInterface
-                  }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model
+                | objectExplicitTimestamp = explicitTimestamp
+                , interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateConfirmInterfaceName userInput ->
             ( { model | confirmInterfaceName = userInput }
@@ -734,10 +758,10 @@ update session msg model =
                         (model.interface.aggregation == Interface.Object)
                         shown
             in
-                ( { model | mappingBuilderModel = newMappingBuilderModel }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model | mappingBuilderModel = newMappingBuilderModel }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         ShowEditMappingModal mapping ->
             let
@@ -755,10 +779,10 @@ update session msg model =
                         (model.interface.aggregation == Interface.Object)
                         shown
             in
-                ( { model | mappingBuilderModel = newMappingBuilderModel }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            ( { model | mappingBuilderModel = newMappingBuilderModel }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         AccordionMsg state ->
             ( { model | accordionState = state }
@@ -788,31 +812,45 @@ handleMappingBuilderMessages message model =
         ( updatedBuilderModel, externalMessage ) =
             MappingBuilder.update message model.mappingBuilderModel
     in
-        case externalMessage of
-            MappingBuilder.Noop ->
-                { model | mappingBuilderModel = updatedBuilderModel }
+    case externalMessage of
+        MappingBuilder.Noop ->
+            { model | mappingBuilderModel = updatedBuilderModel }
 
-            MappingBuilder.AddNewMapping mapping ->
-                let
-                    newInterface =
-                        Interface.addMapping mapping model.interface
-                in
-                    { model
-                        | interface = newInterface
-                        , sourceBuffer = Interface.toPrettySource newInterface
-                        , mappingBuilderModel = updatedBuilderModel
-                    }
+        MappingBuilder.AddNewMapping mapping ->
+            let
+                updatedMapping =
+                    if
+                        (model.interface.aggregation == Interface.Object)
+                            && (model.interface.iType == Interface.Datastream)
+                    then
+                        mapping
+                            |> InterfaceMapping.setRetention model.objectRetention
+                            |> InterfaceMapping.setReliability model.objectReliability
+                            |> InterfaceMapping.setExpiry model.objectExpiry
+                            |> InterfaceMapping.setExplicitTimestamp model.objectExplicitTimestamp
 
-            MappingBuilder.EditMapping mapping ->
-                let
-                    newInterface =
-                        Interface.editMapping mapping model.interface
-                in
-                    { model
-                        | interface = newInterface
-                        , sourceBuffer = Interface.toPrettySource newInterface
-                        , mappingBuilderModel = updatedBuilderModel
-                    }
+                    else
+                        mapping
+
+                newInterface =
+                    Interface.addMapping updatedMapping model.interface
+            in
+            { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+                , mappingBuilderModel = updatedBuilderModel
+            }
+
+        MappingBuilder.EditMapping mapping ->
+            let
+                newInterface =
+                    Interface.editMapping mapping model.interface
+            in
+            { model
+                | interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+                , mappingBuilderModel = updatedBuilderModel
+            }
 
 
 view : Model -> List FlashMessage -> Html Msg
@@ -833,6 +871,7 @@ view model flashMessages =
             [ Grid.col
                 [ if model.showSource then
                     Col.sm6
+
                   else
                     Col.sm12
                 ]
@@ -845,6 +884,7 @@ view model flashMessages =
             , Grid.col
                 [ if model.showSource then
                     Col.sm6
+
                   else
                     Col.attrs [ Display.none ]
                 ]
@@ -860,6 +900,7 @@ view model flashMessages =
             ]
         , if model.showSpinner then
             Spinner.view Spinner.defaultConfig model.spinner
+
           else
             text ""
         ]
@@ -880,10 +921,11 @@ renderContent model interface interfaceEditMode accordionState =
                         [ text
                             (if interfaceEditMode then
                                 interface.name
+
                              else
                                 "Install a new interface"
                             )
-                        , if (interfaceEditMode && interface.major == 0) then
+                        , if interfaceEditMode && interface.major == 0 then
                             Button.button
                                 [ Button.warning
                                 , Button.attrs [ Spacing.ml2, class "text-secondary" ]
@@ -892,6 +934,7 @@ renderContent model interface interfaceEditMode accordionState =
                                 [ i [ class "fas", class "fa-times", Spacing.mr2 ] []
                                 , text "Delete..."
                                 ]
+
                           else
                             text ""
                         ]
@@ -914,18 +957,21 @@ renderContent model interface interfaceEditMode accordionState =
                             , Input.readonly interfaceEditMode
                             , Input.value interface.name
                             , Input.onInput UpdateInterfaceName
-                            , if (Interface.isValidInterfaceName interface.name) then
+                            , if Interface.isValidInterfaceName interface.name then
                                 Input.success
+
                               else
                                 Input.danger
                             ]
                          ]
-                            ++ if not (Interface.isGoodInterfaceName interface.name || interfaceEditMode) then
-                                List.map
-                                    (Html.map SuggestionPopupMsg)
-                                    (SuggestionPopup.view model.interfaceNameSuggestionPopup)
-                               else
-                                []
+                            ++ (if not (Interface.isGoodInterfaceName interface.name || interfaceEditMode) then
+                                    List.map
+                                        (Html.map SuggestionPopupMsg)
+                                        (SuggestionPopup.view model.interfaceNameSuggestionPopup)
+
+                                else
+                                    []
+                               )
                         )
                     ]
                 , Form.col [ Col.sm3 ]
@@ -1066,6 +1112,7 @@ renderContent model interface interfaceEditMode accordionState =
                         ]
                         [ if Dict.isEmpty interface.mappings then
                             text "No mappings added"
+
                           else
                             text "Mappings"
                         ]
@@ -1102,8 +1149,9 @@ renderContent model interface interfaceEditMode accordionState =
 renderCommonMappingSettings : Model -> Html Msg
 renderCommonMappingSettings model =
     Form.row
-        (if (model.interface.aggregation == Interface.Object) then
+        (if model.interface.aggregation == Interface.Object then
             []
+
          else
             [ Row.attrs [ Display.none ] ]
         )
@@ -1134,8 +1182,9 @@ renderCommonMappingSettings model =
                 ]
             ]
         , Form.col
-            [ if (model.objectRetention == InterfaceMapping.Discard) then
+            [ if model.objectRetention == InterfaceMapping.Discard then
                 Col.sm8
+
               else
                 Col.sm4
             ]
@@ -1165,8 +1214,9 @@ renderCommonMappingSettings model =
                 ]
             ]
         , Form.col
-            [ if (model.objectRetention == InterfaceMapping.Discard) then
+            [ if model.objectRetention == InterfaceMapping.Discard then
                 Col.attrs [ Display.none ]
+
               else
                 Col.sm4
             ]
@@ -1203,6 +1253,7 @@ renderConfirmButton editMode =
         ]
         [ if editMode then
             text "Apply Changes"
+
           else
             text "Install Interface"
         ]
@@ -1261,6 +1312,7 @@ renderMapping mapping =
                     (\( block, default ) ->
                         if default then
                             Nothing
+
                         else
                             Just block
                     )
@@ -1288,6 +1340,7 @@ endpointToHtmlId endpoint =
             (\c ->
                 if c == '/' then
                     '-'
+
                 else
                     c
             )
@@ -1303,7 +1356,8 @@ renderMappingHeader mapping =
                     [ Display.inline, Spacing.p2 ]
                     [ text <| mappingTypeToEnglishString mapping.mType ]
                 ]
-                    ++ (renderMappingControls mapping)
+                    ++ renderMappingControls mapping
+
              else
                 [ small
                     [ Display.inline, Spacing.p2 ]
@@ -1418,14 +1472,16 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
         , b [] [ text interfaceName ]
         , text "?"
         ]
+
     else
         [ p []
             [ text "You are about to install the interface "
             , b [] [ text interfaceName ]
             , text "."
             ]
-        , if (interfaceMajor > 0) then
+        , if interfaceMajor > 0 then
             p [] [ text "Interface major is greater than zero, that means you will not be able to change already installed mappings." ]
+
           else
             p []
                 [ text "As its major version is 0, this is a draft interface, which can be deleted."
@@ -1450,6 +1506,7 @@ subscriptions model =
          ]
             ++ (if model.showSpinner then
                     [ Sub.map SpinnerMsg Spinner.subscription ]
+
                 else
                     []
                )
