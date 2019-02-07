@@ -152,6 +152,12 @@ debounce =
     Debounce.trailing DebounceMsg (1 * Time.second)
 
 
+type InterfaceNameStatus
+    = InvalidInterfaceName
+    | ImproveableInterfaceName
+    | GoodInterfaceName
+
+
 type ModalResult
     = ModalCancel
     | ModalOk
@@ -951,30 +957,7 @@ renderContent model interface interfaceEditMode accordionState =
                 ]
             , Form.row []
                 [ Form.col [ Col.sm6 ]
-                    [ Form.group []
-                        ([ Form.label [ for "interfaceName" ] [ text "Name" ]
-                         , Input.text
-                            [ Input.id "interfaceName"
-                            , Input.readonly interfaceEditMode
-                            , Input.value interface.name
-                            , Input.onInput UpdateInterfaceName
-                            , if Interface.isValidInterfaceName interface.name then
-                                Input.success
-
-                              else
-                                Input.danger
-                            ]
-                         ]
-                            ++ (if not (Interface.isGoodInterfaceName interface.name || interfaceEditMode) then
-                                    List.map
-                                        (Html.map SuggestionPopupMsg)
-                                        (SuggestionPopup.view model.interfaceNameSuggestionPopup)
-
-                                else
-                                    []
-                               )
-                        )
-                    ]
+                    [ renderInterfaceNameInput interface.name interfaceEditMode model.interfaceNameSuggestionPopup ]
                 , Form.col [ Col.sm3 ]
                     [ Form.group []
                         [ Form.label [ for "interfaceMajor" ] [ text "Major" ]
@@ -1145,6 +1128,46 @@ renderContent model interface interfaceEditMode accordionState =
                 ]
             ]
         ]
+
+
+renderInterfaceNameInput : String -> Bool -> SuggestionPopup -> Html Msg
+renderInterfaceNameInput interfaceName editMode interfaceNameSuggestionPopup =
+    let
+        interfaceNameStatus =
+            case ( Interface.isValidInterfaceName interfaceName, Interface.isGoodInterfaceName interfaceName ) of
+                ( True, True ) ->
+                    GoodInterfaceName
+
+                ( True, False ) ->
+                    ImproveableInterfaceName
+
+                ( False, _ ) ->
+                    InvalidInterfaceName
+    in
+    Form.group []
+        (if editMode then
+            [ Form.label [ for "interfaceName" ] [ text "Name" ]
+            , Input.text
+                [ Input.id "interfaceName"
+                , Input.readonly True
+                , Input.value interfaceName
+                ]
+            ]
+
+         else
+            [ Form.label [ for "interfaceName" ] [ text "Name" ]
+            , Input.text
+                [ Input.id "interfaceName"
+                , Input.readonly False
+                , Input.value interfaceName
+                , Input.onInput UpdateInterfaceName
+                , Input.success |> when (interfaceNameStatus == GoodInterfaceName)
+                , Input.danger |> when (interfaceNameStatus == InvalidInterfaceName)
+                ]
+            , Html.map SuggestionPopupMsg
+                (SuggestionPopup.view interfaceNameSuggestionPopup <| interfaceNameStatus == ImproveableInterfaceName)
+            ]
+        )
 
 
 renderCommonMappingSettings : Model -> Html Msg
@@ -1497,6 +1520,15 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
                 ]
         , text "Are you sure you want to continue?"
         ]
+
+
+when : Bool -> Input.Option m -> Input.Option m
+when condition attribute =
+    if condition then
+        attribute
+
+    else
+        Input.attrs []
 
 
 
