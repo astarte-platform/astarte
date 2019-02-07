@@ -56,7 +56,7 @@ init session =
       }
     , AstarteApi.listTriggers session
         GetTriggerListDone
-        (ShowError "Cannot retrieve triggers. ")
+        (ShowError "Could not retrieve trigger list")
         RedirectToLogin
     )
 
@@ -80,7 +80,7 @@ update session msg model =
             ( { model | showSpinner = True }
             , AstarteApi.listTriggers session
                 GetTriggerListDone
-                (ShowError "Cannot retrieve triggers. ")
+                (ShowError "Could not retrieve trigger list")
                 RedirectToLogin
             , ExternalMsg.Noop
             )

@@ -58,7 +58,7 @@ init session =
       }
     , AstarteApi.realmConfig session
         GetRealmConfDone
-        (ShowError "Cannot retrieve the realm configuration")
+        (ShowError "Could not retrieve the realm configuration")
         RedirectToLogin
     )
 
@@ -88,7 +88,7 @@ update session msg model =
             ( model
             , AstarteApi.realmConfig session
                 GetRealmConfDone
-                (ShowError "Cannot retrieve the realm configuration")
+                (ShowError "Could not retrieve the realm configuration")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
@@ -166,7 +166,7 @@ update session msg model =
                     , AstarteApi.updateRealmConfig config
                         session
                         UpdateRealmConfDone
-                        (ShowError "Cannot apply realm configuration")
+                        (ShowError "Could not apply realm configuration")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )

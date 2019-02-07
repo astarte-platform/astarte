@@ -111,7 +111,7 @@ init maybeInterfaceId session =
                         major
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     )
 
@@ -301,7 +301,7 @@ update session msg model =
                             model.interface.major
                             session
                             DeleteInterfaceDone
-                            (ShowError "")
+                            (ShowError "Could not delete interface")
                             RedirectToLogin
                         , ExternalMsg.Noop
                         )
@@ -333,14 +333,14 @@ update session msg model =
                                 AstarteApi.updateInterface model.interface
                                     session
                                     UpdateInterfaceDone
-                                    (ShowError "Cannot apply changes.")
+                                    (ShowError "Could not apply changes")
                                     RedirectToLogin
 
                             else
                                 AstarteApi.addNewInterface model.interface
                                     session
                                     AddInterfaceDone
-                                    (ShowError "Cannot install interface.")
+                                    (ShowError "Could not install interface")
                                     RedirectToLogin
                     in
                     ( { model | confirmModalVisibility = Modal.hidden }

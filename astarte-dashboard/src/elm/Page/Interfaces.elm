@@ -61,7 +61,7 @@ init session =
       }
     , AstarteApi.listInterfaces session
         GetInterfaceListDone
-        (ShowError "Cannot retrieve interfaces.")
+        (ShowError "Could not retrieve interface list")
         RedirectToLogin
     )
 
@@ -89,7 +89,7 @@ update session msg model =
             ( { model | showSpinner = True }
             , AstarteApi.listInterfaces session
                 GetInterfaceListDone
-                (ShowError "Cannot retrieve interfaces.")
+                (ShowError "Could not retrieve interface list")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
@@ -179,7 +179,7 @@ getInterfaceMajorsHelper interfaceName session =
     AstarteApi.listInterfaceMajors interfaceName
         session
         (GetInterfaceMajorsDone interfaceName)
-        (ShowError <| String.concat [ "Cannot retrieve major versions for ", interfaceName, " interface." ])
+        (ShowError <| String.concat [ "Could not retrieve major versions for ", interfaceName, " interface" ])
         RedirectToLogin
 
 
