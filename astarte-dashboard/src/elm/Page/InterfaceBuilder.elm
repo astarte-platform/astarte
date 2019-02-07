@@ -19,7 +19,7 @@
 
 module Page.InterfaceBuilder exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -173,7 +173,7 @@ type Msg
     | CloseDeleteModal ModalResult
     | ShowConfirmModal
     | CloseConfirmModal ModalResult
-    | ShowError String String
+    | ShowError String AstarteApi.AstarteErrorMessage
     | RedirectToLogin
     | ToggleSource
     | InterfaceSourceChanged
@@ -265,7 +265,7 @@ update session msg model =
         AddInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed." []
             )
 
         UpdateInterfaceDone response ->
@@ -274,13 +274,13 @@ update session msg model =
                 , interface = Interface.sealMappings model.interface
               }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Changes succesfully applied."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Changes succesfully applied." []
             )
 
         DeleteInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted." []
             )
 
         ShowDeleteModal ->
@@ -355,11 +355,13 @@ update session msg model =
                     )
 
         ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, ": ", errorMessage.message ]
+            in
             ( { model | showSpinner = False }
             , Cmd.none
-            , [ actionError, " ", errorMessage ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
             )
 
         RedirectToLogin ->
@@ -412,8 +414,10 @@ update session msg model =
                     else
                         ( { model | sourceBufferStatus = Invalid }
                         , Cmd.none
-                        , "Interface name and major do not match"
-                            |> ExternalMsg.AddFlashMessage FlashMessage.Error
+                        , ExternalMsg.AddFlashMessage
+                            FlashMessage.Error
+                            "Interface name and major do not match"
+                            []
                         )
 
                 Err _ ->
