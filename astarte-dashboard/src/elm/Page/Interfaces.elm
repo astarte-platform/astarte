@@ -19,7 +19,7 @@
 
 module Page.Interfaces exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -74,7 +74,7 @@ type Msg
     | OpenInterfaceBuilder
     | ShowInterface String Int
     | Forward ExternalMsg
-    | ShowError String String
+    | ShowError String AstarteApi.AstarteErrorMessage
     | RedirectToLogin
       -- accordion
     | AccordionMsg Accordion.State
@@ -140,11 +140,13 @@ update session msg model =
             )
 
         ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, ": ", errorMessage.message ]
+            in
             ( { model | showSpinner = False }
             , Cmd.none
-            , [ actionError, " ", errorMessage ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
             )
 
         RedirectToLogin ->

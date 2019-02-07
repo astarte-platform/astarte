@@ -19,7 +19,7 @@
 
 module Page.TriggerBuilder exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
@@ -131,7 +131,7 @@ type Msg
     | GetInterfaceMajorsDone (List Int)
     | GetInterfaceDone Interface
     | DeleteTriggerDone String
-    | ShowError String String
+    | ShowError String AstarteApi.AstarteErrorMessage
     | RedirectToLogin
     | ToggleSource
     | TriggerSourceChanged
@@ -297,15 +297,17 @@ update session msg model =
         DeleteTriggerDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger successfully deleted"
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger successfully deleted." []
             )
 
         ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, ": ", errorMessage.message ]
+            in
             ( { model | showSpinner = False }
             , Cmd.none
-            , [ actionError, " ", errorMessage ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
             )
 
         RedirectToLogin ->
@@ -337,8 +339,10 @@ update session msg model =
                     else
                         ( { model | sourceBufferStatus = Invalid }
                         , Cmd.none
-                        , "Trigger name cannot be changed"
-                            |> ExternalMsg.AddFlashMessage FlashMessage.Error
+                        , ExternalMsg.AddFlashMessage
+                            FlashMessage.Error
+                            "Trigger name cannot be changed"
+                            []
                         )
 
                 Err _ ->
@@ -388,7 +392,7 @@ update session msg model =
         AddTriggerDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed." []
             )
 
         UpdateTriggerName newName ->
@@ -497,7 +501,7 @@ update session msg model =
                 _ ->
                     ( model
                     , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Unknown simple trigger type"
+                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Unknown simple trigger type" []
                     )
 
         UpdateDataTriggerInterfaceName interfaceName ->
@@ -730,7 +734,10 @@ update session msg model =
                         Err err ->
                             ( model
                             , Cmd.none
-                            , ExternalMsg.AddFlashMessage FlashMessage.Fatal <| "Parse error. " ++ err
+                            , ExternalMsg.AddFlashMessage
+                                FlashMessage.Fatal
+                                ("Parse error. " ++ err)
+                                []
                             )
 
                 Trigger.Data _ ->

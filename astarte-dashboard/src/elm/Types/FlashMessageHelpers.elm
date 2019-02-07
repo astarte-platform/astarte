@@ -20,7 +20,7 @@
 module Types.FlashMessageHelpers exposing (renderFlashMessages)
 
 import Bootstrap.ListGroup as ListGroup
-import Html exposing (Html, text)
+import Html exposing (Html, li, text, ul)
 import Html.Events exposing (onClick)
 import Types.ExternalMessage exposing (ExternalMsg(..))
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
@@ -54,4 +54,16 @@ renderFlashMessage message =
                 ListGroup.danger
         , ListGroup.attrs [ onClick <| DismissFlashMessage message.id ]
         ]
-        [ text <| message.message ]
+        (if List.isEmpty message.optionalInfos then
+            [ text <| message.message ]
+
+         else
+            [ text <| message.message
+            , ul [] (List.map renderOptionalInfo message.optionalInfos)
+            ]
+        )
+
+
+renderOptionalInfo : String -> Html a
+renderOptionalInfo info =
+    li [] [ text info ]

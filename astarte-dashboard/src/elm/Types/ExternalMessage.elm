@@ -24,5 +24,5 @@ import Types.FlashMessage exposing (FlashMessageId, Severity)
 
 type ExternalMsg
     = Noop
-    | AddFlashMessage Severity String
+    | AddFlashMessage Severity String (List String)
     | DismissFlashMessage FlashMessageId

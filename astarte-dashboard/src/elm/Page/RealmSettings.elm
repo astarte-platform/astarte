@@ -19,7 +19,7 @@
 
 module Page.RealmSettings exposing (Model, Msg, init, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Textarea as Textarea
@@ -58,7 +58,7 @@ init session =
       }
     , AstarteApi.realmConfig session
         GetRealmConfDone
-        GetRealmConfError
+        (ShowError "Cannot retrieve the realm configuration")
         RedirectToLogin
     )
 
@@ -71,11 +71,10 @@ type ModalResult
 type Msg
     = GetRealmConf
     | GetRealmConfDone Config
-    | GetRealmConfError String
     | UpdateRealmConfDone String
-    | UpdateRealmConfError String
     | UpdatePubKey String
     | RedirectToLogin
+    | ShowError String AstarteApi.AstarteErrorMessage
     | Forward ExternalMsg
       -- Modal
     | ShowConfirmModal
@@ -89,7 +88,7 @@ update session msg model =
             ( model
             , AstarteApi.realmConfig session
                 GetRealmConfDone
-                GetRealmConfError
+                (ShowError "Cannot retrieve the realm configuration")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
@@ -104,13 +103,6 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        GetRealmConfError errorMessage ->
-            ( model
-            , Cmd.none
-            , ("Cannot retrieve the realm configuration. " ++ errorMessage)
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
-            )
-
         UpdateRealmConfDone response ->
             ( model
             , if model.keyChanged then
@@ -118,14 +110,7 @@ update session msg model =
 
               else
                 Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Realm configuration has been successfully applied."
-            )
-
-        UpdateRealmConfError errorMessage ->
-            ( model
-            , Cmd.none
-            , ("Cannot apply realm configuration. " ++ errorMessage)
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Realm configuration has been successfully applied." []
             )
 
         UpdatePubKey newPubKey ->
@@ -152,6 +137,16 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, ": ", errorMessage.message ]
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
+            )
+
         Forward msg ->
             ( model
             , Cmd.none
@@ -171,7 +166,7 @@ update session msg model =
                     , AstarteApi.updateRealmConfig config
                         session
                         UpdateRealmConfDone
-                        UpdateRealmConfError
+                        (ShowError "Cannot apply realm configuration")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )

@@ -32,6 +32,7 @@ type alias FlashMessage =
     , message : String
     , severity : Severity
     , dismissAt : Time
+    , optionalInfos : List String
     }
 
 
@@ -46,10 +47,11 @@ type Severity
     | Fatal
 
 
-new : Int -> String -> Severity -> Time -> FlashMessage
-new intId message severity dismissAt =
+new : Int -> String -> List String -> Severity -> Time -> FlashMessage
+new intId message optionalInfos severity dismissAt =
     { id = FlashMessageId intId
     , message = message
     , severity = severity
     , dismissAt = dismissAt
+    , optionalInfos = optionalInfos
     }
