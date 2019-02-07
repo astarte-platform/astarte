@@ -107,13 +107,13 @@ init maybeTriggerName session =
             AstarteApi.getTrigger name
                 session
                 GetTriggerDone
-                (ShowError "Cannot retrieve selected trigger.")
+                (ShowError "Could not retrieve selected trigger")
                 RedirectToLogin
 
         Nothing ->
             AstarteApi.listInterfaces session
                 GetInterfaceListDone
-                (ShowError "Cannot retrieve interface list.")
+                (ShowError "Could not retrieve interface list")
                 RedirectToLogin
     )
 
@@ -187,7 +187,7 @@ update session msg model =
                         dataTrigger.interfaceMajor
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -215,7 +215,7 @@ update session msg model =
                     , AstarteApi.listInterfaceMajors interfaceName
                         session
                         GetInterfaceMajorsDone
-                        (ShowError "Cannot retrieve interface major versions.")
+                        (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -251,7 +251,7 @@ update session msg model =
                         major
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -384,7 +384,7 @@ update session msg model =
             , AstarteApi.addNewTrigger model.trigger
                 session
                 AddTriggerDone
-                (ShowError "Cannot install trigger.")
+                (ShowError "Could not install trigger")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
@@ -527,7 +527,7 @@ update session msg model =
                     , AstarteApi.listInterfaceMajors interfaceName
                         session
                         GetInterfaceMajorsDone
-                        (ShowError "Cannot retrieve interface major versions.")
+                        (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -559,7 +559,7 @@ update session msg model =
                         newMajor
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -763,7 +763,7 @@ update session msg model =
                         , AstarteApi.deleteTrigger model.trigger.name
                             session
                             DeleteTriggerDone
-                            (ShowError "Cannot delete trigger.")
+                            (ShowError "Could not delete trigger")
                             RedirectToLogin
                         , ExternalMsg.Noop
                         )
