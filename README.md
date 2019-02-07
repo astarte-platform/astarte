@@ -1,6 +1,6 @@
 # Astarte: An Open Source IoT Platform
 
-<img src="https://hs.ispirata.com/hubfs/mascotte_svg/2.svg?t=1522417773601" align="left" width="160px" />Astarte is an Open Source IoT platform written in [Elixir](https://github.com/elixir-lang/elixir). It is a turnkey solution which packs in everything you need for connecting a device fleet to a set of remote applications. It performs data modeling, automated data reduction, real-time events, and provides you with any feature you might expect in a modern IoT platform.
+<img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT platform written in [Elixir](https://github.com/elixir-lang/elixir). It is a turnkey solution which packs in everything you need for connecting a device fleet to a set of remote applications. It performs data modeling, automated data reduction, real-time events, and provides you with any feature you might expect in a modern IoT platform.
 
 Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https://www.rabbitmq.com/) and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.com/).
 
