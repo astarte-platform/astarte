@@ -19,7 +19,7 @@
 
 module Page.Interfaces exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -61,7 +61,7 @@ init session =
       }
     , AstarteApi.listInterfaces session
         GetInterfaceListDone
-        (ShowError "Cannot retrieve interfaces.")
+        (ShowError "Could not retrieve interface list")
         RedirectToLogin
     )
 
@@ -74,7 +74,7 @@ type Msg
     | OpenInterfaceBuilder
     | ShowInterface String Int
     | Forward ExternalMsg
-    | ShowError String String
+    | ShowError String AstarteApi.AstarteErrorMessage
     | RedirectToLogin
       -- accordion
     | AccordionMsg Accordion.State
@@ -89,7 +89,7 @@ update session msg model =
             ( { model | showSpinner = True }
             , AstarteApi.listInterfaces session
                 GetInterfaceListDone
-                (ShowError "Cannot retrieve interfaces.")
+                (ShowError "Could not retrieve interface list")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
@@ -140,11 +140,13 @@ update session msg model =
             )
 
         ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, ": ", errorMessage.message ]
+            in
             ( { model | showSpinner = False }
             , Cmd.none
-            , [ actionError, " ", errorMessage ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
             )
 
         RedirectToLogin ->
@@ -177,7 +179,7 @@ getInterfaceMajorsHelper interfaceName session =
     AstarteApi.listInterfaceMajors interfaceName
         session
         (GetInterfaceMajorsDone interfaceName)
-        (ShowError <| String.concat [ "Cannot retrieve major versions for ", interfaceName, " interface." ])
+        (ShowError <| String.concat [ "Could not retrieve major versions for ", interfaceName, " interface" ])
         RedirectToLogin
 
 

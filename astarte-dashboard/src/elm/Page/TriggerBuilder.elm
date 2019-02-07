@@ -19,7 +19,7 @@
 
 module Page.TriggerBuilder exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
@@ -107,13 +107,13 @@ init maybeTriggerName session =
             AstarteApi.getTrigger name
                 session
                 GetTriggerDone
-                (ShowError "Cannot retrieve selected trigger.")
+                (ShowError "Could not retrieve selected trigger")
                 RedirectToLogin
 
         Nothing ->
             AstarteApi.listInterfaces session
                 GetInterfaceListDone
-                (ShowError "Cannot retrieve interface list.")
+                (ShowError "Could not retrieve interface list")
                 RedirectToLogin
     )
 
@@ -131,7 +131,7 @@ type Msg
     | GetInterfaceMajorsDone (List Int)
     | GetInterfaceDone Interface
     | DeleteTriggerDone String
-    | ShowError String String
+    | ShowError String AstarteApi.AstarteErrorMessage
     | RedirectToLogin
     | ToggleSource
     | TriggerSourceChanged
@@ -187,7 +187,7 @@ update session msg model =
                         dataTrigger.interfaceMajor
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -215,7 +215,7 @@ update session msg model =
                     , AstarteApi.listInterfaceMajors interfaceName
                         session
                         GetInterfaceMajorsDone
-                        (ShowError "Cannot retrieve interface major versions.")
+                        (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -251,7 +251,7 @@ update session msg model =
                         major
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -297,15 +297,17 @@ update session msg model =
         DeleteTriggerDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger successfully deleted"
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger successfully deleted." []
             )
 
         ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, ": ", errorMessage.message ]
+            in
             ( { model | showSpinner = False }
             , Cmd.none
-            , [ actionError, " ", errorMessage ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
             )
 
         RedirectToLogin ->
@@ -337,8 +339,10 @@ update session msg model =
                     else
                         ( { model | sourceBufferStatus = Invalid }
                         , Cmd.none
-                        , "Trigger name cannot be changed"
-                            |> ExternalMsg.AddFlashMessage FlashMessage.Error
+                        , ExternalMsg.AddFlashMessage
+                            FlashMessage.Error
+                            "Trigger name cannot be changed"
+                            []
                         )
 
                 Err _ ->
@@ -380,7 +384,7 @@ update session msg model =
             , AstarteApi.addNewTrigger model.trigger
                 session
                 AddTriggerDone
-                (ShowError "Cannot install trigger.")
+                (ShowError "Could not install trigger")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
@@ -388,7 +392,7 @@ update session msg model =
         AddTriggerDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed." []
             )
 
         UpdateTriggerName newName ->
@@ -497,7 +501,7 @@ update session msg model =
                 _ ->
                     ( model
                     , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Unknown simple trigger type"
+                    , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Unknown simple trigger type" []
                     )
 
         UpdateDataTriggerInterfaceName interfaceName ->
@@ -523,7 +527,7 @@ update session msg model =
                     , AstarteApi.listInterfaceMajors interfaceName
                         session
                         GetInterfaceMajorsDone
-                        (ShowError "Cannot retrieve interface major versions.")
+                        (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -555,7 +559,7 @@ update session msg model =
                         newMajor
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     , ExternalMsg.Noop
                     )
@@ -730,7 +734,10 @@ update session msg model =
                         Err err ->
                             ( model
                             , Cmd.none
-                            , ExternalMsg.AddFlashMessage FlashMessage.Fatal <| "Parse error. " ++ err
+                            , ExternalMsg.AddFlashMessage
+                                FlashMessage.Fatal
+                                ("Parse error. " ++ err)
+                                []
                             )
 
                 Trigger.Data _ ->
@@ -756,7 +763,7 @@ update session msg model =
                         , AstarteApi.deleteTrigger model.trigger.name
                             session
                             DeleteTriggerDone
-                            (ShowError "Cannot delete trigger.")
+                            (ShowError "Could not delete trigger")
                             RedirectToLogin
                         , ExternalMsg.Noop
                         )

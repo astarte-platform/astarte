@@ -19,7 +19,7 @@
 
 module Page.InterfaceBuilder exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -28,6 +28,7 @@ import Bootstrap.Form as Form
 import Bootstrap.Form.Checkbox as Checkbox
 import Bootstrap.Form.Fieldset as Fieldset
 import Bootstrap.Form.Input as Input
+import Bootstrap.Form.InputGroup as InputGroup
 import Bootstrap.Form.Radio as Radio
 import Bootstrap.Form.Select as Select
 import Bootstrap.Form.Textarea as Textarea
@@ -110,7 +111,7 @@ init maybeInterfaceId session =
                         major
                         session
                         GetInterfaceDone
-                        (ShowError "Cannot retrieve interface.")
+                        (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
                     )
 
@@ -151,6 +152,12 @@ debounce =
     Debounce.trailing DebounceMsg (1 * Time.second)
 
 
+type InterfaceNameStatus
+    = InvalidInterfaceName
+    | ImproveableInterfaceName
+    | GoodInterfaceName
+
+
 type ModalResult
     = ModalCancel
     | ModalOk
@@ -166,7 +173,7 @@ type Msg
     | CloseDeleteModal ModalResult
     | ShowConfirmModal
     | CloseConfirmModal ModalResult
-    | ShowError String String
+    | ShowError String AstarteApi.AstarteErrorMessage
     | RedirectToLogin
     | ToggleSource
     | InterfaceSourceChanged
@@ -258,7 +265,7 @@ update session msg model =
         AddInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed." []
             )
 
         UpdateInterfaceDone response ->
@@ -267,13 +274,13 @@ update session msg model =
                 , interface = Interface.sealMappings model.interface
               }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Changes succesfully applied."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Changes succesfully applied." []
             )
 
         DeleteInterfaceDone response ->
             ( model
             , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted."
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted." []
             )
 
         ShowDeleteModal ->
@@ -294,7 +301,7 @@ update session msg model =
                             model.interface.major
                             session
                             DeleteInterfaceDone
-                            (ShowError "")
+                            (ShowError "Could not delete interface")
                             RedirectToLogin
                         , ExternalMsg.Noop
                         )
@@ -326,14 +333,14 @@ update session msg model =
                                 AstarteApi.updateInterface model.interface
                                     session
                                     UpdateInterfaceDone
-                                    (ShowError "Cannot apply changes.")
+                                    (ShowError "Could not apply changes")
                                     RedirectToLogin
 
                             else
                                 AstarteApi.addNewInterface model.interface
                                     session
                                     AddInterfaceDone
-                                    (ShowError "Cannot install interface.")
+                                    (ShowError "Could not install interface")
                                     RedirectToLogin
                     in
                     ( { model | confirmModalVisibility = Modal.hidden }
@@ -348,11 +355,13 @@ update session msg model =
                     )
 
         ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, ": ", errorMessage.message ]
+            in
             ( { model | showSpinner = False }
             , Cmd.none
-            , [ actionError, " ", errorMessage ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
             )
 
         RedirectToLogin ->
@@ -405,8 +414,10 @@ update session msg model =
                     else
                         ( { model | sourceBufferStatus = Invalid }
                         , Cmd.none
-                        , "Interface name and major do not match"
-                            |> ExternalMsg.AddFlashMessage FlashMessage.Error
+                        , ExternalMsg.AddFlashMessage
+                            FlashMessage.Error
+                            "Interface name and major do not match"
+                            []
                         )
 
                 Err _ ->
@@ -950,30 +961,7 @@ renderContent model interface interfaceEditMode accordionState =
                 ]
             , Form.row []
                 [ Form.col [ Col.sm6 ]
-                    [ Form.group []
-                        ([ Form.label [ for "interfaceName" ] [ text "Name" ]
-                         , Input.text
-                            [ Input.id "interfaceName"
-                            , Input.readonly interfaceEditMode
-                            , Input.value interface.name
-                            , Input.onInput UpdateInterfaceName
-                            , if Interface.isValidInterfaceName interface.name then
-                                Input.success
-
-                              else
-                                Input.danger
-                            ]
-                         ]
-                            ++ (if not (Interface.isGoodInterfaceName interface.name || interfaceEditMode) then
-                                    List.map
-                                        (Html.map SuggestionPopupMsg)
-                                        (SuggestionPopup.view model.interfaceNameSuggestionPopup)
-
-                                else
-                                    []
-                               )
-                        )
-                    ]
+                    [ renderInterfaceNameInput interface.name interfaceEditMode model.interfaceNameSuggestionPopup ]
                 , Form.col [ Col.sm3 ]
                     [ Form.group []
                         [ Form.label [ for "interfaceMajor" ] [ text "Major" ]
@@ -1146,6 +1134,46 @@ renderContent model interface interfaceEditMode accordionState =
         ]
 
 
+renderInterfaceNameInput : String -> Bool -> SuggestionPopup -> Html Msg
+renderInterfaceNameInput interfaceName editMode interfaceNameSuggestionPopup =
+    let
+        interfaceNameStatus =
+            case ( Interface.isValidInterfaceName interfaceName, Interface.isGoodInterfaceName interfaceName ) of
+                ( True, True ) ->
+                    GoodInterfaceName
+
+                ( True, False ) ->
+                    ImproveableInterfaceName
+
+                ( False, _ ) ->
+                    InvalidInterfaceName
+    in
+    Form.group []
+        (if editMode then
+            [ Form.label [ for "interfaceName" ] [ text "Name" ]
+            , Input.text
+                [ Input.id "interfaceName"
+                , Input.readonly True
+                , Input.value interfaceName
+                ]
+            ]
+
+         else
+            [ Form.label [ for "interfaceName" ] [ text "Name" ]
+            , Input.text
+                [ Input.id "interfaceName"
+                , Input.readonly False
+                , Input.value interfaceName
+                , Input.onInput UpdateInterfaceName
+                , Input.success |> when (interfaceNameStatus == GoodInterfaceName)
+                , Input.danger |> when (interfaceNameStatus == InvalidInterfaceName)
+                ]
+            , Html.map SuggestionPopupMsg
+                (SuggestionPopup.view interfaceNameSuggestionPopup <| interfaceNameStatus == ImproveableInterfaceName)
+            ]
+        )
+
+
 renderCommonMappingSettings : Model -> Html Msg
 renderCommonMappingSettings model =
     Form.row
@@ -1222,12 +1250,16 @@ renderCommonMappingSettings model =
             ]
             [ Form.group []
                 [ Form.label [ for "objectMappingExpiry" ] [ text "Expiry" ]
-                , Input.number
+                , InputGroup.number
                     [ Input.id "objectMappingExpiry"
                     , Input.disabled model.interfaceEditMode
                     , Input.value <| toString model.objectExpiry
                     , Input.onInput UpdateObjectMappingExpiry
                     ]
+                    |> InputGroup.config
+                    |> InputGroup.successors
+                        [ InputGroup.span [] [ text "ms" ] ]
+                    |> InputGroup.view
                 ]
             ]
         , Form.col [ Col.sm6 ]
@@ -1492,6 +1524,15 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
                 ]
         , text "Are you sure you want to continue?"
         ]
+
+
+when : Bool -> Input.Option m -> Input.Option m
+when condition attribute =
+    if condition then
+        attribute
+
+    else
+        Input.attrs []
 
 
 

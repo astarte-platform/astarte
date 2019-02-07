@@ -19,7 +19,7 @@
 
 module Page.Triggers exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi
+import AstarteApi exposing (AstarteErrorMessage)
 import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -56,7 +56,7 @@ init session =
       }
     , AstarteApi.listTriggers session
         GetTriggerListDone
-        (ShowError "Cannot retrieve triggers. ")
+        (ShowError "Could not retrieve trigger list")
         RedirectToLogin
     )
 
@@ -66,7 +66,7 @@ type Msg
     | GetTriggerListDone (List String)
     | AddNewTrigger
     | ShowTrigger String
-    | ShowError String String
+    | ShowError String AstarteApi.AstarteErrorMessage
     | RedirectToLogin
     | Forward ExternalMsg
       -- spinner
@@ -80,7 +80,7 @@ update session msg model =
             ( { model | showSpinner = True }
             , AstarteApi.listTriggers session
                 GetTriggerListDone
-                (ShowError "Cannot retrieve triggers. ")
+                (ShowError "Could not retrieve trigger list")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
@@ -107,11 +107,13 @@ update session msg model =
             )
 
         ShowError actionError errorMessage ->
+            let
+                flashmessageTitle =
+                    String.concat [ actionError, " ", errorMessage.message ]
+            in
             ( { model | showSpinner = False }
             , Cmd.none
-            , [ actionError, " ", errorMessage ]
-                |> String.concat
-                |> ExternalMsg.AddFlashMessage FlashMessage.Error
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
             )
 
         RedirectToLogin ->

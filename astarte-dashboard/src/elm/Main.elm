@@ -154,7 +154,7 @@ type Msg
     | RealmSettingsMsg RealmSettings.Msg
     | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
-    | NewFlashMessage Severity String Time
+    | NewFlashMessage Severity String (List String) Time
     | ClearOldFlashMessages Time
 
 
@@ -185,7 +185,7 @@ update msg model =
             , Cmd.none
             )
 
-        NewFlashMessage severity message createdAt ->
+        NewFlashMessage severity message details createdAt ->
             let
                 displayTime =
                     case severity of
@@ -205,7 +205,7 @@ update msg model =
                     createdAt + displayTime
 
                 newFlashMessage =
-                    FlashMessage.new model.messageCounter message severity dismissAt
+                    FlashMessage.new model.messageCounter message details severity dismissAt
             in
             ( { model
                 | flashMessages = newFlashMessage :: model.flashMessages
@@ -313,9 +313,9 @@ handleExternalMessage model externalMsg =
             , Cmd.none
             )
 
-        AddFlashMessage severity message ->
+        AddFlashMessage severity message details ->
             ( model
-            , Task.perform (NewFlashMessage severity message) Time.now
+            , Task.perform (NewFlashMessage severity message details) Time.now
             )
 
         DismissFlashMessage messageId ->
