@@ -2,7 +2,7 @@ version: '2'
 services:
   # Astarte main services
   astarte-standalone:
-    image: astarte/astarte:0.10.0-beta.3
+    image: astarte/astarte:0.10.0-snapshot
     env_file:
      - ./compose.env
     environment:
@@ -35,7 +35,7 @@ services:
     # We don't wait for anything, as supervisord will restart stuff until it hits.
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:0.10.0-beta.3
+    image: astarte/astarte-dashboard:0.10.0-snapshot
     ports:
       - "4040:80"
     volumes:
@@ -44,7 +44,7 @@ services:
       - "astarte-standalone"
 
   astarte-grafana:
-    image: astarte/grafana:0.10.0-beta.3
+    image: astarte/grafana:0.10.0-snapshot
     ports:
       - "3000:3000"
     depends_on:
@@ -84,7 +84,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:0.10.0-beta.3
+    image: astarte/vernemq:0.10.0-snapshot
     env_file:
      - ./compose.env
     environment:
