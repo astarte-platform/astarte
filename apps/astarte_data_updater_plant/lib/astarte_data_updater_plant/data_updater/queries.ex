@@ -219,6 +219,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     endpoint_rows = DatabaseQuery.call!(db_client, endpoint_query)
 
+    # TODO: we should also cache explicit_timestamp
+    explicit_timestamp_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("SELECT explicit_timestamp FROM endpoints WHERE interface_id=:interface_id LIMIT 1;")
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+
+    [explicit_timestamp: explicit_timestamp] =
+      DatabaseQuery.call!(db_client, explicit_timestamp_query)
+      |> CQEx.Result.head()
+
     # FIXME: new atoms are created here, we should avoid this. We need to fix our BSON decoder before, and to understand better CQEx code.
     column_atoms =
       Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
@@ -252,6 +262,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
           query_values_acc
         end
       end)
+
+    {query_columns, placeholders} =
+      if explicit_timestamp do
+        {"value_timestamp, #{query_columns}", ":value_timestamp, #{placeholders}"}
+      else
+        {query_columns, placeholders}
+      end
 
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
