@@ -41,7 +41,7 @@ To check everything went fine, use `docker ps` to verify relevant containers are
 Now that we have our instance up and running, we can start setting up a Realm for our device. We'll call our Realm `test`. Given we have no SSO or Authentication mechanism set up, we're just going to generate a public key to sign our JWTs with. You can create one with OpenSSL:
 
 ```sh
-$ ssh-keygen -t rsa -b 4096 -f test_realm.key -N ''
+$ openssl genrsa -out test_realm.key 4096
 $ openssl rsa -in test_realm.key -pubout -outform PEM -out test_realm.key.pub
 $ awk '{printf "%s\\n", $0}' test_realm.key.pub > test_realm.key.pub.api
 ```
