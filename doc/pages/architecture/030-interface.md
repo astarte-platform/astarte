@@ -91,6 +91,22 @@ A valid interface must resolve a path univocally to a single endpoint. Take the 
 ```
 In such a case, the interface isn't valid and is rejected, due to the fact that path `/myPath/value` is ambiguous and could be resolved to two different endpoints.
 
+Any endpoint configuration must not generate paths that are prefix of other paths, for this reason the following example is also invalid:
+```
+   [...]
+   "mappings": [
+       {
+           "endpoint": "/some/thing",
+           "type": "integer"
+       },
+       {
+           "endpoint": "/some/%{param}/value",
+           "type": "integer"
+       },
+   [...]
+
+```
+
 In case the interface's aggregation is `object`, additional restrictions apply. Endpoints in the same interface must all have the same depth, and the same number of parameters. If the interface is parametrized, every endpoint must have the same parameter name at the same level. This is an example of a valid aggregated interface mapping:
 
 ```
