@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.10.0-rc.0] - Unreleased
+## [0.10.0-rc.0] - 2019-04-03
 ### Added
 - Add missing support to incoming object aggregated data with explicit_timestamp.
 
