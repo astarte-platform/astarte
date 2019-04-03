@@ -50,8 +50,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.10"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", branch: "release-0.10"}
     ]
   end
 
@@ -67,7 +67,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:amqp, "== 1.0.2"},
       {:bbmustache, "== 1.5.0"},
       {:conform, "== 2.5.2"},
-      {:cyanide, "== 0.5.0"},
+      {:cyanide, "~> 0.5"},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
