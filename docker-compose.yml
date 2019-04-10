@@ -84,7 +84,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:0.10.0-rc.0
+    image: astarte/vernemq:0.10.0-rc.1
     env_file:
      - ./compose.env
     environment:
