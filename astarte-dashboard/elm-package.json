@@ -2,7 +2,7 @@
     "version": "0.10.0",
     "summary": "Astarte Dashboard",
     "repository": "https://github.com/astarte-platform/astarte-dashboard.git",
-    "license": "GPL-3.0",
+    "license": "Apache-2.0",
     "source-directories": [
         "src/elm"
     ],
