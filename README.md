@@ -15,13 +15,13 @@ $ ./generate-compose-files.sh
 $ docker-compose up -d
 ```
 
-You should be up and running in a matter of minutes. If you want a more thorough explanation and find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in 5 minutes" tutorial](http://docs.astarte-platform.org/snapshot/010-astarte_in_5_minutes.html) to get some fake or real devices to stream and process data while your tea gets ready.
+You should be up and running in a matter of minutes. If you want a more thorough explanation and find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in 5 minutes" tutorial](https://docs.astarte-platform.org/latest/010-astarte_in_5_minutes.html) to get some fake or real devices to stream and process data while your tea gets ready.
 
 ## Sweet! Let's move it to production!
 
 Whoa, not so fast. Putting together an Astarte instance which can handle your IoT traffic might be tricky, and requires some knowledge about the platform to make sure it won't break.
 
-So, if you're serious about getting Astarte in your production environment, you might want to learn more about it first. Start with [having a look at its architecture](http://docs.astarte-platform.org/snapshot/001-intro_architecture.html) and [finding out how it works](http://docs.astarte-platform.org/snapshot/001-intro_user.html). Once you feel confident, head over to the [Administration Manual](http://docs.astarte-platform.org/snapshot/001-intro_administrator.html) to find out how to make Astarte fit into your infrastructure, and which deployment mechanism you should choose.
+So, if you're serious about getting Astarte in your production environment, you might want to learn more about it first. Start with [having a look at its architecture](https://docs.astarte-platform.org/latest/001-intro_architecture.html) and [finding out how it works](https://docs.astarte-platform.org/latest/001-intro_user.html). Once you feel confident, head over to the [Administration Manual](https://docs.astarte-platform.org/latest/001-intro_administrator.html) to find out how to make Astarte fit into your infrastructure, and which deployment mechanism you should choose.
 
 ## Where's all the code, anyway?
 

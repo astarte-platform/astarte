@@ -10,7 +10,7 @@ Transports also define the authentication/authorization mechanism of their Devic
 
 Once a Device has performed its first registration through an Agent, it holds its *Credentials Secret*. This *Credentials Secret* is the token the device uses for performing the actual Pairing routine, which results in the device obtaining its Credentials for accessing its designated Transport.
 
-A Device's *Credentials Secret* allows access to [Pairing API's Device REST API](https://docs.astarte-platform.org/snapshot/api/?urls.primaryName=Pairing%20API#/device), which is then used for obtaining information about which Transports the Device can use for communicating, and for obtaining Credentials for its assigned Transports.
+A Device's *Credentials Secret* allows access to [Pairing API's Device REST API](https://docs.astarte-platform.org/latest/api/?urls.primaryName=Pairing%20API#/device), which is then used for obtaining information about which Transports the Device can use for communicating, and for obtaining Credentials for its assigned Transports.
 
 As, from a user's standpoint, the way a Device communicates with Astarte is entirely Transport-specific, this guide will cover using Astarte/MQTT through one of Astarte's SDKs. If you are using a different Transport, please refer to its User Guide, or if you wish to implement your own, head over to [Transport Developer Documentation]().
 
