@@ -222,7 +222,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     # TODO: we should also cache explicit_timestamp
     explicit_timestamp_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT explicit_timestamp FROM endpoints WHERE interface_id=:interface_id LIMIT 1;")
+      |> DatabaseQuery.statement(
+        "SELECT explicit_timestamp FROM endpoints WHERE interface_id=:interface_id LIMIT 1;"
+      )
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
 
     [explicit_timestamp: explicit_timestamp] =
