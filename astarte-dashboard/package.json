@@ -15,7 +15,7 @@
       "url": "https://ispirata.com/"
     }
   ],
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "scripts": {
     "start": "webpack-dev-server --hot --inline --config webpack.dev.js",
     "prebuild": "rimraf dist",
