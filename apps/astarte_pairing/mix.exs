@@ -58,9 +58,10 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.10"},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-0.10"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.10"}
     ]
   end
 
