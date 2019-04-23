@@ -61,8 +61,8 @@ defmodule Astarte.Pairing.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.10"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.10"}
     ]
   end
 
@@ -79,7 +79,6 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:guardian, github: "ispirata/guardian", ref: "ffa8464ce24a6bd438bc0881f3e108397d053843"},
       {:remote_ip, "== 0.1.4"},
       {:ranch, "== 1.4.0", override: true},
-
       {:conform, "== 2.5.2"},
       {:distillery, "== 1.5.2", runtime: false},
       {:excoveralls, "~> 0.6", only: :test},
