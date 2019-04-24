@@ -177,11 +177,11 @@ defmodule Astarte.DataAccess.Data do
          ]
          when is_integer(reception_timestamp) and is_integer(datetime_value) <-
            Result.head(result),
-         {:ok, value_t} <- DateTime.from_unix(datetime_value, :milliseconds),
+         {:ok, value_t} <- DateTime.from_unix(datetime_value, :millisecond),
          {:ok, reception_t} <-
            DateTime.from_unix(
              reception_timestamp * 1000 + div(reception_timestamp_submillis || 0, 10),
-             :microseconds
+             :microsecond
            ) do
       {:ok,
        %{
