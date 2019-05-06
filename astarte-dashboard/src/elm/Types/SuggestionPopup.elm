@@ -23,7 +23,7 @@ import Bootstrap.Utilities.Display as Display
 import Html exposing (Html, div, i, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onMouseLeave)
-import Time exposing (Time)
+import Time exposing (Posix)
 
 
 type SuggestionPopup
@@ -40,7 +40,7 @@ type alias Status =
 type Msg
     = ToggleVisibility
     | AutoHide
-    | CountDown Time
+    | CountDown Posix
 
 
 new : String -> SuggestionPopup
@@ -118,7 +118,7 @@ view (SuggestionPopup status) showIcon =
 subs : SuggestionPopup -> Sub Msg
 subs (SuggestionPopup status) =
     if status.timeoutCounter > 0 then
-        Time.every Time.second CountDown
+        Time.every (60 * 1000) CountDown
 
     else
         Sub.none

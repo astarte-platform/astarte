@@ -19,7 +19,7 @@
 
 module Page.Interfaces exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi exposing (AstarteErrorMessage)
+import AstarteApi
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -35,7 +35,6 @@ import Html exposing (Html, a, h5, i, text)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
-import Navigation
 import Route
 import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -59,7 +58,7 @@ init session =
       , spinner = Spinner.init
       , showSpinner = True
       }
-    , AstarteApi.listInterfaces session
+    , AstarteApi.listInterfaces session.apiConfig
         GetInterfaceListDone
         (ShowError "Could not retrieve interface list")
         RedirectToLogin
@@ -72,9 +71,8 @@ type Msg
     | GetInterfaceMajors String
     | GetInterfaceMajorsDone String (List Int)
     | OpenInterfaceBuilder
-    | ShowInterface String Int
     | Forward ExternalMsg
-    | ShowError String AstarteApi.AstarteErrorMessage
+    | ShowError String AstarteApi.Error
     | RedirectToLogin
       -- accordion
     | AccordionMsg Accordion.State
@@ -87,7 +85,7 @@ update session msg model =
     case msg of
         GetInterfaceList ->
             ( { model | showSpinner = True }
-            , AstarteApi.listInterfaces session
+            , AstarteApi.listInterfaces session.apiConfig
                 GetInterfaceListDone
                 (ShowError "Could not retrieve interface list")
                 RedirectToLogin
@@ -103,14 +101,14 @@ update session msg model =
                 , showSpinner = not (List.isEmpty interfaces)
               }
             , interfaces
-                |> List.map (\name -> getInterfaceMajorsHelper name session)
+                |> List.map (\name -> getInterfaceMajorsHelper session.apiConfig name)
                 |> Cmd.batch
             , ExternalMsg.Noop
             )
 
         GetInterfaceMajors interfaceName ->
             ( model
-            , getInterfaceMajorsHelper interfaceName session
+            , getInterfaceMajorsHelper session.apiConfig interfaceName
             , ExternalMsg.Noop
             )
 
@@ -129,36 +127,33 @@ update session msg model =
 
         OpenInterfaceBuilder ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.NewInterface)
-            , ExternalMsg.Noop
+            , Cmd.none
+            , ExternalMsg.RequestRoute <| Route.Realm Route.NewInterface
             )
 
-        ShowInterface name major ->
-            ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm <| Route.ShowInterface name major)
-            , ExternalMsg.Noop
-            )
-
-        ShowError actionError errorMessage ->
+        ShowError actionError apiError ->
             let
+                ( apiErrorTitle, apiErrorDetails ) =
+                    AstarteApi.errorToHumanReadable apiError
+
                 flashmessageTitle =
-                    String.concat [ actionError, ": ", errorMessage.message ]
+                    String.concat [ actionError, ": ", apiErrorTitle ]
             in
             ( { model | showSpinner = False }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle apiErrorDetails
             )
 
         RedirectToLogin ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
-            , ExternalMsg.Noop
+            , Cmd.none
+            , ExternalMsg.RequestRoute <| Route.Realm Route.Logout
             )
 
-        Forward msg ->
+        Forward externalMsg ->
             ( model
             , Cmd.none
-            , msg
+            , externalMsg
             )
 
         AccordionMsg state ->
@@ -167,17 +162,18 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        SpinnerMsg msg ->
-            ( { model | spinner = Spinner.update msg model.spinner }
+        SpinnerMsg spinnerMsg ->
+            ( { model | spinner = Spinner.update spinnerMsg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
 
-getInterfaceMajorsHelper : String -> Session -> Cmd Msg
-getInterfaceMajorsHelper interfaceName session =
-    AstarteApi.listInterfaceMajors interfaceName
-        session
+getInterfaceMajorsHelper : AstarteApi.Config -> String -> Cmd Msg
+getInterfaceMajorsHelper apiConfig interfaceName =
+    AstarteApi.listInterfaceMajors
+        apiConfig
+        interfaceName
         (GetInterfaceMajorsDone interfaceName)
         (ShowError <| String.concat [ "Could not retrieve major versions for ", interfaceName, " interface" ])
         RedirectToLogin
@@ -290,15 +286,8 @@ renderMajor : String -> Int -> ListGroup.Item Msg
 renderMajor interfaceName major =
     ListGroup.li []
         [ a
-            [ href "#"
-            , Html.Events.onWithOptions
-                "click"
-                { stopPropagation = True
-                , preventDefault = True
-                }
-                (Decode.succeed <| ShowInterface interfaceName major)
-            ]
-            [ text <| interfaceName ++ " v" ++ toString major ]
+            [ href <| Route.toString <| Route.Realm (Route.ShowInterface interfaceName major) ]
+            [ text <| interfaceName ++ " v" ++ String.fromInt major ]
         ]
 
 

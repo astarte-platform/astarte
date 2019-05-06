@@ -24,13 +24,12 @@ $.getJSON("/user-config/config.json", function(result) {
     if (result.realm_management_api_url) {
 
         parameters =
-        {
-            config: result,
-            previousSession: localStorage.session || null
-        }
+            { config: result
+            , previousSession: localStorage.session || null
+            }
 
         //init app
-        var app = require('../elm/Main').Main.fullscreen(parameters);
+        var app = require('../elm/Main').Elm.Main.init({flags: parameters});
 
         /* begin Elm ports */
         app.ports.storeSession.subscribe(function(session) {

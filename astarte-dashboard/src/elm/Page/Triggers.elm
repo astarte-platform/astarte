@@ -19,7 +19,7 @@
 
 module Page.Triggers exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi exposing (AstarteErrorMessage)
+import AstarteApi
 import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -32,7 +32,6 @@ import Html exposing (Html, a, h4, h5, i, text)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick, onInput)
 import Json.Decode as Decode
-import Navigation
 import Route
 import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -54,7 +53,7 @@ init session =
       , spinner = Spinner.init
       , showSpinner = True
       }
-    , AstarteApi.listTriggers session
+    , AstarteApi.listTriggers session.apiConfig
         GetTriggerListDone
         (ShowError "Could not retrieve trigger list")
         RedirectToLogin
@@ -65,8 +64,7 @@ type Msg
     = GetTriggerList
     | GetTriggerListDone (List String)
     | AddNewTrigger
-    | ShowTrigger String
-    | ShowError String AstarteApi.AstarteErrorMessage
+    | ShowError String AstarteApi.Error
     | RedirectToLogin
     | Forward ExternalMsg
       -- spinner
@@ -78,7 +76,7 @@ update session msg model =
     case msg of
         GetTriggerList ->
             ( { model | showSpinner = True }
-            , AstarteApi.listTriggers session
+            , AstarteApi.listTriggers session.apiConfig
                 GetTriggerListDone
                 (ShowError "Could not retrieve trigger list")
                 RedirectToLogin
@@ -96,40 +94,37 @@ update session msg model =
 
         AddNewTrigger ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.NewTrigger)
-            , ExternalMsg.Noop
+            , Cmd.none
+            , ExternalMsg.RequestRoute (Route.Realm Route.NewTrigger)
             )
 
-        ShowTrigger name ->
-            ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm <| Route.ShowTrigger name)
-            , ExternalMsg.Noop
-            )
-
-        ShowError actionError errorMessage ->
+        ShowError actionError apiError ->
             let
+                ( apiErrorTitle, apiErrorDetails ) =
+                    AstarteApi.errorToHumanReadable apiError
+
                 flashmessageTitle =
-                    String.concat [ actionError, " ", errorMessage.message ]
+                    String.concat [ actionError, ": ", apiErrorTitle ]
             in
             ( { model | showSpinner = False }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle apiErrorDetails
             )
 
         RedirectToLogin ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
-            , ExternalMsg.Noop
+            , Cmd.none
+            , ExternalMsg.RequestRoute (Route.Realm Route.Logout)
             )
 
-        Forward msg ->
+        Forward externalMsg ->
             ( model
             , Cmd.none
-            , msg
+            , externalMsg
             )
 
-        SpinnerMsg msg ->
-            ( { model | spinner = Spinner.update msg model.spinner }
+        SpinnerMsg spinnerMsg ->
+            ( { model | spinner = Spinner.update spinnerMsg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -201,14 +196,7 @@ renderSingleTrigger triggerName =
         [ h4
             [ class "card-header" ]
             [ a
-                [ href "#"
-                , Html.Events.onWithOptions
-                    "click"
-                    { stopPropagation = True
-                    , preventDefault = True
-                    }
-                    (Decode.succeed <| ShowTrigger triggerName)
-                ]
+                [ href <| Route.toString <| Route.Realm (Route.ShowTrigger triggerName) ]
                 [ text triggerName ]
             ]
         ]

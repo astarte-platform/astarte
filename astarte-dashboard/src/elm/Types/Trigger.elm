@@ -33,7 +33,7 @@ module Types.Trigger exposing
     )
 
 import Json.Decode as Decode exposing (Decoder, Value, andThen, decodeString, field, index, map, nullable, string)
-import Json.Decode.Pipeline exposing (decode, optionalAt, required, requiredAt, resolve)
+import Json.Decode.Pipeline exposing (optionalAt, required, requiredAt, resolve)
 import Json.Encode as Encode
 import Types.DataTrigger as DataTrigger exposing (DataTrigger)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger)
@@ -108,10 +108,7 @@ encode t =
                     ++ templateEncoder t.template
                 )
           )
-        , ( "simple_triggers"
-          , Encode.list
-                [ simpleTriggerEncoder t.simpleTrigger ]
-          )
+        , ( "simple_triggers", Encode.list simpleTriggerEncoder [ t.simpleTrigger ] )
         ]
 
 
@@ -143,23 +140,23 @@ simpleTriggerEncoder simpleTrigger =
 
 decoder : Decoder Trigger
 decoder =
-    let
-        toDecoder : String -> String -> Maybe String -> Maybe String -> SimpleTrigger -> Decoder Trigger
-        toDecoder name url maybeTemplateType maybeTemplate simpleTrigger =
-            case stringsToTemplate maybeTemplateType maybeTemplate of
-                Ok template ->
-                    Decode.succeed <| Trigger name url template simpleTrigger
-
-                Err err ->
-                    Decode.fail err
-    in
-    decode toDecoder
+    Decode.succeed buildTrigger
         |> required "name" string
         |> requiredAt [ "action", "http_post_url" ] string
         |> optionalAt [ "action", "template_type" ] (nullable string) Nothing
         |> optionalAt [ "action", "template" ] (nullable string) Nothing
         |> required "simple_triggers" (index 0 simpleTriggerDecoder)
         |> resolve
+
+
+buildTrigger : String -> String -> Maybe String -> Maybe String -> SimpleTrigger -> Decoder Trigger
+buildTrigger name url maybeTemplateType maybeTemplate simpleTrigger =
+    case stringsToTemplate maybeTemplateType maybeTemplate of
+        Ok template ->
+            Decode.succeed <| Trigger name url template simpleTrigger
+
+        Err err ->
+            Decode.fail err
 
 
 stringsToTemplate : Maybe String -> Maybe String -> Result String Template
@@ -199,7 +196,7 @@ simpleTriggerDecoder =
 -- JsonHelpers
 
 
-fromString : String -> Result String Trigger
+fromString : String -> Result Decode.Error Trigger
 fromString source =
     decodeString decoder source
 

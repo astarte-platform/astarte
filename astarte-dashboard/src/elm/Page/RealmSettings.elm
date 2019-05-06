@@ -17,9 +17,9 @@
 -}
 
 
-module Page.RealmSettings exposing (Model, Msg, init, update, view)
+module Page.RealmSettings exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi exposing (AstarteErrorMessage)
+import AstarteApi
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Textarea as Textarea
@@ -32,20 +32,22 @@ import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 import Html exposing (Html, h5, i, p, text)
 import Html.Attributes exposing (class, for)
-import Navigation
 import Route
+import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
-import Types.RealmConfig exposing (Config)
+import Types.RealmConfig exposing (RealmConfig)
 import Types.Session exposing (Session)
 
 
 type alias Model =
-    { conf : Maybe Config
+    { conf : Maybe RealmConfig
     , initialKey : String
     , keyChanged : Bool
     , confirmModalVisibility : Modal.Visibility
+    , spinner : Spinner.Model
+    , showSpinner : Bool
     }
 
 
@@ -55,8 +57,10 @@ init session =
       , initialKey = ""
       , keyChanged = False
       , confirmModalVisibility = Modal.hidden
+      , spinner = Spinner.init
+      , showSpinner = True
       }
-    , AstarteApi.realmConfig session
+    , AstarteApi.realmConfig session.apiConfig
         GetRealmConfDone
         (ShowError "Could not retrieve the realm configuration")
         RedirectToLogin
@@ -70,15 +74,17 @@ type ModalResult
 
 type Msg
     = GetRealmConf
-    | GetRealmConfDone Config
-    | UpdateRealmConfDone String
+    | GetRealmConfDone RealmConfig
+    | UpdateRealmConfDone
     | UpdatePubKey String
     | RedirectToLogin
-    | ShowError String AstarteApi.AstarteErrorMessage
+    | ShowError String AstarteApi.Error
     | Forward ExternalMsg
       -- Modal
     | ShowConfirmModal
     | CloseConfirmModal ModalResult
+      -- spinner
+    | SpinnerMsg Spinner.Msg
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -86,7 +92,7 @@ update session msg model =
     case msg of
         GetRealmConf ->
             ( model
-            , AstarteApi.realmConfig session
+            , AstarteApi.realmConfig session.apiConfig
                 GetRealmConfDone
                 (ShowError "Could not retrieve the realm configuration")
                 RedirectToLogin
@@ -103,14 +109,21 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        UpdateRealmConfDone response ->
+        UpdateRealmConfDone ->
+            let
+                addFlashMessageCmd =
+                    ExternalMsg.AddFlashMessage FlashMessage.Notice "Realm configuration has been successfully applied." []
+            in
             ( model
+            , Cmd.none
             , if model.keyChanged then
-                Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
+                ExternalMsg.Batch
+                    [ addFlashMessageCmd
+                    , ExternalMsg.RequestRoute <| Route.Realm Route.Logout
+                    ]
 
               else
-                Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Realm configuration has been successfully applied." []
+                addFlashMessageCmd
             )
 
         UpdatePubKey newPubKey ->
@@ -133,24 +146,27 @@ update session msg model =
 
         RedirectToLogin ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
-            , ExternalMsg.Noop
+            , Cmd.none
+            , ExternalMsg.RequestRoute <| Route.Realm Route.Logout
             )
 
-        ShowError actionError errorMessage ->
+        ShowError actionError apiError ->
             let
+                ( apiErrorTitle, apiErrorDetails ) =
+                    AstarteApi.errorToHumanReadable apiError
+
                 flashmessageTitle =
-                    String.concat [ actionError, ": ", errorMessage.message ]
+                    String.concat [ actionError, ": ", apiErrorTitle ]
             in
-            ( model
+            ( { model | showSpinner = False }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle apiErrorDetails
             )
 
-        Forward msg ->
+        Forward externalMsg ->
             ( model
             , Cmd.none
-            , msg
+            , externalMsg
             )
 
         ShowConfirmModal ->
@@ -163,8 +179,8 @@ update session msg model =
             case ( result, model.conf ) of
                 ( ModalOk, Just config ) ->
                     ( { model | confirmModalVisibility = Modal.hidden }
-                    , AstarteApi.updateRealmConfig config
-                        session
+                    , AstarteApi.updateRealmConfig session.apiConfig
+                        config
                         UpdateRealmConfDone
                         (ShowError "Could not apply realm configuration")
                         RedirectToLogin
@@ -176,6 +192,12 @@ update session msg model =
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
+
+        SpinnerMsg spinnerMsg ->
+            ( { model | spinner = Spinner.update spinnerMsg model.spinner }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
 
 view : Model -> List FlashMessage -> Html Msg
@@ -229,7 +251,7 @@ view model flashMessages =
         ]
 
 
-renderConfig : Maybe Config -> Html Msg
+renderConfig : Maybe RealmConfig -> Html Msg
 renderConfig mConfig =
     case mConfig of
         Just conf ->
@@ -289,3 +311,16 @@ renderConfirmModal modalVisibility keyChanged =
                 [ text "Confirm" ]
             ]
         |> Modal.view modalVisibility
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    if model.showSpinner then
+        Sub.map SpinnerMsg Spinner.subscription
+
+    else
+        Sub.none

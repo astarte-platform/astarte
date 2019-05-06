@@ -24,12 +24,13 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Spacing as Spacing
-import Html exposing (Html, a, body, div, hr, i, img, li, p, small, span, text, ul)
+import Browser exposing (UrlRequest(..))
+import Browser.Navigation
+import Html exposing (Html, a, div, hr, i, img, li, p, small, span, text, ul)
 import Html.Attributes exposing (class, classList, href, src, style)
 import Http
 import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode
-import Navigation exposing (Location)
 import Page.Home as Home
 import Page.InterfaceBuilder as InterfaceBuilder
 import Page.Interfaces as Interfaces
@@ -40,17 +41,21 @@ import Page.Triggers as Triggers
 import Ports
 import Route exposing (RealmRoute, Route)
 import Task
-import Time exposing (Time)
+import Time exposing (Posix)
 import Types.Config as Config exposing (Config)
 import Types.ExternalMessage exposing (ExternalMsg(..))
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
-import Types.Session as Session exposing (Credentials, LoginType(..), Session)
+import Types.Session as Session exposing (LoginStatus(..), LoginType(..), Session)
+import Url exposing (Url)
+import Url.Builder
 
 
 main : Program Value Model Msg
 main =
-    Navigation.programWithFlags NewLocation
+    Browser.application
         { init = init
+        , onUrlChange = NewUrl
+        , onUrlRequest = UrlRequest
         , view = view
         , update = update
         , subscriptions = subscriptions
@@ -62,7 +67,8 @@ main =
 
 
 type alias Model =
-    { selectedPage : Page
+    { navigationKey : Browser.Navigation.Key
+    , selectedPage : Page
     , flashMessages : List FlashMessage
     , messageCounter : Int
     , session : Session
@@ -71,9 +77,20 @@ type alias Model =
     }
 
 
-init : Value -> Location -> ( Model, Cmd Msg )
-init jsParam location =
+init : Value -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init jsParam location key =
     let
+        hostUrl =
+            { location
+                | path = "/"
+                , query = Nothing
+                , fragment = Nothing
+            }
+                |> Url.toString
+
+        ( navbarState, navbarCmd ) =
+            Navbar.initialState NavbarMsg
+
         configFromJavascript =
             Decode.decodeValue (at [ "config" ] Config.decoder) jsParam
                 |> Result.toMaybe
@@ -84,27 +101,21 @@ init jsParam location =
                 |> Result.toMaybe
                 |> Maybe.andThen (Decode.decodeString Session.decoder >> Result.toMaybe)
 
-        hostUrl =
-            location.protocol ++ "//" ++ location.host
-
         initialSession =
             case previousSession of
                 Nothing ->
-                    Session.init configFromJavascript.realmManagementApiUrl hostUrl
+                    initNewSession hostUrl configFromJavascript
 
                 Just prevSession ->
-                    prevSession
-                        |> Session.setHostUrl hostUrl
+                    { prevSession | hostUrl = hostUrl }
 
         ( initialPage, initialCommand, updatedSession ) =
-            Route.fromLocation location
+            Route.fromUrl location
                 |> processRoute configFromJavascript initialSession
 
-        ( navbarState, navbarCmd ) =
-            Navbar.initialState NavbarMsg
-
         initialModel =
-            { selectedPage = initialPage
+            { navigationKey = key
+            , selectedPage = initialPage
             , flashMessages = []
             , messageCounter = 0
             , session = updatedSession
@@ -118,6 +129,21 @@ init jsParam location =
         , initialCommand
         ]
     )
+
+
+initNewSession : String -> Config -> Session
+initNewSession hostUrl config =
+    let
+        apiConfig =
+            { realmManagementUrl = config.realmManagementApiUrl
+            , realm = ""
+            , token = ""
+            }
+    in
+    { hostUrl = hostUrl
+    , loginStatus = NotLoggedIn
+    , apiConfig = apiConfig
+    }
 
 
 type Page
@@ -144,8 +170,8 @@ type RealmPage
 
 type Msg
     = NavbarMsg Navbar.State
-    | NewLocation Location
-    | SetRoute Route
+    | NewUrl Url
+    | UrlRequest UrlRequest
     | UpdateSession (Maybe Session)
     | LoginMsg Login.Msg
     | HomeMsg Home.Msg
@@ -154,8 +180,8 @@ type Msg
     | RealmSettingsMsg RealmSettings.Msg
     | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
-    | NewFlashMessage Severity String (List String) Time
-    | ClearOldFlashMessages Time
+    | NewFlashMessage Severity String (List String) Posix
+    | ClearOldFlashMessages Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -166,17 +192,27 @@ update msg model =
             , Cmd.none
             )
 
-        NewLocation location ->
-            setRoute model <| Route.fromLocation location
+        NewUrl url ->
+            setRoute model <| Route.fromUrl url
 
-        SetRoute route ->
-            setRoute model ( Just route, Nothing )
+        UrlRequest requestUrl ->
+            case requestUrl of
+                Internal internalUrl ->
+                    ( model
+                    , Browser.Navigation.pushUrl model.navigationKey <| Url.toString internalUrl
+                    )
+
+                External externalUrl ->
+                    ( model
+                    , Browser.Navigation.load externalUrl
+                    )
 
         UpdateSession Nothing ->
-            ( { model
-                | session =
-                    Session.init model.config.realmManagementApiUrl model.session.hostUrl
-              }
+            let
+                newSession =
+                    initNewSession model.session.hostUrl model.config
+            in
+            ( { model | session = newSession }
             , Cmd.none
             )
 
@@ -190,19 +226,22 @@ update msg model =
                 displayTime =
                     case severity of
                         FlashMessage.Notice ->
-                            3 * Time.second
+                            3 * 1000
 
                         FlashMessage.Warning ->
-                            6 * Time.second
+                            6 * 1000
 
                         FlashMessage.Error ->
-                            10 * Time.second
+                            10 * 1000
 
                         FlashMessage.Fatal ->
-                            24 * Time.hour
+                            24 * 60 * 60 * 1000
 
                 dismissAt =
-                    createdAt + displayTime
+                    createdAt
+                        |> Time.posixToMillis
+                        |> (+) displayTime
+                        |> Time.millisToPosix
 
                 newFlashMessage =
                     FlashMessage.new model.messageCounter message details severity dismissAt
@@ -218,7 +257,7 @@ update msg model =
             let
                 filteredMessages =
                     List.filter
-                        (\m -> m.dismissAt > now)
+                        (\m -> Time.posixToMillis m.dismissAt > Time.posixToMillis now)
                         model.flashMessages
             in
             ( { model | flashMessages = filteredMessages }
@@ -248,10 +287,13 @@ updatePublicPage publicPage msg model =
                 ( newModel, pageCommand, externalMsg ) =
                     Login.update model.session subMsg subModel
 
+                updatedPageModel =
+                    { model | selectedPage = Public <| LoginPage newModel }
+
                 ( updatedModel, newCommands ) =
-                    handleExternalMessage model externalMsg
+                    handleExternalMessage updatedPageModel externalMsg
             in
-            ( { updatedModel | selectedPage = Public (LoginPage newModel) }
+            ( updatedModel
             , Cmd.batch
                 [ newCommands
                 , Cmd.map LoginMsg pageCommand
@@ -289,10 +331,13 @@ updateRealmPage realm realmPage msg model =
                 ( _, _ ) ->
                     ( model.selectedPage, Cmd.none, Noop )
 
+        updatedPageModel =
+            { model | selectedPage = page }
+
         ( updatedModel, newCommands ) =
-            handleExternalMessage model externalMsg
+            handleExternalMessage updatedPageModel externalMsg
     in
-    ( { updatedModel | selectedPage = page }
+    ( updatedModel
     , Cmd.batch [ newCommands, command ]
     )
 
@@ -313,6 +358,12 @@ handleExternalMessage model externalMsg =
             , Cmd.none
             )
 
+        RequestRoute route ->
+            setRoute model ( Just route, Nothing )
+
+        RequestRouteWithToken route fragment ->
+            setRoute model ( Just route, Just fragment )
+
         AddFlashMessage severity message details ->
             ( model
             , Task.perform (NewFlashMessage severity message details) Time.now
@@ -323,75 +374,99 @@ handleExternalMessage model externalMsg =
             , Cmd.none
             )
 
+        Batch messages ->
+            List.foldl handleBatchedMessages ( model, Cmd.none ) messages
 
-pageInit : RealmRoute -> Credentials -> Config -> Session -> ( Page, Cmd Msg )
-pageInit realmRoute credentials config session =
+
+handleBatchedMessages : ExternalMsg -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+handleBatchedMessages message ( model, cmd ) =
+    let
+        ( updatedModel, newCommands ) =
+            handleExternalMessage model message
+    in
+    ( updatedModel
+    , Cmd.batch [ cmd, newCommands ]
+    )
+
+
+pageInit : RealmRoute -> Config -> Session -> ( Page, Cmd Msg, Session )
+pageInit realmRoute config session =
     case realmRoute of
         Route.Auth _ _ ->
             -- already logged in
-            initHomePage session credentials.realm
+            initHomePage session session.apiConfig.realm
 
         Route.Home ->
-            initHomePage session credentials.realm
+            initHomePage session session.apiConfig.realm
 
         Route.Logout ->
             let
-                ( page, command ) =
-                    initLoginPage config Nothing session
+                ( page, command, updatedSession ) =
+                    initLoginPage config session
 
                 logoutPath =
-                    case credentials.loginType of
-                        TokenLogin ->
-                            Route.toString <| Route.RealmSelection (Just "token")
+                    case session.loginStatus of
+                        LoggedIn (OAuthLogin authUrl) ->
+                            Url.Builder.custom
+                                (Url.Builder.CrossOrigin authUrl)
+                                [ "logout" ]
+                                [ Url.Builder.string "redirect_uri" session.hostUrl ]
+                                Nothing
 
-                        OAuthLogin authUrl ->
-                            [ authUrl, "/logout?redirect_uri=", Http.encodeUri session.hostUrl ]
-                                |> String.concat
+                        _ ->
+                            Route.toString <| Route.RealmSelection (Just "token")
             in
             ( page
             , Cmd.batch
                 [ Ports.storeSession Nothing
-                , Navigation.load <| logoutPath
+                , Browser.Navigation.load <| logoutPath
                 ]
+            , updatedSession
             )
 
         Route.RealmSettings ->
-            initSettingsPage session credentials.realm
+            initSettingsPage session session.apiConfig.realm
 
         Route.ListInterfaces ->
-            initInterfacesPage session credentials.realm
+            initInterfacesPage session session.apiConfig.realm
 
         Route.NewInterface ->
-            initInterfaceBuilderPage Nothing session credentials.realm
+            initInterfaceBuilderPage Nothing session session.apiConfig.realm
 
         Route.ShowInterface name major ->
-            initInterfaceBuilderPage (Just ( name, major )) session credentials.realm
+            initInterfaceBuilderPage (Just ( name, major )) session session.apiConfig.realm
 
         Route.ListTriggers ->
-            initTriggersPage session credentials.realm
+            initTriggersPage session session.apiConfig.realm
 
         Route.NewTrigger ->
-            initTriggerBuilderPage Nothing session credentials.realm
+            initTriggerBuilderPage Nothing session session.apiConfig.realm
 
         Route.ShowTrigger name ->
-            initTriggerBuilderPage (Just name) session credentials.realm
+            initTriggerBuilderPage (Just name) session session.apiConfig.realm
 
 
-initLoginPage : Config -> Maybe Config.AuthType -> Session -> ( Page, Cmd Msg )
-initLoginPage config maybeAuthType session =
+initLoginPage : Config -> Session -> ( Page, Cmd Msg, Session )
+initLoginPage config session =
     let
         authType =
-            maybeAuthType |> Maybe.withDefault config.defaultAuth
+            case session.loginStatus of
+                RequestLogin loginType ->
+                    loginType
+
+                _ ->
+                    config.defaultAuth
 
         ( initialSubModel, initialPageCommand ) =
             Login.init config authType
     in
     ( Public (LoginPage initialSubModel)
     , Cmd.map LoginMsg initialPageCommand
+    , session
     )
 
 
-initHomePage : Session -> String -> ( Page, Cmd Msg )
+initHomePage : Session -> String -> ( Page, Cmd Msg, Session )
 initHomePage session realm =
     let
         ( initialModel, initialCommand ) =
@@ -399,10 +474,11 @@ initHomePage session realm =
     in
     ( Realm realm (HomePage initialModel)
     , Cmd.map HomeMsg initialCommand
+    , session
     )
 
 
-initInterfacesPage : Session -> String -> ( Page, Cmd Msg )
+initInterfacesPage : Session -> String -> ( Page, Cmd Msg, Session )
 initInterfacesPage session realm =
     let
         ( initialModel, initialCommand ) =
@@ -410,10 +486,11 @@ initInterfacesPage session realm =
     in
     ( Realm realm (InterfacesPage initialModel)
     , Cmd.map InterfacesMsg initialCommand
+    , session
     )
 
 
-initInterfaceBuilderPage : Maybe ( String, Int ) -> Session -> String -> ( Page, Cmd Msg )
+initInterfaceBuilderPage : Maybe ( String, Int ) -> Session -> String -> ( Page, Cmd Msg, Session )
 initInterfaceBuilderPage maybeInterfaceId session realm =
     let
         ( initialModel, initialCommand ) =
@@ -421,10 +498,11 @@ initInterfaceBuilderPage maybeInterfaceId session realm =
     in
     ( Realm realm (InterfaceBuilderPage initialModel)
     , Cmd.map InterfaceBuilderMsg initialCommand
+    , session
     )
 
 
-initTriggersPage : Session -> String -> ( Page, Cmd Msg )
+initTriggersPage : Session -> String -> ( Page, Cmd Msg, Session )
 initTriggersPage session realm =
     let
         ( initialModel, initialCommand ) =
@@ -432,10 +510,11 @@ initTriggersPage session realm =
     in
     ( Realm realm (TriggersPage initialModel)
     , Cmd.map TriggersMsg initialCommand
+    , session
     )
 
 
-initTriggerBuilderPage : Maybe String -> Session -> String -> ( Page, Cmd Msg )
+initTriggerBuilderPage : Maybe String -> Session -> String -> ( Page, Cmd Msg, Session )
 initTriggerBuilderPage maybeTriggerName session realm =
     let
         ( initialModel, initialCommand ) =
@@ -443,10 +522,11 @@ initTriggerBuilderPage maybeTriggerName session realm =
     in
     ( Realm realm (TriggerBuilderPage initialModel)
     , Cmd.map TriggerBuilderMsg initialCommand
+    , session
     )
 
 
-initSettingsPage : Session -> String -> ( Page, Cmd Msg )
+initSettingsPage : Session -> String -> ( Page, Cmd Msg, Session )
 initSettingsPage session realm =
     let
         ( initialModel, initialCommand ) =
@@ -454,6 +534,7 @@ initSettingsPage session realm =
     in
     ( Realm realm (RealmSettingsPage initialModel)
     , Cmd.map RealmSettingsMsg initialCommand
+    , session
     )
 
 
@@ -463,14 +544,13 @@ initSettingsPage session realm =
 
 setRoute : Model -> ( Maybe Route, Maybe String ) -> ( Model, Cmd Msg )
 setRoute model ( maybeRoute, maybeToken ) =
-    setPage model <| processRoute model.config model.session ( maybeRoute, maybeToken )
-
-
-setPage : Model -> ( Page, Cmd Msg, Session ) -> ( Model, Cmd Msg )
-setPage model ( page, command, session ) =
+    let
+        ( page, command, updatedSession ) =
+            processRoute model.config model.session ( maybeRoute, maybeToken )
+    in
     ( { model
         | selectedPage = page
-        , session = session
+        , session = updatedSession
       }
     , command
     )
@@ -478,42 +558,43 @@ setPage model ( page, command, session ) =
 
 processRoute : Config -> Session -> ( Maybe Route, Maybe String ) -> ( Page, Cmd Msg, Session )
 processRoute config session ( maybeRoute, maybeToken ) =
+    let
+        loggedIn =
+            Session.isLoggedIn session
+    in
     case maybeRoute of
         Nothing ->
-            case session.credentials of
-                Nothing ->
-                    initLoginPage config Nothing session
-                        ==> session
+            if loggedIn then
+                processRealmRoute maybeToken Route.Home config session
 
-                _ ->
-                    processRealmRoute maybeToken Route.Home config session
+            else
+                initLoginPage config session
 
         Just Route.Root ->
-            case session.credentials of
-                Nothing ->
-                    initLoginPage config Nothing session
-                        ==> session
+            if loggedIn then
+                processRealmRoute maybeToken Route.Home config session
 
-                _ ->
-                    processRealmRoute maybeToken Route.Home config session
+            else
+                initLoginPage config session
 
         Just (Route.RealmSelection loginTypeString) ->
-            case session.credentials of
-                Nothing ->
-                    let
-                        requestedLoginType =
-                            case loginTypeString of
-                                Just "token" ->
-                                    Just Config.Token
+            if loggedIn then
+                processRealmRoute maybeToken Route.ListInterfaces config session
 
-                                _ ->
-                                    Just Config.OAuth
-                    in
-                    initLoginPage config requestedLoginType session
-                        ==> session
+            else
+                let
+                    loginStatus =
+                        case loginTypeString of
+                            Just "token" ->
+                                RequestLogin Config.Token
 
-                _ ->
-                    processRealmRoute maybeToken Route.ListInterfaces config session
+                            _ ->
+                                RequestLogin Config.OAuth
+
+                    updatedSession =
+                        { session | loginStatus = loginStatus }
+                in
+                initLoginPage config updatedSession
 
         Just (Route.Realm realmRoute) ->
             processRealmRoute maybeToken realmRoute config session
@@ -521,81 +602,92 @@ processRoute config session ( maybeRoute, maybeToken ) =
 
 processRealmRoute : Maybe String -> RealmRoute -> Config -> Session -> ( Page, Cmd Msg, Session )
 processRealmRoute maybeToken realmRoute config session =
-    case session.credentials of
-        Just credentials ->
-            case maybeToken of
-                Just token ->
-                    -- update token
-                    let
-                        updatedCredentials =
-                            { credentials | token = token }
+    let
+        apiConfig =
+            session.apiConfig
+    in
+    if String.isEmpty apiConfig.realm then
+        case realmRoute of
+            Route.Auth maybeRealm maybeOauthUrl ->
+                attemptLogin maybeRealm maybeToken maybeOauthUrl config session
 
-                        updatedSession =
-                            session
-                                |> Session.setCredentials (Just updatedCredentials)
+            _ ->
+                -- not authorized
+                initLoginPage config session
 
-                        ( page, command ) =
-                            pageInit realmRoute updatedCredentials config updatedSession
-                    in
-                    ( page
-                    , Cmd.batch [ storeSession updatedSession, command ]
-                    , updatedSession
-                    )
+    else
+        case maybeToken of
+            Just token ->
+                -- update token
+                let
+                    sessionWithUpdatedToken =
+                        session
+                            |> Session.setToken token
 
-                Nothing ->
-                    -- access granted
-                    pageInit realmRoute credentials config session
-                        ==> session
+                    ( page, command, updatedSession ) =
+                        pageInit realmRoute config sessionWithUpdatedToken
+                in
+                ( page
+                , Cmd.batch [ storeSession updatedSession, command ]
+                , updatedSession
+                )
 
-        Nothing ->
-            case realmRoute of
-                Route.Auth maybeRealm maybeUrl ->
-                    case ( maybeRealm, maybeToken ) of
-                        ( Just realm, Just token ) ->
-                            -- login into realm
-                            let
-                                updatedCredentials =
-                                    { realm = realm
-                                    , token = token
-                                    , loginType =
-                                        case maybeUrl of
-                                            Nothing ->
-                                                Session.TokenLogin
+            Nothing ->
+                -- access granted
+                pageInit realmRoute config session
 
-                                            Just url ->
-                                                Session.OAuthLogin url
-                                    }
 
-                                updatedSession =
-                                    session
-                                        |> Session.setCredentials (Just updatedCredentials)
+attemptLogin : Maybe String -> Maybe String -> Maybe String -> Config -> Session -> ( Page, Cmd Msg, Session )
+attemptLogin maybeRealm maybeToken maybeOauthUrl config session =
+    let
+        apiConfig =
+            session.apiConfig
+    in
+    case ( maybeRealm, maybeToken ) of
+        ( Just realm, Just token ) ->
+            -- login into realm
+            let
+                updatedApiConfig =
+                    { apiConfig
+                        | realm = realm
+                        , token = token
+                    }
 
-                                ( page, command ) =
-                                    pageInit Route.Home updatedCredentials config updatedSession
-                            in
-                            ( page
-                            , Cmd.batch [ storeSession updatedSession, command ]
-                            , updatedSession
-                            )
+                loginType =
+                    case maybeOauthUrl of
+                        Nothing ->
+                            Session.TokenLogin
 
-                        _ ->
-                            -- missing parameters
-                            initLoginPage config Nothing session
-                                ==> session
+                        Just url ->
+                            Session.OAuthLogin url
 
-                _ ->
-                    -- not authorized
-                    initLoginPage config Nothing session
-                        ==> session
+                sessionWithCredentials =
+                    { session
+                        | loginStatus = LoggedIn loginType
+                        , apiConfig = updatedApiConfig
+                    }
+
+                ( page, command, updatedSession ) =
+                    pageInit Route.Home config sessionWithCredentials
+            in
+            ( page
+            , Cmd.batch [ storeSession updatedSession, command ]
+            , updatedSession
+            )
+
+        _ ->
+            -- missing parameters
+            initLoginPage config session
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    body []
+    { title = "Astarte - Dashboard"
+    , body =
         [ renderNavbar model
         , div
             [ class "main-content"
@@ -603,6 +695,7 @@ view model =
             ]
             [ renderPage model model.selectedPage ]
         ]
+    }
 
 
 renderNavbar : Model -> Html Msg
@@ -622,10 +715,10 @@ renderNavbar model =
                     ]
                 |> Navbar.collapseMedium
                 |> Navbar.brand
-                    [ href "/" ]
+                    [ href <| Route.toString (Route.Realm Route.Home) ]
                     [ img
                         [ src <| Assets.path Assets.dashboardIcon
-                        , style [ ( "height", "3em" ) ]
+                        , style "height" "3em"
                         , Spacing.mr3
                         ]
                         []
@@ -836,7 +929,7 @@ subscriptions model =
     else
         Sub.batch
             [ Navbar.subscriptions model.navbarState NavbarMsg
-            , Time.every Time.second ClearOldFlashMessages
+            , Time.every 1000 ClearOldFlashMessages
             , Sub.map UpdateSession sessionChange
             , pageSubscriptions model.selectedPage
             ]
@@ -857,6 +950,9 @@ pageSubscriptions page =
         Realm _ (TriggersPage submodel) ->
             Sub.map TriggersMsg <| Triggers.subscriptions submodel
 
+        Realm _ (RealmSettingsPage submodel) ->
+            Sub.map RealmSettingsMsg <| RealmSettings.subscriptions submodel
+
         _ ->
             Sub.none
 
@@ -872,12 +968,3 @@ storeSession session =
         |> Encode.encode 0
         |> Just
         |> Ports.storeSession
-
-
-
--- Helper functions
-
-
-(==>) : ( a, b ) -> c -> ( a, b, c )
-(==>) ( oa, ob ) oc =
-    ( oa, ob, oc )

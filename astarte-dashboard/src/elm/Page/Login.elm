@@ -31,17 +31,17 @@ import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
+import Browser.Navigation
 import Html exposing (Html, a, img, text)
 import Html.Attributes exposing (class, href, placeholder, src)
 import Http
-import Maybe.Extra exposing (isNothing)
-import Navigation
 import Route
 import Types.Config as Config exposing (AuthConfig(..), AuthType(..), Config, getAuthConfig)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
+import Url.Builder
 
 
 type alias Model =
@@ -96,6 +96,16 @@ init config requestedAuth =
     )
 
 
+isNothing : Maybe a -> Bool
+isNothing maybeVal =
+    case maybeVal of
+        Just _ ->
+            False
+
+        Nothing ->
+            True
+
+
 type Msg
     = Login
     | UpdateRealm String
@@ -133,10 +143,10 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        Forward msg ->
+        Forward externalMsg ->
             ( model
             , Cmd.none
-            , msg
+            , externalMsg
             )
 
 
@@ -149,18 +159,11 @@ loginWithToken model =
         )
 
     else
-        let
-            tokenHash =
-                "#access_token=" ++ model.token
-
-            authUrl =
-                Route.Auth (Just model.realm) Nothing
-                    |> Route.Realm
-                    |> Route.toString
-        in
         ( model
-        , Navigation.modifyUrl <| authUrl ++ tokenHash
-        , ExternalMsg.Noop
+        , Cmd.none
+        , ExternalMsg.RequestRouteWithToken
+            (Route.Realm <| Route.Auth (Just model.realm) Nothing)
+            model.token
         )
 
 
@@ -180,33 +183,27 @@ loginWithOAuth model hostUrl =
                     |> Route.toString
                     |> String.append hostUrl
 
-            fullUrl =
-                buildUrl
-                    (model.authUrl ++ "/auth")
-                    [ ( "client_id", "astarte-dashboard" )
-                    , ( "response_type", "token" )
-                    , ( "redirect_uri", returnUri )
+            externalUrl =
+                Url.Builder.custom
+                    (Url.Builder.CrossOrigin model.authUrl)
+                    [ "auth" ]
+                    [ Url.Builder.string "client_id" "astarte-dashboard"
+                    , Url.Builder.string "response_type" "token"
+                    , Url.Builder.string "redirect_uri" returnUri
                     ]
+                    Nothing
+
+            fullUrl =
+                if String.startsWith "http" externalUrl then
+                    externalUrl
+
+                else
+                    "http://" ++ externalUrl
         in
         ( model
-        , Navigation.load fullUrl
+        , Browser.Navigation.load fullUrl
         , ExternalMsg.Noop
         )
-
-
-buildUrl : String -> List ( String, String ) -> String
-buildUrl baseUrl args =
-    case args of
-        [] ->
-            baseUrl
-
-        _ ->
-            baseUrl ++ "?" ++ String.join "&" (List.map queryPair args)
-
-
-queryPair : ( String, String ) -> String
-queryPair ( key, value ) =
-    Http.encodeUri key ++ "=" ++ Http.encodeUri value
 
 
 view : Model -> List FlashMessage -> Html Msg

@@ -22,17 +22,9 @@ module.exports = merge(common, {
             exclude: [/elm-stuff/, /node_modules/],
             use: [
                 {
-                    loader: 'elm-assets-loader',
-                    options: {
-                        module: 'Assets',
-                        tagger: 'AssetPath'
-                    }
-                },
-                {
                     loader: 'elm-webpack-loader',
                     options: {
                         verbose: true,
-                        warn: true,
                         debug: true
                     }
                 }

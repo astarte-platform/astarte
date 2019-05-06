@@ -24,14 +24,14 @@ module Types.FlashMessage exposing
     , new
     )
 
-import Time exposing (Time)
+import Time exposing (Posix)
 
 
 type alias FlashMessage =
     { id : FlashMessageId
     , message : String
     , severity : Severity
-    , dismissAt : Time
+    , dismissAt : Posix
     , optionalInfos : List String
     }
 
@@ -47,7 +47,7 @@ type Severity
     | Fatal
 
 
-new : Int -> String -> List String -> Severity -> Time -> FlashMessage
+new : Int -> String -> List String -> Severity -> Posix -> FlashMessage
 new intId message optionalInfos severity dismissAt =
     { id = FlashMessageId intId
     , message = message
