@@ -9,7 +9,7 @@ RUN mix local.hex --force && \
 
 
 WORKDIR /build
-ARG BUILD_BRANCH=v0.10.0
+ARG BUILD_BRANCH=master
 ENV MIX_ENV prod
 
 
