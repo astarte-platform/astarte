@@ -26,9 +26,10 @@ import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Spacing as Spacing
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation
-import Html exposing (Html, a, div, hr, i, img, li, p, small, span, text, ul)
+import Html exposing (Html, a, div, hr, img, li, p, small, span, text, ul)
 import Html.Attributes exposing (class, classList, href, src, style)
 import Http
+import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode
 import Page.Home as Home
@@ -735,7 +736,7 @@ renderNavbar model =
 
 
 {-
-   as for elm-bootstrap 4.1.0, vertical navbars are not supported.
+   as for elm-bootstrap 5.1.0, vertical navbars are not supported.
    This is the implementation using bootstrap css classes
 -}
 
@@ -748,77 +749,53 @@ navbarLinks selectedPage =
             [ hr [] []
             , ul
                 [ class "navbar-nav" ]
-                [ li [ class "navbar-item" ]
-                    [ a
-                        [ classList
-                            [ ( "nav-link", True )
-                            , ( "active", isHomeRelated selectedPage )
-                            ]
-                        , href <| Route.toString (Route.Realm Route.Home)
-                        ]
-                        [ span
-                            [ class "icon-spacer" ]
-                            [ i [ class "fas", class "fa-home" ] [] ]
-                        , text "Home"
-                        ]
-                    ]
-                , li [ class "navbar-item" ]
-                    [ a
-                        [ classList
-                            [ ( "nav-link", True )
-                            , ( "active", isInterfacesRelated selectedPage )
-                            ]
-                        , href <| Route.toString (Route.Realm Route.ListInterfaces)
-                        ]
-                        [ span
-                            [ class "icon-spacer" ]
-                            [ i [ class "fas", class "fa-stream" ] [] ]
-                        , text "Interfaces"
-                        ]
-                    ]
-                , li [ class "navbar-item" ]
-                    [ a
-                        [ classList
-                            [ ( "nav-link", True )
-                            , ( "active", isTriggersRelated selectedPage )
-                            ]
-                        , href <| Route.toString (Route.Realm Route.ListTriggers)
-                        ]
-                        [ span
-                            [ class "icon-spacer" ]
-                            [ i [ class "fas", class "fa-bolt" ] [] ]
-                        , text "Triggers"
-                        ]
-                    ]
-                , li [ class "navbar-item" ]
-                    [ a
-                        [ classList
-                            [ ( "nav-link", True )
-                            , ( "active", isSettingsRelated selectedPage )
-                            ]
-                        , href <| Route.toString (Route.Realm Route.RealmSettings)
-                        ]
-                        [ span
-                            [ class "icon-spacer" ]
-                            [ i [ class "fas", class "fa-cog" ] [] ]
-                        , text "Settings"
-                        ]
-                    ]
+                [ renderNavbarLink
+                    "Home"
+                    Icons.Home
+                    (isHomeRelated selectedPage)
+                    (Route.Realm Route.Home)
+                , renderNavbarLink
+                    "Interfaces"
+                    Icons.Interface
+                    (isInterfacesRelated selectedPage)
+                    (Route.Realm Route.ListInterfaces)
+                , renderNavbarLink
+                    "Triggers"
+                    Icons.Trigger
+                    (isTriggersRelated selectedPage)
+                    (Route.Realm Route.ListTriggers)
+                , renderNavbarLink
+                    "Settings"
+                    Icons.Settings
+                    (isSettingsRelated selectedPage)
+                    (Route.Realm Route.RealmSettings)
                 , li [ class "navbar-item" ]
                     [ hr [] [] ]
-                , li [ class "navbar-item" ]
-                    [ a
-                        [ class "nav-link"
-                        , href <| Route.toString (Route.Realm Route.Logout)
-                        ]
-                        [ span
-                            [ class "icon-spacer" ]
-                            [ i [ class "fas", class "fa-sign-out-alt" ] [] ]
-                        , text "Logout"
-                        ]
-                    ]
+                , renderNavbarLink
+                    "Logout"
+                    Icons.Logout
+                    False
+                    (Route.Realm Route.Logout)
                 ]
             ]
+
+
+renderNavbarLink : String -> Icon -> Bool -> Route -> Html Msg
+renderNavbarLink name icon active route =
+    li [ class "navbar-item" ]
+        [ a
+            [ classList
+                [ ( "nav-link", True )
+                , ( "active", active )
+                ]
+            , href <| Route.toString route
+            ]
+            [ span
+                [ class "icon-spacer" ]
+                [ Icons.render icon [] ]
+            , text name
+            ]
+        ]
 
 
 isHomeRelated : Page -> Bool
