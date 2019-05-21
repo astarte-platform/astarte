@@ -28,7 +28,7 @@ module Types.Config exposing
     )
 
 import Json.Decode as Decode exposing (Decoder, andThen, field, list, maybe, nullable, string)
-import Json.Decode.Pipeline exposing (decode, optional, required)
+import Json.Decode.Pipeline exposing (optional, required)
 import JsonHelpers as JsonHelpers
 
 
@@ -94,7 +94,7 @@ configMatch authType authConfig =
 
 decoder : Decoder Config
 decoder =
-    decode Config
+    Decode.succeed Config
         |> required "realm_management_api_url" string
         |> optional "default_realm" (nullable string) Nothing
         |> required "default_auth" authTypeDecoder
@@ -138,10 +138,10 @@ authConfigDecoderHelper authType =
 
 oauthConfigDecoder : Decoder AuthConfig
 oauthConfigDecoder =
-    decode OAuthConfig
+    Decode.succeed OAuthConfig
         |> optional "oauth_api_url" (nullable string) Nothing
 
 
 tokenConfigDecoder : Decoder AuthConfig
 tokenConfigDecoder =
-    decode TokenConfig
+    Decode.succeed TokenConfig

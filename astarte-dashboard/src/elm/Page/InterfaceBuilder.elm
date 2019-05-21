@@ -19,7 +19,7 @@
 
 module Page.InterfaceBuilder exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi exposing (AstarteErrorMessage)
+import AstarteApi
 import Bootstrap.Accordion as Accordion
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
@@ -40,18 +40,16 @@ import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
-import Control exposing (Control)
-import Control.Debounce as Debounce
+import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
 import Dict exposing (Dict)
 import Html exposing (Html, b, br, h5, i, p, small, text)
 import Html.Attributes exposing (class, for, selected, value)
 import Html.Events exposing (onSubmit)
 import Modal.MappingBuilder as MappingBuilder
-import Navigation
 import Route
 import Spinner
 import Task
-import Time exposing (Time)
+import Time exposing (Posix)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
@@ -77,7 +75,7 @@ type alias Model =
     , showSource : Bool
     , sourceBuffer : String
     , sourceBufferStatus : BufferStatus
-    , debouncerControlState : Control.State Msg
+    , sourceDebouncer : Debouncer Msg Msg
     , accordionState : Accordion.State
     , spinner : Spinner.Model
     , showSpinner : Bool
@@ -103,13 +101,18 @@ type BufferStatus
 init : Maybe ( String, Int ) -> Session -> ( Model, Cmd Msg )
 init maybeInterfaceId session =
     let
+        debouncer =
+            Debouncer.manual
+                |> Debouncer.settleWhenQuietFor (Just (fromSeconds 1))
+                |> toDebouncer
+
         ( showSpinner, initialCommand ) =
             case maybeInterfaceId of
                 Just ( name, major ) ->
                     ( True
-                    , AstarteApi.getInterface name
+                    , AstarteApi.getInterface session.apiConfig
+                        name
                         major
-                        session
                         GetInterfaceDone
                         (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
@@ -136,7 +139,7 @@ init maybeInterfaceId session =
       , showSource = True
       , sourceBuffer = Interface.toPrettySource Interface.empty
       , sourceBufferStatus = Valid
-      , debouncerControlState = Control.initialState
+      , sourceDebouncer = debouncer
       , accordionState = Accordion.initialState
       , spinner = Spinner.init
       , showSpinner = showSpinner
@@ -145,11 +148,6 @@ init maybeInterfaceId session =
       }
     , initialCommand
     )
-
-
-debounce : Msg -> Msg
-debounce =
-    Debounce.trailing DebounceMsg (1 * Time.second)
 
 
 type InterfaceNameStatus
@@ -165,20 +163,20 @@ type ModalResult
 
 type Msg
     = GetInterfaceDone Interface
-    | AddInterfaceDone String
-    | DeleteInterfaceDone String
-    | UpdateInterfaceDone String
+    | AddInterfaceDone
+    | DeleteInterfaceDone
+    | UpdateInterfaceDone
     | RemoveMapping InterfaceMapping
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
     | ShowConfirmModal
     | CloseConfirmModal ModalResult
-    | ShowError String AstarteApi.AstarteErrorMessage
+    | ShowError String AstarteApi.Error
     | RedirectToLogin
     | ToggleSource
     | InterfaceSourceChanged
     | UpdateSource String
-    | DebounceMsg (Control Msg)
+    | SourceDebounceMsg (Debouncer.Msg Msg)
     | Forward ExternalMsg
       -- interface messages
     | UpdateInterfaceName String
@@ -230,21 +228,21 @@ update session msg model =
                         isObject
                         shown
 
-                ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
+                commonObjectParams =
                     case ( isObject, List.head <| Interface.mappingsAsList interface ) of
                         ( True, Just mapping ) ->
-                            ( mapping.reliability
-                            , mapping.retention
-                            , mapping.expiry
-                            , mapping.explicitTimestamp
-                            )
+                            { reliability = mapping.reliability
+                            , retention = mapping.retention
+                            , expiry = mapping.expiry
+                            , explicitTimestamp = mapping.explicitTimestamp
+                            }
 
                         _ ->
-                            ( InterfaceMapping.Unreliable
-                            , InterfaceMapping.Discard
-                            , 0
-                            , False
-                            )
+                            { reliability = InterfaceMapping.Unreliable
+                            , retention = InterfaceMapping.Discard
+                            , expiry = 0
+                            , explicitTimestamp = False
+                            }
             in
             ( { model
                 | interface = interface
@@ -252,23 +250,26 @@ update session msg model =
                 , minMinor = interface.minor
                 , sourceBuffer = Interface.toPrettySource interface
                 , mappingBuilderModel = newMappingBuilderModel
-                , objectReliability = objectReliability
-                , objectRetention = objectRetention
-                , objectExpiry = objectExpiry
-                , objectExplicitTimestamp = objectExplicitTimestamp
+                , objectReliability = commonObjectParams.reliability
+                , objectRetention = commonObjectParams.retention
+                , objectExpiry = commonObjectParams.expiry
+                , objectExplicitTimestamp = commonObjectParams.explicitTimestamp
                 , showSpinner = False
               }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
-        AddInterfaceDone response ->
+        AddInterfaceDone ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed." []
+            , Cmd.none
+            , ExternalMsg.Batch
+                [ ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully installed." []
+                , ExternalMsg.RequestRoute <| Route.Realm Route.ListInterfaces
+                ]
             )
 
-        UpdateInterfaceDone response ->
+        UpdateInterfaceDone ->
             ( { model
                 | minMinor = model.interface.minor
                 , interface = Interface.sealMappings model.interface
@@ -277,10 +278,13 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Changes succesfully applied." []
             )
 
-        DeleteInterfaceDone response ->
+        DeleteInterfaceDone ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListInterfaces)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted." []
+            , Cmd.none
+            , ExternalMsg.Batch
+                [ ExternalMsg.AddFlashMessage FlashMessage.Notice "Interface succesfully deleted." []
+                , ExternalMsg.RequestRoute <| Route.Realm Route.ListInterfaces
+                ]
             )
 
         ShowDeleteModal ->
@@ -297,9 +301,9 @@ update session msg model =
                 ModalOk ->
                     if model.interface.name == model.confirmInterfaceName then
                         ( { model | deleteModalVisibility = Modal.hidden }
-                        , AstarteApi.deleteInterface model.interface.name
+                        , AstarteApi.deleteInterface session.apiConfig
+                            model.interface.name
                             model.interface.major
-                            session
                             DeleteInterfaceDone
                             (ShowError "Could not delete interface")
                             RedirectToLogin
@@ -330,15 +334,15 @@ update session msg model =
                     let
                         command =
                             if model.interfaceEditMode then
-                                AstarteApi.updateInterface model.interface
-                                    session
+                                AstarteApi.updateInterface session.apiConfig
+                                    model.interface
                                     UpdateInterfaceDone
                                     (ShowError "Could not apply changes")
                                     RedirectToLogin
 
                             else
-                                AstarteApi.addNewInterface model.interface
-                                    session
+                                AstarteApi.addNewInterface session.apiConfig
+                                    model.interface
                                     AddInterfaceDone
                                     (ShowError "Could not install interface")
                                     RedirectToLogin
@@ -354,21 +358,24 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        ShowError actionError errorMessage ->
+        ShowError actionError apiError ->
             let
+                ( apiErrorTitle, apiErrorDetails ) =
+                    AstarteApi.errorToHumanReadable apiError
+
                 flashmessageTitle =
-                    String.concat [ actionError, ": ", errorMessage.message ]
+                    String.concat [ actionError, ": ", apiErrorTitle ]
             in
             ( { model | showSpinner = False }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle apiErrorDetails
             )
 
         RedirectToLogin ->
             -- TODO: We should save page context, ask for login and then restore previous context
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
-            , ExternalMsg.Noop
+            , Cmd.none
+            , ExternalMsg.RequestRoute <| Route.Realm Route.Logout
             )
 
         ToggleSource ->
@@ -382,30 +389,30 @@ update session msg model =
                 Ok interface ->
                     if not model.interfaceEditMode || Interface.compareId model.interface interface then
                         let
-                            ( objectReliability, objectRetention, objectExpiry, objectExplicitTimestamp ) =
+                            commonObjectParams =
                                 case ( interface.aggregation, List.head <| Interface.mappingsAsList interface ) of
                                     ( Interface.Object, Just mapping ) ->
-                                        ( mapping.reliability
-                                        , mapping.retention
-                                        , mapping.expiry
-                                        , mapping.explicitTimestamp
-                                        )
+                                        { reliability = mapping.reliability
+                                        , retention = mapping.retention
+                                        , expiry = mapping.expiry
+                                        , explicitTimestamp = mapping.explicitTimestamp
+                                        }
 
                                     _ ->
-                                        ( InterfaceMapping.Unreliable
-                                        , InterfaceMapping.Discard
-                                        , 0
-                                        , False
-                                        )
+                                        { reliability = InterfaceMapping.Unreliable
+                                        , retention = InterfaceMapping.Discard
+                                        , expiry = 0
+                                        , explicitTimestamp = False
+                                        }
                         in
                         ( { model
                             | sourceBuffer = Interface.toPrettySource interface
                             , sourceBufferStatus = Valid
                             , interface = interface
-                            , objectReliability = objectReliability
-                            , objectRetention = objectRetention
-                            , objectExpiry = objectExpiry
-                            , objectExplicitTimestamp = objectExplicitTimestamp
+                            , objectReliability = commonObjectParams.reliability
+                            , objectRetention = commonObjectParams.retention
+                            , objectExpiry = commonObjectParams.expiry
+                            , objectExplicitTimestamp = commonObjectParams.explicitTimestamp
                           }
                         , Cmd.none
                         , ExternalMsg.Noop
@@ -431,27 +438,48 @@ update session msg model =
                 | sourceBuffer = newSource
                 , sourceBufferStatus = Typing
               }
-            , Task.perform (\_ -> debounce InterfaceSourceChanged) (Task.succeed ())
+            , Task.perform
+                (\_ ->
+                    InterfaceSourceChanged
+                        |> Debouncer.provideInput
+                        |> SourceDebounceMsg
+                )
+                (Task.succeed ())
             , ExternalMsg.Noop
             )
 
-        DebounceMsg control ->
+        SourceDebounceMsg subMsg ->
             let
-                ( newModel, command ) =
-                    Control.update
-                        (\newstate -> { model | debouncerControlState = newstate })
-                        model.debouncerControlState
-                        control
-            in
-            ( newModel
-            , command
-            , ExternalMsg.Noop
-            )
+                ( subModel, subCmd, emittedMsg ) =
+                    Debouncer.update subMsg model.sourceDebouncer
 
-        Forward msg ->
+                mappedCmd =
+                    Cmd.map SourceDebounceMsg subCmd
+
+                updatedModel =
+                    { model | sourceDebouncer = subModel }
+            in
+            case emittedMsg of
+                Just emitted ->
+                    let
+                        ( newModel, updateCommand, externalCommand ) =
+                            update session emitted updatedModel
+                    in
+                    ( newModel
+                    , Cmd.batch [ updateCommand, mappedCmd ]
+                    , externalCommand
+                    )
+
+                Nothing ->
+                    ( updatedModel
+                    , mappedCmd
+                    , ExternalMsg.Noop
+                    )
+
+        Forward externalMsg ->
             ( model
             , Cmd.none
-            , msg
+            , externalMsg
             )
 
         UpdateInterfaceName newName ->
@@ -469,7 +497,7 @@ update session msg model =
 
         UpdateInterfaceMajor newMajor ->
             case String.toInt newMajor of
-                Ok major ->
+                Just major ->
                     if major > 0 || (major == 0 && model.interface.minor > 0) then
                         let
                             newInterface =
@@ -489,7 +517,7 @@ update session msg model =
                         , ExternalMsg.Noop
                         )
 
-                Err _ ->
+                Nothing ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -497,7 +525,7 @@ update session msg model =
 
         UpdateInterfaceMinor newMinor ->
             case String.toInt newMinor of
-                Ok minor ->
+                Just minor ->
                     if minor >= model.minMinor && not (model.interface.major == 0 && minor == 0) then
                         let
                             newInterface =
@@ -517,7 +545,7 @@ update session msg model =
                         , ExternalMsg.Noop
                         )
 
-                Err _ ->
+                Nothing ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -690,7 +718,7 @@ update session msg model =
 
         UpdateObjectMappingExpiry newExpiry ->
             case String.toInt newExpiry of
-                Ok expiry ->
+                Just expiry ->
                     if expiry >= 0 then
                         let
                             newInterface =
@@ -716,7 +744,7 @@ update session msg model =
                         , ExternalMsg.Noop
                         )
 
-                Err _ ->
+                Nothing ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -747,8 +775,8 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        MappingBuilderMsg msg ->
-            ( handleMappingBuilderMessages msg model
+        MappingBuilderMsg mappingBuilderMsg ->
+            ( handleMappingBuilderMessages mappingBuilderMsg model
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -801,16 +829,16 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        SpinnerMsg msg ->
-            ( { model | spinner = Spinner.update msg model.spinner }
+        SpinnerMsg spinnerMsg ->
+            ( { model | spinner = Spinner.update spinnerMsg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
-        SuggestionPopupMsg msg ->
+        SuggestionPopupMsg popupMsg ->
             ( { model
                 | interfaceNameSuggestionPopup =
-                    SuggestionPopup.update model.interfaceNameSuggestionPopup msg
+                    SuggestionPopup.update model.interfaceNameSuggestionPopup popupMsg
               }
             , Cmd.none
             , ExternalMsg.Noop
@@ -968,7 +996,7 @@ renderContent model interface interfaceEditMode accordionState =
                         , Input.number
                             [ Input.id "interfaceMajor"
                             , Input.readonly interfaceEditMode
-                            , Input.value <| toString interface.major
+                            , Input.value <| String.fromInt interface.major
                             , Input.onInput UpdateInterfaceMajor
                             ]
                         ]
@@ -978,7 +1006,7 @@ renderContent model interface interfaceEditMode accordionState =
                         [ Form.label [ for "interfaceMinor" ] [ text "Minor" ]
                         , Input.number
                             [ Input.id "interfaceMinor"
-                            , Input.value <| toString interface.minor
+                            , Input.value <| String.fromInt interface.minor
                             , Input.onInput UpdateInterfaceMinor
                             ]
                         ]
@@ -1253,7 +1281,7 @@ renderCommonMappingSettings model =
                 , InputGroup.number
                     [ Input.id "objectMappingExpiry"
                     , Input.disabled model.interfaceEditMode
-                    , Input.value <| toString model.objectExpiry
+                    , Input.value <| String.fromInt model.objectExpiry
                     , Input.onInput UpdateObjectMappingExpiry
                     ]
                     |> InputGroup.config
@@ -1327,13 +1355,13 @@ renderMapping mapping =
             , ( textBlock "Retention" <| retentionToEnglishString mapping.retention
               , mapping.retention == InterfaceMapping.Discard
               )
-            , ( textBlock "Expiry" <| toString mapping.expiry
+            , ( textBlock "Expiry" <| String.fromInt mapping.expiry
               , mapping.retention == InterfaceMapping.Discard || mapping.expiry == 0
               )
-            , ( textBlock "Explicit timestamp" <| toString mapping.explicitTimestamp
+            , ( textBlock "Explicit timestamp" <| boolToString mapping.explicitTimestamp
               , not mapping.explicitTimestamp
               )
-            , ( textBlock "Allow unset" <| toString mapping.allowUnset
+            , ( textBlock "Allow unset" <| boolToString mapping.allowUnset
               , not mapping.allowUnset
               )
             , ( textBlock "Doc" mapping.doc
@@ -1552,3 +1580,12 @@ subscriptions model =
                     []
                )
         )
+
+
+boolToString : Bool -> String
+boolToString b =
+    if b then
+        "true"
+
+    else
+        "false"

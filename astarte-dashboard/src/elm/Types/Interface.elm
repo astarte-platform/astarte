@@ -49,10 +49,10 @@ module Types.Interface exposing
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder, Value, bool, decodeString, int, list, string)
-import Json.Decode.Pipeline exposing (decode, optional, required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode
 import JsonHelpers
-import Regex exposing (regex)
+import Regex exposing (Regex)
 import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
 
 
@@ -98,6 +98,22 @@ type Owner
 type AggregationType
     = Individual
     | Object
+
+
+
+-- Regex
+
+
+validInterfaceNameRegex : Regex
+validInterfaceNameRegex =
+    Regex.fromString "^[a-zA-Z]+(\\.[a-zA-Z0-9]+)*$"
+        |> Maybe.withDefault Regex.never
+
+
+goodInterfaceNameRegex : Regex
+goodInterfaceNameRegex =
+    Regex.fromString "^([a-z]{2,}\\.){2,}[A-Z][a-zA-Z0-9]*$"
+        |> Maybe.withDefault Regex.never
 
 
 
@@ -273,10 +289,8 @@ encode interface =
         , ( "doc", Encode.string interface.doc, interface.doc == "" )
         ]
     , [ ( "mappings"
-        , Encode.list
-            (Dict.values interface.mappings
-                |> List.map InterfaceMapping.encode
-            )
+        , Encode.list InterfaceMapping.encode <|
+            Dict.values interface.mappings
         )
       ]
     ]
@@ -320,7 +334,7 @@ encodeAggregationType a =
 
 decoder : Decoder Interface
 decoder =
-    decode Interface
+    Decode.succeed Interface
         |> required "interface_name" string
         |> required "version_major" int
         |> required "version_minor" int
@@ -412,12 +426,12 @@ mappingsAsList interface =
 
 isValidInterfaceName : String -> Bool
 isValidInterfaceName interfaceName =
-    Regex.contains (regex "^[a-zA-Z]+(\\.[a-zA-Z0-9]+)*$") interfaceName
+    Regex.contains validInterfaceNameRegex interfaceName
 
 
 isGoodInterfaceName : String -> Bool
 isGoodInterfaceName interfaceName =
-    Regex.contains (regex "^([a-z]{2,}\\.){2,}[A-Z][a-zA-Z0-9]*$") interfaceName
+    Regex.contains goodInterfaceNameRegex interfaceName
 
 
 toPrettySource : Interface -> String
@@ -425,7 +439,7 @@ toPrettySource interface =
     Encode.encode 4 <| encode interface
 
 
-fromString : String -> Result String Interface
+fromString : String -> Result Decode.Error Interface
 fromString source =
     decodeString decoder source
 

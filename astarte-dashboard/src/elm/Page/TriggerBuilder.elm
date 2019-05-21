@@ -19,7 +19,7 @@
 
 module Page.TriggerBuilder exposing (Model, Msg, init, subscriptions, update, view)
 
-import AstarteApi exposing (AstarteErrorMessage)
+import AstarteApi
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
@@ -33,13 +33,11 @@ import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
-import Control exposing (Control)
-import Control.Debounce as Debounce
+import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
 import Html exposing (Html, b, h5, i, text)
 import Html.Attributes exposing (class, for, readonly, selected, value)
 import Html.Events exposing (onSubmit)
-import Navigation
-import Regex exposing (regex)
+import Regex exposing (Regex)
 import Route
 import Spinner
 import Task
@@ -67,7 +65,7 @@ type alias Model =
     , showSource : Bool
     , sourceBuffer : String
     , sourceBufferStatus : BufferStatus
-    , debouncerControlState : Control.State Msg
+    , sourceDebouncer : Debouncer Msg Msg
     , spinner : Spinner.Model
     , showSpinner : Bool
 
@@ -85,6 +83,12 @@ type BufferStatus
 
 init : Maybe String -> Session -> ( Model, Cmd Msg )
 init maybeTriggerName session =
+    let
+        debouncer =
+            Debouncer.manual
+                |> Debouncer.settleWhenQuietFor (Just (fromSeconds 1))
+                |> toDebouncer
+    in
     ( { trigger = Trigger.empty
       , editMode = False
       , refInterface = Nothing
@@ -97,21 +101,21 @@ init maybeTriggerName session =
       , showSource = True
       , sourceBuffer = Trigger.toPrettySource Trigger.empty
       , sourceBufferStatus = Valid
-      , debouncerControlState = Control.initialState
+      , sourceDebouncer = debouncer
       , deleteModalVisibility = Modal.hidden
       , spinner = Spinner.init
       , showSpinner = True
       }
     , case maybeTriggerName of
         Just name ->
-            AstarteApi.getTrigger name
-                session
+            AstarteApi.getTrigger session.apiConfig
+                name
                 GetTriggerDone
                 (ShowError "Could not retrieve selected trigger")
                 RedirectToLogin
 
         Nothing ->
-            AstarteApi.listInterfaces session
+            AstarteApi.listInterfaces session.apiConfig
                 GetInterfaceListDone
                 (ShowError "Could not retrieve interface list")
                 RedirectToLogin
@@ -126,17 +130,17 @@ type ModalResult
 type Msg
     = GetTriggerDone Trigger
     | AddTrigger
-    | AddTriggerDone String
+    | AddTriggerDone
     | GetInterfaceListDone (List String)
     | GetInterfaceMajorsDone (List Int)
     | GetInterfaceDone Interface
-    | DeleteTriggerDone String
-    | ShowError String AstarteApi.AstarteErrorMessage
+    | DeleteTriggerDone
+    | ShowError String AstarteApi.Error
     | RedirectToLogin
     | ToggleSource
     | TriggerSourceChanged
     | UpdateSource String
-    | DebounceMsg (Control Msg)
+    | SourceDebounceMsg (Debouncer.Msg Msg)
     | Forward ExternalMsg
       -- Trigger messages
     | UpdateTriggerName String
@@ -162,11 +166,6 @@ type Msg
     | SpinnerMsg Spinner.Msg
 
 
-debounce : Msg -> Msg
-debounce =
-    Debounce.trailing DebounceMsg (1 * Time.second)
-
-
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
@@ -183,9 +182,9 @@ update session msg model =
                         , sourceBuffer = Trigger.toPrettySource trigger
                         , sourceBufferStatus = Valid
                       }
-                    , AstarteApi.getInterface dataTrigger.interfaceName
+                    , AstarteApi.getInterface session.apiConfig
+                        dataTrigger.interfaceName
                         dataTrigger.interfaceMajor
-                        session
                         GetInterfaceDone
                         (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
@@ -212,8 +211,8 @@ update session msg model =
                         , selectedInterfaceName = interfaceName
                         , showSpinner = False
                       }
-                    , AstarteApi.listInterfaceMajors interfaceName
-                        session
+                    , AstarteApi.listInterfaceMajors session.apiConfig
+                        interfaceName
                         GetInterfaceMajorsDone
                         (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
                         RedirectToLogin
@@ -247,9 +246,9 @@ update session msg model =
                         , trigger = newTrigger
                         , sourceBuffer = Trigger.toPrettySource newTrigger
                       }
-                    , AstarteApi.getInterface model.selectedInterfaceName
+                    , AstarteApi.getInterface session.apiConfig
+                        model.selectedInterfaceName
                         major
-                        session
                         GetInterfaceDone
                         (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
@@ -294,27 +293,33 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        DeleteTriggerDone response ->
+        DeleteTriggerDone ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger successfully deleted." []
+            , Cmd.none
+            , ExternalMsg.Batch
+                [ ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger successfully deleted." []
+                , ExternalMsg.RequestRoute <| Route.Realm Route.ListTriggers
+                ]
             )
 
-        ShowError actionError errorMessage ->
+        ShowError actionError apiError ->
             let
+                ( apiErrorTitle, apiErrorDetails ) =
+                    AstarteApi.errorToHumanReadable apiError
+
                 flashmessageTitle =
-                    String.concat [ actionError, ": ", errorMessage.message ]
+                    String.concat [ actionError, ": ", apiErrorTitle ]
             in
             ( { model | showSpinner = False }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle errorMessage.details
+            , ExternalMsg.AddFlashMessage FlashMessage.Error flashmessageTitle apiErrorDetails
             )
 
         RedirectToLogin ->
             -- TODO: We should save page context, ask for login and then restore previous context
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.Logout)
-            , ExternalMsg.Noop
+            , Cmd.none
+            , ExternalMsg.RequestRoute <| Route.Realm Route.Logout
             )
 
         ToggleSource ->
@@ -356,43 +361,67 @@ update session msg model =
                 | sourceBuffer = newSource
                 , sourceBufferStatus = Typing
               }
-            , Task.perform (\_ -> debounce TriggerSourceChanged) (Task.succeed ())
+            , Task.perform
+                (\_ ->
+                    TriggerSourceChanged
+                        |> Debouncer.provideInput
+                        |> SourceDebounceMsg
+                )
+                (Task.succeed ())
             , ExternalMsg.Noop
             )
 
-        DebounceMsg control ->
+        SourceDebounceMsg subMsg ->
             let
-                ( newModel, command ) =
-                    Control.update
-                        (\newstate -> { model | debouncerControlState = newstate })
-                        model.debouncerControlState
-                        control
-            in
-            ( newModel
-            , command
-            , ExternalMsg.Noop
-            )
+                ( subModel, subCmd, emittedMsg ) =
+                    Debouncer.update subMsg model.sourceDebouncer
 
-        Forward msg ->
+                mappedCmd =
+                    Cmd.map SourceDebounceMsg subCmd
+
+                updatedModel =
+                    { model | sourceDebouncer = subModel }
+            in
+            case emittedMsg of
+                Just emitted ->
+                    let
+                        ( newModel, updateCommand, externalCommand ) =
+                            update session emitted updatedModel
+                    in
+                    ( newModel
+                    , Cmd.batch [ updateCommand, mappedCmd ]
+                    , externalCommand
+                    )
+
+                Nothing ->
+                    ( updatedModel
+                    , mappedCmd
+                    , ExternalMsg.Noop
+                    )
+
+        Forward externalMsg ->
             ( model
             , Cmd.none
-            , msg
+            , externalMsg
             )
 
         AddTrigger ->
             ( model
-            , AstarteApi.addNewTrigger model.trigger
-                session
+            , AstarteApi.addNewTrigger session.apiConfig
+                model.trigger
                 AddTriggerDone
                 (ShowError "Could not install trigger")
                 RedirectToLogin
             , ExternalMsg.Noop
             )
 
-        AddTriggerDone response ->
+        AddTriggerDone ->
             ( model
-            , Navigation.modifyUrl <| Route.toString (Route.Realm Route.ListTriggers)
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed." []
+            , Cmd.none
+            , ExternalMsg.Batch
+                [ ExternalMsg.AddFlashMessage FlashMessage.Notice "Trigger succesfully installed." []
+                , ExternalMsg.RequestRoute <| Route.Realm Route.ListTriggers
+                ]
             )
 
         UpdateTriggerName newName ->
@@ -524,8 +553,8 @@ update session msg model =
                         , selectedInterfaceName = interfaceName
                         , selectedInterfaceMajor = Nothing
                       }
-                    , AstarteApi.listInterfaceMajors interfaceName
-                        session
+                    , AstarteApi.listInterfaceMajors session.apiConfig
+                        interfaceName
                         GetInterfaceMajorsDone
                         (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
                         RedirectToLogin
@@ -540,7 +569,7 @@ update session msg model =
 
         UpdateDataTriggerInterfaceMajor interfaceMajor ->
             case ( model.trigger.simpleTrigger, String.toInt interfaceMajor ) of
-                ( Trigger.Data dataTrigger, Ok newMajor ) ->
+                ( Trigger.Data dataTrigger, Just newMajor ) ->
                     let
                         newSimpleTrigger =
                             dataTrigger
@@ -555,9 +584,9 @@ update session msg model =
                         , trigger = newTrigger
                         , sourceBuffer = Trigger.toPrettySource newTrigger
                       }
-                    , AstarteApi.getInterface model.selectedInterfaceName
+                    , AstarteApi.getInterface session.apiConfig
+                        model.selectedInterfaceName
                         newMajor
-                        session
                         GetInterfaceDone
                         (ShowError "Could not retrieve selected interface")
                         RedirectToLogin
@@ -760,8 +789,8 @@ update session msg model =
                 ModalOk ->
                     if model.trigger.name == model.confirmTriggerName then
                         ( { model | deleteModalVisibility = Modal.hidden }
-                        , AstarteApi.deleteTrigger model.trigger.name
-                            session
+                        , AstarteApi.deleteTrigger session.apiConfig
+                            model.trigger.name
                             DeleteTriggerDone
                             (ShowError "Could not delete trigger")
                             RedirectToLogin
@@ -786,8 +815,8 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        SpinnerMsg msg ->
-            ( { model | spinner = Spinner.update msg model.spinner }
+        SpinnerMsg spinnerMsg ->
+            ( { model | spinner = Spinner.update spinnerMsg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -834,7 +863,13 @@ innerMatchHelp first second =
 
 isPlaceholder : String -> Bool
 isPlaceholder token =
-    Regex.contains (regex "^%{([a-zA-Z][a-zA-Z0-9]*)}$") token
+    Regex.contains placeholderRegex token
+
+
+placeholderRegex : Regex
+placeholderRegex =
+    Regex.fromString "^%{([a-zA-Z][a-zA-Z0-9]*)}$"
+        |> Maybe.withDefault Regex.never
 
 
 view : Model -> List FlashMessage -> Html Msg
@@ -1517,9 +1552,9 @@ interfacesOption selectedInterface interfaceName =
 interfaceMajors : Int -> Int -> Select.Item Msg
 interfaceMajors selectedMajor major =
     renderOption
-        (toString major)
+        (String.fromInt major)
         (selectedMajor == major)
-        (toString major)
+        (String.fromInt major)
 
 
 dataTriggerEventOptions : DataTriggerEvent -> ( DataTriggerEvent, String ) -> Select.Item Msg

@@ -30,7 +30,7 @@ module Types.DeviceTrigger exposing
     )
 
 import Json.Decode as Decode exposing (Decoder, Value, string)
-import Json.Decode.Pipeline exposing (decode, required)
+import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import JsonHelpers
 
@@ -111,7 +111,7 @@ deviceTriggerEventToString d =
 
 decoder : Decoder DeviceTrigger
 decoder =
-    decode DeviceTrigger
+    Decode.succeed DeviceTrigger
         |> required "device_id" string
         |> required "on" deviceTriggerEventDecoder
 

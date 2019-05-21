@@ -26,7 +26,7 @@ module.exports = {
             use: [
                 {
                     loader: 'file-loader',
-                    options: 
+                    options:
                     {
                         name (file) {
                             if (env === 'development') {

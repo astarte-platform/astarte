@@ -18,11 +18,15 @@
 
 
 module AstarteApi exposing
-    ( AstarteErrorMessage
+    ( Config
+    , Error
     , addNewInterface
     , addNewTrigger
+    , configDecoder
     , deleteInterface
     , deleteTrigger
+    , encodeConfig
+    , errorToHumanReadable
     , getInterface
     , getTrigger
     , listInterfaceMajors
@@ -48,115 +52,153 @@ import Json.Decode as Decode
         , string
         , succeed
         )
-import Json.Encode as Encode
+import Json.Decode.Pipeline exposing (required)
+import Json.Encode as Encode exposing (Value)
+import JsonHelpers
 import Task
 import Types.Interface as Interface exposing (Interface)
-import Types.RealmConfig as RealmConfig exposing (Config)
-import Types.Session exposing (Credentials, Session)
+import Types.RealmConfig as RealmConfig exposing (RealmConfig)
 import Types.Trigger as Trigger exposing (Trigger)
 
 
-type AstarteApiError
-    = NeedsLogin
-    | SimpleError String
-    | DetailedError AstarteErrorMessage
+type Error
+    = HttpError Http.Error
+    | NeedsLogin
+    | Forbidden
+    | ResourceNotFound
+    | Conflict String
+    | InvalidEntity (List String)
+    | InternalServerError
 
 
-type alias AstarteErrorMessage =
-    { message : String
-    , details : List String
+type alias Config =
+    { realmManagementUrl : String
+    , realm : String
+    , token : String
     }
 
 
-handleResponse : (a -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Result AstarteApiError a -> msg
-handleResponse doneMessage errorMessage reloginMessage result =
+type ExpectingData a
+    = AnswerWithData (Result Error a)
+
+
+type WithoutData
+    = Answer (Result Error ())
+
+
+expectAstarteReply : (Result Error a -> msg) -> Decoder a -> Http.Expect msg
+expectAstarteReply toMsg replyDecoder =
+    Http.expectStringResponse toMsg <|
+        handleHttpResponse replyDecoder
+
+
+expectWhateverAstarteReply : (Result Error () -> msg) -> Http.Expect msg
+expectWhateverAstarteReply toMsg =
+    Http.expectStringResponse toMsg handleHttpResponseIgnoringContent
+
+
+handleHttpResponse : Decoder a -> Http.Response String -> Result Error a
+handleHttpResponse decoder response =
+    case response of
+        Http.BadUrl_ url ->
+            Err <| HttpError (Http.BadUrl url)
+
+        Http.Timeout_ ->
+            Err <| HttpError Http.Timeout
+
+        Http.NetworkError_ ->
+            Err <| HttpError Http.NetworkError
+
+        Http.BadStatus_ metadata body ->
+            Err <| parseBadStatus metadata body
+
+        Http.GoodStatus_ metadata body ->
+            case decodeString decoder body of
+                Ok value ->
+                    Ok value
+
+                Err err ->
+                    Err <| HttpError (Http.BadBody (Decode.errorToString err))
+
+
+handleHttpResponseIgnoringContent : Http.Response String -> Result Error ()
+handleHttpResponseIgnoringContent response =
+    case response of
+        Http.BadUrl_ url ->
+            Err <| HttpError (Http.BadUrl url)
+
+        Http.Timeout_ ->
+            Err <| HttpError Http.Timeout
+
+        Http.NetworkError_ ->
+            Err <| HttpError Http.NetworkError
+
+        Http.BadStatus_ metadata body ->
+            Err <| parseBadStatus metadata body
+
+        Http.GoodStatus_ metadata body ->
+            Ok ()
+
+
+parseBadStatus : Http.Metadata -> String -> Error
+parseBadStatus metadata body =
+    case metadata.statusCode of
+        401 ->
+            NeedsLogin
+
+        403 ->
+            Forbidden
+
+        404 ->
+            ResourceNotFound
+
+        409 ->
+            case decodeString (at [ "errors", "detail" ] string) body of
+                Ok message ->
+                    Conflict message
+
+                Err _ ->
+                    Conflict ""
+
+        422 ->
+            case decodeString feedbackMessagesDecoder body of
+                Ok messageList ->
+                    InvalidEntity messageList
+
+                Err _ ->
+                    InvalidEntity []
+
+        500 ->
+            InternalServerError
+
+        code ->
+            HttpError (Http.BadStatus code)
+
+
+mapResponse : (a -> msg) -> (Error -> msg) -> msg -> ExpectingData a -> msg
+mapResponse doneMsg errorMsg reloginMsg (AnswerWithData result) =
     case result of
-        Ok data ->
-            doneMessage data
-
-        Err (SimpleError message) ->
-            errorMessage
-                { message = message
-                , details = []
-                }
-
-        Err (DetailedError astarteMessage) ->
-            errorMessage astarteMessage
+        Ok resultData ->
+            doneMsg resultData
 
         Err NeedsLogin ->
-            reloginMessage
+            reloginMsg
+
+        Err apiError ->
+            errorMsg apiError
 
 
-requestToCommand : (a -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Http.Request a -> Cmd msg
-requestToCommand doneMessage errorMessage reloginMessage request =
-    request
-        |> Http.toTask
-        |> Task.mapError filterError
-        |> Task.attempt (handleResponse doneMessage errorMessage reloginMessage)
+mapEmptyResponse : msg -> (Error -> msg) -> msg -> WithoutData -> msg
+mapEmptyResponse doneMsg errorMsg reloginMsg (Answer result) =
+    case result of
+        Ok _ ->
+            doneMsg
 
+        Err NeedsLogin ->
+            reloginMsg
 
-filterError : Http.Error -> AstarteApiError
-filterError error =
-    case error of
-        Http.BadUrl string ->
-            SimpleError <| "Bad url " ++ string
-
-        Http.Timeout ->
-            SimpleError "Timeout"
-
-        Http.NetworkError ->
-            SimpleError "Network error"
-
-        Http.BadStatus response ->
-            case response.status.code of
-                401 ->
-                    NeedsLogin
-
-                403 ->
-                    SimpleError "Forbidden"
-
-                404 ->
-                    SimpleError "Resource not found"
-
-                409 ->
-                    let
-                        messageDetails =
-                            case decodeString (at [ "errors", "detail" ] string) response.body of
-                                Ok message ->
-                                    [ message ]
-
-                                Err _ ->
-                                    []
-
-                        errorMessage =
-                            { message = "Conflict"
-                            , details = messageDetails
-                            }
-                    in
-                    DetailedError errorMessage
-
-                422 ->
-                    let
-                        messageDetails =
-                            decodeString feedbackMessagesDecoder response.body
-                                |> Result.toMaybe
-                                |> Maybe.withDefault []
-
-                        errorMessage =
-                            { message = "Invalid entity"
-                            , details = messageDetails
-                            }
-                    in
-                    DetailedError errorMessage
-
-                500 ->
-                    SimpleError "Internal server error"
-
-                _ ->
-                    SimpleError <| "Status code " ++ toString response.status.code
-
-        Http.BadPayload debugMessage response ->
-            SimpleError <| "Bad payload " ++ response.body
+        Err apiError ->
+            errorMsg apiError
 
 
 feedbackMessagesDecoder : Decoder (List String)
@@ -176,7 +218,7 @@ nestedKeyPairHelper errors =
     errors
         |> List.indexedMap
             (\index mappingErrors ->
-                ( toString (index + 1), prefixString mappingErrors )
+                ( String.fromInt (index + 1), prefixString mappingErrors )
             )
         |> prefixString
 
@@ -203,210 +245,252 @@ translateIndex index =
             "trigger"
 
         _ ->
-            -- There is no String.replace in elm 0.18
-            String.split "_" index
-                |> String.join " "
+            String.replace " " "_" index
 
 
-buildHeaders : Maybe Credentials -> List Http.Header
-buildHeaders maybeCredentials =
-    case maybeCredentials of
-        Just credentials ->
-            [ Http.header "Authorization" ("Bearer " ++ credentials.token) ]
+buildHeaders : String -> List Http.Header
+buildHeaders token =
+    if String.isEmpty token then
+        []
 
-        Nothing ->
-            []
-
-
-getBaseUrl : Session -> String
-getBaseUrl session =
-    let
-        realm =
-            case session.credentials of
-                Nothing ->
-                    ""
-
-                Just c ->
-                    c.realm
-    in
-    session.realmManagementApiUrl ++ realm
+    else
+        [ Http.header "Authorization" ("Bearer " ++ token) ]
 
 
 
 -- Realm config
 
 
-realmConfig : Session -> (Config -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-realmConfig session doneMessage errorMessage reloginMessage =
+realmConfig : Config -> (RealmConfig -> msg) -> (Error -> msg) -> msg -> Cmd msg
+realmConfig apiConfig okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/config/auth" ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/config/auth" ]
         , body = Http.emptyBody
-        , expect = Http.expectJson <| field "data" RealmConfig.decoder
+        , expect = expectAstarteReply AnswerWithData <| field "data" RealmConfig.decoder
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
 
 
-updateRealmConfig : Config -> Session -> (String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-updateRealmConfig config session doneMessage errorMessage reloginMessage =
+updateRealmConfig : Config -> RealmConfig -> msg -> (Error -> msg) -> msg -> Cmd msg
+updateRealmConfig apiConfig realmConf okMsg errorMsg loginMsg =
     Http.request
         { method = "PUT"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/config/auth" ]
-        , body = Http.jsonBody <| Encode.object [ ( "data", RealmConfig.encode config ) ]
-        , expect = Http.expectString
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/config/auth" ]
+        , body = Http.jsonBody <| Encode.object [ ( "data", RealmConfig.encode realmConf ) ]
+        , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
 
 -- Interfaces
 
 
-listInterfaces : Session -> (List String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-listInterfaces session doneMessage errorMessage reloginMessage =
+listInterfaces : Config -> (List String -> msg) -> (Error -> msg) -> msg -> Cmd msg
+listInterfaces apiConfig okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/interfaces" ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces" ]
         , body = Http.emptyBody
-        , expect = Http.expectJson <| field "data" (list string)
+        , expect = expectAstarteReply AnswerWithData <| field "data" (list string)
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
 
 
-listInterfaceMajors : String -> Session -> (List Int -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-listInterfaceMajors interfaceName session doneMessage errorMessage reloginMessage =
+listInterfaceMajors : Config -> String -> (List Int -> msg) -> (Error -> msg) -> msg -> Cmd msg
+listInterfaceMajors apiConfig interfaceName okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/interfaces/", interfaceName ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interfaceName ]
         , body = Http.emptyBody
-        , expect = Http.expectJson <| field "data" (list int)
+        , expect = expectAstarteReply AnswerWithData <| field "data" (list int)
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
 
 
-getInterface : String -> Int -> Session -> (Interface -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-getInterface interfaceName major session doneMessage errorMessage reloginMessage =
+getInterface : Config -> String -> Int -> (Interface -> msg) -> (Error -> msg) -> msg -> Cmd msg
+getInterface apiConfig interfaceName major okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/interfaces/", interfaceName, "/", toString major ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interfaceName, "/", String.fromInt major ]
         , body = Http.emptyBody
-        , expect = Http.expectJson <| field "data" Interface.decoder
+        , expect = expectAstarteReply AnswerWithData <| field "data" Interface.decoder
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
 
 
-deleteInterface : String -> Int -> Session -> (String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-deleteInterface interfaceName major session doneMessage errorMessage reloginMessage =
+deleteInterface : Config -> String -> Int -> msg -> (Error -> msg) -> msg -> Cmd msg
+deleteInterface apiConfig interfaceName major okMsg errorMsg loginMsg =
     Http.request
         { method = "DELETE"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/interfaces/", interfaceName, "/", toString major ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interfaceName, "/", String.fromInt major ]
         , body = Http.emptyBody
-        , expect = Http.expectString
+        , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
-addNewInterface : Interface -> Session -> (String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-addNewInterface interface session doneMessage errorMessage reloginMessage =
+addNewInterface : Config -> Interface -> msg -> (Error -> msg) -> msg -> Cmd msg
+addNewInterface apiConfig interface okMsg errorMsg loginMsg =
     Http.request
         { method = "POST"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/interfaces" ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces" ]
         , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
-        , expect = Http.expectString
+        , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
-updateInterface : Interface -> Session -> (String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-updateInterface interface session doneMessage errorMessage reloginMessage =
+updateInterface : Config -> Interface -> msg -> (Error -> msg) -> msg -> Cmd msg
+updateInterface apiConfig interface okMsg errorMsg loginMsg =
     Http.request
         { method = "PUT"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/interfaces/", interface.name, "/", toString interface.major ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interface.name, "/", String.fromInt interface.major ]
         , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
-        , expect = Http.expectString
+        , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
 
 -- Triggers
 
 
-listTriggers : Session -> (List String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-listTriggers session doneMessage errorMessage reloginMessage =
+listTriggers : Config -> (List String -> msg) -> (Error -> msg) -> msg -> Cmd msg
+listTriggers apiConfig okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/triggers" ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers" ]
         , body = Http.emptyBody
-        , expect = Http.expectJson <| field "data" (list string)
+        , expect = expectAstarteReply AnswerWithData <| field "data" (list string)
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
 
 
-getTrigger : String -> Session -> (Trigger -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-getTrigger triggerName session doneMessage errorMessage reloginMessage =
+getTrigger : Config -> String -> (Trigger -> msg) -> (Error -> msg) -> msg -> Cmd msg
+getTrigger apiConfig triggerName okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/triggers/", triggerName ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers/", triggerName ]
         , body = Http.emptyBody
-        , expect = Http.expectJson <| field "data" Trigger.decoder
+        , expect = expectAstarteReply AnswerWithData <| field "data" Trigger.decoder
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
 
 
-addNewTrigger : Trigger -> Session -> (String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-addNewTrigger trigger session doneMessage errorMessage reloginMessage =
+addNewTrigger : Config -> Trigger -> msg -> (Error -> msg) -> msg -> Cmd msg
+addNewTrigger apiConfig trigger okMsg errorMsg loginMsg =
     Http.request
         { method = "POST"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/triggers/" ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers" ]
         , body = Http.jsonBody <| Encode.object [ ( "data", Trigger.encode trigger ) ]
-        , expect = Http.expectString
+        , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
-deleteTrigger : String -> Session -> (String -> msg) -> (AstarteErrorMessage -> msg) -> msg -> Cmd msg
-deleteTrigger triggerName session doneMessage errorMessage reloginMessage =
+deleteTrigger : Config -> String -> msg -> (Error -> msg) -> msg -> Cmd msg
+deleteTrigger apiConfig triggerName okMsg errorMsg loginMsg =
     Http.request
         { method = "DELETE"
-        , headers = buildHeaders session.credentials
-        , url = String.concat [ getBaseUrl session, "/triggers/", triggerName ]
+        , headers = buildHeaders apiConfig.token
+        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers/", triggerName ]
         , body = Http.emptyBody
-        , expect = Http.expectString
+        , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
-        , withCredentials = False
+        , tracker = Nothing
         }
-        |> requestToCommand doneMessage errorMessage reloginMessage
+        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
+
+
+encodeConfig : Config -> Value
+encodeConfig config =
+    Encode.object
+        [ ( "realm_management_url", Encode.string config.realmManagementUrl )
+        , ( "realm", Encode.string config.realm )
+        , ( "token", Encode.string config.token )
+        ]
+
+
+configDecoder : Decoder Config
+configDecoder =
+    Decode.succeed Config
+        |> required "realm_management_url" Decode.string
+        |> required "realm" Decode.string
+        |> required "token" Decode.string
+
+
+
+-- Heritage from previous 0.18 version
+-- TODO: move this outside the Api
+
+
+errorToHumanReadable : Error -> ( String, List String )
+errorToHumanReadable error =
+    case error of
+        HttpError (Http.BadUrl url) ->
+            ( "Bad url" ++ url, [] )
+
+        HttpError Http.Timeout ->
+            ( "Timeout", [] )
+
+        HttpError Http.NetworkError ->
+            ( "Network error", [] )
+
+        HttpError (Http.BadStatus code) ->
+            ( "Bad status" ++ String.fromInt code, [] )
+
+        HttpError (Http.BadBody body) ->
+            ( "Unexpected response from Astarte API", [ body ] )
+
+        NeedsLogin ->
+            ( "Token expired", [] )
+
+        Forbidden ->
+            ( "Forbidden", [] )
+
+        ResourceNotFound ->
+            ( "Resource not found", [] )
+
+        Conflict message ->
+            ( "Conflict", [ message ] )
+
+        InvalidEntity messages ->
+            ( "Invalid entity", messages )
+
+        InternalServerError ->
+            ( "Internal server error", [] )

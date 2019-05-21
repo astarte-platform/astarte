@@ -1,7 +1,6 @@
 const path = require('path');
 const common = require('./webpack.common.js');
 const merge = require('webpack-merge');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
@@ -18,33 +17,22 @@ module.exports = merge(common, {
         rules: [{
             test: /\.elm$/,
             exclude: [/elm-stuff/, /node_modules/],
-            use: [
-                {
-                    loader: 'elm-assets-loader',
-                    options: {
-                        module: 'Assets',
-                        tagger: 'AssetPath'
-                    }
-                },
-                'elm-webpack-loader'
-            ]
+            use: ['elm-webpack-loader']
         }, {
             test: /\.sc?ss$/,
-            use: ExtractTextPlugin.extract({
-                fallback: 'style-loader',
-                use:
-                    [ 'css-loader'
-                    , {
-                        loader: 'postcss-loader',
-                        options: {
-                            config: {
-                                path: './'
-                            }
-                        }
+            use:
+                ['style-loader'
+                , { loader: 'css-loader'
+                  , options: { importLoaders: 1 }
+                  }
+                , { loader: 'postcss-loader'
+                  , options:
+                    { config:
+                        { path: './' }
                     }
-                    , 'sass-loader'
-                    ]
-            })
+                  }
+                , 'sass-loader'
+                ]
         }]
     },
     optimization: {
@@ -58,10 +46,6 @@ module.exports = merge(common, {
         ]
     },
     plugins: [
-        new ExtractTextPlugin({
-            filename: 'static/css/[name]-[hash].css',
-            allChunks: true,
-        }),
         new CopyWebpackPlugin([{
             from: 'src/static/img/',
             to: 'static/img/'

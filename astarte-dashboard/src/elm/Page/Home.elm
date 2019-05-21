@@ -60,14 +60,14 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
-        Forward msg ->
+        Forward externalMsg ->
             ( model
             , Cmd.none
-            , msg
+            , externalMsg
             )
 
-        SpinnerMsg msg ->
-            ( { model | spinner = Spinner.update msg model.spinner }
+        SpinnerMsg spinnerMsg ->
+            ( { model | spinner = Spinner.update spinnerMsg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
             )

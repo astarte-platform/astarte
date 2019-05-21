@@ -20,12 +20,13 @@
 module Route exposing
     ( RealmRoute(..)
     , Route(..)
-    , fromLocation
+    , fromUrl
     , toString
     )
 
-import Navigation exposing (Location)
-import UrlParser as Url exposing ((</>), (<?>), int, oneOf, parsePath, s, string, stringParam, top)
+import Url exposing (Url)
+import Url.Parser exposing ((</>), (<?>), Parser, int, map, oneOf, parse, s, string, top)
+import Url.Parser.Query as Query
 
 
 
@@ -51,35 +52,35 @@ type RealmRoute
     | ShowTrigger String
 
 
-route : Url.Parser (Route -> a) a
-route =
+routeParser : Parser (Route -> a) a
+routeParser =
     oneOf
-        [ Url.map Root (s "")
-        , Url.map RealmSelection (s "login" <?> stringParam "type")
-        , Url.map Realm realmRoute
+        [ map Root (s "")
+        , map RealmSelection (s "login" <?> Query.string "type")
+        , map Realm realmRouteParser
         ]
 
 
-realmRoute : Url.Parser (RealmRoute -> a) a
-realmRoute =
+realmRouteParser : Parser (RealmRoute -> a) a
+realmRouteParser =
     oneOf
-        [ Url.map Home top
-        , Url.map Auth (s "auth" <?> stringParam "realm" <?> stringParam "authUrl")
-        , Url.map Logout (s "logout")
-        , Url.map RealmSettings (s "settings")
-        , Url.map ListInterfaces (s "interfaces")
-        , Url.map NewInterface (s "interfaces" </> s "new")
-        , Url.map ShowInterface (s "interfaces" </> string </> int)
-        , Url.map ListTriggers (s "triggers")
-        , Url.map NewTrigger (s "triggers" </> s "new")
-        , Url.map ShowTrigger (s "triggers" </> string)
+        [ map Home top
+        , map Auth (s "auth" <?> Query.string "realm" <?> Query.string "authUrl")
+        , map Logout (s "logout")
+        , map RealmSettings (s "settings")
+        , map ListInterfaces (s "interfaces")
+        , map NewInterface (s "interfaces" </> s "new")
+        , map ShowInterface (s "interfaces" </> string </> int)
+        , map ListTriggers (s "triggers")
+        , map NewTrigger (s "triggers" </> s "new")
+        , map ShowTrigger (s "triggers" </> string)
         ]
 
 
-fromLocation : Location -> ( Maybe Route, Maybe String )
-fromLocation location =
-    ( parsePath route location
-    , parseToken location.hash
+fromUrl : Url -> ( Maybe Route, Maybe String )
+fromUrl url =
+    ( parse routeParser url
+    , parseToken url.fragment
     )
 
 
@@ -126,7 +127,7 @@ toString route =
                     [ "interfaces", "new" ]
 
                 Realm (ShowInterface name major) ->
-                    [ "interfaces", name, Basics.toString major ]
+                    [ "interfaces", name, String.fromInt major ]
 
                 Realm ListTriggers ->
                     [ "triggers" ]
@@ -140,16 +141,20 @@ toString route =
     "/" ++ String.join "/" pieces
 
 
-parseToken : String -> Maybe String
-parseToken hash =
-    if String.isEmpty hash then
-        Nothing
+parseToken : Maybe String -> Maybe String
+parseToken maybeFragment =
+    case maybeFragment of
+        Nothing ->
+            Nothing
 
-    else
-        String.split "&" hash
-            |> List.filter (String.contains "access_token")
-            |> List.head
-            |> Maybe.map (String.split "=")
-            |> Maybe.map List.reverse
-            |> Maybe.map List.head
-            |> Maybe.withDefault Nothing
+        Just hash ->
+            if String.isEmpty hash then
+                Nothing
+
+            else
+                String.split "&" hash
+                    |> List.filter (String.contains "access_token")
+                    |> List.head
+                    |> Maybe.map (String.split "=")
+                    |> Maybe.map List.reverse
+                    |> Maybe.andThen List.head

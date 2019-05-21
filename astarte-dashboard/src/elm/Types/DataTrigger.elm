@@ -36,7 +36,7 @@ module Types.DataTrigger exposing
     )
 
 import Json.Decode as Decode exposing (Decoder, Value, bool, float, int, nullable, string)
-import Json.Decode.Pipeline exposing (decode, optional, required, resolve)
+import Json.Decode.Pipeline exposing (optional, required, resolve)
 import Json.Encode as Encode
 import JsonHelpers
 
@@ -164,7 +164,7 @@ operatorEncoder operator value valueType =
                 JNumber ->
                     value
                         |> String.toFloat
-                        |> Result.withDefault 0
+                        |> Maybe.withDefault 0
                         |> Encode.float
 
                 _ ->
@@ -250,7 +250,7 @@ dataTriggerEventToString d =
 
 decoder : Decoder DataTrigger
 decoder =
-    decode toDecoder
+    Decode.succeed toDecoder
         |> required "interface_name" string
         |> required "interface_major" int
         |> required "on" dataTriggerEventDecoder
@@ -273,11 +273,20 @@ toDecoder iName iMajor on path operator maybeKnownValue =
 knownValueDecoder : Decoder ( String, JsonType )
 knownValueDecoder =
     Decode.oneOf
-        [ Decode.map (\value -> ( toString value, JBool )) bool
-        , Decode.map (\value -> ( toString value, JNumber )) int
-        , Decode.map (\value -> ( toString value, JNumber )) float
+        [ Decode.map (\value -> ( boolToString value, JBool )) bool
+        , Decode.map (\value -> ( String.fromInt value, JNumber )) int
+        , Decode.map (\value -> ( String.fromFloat value, JNumber )) float
         , Decode.map (\value -> ( value, JString )) string
         ]
+
+
+boolToString : Bool -> String
+boolToString value =
+    if value then
+        "true"
+
+    else
+        "false"
 
 
 dataTriggerEventDecoder : Decoder DataTriggerEvent

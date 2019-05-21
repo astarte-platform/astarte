@@ -161,7 +161,7 @@ update message model =
 
         UpdateMappingExpiry newMappingExpiry ->
             case String.toInt newMappingExpiry of
-                Ok expiry ->
+                Just expiry ->
                     if expiry >= 0 then
                         ( { model | interfaceMapping = InterfaceMapping.setExpiry expiry model.interfaceMapping }
                         , Noop
@@ -172,7 +172,7 @@ update message model =
                         , Noop
                         )
 
-                Err _ ->
+                Nothing ->
                     ( model
                     , Noop
                     )
@@ -362,7 +362,7 @@ renderBody mapping isProperties isObject editMode =
                     [ Form.label [ for "mappingExpiry" ] [ text "Expiry" ]
                     , InputGroup.number
                         [ Input.id "mappingExpiry"
-                        , Input.value <| toString mapping.expiry
+                        , Input.value <| String.fromInt mapping.expiry
                         , Input.onInput UpdateMappingExpiry
                         ]
                         |> InputGroup.config

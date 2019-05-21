@@ -18,69 +18,61 @@
 
 
 module Types.Session exposing
-    ( Credentials
+    ( LoginStatus(..)
     , LoginType(..)
     , Session
     , decoder
     , encode
-    , init
-    , setCredentials
-    , setHostUrl
-    , setRealmManagementApiUrl
+    , isLoggedIn
     , setToken
     )
 
+import AstarteApi
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (decode, hardcoded, required)
+import Json.Decode.Pipeline exposing (hardcoded, required)
 import Json.Encode as Encode exposing (Value)
 import JsonHelpers as JsonHelpers
+import Types.Config as Config
 
 
 type alias Session =
-    { credentials : Maybe Credentials
-    , realmManagementApiUrl : String
-    , hostUrl : String
+    { hostUrl : String
+    , loginStatus : LoginStatus
+    , apiConfig : AstarteApi.Config
     }
 
 
-init : String -> String -> Session
-init rmApiUrl hostUrl =
-    { credentials = Nothing
-    , realmManagementApiUrl = rmApiUrl
-    , hostUrl = hostUrl
-    }
-
-
-setCredentials : Maybe Credentials -> Session -> Session
-setCredentials cred session =
-    { session | credentials = cred }
-
-
-setRealmManagementApiUrl : String -> Session -> Session
-setRealmManagementApiUrl realmManagementApiUrl session =
-    { session | realmManagementApiUrl = realmManagementApiUrl }
-
-
-setHostUrl : String -> Session -> Session
-setHostUrl hostUrl session =
-    { session | hostUrl = hostUrl }
-
-
-type alias Credentials =
-    { realm : String
-    , token : String
-    , loginType : LoginType
-    }
-
-
-setToken : Credentials -> String -> Credentials
-setToken credentials token =
-    { credentials | token = token }
+type LoginStatus
+    = NotLoggedIn
+    | RequestLogin Config.AuthType
+    | LoggedIn LoginType
 
 
 type LoginType
-    = OAuthLogin String
-    | TokenLogin
+    = TokenLogin
+    | OAuthLogin String
+
+
+isLoggedIn : Session -> Bool
+isLoggedIn session =
+    case session.loginStatus of
+        LoggedIn _ ->
+            True
+
+        _ ->
+            False
+
+
+setToken : String -> Session -> Session
+setToken token session =
+    let
+        config =
+            session.apiConfig
+
+        updatedConfig =
+            { config | token = token }
+    in
+    { session | apiConfig = updatedConfig }
 
 
 
@@ -90,35 +82,22 @@ type LoginType
 encode : Session -> Value
 encode session =
     Encode.object
-        [ ( "credentials"
-          , case session.credentials of
-                Just credentials ->
-                    encodeCredentials credentials
-
-                Nothing ->
-                    Encode.null
-          )
-        , ( "realmManagementApiUrl", Encode.string session.realmManagementApiUrl )
+        [ ( "login_type", encodeLoginStatus session.loginStatus )
+        , ( "api_config", AstarteApi.encodeConfig session.apiConfig )
         ]
 
 
-encodeCredentials : Credentials -> Value
-encodeCredentials credentials =
-    Encode.object
-        [ ( "realm", Encode.string credentials.realm )
-        , ( "token", Encode.string credentials.token )
-        , ( "login_type", encodeLoginType credentials.loginType )
-        ]
-
-
-encodeLoginType : LoginType -> Value
-encodeLoginType loginType =
-    case loginType of
-        TokenLogin ->
+encodeLoginStatus : LoginStatus -> Value
+encodeLoginStatus loginStatus =
+    case loginStatus of
+        LoggedIn TokenLogin ->
             Encode.string "TokenLogin"
 
-        OAuthLogin oauthUrl ->
+        LoggedIn (OAuthLogin oauthUrl) ->
             Encode.string oauthUrl
+
+        _ ->
+            Encode.string ""
 
 
 
@@ -127,31 +106,26 @@ encodeLoginType loginType =
 
 decoder : Decoder Session
 decoder =
-    decode Session
-        |> required "credentials" (Decode.nullable credentialsDecoder)
-        |> required "realmManagementApiUrl" Decode.string
+    Decode.succeed Session
         |> hardcoded ""
+        |> required "login_type" loginStatusDecoder
+        |> required "api_config" AstarteApi.configDecoder
 
 
-credentialsDecoder : Decoder Credentials
-credentialsDecoder =
-    decode Credentials
-        |> required "realm" Decode.string
-        |> required "token" Decode.string
-        |> required "login_type" loginTypeDecoder
-
-
-loginTypeDecoder : Decoder LoginType
-loginTypeDecoder =
+loginStatusDecoder : Decoder LoginStatus
+loginStatusDecoder =
     Decode.string
-        |> Decode.andThen (stringToLoginType >> JsonHelpers.resultToDecoder)
+        |> Decode.andThen (stringToLoginStatus >> JsonHelpers.resultToDecoder)
 
 
-stringToLoginType : String -> Result String LoginType
-stringToLoginType s =
+stringToLoginStatus : String -> Result String LoginStatus
+stringToLoginStatus s =
     case s of
+        "" ->
+            Ok NotLoggedIn
+
         "TokenLogin" ->
-            Ok TokenLogin
+            Ok <| LoggedIn TokenLogin
 
         url ->
-            Ok <| OAuthLogin url
+            Ok <| LoggedIn (OAuthLogin url)

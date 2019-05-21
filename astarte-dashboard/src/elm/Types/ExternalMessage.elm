@@ -19,10 +19,14 @@
 
 module Types.ExternalMessage exposing (ExternalMsg(..))
 
+import Route exposing (Route)
 import Types.FlashMessage exposing (FlashMessageId, Severity)
 
 
 type ExternalMsg
     = Noop
+    | RequestRoute Route
+    | RequestRouteWithToken Route String
     | AddFlashMessage Severity String (List String)
     | DismissFlashMessage FlashMessageId
+    | Batch (List ExternalMsg)
