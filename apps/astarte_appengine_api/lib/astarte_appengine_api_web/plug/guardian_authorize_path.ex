@@ -85,9 +85,19 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
   defp is_path_authorized?(method, auth_path, authorizations),
     do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
+  # TODO: this should be fixed at InterfacePlug level
+  defp rewrite_post_to_put_workaround("POST") do
+    "PUT"
+  end
+
+  defp rewrite_post_to_put_workaround(any_method) do
+    any_method
+  end
+
   defp get_auth_regex(authorization_string) do
     with [method_auth, _opts, path_auth] <- String.split(authorization_string, ":", parts: 3),
-         {:ok, method_regex} <- build_regex(method_auth),
+         method_auth_no_post = rewrite_post_to_put_workaround(method_auth),
+         {:ok, method_regex} <- build_regex(method_auth_no_post),
          {:ok, path_regex} <- build_regex(path_auth) do
       {:ok, {method_regex, path_regex}}
     else
