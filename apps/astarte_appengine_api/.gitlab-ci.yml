@@ -12,11 +12,10 @@ variables:
     DOCKER_VERNEMQ_USER_AUTOTEST: 'autotest'
 
 mix:test-ci:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - cassandra:3.11.2
-        - erlio/docker-vernemq:1.2.0
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     stage: build
     script:
         - export MIX_ENV=test
@@ -31,11 +30,10 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_appengine_api
 
 mix:build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - cassandra:3.11.2
-        - erlio/docker-vernemq:1.2.0
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     stage: build
     script:
         - export MIX_ENV=test
@@ -52,11 +50,10 @@ mix:build:
         - master@Astarte-NG/astarte_appengine_api
 
 mix:release-build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - cassandra:3.11.2
-        - erlio/docker-vernemq:1.2.0
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     stage: build
     script:
         - export MIX_ENV=test
