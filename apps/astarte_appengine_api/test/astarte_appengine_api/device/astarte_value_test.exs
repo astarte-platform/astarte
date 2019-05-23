@@ -49,7 +49,7 @@ defmodule Astarte.AppEngine.API.AstarteValueTest do
     datetime_millis = 1_527_004_491 * 1000
 
     assert AstarteValue.to_json_friendly(datetime_millis, :datetime, []) ==
-             DateTime.from_unix!(1_527_004_491_000, :milliseconds)
+             DateTime.from_unix!(1_527_004_491_000, :millisecond)
 
     datetime_millis = 1_527_004_491 * 1000
 
@@ -59,7 +59,7 @@ defmodule Astarte.AppEngine.API.AstarteValueTest do
     datetime_millis = 1_527_004_491 * 1000
 
     assert AstarteValue.to_json_friendly([datetime_millis], :datetimearray, []) ==
-             [DateTime.from_unix!(1_527_004_491_000, :milliseconds)]
+             [DateTime.from_unix!(1_527_004_491_000, :millisecond)]
 
     datetime_millis = 1_527_004_491 * 1000
 

@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
     [
       app: :astarte_appengine_api,
       version: "0.11.0-dev",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -43,7 +43,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def application do
     [
       mod: {Astarte.AppEngine.API.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:lager, :logger, :runtime_tools]
     ]
   end
 
@@ -72,23 +72,23 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "== 1.3.2"},
+      {:phoenix, "== 1.3.4"},
       {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cowboy, "== 1.1.2"},
-      {:ecto, "== 2.2.10"},
+      {:cowboy, "~> 1.1"},
+      {:ecto, "~> 2.2"},
       {:conform, "== 2.5.2"},
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
-      {:cors_plug, "== 1.5.2"},
-      {:ex_lttb, "== 0.3.0"},
-      {:cyanide, "== 0.5.1"},
-      {:ranch, "== 1.4.0", override: true},
-      {:guardian, github: "ispirata/guardian", ref: "ffa8464ce24a6bd438bc0881f3e108397d053843"},
-      {:phoenix_swagger, "== 0.8.0"},
+      {:cors_plug, "~> 1.5"},
+      {:ex_lttb, "~> 0.3"},
+      {:cyanide, "~> 0.5"},
+      {:ranch, "== 1.7.1", override: true},
+      {:guardian, "~> 1.2"},
+      {:phoenix_swagger, "~> 0.8"},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.9.1", only: :test},
+      {:excoveralls, "~> 0.10", only: :test},
       {:mox, "== 0.3.2", only: :test}
     ]
   end

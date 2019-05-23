@@ -29,7 +29,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   @doc false
   defimpl Cyanide.Encoder, for: DateTime do
     def encode(datetime) do
-      ms = DateTime.to_unix(datetime, :milliseconds)
+      ms = DateTime.to_unix(datetime, :millisecond)
 
       %Bson.UTC{ms: ms}
       |> Cyanide.Encoder.encode()
