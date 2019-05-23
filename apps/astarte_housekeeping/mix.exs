@@ -27,7 +27,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -44,7 +44,7 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:lager, :logger],
       mod: {Astarte.Housekeeping, []}
     ]
   end
@@ -72,8 +72,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:conform, "== 2.5.2"},
-      {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.9.1", only: :test}
+      {:distillery, "~> 1.5", runtime: false},
+      {:excoveralls, "~> 0.10", only: :test}
     ]
   end
 end
