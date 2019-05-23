@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       app: :astarte_data_updater_plant,
       version: "0.11.0-dev",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:lager, :logger],
       mod: {Astarte.DataUpdaterPlant.Application, []}
     ]
   end
@@ -62,15 +62,15 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      {:amqp, "== 1.0.2"},
+      {:amqp, "~> 1.0"},
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
-      {:cyanide, "== 0.5.1"},
+      {:cyanide, "~> 0.5"},
       {:conform, "== 2.5.2"},
-      {:ranch, "== 1.4.0", override: true},
+      {:ranch, "== 1.7.1", override: true},
       {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.9.1", only: :test}
+      {:excoveralls, "~> 0.10", only: :test}
     ]
   end
 end
