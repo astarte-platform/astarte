@@ -28,6 +28,10 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   @path "/time/to"
   @request_path "/v1/#{@realm}/devices/#{@device_id}/interfaces/#{@interface}#{@path}"
   @valid_auth_path "devices/#{@device_id}/interfaces/#{@escaped_interface}#{@path}"
+  @fake_valid_auth_path "devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@escaped_interface}#{@path}"
+  @fake_request_path "/v1/#{@realm}/devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@interface}#{
+                       @path
+                     }"
   @other_device_id "OTHERDEVICEAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
   @other_device_auth_path "devices/#{@other_device_id}/interfaces/#{@escaped_interface}#{@path}"
 
@@ -76,6 +80,18 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         |> get(@request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
+    end
+
+    test "make sure that POST works", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_token(["POST::#{@fake_valid_auth_path}"])}"
+        )
+        |> post(@fake_request_path, %{data: nil})
+
+      assert json_response(conn, 404)["data"] == nil
     end
 
     test "token returns the data also with explicity regex delimiters", %{conn: conn} do
