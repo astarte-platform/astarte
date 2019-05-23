@@ -193,7 +193,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     query =
       if since_statement != "" do
-        %{since: DateTime.to_unix(since_value, :milliseconds)}
+        %{since: DateTime.to_unix(since_value, :millisecond)}
       else
         %{}
       end
@@ -201,7 +201,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     query =
       if to_statement != "" do
         query
-        |> Map.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
+        |> Map.put(:to_timestamp, DateTime.to_unix(to_value, :millisecond))
       else
         query
       end
@@ -837,7 +837,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     values_query =
       if since_statement != "" do
         values_query
-        |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :milliseconds))
+        |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :millisecond))
       else
         values_query
       end
@@ -845,7 +845,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     values_query =
       if to_statement != "" do
         values_query
-        |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :milliseconds))
+        |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :millisecond))
       else
         values_query
       end
