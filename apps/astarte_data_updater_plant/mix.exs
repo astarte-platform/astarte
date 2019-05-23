@@ -68,9 +68,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:cyanide, "~> 0.5"},
       {:conform, "== 2.5.2"},
-      {:ranch, "== 1.7.1", override: true},
-      {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "~> 0.10", only: :test}
+      {:distillery, "~> 1.5", runtime: false},
+      {:excoveralls, "~> 0.11", only: :test}
     ]
   end
 end
