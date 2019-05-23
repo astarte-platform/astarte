@@ -602,7 +602,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     last_disconnection = Keyword.get(opts, :last_disconnection)
 
     first_pairing =
-      Keyword.get(opts, :first_pairing, DateTime.utc_now() |> DateTime.to_unix(:milliseconds))
+      Keyword.get(opts, :first_pairing, DateTime.utc_now() |> DateTime.to_unix(:millisecond))
 
     last_seen_ip = Keyword.get(opts, :last_seen_ip)
     last_pairing_ip = Keyword.get(opts, :last_pairing_ip)

@@ -1167,7 +1167,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   defp make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
-    DateTime.to_unix(date_time, :milliseconds) * 10000
+    DateTime.to_unix(date_time, :millisecond) * 10000
   end
 
   defp gen_tracking_id() do
