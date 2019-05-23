@@ -87,9 +87,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ranch, "== 1.7.1", override: true},
       {:guardian, "~> 1.2"},
       {:phoenix_swagger, "~> 0.8"},
-      {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "~> 0.10", only: :test},
-      {:mox, "== 0.3.2", only: :test}
+      {:distillery, "~> 1.5", runtime: false},
+      {:excoveralls, "~> 0.11", only: :test},
+      {:mox, "~> 0.3", only: :test}
     ]
   end
 end
