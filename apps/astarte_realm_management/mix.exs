@@ -23,7 +23,7 @@ defmodule Astarte.RealmManagement.Mixfile do
     [
       app: :astarte_realm_management,
       version: "0.11.0-dev",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -39,7 +39,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:lager, :logger],
       mod: {Astarte.RealmManagement, []}
     ]
   end
@@ -62,14 +62,14 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp deps do
     [
-      {:amqp, "== 1.0.2"},
+      {:amqp, "~> 1.0"},
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
-      {:exprotobuf, "== 1.2.9"},
+      {:exprotobuf, "~> 1.2"},
       {:conform, "== 2.5.2"},
-      {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.9.1", only: :test}
+      {:distillery, "~> 1.5", runtime: false},
+      {:excoveralls, "~> 0.11", only: :test}
     ]
   end
 end
