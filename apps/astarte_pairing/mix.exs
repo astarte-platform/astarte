@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.Mixfile do
     [
       app: :astarte_pairing,
       version: "0.11.0-dev",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -41,7 +41,7 @@ defmodule Astarte.Pairing.Mixfile do
   def application do
     [
       mod: {Astarte.Pairing, []},
-      extra_applications: [:logger]
+      extra_applications: [:lager, :logger]
     ]
   end
 
@@ -70,12 +70,12 @@ defmodule Astarte.Pairing.Mixfile do
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
-      {:uuid, "== 1.7.2", hex: :uuid_erl},
-      {:cfxxl, "== 0.3.0"},
+      {:uuid, "~> 1.7", hex: :uuid_erl},
+      {:cfxxl, "~> 0.3"},
       {:conform, "== 2.5.2"},
-      {:bcrypt_elixir, "== 1.0.8"},
-      {:excoveralls, "~> 0.7", only: :test},
-      {:distillery, "== 1.5.2", runtime: false}
+      {:bcrypt_elixir, "~> 1.0"},
+      {:excoveralls, "~> 0.11", only: :test},
+      {:distillery, "~> 1.5", runtime: false}
     ]
   end
 end
