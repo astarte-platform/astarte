@@ -23,7 +23,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
     [
       app: :astarte_housekeeping_api,
       version: "0.11.0-dev",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -44,7 +44,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   def application do
     [
       mod: {Astarte.Housekeeping.API.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:lager, :logger, :runtime_tools],
     ]
   end
 
@@ -70,17 +70,17 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   defp deps do
     [
       {:conform, "== 2.5.2"},
-      {:ecto, "== 2.2.10"},
-      {:phoenix, "== 1.3.2"},
+      {:ecto, "~> 2.2"},
+      {:phoenix, "== 1.3.4"},
       {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cors_plug, "== 1.5.2"},
-      {:cowboy, "== 1.1.2"},
-      {:ranch, "== 1.4.0", override: true},
-      {:guardian, github: "ispirata/guardian"},
+      {:cors_plug, "~> 1.5"},
+      {:cowboy, "~> 1.1"},
+      {:ranch, "== 1.7.1", override: true},
+      {:guardian, "~> 1.2"},
 
-      {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.9.1", only: :test}
+      {:distillery, "~> 1.5", runtime: false},
+      {:excoveralls, "~> 0.11", only: :test}
     ]
   end
 end
