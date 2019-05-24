@@ -11,10 +11,10 @@ variables:
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - scylladb/scylla:latest
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
         - ispirata/docker-alpine-cfssl-autotest:astarte
     stage: build
     script:
@@ -30,10 +30,10 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_pairing
 
 mix:build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - scylladb/scylla:latest
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
         - ispirata/docker-alpine-cfssl-autotest:astarte
     stage: build
     script:
@@ -51,10 +51,10 @@ mix:build:
         - master@Astarte-NG/astarte_pairing
 
 mix:release-build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - scylladb/scylla:latest
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
         - ispirata/docker-alpine-cfssl-autotest:astarte
     stage: build
     script:
