@@ -10,11 +10,11 @@ variables:
     APPLICATION_NAME: astarte_trigger_engine
 
 mix:test-ci:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     stage: build
     services:
-        - scylladb/scylla:latest
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     script:
         - export MIX_ENV=test
         - mix deps.get
@@ -28,11 +28,11 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_trigger_engine
 
 mix:build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     stage: build
     services:
-        - scylladb/scylla:latest
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     script:
         - export MIX_ENV=test
         - mix deps.get
@@ -48,11 +48,11 @@ mix:build:
         - master@Astarte-NG/astarte_trigger_engine
 
 mix:release-build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     stage: build
     services:
-        - scylladb/scylla:latest
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     script:
         - export MIX_ENV=test
         - mix deps.get
