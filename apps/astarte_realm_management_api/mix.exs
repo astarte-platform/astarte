@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.6",
+      elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -48,7 +48,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   def application do
     [
       mod: {Astarte.RealmManagement.API.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:lager, :logger, :runtime_tools]
     ]
   end
 
@@ -75,14 +75,14 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:phoenix, "== 1.3.2"},
       {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cors_plug, "== 1.5.2"},
-      {:cowboy, "== 1.1.2"},
-      {:ranch, "== 1.4.0", override: true},
+      {:cors_plug, "~> 1.5"},
+      {:cowboy, "~> 1.1"},
+      {:ranch, "== 1.7.1", override: true},
       {:conform, "== 2.5.2"},
-      {:ecto, "== 2.2.10"},
-      {:guardian, github: "ispirata/guardian"},
-      {:distillery, "== 1.5.2", runtime: false},
-      {:excoveralls, "== 0.9.1", only: :test}
+      {:ecto, "~> 2.2"},
+      {:guardian, "~> 1.2"},
+      {:distillery, "~> 1.5", runtime: false},
+      {:excoveralls, "~> 0.11", only: :test}
     ]
   end
 end
