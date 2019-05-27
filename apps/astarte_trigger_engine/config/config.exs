@@ -23,7 +23,11 @@ use Mix.Config
 # lager is used by rabbit_common.
 # Silent it by setting the higher loglevel.
 config :lager,
+  error_logger_redirect: false,
   handlers: [level: :critical]
+
+# make amqp supervisors logs less verbose
+config :logger, handle_otp_reports: false
 
 config :astarte_trigger_engine, :amqp_consumer_options,
   host: "localhost",
