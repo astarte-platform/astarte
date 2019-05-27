@@ -145,11 +145,11 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
     @invalid_attrs %{"client_crt" => ""}
 
     @now DateTime.utc_now() |> DateTime.truncate(:millisecond)
-    @now_ms @now |> DateTime.to_unix(:milliseconds)
+    @now_ms @now |> DateTime.to_unix(:millisecond)
     @now_string @now |> DateTime.to_string()
     @one_month_from_now_ms 2_678_400_000 + @now_ms
     @one_month_from_now_string @one_month_from_now_ms
-                               |> DateTime.from_unix!(:milliseconds)
+                               |> DateTime.from_unix!(:millisecond)
                                |> DateTime.to_string()
 
     @encoded_verify_valid_response %Reply{
