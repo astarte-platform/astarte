@@ -11,10 +11,10 @@ variables:
     CASSANDRA_CLUSTER_NAME: astartetest
 
 mix:test-ci:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - cassandra:3.11.2
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     stage: build
     script:
         - export MIX_ENV=test
@@ -29,10 +29,10 @@ mix:test-ci:
         - branches@Astarte-NG/astarte_realm_management
 
 mix:build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - cassandra:3.11.2
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     stage: build
     script:
         - export MIX_ENV=test
@@ -49,10 +49,10 @@ mix:build:
         - master@Astarte-NG/astarte_realm_management
 
 mix:release-build:
-    image: elixir:1.6.5
+    image: elixir:1.8.1
     services:
-        - cassandra:3.11.2
-        - rabbitmq:3.6
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
     stage: build
     script:
         - export MIX_ENV=test
