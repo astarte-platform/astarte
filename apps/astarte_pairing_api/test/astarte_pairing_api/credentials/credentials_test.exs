@@ -213,7 +213,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
     @no_certificate_attrs %{}
     @self_signed_crt_attrs %{client_crt: @self_signed_crt}
 
-    @now DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+    @now DateTime.utc_now() |> DateTime.to_unix(:millisecond)
     @one_month_from_now 2_678_400_000 + @now
 
     @encoded_verify_valid_response %Reply{

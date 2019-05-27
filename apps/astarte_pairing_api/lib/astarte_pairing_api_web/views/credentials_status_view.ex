@@ -53,7 +53,7 @@ defmodule Astarte.Pairing.APIWeb.CredentialsStatusView do
   end
 
   defp to_datetime_string(ms_epoch_timestamp) when is_integer(ms_epoch_timestamp) do
-    with {:ok, datetime} <- DateTime.from_unix(ms_epoch_timestamp, :milliseconds) do
+    with {:ok, datetime} <- DateTime.from_unix(ms_epoch_timestamp, :millisecond) do
       DateTime.to_string(datetime)
     else
       _ ->
