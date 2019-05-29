@@ -74,7 +74,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:phoenix, "== 1.3.2"},
       {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.1"},
+      {:plug_cowboy, "~> 1.0"},
       {:ecto, "~> 2.2"},
       {:guardian, "~> 1.2"},
       {:remote_ip, "~> 0.1"},
