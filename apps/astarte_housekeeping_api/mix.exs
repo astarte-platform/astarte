@@ -75,7 +75,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:phoenix_pubsub, "== 1.0.2"},
       {:gettext, "~> 0.11"},
       {:cors_plug, "~> 1.5"},
-      {:cowboy, "~> 1.1"},
+      {:plug_cowboy, "~> 1.0"},
       {:ranch, "== 1.7.1", override: true},
       {:guardian, "~> 1.2"},
 
