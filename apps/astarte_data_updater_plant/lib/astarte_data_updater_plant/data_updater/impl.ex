@@ -1517,6 +1517,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, reason} ->
             Logger.warn("EndpointsAutomaton.resolve_path failed with reason #{inspect(reason)}")
             {:error, :mapping_not_found}
+
+          {:guessed, guessed_endpoints} ->
+            {:guessed, guessed_endpoints}
         end
 
       :object ->
