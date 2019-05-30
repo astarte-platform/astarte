@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.10.2] - Unreleased
 ### Changed
 - Use the timestamp sent by VerneMQ (or explicit timestamp if available) to populate SimpleEvent timestamp.
+- Update suggested RabbitMQ version to 3.7.15, older versions can be still used.
 
 ### Fixed
 - Do not accept invalid paths that have consecutive slashes.

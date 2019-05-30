@@ -14,7 +14,7 @@ mix:test-ci:
     stage: build
     services:
         - cassandra:3.11.2
-        - rabbitmq:3.6
+        - rabbitmq:3.7.15
     script:
         - export MIX_ENV=test
         - mix deps.get
@@ -29,7 +29,7 @@ mix:build:
     stage: build
     services:
         - cassandra:3.11.2
-        - rabbitmq:3.6
+        - rabbitmq:3.7.15
     script:
         - export MIX_ENV=test
         - mix deps.get
@@ -46,7 +46,7 @@ mix:release-build:
     stage: build
     services:
         - cassandra:3.11.2
-        - rabbitmq:3.6
+        - rabbitmq:3.7.15
     script:
         - export MIX_ENV=test
         - mix deps.get
