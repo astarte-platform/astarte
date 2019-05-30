@@ -44,7 +44,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   def application do
     [
       mod: {Astarte.Housekeeping.API.Application, []},
-      extra_applications: [:lager, :logger, :runtime_tools],
+      extra_applications: [:lager, :logger, :runtime_tools]
     ]
   end
 
@@ -70,15 +70,14 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   defp deps do
     [
       {:conform, "== 2.5.2"},
-      {:ecto, "~> 2.2"},
-      {:phoenix, "== 1.3.4"},
-      {:phoenix_pubsub, "== 1.0.2"},
+      {:jason, "~> 1.0"},
+      {:phoenix, "~> 1.4.0"},
+      {:phoenix_ecto, "~> 4.0"},
       {:gettext, "~> 0.11"},
       {:cors_plug, "~> 1.5"},
       {:plug_cowboy, "~> 1.0"},
       {:ranch, "== 1.7.1", override: true},
       {:guardian, "~> 1.2"},
-
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test}
     ]
