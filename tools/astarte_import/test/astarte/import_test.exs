@@ -1,8 +1,74 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2019 Ispirata Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 defmodule Astarte.ImportTest do
   use ExUnit.Case
-  doctest Astarte.Import
+  alias Astarte.Import
 
-  test "greets the world" do
-    assert Astarte.Import.hello() == :world
+  test "parse a XML document" do
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <astarte>
+      <devices>
+        <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
+          <interfaces>
+            <interface name="org.astarteplatform.Values" major_version="0" minor_version="1">
+              <values path="/realValue">
+                <value timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
+                <value timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
+                <value timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
+              </values>
+            </interface>
+          </interfaces>
+        </device>
+      </devices>
+    </astarte>
+    """
+
+    assert Import.parse(xml, fn state, chars ->
+             %Import.State{
+               device_id: device_id,
+               interface: interface,
+               path: path,
+               timestamp: timestamp,
+               data: data
+             } = state
+
+             timestamp_s = DateTime.to_iso8601(timestamp)
+
+             new_data =
+               (data || %{})
+               |> update_in([device_id], &(&1 || %{}))
+               |> update_in([device_id, interface], &(&1 || %{}))
+               |> update_in([device_id, interface, path], &(&1 || %{}))
+               |> put_in([device_id, interface, path, timestamp_s], chars)
+
+             %Import.State{state | data: new_data}
+           end) == %{
+             "yKA3CMd07kWaDyj6aMP4Dg" => %{
+               {"org.astarteplatform.Values", 0, 1} => %{
+                 "/realValue" => %{
+                   "2019-05-31T09:12:42.789379Z" => '0.1',
+                   "2019-05-31T09:13:29.144111Z" => '0.2',
+                   "2019-05-31T09:13:52.040373Z" => '0.3'
+                 }
+               }
+             }
+           }
   end
 end
