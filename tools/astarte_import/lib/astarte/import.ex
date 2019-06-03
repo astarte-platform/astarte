@@ -28,13 +28,14 @@ defmodule Astarte.Import do
     ]
   end
 
-  def parse(xml, fun) do
+  def parse(xml, fun, cont_fun) do
     state = %State{
       insert_value_fun: fun
     }
 
-    {:ok, state, _tail} =
-      :xmerl_sax_parser.stream(xml, event_fun: &xml_event/3, event_state: state)
+    opts = [event_fun: &xml_event/3, continuation_fun: cont_fun, event_state: state]
+
+    {:ok, state, _tail} = :xmerl_sax_parser.stream(xml, opts)
 
     state.data
   end
