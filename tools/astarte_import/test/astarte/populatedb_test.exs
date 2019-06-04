@@ -30,9 +30,9 @@ defmodule Astarte.PopulateDBTest do
         <interfaces>
           <interface name="org.astarteplatform.Values" major_version="0" minor_version="1">
             <values path="/realValue">
-              <value timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
-              <value timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
-              <value timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
+              <value reception_timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
+              <value reception_timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
+              <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
             </values>
           </interface>
         </interfaces>

@@ -22,7 +22,7 @@ defmodule Astarte.Import do
       :device_id,
       :interface,
       :path,
-      :timestamp,
+      :reception_timestamp,
       :got_interface_fun,
       :got_path_fun,
       :got_data_fun,
@@ -109,14 +109,14 @@ defmodule Astarte.Import do
   end
 
   defp xml_event({:startElement, _uri, _l_name, {_prefix, 'value'}, attributes}, _loc, state) do
-    {:ok, timestamp} = fetch_attribute(attributes, 'timestamp')
-    {:ok, datetime, 0} = timestamp |> DateTime.from_iso8601()
+    {:ok, reception_timestamp} = fetch_attribute(attributes, 'reception_timestamp')
+    {:ok, datetime, 0} = DateTime.from_iso8601(reception_timestamp)
 
-    %State{state | timestamp: datetime}
+    %State{state | reception_timestamp: datetime}
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'value'}}, _loc, state) do
-    %State{state | timestamp: nil}
+    %State{state | reception_timestamp: nil}
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'values'}}, _loc, state) do

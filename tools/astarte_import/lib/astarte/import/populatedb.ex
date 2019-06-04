@@ -106,7 +106,7 @@ defmodule Astarte.Import.PopulateDB do
 
     fun = fn state, chars ->
       %Import.State{
-        timestamp: timestamp,
+        reception_timestamp: reception_timestamp,
         data: %State{
           prepared_params: prepared_params,
           prepared_query: prepared_query,
@@ -114,8 +114,15 @@ defmodule Astarte.Import.PopulateDB do
         }
       } = state
 
+      reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
       native_value = to_native_type(chars, value_type)
-      params = [timestamp, timestamp, 0, native_value | prepared_params]
+
+      params = [
+        reception_timestamp,
+        reception_timestamp,
+        reception_submillis,
+        native_value | prepared_params
+      ]
 
       {:ok, %Xandra.Void{}} = Xandra.execute(xandra_conn, prepared_query, params)
 
