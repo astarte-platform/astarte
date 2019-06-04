@@ -20,26 +20,49 @@ defmodule Astarte.ImportTest do
   use ExUnit.Case
   alias Astarte.Import
 
-  test "parse a XML document" do
-    xml = """
-    <?xml version="1.0" encoding="UTF-8"?>
-    <astarte>
-      <devices>
-        <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
-          <interfaces>
-            <interface name="org.astarteplatform.Values" major_version="0" minor_version="1">
-              <values path="/realValue">
-                <value reception_timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
-                <value reception_timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
-                <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
-              </values>
-            </interface>
-          </interfaces>
-        </device>
-      </devices>
-    </astarte>
-    """
+  @xml_chunk1 """
+  <?xml version="1.0" encoding="UTF-8"?>
+  <astarte>
+  """
 
+  @xml_chunk2 """
+    <devices>
+      <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
+        <interfaces>
+          <interface name="org.astarteplatform.Values" major_version="0" minor_version="1">
+            <values path="/realValue">
+              <value reception_timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
+              <value reception_timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
+  """
+
+  @xml_chunk3 """
+              <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
+            </values>
+          </interface>
+        </interfaces>
+      </device>
+    </devices>
+  """
+
+  @xml_chunk4 """
+  </astarte>"
+  """
+
+  @xml @xml_chunk1 <> @xml_chunk2 <> @xml_chunk3 <> @xml_chunk4
+
+  @populated_map %{
+    "yKA3CMd07kWaDyj6aMP4Dg" => %{
+      {"org.astarteplatform.Values", 0, 1} => %{
+        "/realValue" => %{
+          "2019-05-31T09:12:42.789379Z" => '0.1',
+          "2019-05-31T09:13:29.144111Z" => '0.2',
+          "2019-05-31T09:13:52.040373Z" => '0.3'
+        }
+      }
+    }
+  }
+
+  test "parse a XML document" do
     got_data_fun = fn state, chars ->
       %Import.State{
         device_id: device_id,
@@ -61,48 +84,10 @@ defmodule Astarte.ImportTest do
       %Import.State{state | data: new_data}
     end
 
-    assert Import.parse(xml, got_data_fun: got_data_fun) == %{
-             "yKA3CMd07kWaDyj6aMP4Dg" => %{
-               {"org.astarteplatform.Values", 0, 1} => %{
-                 "/realValue" => %{
-                   "2019-05-31T09:12:42.789379Z" => '0.1',
-                   "2019-05-31T09:13:29.144111Z" => '0.2',
-                   "2019-05-31T09:13:52.040373Z" => '0.3'
-                 }
-               }
-             }
-           }
+    assert Import.parse(@xml, got_data_fun: got_data_fun) == @populated_map
   end
 
   test "parse a chunked XML document" do
-    xml_chunk1 = """
-    <?xml version="1.0" encoding="UTF-8"?>
-    <astarte>
-    """
-
-    xml_chunk2 = """
-      <devices>
-        <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
-          <interfaces>
-            <interface name="org.astarteplatform.Values" major_version="0" minor_version="1">
-              <values path="/realValue">
-                <value reception_timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
-                <value reception_timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
-    """
-
-    xml_chunk3 = """
-                <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
-              </values>
-            </interface>
-          </interfaces>
-        </device>
-      </devices>
-    """
-
-    xml_chunk4 = """
-    </astarte>
-    """
-
     got_data_fun = fn state, chars ->
       %Import.State{
         device_id: device_id,
@@ -126,22 +111,13 @@ defmodule Astarte.ImportTest do
 
     cont_fun = fn state ->
       case state do
-        :undefined -> {xml_chunk2, [xml_chunk3, xml_chunk4]}
+        :undefined -> {@xml_chunk2, [@xml_chunk3, @xml_chunk4]}
         [] -> {"", nil}
         [next_chunk | input_state] -> {next_chunk, input_state}
       end
     end
 
-    assert Import.parse(xml_chunk1, got_data_fun: got_data_fun, continuation_fun: cont_fun) == %{
-             "yKA3CMd07kWaDyj6aMP4Dg" => %{
-               {"org.astarteplatform.Values", 0, 1} => %{
-                 "/realValue" => %{
-                   "2019-05-31T09:12:42.789379Z" => '0.1',
-                   "2019-05-31T09:13:29.144111Z" => '0.2',
-                   "2019-05-31T09:13:52.040373Z" => '0.3'
-                 }
-               }
-             }
-           }
+    assert Import.parse(@xml_chunk1, got_data_fun: got_data_fun, continuation_fun: cont_fun) ==
+             @populated_map
   end
 end
