@@ -40,7 +40,7 @@ defmodule Astarte.ImportTest do
     </astarte>
     """
 
-    xml_fun = fn state, chars ->
+    got_data_fun = fn state, chars ->
       %Import.State{
         device_id: device_id,
         interface: interface,
@@ -61,7 +61,7 @@ defmodule Astarte.ImportTest do
       %Import.State{state | data: new_data}
     end
 
-    assert Import.parse(xml, xml_fun, nil) == %{
+    assert Import.parse(xml, got_data_fun: got_data_fun) == %{
              "yKA3CMd07kWaDyj6aMP4Dg" => %{
                {"org.astarteplatform.Values", 0, 1} => %{
                  "/realValue" => %{
@@ -103,7 +103,7 @@ defmodule Astarte.ImportTest do
     </astarte>
     """
 
-    xml_fun = fn state, chars ->
+    got_data_fun = fn state, chars ->
       %Import.State{
         device_id: device_id,
         interface: interface,
@@ -132,7 +132,7 @@ defmodule Astarte.ImportTest do
       end
     end
 
-    assert Import.parse(xml_chunk1, xml_fun, cont_fun) == %{
+    assert Import.parse(xml_chunk1, got_data_fun: got_data_fun, continuation_fun: cont_fun) == %{
              "yKA3CMd07kWaDyj6aMP4Dg" => %{
                {"org.astarteplatform.Values", 0, 1} => %{
                  "/realValue" => %{

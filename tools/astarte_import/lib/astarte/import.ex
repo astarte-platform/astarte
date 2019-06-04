@@ -23,19 +23,30 @@ defmodule Astarte.Import do
       :interface,
       :path,
       :timestamp,
-      :insert_value_fun,
+      :got_interface_fun,
+      :got_path_fun,
+      :got_data_fun,
       :data
     ]
   end
 
-  def parse(xml, fun, cont_fun) do
+  def parse(xml, opts \\ []) do
+    initial_data = Keyword.get(opts, :data)
+    continuation_fun = Keyword.get(opts, :continuation_fun, :undefined)
+    got_interface_fun = Keyword.get(opts, :got_interface_fun)
+    got_data_fun = Keyword.get(opts, :got_data_fun)
+    got_path_fun = Keyword.get(opts, :got_path_fun)
+
     state = %State{
-      insert_value_fun: fun
+      data: initial_data,
+      got_interface_fun: got_interface_fun,
+      got_path_fun: got_path_fun,
+      got_data_fun: got_data_fun
     }
 
-    opts = [event_fun: &xml_event/3, continuation_fun: cont_fun, event_state: state]
+    xmerl_opts = [event_fun: &xml_event/3, continuation_fun: continuation_fun, event_state: state]
 
-    {:ok, state, _tail} = :xmerl_sax_parser.stream(xml, opts)
+    {:ok, state, _tail} = :xmerl_sax_parser.stream(xml, xmerl_opts)
 
     state.data
   end
@@ -68,7 +79,15 @@ defmodule Astarte.Import do
          {major, ""} <- Integer.parse(major_string),
          {:ok, minor_string} <- fetch_attribute(attributes, 'minor_version'),
          {minor, ""} <- Integer.parse(minor_string) do
-      %State{state | interface: {name, major, minor}}
+      state = %State{state | interface: {name, major, minor}}
+
+      case state do
+        %State{got_interface_fun: nil} ->
+          state
+
+        %State{got_interface_fun: got_interface_fun} ->
+          got_interface_fun.(state, name, major, minor)
+      end
     else
       _any ->
         throw({:error, :invalid_interface})
@@ -78,7 +97,15 @@ defmodule Astarte.Import do
   defp xml_event({:startElement, _uri, _l_name, {_prefix, 'values'}, attributes}, _loc, state) do
     {:ok, path} = fetch_attribute(attributes, 'path')
 
-    %State{state | path: path}
+    state = %State{state | path: path}
+
+    case state do
+      %State{got_path_fun: nil} ->
+        state
+
+      %State{got_path_fun: got_path_fun} ->
+        got_path_fun.(state, path)
+    end
   end
 
   defp xml_event({:startElement, _uri, _l_name, {_prefix, 'value'}, attributes}, _loc, state) do
@@ -116,8 +143,8 @@ defmodule Astarte.Import do
     %State{state | device_id: nil}
   end
 
-  defp xml_event({:characters, chars}, _loc, %State{insert_value_fun: fun} = state) do
-    fun.(state, chars)
+  defp xml_event({:characters, chars}, _loc, %State{got_data_fun: got_data_fun} = state) do
+    got_data_fun.(state, chars)
   end
 
   defp xml_event({:ignorableWhitespace, _whitespace}, _location, state) do
