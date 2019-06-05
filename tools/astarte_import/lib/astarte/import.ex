@@ -23,10 +23,13 @@ defmodule Astarte.Import do
       :interface,
       :path,
       :reception_timestamp,
+      :got_device_end_fun,
       :got_interface_fun,
       :got_path_fun,
       :got_data_fun,
-      :data
+      :data,
+      introspection: %{},
+      old_introspection: %{}
     ]
   end
 
@@ -35,13 +38,15 @@ defmodule Astarte.Import do
     continuation_fun = Keyword.get(opts, :continuation_fun, :undefined)
     got_interface_fun = Keyword.get(opts, :got_interface_fun)
     got_data_fun = Keyword.get(opts, :got_data_fun)
+    got_device_end_fun = Keyword.get(opts, :got_device_end_fun)
     got_path_fun = Keyword.get(opts, :got_path_fun)
 
     state = %State{
       data: initial_data,
       got_interface_fun: got_interface_fun,
       got_path_fun: got_path_fun,
-      got_data_fun: got_data_fun
+      got_data_fun: got_data_fun,
+      got_device_end_fun: got_device_end_fun
     }
 
     xmerl_opts = [event_fun: &xml_event/3, continuation_fun: continuation_fun, event_state: state]
@@ -79,7 +84,37 @@ defmodule Astarte.Import do
          {major, ""} <- Integer.parse(major_string),
          {:ok, minor_string} <- fetch_attribute(attributes, 'minor_version'),
          {minor, ""} <- Integer.parse(minor_string) do
-      state = %State{state | interface: {name, major, minor}}
+      %State{
+        introspection: introspection,
+        old_introspection: old_introspection
+      } = state
+
+      {introspection, old_introspection} =
+        case get_attribute(attributes, 'active') do
+          "true" ->
+            unless Map.has_key?(introspection, name) do
+              {Map.put(introspection, name, {major, minor}), old_introspection}
+            else
+              throw({:error, :invalid_interface})
+            end
+
+          "false" ->
+            unless Map.has_key?(old_introspection, {name, major}) do
+              {introspection, Map.put(old_introspection, {name, major}, minor)}
+            else
+              throw({:error, :invalid_interface})
+            end
+
+          _ ->
+            throw({:error, :invalid_interface})
+        end
+
+      state = %State{
+        state
+        | interface: {name, major, minor},
+          introspection: introspection,
+          old_introspection: old_introspection
+      }
 
       case state do
         %State{got_interface_fun: nil} ->
@@ -132,6 +167,15 @@ defmodule Astarte.Import do
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'device'}}, _loc, state) do
+    state =
+      case state do
+        %State{got_device_end_fun: nil} ->
+          state
+
+        %State{got_device_end_fun: got_device_end_fun} ->
+          got_device_end_fun.(state)
+      end
+
     %State{state | device_id: nil}
   end
 
@@ -157,6 +201,15 @@ defmodule Astarte.Import do
 
   defp xml_event(:endDocument, _location, state) do
     state
+  end
+
+  defp get_attribute(attributes, attribute_name, default \\ nil) do
+    with {:ok, attribute_value} <- fetch_attribute(attributes, attribute_name) do
+      attribute_value
+    else
+      {:error, {:missing_attribute, _attribute_name}} ->
+        default
+    end
   end
 
   defp fetch_attribute(attributes, attribute_name) do

@@ -104,6 +104,38 @@ defmodule Astarte.Import.PopulateDB do
       }
     end
 
+    got_device_end = fn state ->
+      %Import.State{
+        device_id: device_id,
+        introspection: introspection,
+        old_introspection: old_introspection
+      } = state
+
+      {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+
+      {introspection_major, introspection_minor} =
+        Enum.reduce(introspection, {%{}, %{}}, fn item, acc ->
+          {interface, {major, minor}} = item
+          {introspection_major, introspection_minor} = acc
+
+          {Map.put(introspection_major, interface, major),
+           Map.put(introspection_minor, interface, minor)}
+        end)
+
+      dbclient = {xandra_conn, realm}
+
+      update_device_introspection(
+        dbclient,
+        decoded_device_id,
+        introspection_major,
+        introspection_minor
+      )
+
+      add_old_interfaces(dbclient, decoded_device_id, old_introspection)
+
+      state
+    end
+
     fun = fn state, chars ->
       %Import.State{
         reception_timestamp: reception_timestamp,
@@ -132,6 +164,7 @@ defmodule Astarte.Import.PopulateDB do
     Import.parse(xml,
       data: %State{},
       got_data_fun: fun,
+      got_device_end_fun: got_device_end,
       got_interface_fun: got_interface_fun,
       got_path_fun: got_path_fun
     )
@@ -141,6 +174,43 @@ defmodule Astarte.Import.PopulateDB do
     with float_string = to_string(value_chars),
          {value, ""} <- Float.parse(float_string) do
       value
+    end
+  end
+
+  defp update_device_introspection({conn, realm}, device_id, introspection, introspection_minor) do
+    introspection_update_statement = """
+    UPDATE #{realm}.devices
+    SET introspection=?, introspection_minor=?
+    WHERE device_id=?
+    """
+
+    params = [
+      {"map<ascii, int>", introspection},
+      {"map<ascii, int>", introspection_minor},
+      {"uuid", device_id}
+    ]
+
+    with {:ok, %Xandra.Void{}} <-
+           Xandra.execute(conn, introspection_update_statement, params, consistency: :quorum) do
+      :ok
+    end
+  end
+
+  defp add_old_interfaces({conn, realm}, device_id, old_interfaces) do
+    old_introspection_update_statement = """
+    UPDATE #{realm}.devices
+    SET old_introspection = old_introspection + :introspection
+    WHERE device_id=:device_id
+    """
+
+    params = [
+      {"map<frozen<tuple<ascii, int>>, int>", old_interfaces},
+      {"uuid", device_id}
+    ]
+
+    with {:ok, %Xandra.Void{}} <-
+           Xandra.execute(conn, old_introspection_update_statement, params, consistency: :quorum) do
+      :ok
     end
   end
 end
