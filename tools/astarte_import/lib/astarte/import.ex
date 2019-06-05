@@ -28,8 +28,20 @@ defmodule Astarte.Import do
       :got_path_fun,
       :got_data_fun,
       :data,
+      :cert_aki,
+      :cert_serial,
+      :credentials_secret,
+      :first_credentials_request,
+      :first_registration,
+      :last_connection,
+      :last_credentials_request_ip,
+      :last_disconnection,
+      :last_seen_ip,
+      :pending_empty_cache,
       introspection: %{},
-      old_introspection: %{}
+      old_introspection: %{},
+      total_received_msgs: 0,
+      total_received_bytes: 0
     ]
   end
 
@@ -68,6 +80,81 @@ defmodule Astarte.Import do
     {:ok, device_id} = fetch_attribute(attributes, 'device_id')
 
     %State{state | device_id: device_id}
+  end
+
+  # TODO: right now only protocol revision 0 is supported
+  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'protocol'}, attributes}, _loc, state) do
+    with {:ok, "0"} <- fetch_attribute(attributes, 'revision'),
+         pending_empty_cache_string = get_attribute(attributes, 'pending_empty_cache', "false"),
+         {:ok, pending_empty_cache} <- to_boolean(pending_empty_cache_string) do
+      %State{state | pending_empty_cache: pending_empty_cache}
+    else
+      {:error, _reason} ->
+        throw({:error, :invalid_protocol_element})
+    end
+  end
+
+  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'registration'}, attr}, _loc, state) do
+    with {:ok, secret_bcrypt_hash} <- fetch_attribute(attr, 'secret_bcrypt_hash'),
+         {:ok, first_registration_string} <- fetch_attribute(attr, 'first_registration'),
+         {:ok, first_registration, 0} <- DateTime.from_iso8601(first_registration_string) do
+      %State{
+        state
+        | credentials_secret: secret_bcrypt_hash,
+          first_registration: first_registration
+      }
+    else
+      {:error, _reason} ->
+        throw({:error, :invalid_registration_element})
+    end
+  end
+
+  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'credentials'}, attr}, _loc, state) do
+    with inhibit_request_string = get_attribute(attr, 'inhibit_request', "false"),
+         {:ok, false} <- to_boolean(inhibit_request_string),
+         {:ok, cert_serial} <- fetch_attribute(attr, 'cert_serial'),
+         {:ok, cert_aki} <- fetch_attribute(attr, 'cert_aki'),
+         {:ok, first_credentials_string} <- fetch_attribute(attr, 'first_credentials_request'),
+         {:ok, first_credentials_request, 0} <- DateTime.from_iso8601(first_credentials_string),
+         {:ok, last_creds_ip_string} <- fetch_attribute(attr, 'last_credentials_request_ip'),
+         last_creds_ip_charlist = String.to_charlist(last_creds_ip_string),
+         {:ok, last_credentials_request_ip} <- :inet.parse_address(last_creds_ip_charlist) do
+      %State{
+        state
+        | cert_serial: cert_serial,
+          cert_aki: cert_aki,
+          first_credentials_request: first_credentials_request,
+          last_credentials_request_ip: last_credentials_request_ip
+      }
+    else
+      {:error, _reason} ->
+        throw({:error, :invalid_credentials_element})
+    end
+  end
+
+  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'stats'}, attributes}, _loc, state) do
+    with total_received_msgs_string = get_attribute(attributes, 'total_received_msgs', "0"),
+         {total_received_msgs, ""} <- Integer.parse(total_received_msgs_string),
+         total_received_bytes_string = get_attribute(attributes, 'total_received_bytes', "0"),
+         {total_received_bytes, ""} <- Integer.parse(total_received_bytes_string),
+         last_connection_string = get_attribute(attributes, 'last_connection', nil),
+         {:ok, last_connection, 0} <- to_date_or_nil(last_connection_string),
+         last_disconnection_string = get_attribute(attributes, 'last_disconnection', nil),
+         {:ok, last_disconnection, 0} <- to_date_or_nil(last_disconnection_string),
+         last_seen_ip_string = get_attribute(attributes, 'last_seen_ip', nil),
+         {:ok, last_seen_ip} <- to_ip_or_nil(last_seen_ip_string) do
+      %State{
+        state
+        | total_received_msgs: total_received_msgs,
+          total_received_bytes: total_received_bytes,
+          last_connection: last_connection,
+          last_disconnection: last_disconnection,
+          last_seen_ip: last_seen_ip
+      }
+    else
+      {:error, _reason} ->
+        throw({:error, :invalid_stats_element})
+    end
   end
 
   defp xml_event(
@@ -166,6 +253,22 @@ defmodule Astarte.Import do
     %State{state | interface: nil}
   end
 
+  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'protocol'}}, _loc, state) do
+    state
+  end
+
+  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'registration'}}, _loc, state) do
+    state
+  end
+
+  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'credentials'}}, _loc, state) do
+    state
+  end
+
+  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'stats'}}, _loc, state) do
+    state
+  end
+
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'device'}}, _loc, state) do
     state =
       case state do
@@ -176,7 +279,7 @@ defmodule Astarte.Import do
           got_device_end_fun.(state)
       end
 
-    %State{state | device_id: nil}
+    %State{state | device_id: nil, pending_empty_cache: nil}
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'devices'}}, _loc, state) do
@@ -200,6 +303,12 @@ defmodule Astarte.Import do
   end
 
   defp xml_event(:endDocument, _location, state) do
+    state
+  end
+
+  defp xml_event(event, _loc, state) do
+    IO.puts("My event: #{inspect(event)}")
+
     state
   end
 
@@ -227,5 +336,30 @@ defmodule Astarte.Import do
     else
       {:error, {:missing_attribute, attribute_name}}
     end
+  end
+
+  defp to_boolean(str) do
+    case str do
+      "true" -> {:ok, true}
+      "false" -> {:ok, false}
+      _ -> {:error, :invalid_attribute}
+    end
+  end
+
+  defp to_date_or_nil(nil) do
+    {:ok, nil, 0}
+  end
+
+  defp to_date_or_nil(date_string) do
+    DateTime.from_iso8601(date_string)
+  end
+
+  defp to_ip_or_nil(nil) do
+    {:ok, nil}
+  end
+
+  defp to_ip_or_nil(ip_string) do
+    String.to_charlist(ip_string)
+    |> :inet.parse_address()
   end
 end

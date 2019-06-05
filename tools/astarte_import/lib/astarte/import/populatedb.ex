@@ -26,6 +26,7 @@ defmodule Astarte.Import.PopulateDB do
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
   alias Astarte.Import
+  require Logger
 
   defmodule State do
     defstruct [
@@ -108,7 +109,19 @@ defmodule Astarte.Import.PopulateDB do
       %Import.State{
         device_id: device_id,
         introspection: introspection,
-        old_introspection: old_introspection
+        old_introspection: old_introspection,
+        first_registration: first_registration,
+        credentials_secret: credentials_secret,
+        cert_serial: cert_serial,
+        cert_aki: cert_aki,
+        first_credentials_request: first_credentials_request,
+        last_connection: last_connection,
+        last_disconnection: last_disconnection,
+        pending_empty_cache: pending_empty_cache,
+        total_received_msgs: total_received_msgs,
+        total_received_bytes: total_received_bytes,
+        last_credentials_request_ip: last_credentials_request_ip,
+        last_seen_ip: last_seen_ip
       } = state
 
       {:ok, decoded_device_id} = Device.decode_device_id(device_id)
@@ -124,6 +137,16 @@ defmodule Astarte.Import.PopulateDB do
 
       dbclient = {xandra_conn, realm}
 
+      do_register_device(dbclient, decoded_device_id, credentials_secret, first_registration)
+
+      update_device_after_credentials_request(
+        dbclient,
+        decoded_device_id,
+        %{serial: cert_serial, aki: cert_aki},
+        last_credentials_request_ip,
+        first_credentials_request
+      )
+
       update_device_introspection(
         dbclient,
         decoded_device_id,
@@ -132,6 +155,18 @@ defmodule Astarte.Import.PopulateDB do
       )
 
       add_old_interfaces(dbclient, decoded_device_id, old_introspection)
+
+      set_device_connected(dbclient, decoded_device_id, last_connection, last_seen_ip)
+
+      set_device_disconnected(
+        dbclient,
+        decoded_device_id,
+        last_disconnection,
+        total_received_msgs,
+        total_received_bytes
+      )
+
+      set_pending_empty_cache(dbclient, decoded_device_id, pending_empty_cache)
 
       state
     end
@@ -210,6 +245,131 @@ defmodule Astarte.Import.PopulateDB do
 
     with {:ok, %Xandra.Void{}} <-
            Xandra.execute(conn, old_introspection_update_statement, params, consistency: :quorum) do
+      :ok
+    end
+  end
+
+  defp do_register_device({conn, realm}, device_id, credentials_secret, registration_timestamp) do
+    statement = """
+    INSERT INTO #{realm}.devices
+    (
+      device_id, first_registration, credentials_secret, inhibit_credentials_request,
+      protocol_revision, total_received_bytes, total_received_msgs
+    ) VALUES (?, ?, ?, false, 0, 0, 0)
+    """
+
+    params = [
+      {"uuid", device_id},
+      {"timestamp", registration_timestamp},
+      {"ascii", credentials_secret}
+    ]
+
+    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
+      :ok
+    else
+      {:error, %Xandra.Error{message: message}} ->
+        Logger.warn("DB error: #{message}")
+
+      {:error, %Xandra.ConnectionError{}} ->
+        Logger.info("DB connection error.")
+    end
+  end
+
+  defp update_device_after_credentials_request(
+        {conn, realm},
+        device_id,
+        %{serial: serial, aki: aki} = _cert_data,
+        device_ip,
+        first_credentials_request_timestamp
+      ) do
+    statement = """
+    UPDATE #{realm}.devices
+    SET cert_aki=?, cert_serial=?, last_credentials_request_ip=?,
+    first_credentials_request=?
+    WHERE device_id=?
+    """
+
+    params = [
+      {"ascii", aki},
+      {"ascii", serial},
+      {"inet", device_ip},
+      {"timestamp", first_credentials_request_timestamp},
+      {"uuid", device_id}
+    ]
+
+    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
+      :ok
+    else
+      {:error, %Xandra.Error{message: message}} ->
+        Logger.warn("DB error: #{message}")
+
+      {:error, %Xandra.ConnectionError{}} ->
+        Logger.info("DB connection error.")
+    end
+  end
+
+  defp set_pending_empty_cache({conn, realm}, device_id, pending_empty_cache) do
+    pending_empty_cache_statement = """
+    UPDATE #{realm}.devices
+    SET pending_empty_cache = ?
+    WHERE device_id = ?
+    """
+
+    params = [
+      {"boolean", pending_empty_cache},
+      {"uuid", device_id}
+    ]
+
+    with {:ok, _result} <- Xandra.execute(conn, pending_empty_cache_statement, params) do
+      :ok
+    else
+      {:error, %Xandra.Error{message: message}} ->
+        Logger.warn("set_pending_empty_cache: database error: #{message}")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{reason: reason}} ->
+        Logger.warn("set_pending_empty_cache: connection error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp set_device_connected({conn, realm}, device_id, tstamp, ip_address) do
+    device_update_statement = """
+    UPDATE #{realm}.devices
+    SET connected=true, last_connection=?, last_seen_ip=?
+    WHERE device_id=?
+    """
+
+    params = [
+      {"timestamp", tstamp},
+      {"inet", ip_address},
+      {"uuid", device_id}
+    ]
+
+    with {:ok, _} <- Xandra.execute(conn, device_update_statement, params, consistency: :quorum) do
+      :ok
+    end
+  end
+
+  defp set_device_disconnected({conn, realm}, device_id, tstamp, tot_recv_msgs, tot_recv_bytes) do
+    device_update_statement = """
+    UPDATE #{realm}.devices
+    SET connected=false,
+        last_disconnection=?,
+        total_received_msgs=?,
+        total_received_bytes=?
+    WHERE device_id=?
+    """
+
+    params = [
+      {"timestamp", tstamp},
+      {"bigint", tot_recv_msgs},
+      {"bigint", tot_recv_bytes},
+      {"uuid", device_id}
+    ]
+
+    with {:ok, _} <-
+           Xandra.execute(conn, device_update_statement, params, consistency: :local_quorum) do
       :ok
     end
   end
