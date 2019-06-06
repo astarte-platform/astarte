@@ -26,6 +26,7 @@ defmodule Astarte.Import do
       :got_device_end_fun,
       :got_interface_fun,
       :got_path_fun,
+      :got_path_end_fun,
       :got_data_fun,
       :data,
       :cert_aki,
@@ -52,11 +53,13 @@ defmodule Astarte.Import do
     got_data_fun = Keyword.get(opts, :got_data_fun)
     got_device_end_fun = Keyword.get(opts, :got_device_end_fun)
     got_path_fun = Keyword.get(opts, :got_path_fun)
+    got_path_end_fun = Keyword.get(opts, :got_path_end_fun)
 
     state = %State{
       data: initial_data,
       got_interface_fun: got_interface_fun,
       got_path_fun: got_path_fun,
+      got_path_end_fun: got_path_end_fun,
       got_data_fun: got_data_fun,
       got_device_end_fun: got_device_end_fun
     }
@@ -242,6 +245,15 @@ defmodule Astarte.Import do
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'values'}}, _loc, state) do
+    state =
+      case state do
+        %State{got_path_end_fun: nil} ->
+          state
+
+        %State{got_path_end_fun: got_path_end_fun} ->
+          got_path_end_fun.(state)
+      end
+
     %State{state | path: nil}
   end
 

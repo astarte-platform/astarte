@@ -32,7 +32,9 @@ defmodule Astarte.Import.PopulateDB do
     defstruct [
       :prepared_params,
       :interface_descriptor,
+      :mapping,
       :mappings,
+      :last_seen_reception_timestamp,
       :prepared_query,
       :value_type
     ]
@@ -69,8 +71,8 @@ defmodule Astarte.Import.PopulateDB do
 
       {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
 
-      %Mapping{value_type: value_type} =
-        Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
+      mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
+      %Mapping{value_type: value_type} = mapping
 
       db_column_name = CQLUtils.type_to_db_column_name(value_type)
 
@@ -98,11 +100,41 @@ defmodule Astarte.Import.PopulateDB do
         state
         | data: %State{
             data
-            | prepared_params: prepared_params,
+            | mapping: mapping,
+              prepared_params: prepared_params,
               prepared_query: prepared_query,
               value_type: value_type
           }
       }
+    end
+
+    got_path_end_fun = fn state ->
+      %Import.State{
+        device_id: device_id,
+        path: path,
+        data: %State{
+          interface_descriptor: interface_descriptor,
+          mapping: mapping,
+          last_seen_reception_timestamp: reception_timestamp
+        }
+      } = state
+
+      dbclient = {xandra_conn, realm}
+
+      {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+
+      insert_path(
+        dbclient,
+        decoded_device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        reception_timestamp,
+        reception_timestamp,
+        []
+      )
+
+      state
     end
 
     got_device_end = fn state ->
@@ -174,12 +206,14 @@ defmodule Astarte.Import.PopulateDB do
     fun = fn state, chars ->
       %Import.State{
         reception_timestamp: reception_timestamp,
-        data: %State{
-          prepared_params: prepared_params,
-          prepared_query: prepared_query,
-          value_type: value_type
-        }
+        data: data
       } = state
+
+      %State{
+        prepared_params: prepared_params,
+        prepared_query: prepared_query,
+        value_type: value_type
+      } = data
 
       reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
       native_value = to_native_type(chars, value_type)
@@ -193,7 +227,10 @@ defmodule Astarte.Import.PopulateDB do
 
       {:ok, %Xandra.Void{}} = Xandra.execute(xandra_conn, prepared_query, params)
 
-      state
+      %Import.State{
+        state
+        | data: %State{data | last_seen_reception_timestamp: reception_timestamp}
+      }
     end
 
     Import.parse(xml,
@@ -201,7 +238,8 @@ defmodule Astarte.Import.PopulateDB do
       got_data_fun: fun,
       got_device_end_fun: got_device_end,
       got_interface_fun: got_interface_fun,
-      got_path_fun: got_path_fun
+      got_path_fun: got_path_fun,
+      got_path_end_fun: got_path_end_fun
     )
   end
 
@@ -276,12 +314,12 @@ defmodule Astarte.Import.PopulateDB do
   end
 
   defp update_device_after_credentials_request(
-        {conn, realm},
-        device_id,
-        %{serial: serial, aki: aki} = _cert_data,
-        device_ip,
-        first_credentials_request_timestamp
-      ) do
+         {conn, realm},
+         device_id,
+         %{serial: serial, aki: aki} = _cert_data,
+         device_ip,
+         first_credentials_request_timestamp
+       ) do
     statement = """
     UPDATE #{realm}.devices
     SET cert_aki=?, cert_serial=?, last_credentials_request_ip=?,
@@ -372,5 +410,58 @@ defmodule Astarte.Import.PopulateDB do
            Xandra.execute(conn, device_update_statement, params, consistency: :local_quorum) do
       :ok
     end
+  end
+
+  defp insert_path(
+         {conn, realm},
+         device_id,
+         interface_descriptor,
+         endpoint,
+         path,
+         value_timestamp,
+         reception_timestamp,
+         _opts
+       ) do
+    # TODO: do not hardcode individual_properties here
+    # TODO: handle TTL
+    insert_statement = """
+    INSERT INTO #{realm}.individual_properties
+        (device_id, interface_id, endpoint_id, path,
+        reception_timestamp, reception_timestamp_submillis, datetime_value)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """
+
+    params = [
+      {"uuid", device_id},
+      {"uuid", interface_descriptor.interface_id},
+      {"uuid", endpoint.endpoint_id},
+      {"varchar", path},
+      {"timestamp", reception_timestamp},
+      {"smallint", rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)},
+      {"timestamp", value_timestamp}
+    ]
+
+    with {:ok, _} <-
+           Xandra.execute(conn, insert_statement, params,
+             consitency: path_consistency(interface_descriptor, endpoint)
+           ) do
+      :ok
+    else
+      {:error, %Xandra.Error{message: message}} ->
+        Logger.warn("insert_path: database error: #{message}")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{reason: reason}} ->
+        Logger.warn("insert_path: connection error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp path_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
+    :one
+  end
+
+  defp path_consistency(_interface_descriptor, _mapping) do
+    :local_quorum
   end
 end
