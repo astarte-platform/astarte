@@ -4,6 +4,8 @@
 
 Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https://www.rabbitmq.com/) and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.com/).
 
+Latest stable release is [v0.10.0](https://github.com/astarte-platform/astarte/tree/v0.10.0).
+
 ## Let's try it!
 
 Can't be easier.
@@ -14,6 +16,8 @@ $ git clone https://github.com/astarte-platform/astarte.git && cd astarte
 $ ./generate-compose-files.sh
 $ docker-compose up -d
 ```
+
+Make sure to use the latest stable release if you want a flawless experience
 
 You should be up and running in a matter of minutes. If you want a more thorough explanation and find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in 5 minutes" tutorial](http://docs.astarte-platform.org/snapshot/010-astarte_in_5_minutes.html) to get some fake or real devices to stream and process data while your tea gets ready.
 
