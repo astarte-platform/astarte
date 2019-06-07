@@ -8,4 +8,4 @@ config :logger, :console,
   metadata: [:module, :function, :device_id, :realm]
 
 config :logfmt,
-  user_friendly: true
+  prepend_metadata: [:application, :module, :function, :realm, :device_id]

@@ -42,6 +42,8 @@ defmodule Astarte.Import.PopulateDB do
   end
 
   def populate(realm, xml) do
+    Logger.info("Import started.", realm: realm)
+
     {:ok, conn} = Database.connect(realm)
     nodes = Application.get_env(:cqerl, :cassandra_nodes)
     {host, port} = Enum.random(nodes)
@@ -247,6 +249,8 @@ defmodule Astarte.Import.PopulateDB do
       got_path_fun: got_path_fun,
       got_path_end_fun: got_path_end_fun
     )
+
+    Logger.info("Import finished.", realm: realm)
   end
 
   defp to_native_type(value_chars, :double) do
