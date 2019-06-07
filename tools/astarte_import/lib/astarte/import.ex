@@ -219,7 +219,7 @@ defmodule Astarte.Import do
     end
   end
 
-  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'values'}, attributes}, _loc, state) do
+  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'datastream'}, attributes}, _loc, state) do
     {:ok, path} = fetch_attribute(attributes, 'path')
 
     state = %State{state | path: path}
@@ -244,7 +244,7 @@ defmodule Astarte.Import do
     %State{state | reception_timestamp: nil}
   end
 
-  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'values'}}, _loc, state) do
+  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'datastream'}}, _loc, state) do
     state =
       case state do
         %State{got_path_end_fun: nil} ->

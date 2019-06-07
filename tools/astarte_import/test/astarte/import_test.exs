@@ -30,14 +30,14 @@ defmodule Astarte.ImportTest do
       <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
         <interfaces>
           <interface name="org.astarteplatform.Values" major_version="0" minor_version="1" active="true">
-            <values path="/realValue">
+            <datastream path="/realValue">
               <value reception_timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
               <value reception_timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
   """
 
   @xml_chunk3 """
               <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
-            </values>
+            </datastream>
           </interface>
         </interfaces>
       </device>
