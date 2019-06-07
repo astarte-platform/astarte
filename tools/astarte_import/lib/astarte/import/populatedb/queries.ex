@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Import.PopulateDB.Queries do
+  alias Astarte.Core.Device
   alias Astarte.Core.Mapping
   require Logger
 
@@ -33,9 +34,17 @@ defmodule Astarte.Import.PopulateDB.Queries do
       {"uuid", device_id}
     ]
 
-    with {:ok, %Xandra.Void{}} <-
+    with {:ok, _} <-
            Xandra.execute(conn, introspection_update_statement, params, consistency: :quorum) do
       :ok
+    else
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
     end
   end
 
@@ -51,9 +60,17 @@ defmodule Astarte.Import.PopulateDB.Queries do
       {"uuid", device_id}
     ]
 
-    with {:ok, %Xandra.Void{}} <-
+    with {:ok, _} <-
            Xandra.execute(conn, old_introspection_update_statement, params, consistency: :quorum) do
       :ok
+    else
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
     end
   end
 
@@ -75,11 +92,13 @@ defmodule Astarte.Import.PopulateDB.Queries do
     with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
       :ok
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("DB error: #{message}")
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{}} ->
-        Logger.info("DB connection error.")
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
     end
   end
 
@@ -108,11 +127,13 @@ defmodule Astarte.Import.PopulateDB.Queries do
     with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
       :ok
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("DB error: #{message}")
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{}} ->
-        Logger.info("DB connection error.")
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
     end
   end
 
@@ -131,12 +152,12 @@ defmodule Astarte.Import.PopulateDB.Queries do
     with {:ok, _result} <- Xandra.execute(conn, pending_empty_cache_statement, params) do
       :ok
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("set_pending_empty_cache: database error: #{message}")
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
         {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{reason: reason}} ->
-        Logger.warn("set_pending_empty_cache: connection error: #{inspect(reason)}")
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
         {:error, :database_error}
     end
   end
@@ -156,6 +177,14 @@ defmodule Astarte.Import.PopulateDB.Queries do
 
     with {:ok, _} <- Xandra.execute(conn, device_update_statement, params, consistency: :quorum) do
       :ok
+    else
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
     end
   end
 
@@ -179,6 +208,14 @@ defmodule Astarte.Import.PopulateDB.Queries do
     with {:ok, _} <-
            Xandra.execute(conn, device_update_statement, params, consistency: :local_quorum) do
       :ok
+    else
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
     end
   end
 
@@ -217,12 +254,12 @@ defmodule Astarte.Import.PopulateDB.Queries do
            ) do
       :ok
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("insert_path: database error: #{message}")
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
         {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{reason: reason}} ->
-        Logger.warn("insert_path: connection error: #{inspect(reason)}")
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
         {:error, :database_error}
     end
   end
@@ -233,5 +270,22 @@ defmodule Astarte.Import.PopulateDB.Queries do
 
   defp path_consistency(_interface_descriptor, _mapping) do
     :local_quorum
+  end
+
+  defp log_metadata(realm, <<_::128>> = device_id, %Xandra.ConnectionError{} = conn_err) do
+    %Xandra.ConnectionError{action: action, reason: reason} = conn_err
+
+    log_metadata(realm, device_id, db_action: action, reason: reason)
+  end
+
+  defp log_metadata(realm, <<_::128>> = device_id, %Xandra.Error{} = err) do
+    %Xandra.Error{reason: reason} = err
+
+    log_metadata(realm, device_id, reason: reason)
+  end
+
+  defp log_metadata(realm, <<_::128>> = device_id, acc) when is_list(acc) do
+    encoded_device_id = Device.encode_device_id(device_id)
+    [realm: realm, device_id: encoded_device_id] ++ acc
   end
 end
