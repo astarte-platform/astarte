@@ -28,6 +28,19 @@ defmodule Astarte.ImportTest do
   @xml_chunk2 """
     <devices>
       <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
+        <protocol revision="0" pending_empty_cache="false" />
+        <registration
+         secret_bcrypt_hash="$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve"
+         first_registration="2019-05-30T13:49:57.045000Z" />
+        <credentials inhibit_request="false"
+         cert_serial="324725654494785828109237459525026742139358888604"
+         cert_aki="a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6"
+         first_credentials_request="2019-05-30T13:49:57.355000Z"
+         last_credentials_request_ip="198.51.100.1" />
+        <stats total_received_msgs="64" total_received_bytes="3960"
+         last_connection="2019-05-30T13:49:57.561000Z" last_disconnection="2019-05-30T13:51:00.038000Z"
+         last_seen_ip="198.51.100.89"/>
+
         <interfaces>
           <interface name="org.astarteplatform.Values" major_version="0" minor_version="1" active="true">
             <datastream path="/realValue">
@@ -39,6 +52,7 @@ defmodule Astarte.ImportTest do
               <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
             </datastream>
           </interface>
+        <interface name="org.astarteplatform.Values" major_version="1" minor_version="0" active="false"/>
         </interfaces>
       </device>
     </devices>
@@ -58,6 +72,22 @@ defmodule Astarte.ImportTest do
           "2019-05-31T09:13:29.144111Z" => '0.2',
           "2019-05-31T09:13:52.040373Z" => '0.3'
         }
+      },
+      device_status: %{
+        introspection: %{"org.astarteplatform.Values" => {0, 1}},
+        old_introspection: %{{"org.astarteplatform.Values", 1} => 0},
+        pending_empty_cache: false,
+        credentials_secret: "$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve",
+        first_registration: elem(DateTime.from_iso8601("2019-05-30T13:49:57.045000Z"), 1),
+        cert_aki: "a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6",
+        cert_serial: "324725654494785828109237459525026742139358888604",
+        first_credentials_request: elem(DateTime.from_iso8601("2019-05-30T13:49:57.355000Z"), 1),
+        last_credentials_request_ip: {198, 51, 100, 1},
+        total_received_msgs: 64,
+        total_received_bytes: 3960,
+        last_connection: elem(DateTime.from_iso8601("2019-05-30T13:49:57.561000Z"), 1),
+        last_disconnection: elem(DateTime.from_iso8601("2019-05-30T13:51:00.038000Z"), 1),
+        last_seen_ip: {198, 51, 100, 89}
       }
     }
   }
@@ -84,7 +114,8 @@ defmodule Astarte.ImportTest do
       %Import.State{state | data: new_data}
     end
 
-    assert Import.parse(@xml, got_data_fun: got_data_fun) == @populated_map
+    assert Import.parse(@xml, got_data_fun: got_data_fun, got_device_end_fun: &got_device_end/1) ==
+             @populated_map
   end
 
   test "parse a chunked XML document" do
@@ -117,7 +148,53 @@ defmodule Astarte.ImportTest do
       end
     end
 
-    assert Import.parse(@xml_chunk1, got_data_fun: got_data_fun, continuation_fun: cont_fun) ==
+    assert Import.parse(@xml_chunk1,
+             got_data_fun: got_data_fun,
+             continuation_fun: cont_fun,
+             got_device_end_fun: &got_device_end/1
+           ) ==
              @populated_map
+  end
+
+  defp got_device_end(state) do
+    %Import.State{
+      data: data,
+      device_id: device_id,
+      cert_aki: cert_aki,
+      cert_serial: cert_serial,
+      credentials_secret: credentials_secret,
+      first_credentials_request: first_credentials_request,
+      first_registration: first_registration,
+      introspection: introspection,
+      last_connection: last_connection,
+      last_credentials_request_ip: last_credentials_request_ip,
+      last_disconnection: last_disconnection,
+      last_seen_ip: last_seen_ip,
+      old_introspection: old_introspection,
+      pending_empty_cache: pending_empty_cache,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes
+    } = state
+
+    device_status = %{
+      cert_aki: cert_aki,
+      cert_serial: cert_serial,
+      credentials_secret: credentials_secret,
+      first_credentials_request: first_credentials_request,
+      first_registration: first_registration,
+      introspection: introspection,
+      last_connection: last_connection,
+      last_credentials_request_ip: last_credentials_request_ip,
+      last_disconnection: last_disconnection,
+      last_seen_ip: last_seen_ip,
+      old_introspection: old_introspection,
+      pending_empty_cache: pending_empty_cache,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes
+    }
+
+    new_data = update_in(data, [device_id, :device_status], &(&1 || device_status))
+
+    %Import.State{state | data: new_data}
   end
 end
