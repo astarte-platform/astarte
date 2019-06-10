@@ -42,6 +42,7 @@ type Config
 
 type alias Params =
     { realmManagementApiUrl : String
+    , appengineApiUrl : String
     , defaultRealm : Maybe String
     , defaultAuth : AuthType
     , enabledAuth : List AuthConfig
@@ -120,6 +121,7 @@ decoder : Decoder Config
 decoder =
     Decode.succeed Params
         |> required "realm_management_api_url" string
+        |> required "appengine_api_url" string
         |> optional "default_realm" (nullable string) Nothing
         |> required "default_auth" authTypeDecoder
         |> required "auth" (list authConfigDecoder)

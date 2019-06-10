@@ -136,14 +136,19 @@ init jsParam location key =
 initNewSession : String -> Config -> Session
 initNewSession hostUrl config =
     let
-        apiUrl =
-            config
-                |> Config.getParams
-                |> Maybe.map .realmManagementApiUrl
-                |> Maybe.withDefault ""
+        ( realUrl, appUrl ) =
+            case Config.getParams config of
+                Just params ->
+                    ( params.realmManagementApiUrl
+                    , params.appengineApiUrl
+                    )
+
+                Nothing ->
+                    ( "", "" )
 
         apiConfig =
-            { realmManagementUrl = apiUrl
+            { realmManagementUrl = realUrl
+            , appengineUrl = appUrl
             , realm = ""
             , token = ""
             }
