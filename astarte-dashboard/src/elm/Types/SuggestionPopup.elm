@@ -20,9 +20,10 @@
 module Types.SuggestionPopup exposing (Msg, SuggestionPopup, new, subs, update, view)
 
 import Bootstrap.Utilities.Display as Display
-import Html exposing (Html, div, i, text)
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onMouseLeave)
+import Icons exposing (Icon)
 import Time exposing (Posix)
 
 
@@ -96,12 +97,7 @@ view (SuggestionPopup status) showIcon =
           else
             Display.none
         ]
-        [ i
-            [ class "suggestion-icon"
-            , class "fas"
-            , class "fa-exclamation-circle"
-            ]
-            []
+        [ Icons.render Icons.ExclamationMark [ class "suggestion-icon" ]
         , div
             [ class "suggestion-bubble"
             , onMouseLeave AutoHide

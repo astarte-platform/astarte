@@ -30,8 +30,9 @@ import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
-import Html exposing (Html, h5, i, p, text)
+import Html exposing (Html, h5, p, text)
 import Html.Attributes exposing (class, for)
+import Icons exposing (Icon)
 import Route
 import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -236,7 +237,7 @@ view model flashMessages =
                     , Button.onClick GetRealmConf
                     , Button.attrs [ Spacing.mt2, Spacing.mr1 ]
                     ]
-                    [ i [ class "fas", class "fa-sync-alt", Spacing.mr2 ] []
+                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
                     , text "Reload"
                     ]
                 , Button.button

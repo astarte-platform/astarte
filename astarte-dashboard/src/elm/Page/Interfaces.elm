@@ -31,9 +31,10 @@ import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 import Dict exposing (Dict)
-import Html exposing (Html, a, h5, i, text)
+import Html exposing (Html, a, h5, text)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick, onInput)
+import Icons exposing (Icon)
 import Json.Decode as Decode
 import Route
 import Spinner
@@ -224,7 +225,7 @@ view model flashMessages =
                     , Button.onClick GetInterfaceList
                     , Button.attrs [ class "float-right", Spacing.mr1 ]
                     ]
-                    [ i [ class "fas", class "fa-sync-alt", Spacing.mr2 ] []
+                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
                     , text "Reload"
                     ]
                 ]

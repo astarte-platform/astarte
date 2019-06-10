@@ -42,9 +42,10 @@ import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
 import Dict exposing (Dict)
-import Html exposing (Html, b, br, h5, i, p, small, text)
+import Html exposing (Html, b, br, h5, p, small, text)
 import Html.Attributes exposing (class, for, selected, value)
 import Html.Events exposing (onSubmit)
+import Icons exposing (Icon)
 import Modal.MappingBuilder as MappingBuilder
 import Route
 import Spinner
@@ -970,7 +971,7 @@ renderContent model interface interfaceEditMode accordionState =
                                 , Button.attrs [ Spacing.ml2, class "text-secondary" ]
                                 , Button.onClick ShowDeleteModal
                                 ]
-                                [ i [ class "fas", class "fa-times", Spacing.mr2 ] []
+                                [ Icons.render Icons.Delete [ Spacing.mr2 ]
                                 , text "Delete..."
                                 ]
 
@@ -984,7 +985,7 @@ renderContent model interface interfaceEditMode accordionState =
                         , Button.attrs [ class "float-right" ]
                         , Button.onClick ToggleSource
                         ]
-                        [ i [ class "fas", class "fa-arrows-alt-h" ] [] ]
+                        [ Icons.render Icons.ToggleSidebar [] ]
                     ]
                 ]
             , Form.row []
@@ -1137,7 +1138,7 @@ renderContent model interface interfaceEditMode accordionState =
                         , Button.attrs [ class "float-right", Spacing.ml2 ]
                         , Button.onClick ShowAddMappingModal
                         ]
-                        [ i [ class "fas", class "fa-plus", Spacing.mr2 ] []
+                        [ Icons.render Icons.Add [ Spacing.mr2 ]
                         , text "Add new Mapping ..."
                         ]
                     ]
