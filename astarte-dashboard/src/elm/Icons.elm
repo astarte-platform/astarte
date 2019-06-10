@@ -30,6 +30,7 @@ type Icon
     = Add
     | Close
     | Delete
+    | Device
     | ExclamationMark
     | Home
     | Interface
@@ -62,6 +63,9 @@ className icon =
 
         Delete ->
             "fa-times"
+
+        Device ->
+            "fa-cube"
 
         ExclamationMark ->
             "fa-exclamation-circle"

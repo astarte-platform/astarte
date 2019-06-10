@@ -51,6 +51,7 @@ type RealmRoute
     | ListTriggers
     | NewTrigger
     | ShowTrigger String
+    | DeviceList
 
 
 routeParser : Parser (Route -> a) a
@@ -76,6 +77,7 @@ realmRouteParser =
         , map ListTriggers (s "triggers")
         , map NewTrigger (s "triggers" </> s "new")
         , map ShowTrigger (s "triggers" </> string)
+        , map DeviceList (s "devices")
         ]
 
 
@@ -142,6 +144,9 @@ toString route =
 
                 Realm (ShowTrigger name) ->
                     [ "triggers", name ]
+
+                Realm DeviceList ->
+                    [ "devices" ]
     in
     "/" ++ String.join "/" pieces
 
