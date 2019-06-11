@@ -54,6 +54,13 @@ defmodule Astarte.ImportTest do
           </interface>
         <interface name="org.astarteplatform.Values" major_version="1" minor_version="0" active="false"/>
         </interfaces>
+        <interface name="org.astarteplatform.Properties" major_version="1" minor_version="1" active="true">
+          <property path="/hello" reception_timestamp="2019-06-12T14:45:49.706034Z">world</property>
+          <property path="/items/1/value" reception_timestamp="2019-06-12T14:45:49.706034Z">1.1</property>
+          <property path="/items/1/string" reception_timestamp="2019-06-12T14:45:49.706034Z">string 1</property>
+          <property path="/items/2/value" reception_timestamp="2019-06-12T14:45:49.706034Z">2.2</property>
+          <property path="/items/2/string" reception_timestamp="2019-06-12T14:45:49.706034Z">string 2</property>
+        </interface>
       </device>
     </devices>
   """
@@ -73,8 +80,18 @@ defmodule Astarte.ImportTest do
           "2019-05-31T09:13:52.040373Z" => '0.3'
         }
       },
+      {"org.astarteplatform.Properties", 1, 1} => %{
+        "/hello" => 'world',
+        "/items/1/value" => '1.1',
+        "/items/1/string" => 'string 1',
+        "/items/2/value" => '2.2',
+        "/items/2/string" => 'string 2'
+      },
       device_status: %{
-        introspection: %{"org.astarteplatform.Values" => {0, 1}},
+        introspection: %{
+          "org.astarteplatform.Values" => {0, 1},
+          "org.astarteplatform.Properties" => {1, 1}
+        },
         old_introspection: %{{"org.astarteplatform.Values", 1} => 0},
         pending_empty_cache: false,
         credentials_secret: "$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve",
@@ -93,7 +110,7 @@ defmodule Astarte.ImportTest do
   }
 
   test "parse a XML document" do
-    got_data_fun = fn state, chars ->
+    got_end_of_value_fun = fn state, chars ->
       %Import.State{
         device_id: device_id,
         interface: interface,
@@ -114,12 +131,16 @@ defmodule Astarte.ImportTest do
       %Import.State{state | data: new_data}
     end
 
-    assert Import.parse(@xml, got_data_fun: got_data_fun, got_device_end_fun: &got_device_end/1) ==
+    assert Import.parse(@xml,
+             got_end_of_value_fun: got_end_of_value_fun,
+             got_end_of_property_fun: &got_end_of_property/2,
+             got_device_end_fun: &got_device_end/1
+           ) ==
              @populated_map
   end
 
   test "parse a chunked XML document" do
-    got_data_fun = fn state, chars ->
+    got_end_of_value_fun = fn state, chars ->
       %Import.State{
         device_id: device_id,
         interface: interface,
@@ -149,7 +170,8 @@ defmodule Astarte.ImportTest do
     end
 
     assert Import.parse(@xml_chunk1,
-             got_data_fun: got_data_fun,
+             got_end_of_value_fun: got_end_of_value_fun,
+             got_end_of_property_fun: &got_end_of_property/2,
              continuation_fun: cont_fun,
              got_device_end_fun: &got_device_end/1
            ) ==
@@ -194,6 +216,23 @@ defmodule Astarte.ImportTest do
     }
 
     new_data = update_in(data, [device_id, :device_status], &(&1 || device_status))
+
+    %Import.State{state | data: new_data}
+  end
+
+  defp got_end_of_property(state, chars) do
+    %Import.State{
+      device_id: device_id,
+      interface: interface,
+      path: path,
+      data: data
+    } = state
+
+    new_data =
+      (data || %{})
+      |> update_in([device_id], &(&1 || %{}))
+      |> update_in([device_id, interface], &(&1 || %{}))
+      |> put_in([device_id, interface, path], chars)
 
     %Import.State{state | data: new_data}
   end

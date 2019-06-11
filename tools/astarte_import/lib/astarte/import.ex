@@ -23,11 +23,13 @@ defmodule Astarte.Import do
       :interface,
       :path,
       :reception_timestamp,
+      :chars_acc,
       :got_device_end_fun,
+      :got_end_of_value_fun,
+      :got_end_of_property_fun,
       :got_interface_fun,
       :got_path_fun,
       :got_path_end_fun,
-      :got_data_fun,
       :data,
       :cert_aki,
       :cert_serial,
@@ -50,7 +52,8 @@ defmodule Astarte.Import do
     initial_data = Keyword.get(opts, :data)
     continuation_fun = Keyword.get(opts, :continuation_fun, :undefined)
     got_interface_fun = Keyword.get(opts, :got_interface_fun)
-    got_data_fun = Keyword.get(opts, :got_data_fun)
+    got_end_of_value_fun = Keyword.get(opts, :got_end_of_value_fun)
+    got_end_of_property_fun = Keyword.get(opts, :got_end_of_property_fun)
     got_device_end_fun = Keyword.get(opts, :got_device_end_fun)
     got_path_fun = Keyword.get(opts, :got_path_fun)
     got_path_end_fun = Keyword.get(opts, :got_path_end_fun)
@@ -60,7 +63,8 @@ defmodule Astarte.Import do
       got_interface_fun: got_interface_fun,
       got_path_fun: got_path_fun,
       got_path_end_fun: got_path_end_fun,
-      got_data_fun: got_data_fun,
+      got_end_of_value_fun: got_end_of_value_fun,
+      got_end_of_property_fun: got_end_of_property_fun,
       got_device_end_fun: got_device_end_fun
     }
 
@@ -240,8 +244,37 @@ defmodule Astarte.Import do
     %State{state | reception_timestamp: datetime}
   end
 
+  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'property'}, attributes}, _loc, state) do
+    with {:ok, path} <- fetch_attribute(attributes, 'path'),
+         {:ok, reception_timestamp} <- fetch_attribute(attributes, 'reception_timestamp'),
+         {:ok, datetime, 0} <- DateTime.from_iso8601(reception_timestamp) do
+      %State{state | path: path, reception_timestamp: datetime}
+    else
+      _any ->
+        throw({:error, :invalid_property})
+    end
+  end
+
+  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'property'}}, _loc, state) do
+    %State{
+      chars_acc: chars_acc,
+      got_end_of_property_fun: got_end_of_property_fun
+    } = state
+
+    state = got_end_of_property_fun.(state, chars_acc)
+
+    %State{state | chars_acc: nil, reception_timestamp: nil}
+  end
+
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'value'}}, _loc, state) do
-    %State{state | reception_timestamp: nil}
+    %State{
+      chars_acc: chars_acc,
+      got_end_of_value_fun: got_end_of_value_fun
+    } = state
+
+    state = got_end_of_value_fun.(state, chars_acc)
+
+    %State{state | chars_acc: nil, reception_timestamp: nil}
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'datastream'}}, _loc, state) do
@@ -302,8 +335,11 @@ defmodule Astarte.Import do
     %State{state | device_id: nil}
   end
 
-  defp xml_event({:characters, chars}, _loc, %State{got_data_fun: got_data_fun} = state) do
-    got_data_fun.(state, chars)
+  defp xml_event({:characters, chars}, _loc, state) do
+    case state do
+      %State{chars_acc: nil} ->
+        %State{state | chars_acc: chars}
+    end
   end
 
   defp xml_event({:ignorableWhitespace, _whitespace}, _location, state) do
@@ -315,6 +351,10 @@ defmodule Astarte.Import do
   end
 
   defp xml_event(:endDocument, _location, state) do
+    state
+  end
+
+  defp xml_event({:comment, _comment_data}, _loc, state) do
     state
   end
 

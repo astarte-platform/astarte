@@ -211,7 +211,7 @@ defmodule Astarte.Import.PopulateDB do
       state
     end
 
-    fun = fn state, chars ->
+    got_end_of_value_fun = fn state, chars ->
       %Import.State{
         reception_timestamp: reception_timestamp,
         data: data
@@ -241,9 +241,15 @@ defmodule Astarte.Import.PopulateDB do
       }
     end
 
+    got_end_of_property_fun = fn state, chars ->
+      IO.puts("Property chars: #{to_string(chars)}")
+      state
+    end
+
     Import.parse(xml,
       data: %State{},
-      got_data_fun: fun,
+      got_end_of_value_fun: got_end_of_value_fun,
+      got_end_of_property_fun: got_end_of_property_fun,
       got_device_end_fun: got_device_end,
       got_interface_fun: got_interface_fun,
       got_path_fun: got_path_fun,
