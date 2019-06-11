@@ -61,6 +61,18 @@ defmodule Astarte.ImportTest do
           <property path="/items/2/value" reception_timestamp="2019-06-12T14:45:49.706034Z">2.2</property>
           <property path="/items/2/string" reception_timestamp="2019-06-12T14:45:49.706034Z">string 2</property>
         </interface>
+        <interface name="org.astarteplatform.ObjectAggregated" major_version="2" minor_version="0" active="true">
+          <datastream path="/obj">
+            <object reception_timestamp="2019-06-11T10:40:47.162207Z">
+              <item name="/val1">true</item>
+              <item name="/val2">1</item>
+            </object>
+            <object reception_timestamp="2019-06-11T10:43:19.599735Z">
+              <item name="/val1">false</item>
+              <item name="/val2">2</item>
+            </object>
+          </datastream>
+        </interface>
       </device>
     </devices>
   """
@@ -87,10 +99,23 @@ defmodule Astarte.ImportTest do
         "/items/2/value" => '2.2',
         "/items/2/string" => 'string 2'
       },
+      {"org.astarteplatform.ObjectAggregated", 2, 0} => %{
+        "/obj" => %{
+          "2019-06-11T10:40:47.162207Z" => %{
+            "/val1" => 'true',
+            "/val2" => '1'
+          },
+          "2019-06-11T10:43:19.599735Z" => %{
+            "/val1" => 'false',
+            "/val2" => '2'
+          }
+        }
+      },
       device_status: %{
         introspection: %{
           "org.astarteplatform.Values" => {0, 1},
-          "org.astarteplatform.Properties" => {1, 1}
+          "org.astarteplatform.Properties" => {1, 1},
+          "org.astarteplatform.ObjectAggregated" => {2, 0}
         },
         old_introspection: %{{"org.astarteplatform.Values", 1} => 0},
         pending_empty_cache: false,
@@ -133,6 +158,7 @@ defmodule Astarte.ImportTest do
 
     assert Import.parse(@xml,
              got_end_of_value_fun: got_end_of_value_fun,
+             got_end_of_object_fun: &got_end_of_object/2,
              got_end_of_property_fun: &got_end_of_property/2,
              got_device_end_fun: &got_device_end/1
            ) ==
@@ -171,6 +197,7 @@ defmodule Astarte.ImportTest do
 
     assert Import.parse(@xml_chunk1,
              got_end_of_value_fun: got_end_of_value_fun,
+             got_end_of_object_fun: &got_end_of_object/2,
              got_end_of_property_fun: &got_end_of_property/2,
              continuation_fun: cont_fun,
              got_device_end_fun: &got_device_end/1
@@ -216,6 +243,27 @@ defmodule Astarte.ImportTest do
     }
 
     new_data = update_in(data, [device_id, :device_status], &(&1 || device_status))
+
+    %Import.State{state | data: new_data}
+  end
+
+  defp got_end_of_object(state, obj) do
+    %Import.State{
+      device_id: device_id,
+      interface: interface,
+      path: path,
+      reception_timestamp: timestamp,
+      data: data
+    } = state
+
+    timestamp_s = DateTime.to_iso8601(timestamp)
+
+    new_data =
+      (data || %{})
+      |> update_in([device_id], &(&1 || %{}))
+      |> update_in([device_id, interface], &(&1 || %{}))
+      |> update_in([device_id, interface, path], &(&1 || %{}))
+      |> put_in([device_id, interface, path, timestamp_s], obj)
 
     %Import.State{state | data: new_data}
   end
