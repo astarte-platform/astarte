@@ -19,10 +19,12 @@
 
 module Page.DeviceList exposing (Model, Msg(..), init, subscriptions, update, view)
 
+import AstarteApi
 import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
@@ -49,25 +51,45 @@ init session =
       , spinner = Spinner.init
       , showSpinner = True
       }
-    , Cmd.none
+    , AstarteApi.deviceList session.apiConfig <| DeviceListDone
     )
 
 
 type Msg
-    = Noop
+    = RefreshTable
     | Forward ExternalMsg
       -- spinner
     | SpinnerMsg Spinner.Msg
+      -- API
+    | DeviceListDone (Result AstarteApi.Error (List String))
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
-        Noop ->
-            ( model
-            , Cmd.none
+        RefreshTable ->
+            ( { model | showSpinner = True }
+            , AstarteApi.detailedDeviceList session.apiConfig <| DeviceListDone
             , ExternalMsg.Noop
             )
+
+        DeviceListDone result ->
+            case result of
+                Ok deviceList ->
+                    ( { model
+                        | deviceList = deviceList
+                        , showSpinner = False
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                -- TODO handle error
+                Err error ->
+                    ( { model | showSpinner = False }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
         Forward externalMsg ->
             ( model
@@ -106,8 +128,50 @@ view model flashMessages =
                     , class "align-middle"
                     ]
                     [ Html.text "Device list" ]
+                , Button.button
+                    [ Button.primary
+                    , Button.onClick RefreshTable
+                    , Button.attrs [ class "float-right" ]
+                    ]
+                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
+                    , Html.text "Reload"
+                    ]
                 ]
             ]
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col
+                [ Col.sm12 ]
+                [ deviceTable model.deviceList
+                ]
+            ]
+        ]
+
+
+deviceTable : List String -> Html Msg
+deviceTable deviceList =
+    Table.table
+        { options =
+            [ Table.striped ]
+        , thead =
+            Table.simpleThead
+                [ Table.th [] [ Html.text "Status" ]
+                , Table.th [] [ Html.text "Device ID / alias" ]
+                , Table.th [] [ Html.text "Last connection event" ]
+                ]
+        , tbody =
+            Table.tbody [] (List.map deviceRow deviceList)
+        }
+
+
+deviceRow : String -> Table.Row Msg
+deviceRow deviceName =
+    Table.tr
+        --[ Table.rowInfo ]
+        []
+        [ Table.td [] [ Html.text "-" ]
+        , Table.td [] [ Html.text deviceName ]
+        , Table.td [] [ Html.text "-" ]
         ]
 
 
