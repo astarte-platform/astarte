@@ -32,6 +32,7 @@ type Icon
     | Delete
     | Device
     | ExclamationMark
+    | FullCircle
     | Home
     | Interface
     | Logout
@@ -69,6 +70,9 @@ className icon =
 
         ExclamationMark ->
             "fa-exclamation-circle"
+
+        FullCircle ->
+            "fa-circle"
 
         Home ->
             "fa-home"

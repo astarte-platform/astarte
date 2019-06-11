@@ -25,6 +25,7 @@ module AstarteApi exposing
     , configDecoder
     , deleteInterface
     , deleteTrigger
+    , detailedDeviceList
     , deviceList
     , encodeConfig
     , errorToHumanReadable
@@ -57,6 +58,7 @@ import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode exposing (Value)
 import JsonHelpers
 import Task
+import Types.Device as Device exposing (Device)
 import Types.Interface as Interface exposing (Interface)
 import Types.RealmConfig as RealmConfig exposing (RealmConfig)
 import Types.Trigger as Trigger exposing (Trigger)
@@ -452,6 +454,22 @@ deviceList apiConfig resultMsg =
         , url = crossOrigin apiConfig.appengineUrl [ apiConfig.realm, "devices" ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" (list string)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+detailedDeviceList : Config -> (Result Error (List Device) -> msg) -> Cmd msg
+detailedDeviceList apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url =
+            crossOrigin apiConfig.appengineUrl
+                [ apiConfig.realm, "devices" ]
+                [ Url.Builder.string "details" "true" ]
+        , body = Http.emptyBody
+        , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Device.decoder)
         , timeout = Nothing
         , tracker = Nothing
         }

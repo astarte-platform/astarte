@@ -28,10 +28,12 @@ import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
+import Dict exposing (Dict)
 import Html exposing (Html, h5)
 import Html.Attributes exposing (class, for)
 import Icons exposing (Icon)
 import Spinner
+import Types.Device exposing (Device)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
@@ -39,7 +41,7 @@ import Types.Session exposing (Session)
 
 
 type alias Model =
-    { deviceList : List String
+    { deviceList : List Device
     , spinner : Spinner.Model
     , showSpinner : Bool
     }
@@ -51,7 +53,7 @@ init session =
       , spinner = Spinner.init
       , showSpinner = True
       }
-    , AstarteApi.deviceList session.apiConfig <| DeviceListDone
+    , AstarteApi.detailedDeviceList session.apiConfig <| DeviceListDone
     )
 
 
@@ -61,7 +63,7 @@ type Msg
       -- spinner
     | SpinnerMsg Spinner.Msg
       -- API
-    | DeviceListDone (Result AstarteApi.Error (List String))
+    | DeviceListDone (Result AstarteApi.Error (List Device))
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -86,9 +88,13 @@ update session msg model =
 
                 -- TODO handle error
                 Err error ->
+                    let
+                        ( message, details ) =
+                            AstarteApi.errorToHumanReadable error
+                    in
                     ( { model | showSpinner = False }
                     , Cmd.none
-                    , ExternalMsg.Noop
+                    , ExternalMsg.AddFlashMessage FlashMessage.Error message details
                     )
 
         Forward externalMsg ->
@@ -148,7 +154,7 @@ view model flashMessages =
         ]
 
 
-deviceTable : List String -> Html Msg
+deviceTable : List Device -> Html Msg
 deviceTable deviceList =
     Table.table
         { options =
@@ -156,7 +162,7 @@ deviceTable deviceList =
         , thead =
             Table.simpleThead
                 [ Table.th [] [ Html.text "Status" ]
-                , Table.th [] [ Html.text "Device ID / alias" ]
+                , Table.th [] [ Html.text "Device ID / name" ]
                 , Table.th [] [ Html.text "Last connection event" ]
                 ]
         , tbody =
@@ -164,14 +170,34 @@ deviceTable deviceList =
         }
 
 
-deviceRow : String -> Table.Row Msg
-deviceRow deviceName =
-    Table.tr
-        --[ Table.rowInfo ]
-        []
-        [ Table.td [] [ Html.text "-" ]
-        , Table.td [] [ Html.text deviceName ]
-        , Table.td [] [ Html.text "-" ]
+deviceRow : Device -> Table.Row Msg
+deviceRow device =
+    let
+        displayNameCell =
+            case Dict.get "name" device.aliases of
+                Just displayName ->
+                    Table.td [] [ Html.text displayName ]
+
+                Nothing ->
+                    Table.td
+                        [ Table.cellAttr <| class "text-monospace" ]
+                        [ Html.text device.id ]
+
+        ( statusCell, lastEventCell ) =
+            if device.connected then
+                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-connected" ] ]
+                , Table.td [] [ Html.text <| "Connected at " ++ device.lastConnection ]
+                )
+
+            else
+                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-disconnected" ] ]
+                , Table.td [] [ Html.text <| "Disconnected at " ++ device.lastDisconnection ]
+                )
+    in
+    Table.tr []
+        [ statusCell
+        , displayNameCell
+        , lastEventCell
         ]
 
 
