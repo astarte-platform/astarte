@@ -1565,22 +1565,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       "send_control_consumer_properties: device introspection: #{inspect(state.introspection)}"
     )
 
-    Enum.each(state.introspection, fn {interface, _} ->
-      with {:ok, interface_descriptor, new_state} <-
-             maybe_handle_cache_miss(
-               Map.get(state.interfaces, interface),
-               interface,
-               state,
-               db_client
-             ) do
-        abs_paths_list = gather_interface_properties(new_state, db_client, interface_descriptor)
-        send_consumer_properties_payload(new_state.realm, new_state.device_id, abs_paths_list)
-      else
-        {:error, :interface_loading_failed} ->
-          warn(state, "resend_all_properties: failed #{interface} interface loading.")
-          {:error, :sending_properties_to_interface_failed}
-      end
-    end)
+    abs_paths_list =
+      Enum.flat_map(state.introspection, fn {interface, _} ->
+        descriptor = Map.get(state.interfaces, interface)
+
+        case maybe_handle_cache_miss(descriptor, interface, state, db_client) do
+          {:ok, interface_descriptor, new_state} ->
+            gather_interface_properties(new_state, db_client, interface_descriptor)
+
+          {:error, :interface_loading_failed} ->
+            warn(state, "resend_all_properties: failed #{interface} interface loading.")
+            []
+        end
+      end)
+
+    send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list)
 
     state
   end

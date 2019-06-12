@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.10.1] - Unreleased
 ### Fixed
 - Fix a bug that was causing a crash-loop in some corner cases when a message was sent on an outdated interface.
+- Send consumer properties correctly when handling `emptyCache` control message.
 
 ## [0.10.0] - 2019-04-16
 
