@@ -307,7 +307,7 @@ defmodule Astarte.Import.PopulateDB do
       } = data
 
       reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
-      native_value = to_native_type(chars, value_type)
+      {:ok, native_value} = to_native_type(chars, value_type)
 
       params = [
         reception_timestamp,
@@ -337,7 +337,7 @@ defmodule Astarte.Import.PopulateDB do
       } = state
 
       reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
-      native_value = to_native_type(object, expected_types)
+      {:ok, native_value} = to_native_type(object, expected_types)
 
       db_value =
         Enum.map(value_columns, fn {endpoint_key_token, _db_column} ->
@@ -379,7 +379,7 @@ defmodule Astarte.Import.PopulateDB do
       mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
       %Mapping{value_type: value_type} = mapping
 
-      native_value = to_native_type(chars, value_type)
+      {:ok, native_value} = to_native_type(chars, value_type)
 
       {:ok, decoded_device_id} = Device.decode_device_id(device_id)
 
@@ -415,16 +415,84 @@ defmodule Astarte.Import.PopulateDB do
   defp to_native_type(value_chars, :double) do
     with float_string = to_string(value_chars),
          {value, ""} <- Float.parse(float_string) do
-      value
+      {:ok, value}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :integer) do
+    with integer_string = to_string(value_chars),
+         {value, ""} when value >= -2_147_483_648 and value <= 2_147_483_647 <-
+           Integer.parse(integer_string) do
+      {:ok, value}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :boolean) do
+    case value_chars do
+      'true' -> {:ok, true}
+      'false' -> {:ok, false}
+      _any -> {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :longinteger) do
+    with integer_string = to_string(value_chars),
+         {value, ""}
+         when value >= -9_223_372_036_854_775_808 and value <= 9_223_372_036_854_775_807 <-
+           Integer.parse(integer_string) do
+      {:ok, value}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :string) do
+    with string = to_string(value_chars),
+         true <- String.valid?(string) do
+      {:ok, string}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :binaryblob) do
+    with base64 = to_string(value_chars),
+         {:ok, binary_blob} <- Base.decode64(base64) do
+      {:ok, binary_blob}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :datetime) do
+    with datestring = to_string(value_chars),
+         {:ok, datetime, 0} <- DateTime.from_iso8601(datestring) do
+      {:ok, datetime}
+    else
+      _any ->
+        {:error, :invalid_value}
     end
   end
 
   defp to_native_type(values, expected_types) when is_map(values) and is_map(expected_types) do
-    Enum.reduce(values, %{}, fn {"/" <> key, value}, acc ->
-      value_type = Map.fetch!(expected_types, key)
+    obj =
+      Enum.reduce(values, %{}, fn {"/" <> key, value}, acc ->
+        value_type = Map.fetch!(expected_types, key)
 
-      Map.put(acc, key, to_native_type(value, value_type))
-    end)
+        {:ok, native_type} = to_native_type(value, value_type)
+        Map.put(acc, key, native_type)
+      end)
+
+    {:ok, obj}
   end
 
   defp build_expected_type_map(mappings) do
