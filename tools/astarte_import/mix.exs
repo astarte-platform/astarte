@@ -22,6 +22,7 @@ defmodule Astarte.Import.MixProject do
   defp deps do
     [
       {:xandra, "~> 0.10"},
+      {:logfmt, "~> 3.3"},
       {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_data_access, github: "astarte-platform/astarte_data_access"}
     ]

@@ -5,7 +5,7 @@ config :cqerl,
 
 config :logger, :console,
   format: {Astarte.Import.LogFmtFormatter, :format},
-  metadata: [:module, :function, :device_id, :realm, :db_action, :reason]
+  metadata: [:module, :function, :device_id, :realm]
 
 config :logfmt,
-  user_friendly: true
+  prepend_metadata: [:application, :module, :function, :realm, :device_id]

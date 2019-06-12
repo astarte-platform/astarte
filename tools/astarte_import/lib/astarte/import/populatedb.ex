@@ -26,6 +26,7 @@ defmodule Astarte.Import.PopulateDB do
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
   alias Astarte.Import
+  alias Astarte.Import.PopulateDB.Queries
   require Logger
 
   defmodule State do
@@ -36,11 +37,14 @@ defmodule Astarte.Import.PopulateDB do
       :mappings,
       :last_seen_reception_timestamp,
       :prepared_query,
+      :value_columns,
       :value_type
     ]
   end
 
   def populate(realm, xml) do
+    Logger.info("Import started.", realm: realm)
+
     {:ok, conn} = Database.connect(realm)
     nodes = Application.get_env(:cqerl, :cassandra_nodes)
     {host, port} = Enum.random(nodes)
@@ -56,56 +60,138 @@ defmodule Astarte.Import.PopulateDB do
       }
     end
 
-    got_path_fun = fn %Import.State{data: data} = state, path ->
+    got_path_fun = fn
       %Import.State{
         device_id: device_id,
         data: %State{
           mappings: mappings,
           interface_descriptor: %InterfaceDescriptor{
+            aggregation: :individual,
             interface_id: interface_id,
             automaton: automaton,
             storage: storage
           }
         }
-      } = state
+      } = state,
+      path ->
+        {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
 
-      {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
+        mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
+        %Mapping{value_type: value_type} = mapping
 
-      mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
-      %Mapping{value_type: value_type} = mapping
+        db_column_name = CQLUtils.type_to_db_column_name(value_type)
 
-      db_column_name = CQLUtils.type_to_db_column_name(value_type)
+        statement = """
+        INSERT INTO #{realm}.#{storage}
+        (
+          value_timestamp, reception_timestamp, reception_timestamp_submillis, #{db_column_name},
+          device_id, interface_id, endpoint_id, path
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
 
-      statement = """
-      INSERT INTO #{realm}.#{storage}
-      (
-        value_timestamp, reception_timestamp, reception_timestamp_submillis, #{db_column_name},
-        device_id, interface_id, endpoint_id, path
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      """
+        {:ok, prepared_query} = Xandra.prepare(xandra_conn, statement)
 
-      {:ok, prepared_query} = Xandra.prepare(xandra_conn, statement)
+        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
 
-      {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+        prepared_params = [
+          decoded_device_id,
+          interface_id,
+          endpoint_id,
+          path
+        ]
 
-      prepared_params = [
-        decoded_device_id,
-        interface_id,
-        endpoint_id,
-        path
-      ]
+        %Import.State{
+          state
+          | data: %State{
+              state.data
+              | mapping: mapping,
+                prepared_params: prepared_params,
+                prepared_query: prepared_query,
+                value_type: value_type
+            }
+        }
 
       %Import.State{
-        state
-        | data: %State{
-            data
-            | mapping: mapping,
-              prepared_params: prepared_params,
-              prepared_query: prepared_query,
-              value_type: value_type
+        device_id: device_id,
+        data: %State{
+          mappings: mappings,
+          interface_descriptor: %InterfaceDescriptor{
+            aggregation: :object,
+            name: name,
+            major_version: major_version,
+            storage: storage
           }
-      }
+        }
+      } = state,
+      path ->
+        expected_types = build_expected_type_map(mappings)
+
+        value_columns =
+          Enum.map(mappings, fn %Mapping{endpoint: endpoint} ->
+            endpoint_key_token =
+              endpoint
+              |> String.split("/")
+              |> List.last()
+
+            db_column = CQLUtils.endpoint_to_db_column_name(endpoint)
+
+            {endpoint_key_token, db_column}
+          end)
+          |> Enum.sort(fn {key1, _}, {key2, _} -> key1 <= key2 end)
+
+        columns_string =
+          Enum.map(value_columns, fn {_, db_column} ->
+            [db_column, ", "]
+          end)
+          |> :erlang.iolist_to_binary()
+
+        [first_mapping | _] = mappings
+        %Mapping{explicit_timestamp: explicit_timestamp} = first_mapping
+
+        virtual_mapping = %Mapping{
+          first_mapping
+          | endpoint_id: CQLUtils.endpoint_id(name, major_version, "")
+        }
+
+        {value_timestamp_string, additional_columns} =
+          if explicit_timestamp do
+            {"value_timestamp, ", 1}
+          else
+            {"", 0}
+          end
+
+        statement = """
+        INSERT INTO #{realm}.#{storage}
+        (
+          #{value_timestamp_string} reception_timestamp, reception_timestamp_submillis, #{
+          columns_string
+        }
+          device_id, path
+        )
+        VALUES (?, ?, ?, ? #{String.duplicate(", ?", additional_columns + length(value_columns))})
+        """
+
+        {:ok, prepared_query} = Xandra.prepare(xandra_conn, statement)
+
+        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+
+        prepared_params = [
+          decoded_device_id,
+          path
+        ]
+
+        %Import.State{
+          state
+          | data: %State{
+              state.data
+              | mapping: virtual_mapping,
+                prepared_params: prepared_params,
+                prepared_query: prepared_query,
+                value_columns: value_columns,
+                value_type: expected_types
+            }
+        }
     end
 
     got_path_end_fun = fn state ->
@@ -123,7 +209,7 @@ defmodule Astarte.Import.PopulateDB do
 
       {:ok, decoded_device_id} = Device.decode_device_id(device_id)
 
-      insert_path(
+      Queries.insert_path(
         dbclient,
         decoded_device_id,
         interface_descriptor,
@@ -134,7 +220,7 @@ defmodule Astarte.Import.PopulateDB do
         []
       )
 
-      state
+      %Import.State{state | data: %State{state.data | mapping: nil}, path: nil}
     end
 
     got_device_end = fn state ->
@@ -169,9 +255,14 @@ defmodule Astarte.Import.PopulateDB do
 
       dbclient = {xandra_conn, realm}
 
-      do_register_device(dbclient, decoded_device_id, credentials_secret, first_registration)
+      Queries.do_register_device(
+        dbclient,
+        decoded_device_id,
+        credentials_secret,
+        first_registration
+      )
 
-      update_device_after_credentials_request(
+      Queries.update_device_after_credentials_request(
         dbclient,
         decoded_device_id,
         %{serial: cert_serial, aki: cert_aki},
@@ -179,18 +270,18 @@ defmodule Astarte.Import.PopulateDB do
         first_credentials_request
       )
 
-      update_device_introspection(
+      Queries.update_device_introspection(
         dbclient,
         decoded_device_id,
         introspection_major,
         introspection_minor
       )
 
-      add_old_interfaces(dbclient, decoded_device_id, old_introspection)
+      Queries.add_old_interfaces(dbclient, decoded_device_id, old_introspection)
 
-      set_device_connected(dbclient, decoded_device_id, last_connection, last_seen_ip)
+      Queries.set_device_connected(dbclient, decoded_device_id, last_connection, last_seen_ip)
 
-      set_device_disconnected(
+      Queries.set_device_disconnected(
         dbclient,
         decoded_device_id,
         last_disconnection,
@@ -198,12 +289,12 @@ defmodule Astarte.Import.PopulateDB do
         total_received_bytes
       )
 
-      set_pending_empty_cache(dbclient, decoded_device_id, pending_empty_cache)
+      Queries.set_pending_empty_cache(dbclient, decoded_device_id, pending_empty_cache)
 
       state
     end
 
-    fun = fn state, chars ->
+    got_end_of_value_fun = fn state, chars ->
       %Import.State{
         reception_timestamp: reception_timestamp,
         data: data
@@ -216,7 +307,7 @@ defmodule Astarte.Import.PopulateDB do
       } = data
 
       reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
-      native_value = to_native_type(chars, value_type)
+      {:ok, native_value} = to_native_type(chars, value_type)
 
       params = [
         reception_timestamp,
@@ -233,235 +324,185 @@ defmodule Astarte.Import.PopulateDB do
       }
     end
 
+    got_end_of_object_fun = fn state, object ->
+      %Import.State{
+        reception_timestamp: reception_timestamp,
+        data: %State{
+          mappings: mappings,
+          prepared_params: prepared_params,
+          prepared_query: prepared_query,
+          value_columns: value_columns,
+          value_type: expected_types
+        }
+      } = state
+
+      reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
+      {:ok, native_value} = to_native_type(object, expected_types)
+
+      db_value =
+        Enum.map(value_columns, fn {endpoint_key_token, _db_column} ->
+          Map.get(native_value, endpoint_key_token)
+        end)
+
+      params = [reception_timestamp, reception_submillis | db_value] ++ prepared_params
+
+      [%Mapping{explicit_timestamp: explicit_timestamp} | _] = mappings
+
+      params =
+        if explicit_timestamp do
+          reception_timestamp ++ params
+        else
+          params
+        end
+
+      {:ok, %Xandra.Void{}} = Xandra.execute(xandra_conn, prepared_query, params)
+
+      state
+    end
+
+    got_end_of_property_fun = fn state, chars ->
+      %Import.State{
+        device_id: device_id,
+        path: path,
+        data: %State{
+          interface_descriptor: interface_descriptor,
+          mappings: mappings
+        }
+      } = state
+
+      %InterfaceDescriptor{
+        automaton: automaton
+      } = interface_descriptor
+
+      {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
+
+      mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
+      %Mapping{value_type: value_type} = mapping
+
+      {:ok, native_value} = to_native_type(chars, value_type)
+
+      {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+
+      Queries.insert_value_into_db(
+        {xandra_conn, realm},
+        decoded_device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        native_value,
+        nil,
+        DateTime.utc_now(),
+        []
+      )
+
+      state
+    end
+
     Import.parse(xml,
       data: %State{},
-      got_data_fun: fun,
+      got_end_of_object_fun: got_end_of_object_fun,
+      got_end_of_value_fun: got_end_of_value_fun,
+      got_end_of_property_fun: got_end_of_property_fun,
       got_device_end_fun: got_device_end,
       got_interface_fun: got_interface_fun,
       got_path_fun: got_path_fun,
       got_path_end_fun: got_path_end_fun
     )
+
+    Logger.info("Import finished.", realm: realm)
   end
 
   defp to_native_type(value_chars, :double) do
     with float_string = to_string(value_chars),
          {value, ""} <- Float.parse(float_string) do
-      value
-    end
-  end
-
-  defp update_device_introspection({conn, realm}, device_id, introspection, introspection_minor) do
-    introspection_update_statement = """
-    UPDATE #{realm}.devices
-    SET introspection=?, introspection_minor=?
-    WHERE device_id=?
-    """
-
-    params = [
-      {"map<ascii, int>", introspection},
-      {"map<ascii, int>", introspection_minor},
-      {"uuid", device_id}
-    ]
-
-    with {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, introspection_update_statement, params, consistency: :quorum) do
-      :ok
-    end
-  end
-
-  defp add_old_interfaces({conn, realm}, device_id, old_interfaces) do
-    old_introspection_update_statement = """
-    UPDATE #{realm}.devices
-    SET old_introspection = old_introspection + :introspection
-    WHERE device_id=:device_id
-    """
-
-    params = [
-      {"map<frozen<tuple<ascii, int>>, int>", old_interfaces},
-      {"uuid", device_id}
-    ]
-
-    with {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, old_introspection_update_statement, params, consistency: :quorum) do
-      :ok
-    end
-  end
-
-  defp do_register_device({conn, realm}, device_id, credentials_secret, registration_timestamp) do
-    statement = """
-    INSERT INTO #{realm}.devices
-    (
-      device_id, first_registration, credentials_secret, inhibit_credentials_request,
-      protocol_revision, total_received_bytes, total_received_msgs
-    ) VALUES (?, ?, ?, false, 0, 0, 0)
-    """
-
-    params = [
-      {"uuid", device_id},
-      {"timestamp", registration_timestamp},
-      {"ascii", credentials_secret}
-    ]
-
-    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
-      :ok
+      {:ok, value}
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("DB error: #{message}")
-
-      {:error, %Xandra.ConnectionError{}} ->
-        Logger.info("DB connection error.")
+      _any ->
+        {:error, :invalid_value}
     end
   end
 
-  defp update_device_after_credentials_request(
-         {conn, realm},
-         device_id,
-         %{serial: serial, aki: aki} = _cert_data,
-         device_ip,
-         first_credentials_request_timestamp
-       ) do
-    statement = """
-    UPDATE #{realm}.devices
-    SET cert_aki=?, cert_serial=?, last_credentials_request_ip=?,
-    first_credentials_request=?
-    WHERE device_id=?
-    """
-
-    params = [
-      {"ascii", aki},
-      {"ascii", serial},
-      {"inet", device_ip},
-      {"timestamp", first_credentials_request_timestamp},
-      {"uuid", device_id}
-    ]
-
-    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
-      :ok
+  defp to_native_type(value_chars, :integer) do
+    with integer_string = to_string(value_chars),
+         {value, ""} when value >= -2_147_483_648 and value <= 2_147_483_647 <-
+           Integer.parse(integer_string) do
+      {:ok, value}
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("DB error: #{message}")
-
-      {:error, %Xandra.ConnectionError{}} ->
-        Logger.info("DB connection error.")
+      _any ->
+        {:error, :invalid_value}
     end
   end
 
-  defp set_pending_empty_cache({conn, realm}, device_id, pending_empty_cache) do
-    pending_empty_cache_statement = """
-    UPDATE #{realm}.devices
-    SET pending_empty_cache = ?
-    WHERE device_id = ?
-    """
+  defp to_native_type(value_chars, :boolean) do
+    case value_chars do
+      'true' -> {:ok, true}
+      'false' -> {:ok, false}
+      _any -> {:error, :invalid_value}
+    end
+  end
 
-    params = [
-      {"boolean", pending_empty_cache},
-      {"uuid", device_id}
-    ]
-
-    with {:ok, _result} <- Xandra.execute(conn, pending_empty_cache_statement, params) do
-      :ok
+  defp to_native_type(value_chars, :longinteger) do
+    with integer_string = to_string(value_chars),
+         {value, ""}
+         when value >= -9_223_372_036_854_775_808 and value <= 9_223_372_036_854_775_807 <-
+           Integer.parse(integer_string) do
+      {:ok, value}
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("set_pending_empty_cache: database error: #{message}")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{reason: reason}} ->
-        Logger.warn("set_pending_empty_cache: connection error: #{inspect(reason)}")
-        {:error, :database_error}
+      _any ->
+        {:error, :invalid_value}
     end
   end
 
-  defp set_device_connected({conn, realm}, device_id, tstamp, ip_address) do
-    device_update_statement = """
-    UPDATE #{realm}.devices
-    SET connected=true, last_connection=?, last_seen_ip=?
-    WHERE device_id=?
-    """
-
-    params = [
-      {"timestamp", tstamp},
-      {"inet", ip_address},
-      {"uuid", device_id}
-    ]
-
-    with {:ok, _} <- Xandra.execute(conn, device_update_statement, params, consistency: :quorum) do
-      :ok
-    end
-  end
-
-  defp set_device_disconnected({conn, realm}, device_id, tstamp, tot_recv_msgs, tot_recv_bytes) do
-    device_update_statement = """
-    UPDATE #{realm}.devices
-    SET connected=false,
-        last_disconnection=?,
-        total_received_msgs=?,
-        total_received_bytes=?
-    WHERE device_id=?
-    """
-
-    params = [
-      {"timestamp", tstamp},
-      {"bigint", tot_recv_msgs},
-      {"bigint", tot_recv_bytes},
-      {"uuid", device_id}
-    ]
-
-    with {:ok, _} <-
-           Xandra.execute(conn, device_update_statement, params, consistency: :local_quorum) do
-      :ok
-    end
-  end
-
-  defp insert_path(
-         {conn, realm},
-         device_id,
-         interface_descriptor,
-         endpoint,
-         path,
-         value_timestamp,
-         reception_timestamp,
-         _opts
-       ) do
-    # TODO: do not hardcode individual_properties here
-    # TODO: handle TTL
-    insert_statement = """
-    INSERT INTO #{realm}.individual_properties
-        (device_id, interface_id, endpoint_id, path,
-        reception_timestamp, reception_timestamp_submillis, datetime_value)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    """
-
-    params = [
-      {"uuid", device_id},
-      {"uuid", interface_descriptor.interface_id},
-      {"uuid", endpoint.endpoint_id},
-      {"varchar", path},
-      {"timestamp", reception_timestamp},
-      {"smallint", rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)},
-      {"timestamp", value_timestamp}
-    ]
-
-    with {:ok, _} <-
-           Xandra.execute(conn, insert_statement, params,
-             consitency: path_consistency(interface_descriptor, endpoint)
-           ) do
-      :ok
+  defp to_native_type(value_chars, :string) do
+    with string = to_string(value_chars),
+         true <- String.valid?(string) do
+      {:ok, string}
     else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.warn("insert_path: database error: #{message}")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{reason: reason}} ->
-        Logger.warn("insert_path: connection error: #{inspect(reason)}")
-        {:error, :database_error}
+      _any ->
+        {:error, :invalid_value}
     end
   end
 
-  defp path_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
-    :one
+  defp to_native_type(value_chars, :binaryblob) do
+    with base64 = to_string(value_chars),
+         {:ok, binary_blob} <- Base.decode64(base64) do
+      {:ok, binary_blob}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
   end
 
-  defp path_consistency(_interface_descriptor, _mapping) do
-    :local_quorum
+  defp to_native_type(value_chars, :datetime) do
+    with datestring = to_string(value_chars),
+         {:ok, datetime, 0} <- DateTime.from_iso8601(datestring) do
+      {:ok, datetime}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(values, expected_types) when is_map(values) and is_map(expected_types) do
+    obj =
+      Enum.reduce(values, %{}, fn {"/" <> key, value}, acc ->
+        value_type = Map.fetch!(expected_types, key)
+
+        {:ok, native_type} = to_native_type(value, value_type)
+        Map.put(acc, key, native_type)
+      end)
+
+    {:ok, obj}
+  end
+
+  defp build_expected_type_map(mappings) do
+    Enum.reduce(mappings, %{}, fn %Mapping{value_type: value_type, endpoint: endpoint}, acc ->
+      endpoint_key_token =
+        endpoint
+        |> String.split("/")
+        |> List.last()
+
+      Map.put(acc, endpoint_key_token, value_type)
+    end)
   end
 end
