@@ -67,6 +67,9 @@ defmodule Astarte.PopulateDBTest do
               </object>
             </datastream>
           </interface>
+          <interface name="org.astarteplatform.PropertyValue" major_version="0" minor_version="1" active="true">
+            <property path="/realValue" reception_timestamp="2019-06-12T14:45:49.706034Z">4.2</property>
+          </interface>
         </interfaces>
       </device>
     </devices>

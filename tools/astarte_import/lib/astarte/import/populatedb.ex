@@ -361,7 +361,40 @@ defmodule Astarte.Import.PopulateDB do
     end
 
     got_end_of_property_fun = fn state, chars ->
-      IO.puts("Property chars: #{to_string(chars)}")
+      %Import.State{
+        device_id: device_id,
+        path: path,
+        data: %State{
+          interface_descriptor: interface_descriptor,
+          mappings: mappings
+        }
+      } = state
+
+      %InterfaceDescriptor{
+        automaton: automaton
+      } = interface_descriptor
+
+      {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
+
+      mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
+      %Mapping{value_type: value_type} = mapping
+
+      native_value = to_native_type(chars, value_type)
+
+      {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+
+      Queries.insert_value_into_db(
+        {xandra_conn, realm},
+        decoded_device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        native_value,
+        nil,
+        DateTime.utc_now(),
+        []
+      )
+
       state
     end
 

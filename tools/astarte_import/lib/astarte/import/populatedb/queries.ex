@@ -17,7 +17,9 @@
 #
 
 defmodule Astarte.Import.PopulateDB.Queries do
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   require Logger
 
@@ -207,6 +209,61 @@ defmodule Astarte.Import.PopulateDB.Queries do
 
     with {:ok, _} <-
            Xandra.execute(conn, device_update_statement, params, consistency: :local_quorum) do
+      :ok
+    else
+      {:error, %Xandra.Error{message: message} = err} ->
+        Logger.error("database error: #{message}.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error.", log_metadata(realm, device_id, err))
+        {:error, :database_error}
+    end
+  end
+
+  def insert_value_into_db(
+        {conn, realm},
+        device_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          interface_descriptor,
+        endpoint,
+        path,
+        value,
+        _value_timestamp,
+        reception_timestamp,
+        _opts
+      ) do
+    %InterfaceDescriptor{
+      interface_id: interface_id,
+      storage: storage
+    } = interface_descriptor
+
+    %Mapping{
+      endpoint_id: endpoint_id,
+      value_type: value_type
+    } = endpoint
+
+    db_column_name = CQLUtils.type_to_db_column_name(value_type)
+    db_column_type = CQLUtils.mapping_value_type_to_db_type(value_type)
+
+    statement = """
+    INSERT INTO #{realm}.#{storage}
+      (device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis,
+       #{db_column_name})
+    VALUES (?, ?, ?, ?, ?, ?, ?);
+    """
+
+    params = [
+      {"uuid", device_id},
+      {"uuid", interface_id},
+      {"uuid", endpoint_id},
+      {"varchar", path},
+      {"timestamp", reception_timestamp},
+      {"smallint", rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)},
+      {db_column_type, value}
+    ]
+
+    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :local_quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
