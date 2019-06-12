@@ -48,6 +48,25 @@ defmodule Astarte.PopulateDBTest do
               <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
             </datastream>
           </interface>
+          <interface name="org.astarteplatform.ValuesXYZ" major_version="0" minor_version="1" active="true">
+            <datastream path="/realValues">
+              <object reception_timestamp="2019-06-11T13:24:03.200820Z">
+                <item name="/x">0.1</item>
+                <item name="/y">0.2</item>
+                <item name="/z">0.3</item>
+              </object>
+              <object reception_timestamp="2019-06-11T13:26:28.994144Z">
+                <item name="/x">1.0</item>
+                <item name="/y">2.0</item>
+                <item name="/z">3.0</item>
+              </object>
+              <object reception_timestamp="2019-06-11T13:26:44.218092Z">
+                <item name="/x">10</item>
+                <item name="/y">20</item>
+                <item name="/z">30</item>
+              </object>
+            </datastream>
+          </interface>
         </interfaces>
       </device>
     </devices>

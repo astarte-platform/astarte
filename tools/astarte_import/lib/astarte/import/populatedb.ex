@@ -37,6 +37,7 @@ defmodule Astarte.Import.PopulateDB do
       :mappings,
       :last_seen_reception_timestamp,
       :prepared_query,
+      :value_columns,
       :value_type
     ]
   end
@@ -59,56 +60,138 @@ defmodule Astarte.Import.PopulateDB do
       }
     end
 
-    got_path_fun = fn %Import.State{data: data} = state, path ->
+    got_path_fun = fn
       %Import.State{
         device_id: device_id,
         data: %State{
           mappings: mappings,
           interface_descriptor: %InterfaceDescriptor{
+            aggregation: :individual,
             interface_id: interface_id,
             automaton: automaton,
             storage: storage
           }
         }
-      } = state
+      } = state,
+      path ->
+        {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
 
-      {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
+        mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
+        %Mapping{value_type: value_type} = mapping
 
-      mapping = Enum.find(mappings, fn mapping -> mapping.endpoint_id == endpoint_id end)
-      %Mapping{value_type: value_type} = mapping
+        db_column_name = CQLUtils.type_to_db_column_name(value_type)
 
-      db_column_name = CQLUtils.type_to_db_column_name(value_type)
+        statement = """
+        INSERT INTO #{realm}.#{storage}
+        (
+          value_timestamp, reception_timestamp, reception_timestamp_submillis, #{db_column_name},
+          device_id, interface_id, endpoint_id, path
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
 
-      statement = """
-      INSERT INTO #{realm}.#{storage}
-      (
-        value_timestamp, reception_timestamp, reception_timestamp_submillis, #{db_column_name},
-        device_id, interface_id, endpoint_id, path
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      """
+        {:ok, prepared_query} = Xandra.prepare(xandra_conn, statement)
 
-      {:ok, prepared_query} = Xandra.prepare(xandra_conn, statement)
+        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
 
-      {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+        prepared_params = [
+          decoded_device_id,
+          interface_id,
+          endpoint_id,
+          path
+        ]
 
-      prepared_params = [
-        decoded_device_id,
-        interface_id,
-        endpoint_id,
-        path
-      ]
+        %Import.State{
+          state
+          | data: %State{
+              state.data
+              | mapping: mapping,
+                prepared_params: prepared_params,
+                prepared_query: prepared_query,
+                value_type: value_type
+            }
+        }
 
       %Import.State{
-        state
-        | data: %State{
-            data
-            | mapping: mapping,
-              prepared_params: prepared_params,
-              prepared_query: prepared_query,
-              value_type: value_type
+        device_id: device_id,
+        data: %State{
+          mappings: mappings,
+          interface_descriptor: %InterfaceDescriptor{
+            aggregation: :object,
+            name: name,
+            major_version: major_version,
+            storage: storage
           }
-      }
+        }
+      } = state,
+      path ->
+        expected_types = build_expected_type_map(mappings)
+
+        value_columns =
+          Enum.map(mappings, fn %Mapping{endpoint: endpoint} ->
+            endpoint_key_token =
+              endpoint
+              |> String.split("/")
+              |> List.last()
+
+            db_column = CQLUtils.endpoint_to_db_column_name(endpoint)
+
+            {endpoint_key_token, db_column}
+          end)
+          |> Enum.sort(fn {key1, _}, {key2, _} -> key1 <= key2 end)
+
+        columns_string =
+          Enum.map(value_columns, fn {_, db_column} ->
+            [db_column, ", "]
+          end)
+          |> :erlang.iolist_to_binary()
+
+        [first_mapping | _] = mappings
+        %Mapping{explicit_timestamp: explicit_timestamp} = first_mapping
+
+        virtual_mapping = %Mapping{
+          first_mapping
+          | endpoint_id: CQLUtils.endpoint_id(name, major_version, "")
+        }
+
+        {value_timestamp_string, additional_columns} =
+          if explicit_timestamp do
+            {"value_timestamp, ", 1}
+          else
+            {"", 0}
+          end
+
+        statement = """
+        INSERT INTO #{realm}.#{storage}
+        (
+          #{value_timestamp_string} reception_timestamp, reception_timestamp_submillis, #{
+          columns_string
+        }
+          device_id, path
+        )
+        VALUES (?, ?, ?, ? #{String.duplicate(", ?", additional_columns + length(value_columns))})
+        """
+
+        {:ok, prepared_query} = Xandra.prepare(xandra_conn, statement)
+
+        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+
+        prepared_params = [
+          decoded_device_id,
+          path
+        ]
+
+        %Import.State{
+          state
+          | data: %State{
+              state.data
+              | mapping: virtual_mapping,
+                prepared_params: prepared_params,
+                prepared_query: prepared_query,
+                value_columns: value_columns,
+                value_type: expected_types
+            }
+        }
     end
 
     got_path_end_fun = fn state ->
@@ -137,7 +220,7 @@ defmodule Astarte.Import.PopulateDB do
         []
       )
 
-      state
+      %Import.State{state | data: %State{state.data | mapping: nil}, path: nil}
     end
 
     got_device_end = fn state ->
@@ -241,6 +324,42 @@ defmodule Astarte.Import.PopulateDB do
       }
     end
 
+    got_end_of_object_fun = fn state, object ->
+      %Import.State{
+        reception_timestamp: reception_timestamp,
+        data: %State{
+          mappings: mappings,
+          prepared_params: prepared_params,
+          prepared_query: prepared_query,
+          value_columns: value_columns,
+          value_type: expected_types
+        }
+      } = state
+
+      reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
+      native_value = to_native_type(object, expected_types)
+
+      db_value =
+        Enum.map(value_columns, fn {endpoint_key_token, _db_column} ->
+          Map.get(native_value, endpoint_key_token)
+        end)
+
+      params = [reception_timestamp, reception_submillis | db_value] ++ prepared_params
+
+      [%Mapping{explicit_timestamp: explicit_timestamp} | _] = mappings
+
+      params =
+        if explicit_timestamp do
+          reception_timestamp ++ params
+        else
+          params
+        end
+
+      {:ok, %Xandra.Void{}} = Xandra.execute(xandra_conn, prepared_query, params)
+
+      state
+    end
+
     got_end_of_property_fun = fn state, chars ->
       IO.puts("Property chars: #{to_string(chars)}")
       state
@@ -248,6 +367,7 @@ defmodule Astarte.Import.PopulateDB do
 
     Import.parse(xml,
       data: %State{},
+      got_end_of_object_fun: got_end_of_object_fun,
       got_end_of_value_fun: got_end_of_value_fun,
       got_end_of_property_fun: got_end_of_property_fun,
       got_device_end_fun: got_device_end,
@@ -264,5 +384,24 @@ defmodule Astarte.Import.PopulateDB do
          {value, ""} <- Float.parse(float_string) do
       value
     end
+  end
+
+  defp to_native_type(values, expected_types) when is_map(values) and is_map(expected_types) do
+    Enum.reduce(values, %{}, fn {"/" <> key, value}, acc ->
+      value_type = Map.fetch!(expected_types, key)
+
+      Map.put(acc, key, to_native_type(value, value_type))
+    end)
+  end
+
+  defp build_expected_type_map(mappings) do
+    Enum.reduce(mappings, %{}, fn %Mapping{value_type: value_type, endpoint: endpoint}, acc ->
+      endpoint_key_token =
+        endpoint
+        |> String.split("/")
+        |> List.last()
+
+      Map.put(acc, endpoint_key_token, value_type)
+    end)
   end
 end
