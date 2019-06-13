@@ -42,7 +42,7 @@ defmodule Astarte.Import.PopulateDB do
     ]
   end
 
-  def populate(realm, xml) do
+  def populate(realm, xml, continuation_fun \\ :undefined) do
     Logger.info("Import started.", realm: realm)
 
     {:ok, conn} = Database.connect(realm)
@@ -399,6 +399,7 @@ defmodule Astarte.Import.PopulateDB do
     end
 
     Import.parse(xml,
+      continuation_fun: continuation_fun,
       data: %State{},
       got_end_of_object_fun: got_end_of_object_fun,
       got_end_of_value_fun: got_end_of_value_fun,
