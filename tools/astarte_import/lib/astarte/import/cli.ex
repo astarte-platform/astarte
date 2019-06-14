@@ -22,6 +22,14 @@ defmodule Astarte.Import.CLI do
 
   @chunk_size 4096
 
+  def main() do
+    main(System.argv())
+  end
+
+  def main(["eval", _f, realm, file_name]) do
+    main([realm, file_name])
+  end
+
   def main(args) do
     with [realm, file_name] <- args,
          true <- String.valid?(realm),
