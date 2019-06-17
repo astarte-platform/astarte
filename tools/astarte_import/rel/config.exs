@@ -57,4 +57,7 @@ release :astarte_import do
   set applications: [
     :runtime_tools
   ]
+  set commands: [
+    import: "rel/commands/import"
+  ]
 end

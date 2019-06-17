@@ -22,14 +22,6 @@ defmodule Astarte.Import.CLI do
 
   @chunk_size 4096
 
-  def main() do
-    main(System.argv())
-  end
-
-  def main(["eval", _f, realm, file_name]) do
-    main([realm, file_name])
-  end
-
   def main(args) do
     with {:started, {:ok, _}} <- {:started, Application.ensure_all_started(:astarte_import)},
          [realm, file_name] <- args,

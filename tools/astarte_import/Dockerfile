@@ -26,7 +26,4 @@ RUN apt-get -qq install libssl1.1
 WORKDIR /app
 COPY --from=builder /app/_build/prod/rel/astarte_import .
 
-ENV REALM "default"
-ENV XML_FILE "/files/data.xml"
-
-CMD ["sh", "-c", "./bin/astarte_import eval \"Astarte.Import.CLI.main()\" ${REALM} ${XML_FILE}"]
+CMD ["sh", "-c", "./bin/astarte_import import ${REALM} ${XML_FILE}"]
