@@ -31,7 +31,8 @@ defmodule Astarte.Import.CLI do
   end
 
   def main(args) do
-    with [realm, file_name] <- args,
+    with {:started, {:ok, _}} <- {:started, Application.ensure_all_started(:astarte_import)},
+         [realm, file_name] <- args,
          true <- String.valid?(realm),
          true <- String.valid?(file_name),
          {:ok, file} <- File.open(file_name, [:read]),
@@ -55,6 +56,9 @@ defmodule Astarte.Import.CLI do
 
       PopulateDB.populate(realm, data, more_data)
     else
+      {:started, {:error, reason}} ->
+        Logger.error("Cannot ensure all applications startup: #{inspect(reason)}")
+
       {:error, :enoent} ->
         [realm, file_name] = args
         Logger.error("File not found: #{file_name}.", realm: realm)
