@@ -14,7 +14,7 @@ defmodule Astarte.Import.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger, :xmerl]
     ]
   end
 
@@ -24,7 +24,8 @@ defmodule Astarte.Import.MixProject do
       {:xandra, "~> 0.10"},
       {:logfmt, "~> 3.3"},
       {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"}
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:distillery, "~> 2.0"}
     ]
   end
 end

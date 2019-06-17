@@ -42,15 +42,24 @@ defmodule Astarte.Import.PopulateDB do
     ]
   end
 
-  def populate(realm, xml) do
+  def populate(realm, xml, continuation_fun \\ :undefined) do
     Logger.info("Import started.", realm: realm)
 
-    {:ok, conn} = Database.connect(realm)
     nodes = Application.get_env(:cqerl, :cassandra_nodes)
     {host, port} = Enum.random(nodes)
+    Logger.info("Connecting to #{host}:#{port} cassandra database.", realm: realm)
+
+    {:ok, conn} = Database.connect(realm)
     {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])
 
-    got_interface_fun = fn %Import.State{data: data} = state, interface_name, major, _minor ->
+    Logger.info("Connected to database.", realm: realm)
+
+    got_interface_fun = fn %Import.State{data: data} = state, interface_name, major, minor ->
+      Logger.info("Importing data for #{interface_name} v#{major}.#{minor}.",
+        realm: realm,
+        device_id: state.device_id
+      )
+
       {:ok, interface_desc} = Interface.fetch_interface_descriptor(conn, interface_name, major)
       {:ok, mappings} = Mappings.fetch_interface_mappings(conn, interface_desc.interface_id)
 
@@ -399,6 +408,7 @@ defmodule Astarte.Import.PopulateDB do
     end
 
     Import.parse(xml,
+      continuation_fun: continuation_fun,
       data: %State{},
       got_end_of_object_fun: got_end_of_object_fun,
       got_end_of_value_fun: got_end_of_value_fun,
