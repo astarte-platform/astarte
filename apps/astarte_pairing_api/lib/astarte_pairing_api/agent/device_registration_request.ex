@@ -25,14 +25,16 @@ defmodule Astarte.Pairing.API.Agent.DeviceRegistrationRequest do
   @primary_key false
   embedded_schema do
     field :hw_id, :string
+    field :initial_introspection, :map, default: %{}
   end
 
   @doc false
   def changeset(%DeviceRegistrationRequest{} = request, attrs) do
     request
-    |> cast(attrs, [:hw_id])
+    |> cast(attrs, [:hw_id, :initial_introspection])
     |> validate_required([:hw_id])
     |> validate_hw_id(:hw_id)
+    |> validate_change(:initial_introspection, &validate_introspection/2)
   end
 
   defp validate_hw_id(changeset, field) do
@@ -47,5 +49,20 @@ defmodule Astarte.Pairing.API.Agent.DeviceRegistrationRequest do
       _ ->
         add_error(changeset, field, "is not a valid base64 encoded 128 bits id")
     end
+  end
+
+  defp validate_introspection(field, introspection) when is_map(introspection) do
+    Enum.reduce(introspection, [], fn
+      {interface_name, %{"major" => major, "minor" => minor}}, acc
+      when is_integer(major) and is_integer(minor) ->
+        if major < 0 or minor < 0 do
+          [{field, "has negative versions in interface #{interface_name}"}]
+        else
+          acc
+        end
+
+      {interface_name, _}, acc ->
+        [{field, "has invalid format for interface #{interface_name}"} | acc]
+    end)
   end
 end
