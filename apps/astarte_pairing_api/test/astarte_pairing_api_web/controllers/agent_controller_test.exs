@@ -22,8 +22,10 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
   alias Astarte.Pairing.APIWeb.JWTTestHelper
 
   alias Astarte.RPC.Protocol.Pairing.{
+    Call,
     GenericErrorReply,
     GetAgentPublicKeyPEMsReply,
+    IntrospectionEntry,
     RegisterDeviceReply,
     Reply
   }
@@ -100,6 +102,28 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
       assert %{"credentials_secret" => @credentials_secret} = json_response(conn, 201)["data"]
     end
 
+    test "renders credentials_secret when data is valid and includes initial_introspection", %{
+      conn: conn
+    } do
+      MockRPCClient
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_pubkey_response}
+      end)
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_register_response}
+      end)
+
+      initial_introspection = %{
+        "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
+        "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 0}
+      }
+
+      attrs = Map.put(@create_attrs, "initial_introspection", initial_introspection)
+
+      conn = post(conn, agent_path(conn, :create, @realm), data: attrs)
+      assert %{"credentials_secret" => @credentials_secret} = json_response(conn, 201)["data"]
+    end
+
     test "renders credentials_secret when data is valid and hardware id is 256 bits long", %{
       conn: conn
     } do
@@ -122,6 +146,20 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
       end)
 
       conn = post(conn, agent_path(conn, :create, @realm), data: @invalid_attrs)
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "renders errors when initial_introspection is invalid", %{conn: conn} do
+      MockRPCClient
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_pubkey_response}
+      end)
+
+      invalid_initial_introspection = %{"org.astarteplatform.Values" => %{"major" => 2}}
+
+      attrs = Map.put(@create_attrs, "initial_introspection", invalid_initial_introspection)
+
+      conn = post(conn, agent_path(conn, :create, @realm), data: attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
