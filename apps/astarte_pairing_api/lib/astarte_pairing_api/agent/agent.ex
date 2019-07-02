@@ -31,9 +31,11 @@ defmodule Astarte.Pairing.API.Agent do
       %DeviceRegistrationRequest{}
       |> DeviceRegistrationRequest.changeset(attrs)
 
-    with {:ok, %DeviceRegistrationRequest{hw_id: hw_id}} <-
+    with {:ok,
+          %DeviceRegistrationRequest{hw_id: hw_id, initial_introspection: initial_introspection}} <-
            Ecto.Changeset.apply_action(changeset, :insert),
-         {:ok, %{credentials_secret: secret}} <- Pairing.register_device(realm, hw_id) do
+         {:ok, %{credentials_secret: secret}} <-
+           Pairing.register_device(realm, hw_id, initial_introspection) do
       {:ok, %DeviceRegistrationResponse{credentials_secret: secret}}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
