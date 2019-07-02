@@ -38,6 +38,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     GetCredentialsReply,
     GetInfo,
     GetInfoReply,
+    IntrospectionEntry,
     ProtocolStatus,
     RegisterDevice,
     RegisterDeviceReply,
@@ -66,8 +67,21 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     |> extract_reply()
   end
 
-  def register_device(realm, hw_id) do
-    %RegisterDevice{realm: realm, hw_id: hw_id}
+  def register_device(realm, hw_id, initial_introspection \\ %{}) do
+    initial_introspection_entries =
+      Enum.map(initial_introspection, fn {interface_name, %{"major" => major, "minor" => minor}} ->
+        IntrospectionEntry.new(
+          interface_name: interface_name,
+          major_version: major,
+          minor_version: minor
+        )
+      end)
+
+    %RegisterDevice{
+      realm: realm,
+      hw_id: hw_id,
+      initial_introspection: initial_introspection_entries
+    }
     |> encode_call(:register_device)
     |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
