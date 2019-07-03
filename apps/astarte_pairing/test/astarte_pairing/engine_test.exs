@@ -128,6 +128,37 @@ defmodule Astarte.Pairing.EngineTest do
 
       assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
     end
+
+    test "succeed and saves the introspection with initial_introspection" do
+      hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+
+      initial_introspection = [
+        %{
+          interface_name: "org.astarteplatform.Values",
+          major_version: 0,
+          minor_version: 3
+        },
+        %{
+          interface_name: "org.astarteplatform.OtherValues",
+          major_version: 1,
+          minor_version: 2
+        }
+      ]
+
+      assert {:ok, _credentials_secret} =
+               Engine.register_device(@test_realm, hw_id,
+                 initial_introspection: initial_introspection
+               )
+
+      introspection = DatabaseTestHelper.get_introspection(hw_id)
+      introspection_minor = DatabaseTestHelper.get_introspection_minor(hw_id)
+
+      assert Enum.member?(introspection, {"org.astarteplatform.Values", 0})
+      assert Enum.member?(introspection_minor, {"org.astarteplatform.Values", 3})
+
+      assert Enum.member?(introspection, {"org.astarteplatform.OtherValues", 1})
+      assert Enum.member?(introspection_minor, {"org.astarteplatform.OtherValues", 2})
+    end
   end
 
   describe "get_credentials" do

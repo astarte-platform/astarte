@@ -37,6 +37,7 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
     GetCredentialsReply,
     GetInfo,
     GetInfoReply,
+    IntrospectionEntry,
     ProtocolStatus,
     RegisterDevice,
     RegisterDeviceReply,
@@ -247,6 +248,34 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
     test "successful call" do
       encoded =
         %Call{call: {:register_device, %RegisterDevice{realm: @test_realm, hw_id: @test_hw_id_1}}}
+        |> Call.encode()
+
+      {:ok, reply} = Handler.handle_rpc(encoded)
+
+      assert %Reply{
+               reply: {:register_device_reply, %RegisterDeviceReply{credentials_secret: _secret}}
+             } = Reply.decode(reply)
+    end
+
+    test "successful call with initial introspection" do
+      initial_introspection = [
+        %IntrospectionEntry{
+          interface_name: "org.astarteplatform.Values",
+          major_version: 0,
+          minor_version: 2
+        }
+      ]
+
+      encoded =
+        %Call{
+          call:
+            {:register_device,
+             %RegisterDevice{
+               realm: @test_realm,
+               hw_id: @test_hw_id_1,
+               initial_introspection: initial_introspection
+             }}
+        }
         |> Call.encode()
 
       {:ok, reply} = Handler.handle_rpc(encoded)
