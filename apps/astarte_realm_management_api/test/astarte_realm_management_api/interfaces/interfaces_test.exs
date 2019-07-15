@@ -111,7 +111,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       assert {:ok, interface_source} =
                Interfaces.get_interface(@realm, @interface_name, @interface_major)
 
-      assert {:ok, map} = Poison.decode(interface_source)
+      assert {:ok, map} = Jason.decode(interface_source)
 
       assert {:ok, interface} =
                Interface.changeset(%Interface{}, map) |> Ecto.Changeset.apply_action(:insert)

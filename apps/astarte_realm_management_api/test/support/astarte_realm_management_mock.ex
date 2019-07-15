@@ -112,7 +112,7 @@ defmodule Astarte.RealmManagement.Mock do
          {:install_interface,
           %InstallInterface{realm_name: realm_name, interface_json: interface_json}}
        ) do
-    {:ok, params} = Poison.decode(interface_json)
+    {:ok, params} = Jason.decode(interface_json)
 
     {:ok, interface} =
       Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
@@ -131,7 +131,7 @@ defmodule Astarte.RealmManagement.Mock do
          {:update_interface,
           %UpdateInterface{realm_name: realm_name, interface_json: interface_json}}
        ) do
-    {:ok, params} = Poison.decode(interface_json)
+    {:ok, params} = Jason.decode(interface_json)
 
     {:ok, interface} =
       Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)

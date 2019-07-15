@@ -50,7 +50,7 @@ defmodule Astarte.RealmManagement.Mock.DB do
 
   def get_interface_source(realm, name, major) do
     if interface = get_interface(realm, name, major) do
-      Poison.encode!(interface)
+      Jason.encode!(interface)
     else
       nil
     end

@@ -27,6 +27,6 @@ defmodule Astarte.RealmManagement.APIWeb.RealmConfigView do
   end
 
   def render("auth_config.json", %{auth_config: auth_config}) do
-    auth_config
+    %{jwt_public_key_pem: auth_config.jwt_public_key_pem}
   end
 end
