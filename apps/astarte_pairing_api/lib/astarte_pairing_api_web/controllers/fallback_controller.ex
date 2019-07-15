@@ -27,37 +27,43 @@ defmodule Astarte.Pairing.APIWeb.FallbackController do
   def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
     conn
     |> put_status(:unprocessable_entity)
-    |> render(Astarte.Pairing.APIWeb.ChangesetView, "error.json", changeset: changeset)
+    |> put_view(Astarte.Pairing.APIWeb.ChangesetView)
+    |> render("error.json", changeset: changeset)
   end
 
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)
-    |> render(Astarte.Pairing.APIWeb.ErrorView, :"404")
+    |> put_view(Astarte.Pairing.APIWeb.ErrorView)
+    |> render(:"404")
   end
 
   def call(conn, {:error, :unauthorized}) do
     conn
     |> put_status(:unauthorized)
-    |> render(Astarte.Pairing.APIWeb.ErrorView, :"401")
+    |> put_view(Astarte.Pairing.APIWeb.ErrorView)
+    |> render(:"401")
   end
 
   def call(conn, {:error, :forbidden}) do
     conn
     |> put_status(:forbidden)
-    |> render(Astarte.Pairing.APIWeb.ErrorView, :"403")
+    |> put_view(Astarte.Pairing.APIWeb.ErrorView)
+    |> render(:"403")
   end
 
   # This is the final call made by EnsureAuthenticated
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
     |> put_status(:unauthorized)
-    |> render(Astarte.Pairing.APIWeb.ErrorView, :"401")
+    |> put_view(Astarte.Pairing.APIWeb.ErrorView)
+    |> render(:"401")
   end
 
   def auth_error(conn, _reason, _opts) do
     conn
     |> put_status(:forbidden)
-    |> render(Astarte.Pairing.APIWeb.ErrorView, :"403")
+    |> put_view(Astarte.Pairing.APIWeb.ErrorView)
+    |> render(:"403")
   end
 end

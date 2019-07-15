@@ -6,6 +6,6 @@
   ],
   import_deps: [
     :ecto,
-    :plug
+    :phoenix
   ]
 ]
