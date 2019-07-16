@@ -21,7 +21,7 @@ defmodule Astarte.Pairing.APIWeb.Endpoint do
 
   plug RemoteIp
 
-  socket "/socket", Astarte.Pairing.APIWeb.UserSocket
+  socket "/socket", Astarte.Pairing.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -45,7 +45,7 @@ defmodule Astarte.Pairing.APIWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Poison
+    json_decoder: Phoenix.json_library()
 
   plug Plug.MethodOverride
   plug Plug.Head

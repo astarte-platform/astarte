@@ -45,14 +45,17 @@ defmodule Astarte.Pairing.APIWeb.DeviceController do
            Credentials.get_astarte_mqtt_v1(realm, hw_id, secret, device_ip, params) do
       conn
       |> put_status(:created)
-      |> render(CredentialsView, "show_astarte_mqtt_v1.json", credentials: credentials)
+      |> put_view(CredentialsView)
+      |> render("show_astarte_mqtt_v1.json", credentials: credentials)
     end
   end
 
   def show_info(conn, %{"realm_name" => realm, "hw_id" => hw_id}) do
     with {:ok, secret} <- get_secret(conn),
          {:ok, %DeviceInfo{} = device_info} <- Info.get_device_info(realm, hw_id, secret) do
-      render(conn, DeviceInfoView, "show.json", device_info: device_info)
+      conn
+      |> put_view(DeviceInfoView)
+      |> render("show.json", device_info: device_info)
     end
   end
 
@@ -67,7 +70,9 @@ defmodule Astarte.Pairing.APIWeb.DeviceController do
     with {:ok, secret} <- get_secret(conn),
          {:ok, %CredentialsStatus{} = status} <-
            Credentials.verify_astarte_mqtt_v1(realm, hw_id, secret, params) do
-      render(conn, CredentialsStatusView, "show_astarte_mqtt_v1.json", credentials_status: status)
+      conn
+      |> put_view(CredentialsStatusView)
+      |> render("show_astarte_mqtt_v1.json", credentials_status: status)
     end
   end
 

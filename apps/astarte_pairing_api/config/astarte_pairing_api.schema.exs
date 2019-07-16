@@ -53,7 +53,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   import: [],
   mappings: [
     # Available options
-    "port": [
+    port: [
       commented: true,
       datatype: :integer,
       default: 4003,
@@ -62,7 +62,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.port"
     ],
-    "bind_address": [
+    bind_address: [
       commented: true,
       datatype: :binary,
       env_var: "PAIRING_API_BIND_ADDRESS",
@@ -71,11 +71,12 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip"
     ],
-    "disable_authentication": [
+    disable_authentication: [
       commented: true,
       datatype: :atom,
       env_var: "PAIRING_API_DISABLE_AUTHENTICATION",
-      doc: "Disables JWT authentication for agent's endpoints. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
+      doc:
+        "Disables JWT authentication for agent's endpoints. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.",
       default: false,
       hidden: false,
       to: "astarte_pairing_api.disable_authentication"
@@ -85,7 +86,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :binary,
       default: "localhost",
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.url.host"
     ],
@@ -93,7 +95,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :binary,
       default: "LXWGqSIaFRDtOaX5Qgfw5TrSAsWQs6V8OkXEsGuuqRhc1oFvrGax/SfP7F7gAIcX",
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.secret_key_base here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.secret_key_base here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.secret_key_base"
     ],
@@ -109,7 +112,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: Astarte.Pairing.APIWeb.ErrorView,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.view here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.view here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.view"
     ],
@@ -121,7 +125,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       default: [
         "json"
       ],
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.accepts here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.accepts here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.render_errors.accepts"
     ],
@@ -129,7 +134,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: Astarte.Pairing.API.PubSub,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.name here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.name here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.name"
     ],
@@ -137,7 +143,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: Phoenix.PubSub.PG2,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.adapter here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.adapter here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.pubsub.adapter"
     ],
@@ -145,7 +152,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: true,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.debug_errors here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.debug_errors here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.debug_errors"
     ],
@@ -153,7 +161,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: true,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.code_reloader here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.code_reloader here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.code_reloader"
     ],
@@ -161,7 +170,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       commented: false,
       datatype: :atom,
       default: false,
-      doc: "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.check_origin here.",
+      doc:
+        "Provide documentation for astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.check_origin here.",
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.check_origin"
     ],
@@ -198,7 +208,11 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   ],
   transforms: [
     "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip": fn conf ->
-      [{_, ip}] =Conform.Conf.get(conf, "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip")
+      [{_, ip}] =
+        Conform.Conf.get(
+          conf,
+          "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.http.ip"
+        )
 
       charlist_ip = to_charlist(ip)
 
