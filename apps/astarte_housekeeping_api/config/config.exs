@@ -23,8 +23,7 @@ config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "Nxme5JSsvLykfa6sSoC+7cy9f3ycI8No2T1pwqFpB47KAt6tK/61jGpB+TIhNdjl",
   render_errors: [view: Astarte.Housekeeping.APIWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Astarte.Housekeeping.API.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Astarte.Housekeeping.API.PubSub, adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -32,20 +31,11 @@ config :logger, :console,
   metadata: [:request_id]
 
 config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.AuthGuardian,
-  allowed_algos: [
-    "ES256",
-    "ES384",
-    "ES512",
-    "PS256",
-    "PS384",
-    "PS512",
-    "RS256",
-    "RS384",
-    "RS512"]
+  allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"
