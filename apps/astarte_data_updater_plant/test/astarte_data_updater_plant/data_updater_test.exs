@@ -205,7 +205,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
             data_trigger_type: :INCOMING_DATA,
             match_path: "/0/value",
             value_match_operator: :LESS_THAN,
-            known_value: Bson.encode(%{v: 100})
+            known_value: Cyanide.encode!(%{v: 100})
           }
         }
       }
@@ -248,7 +248,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
             data_trigger_type: :INCOMING_DATA,
             match_path: "/0/value",
             value_match_operator: :GREATER_THAN,
-            known_value: Bson.encode(%{v: 1000})
+            known_value: Cyanide.encode!(%{v: 1000})
           }
         }
       }
@@ -286,7 +286,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       "com.test.LCDMonitor",
       "/time/from",
-      Bson.encode(%{"v" => 9000}),
+      Cyanide.encode!(%{"v" => 9000}),
       gen_tracking_id(),
       make_timestamp("2017-10-09T14:10:32+00:00")
     )
@@ -296,7 +296,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       "com.test.LCDMonitor",
       "/weekSchedule/9/start",
-      Bson.encode(%{"v" => 9}),
+      Cyanide.encode!(%{"v" => 9}),
       gen_tracking_id(),
       make_timestamp("2017-10-09T14:10:32+00:00")
     )
@@ -405,7 +405,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       "com.test.LCDMonitor",
       "/weekSchedule/10/start",
-      Bson.encode(%{"v" => 10}),
+      Cyanide.encode!(%{"v" => 10}),
       gen_tracking_id(),
       make_timestamp("2017-10-09T14:10:32+00:00")
     )
@@ -426,7 +426,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              event: {
                :incoming_data_event,
                %IncomingDataEvent{
-                 bson_value: Bson.encode(%{"v" => 10}),
+                 bson_value: Cyanide.encode!(%{"v" => 10}),
                  interface: "com.test.LCDMonitor",
                  path: "/weekSchedule/10/start"
                }
@@ -453,8 +453,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              event: {
                :value_change_applied_event,
                %ValueChangeAppliedEvent{
-                 old_bson_value: Bson.encode(%{"v" => 42}),
-                 new_bson_value: Bson.encode(%{"v" => 10}),
+                 old_bson_value: Cyanide.encode!(%{"v" => 42}),
+                 new_bson_value: Cyanide.encode!(%{"v" => 10}),
                  interface: "com.test.LCDMonitor",
                  path: "/weekSchedule/10/start"
                }
@@ -471,7 +471,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       encoded_device_id,
       "com.test.SimpleStreamTest",
       "/0/value",
-      Bson.encode(%{"v" => 5}),
+      Cyanide.encode!(%{"v" => 5}),
       gen_tracking_id(),
       make_timestamp("2017-10-09T14:15:32+00:00")
     )
@@ -496,7 +496,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              event:
                {:incoming_data_event,
                 %IncomingDataEvent{
-                  bson_value: Bson.encode(%{"v" => 5}),
+                  bson_value: Cyanide.encode!(%{"v" => 5}),
                   interface: "com.test.SimpleStreamTest",
                   path: "/0/value"
                 }},
@@ -603,7 +603,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     # Incoming object aggregation subtest
-    payload0 = Bson.encode(%{"value" => 1.9, "string" => "Astarteです"})
+    payload0 = Cyanide.encode!(%{"value" => 1.9, "string" => "Astarteです"})
 
     DataUpdater.handle_data(
       realm,
@@ -615,7 +615,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:49+00:00")
     )
 
-    payload1 = Bson.encode(%{"string" => "Hello World');"})
+    payload1 = Cyanide.encode!(%{"string" => "Hello World');"})
 
     DataUpdater.handle_data(
       realm,
@@ -627,7 +627,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:50+00:00")
     )
 
-    payload2 = Bson.encode(%{"v" => %{"value" => 0}})
+    payload2 = Cyanide.encode!(%{"v" => %{"value" => 0}})
 
     DataUpdater.handle_data(
       realm,
@@ -640,7 +640,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
-    payload3 = Bson.encode(%{"string" => "zzz"})
+    payload3 = Cyanide.encode!(%{"string" => "zzz"})
 
     DataUpdater.handle_data(
       realm,
@@ -652,7 +652,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-09-30T07:13:00+00:00")
     )
 
-    payload4 = Bson.encode(%{})
+    payload4 = Cyanide.encode!(%{})
 
     DataUpdater.handle_data(
       realm,

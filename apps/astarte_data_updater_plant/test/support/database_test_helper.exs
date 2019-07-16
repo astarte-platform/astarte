@@ -424,7 +424,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
                 data_trigger_type: :INCOMING_DATA,
                 match_path: "/weekSchedule/%{weekDay}/start",
                 value_match_operator: :GREATER_THAN,
-                known_value: Bson.encode(%{v: 9})
+                known_value: Cyanide.encode!(%{v: 9})
               }
             }
           }

@@ -77,7 +77,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
       Base.decode64!("MAAAAANtAB0AAAACbWV0YTEAAgAAAGEAEG1ldGEyAAIAAAAAAXYAZlFjNoao4T8A")
 
     assert PayloadsDecoder.decode_bson_payload(double_payload, rec_timestamp) ==
-             {0.5518218099846706, expected_timestamp, %{meta1: "a", meta2: 2}}
+             {0.5518218099846706, expected_timestamp, %{"meta1" => "a", "meta2" => 2}}
   end
 
   test "deprecated object aggregation" do
@@ -91,11 +91,11 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
     assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
              {%{
-                test1: true,
-                test2: "ħełłø",
-                test3: 5.0,
-                tm: %Bson.UTC{ms: 1_521_629_489_000},
-                bin: Bson.Bin.new(<<0, 1, 2, 3>>, 0)
+                "test1" => true,
+                "test2" => "ħełłø",
+                "test3" => 5.0,
+                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
+                "bin" => {0, <<0, 1, 2, 3>>}
               }, expected_timestamp, %{}}
   end
 
@@ -110,11 +110,11 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
     assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
              {%{
-                test1: true,
-                test2: "ħełłø",
-                test3: 5.0,
-                tm: %Bson.UTC{ms: 1_521_629_489_000},
-                bin: Bson.Bin.new(<<0, 1, 2, 3>>, 0)
+                "test1" => true,
+                "test2" => "ħełłø",
+                "test3" => 5.0,
+                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
+                "bin" => {0, <<0, 1, 2, 3>>}
               }, expected_timestamp, %{}}
   end
 
@@ -129,11 +129,11 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
     assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
              {%{
-                test1: true,
-                test2: "ħełłø",
-                test3: 5.0,
-                tm: %Bson.UTC{ms: 1_521_629_489_000},
-                bin: Bson.Bin.new(<<0, 1, 2, 3>>, 0)
+                "test1" => true,
+                "test2" => "ħełłø",
+                "test3" => 5.0,
+                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
+                "bin" => {0, <<0, 1, 2, 3>>}
               }, expected_timestamp, %{}}
   end
 
@@ -148,12 +148,12 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
     assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
              {%{
-                test1: true,
-                test2: "ħełłø",
-                test3: 5.0,
-                tm: %Bson.UTC{ms: 1_521_629_489_000},
-                bin: Bson.Bin.new(<<0, 1, 2, 3>>, 0)
-              }, expected_timestamp, %{meta: 2}}
+                "test1" => true,
+                "test2" => "ħełłø",
+                "test3" => 5.0,
+                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
+                "bin" => {0, <<0, 1, 2, 3>>}
+              }, expected_timestamp, %{"meta" => 2}}
   end
 
   test "zlib compressed payload inflate" do
