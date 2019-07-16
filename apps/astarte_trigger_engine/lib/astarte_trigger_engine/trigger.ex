@@ -22,7 +22,6 @@ defmodule Astarte.TriggerEngine.Trigger do
   alias Astarte.TriggerEngine.Templating.StructTemplate
   alias Astarte.TriggerEngine.HttpRequestTemplate
   alias Astarte.TriggerEngine.Trigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
 
   defstruct [
     :name,
@@ -64,11 +63,11 @@ defmodule Astarte.TriggerEngine.Trigger do
 
   def from_json(json_document) do
     json_decode_result =
-      case Poison.decode(json_document) do
+      case Jason.decode(json_document) do
         {:ok, json_obj} ->
           {:ok, json_obj}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, :invalid_json}
       end
 

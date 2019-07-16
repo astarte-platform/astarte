@@ -24,10 +24,13 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
-  @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
+  defmodule Behaviour do
+    @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
+  end
 
-  @behaviour Astarte.TriggerEngine.EventsConsumer
+  @behaviour Astarte.TriggerEngine.EventsConsumer.Behaviour
 
+  @impl true
   def consume(payload, headers) do
     {:ok, realm} = Map.fetch(headers, "x_astarte_realm")
 
@@ -72,15 +75,15 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     |> Enum.reduce(base_values, fn {item_key, item_value}, acc ->
       case item_key do
         :bson_value ->
-          %{v: decoded_value} = Bson.decode(item_value)
+          %{"v" => decoded_value} = Cyanide.decode!(item_value)
           Map.put(acc, "value", decoded_value)
 
         :old_bson_value ->
-          %{v: decoded_value} = Bson.decode(item_value)
+          %{"v" => decoded_value} = Cyanide.decode!(item_value)
           Map.put(acc, "old_value", decoded_value)
 
         :new_bson_value ->
-          %{v: decoded_value} = Bson.decode(item_value)
+          %{"v" => decoded_value} = Cyanide.decode!(item_value)
           Map.put(acc, "new_value", decoded_value)
 
         _ ->
@@ -116,7 +119,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "device_id" => device_id,
       "event" => event
     }
-    |> Poison.encode()
+    |> Jason.encode()
   end
 
   defp execute_action(payload, headers, action) do
@@ -152,7 +155,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     with {:ok, result} <- DatabaseQuery.call(client, query),
          [value: trigger_data] <- DatabaseResult.head(result),
          trigger <- Trigger.decode(trigger_data),
-         {:ok, action} <- Poison.decode(trigger.action) do
+         {:ok, action} <- Jason.decode(trigger.action) do
       {:ok, action}
     else
       error ->

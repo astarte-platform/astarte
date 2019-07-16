@@ -46,7 +46,7 @@ defmodule Astarte.TriggerEngine.Templating.HeadersTemplate do
     Map.put(template, :headers, new_headers)
   end
 
-  def put(template, var_key, var_value) do
+  def put(template, _var_key, _var_value) do
     template
   end
 end
