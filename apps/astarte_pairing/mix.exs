@@ -70,7 +70,6 @@ defmodule Astarte.Pairing.Mixfile do
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
-      {:uuid, "~> 1.7", hex: :uuid_erl},
       {:cfxxl, "~> 0.3"},
       {:conform, "== 2.5.2"},
       {:bcrypt_elixir, "~> 1.0"},

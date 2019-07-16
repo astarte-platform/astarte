@@ -18,17 +18,19 @@
 
 use Mix.Config
 
-config :astarte_rpc, :amqp_connection,
-  host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
+config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 
-config :astarte_pairing, :broker_url,
-  "ssl://broker.beta.astarte.cloud:8883/"
+config :astarte_pairing, :broker_url, "ssl://broker.beta.astarte.cloud:8883/"
 
-config :astarte_pairing, :cfssl_url,
-  System.get_env("CFSSL_API_URL") || "http://ispirata-docker-alpine-cfssl-autotest:8080"
+config :astarte_pairing,
+       :cfssl_url,
+       System.get_env("CFSSL_API_URL") || "http://ispirata-docker-alpine-cfssl-autotest:8080"
 
 config :cqerl,
-  cassandra_nodes: [{System.get_env("CASSANDRA_DB_HOST") || "cassandra", System.get_env("CASSANDRA_DB_PORT") || 9042}]
+  cassandra_nodes: [
+    {System.get_env("CASSANDRA_DB_HOST") || "cassandra",
+     System.get_env("CASSANDRA_DB_PORT") || 9042}
+  ]
 
 config :bcrypt_elixir,
   log_rounds: 4
