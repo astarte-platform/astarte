@@ -42,7 +42,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     changeset = Interface.changeset(%Interface{}, params)
 
     with {:ok, %Interface{} = interface} <- Ecto.Changeset.apply_action(changeset, :insert),
-         {:ok, interface_source} <- Poison.encode(interface),
+         {:ok, interface_source} <- Jason.encode(interface),
          {:ok, :started} <- RealmManagement.install_interface(realm_name, interface_source) do
       {:ok, interface}
     end
@@ -54,7 +54,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     with {:ok, %Interface{} = interface} <- Ecto.Changeset.apply_action(changeset, :insert),
          {:name_matches, true} <- {:name_matches, interface_name == interface.name},
          {:major_matches, true} <- {:major_matches, major_version == interface.major_version},
-         {:ok, interface_source} <- Poison.encode(interface) do
+         {:ok, interface_source} <- Jason.encode(interface) do
       RealmManagement.update_interface(realm_name, interface_source)
     else
       {:name_matches, false} ->

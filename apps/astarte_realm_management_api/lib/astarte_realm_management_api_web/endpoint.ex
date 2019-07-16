@@ -19,7 +19,7 @@
 defmodule Astarte.RealmManagement.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_realm_management_api
 
-  socket("/socket", Astarte.RealmManagement.APIWeb.UserSocket)
+  socket "/socket", Astarte.RealmManagement.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -43,7 +43,7 @@ defmodule Astarte.RealmManagement.APIWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Poison
+    json_decoder: Phoenix.json_library()
 
   plug Plug.MethodOverride
   plug Plug.Head

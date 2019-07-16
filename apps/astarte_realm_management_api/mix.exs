@@ -72,14 +72,14 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp deps do
     [
-      {:phoenix, "== 1.3.2"},
-      {:phoenix_pubsub, "== 1.0.2"},
+      {:phoenix, "~> 1.4.0"},
+      {:plug_cowboy, "~> 2.0"},
+      {:phoenix_pubsub, "~> 1.1"},
       {:gettext, "~> 0.11"},
+      {:phoenix_ecto, "~> 4.0"},
       {:cors_plug, "~> 1.5"},
-      {:plug_cowboy, "~> 1.0"},
-      {:ranch, "== 1.7.1", override: true},
+      {:jason, "~> 1.0"},
       {:conform, "== 2.5.2"},
-      {:ecto, "~> 2.2"},
       {:guardian, "~> 1.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test}

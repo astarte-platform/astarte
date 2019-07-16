@@ -63,7 +63,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
             trigger_action: action,
             tagged_simple_triggers: tagged_simple_triggers
           }} <- RealmManagement.get_trigger(realm_name, trigger_name),
-         {:ok, action_map} <- Poison.decode(action) do
+         {:ok, action_map} <- Jason.decode(action) do
       simple_triggers_configs =
         Enum.map(tagged_simple_triggers, &SimpleTriggerConfig.from_tagged_simple_trigger/1)
 
@@ -94,7 +94,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       |> Trigger.changeset(attrs)
 
     with {:ok, trigger_params} <- Changeset.apply_action(changeset, :insert),
-         {:ok, encoded_action} <- Poison.encode(trigger_params.action),
+         {:ok, encoded_action} <- Jason.encode(trigger_params.action),
          tagged_simple_triggers <-
            Enum.map(
              trigger_params.simple_triggers,
@@ -123,7 +123,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_trigger(realm_name, %Trigger{} = trigger, attrs) do
+  def update_trigger(_realm_name, %Trigger{} = trigger, attrs) do
     Logger.debug("Update: #{inspect(trigger)}")
 
     trigger
@@ -159,7 +159,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       %Ecto.Changeset{source: %Trigger{}}
 
   """
-  def change_trigger(realm_name, %Trigger{} = trigger) do
+  def change_trigger(_realm_name, %Trigger{} = trigger) do
     Trigger.changeset(trigger, %{})
   end
 end

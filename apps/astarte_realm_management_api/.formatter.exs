@@ -1,7 +1,4 @@
 [
-  inputs: [
-    "lib/**/*.{ex,exs}",
-    "test/**/*.{ex,exs}",
-    "mix.exs"
-  ]
+  import_deps: [:ecto, :phoenix],
+  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
 ]

@@ -27,65 +27,72 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
   def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
     conn
     |> put_status(:unprocessable_entity)
-    |> render(Astarte.RealmManagement.APIWeb.ChangesetView, "error.json", changeset: changeset)
+    |> put_view(Astarte.RealmManagement.APIWeb.ChangesetView)
+    |> render("error.json", changeset: changeset)
   end
 
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :"404")
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:"404")
   end
 
   def call(conn, {:error, :unauthorized}) do
     conn
     |> put_status(:unauthorized)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :"401")
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:"401")
   end
 
   def call(conn, {:error, :invalid_major}) do
     conn
     |> put_status(:not_found)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :invalid_major)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:invalid_major)
   end
 
   def call(conn, {:error, :realm_not_found}) do
     conn
     |> put_status(:forbidden)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :"403")
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:"403")
   end
 
   def call(conn, {:error, :interface_major_version_does_not_exist}) do
     conn
     |> put_status(:not_found)
-    |> render(
-      Astarte.RealmManagement.APIWeb.InterfaceView,
-      :interface_major_version_does_not_exist
-    )
+    |> put_view(Astarte.RealmManagement.APIWeb.InterfaceView)
+    |> render(:interface_major_version_does_not_exist)
   end
 
   def call(conn, {:error, :interface_not_found}) do
     conn
     |> put_status(:not_found)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :interface_not_found)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:interface_not_found)
   end
 
   def call(conn, {:error, :overlapping_mappings}) do
     conn
     |> put_status(:unprocessable_entity)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :overlapping_mappings)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:overlapping_mappings)
   end
 
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
     |> put_status(:unauthorized)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :"401")
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:"401")
   end
 
   # In all other cases, we reply with 403
   def auth_error(conn, _reason, _opts) do
     conn
     |> put_status(:forbidden)
-    |> render(Astarte.RealmManagement.APIWeb.ErrorView, :"403")
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:"403")
   end
 end
