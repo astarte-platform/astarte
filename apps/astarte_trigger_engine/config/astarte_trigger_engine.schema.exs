@@ -97,7 +97,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_trigger_engine.amqp_consumer_options.virtual_host"
     ],
-    "amqp_events_queue_name": [
+    amqp_events_queue_name: [
       commented: true,
       datatype: :binary,
       default: "astarte_events",
@@ -106,7 +106,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_trigger_engine.amqp_events_queue_name"
     ],
-    "amqp_events_exchange_name": [
+    amqp_events_exchange_name: [
       commented: true,
       datatype: :binary,
       default: "astarte_events",
@@ -115,7 +115,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_trigger_engine.amqp_events_exchange_name"
     ],
-    "amqp_events_routing_key": [
+    amqp_events_routing_key: [
       commented: true,
       datatype: :binary,
       default: "trigger_engine",
