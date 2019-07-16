@@ -250,7 +250,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
     client = connect_to_test_realm("autotestrealm")
 
-    json_obj = Poison.decode!(@object_datastream_interface_json)
+    json_obj = Jason.decode!(@object_datastream_interface_json)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
     {:ok, intdoc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
 
@@ -361,7 +361,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
     client = connect_to_test_realm("autotestrealm")
 
-    json_obj = Poison.decode!(@individual_property_device_owned_interface)
+    json_obj = Jason.decode!(@individual_property_device_owned_interface)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
     {:ok, intdoc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
 
@@ -478,7 +478,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
     client = connect_to_test_realm("autotestrealm")
 
-    json_obj = Poison.decode!(@individual_datastream_with_explicit_timestamp_interface_json)
+    json_obj = Jason.decode!(@individual_datastream_with_explicit_timestamp_interface_json)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
     {:ok, doc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
 

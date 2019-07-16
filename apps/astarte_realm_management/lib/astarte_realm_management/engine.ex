@@ -60,7 +60,7 @@ defmodule Astarte.RealmManagement.Engine do
     Logger.debug("Going to install a new interface on realm #{realm_name}.")
 
     with {:ok, client} <- Database.connect(realm_name),
-         {:ok, json_obj} <- Poison.decode(interface_json),
+         {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
@@ -108,7 +108,7 @@ defmodule Astarte.RealmManagement.Engine do
     Logger.debug("Going to update an interface on realm #{realm_name}.")
 
     with {:ok, client} <- Database.connect(realm_name),
-         {:ok, json_obj} <- Poison.decode(interface_json),
+         {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
          %InterfaceDocument{description: description, doc: doc} <- interface_doc,
@@ -329,7 +329,7 @@ defmodule Astarte.RealmManagement.Engine do
   def interface_source(realm_name, interface_name, major_version) do
     with {:ok, client} <- Database.connect(realm_name),
          {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
-      Poison.encode(interface)
+      Jason.encode(interface)
     end
   end
 

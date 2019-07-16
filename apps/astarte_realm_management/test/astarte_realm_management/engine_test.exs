@@ -762,7 +762,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   end
 
   defp unpack_source({:ok, source}) when is_binary(source) do
-    interface_obj = Poison.decode!(source)
+    interface_obj = Jason.decode!(source)
 
     mappings =
       interface_obj["mappings"]
