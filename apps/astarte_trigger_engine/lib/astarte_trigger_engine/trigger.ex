@@ -64,7 +64,7 @@ defmodule Astarte.TriggerEngine.Trigger do
 
   def from_json(json_document) do
     json_decode_result =
-      case Poison.decode(json_document) do
+      case Jason.decode(json_document) do
         {:ok, json_obj} ->
           {:ok, json_obj}
 

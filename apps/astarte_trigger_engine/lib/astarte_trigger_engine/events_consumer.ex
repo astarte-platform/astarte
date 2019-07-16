@@ -116,7 +116,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       "device_id" => device_id,
       "event" => event
     }
-    |> Poison.encode()
+    |> Jason.encode()
   end
 
   defp execute_action(payload, headers, action) do
@@ -152,7 +152,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     with {:ok, result} <- DatabaseQuery.call(client, query),
          [value: trigger_data] <- DatabaseResult.head(result),
          trigger <- Trigger.decode(trigger_data),
-         {:ok, action} <- Poison.decode(trigger.action) do
+         {:ok, action} <- Jason.decode(trigger.action) do
       {:ok, action}
     else
       error ->

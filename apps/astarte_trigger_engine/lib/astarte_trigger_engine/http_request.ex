@@ -45,7 +45,7 @@ defmodule Astarte.TriggerEngine.HttpRequest do
     template
     |> StructTemplate.merge(vars)
     |> StructTemplate.apply()
-    |> Poison.encode!()
+    |> Jason.encode!()
   end
 
   defp build_body(template, vars, :text) do
