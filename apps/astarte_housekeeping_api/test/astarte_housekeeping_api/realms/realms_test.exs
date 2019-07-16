@@ -37,6 +37,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     -----END PUBLIC KEY-----
     """
     @valid_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey}
+    @invalid_attrs %{}
     @explicit_replication_attrs %{
       realm_name: "mytestrealm",
       jwt_public_key_pem: @pubkey,
