@@ -26,7 +26,6 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
   alias AMQP.Exchange
   alias AMQP.Queue
   alias Astarte.TriggerEngine.Config
-  alias Astarte.TriggerEngine.EventsConsumer
 
   @connection_backoff 10000
 

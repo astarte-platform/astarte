@@ -1,1 +1,1 @@
-Mox.defmock(MockEventsConsumer, for: Astarte.TriggerEngine.EventsConsumer)
+Mox.defmock(MockEventsConsumer, for: Astarte.TriggerEngine.EventsConsumer.Behaviour)

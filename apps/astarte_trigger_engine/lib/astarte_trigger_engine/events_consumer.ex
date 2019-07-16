@@ -24,10 +24,13 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   alias CQEx.Result, as: DatabaseResult
   require Logger
 
-  @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
+  defmodule Behaviour do
+    @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
+  end
 
-  @behaviour Astarte.TriggerEngine.EventsConsumer
+  @behaviour Astarte.TriggerEngine.EventsConsumer.Behaviour
 
+  @impl true
   def consume(payload, headers) do
     {:ok, realm} = Map.fetch(headers, "x_astarte_realm")
 

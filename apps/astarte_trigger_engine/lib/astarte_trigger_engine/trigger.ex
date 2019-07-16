@@ -22,7 +22,6 @@ defmodule Astarte.TriggerEngine.Trigger do
   alias Astarte.TriggerEngine.Templating.StructTemplate
   alias Astarte.TriggerEngine.HttpRequestTemplate
   alias Astarte.TriggerEngine.Trigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
 
   defstruct [
     :name,
@@ -68,7 +67,7 @@ defmodule Astarte.TriggerEngine.Trigger do
         {:ok, json_obj} ->
           {:ok, json_obj}
 
-        {:error, reason} ->
+        {:error, _reason} ->
           {:error, :invalid_json}
       end
 
