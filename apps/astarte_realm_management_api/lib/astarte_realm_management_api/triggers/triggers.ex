@@ -123,7 +123,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_trigger(realm_name, %Trigger{} = trigger, attrs) do
+  def update_trigger(_realm_name, %Trigger{} = trigger, attrs) do
     Logger.debug("Update: #{inspect(trigger)}")
 
     trigger
@@ -159,7 +159,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       %Ecto.Changeset{source: %Trigger{}}
 
   """
-  def change_trigger(realm_name, %Trigger{} = trigger) do
+  def change_trigger(_realm_name, %Trigger{} = trigger) do
     Trigger.changeset(trigger, %{})
   end
 end

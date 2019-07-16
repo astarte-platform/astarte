@@ -19,8 +19,6 @@
 defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.RealmManagement.API.Triggers
-  alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Astarte.RealmManagement.API.JWTTestHelper
   alias Astarte.RealmManagement.Mock
 
@@ -147,6 +145,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
           interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
           data: update_attrs
         )
+
+      assert response(update_conn, 204)
 
       get_conn =
         get(conn, interface_path(conn, :show, @realm, @interface_name, @interface_major_str))

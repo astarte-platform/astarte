@@ -1,6 +1,5 @@
 defmodule Astarte.RealmManagement.Mock.DB do
   alias Astarte.Core.Interface
-  alias Astarte.RealmManagement.API.JWTTestHelper
 
   def start_link do
     Agent.start_link(fn -> %{interfaces: %{}} end, name: __MODULE__)
@@ -40,11 +39,10 @@ defmodule Astarte.RealmManagement.Mock.DB do
           major
         end
 
-      versions =
-        for major <- majors do
-          %Interface{minor_version: minor} = Map.get(interfaces, {realm, name, major})
-          [major_version: major, minor_version: minor]
-        end
+      for major <- majors do
+        %Interface{minor_version: minor} = Map.get(interfaces, {realm, name, major})
+        [major_version: major, minor_version: minor]
+      end
     end)
   end
 

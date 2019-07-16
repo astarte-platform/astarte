@@ -19,11 +19,7 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.RealmManagement.API.Triggers
-  alias Astarte.RealmManagement.API.Triggers.Trigger
-
   @create_attrs %{}
-  @update_attrs %{}
   @invalid_attrs %{}
 
   @test_realm "test"

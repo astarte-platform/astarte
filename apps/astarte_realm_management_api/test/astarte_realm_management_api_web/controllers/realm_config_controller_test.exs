@@ -45,7 +45,6 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
   @update_attrs %{"jwt_public_key_pem" => @new_pubkey}
   @invalid_pubkey_attrs %{"jwt_public_key_pem" => "invalid"}
   @malformed_pubkey_attrs %{"jwt_public_key_pem" => @malformed_pubkey}
-  @non_existing_realm_name "nonexistingrealm"
 
   setup_all do
     # Disable the auth since we will mess with the public key

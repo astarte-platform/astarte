@@ -16,7 +16,6 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
   use ExUnit.CaseTemplate
 
   alias Astarte.RealmManagement.Mock
-  alias Astarte.RealmManagement.API.JWTTestHelper
 
   using do
     quote do

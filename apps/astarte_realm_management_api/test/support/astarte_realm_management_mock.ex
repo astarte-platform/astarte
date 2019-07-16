@@ -20,7 +20,6 @@ defmodule Astarte.RealmManagement.Mock do
   }
 
   alias Astarte.Core.Interface
-  alias Astarte.RealmManagement.API.Realms.Realm
   alias Astarte.RealmManagement.Mock.DB
 
   def rpc_call(payload, _destination) do
