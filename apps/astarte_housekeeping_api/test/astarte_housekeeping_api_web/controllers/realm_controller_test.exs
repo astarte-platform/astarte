@@ -44,6 +44,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     }
   }
   @update_attrs %{"data" => %{}}
+  @invalid_attrs %{}
   @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}}
   @invalid_replication_attrs %{
     "data" => %{

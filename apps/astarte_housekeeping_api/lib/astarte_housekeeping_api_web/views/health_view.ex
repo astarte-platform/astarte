@@ -18,7 +18,6 @@
 
 defmodule Astarte.Housekeeping.APIWeb.HealthView do
   use Astarte.Housekeeping.APIWeb, :view
-  alias Astarte.Housekeeping.APIWeb.HealthView
 
   def render("show.json", %{backend_health: backend_health}) do
     %{
