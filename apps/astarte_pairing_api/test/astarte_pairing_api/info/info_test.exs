@@ -21,7 +21,6 @@ defmodule Astarte.Pairing.API.InfoTest do
 
   alias Astarte.Pairing.API.Info.DeviceInfo
   alias Astarte.Pairing.API.Info
-  alias Astarte.Pairing.Mock
 
   alias Astarte.RPC.Protocol.Pairing.{
     AstarteMQTTV1Status,
