@@ -358,7 +358,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   defp exec_queries(client, queries) do
-    Enum.reduce_while(queries, :ok, fn query, acc ->
+    Enum.reduce_while(queries, :ok, fn query, _acc ->
       with {:ok, _result} <- DatabaseQuery.call(client, query) do
         {:cont, :ok}
       else

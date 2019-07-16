@@ -52,7 +52,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
   extends: [:astarte_rpc, :astarte_data_access],
   import: [],
   mappings: [
-    "astarte_keyspace_replication_factor": [
+    astarte_keyspace_replication_factor: [
       commented: true,
       datatype: :integer,
       default: 1,

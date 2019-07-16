@@ -83,7 +83,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
     {:ok, reply} = Handler.handle_rpc(encoded)
 
-    assert Reply.decode(reply) == generic_error("empty_name", "empty realm name")
+    assert Reply.decode(reply) == expected
   end
 
   test "CreateRealm call with nil public key" do
@@ -192,7 +192,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     {:ok, list_reply} = Handler.handle_rpc(encoded)
 
     assert match?(
-             %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: names}}},
+             %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: _names}}},
              Reply.decode(list_reply)
            )
   end

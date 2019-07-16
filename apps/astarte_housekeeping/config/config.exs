@@ -11,4 +11,4 @@ config :lager,
 # make amqp supervisors logs less verbose
 config :logger, handle_otp_reports: false
 
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"
