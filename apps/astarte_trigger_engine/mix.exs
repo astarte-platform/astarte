@@ -64,15 +64,15 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.0"},
+      {:amqp, "~> 1.2.1"},
       {:bbmustache, "~> 1.5"},
       {:conform, "== 2.5.2"},
-      {:cyanide, "~> 0.5"},
+      {:cyanide, github: "ispirata/cyanide"},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:httpoison, "~> 1.1"},
-      {:poison, "~> 3.1"},
+      {:jason, "~> 1.0"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:mox, "~> 0.3", only: :test}
