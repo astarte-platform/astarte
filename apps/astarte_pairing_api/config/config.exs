@@ -32,8 +32,7 @@ config :astarte_pairing_api, Astarte.Pairing.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "LXWGqSIaFRDtOaX5Qgfw5TrSAsWQs6V8OkXEsGuuqRhc1oFvrGax/SfP7F7gAIcX",
   render_errors: [view: Astarte.Pairing.APIWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Astarte.Pairing.API.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Astarte.Pairing.API.PubSub, adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -50,19 +49,10 @@ config :lager,
 config :logger, handle_otp_reports: false
 
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.AuthGuardian,
-  allowed_algos: [
-    "ES256",
-    "ES384",
-    "ES512",
-    "PS256",
-    "PS384",
-    "PS512",
-    "RS256",
-    "RS384",
-    "RS512"]
+  allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 
 config :phoenix, :json_library, Jason
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"
