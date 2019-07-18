@@ -270,29 +270,44 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp cast_value(:datetimearray, values) do
-    Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
-      with {:ok, casted_value} <- cast_value(:datetime, value) do
-        {:cont, {:ok, [casted_value | acc]}}
-      else
-        {:error, :unexpected_value_type, expected: :datetime} ->
-          {:halt, {:error, :unexpected_value_type, expected: :datetimearray}}
-      end
-    end)
+    case map_while_ok(values, &cast_value(:datetime, &1)) do
+      {:ok, mapped_values} ->
+        {:ok, mapped_values}
+
+      _ ->
+        {:error, :unexpected_value_type, expected: :datetimearray}
+    end
   end
 
   defp cast_value(:binaryblobarray, values) do
-    Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
-      with {:ok, casted_value} <- cast_value(:binaryblob, value) do
-        {:cont, {:ok, [casted_value | acc]}}
-      else
-        {:error, :unexpected_value_type, expected: :binaryblob} ->
-          {:halt, {:error, :unexpected_value_type, expected: :binaryblobarray}}
-      end
-    end)
+    case map_while_ok(values, &cast_value(:binaryblob, &1)) do
+      {:ok, mapped_values} ->
+        {:ok, mapped_values}
+
+      _ ->
+        {:error, :unexpected_value_type, expected: :binaryblobarray}
+    end
   end
 
   defp cast_value(_anytype, anyvalue) do
     {:ok, anyvalue}
+  end
+
+  defp map_while_ok(values, fun) do
+    result =
+      Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
+        case fun.(value) do
+          {:ok, mapped_value} ->
+            {:cont, {:ok, [mapped_value | acc]}}
+
+          other ->
+            {:halt, other}
+        end
+      end)
+
+    with {:ok, mapped_values} <- result do
+      {:ok, Enum.reverse(mapped_values)}
+    end
   end
 
   defp wrap_to_bson_struct(:datetime, value) do
