@@ -20,31 +20,17 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
   alias Astarte.AppEngine.APIWeb.Router.Helpers, as: RouterHelpers
 
-  def render("index.json", %{
-        devices_list: devices_list,
-        request: %{"realm_name" => realm} = params
-      }) do
-    {request_params, _} = Map.split(params, ["limit", "details", "from_token"])
-
-    last_token = devices_list.last_token
-
-    links =
-      case last_token do
-        nil ->
-          %{self: RouterHelpers.device_status_path(%URI{}, :index, realm, request_params)}
-
-        last_token ->
-          next_request_params = Map.put(request_params, "from_token", last_token)
-
-          %{
-            self: RouterHelpers.device_status_path(%URI{}, :index, realm, request_params),
-            next: RouterHelpers.device_status_path(%URI{}, :index, realm, next_request_params)
-          }
-      end
-
+  def render("index.json", %{devices_list: devices_list, request: params}) do
     %{
-      links: links,
-      data: devices_list.devices
+      links: build_links(params, devices_list.last_token),
+      data: render_many(devices_list.devices, DeviceStatusView, "device_id.json", as: :device_id)
+    }
+  end
+
+  def render("detailed_index.json", %{devices_list: devices_list, request: params}) do
+    %{
+      links: build_links(params, devices_list.last_token),
+      data: render_many(devices_list.devices, DeviceStatusView, "device_status.json")
     }
   end
 
@@ -57,6 +43,49 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   end
 
   def render("device_status.json", %{device_status: device_status}) do
-    device_status
+    %{
+      id: device_status.id,
+      connected: device_status.connected,
+      introspection:
+        render_one(device_status.introspection, DeviceStatusView, "introspection.json",
+          as: :introspection
+        ),
+      total_received_msgs: device_status.total_received_msgs,
+      total_received_bytes: device_status.total_received_bytes,
+      last_connection: device_status.last_connection,
+      last_disconnection: device_status.last_disconnection,
+      last_seen_ip: device_status.last_seen_ip,
+      last_credentials_request_ip: device_status.last_credentials_request_ip,
+      first_registration: device_status.first_registration,
+      first_credentials_request: device_status.first_credentials_request,
+      aliases: device_status.aliases
+    }
+  end
+
+  def render("device_id.json", %{device_id: device_id}) do
+    device_id
+  end
+
+  def render("introspection.json", %{introspection: introspection}) do
+    for {interface_name, %{major: major, minor: minor}} <- introspection, into: %{} do
+      {interface_name, %{minor: minor, major: major}}
+    end
+  end
+
+  defp build_links(%{"realm_name" => realm} = params, last_token) do
+    {request_params, _} = Map.split(params, ["limit", "details", "from_token"])
+
+    case last_token do
+      nil ->
+        %{self: RouterHelpers.device_status_path(%URI{}, :index, realm, request_params)}
+
+      last_token ->
+        next_request_params = Map.put(request_params, "from_token", last_token)
+
+        %{
+          self: RouterHelpers.device_status_path(%URI{}, :index, realm, request_params),
+          next: RouterHelpers.device_status_path(%URI{}, :index, realm, next_request_params)
+        }
+    end
   end
 end

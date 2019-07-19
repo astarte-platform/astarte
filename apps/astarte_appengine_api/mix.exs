@@ -72,10 +72,12 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "== 1.3.4"},
-      {:phoenix_pubsub, "== 1.0.2"},
+      {:phoenix, "~> 1.4"},
+      {:phoenix_pubsub, "~> 1.1"},
+      {:phoenix_ecto, "~> 4.0"},
       {:gettext, "~> 0.11"},
-      {:plug_cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 2.0"},
+      {:jason, "~> 1.0"},
       {:conform, "== 2.5.2"},
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
@@ -83,7 +85,6 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cors_plug, "~> 1.5"},
       {:ex_lttb, "~> 0.3"},
       {:cyanide, github: "ispirata/cyanide"},
-      {:ranch, "== 1.7.1", override: true},
       {:guardian, "~> 1.2"},
       {:phoenix_swagger, "~> 0.8"},
       {:distillery, "~> 1.5", runtime: false},
