@@ -102,7 +102,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       %IncomingDataEvent{
         interface: @interface_exact,
         path: @path,
-        bson_value: Bson.encode(%{v: @event_value})
+        bson_value: Cyanide.encode!(%{v: @event_value})
       }
     }
   }

@@ -235,8 +235,7 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp cast_value(:datetime, value) when is_binary(value) do
     with {:ok, datetime, _utc_off} <- DateTime.from_iso8601(value) do
-      millis = DateTime.to_unix(datetime, :milliseconds)
-      {:ok, millis}
+      {:ok, datetime}
     else
       :error ->
         {:error, :unexpected_value_type, expected: :datetime}
@@ -244,8 +243,8 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp cast_value(:datetime, value) when is_integer(value) do
-    with {:ok, _datetime} <- DateTime.from_unix(value, :millisecond) do
-      {:ok, value}
+    with {:ok, datetime} <- DateTime.from_unix(value, :millisecond) do
+      {:ok, datetime}
     else
       :error ->
         {:error, :unexpected_value_type, expected: :datetime}
@@ -310,24 +309,13 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp wrap_to_bson_struct(:datetime, value) do
-    %Bson.UTC{ms: value}
-  end
-
-  defp wrap_to_bson_struct(:datetimearray, values) do
-    for value <- values do
-      %Bson.UTC{ms: value}
-    end
-  end
-
   defp wrap_to_bson_struct(:binaryblob, value) do
-    %Bson.Bin{bin: value, subtype: Bson.Bin.subtyx(:binary)}
+    # 0 is generic binary subtype
+    {0, value}
   end
 
   defp wrap_to_bson_struct(:binaryblobarray, values) do
-    for value <- values do
-      %Bson.Bin{bin: value, subtype: Bson.Bin.subtyx(:binary)}
-    end
+    Enum.map(values, &wrap_to_bson_struct(:binaryblob, &1))
   end
 
   defp wrap_to_bson_struct(_anytype, value) do

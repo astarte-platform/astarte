@@ -54,7 +54,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
     |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
       assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
 
-      encoded_payload = Bson.encode(%{v: @payload})
+      encoded_payload = Cyanide.encode!(%{v: @payload})
 
       assert %Publish{
                topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
@@ -73,7 +73,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
     |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
       assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
 
-      encoded_payload = Bson.encode(%{v: @payload, m: @metadata, t: @timestamp})
+      encoded_payload = Cyanide.encode!(%{v: @payload, m: @metadata, t: @timestamp})
 
       assert %Publish{
                topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
@@ -102,7 +102,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
     |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
       assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
 
-      encoded_payload = Bson.encode(%{v: @payload})
+      encoded_payload = Cyanide.encode!(%{v: @payload})
 
       assert %Publish{
                topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
@@ -121,7 +121,7 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
     |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
       assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
 
-      encoded_payload = Bson.encode(%{v: @payload, m: @metadata, t: @timestamp})
+      encoded_payload = Cyanide.encode!(%{v: @payload, m: @metadata, t: @timestamp})
 
       assert %Publish{
                topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],

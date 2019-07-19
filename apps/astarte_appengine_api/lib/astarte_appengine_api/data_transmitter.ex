@@ -26,16 +26,6 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
   @property_qos 2
 
-  @doc false
-  defimpl Cyanide.Encoder, for: DateTime do
-    def encode(datetime) do
-      ms = DateTime.to_unix(datetime, :millisecond)
-
-      %Bson.UTC{ms: ms}
-      |> Cyanide.Encoder.encode()
-    end
-  end
-
   @doc """
   Pushes a payload on a datastream interface.
 
@@ -51,7 +41,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     bson_payload =
       make_payload_map(payload, timestamp, metadata)
-      |> Bson.encode()
+      |> Cyanide.encode!()
 
     topic = make_topic(realm, device_id, interface, path)
 
@@ -72,7 +62,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     bson_payload =
       make_payload_map(payload, timestamp, metadata)
-      |> Bson.encode()
+      |> Cyanide.encode!()
 
     topic = make_topic(realm, device_id, interface, path)
 
