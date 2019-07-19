@@ -26,6 +26,12 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
+  def index(conn, %{"realm_name" => realm_name, "details" => "true"} = params) do
+    with {:ok, %DevicesList{} = devices_list} <- Device.list_devices!(realm_name, params) do
+      render(conn, "detailed_index.json", %{devices_list: devices_list, request: params})
+    end
+  end
+
   def index(conn, %{"realm_name" => realm_name} = params) do
     with {:ok, %DevicesList{} = devices_list} <- Device.list_devices!(realm_name, params) do
       render(conn, "index.json", %{devices_list: devices_list, request: params})

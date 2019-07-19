@@ -31,7 +31,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_id <- Base.url_encode64(device_id, padding: false),
          {:ok, interfaces_by_device_alias} <- Device.list_interfaces(realm_name, encoded_id) do
-      render(conn, InterfaceValuesView, "index.json", interfaces: interfaces_by_device_alias)
+      conn
+      |> put_view(InterfaceValuesView)
+      |> render("index.json", interfaces: interfaces_by_device_alias)
     end
   end
 
@@ -54,7 +56,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
              path,
              parameters
            ) do
-      render(conn, InterfaceValuesView, "show.json", interface_values: interface_values)
+      conn
+      |> put_view(InterfaceValuesView)
+      |> render("show.json", interface_values: interface_values)
     end
   end
 
@@ -67,7 +71,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
          {:ok, %InterfaceValues{} = interface_values} <-
            Device.get_interface_values!(realm_name, encoded_device_id, interface, parameters) do
-      render(conn, InterfaceValuesView, "show.json", interface_values: interface_values)
+      conn
+      |> put_view(InterfaceValuesView)
+      |> render("show.json", interface_values: interface_values)
     end
   end
 
@@ -92,7 +98,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
              value,
              parameters
            ) do
-      render(conn, InterfaceValuesView, "show.json", interface_values: interface_values)
+      conn
+      |> put_view(InterfaceValuesView)
+      |> render("show.json", interface_values: interface_values)
     end
   end
 

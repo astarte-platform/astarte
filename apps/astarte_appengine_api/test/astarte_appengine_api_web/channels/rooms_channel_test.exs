@@ -102,7 +102,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       %IncomingDataEvent{
         interface: @interface_exact,
         path: @path,
-        bson_value: Bson.encode(%{v: @event_value})
+        bson_value: Cyanide.encode!(%{v: @event_value})
       }
     }
   }
@@ -178,7 +178,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   describe "watch" do
-    setup [:join_socket_and_authorize_watch]
+    setup [:join_socket_and_authorize_watch, :verify_on_exit!]
 
     test "fails with invalid simple trigger", %{socket: socket} do
       invalid_simple_trigger_payload = %{
@@ -247,9 +247,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -261,7 +258,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
 
-      leave_and_wait(socket)
+      watch_cleanup(socket, @name)
     end
 
     test "fails on duplicate", %{socket: socket, room_process: room_process} do
@@ -295,7 +292,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "watch", watch_payload)
       assert_reply ref, :error, %{reason: "already existing"}
 
-      leave_and_wait(socket)
+      watch_cleanup(socket, @name)
     end
 
     test "succeeds on authorized regex path", %{socket: socket, room_process: room_process} do
@@ -331,7 +328,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
 
-      leave_and_wait(socket)
+      watch_cleanup(socket, @name)
     end
 
     test "fails on device_trigger with conflicting device_ids", %{socket: socket} do
@@ -388,12 +385,12 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       assert_broadcast "watch_added", _
       assert_reply ref, :ok, %{}
 
-      leave_and_wait(socket)
+      watch_cleanup(socket, @name)
     end
   end
 
   describe "unwatch" do
-    setup [:join_socket_and_authorize_watch]
+    setup [:join_socket_and_authorize_watch, :verify_on_exit!]
 
     test "fails with invalid params", %{socket: socket} do
       invalid_payload = %{}
@@ -437,7 +434,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "unwatch", unwatch_payload)
       assert_reply ref, :error, %{reason: "unwatch failed"}
 
-      leave_and_wait(socket)
+      watch_cleanup(socket, @name)
     end
 
     test "succeeds with valid name", %{socket: socket, room_process: room_process} do
@@ -468,16 +465,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       ref = push(socket, "unwatch", unwatch_payload)
       assert_broadcast "watch_removed", _
       assert_reply ref, :ok, %{}
-
-      leave_and_wait(socket)
     end
   end
 
   describe "incoming events" do
-    setup [:join_socket_and_authorize_watch]
+    setup [:join_socket_and_authorize_watch, :verify_on_exit!]
 
     test "an event directed towards an unexisting room uninstalls the trigger", %{
-      socket: socket,
       room_process: room_process
     } do
       MockRPCClient
@@ -510,12 +504,10 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                EventsDispatcher.dispatch(unexisting_room_serialized_event)
 
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
-
-      leave_and_wait(socket)
     end
 
     test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast",
-         %{socket: socket, room_process: room_process} do
+         %{room_process: room_process} do
       MockRPCClient
       |> allow(self(), room_process)
       |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
@@ -534,9 +526,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
 
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
 
@@ -548,8 +537,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                EventsDispatcher.dispatch(existing_room_serialized_event)
 
       refute_broadcast "new_event", %{"device_id" => @device_id, "event" => _event}
-
-      leave_and_wait(socket)
     end
 
     test "an event for a watched trigger belonging to a room triggers a broadcast", %{
@@ -567,9 +554,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                  device_id: @device_id
                } = install_call
 
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
         {:ok, @encoded_generic_ok_reply}
       end)
 
@@ -600,9 +584,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                "path" => @path,
                "value" => @event_value
              }
-             |> Poison.encode() == Poison.encode(event)
+             |> Jason.encode() == Jason.encode(event)
 
-      leave_and_wait(socket)
+      watch_cleanup(socket, @name)
     end
   end
 
@@ -614,6 +598,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   defp join_socket_and_authorize_watch(_context) do
+    MockRPCClient
+    |> stub(:rpc_call, fn _, @dup_rpc_destination ->
+      {:ok, @encoded_generic_ok_reply}
+    end)
+
     token =
       JWTTestHelper.gen_channels_jwt_token([
         "JOIN::#{@authorized_room_name}",
@@ -637,9 +626,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
   end
 
-  defp leave_and_wait(socket) do
-    # Needed to make sure the calls to MockRPC are executed before the test process is terminated
-    leave(socket)
-    :timer.sleep(200)
+  defp watch_cleanup(socket, watch_name) do
+    # Manually cleanup watches to avoid MockRPC complaining about missing
+    # expectations due to the socket terminating (and cleaning up watches)
+    # after Mox on_exit callback has already been called (and expectations emptied)
+    payload = %{"name" => watch_name}
+    ref = push(socket, "unwatch", payload)
+    assert_broadcast "watch_removed", _
+    assert_reply ref, :ok, %{}
   end
 end

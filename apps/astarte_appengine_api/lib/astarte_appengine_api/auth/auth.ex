@@ -23,8 +23,6 @@ defmodule Astarte.AppEngine.API.Auth do
   require Logger
 
   def fetch_public_key(realm) do
-    cass_node = List.first(Application.get_env(:cqerl, :cassandra_nodes))
-
     with {:ok, client} <- Database.connect(realm),
          {:ok, public_key} <- Queries.fetch_public_key(client) do
       {:ok, public_key}

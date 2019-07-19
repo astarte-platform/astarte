@@ -18,7 +18,7 @@
 defmodule Astarte.AppEngine.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_appengine_api
 
-  socket "/socket", Astarte.AppEngine.APIWeb.UserSocket
+  socket "/socket", Astarte.AppEngine.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -42,7 +42,7 @@ defmodule Astarte.AppEngine.APIWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Poison
+    json_decoder: Phoenix.json_library()
 
   plug Plug.MethodOverride
   plug Plug.Head

@@ -23,6 +23,7 @@ mix:test-ci:
         - mix deps.compile
         - mix compile
         - mix coveralls --exclude cassandra_only
+        - mix format --check-formatted
     cache:
         paths:
             - deps

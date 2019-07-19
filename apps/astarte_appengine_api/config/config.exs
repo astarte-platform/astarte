@@ -50,6 +50,8 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.SocketGuardian,
     "RS512"
   ]
 
+config :phoenix, :json_library, Jason
+
 # Enable Swagger by default (if we're here, we're not on distillery)
 config :astarte_appengine_api, swagger_ui: true
 
