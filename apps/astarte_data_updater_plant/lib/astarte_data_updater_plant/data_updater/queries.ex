@@ -231,7 +231,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       DatabaseQuery.call!(db_client, explicit_timestamp_query)
       |> CQEx.Result.head()
 
-    # FIXME: new atoms are created here, we should avoid this. We need to fix our BSON decoder before, and to understand better CQEx code.
+    # FIXME: new atoms are created here, we should avoid this. We need to replace CQEx.
     column_atoms =
       Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
         endpoint_name =
@@ -241,14 +241,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
 
-        Map.put(column_atoms_acc, String.to_atom(endpoint_name), String.to_atom(column_name))
+        Map.put(column_atoms_acc, endpoint_name, String.to_atom(column_name))
       end)
 
     {query_values, placeholders, query_columns} =
       Enum.reduce(value, {%{}, "", ""}, fn {obj_key, obj_value},
                                            {query_values_acc, placeholders_acc, query_acc} ->
         if column_atoms[obj_key] != nil do
-          column_name = CQLUtils.endpoint_to_db_column_name(to_string(obj_key))
+          column_name = CQLUtils.endpoint_to_db_column_name(obj_key)
 
           db_value = to_db_friendly_type(obj_value)
           next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], db_value)
@@ -645,11 +645,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  defp to_db_friendly_type(%Bson.UTC{ms: ms}) do
-    ms
+  defp to_db_friendly_type(%DateTime{} = datetime) do
+    DateTime.to_unix(datetime, :millisecond)
   end
 
-  defp to_db_friendly_type(%Bson.Bin{bin: bin}) do
+  defp to_db_friendly_type({_subtype, bin}) do
     bin
   end
 

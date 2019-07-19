@@ -18,7 +18,6 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   alias Astarte.Core.Interface
-  alias Bson.Decoder.Error, as: BsonError
 
   @max_uncompressed_payload_size 10_485_760
 
@@ -29,30 +28,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   @spec decode_bson_payload(binary, integer) :: {map, integer, map}
   def decode_bson_payload(payload, reception_timestamp) do
     if byte_size(payload) != 0 do
-      decoded_payload = Bson.decode(payload)
-
-      case decoded_payload do
-        %{v: bson_value, t: %Bson.UTC{ms: bson_timestamp}, m: %{} = metadata} ->
+      case Cyanide.decode(payload) do
+        {:ok, %{"v" => bson_value, "t" => %DateTime{} = timestamp, "m" => %{} = metadata}} ->
+          bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
           {bson_value, bson_timestamp, metadata}
 
-        %{v: bson_value, m: %{} = metadata} ->
+        {:ok, %{"v" => bson_value, "m" => %{} = metadata}} ->
           {bson_value, div(reception_timestamp, 10000), metadata}
 
-        %{v: bson_value, t: %Bson.UTC{ms: bson_timestamp}} ->
+        {:ok, %{"v" => bson_value, "t" => %DateTime{} = timestamp}} ->
+          bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
           {bson_value, bson_timestamp, %{}}
 
-        %{v: %Bson.Bin{bin: <<>>, subtype: 0}} ->
+        {:ok, %{"v" => {0 = _subtype, <<>> = _bin}}} ->
           {nil, nil, nil}
 
-        %{v: bson_value} ->
+        {:ok, %{"v" => bson_value}} ->
           {bson_value, div(reception_timestamp, 10000), %{}}
 
-        %BsonError{} ->
-          {:error, :undecodable_bson_payload}
-
-        %{} = bson_value ->
+        {:ok, %{} = bson_value} ->
           # Handling old format object aggregation
           {bson_value, div(reception_timestamp, 10000), %{}}
+
+        {:error, _reason} ->
+          {:error, :undecodable_bson_payload}
 
         _ ->
           {:error, :undecodable_bson_payload}

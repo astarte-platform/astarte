@@ -11,8 +11,7 @@ config :lager,
 # make amqp supervisors logs less verbose
 config :logger, handle_otp_reports: false
 
-config :astarte_data_updater_plant, :queue_name,
-  "vmq_all"
+config :astarte_data_updater_plant, :queue_name, "vmq_all"
 
 config :astarte_data_updater_plant, :amqp_consumer_options,
   host: "localhost",
@@ -21,13 +20,10 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
   virtual_host: "/",
   port: 5672
 
-config :astarte_data_updater_plant, :amqp_events_exchange_name,
-  "astarte_events"
+config :astarte_data_updater_plant, :amqp_events_exchange_name, "astarte_events"
 
-config :astarte_data_updater_plant, :amqp_consumer_prefetch_count,
-  300
+config :astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300
 
-config :astarte_rpc, :amqp_queue,
-  "data_updater_plant_rpc"
+config :astarte_rpc, :amqp_queue, "data_updater_plant_rpc"
 
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"

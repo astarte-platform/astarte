@@ -37,7 +37,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @major_version 1
   @minor_version 1
   @path "/some/path"
-  @bson_value %{v: "testvalue"} |> Bson.encode()
+  @bson_value %{v: "testvalue"} |> Cyanide.encode!()
   @ip_address "2.3.4.5"
 
   setup_all do
@@ -463,8 +463,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     static_header_key = "important_metadata_value_change"
     static_header_value = "test_meta_value_change"
     static_headers = [{static_header_key, static_header_value}]
-    old_bson_value = %{v: 41} |> Bson.encode()
-    new_bson_value = %{v: 42} |> Bson.encode()
+    old_bson_value = %{v: 41} |> Cyanide.encode!()
+    new_bson_value = %{v: 42} |> Cyanide.encode!()
 
     target = %AMQPTriggerTarget{
       simple_trigger_id: simple_trigger_id,
@@ -521,8 +521,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     static_header_key = "important_metadata_value_change_applied"
     static_header_value = "test_meta_value_change_applied"
     static_headers = [{static_header_key, static_header_value}]
-    old_bson_value = %{v: 41} |> Bson.encode()
-    new_bson_value = %{v: 42} |> Bson.encode()
+    old_bson_value = %{v: 41} |> Cyanide.encode!()
+    new_bson_value = %{v: 42} |> Cyanide.encode!()
 
     target = %AMQPTriggerTarget{
       simple_trigger_id: simple_trigger_id,

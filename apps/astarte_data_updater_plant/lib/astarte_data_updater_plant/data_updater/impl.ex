@@ -217,8 +217,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          previous_value,
          value
        ) do
-    old_bson_value = Bson.encode(%{v: previous_value})
-    payload = Bson.encode(%{v: value})
+    old_bson_value = Cyanide.encode!(%{v: previous_value})
+    payload = Cyanide.encode!(%{v: value})
 
     if previous_value != value do
       Enum.each(value_change_triggers, fn trigger ->
@@ -246,8 +246,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          previous_value,
          value
        ) do
-    old_bson_value = Bson.encode(%{v: previous_value})
-    payload = Bson.encode(%{v: value})
+    old_bson_value = Cyanide.encode!(%{v: previous_value})
+    payload = Cyanide.encode!(%{v: value})
 
     if previous_value == nil and value != nil do
       Enum.each(path_created_triggers, fn trigger ->
@@ -524,11 +524,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     now_secs + ttl + 3600 < expiry_secs
   end
 
-  def validate_value_type(expected_type, %Bson.UTC{} = value) do
-    ValueType.validate_value(expected_type, value)
-  end
-
-  def validate_value_type(expected_type, %Bson.Bin{} = value) do
+  def validate_value_type(expected_type, %DateTime{} = value) do
     ValueType.validate_value(expected_type, value)
   end
 
@@ -538,9 +534,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def validate_value_type(expected_types, %{} = object) do
-    Enum.reduce_while(object, :ok, fn {path, value}, _acc ->
-      key = Atom.to_string(path)
-
+    Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
       with {:ok, expected_type} <- Map.fetch(expected_types, key),
            :ok <- ValueType.validate_value(expected_type, value) do
         {:cont, :ok}
@@ -1668,7 +1662,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     topic = "#{realm}/#{device_id_string}/#{interface_name}#{path}"
     encapsulated_value = %{v: value}
 
-    bson_value = Bson.encode(encapsulated_value)
+    bson_value = Cyanide.encode!(encapsulated_value)
 
     Logger.debug("send_value: going to publish #{topic} -> #{inspect(encapsulated_value)}.")
 

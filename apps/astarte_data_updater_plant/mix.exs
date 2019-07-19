@@ -62,11 +62,11 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.0"},
+      {:amqp, "~> 1.2"},
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
-      {:cyanide, "~> 0.5"},
+      {:cyanide, github: "ispirata/cyanide"},
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test}

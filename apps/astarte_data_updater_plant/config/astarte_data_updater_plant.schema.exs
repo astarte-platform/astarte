@@ -102,7 +102,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST",
-      doc: "The host for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
+      doc:
+        "The host for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.host"
     ],
@@ -111,7 +112,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_USERNAME",
-      doc: "The username for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
+      doc:
+        "The username for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.username"
     ],
@@ -120,7 +122,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_PASSWORD",
-      doc: "The password for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
+      doc:
+        "The password for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.password"
     ],
@@ -129,7 +132,8 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :binary,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_VIRTUAL_HOST",
-      doc: "The virtual_host for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
+      doc:
+        "The virtual_host for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.virtual_host"
     ],
@@ -138,11 +142,12 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :integer,
       required: false,
       env_var: "DATA_UPDATER_PLANT_AMQP_PRODUCER_PORT",
-      doc: "The port for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
+      doc:
+        "The port for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_producer_options.port"
     ],
-    "amqp_events_exchange_name": [
+    amqp_events_exchange_name: [
       commented: true,
       datatype: :binary,
       default: "astarte_events",
@@ -151,7 +156,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_data_updater_plant.amqp_events_exchange_name"
     ],
-    "queue_name": [
+    queue_name: [
       commented: true,
       datatype: :binary,
       default: "vmq_all",
@@ -165,13 +170,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       datatype: :integer,
       default: 300,
       env_var: "DATA_UPDATER_PLANT_AMQP_CONSUMER_PREFETCH_COUNT",
-      doc: "The prefetch count of the AMQP consumer connection. A prefetch count of 0 means unlimited (not recommended).",
+      doc:
+        "The prefetch count of the AMQP consumer connection. A prefetch count of 0 means unlimited (not recommended).",
       hidden: false,
       to: "astarte_data_updater_plant.amqp_consumer_prefetch_count"
     ]
   ],
   transforms: [
-    "astarte_data_updater_plant.amqp_producer_options": Astarte.DataUpdaterPlant.Config.AMQPProducerTransform
+    "astarte_data_updater_plant.amqp_producer_options":
+      Astarte.DataUpdaterPlant.Config.AMQPProducerTransform
   ],
   validators: []
 ]
