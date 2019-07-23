@@ -118,7 +118,7 @@ defmodule Astarte.Pairing.EngineTest do
       assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, hw_id)
 
       first_registration = DatabaseTestHelper.get_first_registration(hw_id)
-      now = DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+      now = TestHelper.now_millis()
 
       assert_in_delta first_registration, now, 1000
     end

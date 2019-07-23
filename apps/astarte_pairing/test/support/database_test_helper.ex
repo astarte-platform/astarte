@@ -174,7 +174,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(
         :first_registration,
-        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+        TestHelper.now_millis()
       )
       |> Query.put(:first_credentials_request, nil)
 
@@ -191,11 +191,11 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(
         :first_registration,
-        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+        TestHelper.now_millis()
       )
       |> Query.put(
         :first_credentials_request,
-        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+        TestHelper.now_millis()
       )
 
     {:ok, registered_and_confirmed_128_device_id} =
@@ -211,11 +211,11 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(
         :first_registration,
-        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+        TestHelper.now_millis()
       )
       |> Query.put(
         :first_credentials_request,
-        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+        TestHelper.now_millis()
       )
 
     {:ok, registered_and_inhibited_device_id} =
@@ -231,11 +231,11 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       |> Query.put(:inhibit_credentials_request, true)
       |> Query.put(
         :first_registration,
-        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+        TestHelper.now_millis()
       )
       |> Query.put(
         :first_credentials_request,
-        DateTime.utc_now() |> DateTime.to_unix(:milliseconds)
+        TestHelper.now_millis()
       )
 
     with {:ok, _} <- Query.call(client, registered_not_confirmed_query),

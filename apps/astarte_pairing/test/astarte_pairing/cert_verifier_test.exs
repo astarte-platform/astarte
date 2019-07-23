@@ -43,15 +43,13 @@ defmodule Astarte.Pairing.CertVerifierTest do
 
     assert {:ok, %{timestamp: timestamp, until: until}} = CertVerifier.verify(valid_cert, ca_crt)
 
-    my_now =
-      DateTime.utc_now()
-      |> DateTime.to_unix(:milliseconds)
+    my_now = TestHelper.now_millis()
 
     assert_in_delta timestamp, my_now, 5000
 
     {:ok, %{"not_after" => not_after}} = CFXXL.certinfo(cfxxl_client, certificate: valid_cert)
     {:ok, not_after_datetime, 0} = DateTime.from_iso8601(not_after)
-    not_after_unix = DateTime.to_unix(not_after_datetime, :milliseconds)
+    not_after_unix = DateTime.to_unix(not_after_datetime, :millisecond)
 
     assert until == not_after_unix
   end

@@ -71,7 +71,7 @@ defmodule Astarte.Pairing.Queries do
         :empty_dataset ->
           registration_timestamp =
             DateTime.utc_now()
-            |> DateTime.to_unix(:milliseconds)
+            |> DateTime.to_unix(:millisecond)
 
           Logger.info("register request for new device: #{inspect(extended_id)}")
           do_register_device(client, device_id, credentials_secret, registration_timestamp)
@@ -124,7 +124,7 @@ defmodule Astarte.Pairing.Queries do
   def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
     first_credentials_request_timestamp =
       DateTime.utc_now()
-      |> DateTime.to_unix(:milliseconds)
+      |> DateTime.to_unix(:millisecond)
 
     update_device_after_credentials_request(
       client,
