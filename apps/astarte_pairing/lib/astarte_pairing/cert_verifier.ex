@@ -36,14 +36,14 @@ defmodule Astarte.Pairing.CertVerifier do
   def verify(pem_cert, ca_pem_cert) do
     timestamp =
       DateTime.utc_now()
-      |> DateTime.to_unix(:milliseconds)
+      |> DateTime.to_unix(:millisecond)
 
     with {:ok, der_cert} <- extract_der(pem_cert),
          {:ok, ca_der_cert} <- extract_der(ca_pem_cert),
          {:ok, _} <- :public_key.pkix_path_validation(ca_der_cert, [der_cert], []) do
       until =
         CertUtils.not_after!(pem_cert)
-        |> DateTime.to_unix(:milliseconds)
+        |> DateTime.to_unix(:millisecond)
 
       {:ok, %{valid: true, timestamp: timestamp, until: until}}
     else

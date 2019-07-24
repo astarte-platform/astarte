@@ -24,4 +24,9 @@ defmodule Astarte.Pairing.TestHelper do
   def random_128_bit_hw_id do
     :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
   end
+
+  def now_millis do
+    DateTime.utc_now()
+    |> DateTime.to_unix(:millisecond)
+  end
 end
