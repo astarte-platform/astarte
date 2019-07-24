@@ -273,6 +273,54 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
     end
   end
 
+  def get_introspection(hardware_id) do
+    client =
+      Config.cassandra_node()
+      |> Client.new!(keyspace: @test_realm)
+
+    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+
+    statement = """
+    SELECT introspection
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    query =
+      Query.new()
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
+
+    with {:ok, result} <- Query.call(client, query),
+         [introspection: introspection] <- Result.head(result) do
+      introspection
+    end
+  end
+
+  def get_introspection_minor(hardware_id) do
+    client =
+      Config.cassandra_node()
+      |> Client.new!(keyspace: @test_realm)
+
+    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+
+    statement = """
+    SELECT introspection_minor
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    query =
+      Query.new()
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
+
+    with {:ok, result} <- Query.call(client, query),
+         [introspection_minor: introspection_minor] <- Result.head(result) do
+      introspection_minor
+    end
+  end
+
   def clean_devices do
     client =
       Config.cassandra_node()

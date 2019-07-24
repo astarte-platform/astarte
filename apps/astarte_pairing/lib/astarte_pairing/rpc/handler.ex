@@ -36,6 +36,7 @@ defmodule Astarte.Pairing.RPC.Handler do
     GetCredentialsReply,
     GetInfo,
     GetInfoReply,
+    IntrospectionEntry,
     ProtocolStatus,
     RegisterDevice,
     RegisterDeviceReply,
@@ -110,8 +111,17 @@ defmodule Astarte.Pairing.RPC.Handler do
     end
   end
 
-  defp call_rpc({:register_device, %RegisterDevice{realm: realm, hw_id: hw_id}}) do
-    case Engine.register_device(realm, hw_id) do
+  defp call_rpc(
+         {:register_device,
+          %RegisterDevice{
+            realm: realm,
+            hw_id: hw_id,
+            initial_introspection: initial_introspection
+          }}
+       ) do
+    initial_introspection_maps = Enum.map(initial_introspection, &Map.from_struct/1)
+
+    case Engine.register_device(realm, hw_id, initial_introspection: initial_introspection_maps) do
       {:ok, credentials_secret} ->
         %RegisterDeviceReply{credentials_secret: credentials_secret}
         |> encode_reply(:register_device_reply)

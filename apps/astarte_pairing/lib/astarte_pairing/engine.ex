@@ -142,7 +142,7 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
-  def register_device(realm, hardware_id) do
+  def register_device(realm, hardware_id, opts \\ []) do
     Logger.debug(
       "register_device request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
@@ -152,7 +152,7 @@ defmodule Astarte.Pairing.Engine do
          {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
          credentials_secret <- CredentialsSecret.generate(),
          secret_hash <- CredentialsSecret.hash(credentials_secret),
-         :ok <- Queries.register_device(client, device_id, hardware_id, secret_hash) do
+         :ok <- Queries.register_device(client, device_id, hardware_id, secret_hash, opts) do
       {:ok, credentials_secret}
     else
       {:error, :shutdown} ->

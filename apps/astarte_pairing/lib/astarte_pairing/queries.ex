@@ -53,7 +53,7 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def register_device(client, device_id, extended_id, credentials_secret) do
+  def register_device(client, device_id, extended_id, credentials_secret, opts \\ []) do
     statement = """
     SELECT first_credentials_request, first_registration
     FROM devices
@@ -74,11 +74,11 @@ defmodule Astarte.Pairing.Queries do
             |> DateTime.to_unix(:milliseconds)
 
           Logger.info("register request for new device: #{inspect(extended_id)}")
-          do_register_device(client, device_id, credentials_secret, registration_timestamp)
+          do_register_device(client, device_id, credentials_secret, registration_timestamp, opts)
 
         [first_credentials_request: nil, first_registration: registration_timestamp] ->
           Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
-          do_register_device(client, device_id, credentials_secret, registration_timestamp)
+          do_register_device(client, device_id, credentials_secret, registration_timestamp, opts)
 
         [first_credentials_request: _timestamp, first_registration: _registration_timestamp] ->
           Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
@@ -190,15 +190,22 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp do_register_device(client, device_id, credentials_secret, registration_timestamp) do
+  defp do_register_device(client, device_id, credentials_secret, registration_timestamp, opts) do
     statement = """
     INSERT INTO devices
     (device_id, first_registration, credentials_secret, inhibit_credentials_request,
-    protocol_revision, total_received_bytes, total_received_msgs)
+    protocol_revision, total_received_bytes, total_received_msgs, introspection,
+    introspection_minor)
     VALUES
     (:device_id, :first_registration, :credentials_secret, :inhibit_credentials_request,
-    :protocol_revision, :total_received_bytes, :total_received_msgs)
+    :protocol_revision, :total_received_bytes, :total_received_msgs, :introspection,
+    :introspection_minor)
     """
+
+    {introspection, introspection_minor} =
+      opts
+      |> Keyword.get(:initial_introspection, [])
+      |> build_initial_introspection_maps()
 
     query =
       Query.new()
@@ -210,6 +217,8 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:protocol_revision, 0)
       |> Query.put(:total_received_bytes, 0)
       |> Query.put(:total_received_msgs, 0)
+      |> Query.put(:introspection, introspection)
+      |> Query.put(:introspection_minor, introspection_minor)
       |> Query.consistency(:quorum)
 
     case Query.call(client, query) do
@@ -220,5 +229,17 @@ defmodule Astarte.Pairing.Queries do
         Logger.warn("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
+  end
+
+  defp build_initial_introspection_maps(initial_introspection) do
+    Enum.reduce(initial_introspection, {[], []}, fn introspection_entry, {majors, minors} ->
+      %{
+        interface_name: interface_name,
+        major_version: major_version,
+        minor_version: minor_version
+      } = introspection_entry
+
+      {[{interface_name, major_version} | majors], [{interface_name, minor_version} | minors]}
+    end)
   end
 end
