@@ -24,6 +24,7 @@ defmodule Astarte.Pairing.API.AgentTest do
   alias Astarte.RPC.Protocol.Pairing.{
     Call,
     GenericErrorReply,
+    IntrospectionEntry,
     RegisterDevice,
     RegisterDeviceReply,
     Reply
@@ -67,7 +68,8 @@ defmodule Astarte.Pairing.API.AgentTest do
 
         assert %RegisterDevice{
                  realm: @test_realm,
-                 hw_id: @test_hw_id
+                 hw_id: @test_hw_id,
+                 initial_introspection: []
                } = register_call
 
         {:ok, @encoded_register_response}
@@ -75,6 +77,43 @@ defmodule Astarte.Pairing.API.AgentTest do
 
       assert {:ok, %DeviceRegistrationResponse{credentials_secret: @credentials_secret}} =
                Agent.register_device(@test_realm, @valid_attrs)
+    end
+
+    test "succesful call with initial_introspection" do
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
+        assert %Call{call: {:register_device, register_device}} = Call.decode(serialized_call)
+
+        assert Enum.member?(
+                 register_device.initial_introspection,
+                 %IntrospectionEntry{
+                   interface_name: "org.astarteplatform.Values",
+                   major_version: 0,
+                   minor_version: 4
+                 }
+               )
+
+        assert Enum.member?(
+                 register_device.initial_introspection,
+                 %IntrospectionEntry{
+                   interface_name: "org.astarteplatform.OtherValues",
+                   major_version: 1,
+                   minor_version: 0
+                 }
+               )
+
+        {:ok, @encoded_register_response}
+      end)
+
+      initial_introspection = %{
+        "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
+        "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 0}
+      }
+
+      attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
+
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: @credentials_secret}} =
+               Agent.register_device(@test_realm, attrs)
     end
 
     test "returns error changeset with invalid data" do
@@ -92,7 +131,8 @@ defmodule Astarte.Pairing.API.AgentTest do
 
         assert %RegisterDevice{
                  realm: @test_realm,
-                 hw_id: @already_registered_hw_id
+                 hw_id: @already_registered_hw_id,
+                 initial_introspection: []
                } = register_call
 
         {:ok, @encoded_error_response}
