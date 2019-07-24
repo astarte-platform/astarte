@@ -42,6 +42,12 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       jwt_public_key_pem: @pubkey,
       replication_factor: 3
     }
+    @network_topology_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "NetworkTopologyStrategy",
+      datacenter_replication_factors: %{"dc1" => 2, "dc2" => 1}
+    }
     @update_attrs %{}
     @invalid_name_attrs %{realm_name: "0invalid", jwt_public_key_pem: @pubkey}
     @invalid_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: "invalid"}
@@ -49,6 +55,46 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       realm_name: "mytestrealm",
       jwt_public_key_pem: @pubkey,
       replication_factor: "invalid"
+    }
+    @invalid_replication_class_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "invalid"
+    }
+    @invalid_simple_replication_class_with_datacenter_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "SimpleStrategy",
+      datacenter_replication_factors: %{"dc1" => 2}
+    }
+    @empty_datacenter_replication_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "NetworkTopologyStrategy",
+      datacenter_replication_factors: %{}
+    }
+    @invalid_datacenter_name_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "NetworkTopologyStrategy",
+      datacenter_replication_factors: %{"OR 1=1; --" => 2}
+    }
+    @less_than_zero_datacenter_replication_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "NetworkTopologyStrategy",
+      datacenter_replication_factors: %{"dc1" => -2}
+    }
+    @invalid_datacenter_replication_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "NetworkTopologyStrategy",
+      datacenter_replication_factors: %{"dc1" => "invalid"}
+    }
+    @invalid_network_replication_class_with_no_datacenter_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      replication_class: "NetworkTopologyStrategy"
     }
     @malformed_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: @malformed_pubkey}
     @empty_name_attrs %{realm_name: "", jwt_public_key_pem: @pubkey}
@@ -81,6 +127,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     test "create_realm/1 with valid data creates a realm" do
       assert {:ok, %Realm{} = _realm} = Realms.create_realm(@valid_attrs)
       assert {:ok, %Realm{} = _realm} = Realms.create_realm(@explicit_replication_attrs)
+      assert {:ok, %Realm{} = _realm} = Realms.create_realm(@network_topology_attrs)
     end
 
     test "create_realm/1 with invalid data returns error changeset" do
@@ -88,6 +135,23 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_pubkey_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@malformed_pubkey_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_replication_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_replication_class_attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_datacenter_name_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(@empty_datacenter_replication_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(@less_than_zero_datacenter_replication_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(@invalid_datacenter_replication_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(@invalid_simple_replication_class_with_datacenter_attrs)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(@invalid_network_replication_class_with_no_datacenter_attrs)
     end
 
     test "create_realm/1 with empty required data returns error changeset" do

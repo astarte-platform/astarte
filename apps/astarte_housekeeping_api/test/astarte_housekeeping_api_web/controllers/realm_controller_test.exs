@@ -43,6 +43,17 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       "replication_factor" => 3
     }
   }
+  @network_topology_attrs %{
+    "data" => %{
+      "realm_name" => "testrealm3",
+      "jwt_public_key_pem" => @pubkey,
+      "replication_class" => "NetworkTopologyStrategy",
+      "datacenter_replication_factors" => %{
+        "boston" => 2,
+        "san_francisco" => 1
+      }
+    }
+  }
   @update_attrs %{"data" => %{}}
   @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}}
   @invalid_replication_attrs %{
@@ -100,6 +111,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
              "data" => %{
                "realm_name" => @create_attrs["data"]["realm_name"],
                "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"],
+               "replication_class" => "SimpleStrategy",
                "replication_factor" => 1
              }
            }
@@ -115,7 +127,25 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
              "data" => %{
                "realm_name" => @explicit_replication_attrs["data"]["realm_name"],
                "jwt_public_key_pem" => @explicit_replication_attrs["data"]["jwt_public_key_pem"],
+               "replication_class" => "SimpleStrategy",
                "replication_factor" => @explicit_replication_attrs["data"]["replication_factor"]
+             }
+           }
+  end
+
+  test "creates realm and renders realm with network topology", %{conn: conn} do
+    conn = post(conn, realm_path(conn, :create), @network_topology_attrs)
+    assert response(conn, 201)
+
+    conn = get(conn, realm_path(conn, :show, @network_topology_attrs["data"]["realm_name"]))
+
+    assert json_response(conn, 200) == %{
+             "data" => %{
+               "realm_name" => @network_topology_attrs["data"]["realm_name"],
+               "jwt_public_key_pem" => @network_topology_attrs["data"]["jwt_public_key_pem"],
+               "replication_class" => "NetworkTopologyStrategy",
+               "datacenter_replication_factors" =>
+                 @network_topology_attrs["data"]["datacenter_replication_factors"]
              }
            }
   end

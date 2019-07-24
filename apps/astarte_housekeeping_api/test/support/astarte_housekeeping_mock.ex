@@ -52,13 +52,17 @@ defmodule Astarte.Housekeeping.Mock do
             realm: realm,
             async_operation: async,
             jwt_public_key_pem: pem,
-            replication_factor: rep
+            replication_factor: rep,
+            replication_class: class,
+            datacenter_replication_factors: dc_repl
           }}
        ) do
     Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
       realm_name: realm,
       jwt_public_key_pem: pem,
-      replication_factor: rep
+      replication_factor: rep,
+      replication_class: class,
+      datacenter_replication_factors: dc_repl
     })
 
     %GenericOkReply{async_operation: async}
@@ -87,8 +91,20 @@ defmodule Astarte.Housekeeping.Mock do
       nil ->
         generic_error(:realm_not_found)
 
-      %Realm{realm_name: ^realm_name, jwt_public_key_pem: pem, replication_factor: rep} ->
-        %GetRealmReply{realm_name: realm_name, jwt_public_key_pem: pem, replication_factor: rep}
+      %Realm{
+        realm_name: ^realm_name,
+        jwt_public_key_pem: pem,
+        replication_factor: rep,
+        replication_class: class,
+        datacenter_replication_factors: dc_repl
+      } ->
+        %GetRealmReply{
+          realm_name: realm_name,
+          jwt_public_key_pem: pem,
+          replication_factor: rep,
+          replication_class: class,
+          datacenter_replication_factors: dc_repl
+        }
         |> encode_reply(:get_realm_reply)
     end
     |> ok_wrap
