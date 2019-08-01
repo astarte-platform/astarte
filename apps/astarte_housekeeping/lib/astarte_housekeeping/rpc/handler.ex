@@ -69,14 +69,38 @@ defmodule Astarte.Housekeeping.RPC.Handler do
           %CreateRealm{
             realm: realm,
             jwt_public_key_pem: pub_key,
-            replication_factor: replication,
+            replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+            datacenter_replication_factors: datacenter_replication_factors,
             async_operation: async
           }}
        ) do
     if Astarte.Housekeeping.Engine.realm_exists?(realm) do
       generic_error(:existing_realm, "realm already exists")
     else
-      case Astarte.Housekeeping.Engine.create_realm(realm, pub_key, replication, async: async) do
+      datacenter_replication_factors_map = Enum.into(datacenter_replication_factors, %{})
+
+      case Engine.create_realm(realm, pub_key, datacenter_replication_factors_map, async: async) do
+        {:error, {reason, details}} -> generic_error(reason, details)
+        {:error, reason} -> generic_error(reason)
+        :ok -> generic_ok(async)
+      end
+    end
+  end
+
+  defp call_rpc(
+         {:create_realm,
+          %CreateRealm{
+            realm: realm,
+            jwt_public_key_pem: pub_key,
+            replication_factor: replication_factor,
+            async_operation: async
+          }}
+       ) do
+    if Astarte.Housekeeping.Engine.realm_exists?(realm) do
+      generic_error(:existing_realm, "realm already exists")
+    else
+      case Engine.create_realm(realm, pub_key, replication_factor, async: async) do
+        {:error, {reason, details}} -> generic_error(reason, details)
         {:error, reason} -> generic_error(reason)
         :ok -> generic_ok(async)
       end
