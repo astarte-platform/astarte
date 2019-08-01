@@ -41,14 +41,7 @@ defmodule Astarte.Housekeeping.Engine do
 
     client = get_db_client()
 
-    if opts[:async] do
-      {:ok, _pid} =
-        Task.start(Queries, :create_realm, [client, realm, public_key_pem, replication_factor])
-
-      :ok
-    else
-      Queries.create_realm(client, realm, public_key_pem, replication_factor)
-    end
+    Queries.create_realm(client, realm, public_key_pem, replication_factor, opts)
   end
 
   def get_health() do

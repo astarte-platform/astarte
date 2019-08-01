@@ -39,7 +39,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   @invalid_test_realm "not~valid"
   @not_existing_realm "nonexistingrealm"
   @test_realm "newtestrealm"
-  @replication_factor 3
+  @replication_factor 1
 
   @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
 
@@ -140,7 +140,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     assert Reply.decode(exists_reply) == expected
   end
 
-  test "realm creation and DoesRealmExist successful call with explicit replication" do
+  test "realm creation and GetRealm successful call with explicit SimpleStrategy replication" do
     on_exit(fn ->
       DatabaseTestHelper.realm_cleanup(@test_realm)
     end)
@@ -162,14 +162,108 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     assert Reply.decode(create_reply) == generic_ok()
 
     encoded =
-      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
+      %Call{call: {:get_realm, %GetRealm{realm_name: @test_realm}}}
       |> Call.encode()
 
-    expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}}}
+    expected = %Reply{
+      reply:
+        {:get_realm_reply,
+         %GetRealmReply{
+           realm_name: @test_realm,
+           jwt_public_key_pem: @public_key_pem,
+           replication_class: :SIMPLE_STRATEGY,
+           replication_factor: @replication_factor
+         }}
+    }
 
     {:ok, exists_reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(exists_reply) == expected
+  end
+
+  test "realm creation and GetRealm successful call with explicit NetworkTopologyStrategy replication" do
+    on_exit(fn ->
+      DatabaseTestHelper.realm_cleanup(@test_realm)
+    end)
+
+    encoded =
+      Call.new(
+        call:
+          {:create_realm,
+           CreateRealm.new(
+             realm: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+             datacenter_replication_factors: [{"datacenter1", 1}]
+           )}
+      )
+      |> Call.encode()
+
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(create_reply) == generic_ok()
+
+    encoded =
+      %Call{call: {:get_realm, %GetRealm{realm_name: @test_realm}}}
+      |> Call.encode()
+
+    expected = %Reply{
+      reply:
+        {:get_realm_reply,
+         %GetRealmReply{
+           realm_name: @test_realm,
+           jwt_public_key_pem: @public_key_pem,
+           replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+           datacenter_replication_factors: [{"datacenter1", 1}]
+         }}
+    }
+
+    {:ok, exists_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(exists_reply) == expected
+  end
+
+  test "realm creation fails with invalid SimpleStrategy replication" do
+    encoded =
+      Call.new(
+        call:
+          {:create_realm,
+           CreateRealm.new(
+             realm: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             replication_factor: 9
+           )}
+      )
+      |> Call.encode()
+
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
+
+    assert %Reply{
+             error: true,
+             reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_replication"}}
+           } = Reply.decode(create_reply)
+  end
+
+  test "realm creation fails with invalid NetworkTopologyStrategy replication" do
+    encoded =
+      Call.new(
+        call:
+          {:create_realm,
+           CreateRealm.new(
+             realm: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+             datacenter_replication_factors: [{"imaginarydatacenter", 3}]
+           )}
+      )
+      |> Call.encode()
+
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
+
+    assert %Reply{
+             error: true,
+             reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_replication"}}
+           } = Reply.decode(create_reply)
   end
 
   test "DoesRealmExist non-existing realm" do
@@ -230,6 +324,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
          %GetRealmReply{
            realm_name: @test_realm,
            jwt_public_key_pem: @public_key_pem,
+           replication_class: :SIMPLE_STRATEGY,
            replication_factor: @replication_factor
          }}
     }
