@@ -144,12 +144,31 @@ defmodule Astarte.Housekeeping.RPC.Handler do
       %{
         realm_name: realm_name_reply,
         jwt_public_key_pem: public_key,
+        replication_class: "SimpleStrategy",
         replication_factor: replication_factor
       } ->
         %GetRealmReply{
           realm_name: realm_name_reply,
           jwt_public_key_pem: public_key,
+          replication_class: :SIMPLE_STRATEGY,
           replication_factor: replication_factor
+        }
+        |> encode_reply(:get_realm_reply)
+        |> ok_wrap
+
+      %{
+        realm_name: realm_name_reply,
+        jwt_public_key_pem: public_key,
+        replication_class: "NetworkTopologyStrategy",
+        datacenter_replication_factors: datacenter_replication_factors
+      } ->
+        datacenter_replication_factors_list = Enum.into(datacenter_replication_factors, [])
+
+        %GetRealmReply{
+          realm_name: realm_name_reply,
+          jwt_public_key_pem: public_key,
+          replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+          datacenter_replication_factors: datacenter_replication_factors_list
         }
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
