@@ -22,11 +22,13 @@ defmodule Astarte.Housekeeping.Queries do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
+  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_]*$/
+
   @create_realm_queries [
     """
       CREATE KEYSPACE :realm_name
         WITH
-          replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
+          replication = :replication_map AND
           durable_writes = true;
     """,
     """
@@ -165,6 +167,7 @@ defmodule Astarte.Housekeeping.Queries do
         replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor}  AND
         durable_writes = true;
     """,
+    # TODO: replication_factor column is deprecated, remove it in next major
     """
       CREATE TABLE astarte.realms (
         realm_name varchar,
@@ -216,40 +219,82 @@ defmodule Astarte.Housekeeping.Queries do
 
   @default_replication_factor 1
 
-  def create_realm(client, realm_name, public_key_pem, nil = _replication_factor) do
-    create_realm(client, realm_name, public_key_pem, @default_replication_factor)
+  def create_realm(client, realm_name, public_key_pem, nil = _replication_factor, opts) do
+    create_realm(client, realm_name, public_key_pem, @default_replication_factor, opts)
   end
 
-  def create_realm(client, realm_name, public_key_pem, replication_factor)
-      when is_integer(replication_factor) and replication_factor > 0 do
-    if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
-      replication_factor_str = Integer.to_string(replication_factor)
+  def create_realm(client, realm_name, public_key_pem, replication, opts) do
+    with :ok <- check_realm_name(realm_name),
+         :ok <- check_replication(client, replication),
+         {:ok, replication_map_str} <- build_replication_map_str(replication) do
+      if opts[:async] do
+        {:ok, _pid} =
+          Task.start(fn ->
+            do_create_realm(client, realm_name, public_key_pem, replication_map_str)
+          end)
 
-      initialization_queries =
-        for query <- @create_realm_queries do
-          String.replace(query, ":realm_name", realm_name)
-          |> String.replace(":replication_factor", replication_factor_str)
-        end
-
-      insert_pubkey_statement =
-        String.replace(@insert_public_key_query, ":realm_name", realm_name)
-
-      insert_pubkey_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(insert_pubkey_statement)
-        |> DatabaseQuery.put(:pem, public_key_pem)
-
-      with :ok <- exec_queries(client, initialization_queries ++ [insert_pubkey_query]) do
-        Logger.info("create_realm: #{realm_name} creation succeed.")
         :ok
       else
-        {:error, :database_error} ->
-          Logger.warn("create_realm: #{realm_name} creation failed.")
-          {:error, :database_error}
+        do_create_realm(client, realm_name, public_key_pem, replication_map_str)
       end
+    end
+  end
+
+  defp build_replication_map_str(replication_factor)
+       when is_integer(replication_factor) and replication_factor > 0 do
+    replication_map_str =
+      "{'class': 'SimpleStrategy', 'replication_factor': #{replication_factor}}"
+
+    {:ok, replication_map_str}
+  end
+
+  defp build_replication_map_str(datacenter_replication_factors)
+       when is_map(datacenter_replication_factors) do
+    datacenter_replications_str =
+      Enum.map(datacenter_replication_factors, fn {datacenter, replication_factor} ->
+        "'#{datacenter}': #{replication_factor}"
+      end)
+      |> Enum.join(",")
+
+    replication_map_str = "{'class': 'NetworkTopologyStrategy', #{datacenter_replications_str}}"
+
+    {:ok, replication_map_str}
+  end
+
+  defp build_replication_map_str(_invalid_replication) do
+    {:error, :invalid_replication}
+  end
+
+  defp check_realm_name(realm_name) do
+    if String.match?(realm_name, ~r/^[a-z][a-z0-9]*$/) do
+      :ok
     else
       Logger.warn("HouseKeeping.Queries: " <> realm_name <> " is not an allowed realm name.")
       {:error, :realm_not_allowed}
+    end
+  end
+
+  defp do_create_realm(client, realm_name, public_key_pem, replication_map_str) do
+    initialization_queries =
+      for query <- @create_realm_queries do
+        String.replace(query, ":realm_name", realm_name)
+        |> String.replace(":replication_map", replication_map_str)
+      end
+
+    insert_pubkey_statement = String.replace(@insert_public_key_query, ":realm_name", realm_name)
+
+    insert_pubkey_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_pubkey_statement)
+      |> DatabaseQuery.put(:pem, public_key_pem)
+
+    with :ok <- exec_queries(client, initialization_queries ++ [insert_pubkey_query]) do
+      Logger.info("create_realm: #{realm_name} creation succeed.")
+      :ok
+    else
+      {:error, :database_error} ->
+        Logger.warn("create_realm: #{realm_name} creation failed.")
+        {:error, :database_error}
     end
   end
 
@@ -354,6 +399,118 @@ defmodule Astarte.Housekeeping.Queries do
     else
       _ ->
         {:error, :realm_not_found}
+    end
+  end
+
+  # Replication factor of 1 is always ok
+  defp check_replication(_client, 1) do
+    :ok
+  end
+
+  # If replication factor is an integer, we're using SimpleStrategy
+  # Check that the replication factor is <= the number of nodes in the same datacenter
+  defp check_replication(client, replication_factor)
+       when is_integer(replication_factor) and replication_factor > 1 do
+    with {:ok, local_datacenter} <- get_local_datacenter(client) do
+      check_replication_for_datacenter(client, local_datacenter, replication_factor, local: true)
+    end
+  end
+
+  defp check_replication(client, datacenter_replication_factors)
+       when is_map(datacenter_replication_factors) do
+    with {:ok, local_datacenter} <- get_local_datacenter(client) do
+      Enum.reduce_while(datacenter_replication_factors, :ok, fn
+        {datacenter, replication_factor}, _acc ->
+          opts =
+            if datacenter == local_datacenter do
+              [local: true]
+            else
+              []
+            end
+
+          with {:valid_dc_name, true} <-
+                 {:valid_dc_name, Regex.match?(@datacenter_name_regex, datacenter)},
+               :ok <-
+                 check_replication_for_datacenter(client, datacenter, replication_factor, opts) do
+            {:cont, :ok}
+          else
+            {:valid_dc_name, false} ->
+              {:halt, {:error, :invalid_datacenter_name}}
+
+            {:error, reason} ->
+              {:halt, {:error, reason}}
+          end
+      end)
+    end
+  end
+
+  defp get_local_datacenter(client) do
+    local_datacenter_statement = """
+    SELECT data_center FROM system.local;
+    """
+
+    local_datacenter_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(local_datacenter_statement)
+
+    with {:ok, local_datacenter_res} <- DatabaseQuery.call(client, local_datacenter_query),
+         [data_center: data_center] <- DatabaseResult.head(local_datacenter_res) do
+      {:ok, data_center}
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("database error: #{error_message}")
+        {:error, :database_error}
+
+      :empty_dataset ->
+        Logger.warn("Empty dataset while getting local datacenter, something is really wrong")
+        {:error, :database_error}
+    end
+  end
+
+  defp check_replication_for_datacenter(client, datacenter, replication_factor, opts) do
+    dc_node_count_statement = """
+    SELECT COUNT(*) FROM system.peers WHERE data_center=:data_center ALLOW FILTERING;
+    """
+
+    dc_node_count_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(dc_node_count_statement)
+      |> DatabaseQuery.put(:data_center, datacenter)
+
+    with {:ok, dc_node_count_res} <- DatabaseQuery.call(client, dc_node_count_query),
+         [count: dc_node_count] <- DatabaseResult.head(dc_node_count_res) do
+      # If we're querying the datacenter of the local node, add 1 (itself) to the count
+      actual_node_count =
+        if opts[:local] do
+          dc_node_count + 1
+        else
+          dc_node_count
+        end
+
+      if replication_factor <= actual_node_count do
+        :ok
+      else
+        Logger.warn(
+          "Trying to set replication_factor #{replication_factor} in datacenter #{datacenter} that has #{
+            actual_node_count
+          } nodes"
+        )
+
+        error_message =
+          "replication_factor #{replication_factor} is >= #{actual_node_count} nodes in datacenter #{
+            datacenter
+          }"
+
+        {:error, {:invalid_replication, error_message}}
+      end
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("database error: #{error_message}")
+        {:error, :database_error}
+
+      :empty_dataset ->
+        Logger.warn("Empty dataset while checking replication factor, something is really wrong")
+        {:error, :database_error}
     end
   end
 
