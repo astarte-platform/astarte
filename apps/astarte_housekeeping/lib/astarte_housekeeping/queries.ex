@@ -200,21 +200,11 @@ defmodule Astarte.Housekeeping.Queries do
     SELECT realm_name FROM astarte.realms;
   """
 
-  @get_realm_query """
-    SELECT realm_name, replication_factor from astarte.realms WHERE realm_name=:realm_name;
-  """
-
   # TODO: this should be done with a generic insert_kv_store_query
   # but we need to handle the different xAsBlob() functions
   @insert_public_key_query """
     INSERT INTO :realm_name.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
-  """
-
-  @get_public_key_query """
-    SELECT blobAsVarchar(value)
-    FROM :realm_name.kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
   """
 
   @default_replication_factor 1
@@ -381,27 +371,77 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def get_realm(client, realm_name) do
-    realm_query =
+    get_realm_name_query = """
+    SELECT realm_name from astarte.realms WHERE realm_name=:realm_name;
+    """
+
+    get_public_key_query = """
+    SELECT blobAsVarchar(value)
+    FROM :realm_name.kv_store
+    WHERE group='auth' AND key='jwt_public_key_pem';
+    """
+
+    get_realm_replication_query = """
+    SELECT replication from system_schema.keyspaces WHERE keyspace_name=:realm_name
+    """
+
+    realm_name_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(@get_realm_query)
+      |> DatabaseQuery.statement(get_realm_name_query)
       |> DatabaseQuery.put(:realm_name, realm_name)
 
-    public_key_statement = String.replace(@get_public_key_query, ":realm_name", realm_name)
+    public_key_statement = String.replace(get_public_key_query, ":realm_name", realm_name)
 
     public_key_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(public_key_statement)
 
-    with {:ok, realm_result} <- DatabaseQuery.call(client, realm_query),
-         [realm_name: ^realm_name, replication_factor: replication_factor] <-
+    realm_replication_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(get_realm_replication_query)
+      |> DatabaseQuery.put(:realm_name, realm_name)
+
+    with {:ok, realm_result} <- DatabaseQuery.call(client, realm_name_query),
+         [realm_name: ^realm_name] <-
            DatabaseResult.head(realm_result),
          {:ok, public_key_result} <- DatabaseQuery.call(client, public_key_query),
-         ["system.blobasvarchar(value)": public_key] <- DatabaseResult.head(public_key_result) do
-      %{
-        realm_name: realm_name,
-        jwt_public_key_pem: public_key,
-        replication_factor: replication_factor
-      }
+         ["system.blobasvarchar(value)": public_key] <- DatabaseResult.head(public_key_result),
+         {:ok, realm_replication_result} <- DatabaseQuery.call(client, realm_replication_query),
+         [replication: replication_tuple_list] <- DatabaseResult.head(realm_replication_result) do
+      replication_map = Enum.into(replication_tuple_list, %{})
+
+      case replication_map do
+        %{
+          "class" => "org.apache.cassandra.locator.SimpleStrategy",
+          "replication_factor" => replication_factor_string
+        } ->
+          {replication_factor, ""} = Integer.parse(replication_factor_string)
+
+          %{
+            realm_name: realm_name,
+            jwt_public_key_pem: public_key,
+            replication_class: "SimpleStrategy",
+            replication_factor: replication_factor
+          }
+
+        %{"class" => "org.apache.cassandra.locator.NetworkTopologyStrategy"} ->
+          datacenter_replication_factors =
+            Enum.reduce(replication_map, %{}, fn
+              {"class", _}, acc ->
+                acc
+
+              {datacenter, replication_factor_string}, acc ->
+                {replication_factor, ""} = Integer.parse(replication_factor_string)
+                Map.put(acc, datacenter, replication_factor)
+            end)
+
+          %{
+            realm_name: realm_name,
+            jwt_public_key_pem: public_key,
+            replication_class: "NetworkTopologyStrategy",
+            datacenter_replication_factors: datacenter_replication_factors
+          }
+      end
     else
       _ ->
         {:error, :realm_not_found}
