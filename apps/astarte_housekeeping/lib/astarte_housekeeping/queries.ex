@@ -156,7 +156,7 @@ defmodule Astarte.Housekeeping.Queries do
     """,
     """
       INSERT INTO astarte.realms
-        (realm_name, replication_factor) VALUES (':realm_name', :replication_factor);
+        (realm_name) VALUES (':realm_name');
     """
   ]
 
@@ -164,7 +164,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
       CREATE KEYSPACE astarte
         WITH
-        replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor}  AND
+        replication = :replication_map  AND
         durable_writes = true;
     """,
     # TODO: replication_factor column is deprecated, remove it in next major
@@ -299,22 +299,28 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def create_astarte_keyspace(client) do
-    replication_factor_str =
-      Config.astarte_keyspace_replication_factor()
-      |> Integer.to_string()
+    # TODO: add support for creating the astarte keyspace with NetworkTopologyStrategy,
+    # right now the replication factor is an integer so SimpleStrategy is always used
+    astarte_keyspace_replication = Config.astarte_keyspace_replication_factor()
+
+    {:ok, replication_map_str} = build_replication_map_str(astarte_keyspace_replication)
 
     queries =
       for query <- @create_astarte_queries do
-        String.replace(query, ":replication_factor", replication_factor_str)
+        String.replace(query, ":replication_map", replication_map_str)
       end
 
-    with :ok <- exec_queries(client, queries) do
+    with :ok <- check_replication(client, astarte_keyspace_replication),
+         :ok <- exec_queries(client, queries) do
       Logger.info("Astarte keyspace creation has succeed.")
       :ok
     else
-      {:error, :database_error} ->
-        Logger.error("Astarte keyspace creation failed. ASTARTE WILL NOT WORK.")
-        {:error, :database_error}
+      {:error, reason} ->
+        Logger.error(
+          "Astarte keyspace creation failed: #{inspect(reason)}. ASTARTE WILL NOT WORK."
+        )
+
+        {:error, reason}
     end
   end
 
