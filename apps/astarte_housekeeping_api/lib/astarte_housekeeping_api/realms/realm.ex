@@ -21,7 +21,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   import Ecto.Changeset
 
   @default_replication_factor 1
-  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_]*$/
+  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_-]*$/
 
   @required_fields [:realm_name, :jwt_public_key_pem]
   @allowed_fields [
