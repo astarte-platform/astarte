@@ -18,6 +18,7 @@
 
 defmodule Astarte.Housekeeping.APIWeb.RealmView do
   use Astarte.Housekeeping.APIWeb, :view
+  alias Astarte.Housekeeping.API.Realms.Realm
   alias Astarte.Housekeeping.APIWeb.RealmView
 
   def render("index.json", %{realms: realms}) do
@@ -32,12 +33,24 @@ defmodule Astarte.Housekeeping.APIWeb.RealmView do
     realm.realm_name
   end
 
-  def render("realm.json", %{realm: realm}) do
+  def render("realm.json", %{realm: %Realm{replication_class: "SimpleStrategy"} = realm}) do
     %{
       data: %{
         realm_name: realm.realm_name,
         jwt_public_key_pem: realm.jwt_public_key_pem,
+        replication_class: "SimpleStrategy",
         replication_factor: realm.replication_factor
+      }
+    }
+  end
+
+  def render("realm.json", %{realm: %Realm{replication_class: "NetworkTopologyStrategy"} = realm}) do
+    %{
+      data: %{
+        realm_name: realm.realm_name,
+        jwt_public_key_pem: realm.jwt_public_key_pem,
+        replication_class: "NetworkTopologyStrategy",
+        datacenter_replication_factors: realm.datacenter_replication_factors
       }
     }
   end
