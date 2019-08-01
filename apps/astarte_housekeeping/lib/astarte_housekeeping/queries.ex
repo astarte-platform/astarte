@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.Queries do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
-  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_]*$/
+  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_-]*$/
 
   @create_realm_queries [
     """
