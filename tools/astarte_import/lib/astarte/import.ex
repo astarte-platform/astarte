@@ -369,7 +369,23 @@ defmodule Astarte.Import do
           got_device_end_fun.(state)
       end
 
-    %State{state | device_id: nil, pending_empty_cache: nil}
+    %State{
+      state
+      | cert_aki: nil,
+        cert_serial: nil,
+        credentials_secret: nil,
+        first_credentials_request: nil,
+        first_registration: nil,
+        last_connection: nil,
+        last_credentials_request_ip: nil,
+        last_disconnection: nil,
+        last_seen_ip: nil,
+        pending_empty_cache: nil,
+        introspection: %{},
+        old_introspection: %{},
+        total_received_msgs: 0,
+        total_received_bytes: 0
+    }
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, 'devices'}}, _loc, state) do
