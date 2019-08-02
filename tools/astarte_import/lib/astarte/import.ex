@@ -94,9 +94,10 @@ defmodule Astarte.Import do
     %State{state | device_id: device_id}
   end
 
-  # TODO: right now only protocol revision 0 is supported
+  # TODO: right now only protocol revision 0 or 1 is supported
   defp xml_event({:startElement, _uri, _l_name, {_prefix, 'protocol'}, attributes}, _loc, state) do
-    with {:ok, "0"} <- fetch_attribute(attributes, 'revision'),
+    with {:ok, revision} when revision == "0" or revision == "1" <-
+           fetch_attribute(attributes, 'revision'),
          pending_empty_cache_string = get_attribute(attributes, 'pending_empty_cache', "false"),
          {:ok, pending_empty_cache} <- to_boolean(pending_empty_cache_string) do
       %State{state | pending_empty_cache: pending_empty_cache}
