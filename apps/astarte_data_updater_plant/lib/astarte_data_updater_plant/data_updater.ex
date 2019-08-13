@@ -155,18 +155,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
       case Registry.lookup(Registry.MessageTracker, device) do
         [] ->
-          this_instance = self()
-
-          case Registry.meta(Registry.MessageTracker, device) do
-            {:ok, {:amqp_instance, ^this_instance}} ->
-              nil
-
-            {:ok, {:amqp_instance, _}} ->
-              spawn_message_tracker(device)
-
-            :error ->
-              spawn_message_tracker(device)
-          end
+          acknowledger = self()
+          spawn_message_tracker(acknowledger, device)
 
         [{pid, nil}] ->
           pid
@@ -182,14 +172,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     end
   end
 
-  defp spawn_message_tracker(device) do
-    Registry.put_meta(Registry.MessageTracker, device, {:amqp_instance, self()})
+  defp spawn_message_tracker(acknowledger, device) do
     name = {:via, Registry, {Registry.MessageTracker, device}}
-    {:ok, pid} = MessageTracker.start(name: name)
-
-    # This will leak a monitor into the callee, that is likely AMQPDataConsumer in production
-    # Make sure that AMQPDataConsumer has an handle_info that handles process termination.
-    Process.monitor(pid)
+    {:ok, pid} = MessageTracker.start_link(acknowledger: acknowledger, name: name)
 
     pid
   end
