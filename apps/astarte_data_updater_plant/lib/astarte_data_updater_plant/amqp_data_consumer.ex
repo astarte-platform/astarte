@@ -40,22 +40,22 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   # API
 
   def start_link(args \\ []) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args)
   end
 
-  def ack(delivery_tag) do
+  def ack(pid, delivery_tag) do
     Logger.debug("Going to ack #{inspect(delivery_tag)}")
-    GenServer.call(__MODULE__, {:ack, delivery_tag})
+    GenServer.call(pid, {:ack, delivery_tag})
   end
 
-  def discard(delivery_tag) do
+  def discard(pid, delivery_tag) do
     Logger.debug("Going to discard #{inspect(delivery_tag)}")
-    GenServer.call(__MODULE__, {:discard, delivery_tag})
+    GenServer.call(pid, {:discard, delivery_tag})
   end
 
-  def requeue(delivery_tag) do
+  def requeue(pid, delivery_tag) do
     Logger.debug("Going to requeue #{inspect(delivery_tag)}")
-    GenServer.call(__MODULE__, {:requeue, delivery_tag})
+    GenServer.call(pid, {:requeue, delivery_tag})
   end
 
   # Server callbacks
