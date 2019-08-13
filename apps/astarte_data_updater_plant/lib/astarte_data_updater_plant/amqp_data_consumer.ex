@@ -133,21 +133,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   # Make sure to handle monitored message trackers exit messages
   # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
-  def handle_info({:DOWN, _, :process, pid, reason}, state) do
-    if state.conn.pid == pid do
-      Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-      {:ok, new_state} = rabbitmq_connect()
-      {:noreply, new_state}
-    else
-      Logger.warn(
-        "A message tracker has crashed (with reason #{inspect(reason)}), stopping AMQPDataConsumer."
-      )
-
-      Channel.close(state)
-      Connection.close(state.conn)
-
-      {:stop, :message_tracker_failure}
-    end
+  def handle_info({:DOWN, _, :process, _pid, reason}, state) do
+    # Channel went down, stop the process
+    Logger.warn("AMQP channel crashed, reason: #{inspect(reason)}")
+    Channel.close(state)
+    {:stop, reason}
   end
 
   defp initialize_chan(rabbitmq_connection, queue_name) do
