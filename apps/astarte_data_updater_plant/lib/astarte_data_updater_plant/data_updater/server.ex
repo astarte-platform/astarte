@@ -109,6 +109,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:noreply, Impl.init_state(realm, device_id, message_tracker)}
   end
 
+  def handle_info({:DOWN, _, :process, _pid, :shutdown}, state) do
+    {:stop, :shutdown, state}
+  end
+
   def handle_info({:DOWN, _, :process, _pid, _reason}, state) do
     {:stop, :monitored_process_died, state}
   end
