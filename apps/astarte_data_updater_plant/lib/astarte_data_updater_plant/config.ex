@@ -47,10 +47,27 @@ defmodule Astarte.DataUpdaterPlant.Config do
   end
 
   @doc """
-  Returns the AMQP queue name from which DUP consumes
+  Returns the prefix for the AMQP data queues. This is concatenated with
+  the queue index to obtain the name of the queue. The used indexes are
+  the ones included between data_queue_range_start and data_queue_range_end,
+  both boundaries included.
   """
-  def queue_name do
-    Application.get_env(:astarte_data_updater_plant, :queue_name)
+  def data_queue_prefix do
+    Application.get_env(:astarte_data_updater_plant, :data_queue_prefix)
+  end
+
+  @doc """
+  Returns the first valid data queue index for this DUP. Defaults to 0.
+  """
+  def data_queue_range_start do
+    Application.get_env(:astarte_data_updater_plant, :data_queue_range_start, 0)
+  end
+
+  @doc """
+  Returns the last valid data queue index for this DUP. Defaults to 0.
+  """
+  def data_queue_range_end do
+    Application.get_env(:astarte_data_updater_plant, :data_queue_range_end, 0)
   end
 
   @doc """
