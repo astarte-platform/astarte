@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Add support to multiple queues with consistent hashing
+
 ## [0.10.1] - Unreleased
 ### Fixed
 - Fix a bug that was causing a crash-loop in some corner cases when a message was sent on an outdated interface.
