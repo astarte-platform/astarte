@@ -386,66 +386,14 @@ defmodule Astarte.RealmManagement.Engine do
   def install_trigger(realm_name, trigger_name, action, serialized_tagged_simple_triggers) do
     with {:ok, client} <- get_database_client(realm_name),
          {:exists?, {:error, :trigger_not_found}} <-
-           {:exists?, Queries.retrieve_trigger_uuid(client, trigger_name)} do
-      simple_triggers =
-        for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
-          %TaggedSimpleTrigger{
-            object_id: object_id,
-            object_type: object_type,
-            simple_trigger_container: simple_trigger_container
-          } = TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
-
-          %{
-            object_id: object_id,
-            object_type: object_type,
-            simple_trigger_uuid: :uuid.get_v4(),
-            simple_trigger: simple_trigger_container
-          }
-        end
-
-      simple_trigger_uuids =
-        for simple_trigger <- simple_triggers do
-          simple_trigger[:simple_trigger_uuid]
-        end
-
-      trigger = %Trigger{
-        trigger_uuid: :uuid.get_v4(),
-        simple_triggers_uuids: simple_trigger_uuids,
-        action: action,
-        name: trigger_name
-      }
-
-      # TODO: they should be batched together
-      with :ok <- Queries.install_trigger(client, trigger) do
-        target = %TriggerTargetContainer{
-          trigger_target: {
-            :amqp_trigger_target,
-            %AMQPTriggerTarget{
-              routing_key: "trigger_engine",
-              parent_trigger_id: trigger.trigger_uuid
-            }
-          }
-        }
-
-        simple_trigger_install_success =
-          Enum.all?(simple_triggers, fn simple_trigger ->
-            Queries.install_simple_trigger(
-              client,
-              simple_trigger[:object_id],
-              simple_trigger[:object_type],
-              trigger.trigger_uuid,
-              simple_trigger[:simple_trigger_uuid],
-              simple_trigger[:simple_trigger],
-              target
-            ) == :ok
-          end)
-
-        if simple_trigger_install_success do
-          :ok
-        else
-          {:error, :failed_simple_trigger_install}
-        end
-      end
+           {:exists?, Queries.retrieve_trigger_uuid(client, trigger_name)},
+         simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
+         trigger = build_trigger(trigger_name, simple_trigger_maps, action),
+         %Trigger{trigger_uuid: trigger_uuid} = trigger,
+         target = build_trigger_target_container("trigger_engine", trigger_uuid),
+         # TODO: these should be batched together
+         :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, target) do
+      Queries.install_trigger(client, trigger)
     else
       {:exists?, _} ->
         {:error, :already_installed_trigger}
@@ -453,6 +401,77 @@ defmodule Astarte.RealmManagement.Engine do
       any ->
         any
     end
+  end
+
+  defp build_simple_trigger_maps(serialized_tagged_simple_triggers) do
+    for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
+      %TaggedSimpleTrigger{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_container: simple_trigger_container
+      } = TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
+
+      %{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_uuid: :uuid.get_v4(),
+        simple_trigger: simple_trigger_container
+      }
+    end
+  end
+
+  defp build_trigger(trigger_name, simple_trigger_maps, action) do
+    simple_trigger_uuids =
+      for simple_trigger_map <- simple_trigger_maps do
+        simple_trigger_map[:simple_trigger_uuid]
+      end
+
+    %Trigger{
+      trigger_uuid: :uuid.get_v4(),
+      simple_triggers_uuids: simple_trigger_uuids,
+      action: action,
+      name: trigger_name
+    }
+  end
+
+  defp build_trigger_target_container(routing_key, trigger_uuid) do
+    %TriggerTargetContainer{
+      trigger_target: {
+        :amqp_trigger_target,
+        %AMQPTriggerTarget{
+          routing_key: routing_key,
+          parent_trigger_id: trigger_uuid
+        }
+      }
+    }
+  end
+
+  defp install_simple_triggers(client, simple_trigger_maps, trigger_uuid, trigger_target) do
+    Enum.reduce_while(simple_trigger_maps, :ok, fn
+      simple_trigger_map, _acc ->
+        %{
+          object_id: object_id,
+          object_type: object_type,
+          simple_trigger_uuid: simple_trigger_uuid,
+          simple_trigger: simple_trigger_container
+        } = simple_trigger_map
+
+        case Queries.install_simple_trigger(
+               client,
+               object_id,
+               object_type,
+               trigger_uuid,
+               simple_trigger_uuid,
+               simple_trigger_container,
+               trigger_target
+             ) do
+          :ok ->
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+    end)
   end
 
   def get_trigger(realm_name, trigger_name) do
