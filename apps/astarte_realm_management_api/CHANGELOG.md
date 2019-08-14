@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Use updated interface validation: object aggregated properties interfaces are not valid.
 - Use updated interface validation: server owned object aggregated interfaces are not yet supported, hence not valid.
+- Trying to create a trigger with an already taken name now fails gracefully with an error instead of crashing.
 
 ## [0.10.0] - 2019-04-16
 
