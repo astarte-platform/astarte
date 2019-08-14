@@ -24,6 +24,8 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
@@ -391,6 +393,7 @@ defmodule Astarte.RealmManagement.Engine do
          trigger = build_trigger(trigger_name, simple_trigger_maps, action),
          %Trigger{trigger_uuid: trigger_uuid} = trigger,
          target = build_trigger_target_container("trigger_engine", trigger_uuid),
+         :ok <- validate_simple_triggers(client, simple_trigger_maps),
          # TODO: these should be batched together
          :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, target) do
       Queries.install_trigger(client, trigger)
@@ -444,6 +447,56 @@ defmodule Astarte.RealmManagement.Engine do
         }
       }
     }
+  end
+
+  defp validate_simple_triggers(client, simple_trigger_maps) do
+    Enum.reduce_while(simple_trigger_maps, :ok, fn
+      %{simple_trigger: simple_trigger_container}, _acc ->
+        %SimpleTriggerContainer{simple_trigger: {_tag, simple_trigger}} = simple_trigger_container
+
+        case validate_simple_trigger(client, simple_trigger) do
+          :ok ->
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+    end)
+  end
+
+  defp validate_simple_trigger(_client, %DataTrigger{interface_name: "*"}) do
+    # TODO: we ignore catch-all interface triggers for now
+    :ok
+  end
+
+  defp validate_simple_trigger(client, %DataTrigger{} = data_trigger) do
+    %DataTrigger{
+      interface_name: interface_name,
+      interface_major: interface_major,
+      value_match_operator: match_operator,
+      match_path: match_path,
+      data_trigger_type: data_trigger_type
+    } = data_trigger
+
+    # This will fail with {:error, :interface_not_found} if the interface does not exist
+    with {:ok, interface} <- Queries.fetch_interface(client, interface_name, interface_major) do
+      case interface.aggregation do
+        :individual ->
+          :ok
+
+        :object ->
+          if data_trigger_type != :INCOMING_DATA or match_operator != :ANY or match_path != "/*" do
+            {:error, :invalid_object_aggregation_trigger}
+          else
+            :ok
+          end
+      end
+    end
+  end
+
+  defp validate_simple_trigger(_client, _other_trigger) do
+    # TODO: validate DeviceTrigger and IntrospectionTrigger
+    :ok
   end
 
   defp install_simple_triggers(client, simple_trigger_maps, trigger_uuid, trigger_target) do
