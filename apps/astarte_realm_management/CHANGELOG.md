@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Trigger validation, checks that the interface is existing and performs validation on object aggregation triggers.
 
 ## [0.10.1] - Unreleased
 ### Fixed
