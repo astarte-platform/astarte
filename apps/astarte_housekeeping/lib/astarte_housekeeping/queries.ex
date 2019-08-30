@@ -72,6 +72,8 @@ defmodule Astarte.Housekeeping.Queries do
         last_credentials_request_ip inet,
         last_seen_ip inet,
 
+        groups map<text, timeuuid>,
+
         PRIMARY KEY (device_id)
       );
     """,
@@ -152,6 +154,15 @@ defmodule Astarte.Housekeeping.Queries do
         trigger_target blob,
 
         PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
+      );
+    """,
+    """
+      CREATE TABLE :realm_name.grouped_devices (
+        group_name varchar,
+        insertion_uuid timeuuid,
+        device_id uuid,
+
+        PRIMARY KEY ((group_name), insertion_uuid, device_id)
       );
     """,
     """

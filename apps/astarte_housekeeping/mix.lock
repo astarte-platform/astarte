@@ -3,7 +3,7 @@
   "amqp_client": {:hex, :amqp_client, "3.7.15", "99c46aad3406199f9aec95356f43fa73f28af2fc9da1de5b601367231e37992c", [:make, :rebar3], [{:rabbit_common, "3.7.15", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
   "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "ceb1e26c3c551ae2b6ff4d4a467ffe73093112d1", []},
   "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "d3fa2210fbe3b3d3942a8be10732c0fb6334d048", []},
-  "astarte_rpc": {:git, "https://github.com/astarte-platform/astarte_rpc.git", "11ba354fd3ea4c646784f2bd8be319a9cc1f9b78", []},
+  "astarte_rpc": {:git, "https://github.com/astarte-platform/astarte_rpc.git", "cdce4e41ec9bf538141acac4d2c21e5f5ed1db65", []},
   "certifi": {:hex, :certifi, "2.5.1", "867ce347f7c7d78563450a18a6a28a8090331e77fa02380b4a21962a65d36ee5", [:rebar3], [{:parse_trans, "~>3.3", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
   "cqerl": {:git, "https://github.com/matehat/cqerl.git", "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", [ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9"]},
