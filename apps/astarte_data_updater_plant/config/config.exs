@@ -11,7 +11,7 @@ config :lager,
 # make amqp supervisors logs less verbose
 config :logger, handle_otp_reports: false
 
-config :astarte_data_updater_plant, :queue_name, "vmq_all"
+config :astarte_data_updater_plant, :data_queue_prefix, "astarte_data_"
 
 config :astarte_data_updater_plant, :amqp_consumer_options,
   host: "localhost",

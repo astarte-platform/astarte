@@ -26,8 +26,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   alias AMQP.Queue
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater
-
-  @connection_backoff 10000
+  alias Astarte.DataUpdaterPlant.AMQPDataConsumer.ConnectionManager
 
   @msg_type_header "x_astarte_msg_type"
   @realm_header "x_astarte_realm"
@@ -40,28 +39,31 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   # API
 
   def start_link(args \\ []) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args)
   end
 
-  def ack(delivery_tag) do
+  def ack(pid, delivery_tag) do
     Logger.debug("Going to ack #{inspect(delivery_tag)}")
-    GenServer.call(__MODULE__, {:ack, delivery_tag})
+    GenServer.call(pid, {:ack, delivery_tag})
   end
 
-  def discard(delivery_tag) do
+  def discard(pid, delivery_tag) do
     Logger.debug("Going to discard #{inspect(delivery_tag)}")
-    GenServer.call(__MODULE__, {:discard, delivery_tag})
+    GenServer.call(pid, {:discard, delivery_tag})
   end
 
-  def requeue(delivery_tag) do
+  def requeue(pid, delivery_tag) do
     Logger.debug("Going to requeue #{inspect(delivery_tag)}")
-    GenServer.call(__MODULE__, {:requeue, delivery_tag})
+    GenServer.call(pid, {:requeue, delivery_tag})
   end
 
   # Server callbacks
 
-  def init(_args) do
-    rabbitmq_connect(false)
+  def init(args) do
+    queue_name = Keyword.fetch!(args, :queue_name)
+    # Init asynchronously since we will wait for the AMQP connection
+    send(self(), {:async_init, queue_name})
+    {:ok, nil}
   end
 
   def terminate(reason, %Channel{conn: conn} = chan) do
@@ -120,57 +122,36 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     {:noreply, chan}
   end
 
-  def handle_info({:try_to_connect}, _state) do
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
+  def handle_info({:async_init, queue_name}, _state) do
+    # This will block until Rabbit connection is up
+    rabbitmq_connection = ConnectionManager.get_connection()
+
+    {:ok, chan} = initialize_chan(rabbitmq_connection, queue_name)
+
+    {:noreply, chan}
   end
 
   # Make sure to handle monitored message trackers exit messages
   # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
-  def handle_info({:DOWN, _, :process, pid, reason}, state) do
-    if state.conn.pid == pid do
-      Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-      {:ok, new_state} = rabbitmq_connect()
-      {:noreply, new_state}
-    else
-      Logger.warn(
-        "A message tracker has crashed (with reason #{inspect(reason)}), stopping AMQPDataConsumer."
-      )
-
-      Channel.close(state)
-      Connection.close(state.conn)
-
-      {:stop, :message_tracker_failure}
-    end
+  def handle_info({:DOWN, _, :process, _pid, reason}, state) do
+    # Channel went down, stop the process
+    Logger.warn("AMQP channel crashed, reason: #{inspect(reason)}")
+    Channel.close(state)
+    {:stop, reason}
   end
 
-  defp rabbitmq_connect(retry \\ true) do
-    with {:ok, conn} <- Connection.open(Config.amqp_consumer_options()),
-         # Get notifications when the connection goes down
-         Process.monitor(conn.pid),
-         {:ok, chan} <- Channel.open(conn),
+  defp initialize_chan(rabbitmq_connection, queue_name) do
+    with {:ok, chan} <- Channel.open(rabbitmq_connection),
+         # Get a message if the channel goes down
+         Process.monitor(chan.pid),
          :ok <- Basic.qos(chan, prefetch_count: Config.amqp_consumer_prefetch_count()),
-         {:ok, _queue} <- Queue.declare(chan, Config.queue_name(), durable: true),
-         {:ok, _consumer_tag} <- Basic.consume(chan, Config.queue_name()) do
+         {:ok, _queue} <- Queue.declare(chan, queue_name, durable: true),
+         {:ok, _consumer_tag} <- Basic.consume(chan, queue_name) do
       {:ok, chan}
     else
       {:error, reason} ->
-        Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
-        maybe_retry(retry)
-
-      :error ->
-        Logger.warn("Unknown RabbitMQ connection error")
-        maybe_retry(retry)
-    end
-  end
-
-  defp maybe_retry(retry) do
-    if retry do
-      Logger.warn("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), {:try_to_connect})
-      {:ok, :not_connected}
-    else
-      {:stop, :connection_failed}
+        Logger.warn("Error initializing AMQPDataConsumer: #{inspect(reason)}")
+        {:stop, reason}
     end
   end
 

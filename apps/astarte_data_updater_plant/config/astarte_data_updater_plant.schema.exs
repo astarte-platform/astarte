@@ -156,14 +156,35 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_data_updater_plant.amqp_events_exchange_name"
     ],
-    queue_name: [
+    data_queue_prefix: [
       commented: true,
       datatype: :binary,
-      default: "vmq_all",
-      env_var: "DATA_UPDATER_PLANT_AMQP_QUEUE_NAME",
-      doc: "The queue used by the AMQP consumer to consume data.",
+      required: false,
+      default: "astarte_data_",
+      env_var: "DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_PREFIX",
+      doc: "The prefix used to contruct data queue names, together with queue indexes.",
       hidden: false,
-      to: "astarte_data_updater_plant.queue_name"
+      to: "astarte_data_updater_plant.data_queue_prefix"
+    ],
+    data_queue_range_start: [
+      commented: true,
+      datatype: :integer,
+      required: false,
+      default: 0,
+      env_var: "DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_RANGE_START",
+      doc: "The first queue index that is handled by this Data Updater Plant instance",
+      hidden: false,
+      to: "astarte_data_updater_plant.data_queue_range_start"
+    ],
+    data_queue_range_end: [
+      commented: true,
+      datatype: :integer,
+      required: false,
+      default: 0,
+      env_var: "DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_RANGE_END",
+      doc: "The last queue index that is handled by this Data Updater Plant instance",
+      hidden: false,
+      to: "astarte_data_updater_plant.data_queue_range_end"
     ],
     "amqp_consumer.prefetch_count": [
       commented: true,

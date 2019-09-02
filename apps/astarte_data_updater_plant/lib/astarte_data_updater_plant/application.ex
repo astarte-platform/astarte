@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
   use Application
 
-  alias Astarte.DataUpdaterPlant.AMQPDataConsumer
+  alias Astarte.DataUpdaterPlant.ConsumersSupervisor
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
   alias Astarte.DataUpdaterPlant.RPC.Handler
 
@@ -34,7 +34,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
     children = [
       {Registry, [keys: :unique, name: Registry.MessageTracker]},
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
-      AMQPDataConsumer,
+      ConsumersSupervisor,
       AMQPEventsProducer,
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.RPC.AMQP.Client
