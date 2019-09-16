@@ -1,0 +1,190 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2019 Ispirata Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
+  use Astarte.AppEngine.APIWeb.ConnCase
+
+  alias Astarte.AppEngine.API.DatabaseTestHelper
+  alias Astarte.AppEngine.API.JWTTestHelper
+
+  @realm "autotestrealm"
+  @group_name "mygroup"
+  @group_devices [
+    "f0VMRgIBAQAAAAAAAAAAAA",
+    "olFkumNuZ_J0f_d6-8XCDg"
+  ]
+
+  setup_all do
+    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+
+    on_exit(fn ->
+      DatabaseTestHelper.destroy_local_test_keyspace()
+    end)
+
+    :ok
+  end
+
+  setup %{conn: conn} do
+    DatabaseTestHelper.seed_data()
+
+    authorized_conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("authorization", "bearer #{JWTTestHelper.gen_jwt_all_access_token()}")
+
+    {:ok, conn: authorized_conn}
+  end
+
+  describe "index" do
+    test "returns 403 on unexisting realm", %{conn: conn} do
+      conn = get(conn, groups_path(conn, :index, "unexisting"))
+
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
+    end
+
+    test "returns an empty list on empty realm", %{conn: conn} do
+      conn = get(conn, groups_path(conn, :index, @realm))
+
+      assert json_response(conn, 200)["data"] == []
+    end
+
+    test "returns the groups on a populated realm", %{conn: conn} do
+      params = %{
+        "group_name" => @group_name,
+        "devices" => @group_devices
+      }
+
+      create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(create_conn, 201)["data"] == params
+
+      list_conn = get(conn, groups_path(conn, :index, @realm))
+
+      assert json_response(list_conn, 200)["data"] == [@group_name]
+    end
+  end
+
+  describe "create" do
+    test "rejects invalid group name", %{conn: conn} do
+      params = %{
+        "group_name" => "astarte_reserved_group",
+        "devices" => @group_devices
+      }
+
+      conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(conn, 422)["errors"]["group_name"] != nil
+    end
+
+    test "rejects group names with astarte prefix", %{conn: conn} do
+      params = %{
+        "group_name" => "astarte-group",
+        "devices" => @group_devices
+      }
+
+      conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(conn, 422)["errors"]["group_name"] != nil
+    end
+
+    test "rejects empty devices", %{conn: conn} do
+      params = %{
+        "group_name" => @group_name,
+        "devices" => []
+      }
+
+      conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(conn, 422)["errors"]["devices"] != nil
+    end
+
+    test "doesn't create group if a device doesn't exist", %{conn: conn} do
+      params = %{
+        "group_name" => @group_name,
+        "devices" => [
+          "2uL21mYBQsWVik8declWQQ"
+          | @group_devices
+        ]
+      }
+
+      create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(create_conn, 422)["errors"]["devices"] != nil
+
+      show_conn = get(conn, groups_path(conn, :show, @realm, @group_name))
+
+      assert json_response(show_conn, 404)
+    end
+
+    test "creates the group with valid parameters", %{conn: conn} do
+      params = %{
+        "group_name" => @group_name,
+        "devices" => @group_devices
+      }
+
+      create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(create_conn, 201)["data"] == params
+
+      show_conn = get(conn, groups_path(conn, :show, @realm, @group_name))
+
+      assert json_response(show_conn, 200)["data"]["group_name"] == @group_name
+    end
+
+    test "rejects an already existing group", %{conn: conn} do
+      params = %{
+        "group_name" => @group_name,
+        "devices" => @group_devices
+      }
+
+      create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(create_conn, 201)["data"] == params
+
+      create_again_conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(create_again_conn, 409)["errors"] != nil
+    end
+
+    test "creates the group with / in group name", %{conn: conn} do
+      group_name = "world/europe/italy"
+      encoded_group_name = "world%2Feurope%2Fitaly"
+
+      params = %{
+        "group_name" => group_name,
+        "devices" => @group_devices
+      }
+
+      create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
+
+      assert json_response(create_conn, 201)["data"] == params
+
+      show_conn = get(conn, groups_path(conn, :show, @realm, encoded_group_name))
+
+      assert json_response(show_conn, 200)["data"]["group_name"] == group_name
+    end
+  end
+
+  describe "show" do
+    test "returns 404 for non-existing group", %{conn: conn} do
+      conn = get(conn, groups_path(conn, :show, @realm, "nonexisting"))
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Group not found"
+    end
+  end
+end
