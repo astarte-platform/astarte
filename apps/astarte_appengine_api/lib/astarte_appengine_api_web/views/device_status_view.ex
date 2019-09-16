@@ -58,7 +58,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
       last_credentials_request_ip: device_status.last_credentials_request_ip,
       first_registration: device_status.first_registration,
       first_credentials_request: device_status.first_credentials_request,
-      aliases: device_status.aliases
+      aliases: device_status.aliases,
+      groups: device_status.groups
     }
   end
 

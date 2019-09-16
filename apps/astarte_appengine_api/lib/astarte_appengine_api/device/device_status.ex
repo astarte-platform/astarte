@@ -28,6 +28,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     :last_credentials_request_ip,
     :last_seen_ip,
     :total_received_msgs,
-    :total_received_bytes
+    :total_received_bytes,
+    :groups
   ]
 end
