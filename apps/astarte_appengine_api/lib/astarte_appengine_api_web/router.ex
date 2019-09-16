@@ -40,6 +40,10 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     resources "/:realm_name/devices-by-alias/:device_alias/interfaces",
               InterfaceValuesByDeviceAliasController,
               except: [:new, :edit]
+
+    get "/:realm_name/groups", GroupsController, :index
+    post "/:realm_name/groups", GroupsController, :create
+    get "/:realm_name/groups/:group_name", GroupsController, :show
   end
 
   scope "/swagger" do
