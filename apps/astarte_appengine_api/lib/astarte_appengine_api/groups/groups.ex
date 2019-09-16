@@ -37,4 +37,8 @@ defmodule Astarte.AppEngine.API.Groups do
   def get_group(realm_name, group_name) do
     Queries.get_group(realm_name, group_name)
   end
+
+  def list_devices(realm_name, group_name) do
+    Queries.list_devices(realm_name, group_name)
+  end
 end
