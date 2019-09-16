@@ -93,6 +93,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"404_path")
   end
 
+  def call(conn, {:error, :group_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"404_group")
+  end
+
   def call(conn, {:error, :group_already_exists}) do
     conn
     |> put_status(:conflict)
