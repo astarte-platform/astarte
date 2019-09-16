@@ -76,4 +76,12 @@ defmodule Astarte.AppEngine.API.Config do
   def rpc_client do
     Application.get_env(:astarte_appengine_api, :rpc_client, Astarte.RPC.AMQP.Client)
   end
+
+  @doc """
+  Returns cassandra nodes formatted in the Xandra format
+  """
+  def xandra_nodes do
+    Application.get_env(:cqerl, :cassandra_nodes, [{"localhost", "9042"}])
+    |> Enum.map(fn {host, port} -> "#{host || "localhost"}:#{port || 9042}" end)
+  end
 end
