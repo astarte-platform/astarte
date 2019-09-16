@@ -39,4 +39,14 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
       |> render("create.json", group: group)
     end
   end
+
+  def show(conn, %{"realm_name" => realm_name, "group_name" => group_name}) do
+    # group_name is urlencoded to allow characters like / to be used in the
+    # group name
+    decoded_group_name = URI.decode(group_name)
+
+    with {:ok, group} <- Groups.get_group(realm_name, decoded_group_name) do
+      render(conn, "show.json", group: group)
+    end
+  end
 end
