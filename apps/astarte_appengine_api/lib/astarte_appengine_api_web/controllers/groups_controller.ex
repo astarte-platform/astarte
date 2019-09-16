@@ -26,6 +26,12 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
+  def index(conn, %{"realm_name" => realm_name}) do
+    with {:ok, groups} <- Groups.list_groups(realm_name) do
+      render(conn, "index.json", groups: groups)
+    end
+  end
+
   def create(conn, %{"realm_name" => realm_name, "data" => params}) do
     with {:ok, %Group{} = group} <- Groups.create_group(realm_name, params) do
       conn
