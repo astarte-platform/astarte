@@ -62,6 +62,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Path not found"}}
   end
 
+  def render("404_group.json", _assigns) do
+    %{errors: %{detail: "Group not found"}}
+  end
+
   def render("409_group_already_exists.json", _assigns) do
     %{errors: %{detail: "Group already exists"}}
   end
