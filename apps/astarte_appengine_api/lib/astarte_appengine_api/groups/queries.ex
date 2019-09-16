@@ -49,6 +49,21 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end)
   end
 
+  def list_groups(realm_name) do
+    Xandra.Cluster.run(:xandra, fn conn ->
+      query = "SELECT DISTINCT group_name FROM :realm.grouped_devices"
+
+      with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
+           {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
+        {:ok, Enum.map(page, fn %{"group_name" => group_name} -> group_name end)}
+      else
+        {:error, reason} ->
+          Logger.warn("list_groups error: #{inspect(reason)}")
+          {:error, :database_error}
+      end
+    end)
+  end
+
   defp check_all_devices_exist(_conn, _realm_name, []) do
     :ok
   end
