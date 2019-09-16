@@ -41,4 +41,10 @@ defmodule Astarte.AppEngine.APIWeb.GroupsView do
       }
     }
   end
+
+  def render("devices_index.json", %{devices: devices}) do
+    %{
+      data: devices
+    }
+  end
 end
