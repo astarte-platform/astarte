@@ -45,6 +45,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     post "/:realm_name/groups", GroupsController, :create
     get "/:realm_name/groups/:group_name", GroupsController, :show
     get "/:realm_name/groups/:group_name/devices", GroupsController, :devices_index
+    post "/:realm_name/groups/:group_name/devices", GroupsController, :add_device
   end
 
   scope "/swagger" do
