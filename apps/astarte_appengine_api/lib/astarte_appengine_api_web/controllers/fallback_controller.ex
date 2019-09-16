@@ -107,6 +107,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"409_group_already_exists")
   end
 
+  def call(conn, {:error, :device_already_in_group}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"409_device_already_in_group")
+  end
+
   def call(conn, {:error, :read_only_resource}) do
     conn
     |> put_status(:forbidden)
