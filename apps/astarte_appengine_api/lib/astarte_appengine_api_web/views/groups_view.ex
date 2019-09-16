@@ -19,6 +19,12 @@
 defmodule Astarte.AppEngine.APIWeb.GroupsView do
   use Astarte.AppEngine.APIWeb, :view
 
+  def render("index.json", %{groups: groups}) do
+    %{
+      data: groups
+    }
+  end
+
   def render("create.json", %{group: group}) do
     %{
       data: %{
