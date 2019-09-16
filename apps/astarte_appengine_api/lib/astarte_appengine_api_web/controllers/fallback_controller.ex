@@ -93,6 +93,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"404_path")
   end
 
+  def call(conn, {:error, :group_already_exists}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"409_group_already_exists")
+  end
+
   def call(conn, {:error, :read_only_resource}) do
     conn
     |> put_status(:forbidden)
