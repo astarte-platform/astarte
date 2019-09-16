@@ -115,6 +115,49 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end)
   end
 
+  def add_device(realm_name, group_name, device_changeset) do
+    Xandra.Cluster.run(:xandra, fn conn ->
+      with {:ok, %{device_id: device_id}} <-
+             Ecto.Changeset.apply_action(device_changeset, :insert),
+           {:group_exists?, true} <-
+             {:group_exists?, group_exists?(conn, realm_name, group_name)},
+           :ok <- check_valid_device_for_group(conn, realm_name, group_name, device_id),
+           :ok <- add_to_group(conn, realm_name, group_name, [device_id]) do
+        :ok
+      else
+        {:group_exists?, false} ->
+          {:error, :group_not_found}
+
+        {:error, :device_not_found} ->
+          error_changeset =
+            device_changeset
+            |> Ecto.Changeset.add_error(:device_id, "does not exist")
+
+          {:error, error_changeset}
+
+        {:error, %Ecto.Changeset{} = error_changeset} ->
+          {:error, error_changeset}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end)
+  end
+
+  defp check_valid_device_for_group(conn, realm_name, group_name, device_id) do
+    with {:exists?, true} <- {:exists?, device_exists?(conn, realm_name, device_id)},
+         {:in_group?, false} <-
+           {:in_group?, device_in_group?(conn, realm_name, group_name, device_id)} do
+      :ok
+    else
+      {:exists?, false} ->
+        {:error, :device_not_found}
+
+      {:in_group?, true} ->
+        {:error, :device_already_in_group}
+    end
+  end
+
   defp check_all_devices_exist(_conn, _realm_name, []) do
     :ok
   end
@@ -157,6 +200,31 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     else
       {:error, reason} ->
         Logger.warn("device_exists? returned an error: #{inspect(reason)}")
+        false
+
+      [] ->
+        false
+    end
+  end
+
+  defp device_in_group?(conn, realm_name, group_name, encoded_device_id) do
+    query = """
+      SELECT groups
+      FROM :realm.devices
+      WHERE device_id = :device_id
+    """
+
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
+         {:ok, %Xandra.Page{} = page} <-
+           Xandra.execute(conn, prepared, %{"device_id" => device_id}),
+         [%{"groups" => groups}] <- Enum.to_list(page) do
+      # groups could be nil if it was never set, use a default empty map
+      (groups || %{})
+      |> Map.has_key?(group_name)
+    else
+      {:error, reason} ->
+        Logger.warn("device_in_group? returned an error: #{inspect(reason)}")
         false
 
       [] ->
