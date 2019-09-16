@@ -57,4 +57,12 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
       render(conn, "devices_index.json", devices: devices)
     end
   end
+
+  def add_device(conn, %{"realm_name" => realm_name, "group_name" => group_name, "data" => params}) do
+    decoded_group_name = URI.decode(group_name)
+
+    with :ok <- Groups.add_device(realm_name, decoded_group_name, params) do
+      send_resp(conn, :created, "")
+    end
+  end
 end
