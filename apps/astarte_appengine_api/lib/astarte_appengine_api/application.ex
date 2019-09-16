@@ -21,6 +21,8 @@ defmodule Astarte.AppEngine.API.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    alias Astarte.AppEngine.API.Config
+
     import Supervisor.Spec
 
     # Define workers and child supervisors to be supervised
@@ -28,7 +30,8 @@ defmodule Astarte.AppEngine.API.Application do
       supervisor(Astarte.RPC.AMQP.Client, []),
       supervisor(Astarte.AppEngine.API.Rooms.MasterSupervisor, []),
       supervisor(Astarte.AppEngine.API.Rooms.AMQPClient, []),
-      supervisor(Astarte.AppEngine.APIWeb.Endpoint, [])
+      supervisor(Astarte.AppEngine.APIWeb.Endpoint, []),
+      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
