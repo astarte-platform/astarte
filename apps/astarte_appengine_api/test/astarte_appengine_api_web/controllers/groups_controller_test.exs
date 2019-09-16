@@ -21,6 +21,8 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
 
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.DeviceStatus
 
   @realm "autotestrealm"
   @group_name "mygroup"
@@ -144,6 +146,11 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
       show_conn = get(conn, groups_path(conn, :show, @realm, @group_name))
 
       assert json_response(show_conn, 200)["data"]["group_name"] == @group_name
+
+      for device <- @group_devices do
+        {:ok, %DeviceStatus{groups: groups}} = Device.get_device_status!(@realm, device)
+        assert groups == [@group_name]
+      end
     end
 
     test "rejects an already existing group", %{conn: conn} do
