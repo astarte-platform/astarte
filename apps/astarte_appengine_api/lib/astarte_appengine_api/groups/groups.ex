@@ -29,4 +29,8 @@ defmodule Astarte.AppEngine.API.Groups do
 
     Queries.create_group(realm_name, changeset)
   end
+
+  def list_groups(realm_name) do
+    Queries.list_groups(realm_name)
+  end
 end
