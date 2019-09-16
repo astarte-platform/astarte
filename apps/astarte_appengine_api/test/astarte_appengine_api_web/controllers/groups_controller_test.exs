@@ -23,6 +23,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.API.Groups
 
   @realm "autotestrealm"
   @group_name "mygroup"
@@ -220,5 +221,68 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
         assert Enum.member?(devices, device)
       end
     end
+  end
+
+  describe "add device" do
+    setup [:create_group]
+
+    test "returns 404 for non-existing group", %{conn: conn} do
+      params = %{
+        "device_id" => "aWag-VlVKC--1S-vfzZ9uQ"
+      }
+
+      conn = post(conn, groups_path(conn, :add_device, @realm, "nonexisting"), data: params)
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Group not found"
+    end
+
+    test "fails with non-existing device", %{conn: conn} do
+      params = %{
+        "device_id" => "X-Qv0zPMRfiWEXUMHZFNVw"
+      }
+
+      conn = post(conn, groups_path(conn, :add_device, @realm, @group_name), data: params)
+
+      assert json_response(conn, 422)["errors"]["device_id"] != nil
+    end
+
+    test "returns 409 for duplicate device", %{conn: conn} do
+      params = %{
+        "device_id" => "f0VMRgIBAQAAAAAAAAAAAA"
+      }
+
+      conn = post(conn, groups_path(conn, :add_device, @realm, @group_name), data: params)
+
+      assert json_response(conn, 409)["errors"]["detail"] == "Device already in group"
+    end
+
+    test "succeeds with valid params", %{conn: conn} do
+      device_id = "aWag-VlVKC--1S-vfzZ9uQ"
+
+      params = %{
+        "device_id" => device_id
+      }
+
+      create_conn = post(conn, groups_path(conn, :add_device, @realm, @group_name), data: params)
+
+      assert response(create_conn, 201)
+
+      devices_index_conn = get(conn, groups_path(conn, :devices_index, @realm, @group_name))
+
+      assert Enum.member?(json_response(devices_index_conn, 200)["data"], device_id)
+
+      {:ok, %DeviceStatus{groups: groups}} = Device.get_device_status!(@realm, device_id)
+      assert groups == [@group_name]
+    end
+  end
+
+  defp create_group(_context) do
+    params = %{
+      "group_name" => @group_name,
+      "devices" => @group_devices
+    }
+
+    {:ok, _} = Groups.create_group(@realm, params)
+    :ok
   end
 end
