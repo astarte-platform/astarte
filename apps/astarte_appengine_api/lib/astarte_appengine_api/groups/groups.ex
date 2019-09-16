@@ -23,6 +23,7 @@ defmodule Astarte.AppEngine.API.Groups do
 
   alias Astarte.AppEngine.API.Groups.Group
   alias Astarte.AppEngine.API.Groups.Queries
+  alias Astarte.Core.Device
 
   def create_group(realm_name, params) do
     changeset = Group.changeset(%Group{}, params)
@@ -40,5 +41,21 @@ defmodule Astarte.AppEngine.API.Groups do
 
   def list_devices(realm_name, group_name) do
     Queries.list_devices(realm_name, group_name)
+  end
+
+  def add_device(realm_name, group_name, params) do
+    types = %{device_id: :string}
+
+    changeset =
+      {%{}, types}
+      |> Ecto.Changeset.cast(params, [:device_id])
+      |> Ecto.Changeset.validate_change(:device_id, fn :device_id, device_id ->
+        case Device.decode_device_id(device_id) do
+          {:ok, _decoded} -> []
+          {:error, _reason} -> [device_id: "is not a valid device id"]
+        end
+      end)
+
+    Queries.add_device(realm_name, group_name, changeset)
   end
 end
