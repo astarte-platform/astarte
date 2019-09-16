@@ -47,6 +47,15 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     );
   """
 
+  @create_groups_table """
+    CREATE TABLE autotestrealm.grouped_devices (
+      group_name varchar,
+      insertion_time timeuuid,
+      device_id uuid,
+      PRIMARY KEY ((group_name), insertion_time, device_id)
+    );
+  """
+
   @create_devices_table """
       CREATE TABLE autotestrealm.devices (
         device_id uuid,
@@ -68,6 +77,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         total_received_bytes bigint,
         last_credentials_request_ip inet,
         last_seen_ip inet,
+        groups map<text, timeuuid>,
 
         PRIMARY KEY (device_id)
       );
@@ -392,6 +402,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
 
         DatabaseQuery.call!(client, @create_names_table)
 
+        DatabaseQuery.call!(client, @create_groups_table)
+
         DatabaseQuery.call!(client, @create_kv_store)
 
         DatabaseQuery.call!(client, @create_endpoints_table)
@@ -428,7 +440,15 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     {:ok, client} = Database.connect()
 
     Enum.each(
-      ["interfaces", "endpoints", "individual_properties", "individual_datastreams", "kv_store"],
+      [
+        "interfaces",
+        "endpoints",
+        "individual_properties",
+        "individual_datastreams",
+        "kv_store",
+        "devices",
+        "grouped_devices"
+      ],
       fn table ->
         DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
       end
