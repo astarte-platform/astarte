@@ -33,4 +33,12 @@ defmodule Astarte.AppEngine.APIWeb.GroupsView do
       }
     }
   end
+
+  def render("show.json", %{group: group}) do
+    %{
+      data: %{
+        group_name: group.group_name
+      }
+    }
+  end
 end
