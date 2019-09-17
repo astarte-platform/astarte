@@ -58,4 +58,8 @@ defmodule Astarte.AppEngine.API.Groups do
 
     Queries.add_device(realm_name, group_name, changeset)
   end
+
+  def remove_device(realm_name, group_name, device_id) do
+    Queries.remove_device(realm_name, group_name, device_id)
+  end
 end
