@@ -31,6 +31,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
     "f0VMRgIBAQAAAAAAAAAAAA",
     "olFkumNuZ_J0f_d6-8XCDg"
   ]
+  @device_id_in_group "olFkumNuZ_J0f_d6-8XCDg"
 
   setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
@@ -273,6 +274,65 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
 
       {:ok, %DeviceStatus{groups: groups}} = Device.get_device_status!(@realm, device_id)
       assert groups == [@group_name]
+    end
+  end
+
+  describe "delete device" do
+    setup [:create_group]
+
+    test "returns 404 for non-existing group", %{conn: conn} do
+      conn =
+        delete(
+          conn,
+          groups_path(conn, :remove_device, @realm, "nonexisting", @device_id_in_group)
+        )
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Group not found"
+    end
+
+    test "returns 404 for non-existing device", %{conn: conn} do
+      conn =
+        delete(
+          conn,
+          groups_path(conn, :remove_device, @realm, @group_name, "agtp2h0srgcaqcsqnnkmnw")
+        )
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
+    end
+
+    test "succesfully delete device", %{conn: conn} do
+      delete_conn =
+        delete(
+          conn,
+          groups_path(conn, :remove_device, @realm, @group_name, @device_id_in_group)
+        )
+
+      assert response(delete_conn, 204)
+
+      devices_index_conn = get(conn, groups_path(conn, :devices_index, @realm, @group_name))
+
+      assert not Enum.member?(json_response(devices_index_conn, 200)["data"], @device_id_in_group)
+
+      {:ok, %DeviceStatus{groups: groups}} =
+        Device.get_device_status!(@realm, @device_id_in_group)
+
+      assert not Enum.member?(groups, @group_name)
+    end
+
+    test "deletes group if all devices are deleted", %{conn: conn} do
+      for device <- @group_devices do
+        delete_conn =
+          delete(
+            conn,
+            groups_path(conn, :remove_device, @realm, @group_name, device)
+          )
+
+        assert response(delete_conn, 204)
+      end
+
+      show_conn = get(conn, groups_path(conn, :show, @realm, @group_name))
+
+      assert json_response(show_conn, 404)["errors"]["detail"] == "Group not found"
     end
   end
 
