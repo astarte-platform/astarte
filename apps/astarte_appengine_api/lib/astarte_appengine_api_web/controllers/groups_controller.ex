@@ -65,4 +65,16 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
       send_resp(conn, :created, "")
     end
   end
+
+  def remove_device(conn, %{
+        "realm_name" => realm_name,
+        "group_name" => group_name,
+        "device_id" => device_id
+      }) do
+    decoded_group_name = URI.decode(group_name)
+
+    with :ok <- Groups.remove_device(realm_name, decoded_group_name, device_id) do
+      send_resp(conn, :no_content, "")
+    end
+  end
 end
