@@ -144,6 +144,22 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end)
   end
 
+  def remove_device(realm_name, group_name, device_id) do
+    Xandra.Cluster.run(:xandra, fn conn ->
+      with {:group_exists?, true} <-
+             {:group_exists?, group_exists?(conn, realm_name, group_name)},
+           :ok <- remove_from_group(conn, realm_name, group_name, device_id) do
+        :ok
+      else
+        {:group_exists?, false} ->
+          {:error, :group_not_found}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end)
+  end
+
   defp check_valid_device_for_group(conn, realm_name, group_name, device_id) do
     with {:exists?, true} <- {:exists?, device_exists?(conn, realm_name, device_id)},
          {:in_group?, false} <-
@@ -229,6 +245,80 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
       [] ->
         false
+    end
+  end
+
+  defp remove_from_group(conn, realm_name, group_name, encoded_device_id) do
+    device_query = """
+      UPDATE :realm.devices
+      SET groups = groups - :group_name_set
+      WHERE device_id = :device_id
+    """
+
+    grouped_devices_query = """
+      DELETE FROM :realm.grouped_devices
+      WHERE group_name = :group_name
+      AND insertion_time = :insertion_time
+      AND device_id = :device_id
+    """
+
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, insertion_time} <-
+           retrieve_group_insertion_time(conn, realm_name, group_name, device_id),
+         {:ok, device_prepared} <- prepare_with_realm(conn, realm_name, device_query),
+         {:ok, grouped_devices_prepared} <-
+           prepare_with_realm(conn, realm_name, grouped_devices_query),
+         batch =
+           Xandra.Batch.new()
+           |> Xandra.Batch.add(device_prepared, %{
+             "group_name_set" => MapSet.new([group_name]),
+             "device_id" => device_id
+           })
+           |> Xandra.Batch.add(grouped_devices_prepared, %{
+             "group_name" => group_name,
+             "insertion_time" => insertion_time,
+             "device_id" => device_id
+           }),
+         {:ok, %Xandra.Void{}} <- Xandra.execute(conn, batch) do
+      :ok
+    else
+      {:error, :invalid_device_id} ->
+        {:error, :device_not_found}
+
+      {:error, :device_not_found} ->
+        {:error, :device_not_found}
+
+      {:error, reason} ->
+        Logger.warn("add_to_group error: #{inspect(reason)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp retrieve_group_insertion_time(conn, realm_name, group_name, device_id) do
+    query = """
+      SELECT groups
+      FROM :realm.devices
+      WHERE device_id = :device_id
+    """
+
+    with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
+         {:ok, %Xandra.Page{} = page} <-
+           Xandra.execute(conn, prepared, %{"device_id" => device_id}),
+         [%{"groups" => groups}] <- Enum.to_list(page),
+         {:ok, insertion_time} <- Map.fetch(groups || %{}, group_name) do
+      {:ok, insertion_time}
+    else
+      [] ->
+        # Device is not present in realm
+        {:error, :device_not_found}
+
+      :error ->
+        # Device was not in group
+        {:error, :device_not_found}
+
+      {:error, reason} ->
+        Logger.warn("retrieve_group_insertion_time error: #{inspect(reason)}")
+        {:error, :database_error}
     end
   end
 
