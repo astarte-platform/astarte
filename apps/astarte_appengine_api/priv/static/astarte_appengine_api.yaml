@@ -48,6 +48,10 @@ tags:
     description: >-
       Device data status retrival and publish. All operations on a device can be
       done using both the device id or any of its aliases.
+  - name: groups
+    description: >-
+      Manage groups creation, allowing to create a new group, add or remove
+      devices from it and query devices that belong to it
 paths:
   '/{realm_name}/devices':
     get:
@@ -725,6 +729,129 @@ paths:
                       detail: Path not found
         '405':
           description: Invalid object
+  '/{realm_name}/groups':
+    get:
+      tags:
+        - groups
+      summary: Get groups list
+      description: >-
+        Return the list of device groups that exist in the realm.
+      operationId: indexGroups
+      security:
+        - JWT: []
+      parameters:
+        - $ref: '#/components/parameters/RealmName'
+      responses:
+        '200':
+          $ref: '#/components/responses/IndexGroups'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - groups
+      summary: Create new group
+      description: >-
+        Create a new group with a set of devices.
+        Devices must already be registered in the realm.
+      operationId: createGroup
+      security:
+        - JWT: []
+      parameters:
+        - $ref: '#/components/parameters/RealmName'
+      requestBody:
+        $ref: '#/components/requestBodies/CreateGroup'
+      responses:
+        '201':
+          $ref: '#/components/responses/GroupCreated'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/InvalidGroupConfig'
+  '/{realm_name}/groups/{group_name}':
+    get:
+      tags:
+        - groups
+      summary: Get group config
+      description: >-
+        Return the configuration of the group. Currently, it just returns the group name,
+        but the call can be used to verify if a group exists.
+      operationId: getGroupConfig
+      security:
+        - JWT: []
+      parameters:
+        - $ref: '#/components/parameters/RealmName'
+        - $ref: '#/components/parameters/GroupName'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetGroup'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GroupNotFound'
+  '/{realm_name}/groups/{group_name}/devices':
+    get:
+      tags:
+        - groups
+      summary: List devices in a group
+      description: >-
+        Return the list of devices in a group.
+      operationId: indexGroupDevices
+      security:
+        - JWT: []
+      parameters:
+        - $ref: '#/components/parameters/RealmName'
+        - $ref: '#/components/parameters/GroupName'
+      responses:
+        '200':
+          $ref: '#/components/responses/IndexGroupDevices'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GroupNotFound'
+    post:
+      tags:
+        - groups
+      summary: Add device to group
+      description: >-
+        Add an existing device to a group.
+      operationId: addDeviceToGroup
+      security:
+        - JWT: []
+      parameters:
+        - $ref: '#/components/parameters/RealmName'
+        - $ref: '#/components/parameters/GroupName'
+      requestBody:
+        $ref: '#/components/requestBodies/AddDeviceToGroup'
+      responses:
+        '201':
+          description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GroupNotFound'
+        '422':
+          $ref: '#/components/responses/InvalidAddGroup'
+  '/{realm_name}/groups/{group_name}/devices/{device_id}':
+    delete:
+      tags:
+        - groups
+      summary: Remove device from group
+      description: >-
+        Remove device from group
+      operationId: removeDeviceFromGroup
+      security:
+        - JWT: []
+      parameters:
+        - $ref: '#/components/parameters/RealmName'
+        - $ref: '#/components/parameters/GroupName'
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '204':
+          description: Device removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/GroupOrDeviceNotFound'
 components:
   securitySchemes:
     JWT:
@@ -739,6 +866,174 @@ components:
 
         The following syntax must be used in the `Authorization` header :
           `Bearer xxxxxx.yyyyyyy.zzzzzz`
+  requestBodies:
+    AddDeviceToGroup:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - device_id
+                properties:
+                  device_id:
+                    description: The device id of the device to add
+                    type: string
+                    example: '8NWCESshRrmUe9FWhg39qQ'
+    CreateGroup:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CreateGroupConfig'
+  responses:
+    IndexGroups:
+      description: Groups list
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                description: Group name list
+                items:
+                  type: string
+                example:
+                  - first-floor
+                  - second-floor
+    GetGroup:
+      description: Groups list
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/GroupConfig'
+    GroupCreated:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/CreateGroupConfig'
+    IndexGroupDevices:
+      description: Group device list
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+                example:
+                  - v8UxxIT9RkyPjIJZt6-Rrw
+                  - fhd0WHcgSjWeVqPGKZv_KA
+    InvalidAddGroup:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: object
+                properties:
+                  device_id:
+                    type: array
+                    items:
+                      type: string
+                example:
+                  device_id:
+                    - does not exist
+    InvalidGroupConfig:
+      description: Invalid group configuration
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: object
+                properties:
+                  group_name:
+                    type: array
+                    items:
+                      type: string
+                  devices:
+                    type: array
+                    items:
+                      type: string
+                example:
+                  group_name:
+                    - is invalid
+    Unauthorized:
+      description: Realm doesn't exist or operation not allowed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnauthorizedError'
+    GroupNotFound:
+      description: Group not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: Group not found
+    GroupOrDeviceNotFound:
+      description: Group or device not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: Device not found
+  parameters:
+    GroupName:
+      name: group_name
+      in: path
+      description: The name of the group.
+      required: true
+      schema:
+        type: string
+    RealmName:
+      name: realm_name
+      in: path
+      description: The name of the realm the device list will be returned from.
+      required: true
+      schema:
+        type: string
+    DeviceId:
+      name: device_id
+      in: path
+      description: Device id of the target device.
+      required: true
+      schema:
+        type: string
   schemas:
     DeviceStatus:
       type: object
@@ -789,6 +1084,11 @@ components:
         total_received_msgs:
           type: integer
           description: Total ammount of received messages.
+        groups:
+          type: array
+          description: The groups the device belongs to.
+          items:
+            type: string
       example:
         id: hm8AjtbN5P2mxo_gfXSfvQ
         aliases:
@@ -810,6 +1110,31 @@ components:
         last_credentials_request_ip: 98.51.100.89
         total_received_bytes: 10240
         total_received_msgs: 10
+        groups:
+          - test-devices
+          - first-floor
+    CreateGroupConfig:
+      type: object
+      required:
+        - group_name
+        - devices
+      properties:
+        group_name:
+          type: string
+          example: mygroupname
+        devices:
+          type: array
+          items:
+            type: string
+          example:
+            - v8UxxIT9RkyPjIJZt6-Rrw
+            - fhd0WHcgSjWeVqPGKZv_KA
+    GroupConfig:
+      type: object
+      properties:
+        group_name:
+          type: string
+          example: mygroupname
     NotFoundError:
       type: object
       properties:
