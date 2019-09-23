@@ -53,6 +53,22 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     patch "/:realm_name/groups/:group_name/devices/:device_id",
           DeviceStatusByGroupController,
           :update
+
+    get "/:realm_name/groups/:group_name/devices/:device_id/interfaces",
+        InterfaceValuesByGroupController,
+        :index
+
+    get "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
+        InterfaceValuesByGroupController,
+        :show
+
+    put "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
+        InterfaceValuesByGroupController,
+        :update
+
+    delete "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
+           InterfaceValuesByGroupController,
+           :delete
   end
 
   scope "/swagger" do
