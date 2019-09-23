@@ -107,4 +107,8 @@ defmodule Astarte.AppEngine.API.Groups do
   def remove_device(realm_name, group_name, device_id) do
     Queries.remove_device(realm_name, group_name, device_id)
   end
+
+  def check_device_in_group(realm_name, group_name, device_id) do
+    Queries.check_device_in_group(realm_name, group_name, device_id)
+  end
 end
