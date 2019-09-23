@@ -48,6 +48,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     delete "/:realm_name/groups/:group_name/devices/:device_id", GroupsController, :remove_device
 
     get "/:realm_name/groups/:group_name/devices", DeviceStatusByGroupController, :index
+    get "/:realm_name/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :show
   end
 
   scope "/swagger" do
