@@ -49,6 +49,10 @@ defmodule Astarte.AppEngine.APIWeb.Router do
 
     get "/:realm_name/groups/:group_name/devices", DeviceStatusByGroupController, :index
     get "/:realm_name/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :show
+
+    patch "/:realm_name/groups/:group_name/devices/:device_id",
+          DeviceStatusByGroupController,
+          :update
   end
 
   scope "/swagger" do
