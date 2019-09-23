@@ -196,6 +196,101 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     end
   end
 
+  describe "update" do
+    setup [:populate_group]
+
+    test "returns 404 with unexisting device", %{conn: conn} do
+      set_device_alias_payload = %{
+        "data" => %{
+          "aliases" => %{
+            "test_tag" => "test_alias"
+          }
+        }
+      }
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> patch(
+          device_status_by_group_path(
+            conn,
+            :update,
+            @realm,
+            @group_name,
+            "rPYl9S9uShibJV7fB-MphQ"
+          ),
+          set_device_alias_payload
+        )
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
+    end
+
+    test "returns 404 with device not in group", %{conn: conn} do
+      set_device_alias_payload = %{
+        "data" => %{
+          "aliases" => %{
+            "test_tag" => "test_alias"
+          }
+        }
+      }
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> patch(
+          device_status_by_group_path(conn, :update, @realm, @group_name, @device_not_in_group),
+          set_device_alias_payload
+        )
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
+    end
+
+    test "adds alias to device", %{conn: conn} do
+      set_device_alias_payload = %{
+        "data" => %{
+          "aliases" => %{
+            "test_tag" => "test_alias"
+          }
+        }
+      }
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> patch(
+          device_status_by_group_path(conn, :update, @realm, @group_name, @expected_device_id),
+          set_device_alias_payload
+        )
+
+      assert json_response(conn, 200)["data"] ==
+               Map.put(@expected_device_status, "aliases", %{
+                 "display_name" => "device_a",
+                 "test_tag" => "test_alias"
+               })
+    end
+
+    test "removes device alias", %{conn: conn} do
+      unset_device_alias_payload = %{
+        "data" => %{
+          "aliases" => %{
+            "display_name" => nil
+          }
+        }
+      }
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> patch(
+          device_status_path(conn, :update, "autotestrealm", @expected_device_id),
+          unset_device_alias_payload
+        )
+
+      assert json_response(conn, 200)["data"] ==
+               Map.put(@expected_device_status, "aliases", %{})
+    end
+  end
+
   defp populate_group(_context) do
     params = %{
       "group_name" => @group_name,
