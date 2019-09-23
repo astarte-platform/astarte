@@ -162,6 +162,12 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end)
   end
 
+  def check_device_in_group(realm_name, group_name, device_id) do
+    Xandra.Cluster.run(:xandra, fn conn ->
+      do_check_device_in_group(conn, realm_name, group_name, device_id)
+    end)
+  end
+
   defp build_list_devices_statement(opts) do
     {select, from, where, suffix} =
       if opts[:details] do
@@ -252,15 +258,18 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   defp check_valid_device_for_group(conn, realm_name, group_name, device_id) do
     with {:exists?, true} <- {:exists?, device_exists?(conn, realm_name, device_id)},
-         {:in_group?, false} <-
-           {:in_group?, device_in_group?(conn, realm_name, group_name, device_id)} do
+         {:in_group?, {:ok, false}} <-
+           {:in_group?, do_check_device_in_group(conn, realm_name, group_name, device_id)} do
       :ok
     else
       {:exists?, false} ->
         {:error, :device_not_found}
 
-      {:in_group?, true} ->
+      {:in_group?, {:ok, true}} ->
         {:error, :device_already_in_group}
+
+      {:in_group?, {:error, reason}} ->
+        {:error, reason}
     end
   end
 
@@ -313,7 +322,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end
   end
 
-  defp device_in_group?(conn, realm_name, group_name, encoded_device_id) do
+  defp do_check_device_in_group(conn, realm_name, group_name, encoded_device_id) do
     query = """
       SELECT groups
       FROM :realm.devices
@@ -326,15 +335,21 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
            Xandra.execute(conn, prepared, %{"device_id" => device_id}),
          [%{"groups" => groups}] <- Enum.to_list(page) do
       # groups could be nil if it was never set, use a default empty map
-      (groups || %{})
-      |> Map.has_key?(group_name)
+      in_group? =
+        (groups || %{})
+        |> Map.has_key?(group_name)
+
+      {:ok, in_group?}
     else
+      {:error, :invalid_device_id} ->
+        {:error, :device_not_found}
+
       {:error, reason} ->
-        Logger.warn("device_in_group? returned an error: #{inspect(reason)}")
-        false
+        Logger.warn("do_check_device_in_group returned an error: #{inspect(reason)}")
+        {:error, :database_error}
 
       [] ->
-        false
+        {:error, :device_not_found}
     end
   end
 
