@@ -18,6 +18,8 @@
 
 defmodule Astarte.AppEngine.API.Groups.Queries do
   alias Astarte.AppEngine.API.Groups.Group
+  alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.Core.Device
   alias Astarte.Core.Realm
 
@@ -88,22 +90,22 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end)
   end
 
-  def list_devices(realm_name, group_name) do
+  def list_devices(realm_name, group_name, opts \\ []) do
     Xandra.Cluster.run(:xandra, fn conn ->
-      query = """
-      SELECT device_id
-      FROM :realm.grouped_devices
-      WHERE group_name = :group_name
-      """
+      query = build_list_devices_statement(opts)
+
+      # We put them all, even if some of them could be ignored depending on the query
+      parameters = %{
+        "group_name" => group_name,
+        "previous_token" => opts[:from_token],
+        "page_size" => opts[:limit]
+      }
 
       with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
            {:ok, %Xandra.Page{} = page} <-
-             Xandra.execute(conn, prepared, %{"group_name" => group_name}, uuid_format: :binary),
-           devices when devices != [] <-
-             Enum.map(page, fn %{"device_id" => device_id} ->
-               Device.encode_device_id(device_id)
-             end) do
-        {:ok, devices}
+             Xandra.execute(conn, prepared, parameters, uuid_format: :binary),
+           result when result != [] <- Enum.to_list(page) do
+        {:ok, build_device_list(result, opts)}
       else
         [] ->
           {:error, :group_not_found}
@@ -158,6 +160,94 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           {:error, reason}
       end
     end)
+  end
+
+  defp build_list_devices_statement(opts) do
+    {select, from, where, suffix} =
+      if opts[:details] do
+        select = """
+        SELECT TOKEN(device_id), device_id, aliases, introspection,
+        introspection_minor, connected, last_connection, last_disconnection,
+        first_registration, first_credentials_request, last_credentials_request_ip,
+        last_seen_ip, total_received_msgs, total_received_bytes, groups
+        """
+
+        from = """
+        FROM :realm.devices
+        """
+
+        where =
+          if opts[:from_token] do
+            """
+            WHERE TOKEN(device_id) > :previous_token
+            AND groups CONTAINS KEY :group_name
+            """
+          else
+            """
+            WHERE groups CONTAINS KEY :group_name
+            """
+          end
+
+        # TODO: this needs to be done with ALLOW FILTERING, so it's not particularly efficient
+        suffix = """
+        LIMIT :page_size
+        ALLOW FILTERING
+        """
+
+        {select, from, where, suffix}
+      else
+        select = """
+        SELECT insertion_time, device_id
+        """
+
+        from = """
+        FROM :realm.grouped_devices
+        """
+
+        where =
+          if opts[:from_token] do
+            """
+            WHERE group_name = :group_name
+            AND insertion_time > :previous_token
+            """
+          else
+            """
+            WHERE group_name = :group_name
+            """
+          end
+
+        suffix = """
+        LIMIT :page_size
+        """
+
+        {select, from, where, suffix}
+      end
+
+    select <> from <> where <> suffix
+  end
+
+  defp build_device_list(result, opts) do
+    {row_to_device_fun, row_to_token_fun} =
+      if opts[:details] do
+        {&DeviceStatus.from_db_row/1, &Map.get(&1, "system.token(device_id)")}
+      else
+        {fn %{"device_id" => device_id} -> Device.encode_device_id(device_id) end,
+         &Map.get(&1, "insertion_time")}
+      end
+
+    {device_list, last_token, count} =
+      Enum.reduce(result, {[], nil, 0}, fn row, {device_list, _token, count} ->
+        latest_token = row_to_token_fun.(row)
+        device = row_to_device_fun.(row)
+
+        {[device | device_list], latest_token, count + 1}
+      end)
+
+    if count < opts[:limit] do
+      %DevicesList{devices: Enum.reverse(device_list)}
+    else
+      %DevicesList{devices: Enum.reverse(device_list), last_token: last_token}
+    end
   end
 
   defp check_valid_device_for_group(conn, realm_name, group_name, device_id) do
