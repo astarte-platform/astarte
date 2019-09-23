@@ -31,4 +31,61 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     :total_received_bytes,
     :groups
   ]
+
+  alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.API.Device.InterfaceVersion
+  alias Astarte.Core.Device
+
+  def from_db_row(row) when is_map(row) do
+    %{
+      "device_id" => device_id,
+      "aliases" => aliases,
+      "introspection" => introspection_major,
+      "introspection_minor" => introspection_minor,
+      "connected" => connected,
+      "last_connection" => last_connection,
+      "last_disconnection" => last_disconnection,
+      "first_registration" => first_registration,
+      "first_credentials_request" => first_credentials_request,
+      "last_credentials_request_ip" => last_credentials_request_ip,
+      "last_seen_ip" => last_seen_ip,
+      "total_received_msgs" => total_received_msgs,
+      "total_received_bytes" => total_received_bytes,
+      "groups" => groups_map
+    } = row
+
+    introspection =
+      Map.merge(introspection_major || %{}, introspection_minor || %{}, fn _key, major, minor ->
+        %InterfaceVersion{major: major, minor: minor}
+      end)
+
+    # groups_map could be nil, default to empty map
+    groups = Map.keys(groups_map || %{})
+
+    %DeviceStatus{
+      id: Device.encode_device_id(device_id),
+      aliases: aliases || %{},
+      introspection: introspection,
+      connected: connected,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_registration: first_registration,
+      first_credentials_request: first_credentials_request,
+      last_credentials_request_ip: ip_string(last_credentials_request_ip),
+      last_seen_ip: ip_string(last_seen_ip),
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes,
+      groups: groups
+    }
+  end
+
+  defp ip_string(nil) do
+    nil
+  end
+
+  defp ip_string(ip) when is_tuple(ip) do
+    ip
+    |> :inet_parse.ntoa()
+    |> to_string
+  end
 end
