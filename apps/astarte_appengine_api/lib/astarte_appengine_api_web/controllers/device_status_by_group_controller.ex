@@ -20,6 +20,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
@@ -65,6 +66,34 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
       {:error, reason} ->
         # To FallbackController
         {:error, reason}
+    end
+  end
+
+  def update(%Plug.Conn{method: "PATCH"} = conn, %{
+        "realm_name" => realm_name,
+        "group_name" => group_name,
+        "device_id" => device_id,
+        "data" => data
+      }) do
+    # Here we handle merge/patch as described here https://tools.ietf.org/html/rfc7396
+    if get_req_header(conn, "content-type") == ["application/merge-patch+json"] do
+      with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
+           :ok <- Device.merge_device_status!(realm_name, device_id, data),
+           {:ok, %DeviceStatus{} = device_status} <-
+             Device.get_device_status!(realm_name, device_id) do
+        conn
+        |> put_view(DeviceStatusView)
+        |> render("show.json", device_status: device_status)
+      else
+        {:ok, false} ->
+          {:error, :device_not_found}
+
+        {:error, reason} ->
+          # To FallbackController
+          {:error, reason}
+      end
+    else
+      {:error, :patch_mimetype_not_supported}
     end
   end
 end
