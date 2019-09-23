@@ -18,8 +18,10 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
   use Astarte.AppEngine.APIWeb, :controller
 
+  alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Groups
+  alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
 
@@ -43,6 +45,26 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
     with {:ok, %DevicesList{} = devices_list} <-
            Groups.list_devices(realm_name, decoded_group_name, params) do
       render(conn, "index.json", devices_list: devices_list, request: params)
+    end
+  end
+
+  def show(conn, %{
+        "realm_name" => realm_name,
+        "group_name" => group_name,
+        "device_id" => device_id
+      }) do
+    with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
+         {:ok, device_status} <- Device.get_device_status!(realm_name, device_id) do
+      conn
+      |> put_view(DeviceStatusView)
+      |> render("show.json", device_status: device_status)
+    else
+      {:ok, false} ->
+        {:error, :device_not_found}
+
+      {:error, reason} ->
+        # To FallbackController
+        {:error, reason}
     end
   end
 end
