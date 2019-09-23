@@ -32,6 +32,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     "aWag-VlVKC--1S-vfzZ9uQ"
   ]
 
+  @device_not_in_group "4UQbIokuRufdtbVZt9AsLg"
+
   @expected_introspection %{
     "com.example.PixelsConfiguration" => %{"major" => 1, "minor" => 0},
     "com.example.TestObject" => %{"major" => 1, "minor" => 5},
@@ -157,6 +159,40 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
       assert second_page_response["links"]["next"] == nil
 
       assert MapSet.disjoint?(MapSet.new(first_page_devices), MapSet.new(second_page_devices))
+    end
+  end
+
+  describe "show" do
+    setup [:populate_group]
+
+    test "returns 404 with unexisting device", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          device_status_by_group_path(conn, :show, @realm, @group_name, "7YZeUafPTZyEsKjO1yHIkw")
+        )
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
+    end
+
+    test "returns 404 with device not in group", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          device_status_by_group_path(conn, :show, @realm, @group_name, @device_not_in_group)
+        )
+
+      assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
+    end
+
+    test "returns status with valid device not in group", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          device_status_by_group_path(conn, :show, @realm, @group_name, @expected_device_id)
+        )
+
+      assert json_response(conn, 200)["data"] == @expected_device_status
     end
   end
 
