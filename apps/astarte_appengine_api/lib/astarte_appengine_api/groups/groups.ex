@@ -21,9 +21,12 @@ defmodule Astarte.AppEngine.API.Groups do
   The groups context
   """
 
+  alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Groups.Group
   alias Astarte.AppEngine.API.Groups.Queries
   alias Astarte.Core.Device
+
+  @default_list_limit 1000
 
   def create_group(realm_name, params) do
     changeset = Group.changeset(%Group{}, params)
@@ -39,8 +42,50 @@ defmodule Astarte.AppEngine.API.Groups do
     Queries.get_group(realm_name, group_name)
   end
 
-  def list_devices(realm_name, group_name) do
-    Queries.list_devices(realm_name, group_name)
+  def list_detailed_devices(realm_name, group_name, params \\ %{}) do
+    changeset = DevicesListOptions.changeset(%DevicesListOptions{}, params)
+
+    with {:ok, options} <- Ecto.Changeset.apply_action(changeset, :insert) do
+      opts =
+        options
+        |> Map.from_struct()
+        |> Enum.to_list()
+
+      Queries.list_devices(realm_name, group_name, opts)
+    end
+  end
+
+  def list_devices(realm_name, group_name, params \\ %{}) do
+    # We don't use DevicesListOptions.changeset here since from_token
+    # is a string in this case
+    types = %{from_token: :string, details: :boolean, limit: :integer}
+
+    changeset =
+      {%DevicesListOptions{}, types}
+      |> Ecto.Changeset.cast(params, Map.keys(types))
+      |> Ecto.Changeset.validate_change(:from_token, fn :from_token, token ->
+        is_uuid? =
+          token
+          |> to_charlist()
+          |> :uuid.string_to_uuid()
+          |> :uuid.is_v1()
+
+        if is_uuid? do
+          []
+        else
+          [from_token: "is invalid"]
+        end
+      end)
+
+    with {:ok, options} <- Ecto.Changeset.apply_action(changeset, :insert) do
+      opts =
+        options
+        |> Map.from_struct()
+        |> Map.put_new(:limit, @default_list_limit)
+        |> Enum.to_list()
+
+      Queries.list_devices(realm_name, group_name, opts)
+    end
   end
 
   def add_device(realm_name, group_name, params) do
