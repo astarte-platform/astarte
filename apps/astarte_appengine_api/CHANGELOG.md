@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Add groups support, allowing to group devices and access them inside a group hierarchy.
+
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
 
