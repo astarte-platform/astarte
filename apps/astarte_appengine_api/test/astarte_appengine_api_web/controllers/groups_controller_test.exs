@@ -22,6 +22,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Groups
 
@@ -197,33 +198,6 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
     end
   end
 
-  describe "devices index" do
-    test "returns 404 for non-existing group", %{conn: conn} do
-      conn = get(conn, groups_path(conn, :devices_index, @realm, "nonexisting"))
-
-      assert json_response(conn, 404)["errors"]["detail"] == "Group not found"
-    end
-
-    test "returns the devices for a populated group", %{conn: conn} do
-      params = %{
-        "group_name" => @group_name,
-        "devices" => @group_devices
-      }
-
-      create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
-
-      assert json_response(create_conn, 201)["data"] == params
-
-      devices_index_conn = get(conn, groups_path(conn, :devices_index, @realm, @group_name))
-
-      assert devices = json_response(devices_index_conn, 200)["data"]
-
-      for device <- @group_devices do
-        assert Enum.member?(devices, device)
-      end
-    end
-  end
-
   describe "add device" do
     setup [:create_group]
 
@@ -268,9 +242,9 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
 
       assert response(create_conn, 201)
 
-      devices_index_conn = get(conn, groups_path(conn, :devices_index, @realm, @group_name))
+      {:ok, %DevicesList{devices: devices}} = Groups.list_devices(@realm, @group_name)
 
-      assert Enum.member?(json_response(devices_index_conn, 200)["data"], device_id)
+      assert Enum.member?(devices, device_id)
 
       {:ok, %DeviceStatus{groups: groups}} = Device.get_device_status!(@realm, device_id)
       assert groups == [@group_name]
@@ -309,9 +283,9 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
 
       assert response(delete_conn, 204)
 
-      devices_index_conn = get(conn, groups_path(conn, :devices_index, @realm, @group_name))
+      {:ok, %DevicesList{devices: devices}} = Groups.list_devices(@realm, @group_name)
 
-      assert not Enum.member?(json_response(devices_index_conn, 200)["data"], @device_id_in_group)
+      assert not Enum.member?(devices, @device_id_in_group)
 
       {:ok, %DeviceStatus{groups: groups}} =
         Device.get_device_status!(@realm, @device_id_in_group)
