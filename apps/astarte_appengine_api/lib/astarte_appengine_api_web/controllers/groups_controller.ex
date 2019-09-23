@@ -50,14 +50,6 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
     end
   end
 
-  def devices_index(conn, %{"realm_name" => realm_name, "group_name" => group_name}) do
-    decoded_group_name = URI.decode(group_name)
-
-    with {:ok, devices} <- Groups.list_devices(realm_name, decoded_group_name) do
-      render(conn, "devices_index.json", devices: devices)
-    end
-  end
-
   def add_device(conn, %{"realm_name" => realm_name, "group_name" => group_name, "data" => params}) do
     decoded_group_name = URI.decode(group_name)
 
