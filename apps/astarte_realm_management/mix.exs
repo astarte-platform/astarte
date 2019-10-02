@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      version: "0.10.0",
+      version: "0.10.1",
       elixir: "~> 1.6",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
