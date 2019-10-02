@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.10.1] - Unreleased
+## [0.10.1] - 2019-10-02
 ### Fixed
 - Use updated interface validation: object aggregated properties interfaces are not valid.
 - Use updated interface validation: server owned object aggregated interfaces are not yet supported, hence not valid.
