@@ -20,9 +20,6 @@ mix:test-ci:
         - mix deps.compile
         - mix compile
         - mix coveralls
-    cache:
-        paths:
-            - deps
     except:
         - branches@Astarte-NG/astarte_pairing_api
 
@@ -40,9 +37,6 @@ mix:build:
         - export MIX_ENV=dev
         - mix conform.configure
         - mix release
-    cache:
-        paths:
-            - deps
     only:
         - master@Astarte-NG/astarte_pairing_api
 
@@ -60,9 +54,6 @@ mix:release-build:
         - export MIX_ENV=prod
         - mix conform.configure
         - mix release
-    cache:
-        paths:
-            - deps
     only:
         - tags@Astarte-NG/astarte_pairing_api
 
