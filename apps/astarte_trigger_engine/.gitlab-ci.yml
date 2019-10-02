@@ -21,9 +21,6 @@ mix:test-ci:
         - mix deps.compile
         - mix compile
         - mix coveralls
-    cache:
-        paths:
-            - deps
     except:
         - branches@Astarte-NG/astarte_trigger_engine
 
@@ -41,9 +38,6 @@ mix:build:
         - mix coveralls
         - export MIX_ENV=dev
         - mix release
-    cache:
-        paths:
-            - deps
     only:
         - master@Astarte-NG/astarte_trigger_engine
 
@@ -61,9 +55,6 @@ mix:release-build:
         - mix coveralls
         - export MIX_ENV=prod
         - mix release
-    cache:
-        paths:
-            - deps
     only:
         - tags@Astarte-NG/astarte_trigger_engine
 
