@@ -1,9 +1,9 @@
 %{
   "amqp": {:hex, :amqp, "1.0.2", "3c4b0c2a0c02a908a78c51e6e8206ca24b0f6b879a5e980eccf840cda360ed71", [:mix], [{:amqp_client, "~> 3.7.3", [hex: :amqp_client, repo: "hexpm", optional: false]}, {:goldrush, "~> 0.1.0", [hex: :goldrush, repo: "hexpm", optional: false]}, {:jsx, "~> 2.8", [hex: :jsx, repo: "hexpm", optional: false]}, {:lager, "~> 3.5", [hex: :lager, repo: "hexpm", optional: false]}, {:rabbit_common, "~> 3.7.3", [hex: :rabbit_common, repo: "hexpm", optional: false]}, {:ranch, "~> 1.4", [hex: :ranch, repo: "hexpm", optional: false]}, {:ranch_proxy_protocol, "~> 1.4", [hex: :ranch_proxy_protocol, repo: "hexpm", optional: false]}, {:recon, "~> 2.3.2", [hex: :recon, repo: "hexpm", optional: false]}], "hexpm"},
   "amqp_client": {:hex, :amqp_client, "3.7.3", "29a818d3871de5f8484e876ad34b0a940b2cecd6c6dfbed30d9b1679072eb9bc", [:make, :rebar3], [{:rabbit_common, "3.7.3", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "3eb328696766a6ee74563d7d557c259fee3c9219", [branch: "release-0.10"]},
-  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "2f34493a2265a6fc463da1729f75b41f9ce9aac2", [branch: "release-0.10"]},
-  "astarte_rpc": {:git, "https://github.com/astarte-platform/astarte_rpc.git", "eeeb5a6fd397a8b5ba4693e0b58a86c5c168fc93", []},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "abb1082be6e9fdd047dd8986f6d910a301bdbca4", [branch: "release-0.10"]},
+  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "0eebbd869515a9d7cb0e9da1d37f152bb0c5b29b", [branch: "release-0.10"]},
+  "astarte_rpc": {:git, "https://github.com/astarte-platform/astarte_rpc.git", "afdd86f431ad5297b43e71c1ba42987006bc5e61", [branch: "release-0.10"]},
   "base64url": {:hex, :base64url, "0.0.1", "36a90125f5948e3afd7be97662a1504b934dd5dac78451ca6e9abf85a10286be", [:rebar], [], "hexpm"},
   "certifi": {:hex, :certifi, "2.3.1", "d0f424232390bf47d82da8478022301c561cf6445b5b5fb6a84d49a9e76d2639", [:rebar3], [{:parse_trans, "3.2.0", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},

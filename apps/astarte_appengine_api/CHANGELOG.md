@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.10.1] - Unreleased
+## [0.10.1] - 2019-10-02
 ### Fixed
 - Auth was refusing any POST method, a workaround has been added, however this will not work with regex.
 - Fix reversed order when sending binaryblobarray and datetimearray.
