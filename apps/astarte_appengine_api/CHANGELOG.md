@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Add groups support, allowing to group devices and access them inside a group hierarchy.
+- Add Prometheus metrics.
 
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
