@@ -50,9 +50,9 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   @create_groups_table """
     CREATE TABLE autotestrealm.grouped_devices (
       group_name varchar,
-      insertion_time timeuuid,
+      insertion_uuid timeuuid,
       device_id uuid,
-      PRIMARY KEY ((group_name), insertion_time, device_id)
+      PRIMARY KEY ((group_name), insertion_uuid, device_id)
     );
   """
 

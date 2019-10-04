@@ -203,7 +203,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {select, from, where, suffix}
       else
         select = """
-        SELECT insertion_time, device_id
+        SELECT insertion_uuid, device_id
         """
 
         from = """
@@ -214,7 +214,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           if opts[:from_token] do
             """
             WHERE group_name = :group_name
-            AND insertion_time > :previous_token
+            AND insertion_uuid > :previous_token
             """
           else
             """
@@ -238,7 +238,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {&DeviceStatus.from_db_row/1, &Map.get(&1, "system.token(device_id)")}
       else
         {fn %{"device_id" => device_id} -> Device.encode_device_id(device_id) end,
-         &Map.get(&1, "insertion_time")}
+         &Map.get(&1, "insertion_uuid")}
       end
 
     {device_list, last_token, count} =
@@ -363,13 +363,13 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     grouped_devices_query = """
       DELETE FROM :realm.grouped_devices
       WHERE group_name = :group_name
-      AND insertion_time = :insertion_time
+      AND insertion_uuid = :insertion_uuid
       AND device_id = :device_id
     """
 
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, insertion_time} <-
-           retrieve_group_insertion_time(conn, realm_name, group_name, device_id),
+         {:ok, insertion_uuid} <-
+           retrieve_group_insertion_uuid(conn, realm_name, group_name, device_id),
          {:ok, device_prepared} <- prepare_with_realm(conn, realm_name, device_query),
          {:ok, grouped_devices_prepared} <-
            prepare_with_realm(conn, realm_name, grouped_devices_query),
@@ -381,7 +381,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
            })
            |> Xandra.Batch.add(grouped_devices_prepared, %{
              "group_name" => group_name,
-             "insertion_time" => insertion_time,
+             "insertion_uuid" => insertion_uuid,
              "device_id" => device_id
            }),
          {:ok, %Xandra.Void{}} <- Xandra.execute(conn, batch) do
@@ -399,7 +399,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end
   end
 
-  defp retrieve_group_insertion_time(conn, realm_name, group_name, device_id) do
+  defp retrieve_group_insertion_uuid(conn, realm_name, group_name, device_id) do
     query = """
       SELECT groups
       FROM :realm.devices
@@ -410,8 +410,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
          {:ok, %Xandra.Page{} = page} <-
            Xandra.execute(conn, prepared, %{"device_id" => device_id}),
          [%{"groups" => groups}] <- Enum.to_list(page),
-         {:ok, insertion_time} <- Map.fetch(groups || %{}, group_name) do
-      {:ok, insertion_time}
+         {:ok, insertion_uuid} <- Map.fetch(groups || %{}, group_name) do
+      {:ok, insertion_uuid}
     else
       [] ->
         # Device is not present in realm
@@ -422,7 +422,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {:error, :device_not_found}
 
       {:error, reason} ->
-        Logger.warn("retrieve_group_insertion_time error: #{inspect(reason)}")
+        Logger.warn("retrieve_group_insertion_uuid error: #{inspect(reason)}")
         {:error, :database_error}
     end
   end
@@ -436,9 +436,9 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
     grouped_devices_query = """
       INSERT INTO :realm.grouped_devices
-      (group_name, insertion_time, device_id)
+      (group_name, insertion_uuid, device_id)
       VALUES
-      (:group_name, :insertion_time, :device_id)
+      (:group_name, :insertion_uuid, :device_id)
     """
 
     with {:ok, device_prepared} <- prepare_with_realm(conn, realm_name, device_query),
@@ -450,11 +450,11 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           # We can be sure that this succeeds since it was validated in `check_all_devices_exist`
           {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-          # TODO: in the future we probably want to check that this generated insertion_time
-          # is greater than the last insertion_time in the grouped_devices column
-          {insertion_time, new_uuid_state} = :uuid.get_v1(uuid_state)
+          # TODO: in the future we probably want to check that this generated insertion_uuid
+          # is greater than the last insertion_uuid in the grouped_devices column
+          {insertion_uuid, new_uuid_state} = :uuid.get_v1(uuid_state)
 
-          group_map = %{group_name => insertion_time}
+          group_map = %{group_name => insertion_uuid}
 
           new_batch =
             batch
@@ -464,7 +464,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
             })
             |> Xandra.Batch.add(grouped_devices_prepared, %{
               "group_name" => group_name,
-              "insertion_time" => insertion_time,
+              "insertion_uuid" => insertion_uuid,
               "device_id" => device_id
             })
 
