@@ -87,6 +87,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cyanide, github: "ispirata/cyanide"},
       {:guardian, "~> 1.2"},
       {:phoenix_swagger, "~> 0.8"},
+      {:xandra, "~> 0.12"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:mox, "~> 0.3", only: :test}

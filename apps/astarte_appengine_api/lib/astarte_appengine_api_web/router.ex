@@ -40,6 +40,35 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     resources "/:realm_name/devices-by-alias/:device_alias/interfaces",
               InterfaceValuesByDeviceAliasController,
               except: [:new, :edit]
+
+    get "/:realm_name/groups", GroupsController, :index
+    post "/:realm_name/groups", GroupsController, :create
+    get "/:realm_name/groups/:group_name", GroupsController, :show
+    post "/:realm_name/groups/:group_name/devices", GroupsController, :add_device
+    delete "/:realm_name/groups/:group_name/devices/:device_id", GroupsController, :remove_device
+
+    get "/:realm_name/groups/:group_name/devices", DeviceStatusByGroupController, :index
+    get "/:realm_name/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :show
+
+    patch "/:realm_name/groups/:group_name/devices/:device_id",
+          DeviceStatusByGroupController,
+          :update
+
+    get "/:realm_name/groups/:group_name/devices/:device_id/interfaces",
+        InterfaceValuesByGroupController,
+        :index
+
+    get "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
+        InterfaceValuesByGroupController,
+        :show
+
+    put "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
+        InterfaceValuesByGroupController,
+        :update
+
+    delete "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
+           InterfaceValuesByGroupController,
+           :delete
   end
 
   scope "/swagger" do

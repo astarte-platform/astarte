@@ -433,6 +433,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , last_seen_ip
     , total_received_msgs
     , total_received_bytes
+    , groups
   """
 
   defp device_status_row_to_device_status(row) do
@@ -449,7 +450,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       last_credentials_request_ip: last_credentials_request_ip,
       last_seen_ip: last_seen_ip,
       total_received_msgs: total_received_msgs,
-      total_received_bytes: total_received_bytes
+      total_received_bytes: total_received_bytes,
+      groups: groups_map
     ] = row
 
     only_major_introspection =
@@ -469,6 +471,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         end
       end)
 
+    # groups_map could be nil, default to empty keyword list
+    groups = Keyword.keys(groups_map || [])
+
     %DeviceStatus{
       id: Base.url_encode64(device_id, padding: false),
       aliases: Enum.into(aliases || [], %{}),
@@ -481,7 +486,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
       last_seen_ip: ip_or_null_to_string(last_seen_ip),
       total_received_msgs: total_received_msgs,
-      total_received_bytes: total_received_bytes
+      total_received_bytes: total_received_bytes,
+      groups: groups
     }
   end
 
