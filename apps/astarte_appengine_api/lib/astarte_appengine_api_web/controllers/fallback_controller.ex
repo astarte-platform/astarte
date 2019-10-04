@@ -145,6 +145,20 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_value_size_exceeded")
   end
 
+  def call(conn, {:error, :degraded_health}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"503_degraded_health")
+  end
+
+  def call(conn, {:error, :bad_health}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"503_service_unavailable")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
