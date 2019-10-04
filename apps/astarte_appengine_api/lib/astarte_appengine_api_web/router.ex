@@ -69,6 +69,8 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     delete "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
            InterfaceValuesByGroupController,
            :delete
+
+    get "/health", HealthController, :show
   end
 
   scope "/swagger" do
