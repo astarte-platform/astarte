@@ -19,25 +19,39 @@
 defmodule Astarte.AppEngine.API.Health do
   alias Astarte.AppEngine.API.Queries
   alias Astarte.DataAccess.Database
+  alias Astarte.AppEngine.APIWeb.Metrics.HealthStatus
 
   def get_health do
+    # TODO: the HealthStatus metrics gets set only when this call is made
+    # (e.g. from Kubernetes readiness probe), so for now we have to
+    # make sure that this gets called regularly or the health gauge won't
+    # get updated
     with {:ok, client} <- Database.connect(),
          :ok <- Queries.check_astarte_health(client, :local_quorum) do
+      HealthStatus.set_health_status(:local_quorum, true)
+      HealthStatus.set_health_status(:one, true)
       :ok
     else
       {:error, :health_check_bad} ->
+        HealthStatus.set_health_status(:local_quorum, false)
+
         with {:ok, client} <- Database.connect(),
              :ok <- Queries.check_astarte_health(client, :one) do
+          HealthStatus.set_health_status(:one, true)
           {:error, :degraded_health}
         else
           {:error, :health_check_bad} ->
+            HealthStatus.set_health_status(:one, false)
             {:error, :bad_health}
 
           {:error, :database_connection_error} ->
+            HealthStatus.set_health_status(:one, false)
             {:error, :bad_health}
         end
 
       {:error, :database_connection_error} ->
+        HealthStatus.set_health_status(:local_quorum, false)
+        HealthStatus.set_health_status(:one, false)
         {:error, :bad_health}
     end
   end
