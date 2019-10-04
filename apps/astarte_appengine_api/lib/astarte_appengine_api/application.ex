@@ -27,6 +27,7 @@ defmodule Astarte.AppEngine.API.Application do
 
     import Supervisor.Spec
 
+    Metrics.HealthStatus.setup()
     Metrics.PhoenixInstrumenter.setup()
     Metrics.PipelineInstrumenter.setup()
     Metrics.PrometheusExporter.setup()
