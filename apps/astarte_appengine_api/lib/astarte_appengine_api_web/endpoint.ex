@@ -60,7 +60,6 @@ defmodule Astarte.AppEngine.APIWeb.Endpoint do
     key: "_astarte_appengine_api_key",
     signing_salt: "V7l/jiVr"
 
-  plug Astarte.AppEngine.APIWeb.InterfacePlug, %{}
   plug CORSPlug
   plug Astarte.AppEngine.APIWeb.Router
 
