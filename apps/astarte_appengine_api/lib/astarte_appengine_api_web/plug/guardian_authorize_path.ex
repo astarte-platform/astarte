@@ -26,11 +26,9 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
       conn
     else
       {:error, :invalid_auth_path} ->
-        authorize_path_info = Map.get(conn.assigns, :original_path_info, conn.path_info)
-
         Logger.warn(
           "Can't build auth_path with path_params: #{inspect(conn.path_params)} path_info: #{
-            inspect(authorize_path_info)
+            inspect(conn.path_info)
           } query_params: #{inspect(conn.query_params)}"
         )
 
@@ -53,8 +51,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
 
   defp build_auth_path(conn) do
     with %{"realm_name" => realm} <- conn.path_params,
-         authorize_path_info <- Map.get(conn.assigns, :original_path_info, conn.path_info),
-         [^realm | rest] <- Enum.drop_while(authorize_path_info, fn token -> token != realm end),
+         [^realm | rest] <- Enum.drop_while(conn.path_info, fn token -> token != realm end),
          auth_path <- Enum.join(rest, "/") do
       {:ok, auth_path}
     else
@@ -85,19 +82,9 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
   defp is_path_authorized?(method, auth_path, authorizations),
     do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
-  # TODO: this should be fixed at InterfacePlug level
-  defp rewrite_post_to_put_workaround("POST") do
-    "PUT"
-  end
-
-  defp rewrite_post_to_put_workaround(any_method) do
-    any_method
-  end
-
   defp get_auth_regex(authorization_string) do
     with [method_auth, _opts, path_auth] <- String.split(authorization_string, ":", parts: 3),
-         method_auth_no_post = rewrite_post_to_put_workaround(method_auth),
-         {:ok, method_regex} <- build_regex(method_auth_no_post),
+         {:ok, method_regex} <- build_regex(method_auth),
          {:ok, path_regex} <- build_regex(path_auth) do
       {:ok, {method_regex, path_regex}}
     else
