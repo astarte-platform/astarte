@@ -237,7 +237,7 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, datetime, _utc_off} <- DateTime.from_iso8601(value) do
       {:ok, datetime}
     else
-      :error ->
+      {:error, _reason} ->
         {:error, :unexpected_value_type, expected: :datetime}
     end
   end
@@ -246,7 +246,7 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, datetime} <- DateTime.from_unix(value, :millisecond) do
       {:ok, datetime}
     else
-      :error ->
+      {:error, _reason} ->
         {:error, :unexpected_value_type, expected: :datetime}
     end
   end
