@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ## [0.10.2] - Unreleased
+### Fixed
+- Fix invalid dates handling, they should not cause an internal server error.
 
 ## [0.10.1] - 2019-10-02
 ### Fixed

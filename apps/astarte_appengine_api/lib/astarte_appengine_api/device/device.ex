@@ -238,7 +238,7 @@ defmodule Astarte.AppEngine.API.Device do
       millis = DateTime.to_unix(datetime, :milliseconds)
       {:ok, millis}
     else
-      :error ->
+      {:error, _reason} ->
         {:error, :unexpected_value_type, expected: :datetime}
     end
   end
@@ -247,7 +247,7 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, _datetime} <- DateTime.from_unix(value, :millisecond) do
       {:ok, value}
     else
-      :error ->
+      {:error, _reason} ->
         {:error, :unexpected_value_type, expected: :datetime}
     end
   end
