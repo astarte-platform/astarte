@@ -42,13 +42,34 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def create_realm(%Realm{
         realm_name: realm_name,
         jwt_public_key_pem: pem,
+        replication_class: "SimpleStrategy",
         replication_factor: replication_factor
       }) do
     %CreateRealm{
       realm: realm_name,
       async_operation: true,
       jwt_public_key_pem: pem,
+      replication_class: :SIMPLE_STRATEGY,
       replication_factor: replication_factor
+    }
+    |> encode_call(:create_realm)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def create_realm(%Realm{
+        realm_name: realm_name,
+        jwt_public_key_pem: pem,
+        replication_class: "NetworkTopologyStrategy",
+        datacenter_replication_factors: replication_factors_map
+      }) do
+    %CreateRealm{
+      realm: realm_name,
+      async_operation: true,
+      jwt_public_key_pem: pem,
+      replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+      datacenter_replication_factors: Enum.to_list(replication_factors_map)
     }
     |> encode_call(:create_realm)
     |> @rpc_client.rpc_call(@destination)
@@ -123,6 +144,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
           %GetRealmReply{
             realm_name: realm_name,
             jwt_public_key_pem: pem,
+            replication_class: :SIMPLE_STRATEGY,
             replication_factor: replication_factor
           }}
        ) do
@@ -130,7 +152,26 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
      %Realm{
        realm_name: realm_name,
        jwt_public_key_pem: pem,
+       replication_class: "SimpleStrategy",
        replication_factor: replication_factor
+     }}
+  end
+
+  defp extract_reply(
+         {:get_realm_reply,
+          %GetRealmReply{
+            realm_name: realm_name,
+            jwt_public_key_pem: pem,
+            replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+            datacenter_replication_factors: datacenter_replication_factors
+          }}
+       ) do
+    {:ok,
+     %Realm{
+       realm_name: realm_name,
+       jwt_public_key_pem: pem,
+       replication_class: "NetworkTopologyStrategy",
+       datacenter_replication_factors: Enum.into(datacenter_replication_factors, %{})
      }}
   end
 

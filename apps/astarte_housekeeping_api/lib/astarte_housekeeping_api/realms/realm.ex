@@ -20,8 +20,16 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @default_replication_factor 1
+  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_-]*$/
+
   @required_fields [:realm_name, :jwt_public_key_pem]
-  @allowed_fields [:replication_factor | @required_fields]
+  @allowed_fields [
+    :replication_factor,
+    :replication_class,
+    :datacenter_replication_factors
+    | @required_fields
+  ]
 
   @primary_key false
   @derive {Phoenix.Param, key: :realm_name}
@@ -29,7 +37,9 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   embedded_schema do
     field :realm_name
     field :jwt_public_key_pem
-    field :replication_factor, :integer, default: 1
+    field :replication_factor, :integer
+    field :replication_class, :string, default: "SimpleStrategy"
+    field :datacenter_replication_factors, {:map, :integer}
   end
 
   def changeset(realm, params \\ %{}) do
@@ -39,6 +49,8 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
     |> validate_format(:realm_name, ~r/^[a-z][a-z0-9]*$/)
     |> validate_number(:replication_factor, greater_than: 0)
     |> validate_pem_public_key(:jwt_public_key_pem)
+    |> validate_inclusion(:replication_class, ["SimpleStrategy", "NetworkTopologyStrategy"])
+    |> validate_replication()
   end
 
   def error_changeset(realm, params \\ %{}) do
@@ -47,6 +59,53 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
       |> cast(params, @required_fields)
 
     %{changeset | valid?: false}
+  end
+
+  defp datacenter_map_validator(field, datacenter_map) when map_size(datacenter_map) == 0 do
+    [{field, "must not be empty"}]
+  end
+
+  defp datacenter_map_validator(field, datacenter_map) do
+    Enum.reduce(datacenter_map, [], fn {datacenter_name, replication_factor}, errors_acc ->
+      cond do
+        not Regex.match?(@datacenter_name_regex, datacenter_name) ->
+          [{field, "has invalid datacenter name: #{datacenter_name}"} | errors_acc]
+
+        not is_number(replication_factor) or replication_factor <= 0 ->
+          [{field, "has invalid replication factor: #{replication_factor}"} | errors_acc]
+
+        true ->
+          errors_acc
+      end
+    end)
+  end
+
+  defp validate_replication(changeset) do
+    replication_class = get_field(changeset, :replication_class)
+
+    cond do
+      replication_class == "NetworkTopologyStrategy" ->
+        changeset
+        |> validate_required(:datacenter_replication_factors,
+          message: "needs to be provided with NetworkTopologyStrategy"
+        )
+        |> validate_change(:datacenter_replication_factors, &datacenter_map_validator/2)
+
+      # Here we're implicitly not in NetworkTopologyStrategy
+      get_field(changeset, :datacenter_replication_factors) ->
+        changeset
+        |> add_error(
+          :datacenter_replication_factors,
+          "must be used with replication_class NetworkTopologyStrategy"
+        )
+
+      get_field(changeset, :replication_factor) == nil ->
+        changeset
+        |> put_change(:replication_factor, @default_replication_factor)
+
+      true ->
+        changeset
+    end
   end
 
   defp validate_pem_public_key(%Ecto.Changeset{valid?: false} = changeset, _field), do: changeset

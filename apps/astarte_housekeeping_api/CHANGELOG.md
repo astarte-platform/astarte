@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
 
+## [0.10.1] - 2019-10-02
+### Added
+- Support both SimpleStrategy and NetworkTopologyStrategy replications when creating a realm.
+- Add sanity checks on the replication factor during realm creation.
+
 ## [0.10.0] - 2019-04-16
 
 ## [0.10.0-rc.0] - 2019-04-03
