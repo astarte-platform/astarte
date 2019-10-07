@@ -88,6 +88,10 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:guardian, "~> 1.2"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.12"},
+      {:prometheus_process_collector, "~> 1.4"},
+      {:prometheus_phoenix, "~> 1.3"},
+      {:prometheus_plugs, "~> 1.1"},
+      {:prometheus_ex, "~> 3.0"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:mox, "~> 0.3", only: :test}

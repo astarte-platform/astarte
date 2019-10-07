@@ -19,6 +19,8 @@ defmodule Astarte.AppEngine.API.Queries do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
 
+  require Logger
+
   def fetch_public_key(client) do
     query =
       DatabaseQuery.new()
@@ -36,6 +38,33 @@ defmodule Astarte.AppEngine.API.Queries do
 
       :empty_dataset ->
         {:error, :public_key_not_found}
+    end
+  end
+
+  def check_astarte_health(client, consistency) do
+    realms_count_statement = """
+    SELECT COUNT(*)
+    FROM astarte.realms
+    """
+
+    realms_count_statement =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(realms_count_statement)
+      |> DatabaseQuery.consistency(consistency)
+
+    with {:ok, result} <- DatabaseQuery.call(client, realms_count_statement),
+         [count: _count] <- DatabaseResult.head(result) do
+      :ok
+    else
+      %{acc: _, msg: err_msg} ->
+        Logger.warn("Health is not good: #{err_msg}")
+
+        {:error, :health_check_bad}
+
+      {:error, err} ->
+        Logger.warn("Health is not good, reason: #{inspect(err)}.")
+
+        {:error, :health_check_bad}
     end
   end
 end

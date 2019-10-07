@@ -18,6 +18,11 @@
 defmodule Astarte.AppEngine.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_appengine_api
 
+  alias Astarte.AppEngine.APIWeb.Metrics
+
+  plug Metrics.PrometheusExporter
+  plug Metrics.PipelineInstrumenter
+
   socket "/socket", Astarte.AppEngine.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.

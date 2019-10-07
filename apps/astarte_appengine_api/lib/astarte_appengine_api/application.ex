@@ -18,12 +18,19 @@
 defmodule Astarte.AppEngine.API.Application do
   use Application
 
+  alias Astarte.AppEngine.APIWeb.Metrics
+
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
     alias Astarte.AppEngine.API.Config
 
     import Supervisor.Spec
+
+    Metrics.HealthStatus.setup()
+    Metrics.PhoenixInstrumenter.setup()
+    Metrics.PipelineInstrumenter.setup()
+    Metrics.PrometheusExporter.setup()
 
     # Define workers and child supervisors to be supervised
     children = [

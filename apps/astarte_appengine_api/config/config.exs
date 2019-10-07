@@ -17,7 +17,8 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "oLTSqHyMVoBtu3Gu504Dn6HFN1qdFXtkJ0yFViRDbXckOHgTjFs1XaRS0QaKZ8KL",
   render_errors: [view: Astarte.AppEngine.APIWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Astarte.AppEngine.API.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Astarte.AppEngine.API.PubSub, adapter: Phoenix.PubSub.PG2],
+  instrumenters: [Astarte.AppEngine.APIWeb.Metrics.PhoenixInstrumenter]
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -56,6 +57,51 @@ config :phoenix, :json_library, Jason
 config :astarte_appengine_api, swagger_ui: true
 
 config :astarte_appengine_api, :max_results_limit, 10000
+
+config :prometheus, Astarte.AppEngine.APIWeb.Metrics.PhoenixInstrumenter,
+  controller_call_labels: [:controller, :action],
+  duration_buckets: [
+    10,
+    25,
+    50,
+    100,
+    250,
+    500,
+    1000,
+    2500,
+    5000,
+    10_000,
+    25_000,
+    50_000,
+    100_000,
+    250_000,
+    500_000,
+    1_000_000,
+    2_500_000,
+    5_000_000,
+    10_000_000
+  ],
+  registry: :default,
+  duration_unit: :microseconds
+
+config :prometheus, Astarte.AppEngine.APIWeb.Metrics.PipelineInstrumenter,
+  labels: [:status_class, :method, :host, :scheme, :request_path],
+  duration_buckets: [
+    10,
+    100,
+    1_000,
+    10_000,
+    100_000,
+    300_000,
+    500_000,
+    750_000,
+    1_000_000,
+    1_500_000,
+    2_000_000,
+    3_000_000
+  ],
+  registry: :default,
+  duration_unit: :microseconds
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
