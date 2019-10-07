@@ -287,7 +287,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    with maybe_descriptor <- Map.get(new_state.interfaces, interface),
+    with :ok <- validate_path(path),
+         maybe_descriptor <- Map.get(new_state.interfaces, interface),
          {:ok, interface_descriptor, new_state} <-
            maybe_handle_cache_miss(maybe_descriptor, interface, new_state, db_client),
          :ok <- can_write_on_interface?(interface_descriptor),
@@ -442,6 +443,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
+      {:error, :invalid_path} ->
+        warn(new_state, "received invalid path: #{path}.")
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+        update_stats(new_state, interface, path, payload)
+
       {:error, :mapping_not_found} ->
         warn(
           new_state,
@@ -522,6 +529,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     # 3600 seconds is one hour
     # this adds 1 hour of tolerance to clock synchronization issues
     now_secs + ttl + 3600 < expiry_secs
+  end
+
+  defp validate_path(path) do
+    # TODO: this is a temporary fix to work around a bug in EndpointsAutomaton.resolve_path/2
+    if String.contains?(path, "//") do
+      {:error, :invalid_path}
+    else
+      :ok
+    end
   end
 
   def validate_value_type(expected_type, %DateTime{} = value) do
@@ -1559,22 +1575,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       "send_control_consumer_properties: device introspection: #{inspect(state.introspection)}"
     )
 
-    Enum.each(state.introspection, fn {interface, _} ->
-      with {:ok, interface_descriptor, new_state} <-
-             maybe_handle_cache_miss(
-               Map.get(state.interfaces, interface),
-               interface,
-               state,
-               db_client
-             ) do
-        abs_paths_list = gather_interface_properties(new_state, db_client, interface_descriptor)
-        send_consumer_properties_payload(new_state.realm, new_state.device_id, abs_paths_list)
-      else
-        {:error, :interface_loading_failed} ->
-          warn(state, "resend_all_properties: failed #{interface} interface loading.")
-          {:error, :sending_properties_to_interface_failed}
-      end
-    end)
+    abs_paths_list =
+      Enum.flat_map(state.introspection, fn {interface, _} ->
+        descriptor = Map.get(state.interfaces, interface)
+
+        case maybe_handle_cache_miss(descriptor, interface, state, db_client) do
+          {:ok, interface_descriptor, new_state} ->
+            gather_interface_properties(new_state, db_client, interface_descriptor)
+
+          {:error, :interface_loading_failed} ->
+            warn(state, "resend_all_properties: failed #{interface} interface loading.")
+            []
+        end
+      end)
+
+    send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list)
 
     state
   end
