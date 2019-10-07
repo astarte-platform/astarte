@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [0.10.2] - Unreleased
+### Fixed
+- Do not accept invalid paths that have consecutive slashes.
 
 ## [0.10.1] - 2019-10-02
 ### Fixed
