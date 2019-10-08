@@ -109,8 +109,10 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     delete "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
            InterfaceValuesByGroupController,
            :delete
+  end
 
-    get "/health", HealthController, :show
+  scope "/health", Astarte.AppEngine.APIWeb do
+    get "/", HealthController, :show
   end
 
   scope "/swagger" do
