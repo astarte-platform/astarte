@@ -26,87 +26,75 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     plug :maybe_halt_swagger
   end
 
-  scope "/v1", Astarte.AppEngine.APIWeb do
+  scope "/v1/:realm_name", Astarte.AppEngine.APIWeb do
     pipe_through :api
 
-    resources "/:realm_name/devices", DeviceStatusController, only: [:index, :show, :update]
+    resources "/devices", DeviceStatusController, only: [:index, :show, :update]
 
-    resources "/:realm_name/devices-by-alias", DeviceStatusByAliasController,
-      only: [:index, :show, :update]
+    resources "/devices-by-alias", DeviceStatusByAliasController, only: [:index, :show, :update]
 
-    resources "/:realm_name/devices/:device_id/interfaces", InterfaceValuesController,
-      only: [:index, :show]
+    resources "/devices/:device_id/interfaces", InterfaceValuesController, only: [:index, :show]
 
-    get "/:realm_name/devices/:device_id/interfaces/:id/*path_tokens",
-        InterfaceValuesController,
-        :show
+    get "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :show
 
-    put "/:realm_name/devices/:device_id/interfaces/:id/*path_tokens",
-        InterfaceValuesController,
-        :update
+    put "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :update
 
-    post "/:realm_name/devices/:device_id/interfaces/:id/*path_tokens",
-         InterfaceValuesController,
-         :update
+    post "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :update
 
-    delete "/:realm_name/devices/:device_id/interfaces/:id/*path_tokens",
-           InterfaceValuesController,
-           :delete
+    delete "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :delete
 
-    resources "/:realm_name/devices-by-alias/:device_alias/interfaces",
+    resources "/devices-by-alias/:device_alias/interfaces",
               InterfaceValuesByDeviceAliasController,
               only: [:index, :show]
 
-    get "/:realm_name/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    get "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
         InterfaceValuesByDeviceAliasController,
         :show
 
-    put "/:realm_name/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    put "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
         InterfaceValuesByDeviceAliasController,
         :update
 
-    post "/:realm_name/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    post "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
          InterfaceValuesByDeviceAliasController,
          :update
 
-    delete "/:realm_name/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    delete "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
            InterfaceValuesByDeviceAliasController,
            :delete
 
-    get "/:realm_name/groups", GroupsController, :index
-    post "/:realm_name/groups", GroupsController, :create
-    get "/:realm_name/groups/:group_name", GroupsController, :show
-    post "/:realm_name/groups/:group_name/devices", GroupsController, :add_device
-    delete "/:realm_name/groups/:group_name/devices/:device_id", GroupsController, :remove_device
+    get "/groups", GroupsController, :index
+    post "/groups", GroupsController, :create
+    get "/groups/:group_name", GroupsController, :show
+    post "/groups/:group_name/devices", GroupsController, :add_device
+    delete "/groups/:group_name/devices/:device_id", GroupsController, :remove_device
 
-    get "/:realm_name/groups/:group_name/devices", DeviceStatusByGroupController, :index
-    get "/:realm_name/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :show
+    get "/groups/:group_name/devices", DeviceStatusByGroupController, :index
+    get "/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :show
 
-    patch "/:realm_name/groups/:group_name/devices/:device_id",
-          DeviceStatusByGroupController,
-          :update
+    patch "/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :update
 
-    get "/:realm_name/groups/:group_name/devices/:device_id/interfaces",
+    get "/groups/:group_name/devices/:device_id/interfaces",
         InterfaceValuesByGroupController,
         :index
 
-    get "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface",
+    get "/groups/:group_name/devices/:device_id/interfaces/:interface",
         InterfaceValuesByGroupController,
         :show
 
-    get "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
+    get "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
         InterfaceValuesByGroupController,
         :show
 
-    put "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
+    put "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
         InterfaceValuesByGroupController,
         :update
 
-    post "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
+    post "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
          InterfaceValuesByGroupController,
          :update
 
-    delete "/:realm_name/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
+    delete "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
            InterfaceValuesByGroupController,
            :delete
   end
