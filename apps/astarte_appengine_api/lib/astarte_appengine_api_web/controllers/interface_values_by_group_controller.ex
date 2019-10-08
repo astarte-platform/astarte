@@ -25,6 +25,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
   alias Astarte.AppEngine.APIWeb.InterfaceValuesView
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
+  plug Astarte.AppEngine.APIWeb.Plug.JoinPath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 

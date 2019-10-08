@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
   alias Astarte.AppEngine.API.Device.InterfaceValues
 
   plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
+  plug Astarte.AppEngine.APIWeb.Plug.JoinPath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
