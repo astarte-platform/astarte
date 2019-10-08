@@ -20,6 +20,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
   end
 
   pipeline :swagger do

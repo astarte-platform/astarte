@@ -22,8 +22,6 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
 
-  plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
-
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name, "details" => "true"} = params) do

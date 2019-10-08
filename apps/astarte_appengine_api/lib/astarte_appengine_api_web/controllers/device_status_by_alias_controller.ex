@@ -23,8 +23,6 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
-  plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
-
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   # TODO: should we allow to POST/create device aliases here by posting something like a DeviceAlias JSON object?
