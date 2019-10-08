@@ -26,6 +26,7 @@ module Types.InterfaceMapping exposing
     , decoder
     , empty
     , encode
+    , isGoodEndpoint
     , isValid
     , isValidEndpoint
     , isValidType
@@ -508,6 +509,29 @@ toList arrayString =
 isValidEndpoint : String -> Bool
 isValidEndpoint endpoint =
     Regex.contains validEndpointRegex endpoint
+
+
+isGoodEndpoint : String -> Bool -> Bool
+isGoodEndpoint endpoint isObject =
+    if isObject then
+        isValidEndpoint endpoint && (endpointDepth endpoint > 1)
+
+    else
+        isValidEndpoint endpoint
+
+
+endpointDepth : String -> Int
+endpointDepth endpoint =
+    String.foldl
+        (\c level ->
+            if c == '/' then
+                level + 1
+
+            else
+                level
+        )
+        0
+        endpoint
 
 
 
