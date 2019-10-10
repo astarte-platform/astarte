@@ -32,87 +32,116 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
 
-  def device_connected(targets, realm, device_id, ip_address) when is_list(targets) do
+  def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      device_connected(target, realm, device_id, ip_address) == :ok
+      device_connected(target, realm, device_id, ip_address, timestamp) == :ok
     end)
   end
 
-  def device_connected(target, realm, device_id, ip_address) do
+  def device_connected(target, realm, device_id, ip_address, timestamp) do
     %DeviceConnectedEvent{device_ip_address: ip_address}
     |> make_simple_event(
       :device_connected_event,
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def device_disconnected(targets, realm, device_id) when is_list(targets) do
+  def device_disconnected(targets, realm, device_id, timestamp) when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      device_disconnected(target, realm, device_id) == :ok
+      device_disconnected(target, realm, device_id, timestamp) == :ok
     end)
   end
 
-  def device_disconnected(target, realm, device_id) do
+  def device_disconnected(target, realm, device_id, timestamp) do
     %DeviceDisconnectedEvent{}
     |> make_simple_event(
       :device_disconnected_event,
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def incoming_data(targets, realm, device_id, interface, path, bson_value)
+  def incoming_data(targets, realm, device_id, interface, path, bson_value, timestamp)
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      incoming_data(target, realm, device_id, interface, path, bson_value) == :ok
+      incoming_data(target, realm, device_id, interface, path, bson_value, timestamp) == :ok
     end)
   end
 
-  def incoming_data(target, realm, device_id, interface, path, bson_value) do
+  def incoming_data(target, realm, device_id, interface, path, bson_value, timestamp) do
     %IncomingDataEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(
       :incoming_data_event,
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def incoming_introspection(targets, realm, device_id, introspection) when is_list(targets) do
+  def incoming_introspection(targets, realm, device_id, introspection, timestamp)
+      when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      incoming_introspection(target, realm, device_id, introspection) == :ok
+      incoming_introspection(target, realm, device_id, introspection, timestamp) == :ok
     end)
   end
 
-  def incoming_introspection(target, realm, device_id, introspection) do
+  def incoming_introspection(target, realm, device_id, introspection, timestamp) do
     %IncomingIntrospectionEvent{introspection: introspection}
     |> make_simple_event(
       :incoming_introspection_event,
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def interface_added(targets, realm, device_id, interface, major_version, minor_version)
+  def interface_added(
+        targets,
+        realm,
+        device_id,
+        interface,
+        major_version,
+        minor_version,
+        timestamp
+      )
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      interface_added(target, realm, device_id, interface, major_version, minor_version) == :ok
+      interface_added(
+        target,
+        realm,
+        device_id,
+        interface,
+        major_version,
+        minor_version,
+        timestamp
+      ) == :ok
     end)
   end
 
-  def interface_added(target, realm, device_id, interface, major_version, minor_version) do
+  def interface_added(
+        target,
+        realm,
+        device_id,
+        interface,
+        major_version,
+        minor_version,
+        timestamp
+      ) do
     %InterfaceAddedEvent{
       interface: interface,
       major_version: major_version,
@@ -123,7 +152,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
@@ -135,7 +165,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         major_version,
         old_minor,
-        new_minor
+        new_minor,
+        timestamp
       )
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
@@ -146,7 +177,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         major_version,
         old_minor,
-        new_minor
+        new_minor,
+        timestamp
       ) == :ok
     end)
   end
@@ -158,7 +190,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         major_version,
         old_minor,
-        new_minor
+        new_minor,
+        timestamp
       ) do
     %InterfaceMinorUpdatedEvent{
       interface: interface,
@@ -171,76 +204,107 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def interface_removed(targets, realm, device_id, interface, major_version)
+  def interface_removed(targets, realm, device_id, interface, major_version, timestamp)
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      interface_removed(target, realm, device_id, interface, major_version) == :ok
+      interface_removed(target, realm, device_id, interface, major_version, timestamp) == :ok
     end)
   end
 
-  def interface_removed(target, realm, device_id, interface, major_version) do
+  def interface_removed(target, realm, device_id, interface, major_version, timestamp) do
     %InterfaceRemovedEvent{interface: interface, major_version: major_version}
     |> make_simple_event(
       :interface_removed_event,
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def path_created(targets, realm, device_id, interface, path, bson_value)
+  def path_created(targets, realm, device_id, interface, path, bson_value, timestamp)
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      path_created(target, realm, device_id, interface, path, bson_value) == :ok
+      path_created(target, realm, device_id, interface, path, bson_value, timestamp) == :ok
     end)
   end
 
-  def path_created(target, realm, device_id, interface, path, bson_value) do
+  def path_created(target, realm, device_id, interface, path, bson_value, timestamp) do
     %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(
       :path_created_event,
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def path_removed(targets, realm, device_id, interface, path) when is_list(targets) do
+  def path_removed(targets, realm, device_id, interface, path, timestamp) when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      path_removed(target, realm, device_id, interface, path) == :ok
+      path_removed(target, realm, device_id, interface, path, timestamp) == :ok
     end)
   end
 
-  def path_removed(target, realm, device_id, interface, path) do
+  def path_removed(target, realm, device_id, interface, path, timestamp) do
     %PathRemovedEvent{interface: interface, path: path}
     |> make_simple_event(
       :path_removed_event,
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
 
-  def value_change(targets, realm, device_id, interface, path, old_bson_value, new_bson_value)
+  def value_change(
+        targets,
+        realm,
+        device_id,
+        interface,
+        path,
+        old_bson_value,
+        new_bson_value,
+        timestamp
+      )
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
-      value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) ==
+      value_change(
+        target,
+        realm,
+        device_id,
+        interface,
+        path,
+        old_bson_value,
+        new_bson_value,
+        timestamp
+      ) ==
         :ok
     end)
   end
 
-  def value_change(target, realm, device_id, interface, path, old_bson_value, new_bson_value) do
+  def value_change(
+        target,
+        realm,
+        device_id,
+        interface,
+        path,
+        old_bson_value,
+        new_bson_value,
+        timestamp
+      ) do
     %ValueChangeEvent{
       interface: interface,
       path: path,
@@ -252,7 +316,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
@@ -264,7 +329,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         path,
         old_bson_value,
-        new_bson_value
+        new_bson_value,
+        timestamp
       )
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
@@ -275,7 +341,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         path,
         old_bson_value,
-        new_bson_value
+        new_bson_value,
+        timestamp
       ) == :ok
     end)
   end
@@ -287,7 +354,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         path,
         old_bson_value,
-        new_bson_value
+        new_bson_value,
+        timestamp
       ) do
     %ValueChangeAppliedEvent{
       interface: interface,
@@ -300,7 +368,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       target.simple_trigger_id,
       target.parent_trigger_id,
       realm,
-      device_id
+      device_id,
+      timestamp
     )
     |> dispatch_event(target)
   end
@@ -311,13 +380,15 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
          simple_trigger_id,
          parent_trigger_id,
          realm,
-         device_id
+         device_id,
+         timestamp
        ) do
     %SimpleEvent{
       simple_trigger_id: simple_trigger_id,
       parent_trigger_id: parent_trigger_id,
       realm: realm,
       device_id: device_id,
+      timestamp: timestamp,
       event: {event_type, event}
     }
   end

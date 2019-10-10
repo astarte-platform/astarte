@@ -113,12 +113,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              volatile_trigger_id
            ) == :ok
 
+    timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
     DataUpdater.handle_connection(
       realm,
       encoded_device_id,
       "10.0.0.1",
       gen_tracking_id(),
-      make_timestamp("2017-10-09T14:00:32+00:00")
+      timestamp_us_x_10
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -141,6 +144,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                  device_ip_address: "10.0.0.1"
                }
              },
+             timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
              simple_trigger_id: DatabaseTestHelper.device_connected_trigger_id(),
@@ -400,6 +404,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              trigger_target_data
            ) == {:error, :invalid_match_path}
 
+    timestamp_us_x_10 = make_timestamp("2017-10-09T14:10:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
     DataUpdater.handle_data(
       realm,
       encoded_device_id,
@@ -407,7 +414,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/weekSchedule/10/start",
       Bson.encode(%{"v" => 10}),
       gen_tracking_id(),
-      make_timestamp("2017-10-09T14:10:32+00:00")
+      timestamp_us_x_10
     )
 
     {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
@@ -431,6 +438,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                  path: "/weekSchedule/10/start"
                }
              },
+             timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
              simple_trigger_id: DatabaseTestHelper.greater_than_incoming_trigger_id(),
@@ -459,11 +467,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                  path: "/weekSchedule/10/start"
                }
              },
+             timestamp: timestamp_ms,
              parent_trigger_id: volatile_changed_trigger_parent_id,
              realm: realm,
              simple_trigger_id: volatile_changed_trigger_id,
              version: 1
            }
+
+    timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
 
     # This should trigger matching_simple_trigger
     DataUpdater.handle_data(
@@ -473,7 +485,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       "/0/value",
       Bson.encode(%{"v" => 5}),
       gen_tracking_id(),
-      make_timestamp("2017-10-09T14:15:32+00:00")
+      timestamp_us_x_10
     )
 
     state = DataUpdater.dump_state(realm, encoded_device_id)
@@ -500,6 +512,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                   interface: "com.test.SimpleStreamTest",
                   path: "/0/value"
                 }},
+             timestamp: timestamp_ms,
              parent_trigger_id: volatile_trigger_parent_id,
              realm: realm,
              simple_trigger_id: volatile_trigger_id,
@@ -566,13 +579,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              volatile_trigger_id
            ) == :ok
 
+    timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
     # Introspection change subtest
     DataUpdater.handle_introspection(
       realm,
       encoded_device_id,
       "com.test.LCDMonitor:1:0;com.example.TestObject:1:5;com.test.SimpleStreamTest:1:0",
       gen_tracking_id(),
-      make_timestamp("2017-10-09T14:00:32+00:00")
+      timestamp_us_x_10
     )
 
     {introspection_event, introspection_headers, _meta} = AMQPTestHelper.wait_and_get_message()
@@ -596,6 +612,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                  minor_version: 5
                }
              },
+             timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
              simple_trigger_id: DatabaseTestHelper.interface_added_trigger_id(),
@@ -741,13 +758,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       <<0, 0, 0, 98>> <>
         :zlib.compress("com.test.LCDMonitor/time/to;com.test.LCDMonitor/weekSchedule/10/start")
 
+    timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
     DataUpdater.handle_control(
       realm,
       encoded_device_id,
       "/producer/properties",
       data,
       gen_tracking_id(),
-      make_timestamp("2017-10-09T14:00:32+00:00")
+      timestamp_us_x_10
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -767,6 +787,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              event:
                {:path_removed_event,
                 %PathRemovedEvent{interface: "com.test.LCDMonitor", path: "/time/from"}},
+             timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: "autotestrealm",
              simple_trigger_id: DatabaseTestHelper.path_removed_trigger_id(),
@@ -993,12 +1014,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert old_device_introspection == nil
 
+    timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
     DataUpdater.handle_introspection(
       realm,
       encoded_device_id,
       new_introspection_string,
       gen_tracking_id(),
-      make_timestamp("2017-10-09T14:00:32+00:00")
+      timestamp_us_x_10
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
@@ -1023,6 +1047,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                  minor_version: 0
                }
              },
+             timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
              simple_trigger_id: DatabaseTestHelper.interface_added_trigger_id(),
@@ -1050,6 +1075,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                  minor_version: 0
                }
              },
+             timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
              simple_trigger_id: DatabaseTestHelper.interface_added_trigger_id(),
