@@ -37,6 +37,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
     %SimpleEvent{
       device_id: device_id,
+      timestamp: timestamp_ms,
       event: {
         event_type,
         event
@@ -44,13 +45,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       version: 1
     } = decoded_payload
 
-    handle_simple_event(realm, device_id, headers, event_type, event)
+    handle_simple_event(realm, device_id, headers, event_type, event, timestamp_ms)
   end
 
-  defp handle_simple_event(realm, device_id, headers_map, event_type, event) do
+  defp handle_simple_event(realm, device_id, headers_map, event_type, event, timestamp_ms) do
     with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
          {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id),
-         {:ok, payload} <- event_to_payload(realm, device_id, event_type, event, action),
+         {:ok, payload} <-
+           event_to_payload(realm, device_id, event_type, event, action, timestamp_ms),
          {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action) do
       execute_action(payload, headers, action)
     else
@@ -100,23 +102,31 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     {:ok, ["Astarte-Realm": realm, "Content-Type": "application/json"]}
   end
 
-  defp event_to_payload(realm, device_id, event_type, event, %{
-         "template" => template,
-         "template_type" => "mustache"
-       }) do
+  defp event_to_payload(
+         realm,
+         device_id,
+         event_type,
+         event,
+         %{
+           "template" => template,
+           "template_type" => "mustache"
+         },
+         _timestamp_ms
+       ) do
     values = build_values_map(realm, device_id, event_type, event)
 
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
   end
 
-  defp event_to_payload(_realm, device_id, _event_type, event, _action) do
-    # TODO: the timestamp should be in the event
-    %{
-      "timestamp" => DateTime.utc_now(),
-      "device_id" => device_id,
-      "event" => event
-    }
-    |> Poison.encode()
+  defp event_to_payload(_realm, device_id, _event_type, event, _action, timestamp_ms) do
+    with {:ok, timestamp} <- DateTime.from_unix(timestamp_ms, :millisecond) do
+      %{
+        "timestamp" => timestamp,
+        "device_id" => device_id,
+        "event" => event
+      }
+      |> Poison.encode()
+    end
   end
 
   defp execute_action(payload, headers, action) do
