@@ -69,6 +69,13 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     |> render(Astarte.RealmManagement.APIWeb.ErrorView, :interface_not_found)
   end
 
+  def call(conn, {:error, :trigger_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:trigger_not_found)
+  end
+
   def call(conn, {:error, :overlapping_mappings}) do
     conn
     |> put_status(:unprocessable_entity)
