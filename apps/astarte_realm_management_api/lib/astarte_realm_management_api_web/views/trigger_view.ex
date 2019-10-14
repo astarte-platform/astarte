@@ -31,6 +31,10 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
     %{data: render_one(trigger, TriggerView, "trigger.json")}
   end
 
+  def render("already_installed_trigger.json", _assigns) do
+    %{errors: %{detail: "Trigger already exists"}}
+  end
+
   def render("trigger.json", %{trigger: trigger}) do
     %{
       name: trigger.name,

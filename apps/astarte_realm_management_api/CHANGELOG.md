@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
 
-## [0.10.1] - Unreleased
+## [0.10.2] - Unreleased
+### Fixed
+- Handle trigger not found reply from RPC, return 404 instead of 500.
+
+## [0.10.1] - 2019-10-02
 ### Fixed
 - Use updated interface validation: object aggregated properties interfaces are not valid.
 - Use updated interface validation: server owned object aggregated interfaces are not yet supported, hence not valid.
+- Trying to create a trigger with an already taken name now fails gracefully with an error instead of crashing.
 
 ## [0.10.0] - 2019-04-16
 
