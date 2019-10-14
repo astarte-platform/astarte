@@ -85,6 +85,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
+    timestamp_ms = div(timestamp, 10_000)
+
     ip_address_result =
       ip_address_string
       |> to_charlist()
@@ -103,7 +105,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Queries.set_device_connected!(
       db_client,
       new_state.device_id,
-      div(timestamp, 10000),
+      timestamp_ms,
       ip_address
     )
 
@@ -114,7 +116,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       trigger_targets,
       new_state.realm,
       device_id_string,
-      ip_address_string
+      ip_address_string,
+      timestamp_ms
     )
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
@@ -126,17 +129,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
+    timestamp_ms = div(timestamp, 10_000)
+
     Queries.set_device_disconnected!(
       db_client,
       new_state.device_id,
-      div(timestamp, 10000),
+      timestamp_ms,
       new_state.total_received_msgs,
       new_state.total_received_bytes
     )
 
     trigger_targets = Map.get(new_state.device_triggers, :on_device_disconnection, [])
     device_id_string = Device.encode_device_id(new_state.device_id)
-    TriggersHandler.device_disconnected(trigger_targets, new_state.realm, device_id_string)
+
+    TriggersHandler.device_disconnected(
+      trigger_targets,
+      new_state.realm,
+      device_id_string,
+      timestamp_ms
+    )
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     %{new_state | connected: false, last_seen_message: timestamp}
@@ -150,7 +161,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          path,
          endpoint_id,
          payload,
-         value
+         value,
+         timestamp
        ) do
     realm = state.realm
 
@@ -158,21 +170,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     get_on_data_triggers(state, :on_incoming_data, :any_interface, :any_endpoint)
     |> Enum.each(fn trigger ->
       targets = trigger.trigger_targets
-      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload)
+      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload, timestamp)
     end)
 
     # any endpoint triggers
     get_on_data_triggers(state, :on_incoming_data, interface_id, :any_endpoint)
     |> Enum.each(fn trigger ->
       targets = trigger.trigger_targets
-      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload)
+      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload, timestamp)
     end)
 
     # incoming data triggers
     get_on_data_triggers(state, :on_incoming_data, interface_id, endpoint_id, path, value)
     |> Enum.each(fn trigger ->
       targets = trigger.trigger_targets
-      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload)
+      TriggersHandler.incoming_data(targets, realm, device, interface, path, payload, timestamp)
     end)
 
     :ok
@@ -215,7 +227,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          interface_name,
          path,
          previous_value,
-         value
+         value,
+         timestamp
        ) do
     old_bson_value = Cyanide.encode!(%{v: previous_value})
     payload = Cyanide.encode!(%{v: value})
@@ -229,7 +242,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           interface_name,
           path,
           old_bson_value,
-          payload
+          payload,
+          timestamp
         )
       end)
     end
@@ -244,7 +258,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          interface,
          path,
          previous_value,
-         value
+         value,
+         timestamp
        ) do
     old_bson_value = Cyanide.encode!(%{v: previous_value})
     payload = Cyanide.encode!(%{v: value})
@@ -252,14 +267,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     if previous_value == nil and value != nil do
       Enum.each(path_created_triggers, fn trigger ->
         targets = trigger.trigger_targets
-        TriggersHandler.path_created(targets, realm, device, interface, path, payload)
+        TriggersHandler.path_created(targets, realm, device, interface, path, payload, timestamp)
       end)
     end
 
     if previous_value != nil and value == nil do
       Enum.each(path_removed_triggers, fn trigger ->
         targets = trigger.trigger_targets
-        TriggersHandler.path_removed(targets, realm, device, interface, path)
+        TriggersHandler.path_removed(targets, realm, device, interface, path, timestamp)
       end)
     end
 
@@ -274,7 +289,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           interface,
           path,
           old_bson_value,
-          payload
+          payload,
+          timestamp
         )
       end)
     end
@@ -317,7 +333,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         path,
         endpoint_id,
         payload,
-        value
+        value,
+        maybe_explicit_value_timestamp
       )
 
       {has_change_triggers, change_triggers} =
@@ -351,7 +368,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             interface_descriptor.name,
             path,
             previous_value,
-            value
+            value,
+            maybe_explicit_value_timestamp
           )
       end
 
@@ -421,7 +439,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             interface_descriptor.name,
             path,
             previous_value,
-            value
+            value,
+            maybe_explicit_value_timestamp
           )
       end
 
@@ -621,6 +640,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
+    timestamp_ms = div(timestamp, 10_000)
+
     {db_introspection_map, db_introspection_minor_map} =
       List.foldl(new_introspection_list, {%{}, %{}}, fn {interface, major, minor},
                                                         {introspection_map,
@@ -646,7 +667,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       on_introspection_targets,
       realm,
       device_id_string,
-      payload
+      payload,
+      timestamp_ms
     )
 
     # TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
@@ -696,7 +718,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               device_id_string,
               interface_name,
               interface_major,
-              minor
+              minor,
+              timestamp_ms
             )
           end)
 
@@ -728,7 +751,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               realm,
               device_id_string,
               interface_name,
-              interface_major
+              interface_major,
+              timestamp_ms
             )
           end)
 
@@ -806,7 +830,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    operation_result = prune_device_properties(new_state, "")
+    timestamp_ms = div(timestamp, 10_000)
+
+    operation_result = prune_device_properties(new_state, "", timestamp_ms)
 
     if operation_result != :ok do
       Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
@@ -828,6 +854,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
+    timestamp_ms = div(timestamp, 10_000)
+
     # TODO: check payload size, to avoid anoying crashes
 
     <<_size_header::size(32), zlib_payload::binary>> = payload
@@ -835,7 +863,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     decoded_payload = PayloadsDecoder.safe_inflate(zlib_payload)
 
     if decoded_payload != :error do
-      operation_result = prune_device_properties(new_state, decoded_payload)
+      operation_result = prune_device_properties(new_state, decoded_payload, timestamp_ms)
 
       if operation_result != :ok do
         Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
@@ -1238,7 +1266,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, interface_descriptor, state}
   end
 
-  defp prune_device_properties(state, decoded_payload) do
+  defp prune_device_properties(state, decoded_payload, timestamp) do
     {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
@@ -1246,13 +1274,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     Enum.each(state.introspection, fn {interface, _} ->
       # TODO: check result here
-      prune_interface(state, db_client, interface, paths_set)
+      prune_interface(state, db_client, interface, paths_set, timestamp)
     end)
 
     :ok
   end
 
-  defp prune_interface(state, db_client, interface, all_paths_set) do
+  defp prune_interface(state, db_client, interface, all_paths_set, timestamp) do
     with {:ok, interface_descriptor, new_state} <-
            maybe_handle_cache_miss(
              Map.get(state.interfaces, interface),
@@ -1270,14 +1298,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :maybe_outdated_introspection}
 
         true ->
-          do_prune(new_state, db_client, interface_descriptor, all_paths_set)
+          do_prune(new_state, db_client, interface_descriptor, all_paths_set, timestamp)
           # TODO: nobody uses new_state
           {:ok, new_state}
       end
     end
   end
 
-  defp do_prune(state, db, interface_descriptor, all_paths_set) do
+  defp do_prune(state, db, interface_descriptor, all_paths_set, timestamp) do
     each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
       endpoint_id = mapping.endpoint_id
 
@@ -1302,7 +1330,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
           Enum.each(path_removed_triggers, fn trigger ->
             targets = trigger.trigger_targets
-            TriggersHandler.path_removed(targets, state.realm, device_id_string, i_name, path)
+
+            TriggersHandler.path_removed(
+              targets,
+              state.realm,
+              device_id_string,
+              i_name,
+              path,
+              timestamp
+            )
           end)
         end
       end)
