@@ -37,13 +37,22 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
     %SimpleEvent{
       device_id: device_id,
-      timestamp: timestamp_ms,
       event: {
         event_type,
         event
       },
       version: 1
     } = decoded_payload
+
+    timestamp_ms =
+      case decoded_payload.timestamp do
+        nil ->
+          DateTime.utc_now()
+          |> DateTime.from_unix(:millisecond)
+
+        timestamp when is_integer(timestamp) ->
+          timestamp
+      end
 
     handle_simple_event(realm, device_id, headers, event_type, event, timestamp_ms)
   end
