@@ -43,6 +43,10 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
     %{errors: %{detail: "Invalid major version"}}
   end
 
+  def render("trigger_not_found.json", _assigns) do
+    %{errors: %{detail: "Trigger not found"}}
+  end
+
   def render("overlapping_mappings.json", _assigns) do
     %{errors: %{detail: "Overlapping endpoints in interface mappings"}}
   end
