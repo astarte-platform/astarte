@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Editor only mode, a mode with an Interface editor but no Astarte connection.
 - Device list page
+- Warn users about deprecated object aggregated / datastream path. New object aggregated
+  interfaces should use /collectioname instead.
 
 ### Changed
 - Migrated to Elm 0.19
