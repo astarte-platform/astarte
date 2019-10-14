@@ -91,13 +91,14 @@ $disconnected-color:    #cc5b6d;
 
 .suggestion-bubble {
     position: absolute;
-    top: 4.2rem;
-    right: -0.1rem;
+    top: 2.2rem;
+    right: -1.5rem;
     background-color: white;
     border: 1px solid $warning;
     border-radius: 3px;
     padding: 0.6rem;
     max-width: 20rem;
+    min-width: 14rem;
     z-index: $zindex-popover;
 
     &::before {
