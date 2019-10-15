@@ -24,8 +24,6 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
-  plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
-
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(
