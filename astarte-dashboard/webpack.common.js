@@ -29,11 +29,7 @@ module.exports = {
                     options:
                     {
                         name (file) {
-                            if (env === 'development') {
-                                return '[name]-[hash].[ext]';
-                            } else {
-                                return '[hash].[ext]';
-                            }
+                            return '[name]-[hash].[ext]';
                         },
                         context: ''
                     }
