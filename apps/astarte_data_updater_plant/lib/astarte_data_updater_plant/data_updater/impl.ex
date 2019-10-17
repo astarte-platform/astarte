@@ -71,6 +71,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     encoded_device_id = Device.encode_device_id(device_id)
     Logger.metadata(realm: realm, device_id: encoded_device_id)
+    Logger.info("Created device process.")
 
     {:ok, db_client} = Database.connect(new_state.realm)
 
@@ -124,6 +125,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+    Logger.info("Device connected.", ip_address: ip_address_string)
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
@@ -153,6 +155,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+    Logger.info("Device disconnected.")
     %{new_state | connected: false, last_seen_message: timestamp}
   end
 
