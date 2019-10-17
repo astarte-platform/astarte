@@ -5,4 +5,4 @@ config :cqerl,
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:realm, :device_id, :ip_address, :function]
+  metadata: [:realm, :device_id, :ip_address, :module, :function, :tag]

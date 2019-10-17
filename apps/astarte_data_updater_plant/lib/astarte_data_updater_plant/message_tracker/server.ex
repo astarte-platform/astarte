@@ -129,7 +129,9 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
         {:DOWN, _, :process, _pid, reason},
         {state, queue, ids, acknowledger} = s
       ) do
-    Logger.warn("Crash detected. Reason: #{inspect(reason)}, state: #{inspect(s)}.")
+    Logger.warn("Crash detected. Reason: #{inspect(reason)}, state: #{inspect(s)}.",
+      tag: "data_upd_crash_detected"
+    )
 
     marked_ids =
       :queue.to_list(queue)
