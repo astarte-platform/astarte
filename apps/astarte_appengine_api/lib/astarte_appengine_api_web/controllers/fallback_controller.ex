@@ -111,6 +111,12 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"422_value_size_exceeded")
   end
 
+  def call(conn, {:error, :alias_already_in_use}) do
+    conn
+    |> put_status(:conflict)
+    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"409_alias_already_in_use")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
