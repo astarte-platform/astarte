@@ -10,3 +10,7 @@ config :cqerl,
 
 config :astarte_data_updater_plant, :amqp_consumer_options,
   host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
+
+config :logger, :console,
+  format: {PrettyLog.UserFriendlyFormatter, :format},
+  metadata: [:realm, :device_id, :function]
