@@ -69,6 +69,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       last_device_triggers_refresh: 0
     }
 
+    encoded_device_id = Device.encode_device_id(device_id)
+    Logger.metadata(realm: realm, device_id: encoded_device_id)
+    Logger.info("Created device process.", tag: "device_process_created")
+
     {:ok, db_client} = Database.connect(new_state.realm)
 
     stats_and_introspection =
@@ -98,7 +102,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           ip_address
 
         _ ->
-          warn(new_state, "received invalid IP address #{ip_address_string}.")
+          Logger.warn("Received invalid IP address #{ip_address_string}.")
           {0, 0, 0, 0}
       end
 
@@ -121,6 +125,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+    Logger.info("Device connected.", ip_address: ip_address_string, tag: "device_connected")
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
@@ -150,6 +155,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+    Logger.info("Device disconnected.", tag: "device_disconnected")
     %{new_state | connected: false, last_seen_message: timestamp}
   end
 
@@ -406,7 +412,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             end
 
         interface_descriptor.type == :datastream ->
-          warn(new_state, "tried to unset a datastream")
+          Logger.warn("Tried to unset a datastream")
           MessageTracker.discard(new_state.message_tracker, message_id)
           raise "Unsupported"
 
@@ -452,9 +458,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       update_stats(new_state, interface, path, payload)
     else
       {:error, :cannot_write_on_server_owned_interface} ->
-        warn(
-          new_state,
-          "tried to write on server owned interface: #{interface} on " <>
+        Logger.warn(
+          "Tried to write on server owned interface: #{interface} on " <>
             "path: #{path}, payload: #{inspect(payload)}, timestamp: #{inspect(timestamp)}."
         )
 
@@ -463,23 +468,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, path, payload)
 
       {:error, :invalid_path} ->
-        warn(new_state, "received invalid path: #{path}.")
+        Logger.warn("Received invalid path: #{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :mapping_not_found} ->
-        warn(
-          new_state,
-          "mapping not found for #{interface}#{path}. Maybe outdated introspection?"
-        )
+        Logger.warn("Mapping not found for #{interface}#{path}. Maybe outdated introspection?")
 
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :interface_loading_failed} ->
-        warn(new_state, "cannot load interface: #{interface}.")
+        Logger.warn("Cannot load interface: #{interface}.")
         # TODO: think about additional actions since the problem
         # could be a missing interface in the DB
         ask_clean_session(new_state)
@@ -487,31 +489,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, path, payload)
 
       {:guessed, _guessed_endpoints} ->
-        warn(new_state, "mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
+        Logger.warn("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :undecodable_bson_payload} ->
-        warn(state, "invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :unexpected_value_type} ->
-        warn(state, "received invalid value: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Received invalid value: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :value_size_exceeded} ->
-        warn(state, "received huge payload: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Received huge payload: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
 
       {:error, :unexpected_object_key} ->
-        warn(state, "object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
         update_stats(new_state, interface, path, payload)
@@ -628,7 +630,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       process_introspection(state, new_introspection_list, payload, message_id, timestamp)
     else
       {:error, :invalid_introspection} ->
-        warn(state, "discarding invalid introspection: #{inspect(payload)}.")
+        Logger.warn("Discarding invalid introspection: #{inspect(payload)}.")
         ask_clean_session(state)
         MessageTracker.discard(state.message_tracker, message_id)
         update_stats(state, "", "", payload)
@@ -688,11 +690,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Enum.each(diff, fn {change_type, changed_interfaces} ->
       case change_type do
         :ins ->
-          Logger.debug(
-            "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have been added to #{
-              Device.encode_device_id(new_state.device_id)
-            } ."
-          )
+          Logger.debug("Adding interfaces to introspection: #{inspect(changed_interfaces)}.")
 
           Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
             :ok =
@@ -724,11 +722,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           end)
 
         :del ->
-          Logger.debug(
-            "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have been removed from #{
-              Device.encode_device_id(new_state.device_id)
-            } ."
-          )
+          Logger.debug("Removing interfaces from introspection: #{inspect(changed_interfaces)}.")
 
           Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
             :ok =
@@ -757,11 +751,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           end)
 
         :eq ->
-          Logger.debug(
-            "#{new_state.realm}: Interfaces #{inspect(changed_interfaces)} have not changed on #{
-              Device.encode_device_id(new_state.device_id)
-            } ."
-          )
+          Logger.debug("#{inspect(changed_interfaces)} are already on device introspection.")
       end
     end)
 
@@ -835,7 +825,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     operation_result = prune_device_properties(new_state, "", timestamp_ms)
 
     if operation_result != :ok do
-      Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
+      Logger.debug("Result is #{inspect(operation_result)} further actions should be required.")
     end
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
@@ -866,7 +856,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       operation_result = prune_device_properties(new_state, decoded_payload, timestamp_ms)
 
       if operation_result != :ok do
-        Logger.debug("result is #{inspect(operation_result)} further actions should be required.")
+        Logger.debug("Result is #{inspect(operation_result)} further actions should be required.")
       end
     end
 
@@ -897,7 +887,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, path, payload, message_id, _timestamp) do
-    warn(state, "unexpected control on #{path}, payload: #{inspect(payload)}")
+    Logger.warn("Unexpected control on #{path}, payload: #{inspect(payload)}")
 
     ask_clean_session(state)
     MessageTracker.discard(state.message_tracker, message_id)
@@ -1294,7 +1284,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, new_state}
 
         interface_descriptor.ownership != :device ->
-          warn(state, "tried to prune server owned interface: #{interface}.")
+          Logger.warn("Tried to prune server owned interface: #{interface}.")
           {:error, :maybe_outdated_introspection}
 
         true ->
@@ -1346,7 +1336,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp ask_clean_session(%State{realm: realm, device_id: device_id} = state) do
-    warn(state, "disconnecting client and asking clean session.")
+    Logger.warn("Disconnecting client and asking clean session.")
 
     encoded_device_id = Device.encode_device_id(device_id)
 
@@ -1357,7 +1347,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       :ok
     else
       {:error, reason} ->
-        warn(state, "disconnect failed due to error: #{inspect(reason)}")
+        Logger.warn("Disconnect failed due to error: #{inspect(reason)}")
         # TODO: die gracefully here
         {:error, :clean_session_failed}
     end
@@ -1553,15 +1543,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           :error ->
             # Map.fetch failed
             Logger.warn(
-              "resolve_path: endpoint_id for path #{inspect(path)} not found in mappings #{
-                inspect(mappings)
-              }"
+              "endpoint_id for path #{inspect(path)} not found in mappings #{inspect(mappings)}."
             )
 
             {:error, :mapping_not_found}
 
           {:error, reason} ->
-            Logger.warn("EndpointsAutomaton.resolve_path failed with reason #{inspect(reason)}")
+            Logger.warn("EndpointsAutomaton.resolve_path failed with reason #{inspect(reason)}.")
             {:error, :mapping_not_found}
 
           {:guessed, guessed_endpoints} ->
@@ -1607,9 +1595,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp send_control_consumer_properties(state) do
     {:ok, db_client} = Database.connect(state.realm)
 
-    Logger.debug(
-      "send_control_consumer_properties: device introspection: #{inspect(state.introspection)}"
-    )
+    Logger.debug("Device introspection: #{inspect(state.introspection)}.")
 
     abs_paths_list =
       Enum.flat_map(state.introspection, fn {interface, _} ->
@@ -1620,7 +1606,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             gather_interface_properties(new_state, db_client, interface_descriptor)
 
           {:error, :interface_loading_failed} ->
-            warn(state, "resend_all_properties: failed #{interface} interface loading.")
+            Logger.warn("Failed #{interface} interface loading.")
             []
         end
       end)
@@ -1650,7 +1636,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp resend_all_properties(state) do
     {:ok, db_client} = Database.connect(state.realm)
 
-    Logger.debug("resend_all_properties. device introspection: #{inspect(state.introspection)}")
+    Logger.debug("Device introspection: #{inspect(state.introspection)}")
 
     Enum.each(state.introspection, fn {interface, _} ->
       with {:ok, interface_descriptor, new_state} <-
@@ -1663,7 +1649,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         resend_all_interface_properties(new_state, db_client, interface_descriptor)
       else
         {:error, :interface_loading_failed} ->
-          warn(state, "resend_all_properties: failed #{interface} interface loading.")
+          Logger.warn("Failed #{interface} interface loading.")
           {:error, :sending_properties_to_interface_failed}
       end
     end)
@@ -1715,7 +1701,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     bson_value = Cyanide.encode!(encapsulated_value)
 
-    Logger.debug("send_value: going to publish #{topic} -> #{inspect(encapsulated_value)}.")
+    Logger.debug("Going to publish #{inspect(encapsulated_value)} on #{topic}.")
 
     case VMQPlugin.publish(topic, bson_value, 2) do
       :ok ->
@@ -1724,9 +1710,5 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:error, reason} ->
         {:error, reason}
     end
-  end
-
-  def warn(state, msg) do
-    Logger.warn("#{state.realm}/#{Device.encode_device_id(state.device_id)}: #{msg}")
   end
 end

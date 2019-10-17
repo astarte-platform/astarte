@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   alias Astarte.DataUpdaterPlant.ConsumersSupervisor
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
@@ -30,6 +31,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
   alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
 
   def start(_type, _args) do
+    Logger.info("Starting application.", tag: "data_updater_plant_app_start")
+
     # List all child processes to be supervised
     children = [
       {Registry, [keys: :unique, name: Registry.MessageTracker]},

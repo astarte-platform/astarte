@@ -74,12 +74,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("set_pending_empty_cache: database error: #{error_message}")
+        Logger.warn("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
         # DB Error
-        Logger.warn("set_pending_empty_cache: failed with reason #{inspect(reason)}")
+        Logger.warn("Failed with reason #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -258,7 +258,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
           {next_query_values_acc, next_placeholders_acc, next_query_acc}
         else
           Logger.warn(
-            "Unexpected object key #{inspect(obj_key)} with value #{inspect(obj_value)}"
+            "Unexpected object key #{inspect(obj_key)} with value #{inspect(obj_value)}."
           )
 
           query_values_acc
@@ -513,11 +513,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, %{}}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("fetch_device_introspection_minors: database error: #{error_message}")
+        Logger.warn("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("fetch_device_introspection_minors: failed with reason #{inspect(reason)}")
+        Logger.warn("Failed with reason #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -610,7 +610,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     else
       {:error, reason} ->
         Logger.warn(
-          "database error: cannot register device-interface pair, reason: #{inspect(reason)}"
+          "Database error: cannot register device-interface pair, reason: #{inspect(reason)}."
         )
 
         {:error, reason}
@@ -638,7 +638,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     else
       {:error, reason} ->
         Logger.warn(
-          "database error: cannot unregister device-interface pair, reason: #{inspect(reason)}"
+          "Database error: cannot unregister device-interface pair: #{inspect(reason)}."
         )
 
         {:error, reason}
@@ -744,14 +744,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, nil}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn(
-          "fetch_datastream_maximum_storage_retention: database error: #{error_message}"
-        )
-
+        Logger.warn("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("fetch_datastream_maximum_storage_retention: failed:  #{inspect(reason)}")
+        Logger.warn("Failed with reason: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -792,11 +789,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, :no_expiry}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("path_exists?: database error: #{error_message}")
+        Logger.warn("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Database error while retrieving property: #{inspect(reason)}")
+        Logger.warn("Database error while retrieving property: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end

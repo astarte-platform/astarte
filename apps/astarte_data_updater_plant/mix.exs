@@ -69,7 +69,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cyanide, github: "ispirata/cyanide"},
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
-      {:excoveralls, "~> 0.11", only: :test}
+      {:excoveralls, "~> 0.11", only: :test},
+      {:pretty_log, github: "ispirata/pretty_log"}
     ]
   end
 end
