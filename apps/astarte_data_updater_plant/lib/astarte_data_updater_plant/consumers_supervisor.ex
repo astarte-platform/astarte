@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
   use Supervisor
+  require Logger
 
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.Config
@@ -28,6 +29,8 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
 
   @impl true
   def init(_init_arg) do
+    Logger.info("AMQPDataConsumer supervisor init.", tag: "data_consumer_sup_init")
+
     children = [
       {AMQPDataConsumer.ConnectionManager, amqp_opts: Config.amqp_consumer_options()},
       AMQPDataConsumer.Supervisor
