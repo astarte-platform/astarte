@@ -500,8 +500,16 @@ initInterfacesPage session realm =
 initInterfaceBuilderPage : Maybe ( String, Int ) -> Session -> String -> ( Page, Cmd Msg, Session )
 initInterfaceBuilderPage maybeInterfaceId session realm =
     let
+        pageMode =
+            case maybeInterfaceId of
+                Nothing ->
+                    InterfaceBuilder.New
+
+                Just ( name, major ) ->
+                    InterfaceBuilder.Edit ( name, major )
+
         ( initialModel, initialCommand ) =
-            InterfaceBuilder.init maybeInterfaceId session
+            InterfaceBuilder.init pageMode session
     in
     ( Realm realm (InterfaceBuilderPage initialModel)
     , Cmd.map InterfaceBuilderMsg initialCommand
@@ -549,7 +557,7 @@ initInterfaceEditorPage : Session -> ( Page, Cmd Msg, Session )
 initInterfaceEditorPage session =
     let
         ( initialModel, initialCommand ) =
-            InterfaceBuilder.init Nothing session
+            InterfaceBuilder.init InterfaceBuilder.EditorOnly session
     in
     ( Realm "" (InterfaceBuilderPage initialModel)
     , Cmd.map InterfaceBuilderMsg initialCommand

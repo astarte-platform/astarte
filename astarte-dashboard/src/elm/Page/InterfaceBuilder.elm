@@ -17,7 +17,7 @@
 -}
 
 
-module Page.InterfaceBuilder exposing (Model, Msg, init, subscriptions, update, view)
+module Page.InterfaceBuilder exposing (BuilderMode(..), Model, Msg, init, subscriptions, update, view)
 
 import AstarteApi
 import Bootstrap.Accordion as Accordion
@@ -68,6 +68,8 @@ import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
 
 type alias Model =
     { interface : Interface
+    , builderMode : BuilderMode
+    , editorOnly : Bool
     , interfaceEditMode : Bool
     , minMinor : Int
     , deleteModalVisibility : Modal.Visibility
@@ -99,18 +101,37 @@ type BufferStatus
     | Typing
 
 
-init : Maybe ( String, Int ) -> Session -> ( Model, Cmd Msg )
-init maybeInterfaceId session =
+type BuilderMode
+    = EditorOnly
+    | New
+    | Edit ( String, Int )
+
+
+init : BuilderMode -> Session -> ( Model, Cmd Msg )
+init mode session =
     let
         debouncer =
             Debouncer.manual
                 |> Debouncer.settleWhenQuietFor (Just (fromSeconds 1))
                 |> toDebouncer
 
-        ( showSpinner, initialCommand ) =
-            case maybeInterfaceId of
-                Just ( name, major ) ->
+        ( showSpinner, isEditorOnly, initialCommand ) =
+            case mode of
+                EditorOnly ->
+                    ( False
+                    , True
+                    , Cmd.none
+                    )
+
+                New ->
+                    ( False
+                    , False
+                    , Cmd.none
+                    )
+
+                Edit ( name, major ) ->
                     ( True
+                    , False
                     , AstarteApi.getInterface session.apiConfig
                         name
                         major
@@ -119,15 +140,12 @@ init maybeInterfaceId session =
                         RedirectToLogin
                     )
 
-                Nothing ->
-                    ( False
-                    , Cmd.none
-                    )
-
         interfaceNameSuggestionPopup =
             SuggestionPopup.new "Interface name should be prefixed with a reverse domain name, and should use PascalCase (e.g. com.example.MyInterface)."
     in
     ( { interface = Interface.empty
+      , builderMode = mode
+      , editorOnly = isEditorOnly
       , interfaceEditMode = False
       , minMinor = 0
       , objectReliability = InterfaceMapping.Unreliable
@@ -959,11 +977,15 @@ renderContent model interface interfaceEditMode accordionState =
                         , class "text-truncate"
                         ]
                         [ text
-                            (if interfaceEditMode then
-                                interface.name
+                            (case model.builderMode of
+                                EditorOnly ->
+                                    "Interface Editor"
 
-                             else
-                                "Install a new interface"
+                                New ->
+                                    "Install a new interface"
+
+                                Edit _ ->
+                                    interface.name
                             )
                         , if interfaceEditMode && interface.major == 0 then
                             Button.button
@@ -1156,9 +1178,14 @@ renderContent model interface interfaceEditMode accordionState =
                     ]
                 ]
             , Form.row [ Row.rightSm ]
-                [ Form.col [ Col.sm4 ]
-                    [ renderConfirmButton interfaceEditMode ]
-                ]
+                (if model.editorOnly then
+                    []
+
+                 else
+                    [ Form.col [ Col.sm4 ]
+                        [ renderConfirmButton interfaceEditMode ]
+                    ]
+                )
             ]
         ]
 
