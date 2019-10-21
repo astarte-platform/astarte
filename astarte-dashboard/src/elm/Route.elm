@@ -35,6 +35,7 @@ import Url.Parser.Query as Query
 
 type Route
     = Root
+    | InterfaceEditor
     | RealmSelection (Maybe String)
     | Realm RealmRoute
 
@@ -56,6 +57,7 @@ routeParser : Parser (Route -> a) a
 routeParser =
     oneOf
         [ map Root (s "")
+        , map InterfaceEditor (s "interface_editor")
         , map RealmSelection (s "login" <?> Query.string "type")
         , map Realm realmRouteParser
         ]
@@ -91,6 +93,9 @@ toString route =
             case route of
                 Root ->
                     [ "" ]
+
+                InterfaceEditor ->
+                    [ "interface_editor" ]
 
                 RealmSelection maybeType ->
                     case maybeType of
