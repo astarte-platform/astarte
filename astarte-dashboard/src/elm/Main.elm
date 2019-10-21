@@ -729,8 +729,54 @@ view model =
     }
 
 
+
+{-
+   as for elm-bootstrap 5.1.0, vertical navbars are not supported.
+   This is the implementation using bootstrap css classes
+-}
+
+
 renderNavbar : Model -> Html Msg
 renderNavbar model =
+    if Config.isEditorOnly model.config then
+        editorNavBar model
+
+    else
+        standardNavBar model
+
+
+editorNavBar : Model -> Html Msg
+editorNavBar model =
+    Navbar.config NavbarMsg
+        |> Navbar.withAnimation
+        |> Navbar.attrs
+            [ classList
+                [ ( "navbar-vertical", True )
+                , ( "fixed-left", True )
+                ]
+            ]
+        |> Navbar.collapseMedium
+        |> Navbar.brand
+            [ href <| Route.toString (Route.Realm Route.Home) ]
+            [ img
+                [ src <| Assets.path Assets.dashboardIcon
+                , style "height" "3em"
+                , Spacing.mr3
+                ]
+                []
+            , div
+                [ class "realm-brand" ]
+                [ p [ Spacing.mb0 ] [ text "Astarte" ]
+                , small [ class "font-weight-light" ] [ text "dashboard" ]
+                ]
+            ]
+        |> Navbar.customItems
+            [ editorNavbarLinks model.selectedPage ]
+        |> Navbar.view model.navbarState
+
+
+standardNavBar : Model -> Html Msg
+standardNavBar model =
     case model.selectedPage of
         Public (LoginPage _) ->
             text ""
@@ -764,11 +810,30 @@ renderNavbar model =
                 |> Navbar.view model.navbarState
 
 
+editorNavbarLinks : Page -> Navbar.CustomItem Msg
+editorNavbarLinks selectedPage =
+    let
+        isTriggerEditor =
+            case selectedPage of
+                Realm _ (TriggerBuilderPage _) ->
+                    True
 
-{-
-   as for elm-bootstrap 5.1.0, vertical navbars are not supported.
-   This is the implementation using bootstrap css classes
--}
+                _ ->
+                    False
+    in
+    Navbar.customItem <|
+        Grid.container
+            [ Flex.col ]
+            [ hr [] []
+            , ul
+                [ class "navbar-nav" ]
+                [ renderNavbarLink
+                    "Interface Editor"
+                    Icons.Interface
+                    (not isTriggerEditor)
+                    Route.InterfaceEditor
+                ]
+            ]
 
 
 navbarLinks : Page -> Navbar.CustomItem Msg
