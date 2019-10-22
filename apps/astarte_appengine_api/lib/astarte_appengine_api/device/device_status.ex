@@ -38,6 +38,13 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :total_received_bytes, :integer
     field :groups, {:array, :string}
   end
+
+  @doc false
+  def changeset(%DeviceStatus{} = device_status, params \\ %{}) do
+    device_status
+    |> cast(params, [:aliases])
+  end
+
   def from_db_row(row) when is_map(row) do
     %{
       "device_id" => device_id,
