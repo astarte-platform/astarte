@@ -12,7 +12,7 @@ Can't be easier.
 Pick your favorite machine with at least 4GB of RAM (Cassandra can be hungry), make sure it has [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl) and OpenSSL installed, and simply:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git && cd astarte
+$ git clone https://github.com/astarte-platform/astarte.git -b release-0.10 && cd astarte
 $ ./generate-compose-files.sh
 $ docker-compose up -d
 ```
