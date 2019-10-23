@@ -42,6 +42,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
     "first_credentials_request" => "2016-08-20T09:44:00.000Z",
     "last_credentials_request_ip" => "198.51.100.89",
     "last_seen_ip" => "198.51.100.81",
+    "credentials_inhibited" => false,
     "total_received_bytes" => 4_500_000,
     "total_received_msgs" => 45000,
     "groups" => []
