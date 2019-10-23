@@ -66,6 +66,8 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, device_status} <- Queries.retrieve_device_status(client, device_id),
          changeset = DeviceStatus.changeset(device_status, device_status_merge),
          {:ok, updated_device_status} <- Ecto.Changeset.apply_action(changeset, :update),
+         credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),
+         :ok <- change_credentials_inhibited(client, device_id, credentials_inhibited_change),
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
          :ok <- update_aliases(client, device_id, aliases_change) do
       # Manually merge aliases since changesets don't perform maps deep merge
@@ -95,6 +97,15 @@ defmodule Astarte.AppEngine.API.Device do
     Map.merge(old_aliases, new_aliases)
     |> Enum.reject(fn {_, v} -> v == nil end)
     |> Enum.into(%{})
+  end
+
+  defp change_credentials_inhibited(_client, _device_id, nil) do
+    :ok
+  end
+
+  defp change_credentials_inhibited(client, device_id, credentials_inhibited)
+       when is_boolean(credentials_inhibited) do
+    Queries.set_inhibit_credentials_request(client, device_id, credentials_inhibited)
   end
 
   @doc """
