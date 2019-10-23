@@ -1133,6 +1133,29 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              {:ok, @expected_device_status}
   end
 
+  describe "updating credentials_inhibited with merge_device_status/3" do
+    test "succeeds when changing value" do
+      params = %{"credentials_inhibited" => true}
+
+      assert {:ok, %DeviceStatus{credentials_inhibited: true}} =
+               Device.merge_device_status("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", params)
+    end
+
+    test "succeeds when leaving the same value" do
+      params = %{"credentials_inhibited" => false}
+
+      assert {:ok, %DeviceStatus{credentials_inhibited: false}} =
+               Device.merge_device_status("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", params)
+    end
+
+    test "fails with invalid value" do
+      params = %{"credentials_inhibited" => "invalid"}
+
+      assert {:error, %Ecto.Changeset{}} =
+               Device.merge_device_status("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", params)
+    end
+  end
+
   test "list_devices/1 returns all devices" do
     expected_devices = [
       "4UQbIokuRufdtbVZt9AsLg",
