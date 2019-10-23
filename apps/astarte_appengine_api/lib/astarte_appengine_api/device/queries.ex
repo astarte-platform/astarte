@@ -793,6 +793,33 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
+  def set_inhibit_credentials_request(client, device_id, inhibit_credentials_request) do
+    statement = """
+    UPDATE devices
+    SET inhibit_credentials_request = :inhibit_credentials_request
+    WHERE device_id = :device_id
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(statement)
+      |> DatabaseQuery.put(:inhibit_credentials_request, inhibit_credentials_request)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(client, query) do
+      :ok
+    else
+      %{acc: _, msg: error_message} ->
+        Logger.warn("Database error: #{error_message}", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Update failed, reason: #{inspect(reason)}.", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
   def retrieve_object_datastream_values(client, device_id, interface_row, path, columns, opts) do
     {since_statement, since_value} =
       cond do
