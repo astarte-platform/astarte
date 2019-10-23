@@ -434,6 +434,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , total_received_msgs
     , total_received_bytes
     , groups
+    , inhibit_credentials_request
   """
 
   defp device_status_row_to_device_status(row) do
@@ -451,7 +452,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       last_seen_ip: last_seen_ip,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
-      groups: groups_map
+      groups: groups_map,
+      inhibit_credentials_request: credentials_inhibited
     ] = row
 
     only_major_introspection =
@@ -485,6 +487,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       first_credentials_request: millis_or_null_to_datetime!(first_credentials_request),
       last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
       last_seen_ip: ip_or_null_to_string(last_seen_ip),
+      credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
       groups: groups
