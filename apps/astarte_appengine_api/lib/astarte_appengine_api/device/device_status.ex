@@ -43,7 +43,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
   @doc false
   def changeset(%DeviceStatus{} = device_status, params \\ %{}) do
     device_status
-    |> cast(params, [:aliases])
+    |> cast(params, [:aliases, :credentials_inhibited])
   end
 
   def from_db_row(row) when is_map(row) do
