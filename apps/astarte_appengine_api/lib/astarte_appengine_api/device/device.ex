@@ -22,6 +22,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.AstarteValue
   alias Astarte.AppEngine.API.Device.DevicesListOptions
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.MapTree
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
@@ -59,25 +60,41 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  def merge_device_status!(realm_name, encoded_device_id, device_status_merge) do
+  def merge_device_status(realm_name, encoded_device_id, device_status_merge) do
     with {:ok, client} <- Database.connect(realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Enum.find_value(Map.get(device_status_merge, "aliases", %{}), :ok, fn {alias_upd_key,
-                                                                             alias_upd_value} ->
-        result =
-          if alias_upd_value do
-            Queries.insert_alias(client, device_id, alias_upd_key, alias_upd_value)
-          else
-            Queries.delete_alias(client, device_id, alias_upd_key)
-          end
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, device_status} <- Queries.retrieve_device_status(client, device_id),
+         changeset = DeviceStatus.changeset(device_status, device_status_merge),
+         {:ok, updated_device_status} <- Ecto.Changeset.apply_action(changeset, :update),
+         aliases_change = Map.get(changeset.changes, :aliases, %{}),
+         :ok <- update_aliases(client, device_id, aliases_change) do
+      # Manually merge aliases since changesets don't perform maps deep merge
+      merged_aliases = merge_aliases(device_status.aliases, updated_device_status.aliases)
 
-        if match?({:error, _}, result) do
-          result
-        else
-          nil
-        end
-      end)
+      {:ok, %{updated_device_status | aliases: merged_aliases}}
     end
+  end
+
+  defp update_aliases(client, device_id, aliases) do
+    Enum.reduce_while(aliases, :ok, fn
+      {alias_key, nil}, _acc ->
+        case Queries.delete_alias(client, device_id, alias_key) do
+          :ok -> {:cont, :ok}
+          {:error, reason} -> {:halt, {:error, reason}}
+        end
+
+      {alias_key, alias_value}, _acc ->
+        case Queries.insert_alias(client, device_id, alias_key, alias_value) do
+          :ok -> {:cont, :ok}
+          {:error, reason} -> {:halt, {:error, reason}}
+        end
+    end)
+  end
+
+  defp merge_aliases(old_aliases, new_aliases) when is_map(old_aliases) do
+    Map.merge(old_aliases, new_aliases)
+    |> Enum.reject(fn {_, v} -> v == nil end)
+    |> Enum.into(%{})
   end
 
   @doc """
