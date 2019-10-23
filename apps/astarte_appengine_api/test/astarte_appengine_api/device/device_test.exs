@@ -993,23 +993,41 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   test "update device aliases using merge_device_status/3" do
+    # Succeeds when setting an alias that is already assigned to this device
     set_again_display_name = %{
       "aliases" => %{
         "display_name" => "device_a"
       }
     }
 
-    assert Device.merge_device_status(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             set_again_display_name
-           ) == {:error, :alias_already_in_use}
+    assert {:ok, _device_status} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               set_again_display_name
+             )
 
     assert Device.device_alias_to_device_id("autotestrealm", "device_a") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
 
     assert Device.get_device_status!("autotestrealm", @expected_device_status.id) ==
              {:ok, @expected_device_status}
+
+    # Fails when setting an alias that is already assigned to another device
+    already_existing_display_name = %{
+      "aliases" => %{
+        "display_name" => "device_b"
+      }
+    }
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             already_existing_display_name
+           ) == {:error, :alias_already_in_use}
+
+    assert Device.device_alias_to_device_id("autotestrealm", "device_b") ==
+             {:ok, <<225, 68, 27, 34, 137, 46, 70, 231, 221, 181, 181, 89, 183, 208, 44, 46>>}
 
     change_display_name = %{
       "aliases" => %{
