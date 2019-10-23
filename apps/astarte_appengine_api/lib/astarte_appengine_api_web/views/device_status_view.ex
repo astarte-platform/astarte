@@ -56,6 +56,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
       last_disconnection: device_status.last_disconnection,
       last_seen_ip: device_status.last_seen_ip,
       last_credentials_request_ip: device_status.last_credentials_request_ip,
+      credentials_inhibited: device_status.credentials_inhibited,
       first_registration: device_status.first_registration,
       first_credentials_request: device_status.first_credentials_request,
       aliases: device_status.aliases,
