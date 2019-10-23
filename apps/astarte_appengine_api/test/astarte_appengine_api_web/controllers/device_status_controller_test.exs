@@ -170,6 +170,42 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
       assert json_response(conn, 200)["data"] ==
                Map.put(@expected_device_status, "aliases", %{"display_name" => "device_a"})
     end
+
+    test "updates credentials_inhibited with valid params", %{conn: conn} do
+      data = %{
+        "credentials_inhibited" => true
+      }
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> put_req_header("accept", "application/json")
+        |> put_req_header("authorization", "bearer #{JWTTestHelper.gen_jwt_all_access_token()}")
+        |> patch(
+          device_status_path(conn, :update, "autotestrealm", @expected_device_id),
+          data: data
+        )
+
+      assert json_response(conn, 200)["data"]["credentials_inhibited"] == true
+    end
+
+    test "fails to update credentials_inhibited with invalid params", %{conn: conn} do
+      data = %{
+        "credentials_inhibited" => "foobar"
+      }
+
+      conn =
+        conn
+        |> put_req_header("content-type", "application/merge-patch+json")
+        |> put_req_header("accept", "application/json")
+        |> put_req_header("authorization", "bearer #{JWTTestHelper.gen_jwt_all_access_token()}")
+        |> patch(
+          device_status_path(conn, :update, "autotestrealm", @expected_device_id),
+          data: data
+        )
+
+      assert json_response(conn, 422)["errors"]["credentials_inhibited"] != nil
+    end
   end
 
   describe "index" do
