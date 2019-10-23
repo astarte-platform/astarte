@@ -992,14 +992,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              {:error, :device_not_found}
   end
 
-  test "update device aliases using merge_device_status!/3" do
+  test "update device aliases using merge_device_status/3" do
     set_again_display_name = %{
       "aliases" => %{
         "display_name" => "device_a"
       }
     }
 
-    assert Device.merge_device_status!(
+    assert Device.merge_device_status(
              "autotestrealm",
              "f0VMRgIBAQAAAAAAAAAAAA",
              set_again_display_name
@@ -1017,11 +1017,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             change_display_name
-           ) == :ok
+    assert {:ok, %DeviceStatus{aliases: %{"display_name" => "device_z"}}} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               change_display_name
+             )
 
     assert Device.device_alias_to_device_id("autotestrealm", "device_z") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
@@ -1036,11 +1037,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             change_and_add_aliases
-           ) == :ok
+    assert {:ok, %DeviceStatus{aliases: %{"display_name" => "device_x", "serial" => "7890"}}} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               change_and_add_aliases
+             )
 
     assert Device.device_alias_to_device_id("autotestrealm", "device_x") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
@@ -1061,11 +1063,15 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             unset_and_change_aliases
-           ) == :ok
+    assert {:ok, %DeviceStatus{aliases: aliases}} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               unset_and_change_aliases
+             )
+
+    assert Map.get(aliases, "display_name") == "device_a"
+    assert Enum.member?(aliases, "serial") == false
 
     unset_not_existing = %{
       "aliases" => %{
@@ -1073,7 +1079,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
+    assert Device.merge_device_status(
              "autotestrealm",
              "f0VMRgIBAQAAAAAAAAAAAA",
              unset_not_existing
@@ -1098,7 +1104,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
+    assert Device.merge_device_status(
              "autotestrealm",
              "f0VMRgIBAQAAAAAAAAAAAQ",
              try_to_set_alias_to_not_existing
