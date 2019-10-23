@@ -34,6 +34,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :first_credentials_request, :utc_datetime
     field :last_credentials_request_ip
     field :last_seen_ip
+    field :credentials_inhibited, :boolean
     field :total_received_msgs, :integer
     field :total_received_bytes, :integer
     field :groups, {:array, :string}
@@ -58,6 +59,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       "first_credentials_request" => first_credentials_request,
       "last_credentials_request_ip" => last_credentials_request_ip,
       "last_seen_ip" => last_seen_ip,
+      "inhibit_credentials_request" => credentials_inhibited,
       "total_received_msgs" => total_received_msgs,
       "total_received_bytes" => total_received_bytes,
       "groups" => groups_map
@@ -82,6 +84,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       first_credentials_request: first_credentials_request,
       last_credentials_request_ip: ip_string(last_credentials_request_ip),
       last_seen_ip: ip_string(last_seen_ip),
+      credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
       groups: groups
