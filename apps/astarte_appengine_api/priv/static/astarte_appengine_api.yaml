@@ -1075,6 +1075,9 @@ components:
         last_seen_ip:
           type: string
           description: Last known device IP address.
+        credentials_inhibited:
+          type: boolean
+          description: true if the device has been inhibited (i.e. it can't request new credentials)
         last_credentials_request_ip:
           type: string
           description: Last known device IP address used while obtaining credentials.
@@ -1107,6 +1110,7 @@ components:
         first_registration: '2016-07-08T09:44:00.000Z'
         first_credentials_request: '2016-08-20T09:44:00.000Z'
         last_seen_ip: 198.51.100.81
+        credentials_inhibited: false
         last_credentials_request_ip: 98.51.100.89
         total_received_bytes: 10240
         total_received_msgs: 10
