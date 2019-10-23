@@ -194,7 +194,7 @@ paths:
       tags:
         - device
       summary: Update a device writeable property
-      description: Update any of the writeable device properties such as device aliases.
+      description: Update any of the writeable device properties such as device aliases or credentials inhibited.
       operationId: updateDeviceStatus
       security:
         - JWT: []
