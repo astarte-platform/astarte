@@ -74,6 +74,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Device already in group"}}
   end
 
+  def render("409_alias_already_in_use.json", _assigns) do
+    %{errors: %{detail: "Alias already in use"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end

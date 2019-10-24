@@ -24,9 +24,6 @@ mix:test-ci:
         - mix compile
         - mix coveralls --exclude cassandra_only
         - mix format --check-formatted
-    cache:
-        paths:
-            - deps
     except:
         - branches@Astarte-NG/astarte_appengine_api
 
@@ -44,9 +41,6 @@ mix:build:
         - mix coveralls --exclude cassandra_only
         - export MIX_ENV=dev
         - mix release
-    cache:
-        paths:
-            - deps
     only:
         - master@Astarte-NG/astarte_appengine_api
 
@@ -64,9 +58,6 @@ mix:release-build:
         - mix coveralls --exclude cassandra_only
         - export MIX_ENV=prod
         - mix release
-    cache:
-        paths:
-            - deps
     only:
         - tags@Astarte-NG/astarte_appengine_api
 
