@@ -96,6 +96,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     },
     last_credentials_request_ip: "198.51.100.89",
     last_seen_ip: "198.51.100.81",
+    credentials_inhibited: false,
     total_received_bytes: 4_500_000,
     total_received_msgs: 45000,
     groups: []
@@ -992,18 +993,20 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              {:error, :device_not_found}
   end
 
-  test "update device aliases using merge_device_status!/3" do
+  test "update device aliases using merge_device_status/3" do
+    # Succeeds when setting an alias that is already assigned to this device
     set_again_display_name = %{
       "aliases" => %{
         "display_name" => "device_a"
       }
     }
 
-    assert Device.merge_device_status!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             set_again_display_name
-           ) == {:error, :alias_already_in_use}
+    assert {:ok, _device_status} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               set_again_display_name
+             )
 
     assert Device.device_alias_to_device_id("autotestrealm", "device_a") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
@@ -1011,17 +1014,34 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     assert Device.get_device_status!("autotestrealm", @expected_device_status.id) ==
              {:ok, @expected_device_status}
 
+    # Fails when setting an alias that is already assigned to another device
+    already_existing_display_name = %{
+      "aliases" => %{
+        "display_name" => "device_b"
+      }
+    }
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             already_existing_display_name
+           ) == {:error, :alias_already_in_use}
+
+    assert Device.device_alias_to_device_id("autotestrealm", "device_b") ==
+             {:ok, <<225, 68, 27, 34, 137, 46, 70, 231, 221, 181, 181, 89, 183, 208, 44, 46>>}
+
     change_display_name = %{
       "aliases" => %{
         "display_name" => "device_z"
       }
     }
 
-    assert Device.merge_device_status!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             change_display_name
-           ) == :ok
+    assert {:ok, %DeviceStatus{aliases: %{"display_name" => "device_z"}}} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               change_display_name
+             )
 
     assert Device.device_alias_to_device_id("autotestrealm", "device_z") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
@@ -1036,11 +1056,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             change_and_add_aliases
-           ) == :ok
+    assert {:ok, %DeviceStatus{aliases: %{"display_name" => "device_x", "serial" => "7890"}}} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               change_and_add_aliases
+             )
 
     assert Device.device_alias_to_device_id("autotestrealm", "device_x") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
@@ -1061,11 +1082,15 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             unset_and_change_aliases
-           ) == :ok
+    assert {:ok, %DeviceStatus{aliases: aliases}} =
+             Device.merge_device_status(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               unset_and_change_aliases
+             )
+
+    assert Map.get(aliases, "display_name") == "device_a"
+    assert Enum.member?(aliases, "serial") == false
 
     unset_not_existing = %{
       "aliases" => %{
@@ -1073,7 +1098,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
+    assert Device.merge_device_status(
              "autotestrealm",
              "f0VMRgIBAQAAAAAAAAAAAA",
              unset_not_existing
@@ -1098,7 +1123,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       }
     }
 
-    assert Device.merge_device_status!(
+    assert Device.merge_device_status(
              "autotestrealm",
              "f0VMRgIBAQAAAAAAAAAAAQ",
              try_to_set_alias_to_not_existing
@@ -1106,6 +1131,29 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     assert Device.get_device_status!("autotestrealm", @expected_device_status.id) ==
              {:ok, @expected_device_status}
+  end
+
+  describe "updating credentials_inhibited with merge_device_status/3" do
+    test "succeeds when changing value" do
+      params = %{"credentials_inhibited" => true}
+
+      assert {:ok, %DeviceStatus{credentials_inhibited: true}} =
+               Device.merge_device_status("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", params)
+    end
+
+    test "succeeds when leaving the same value" do
+      params = %{"credentials_inhibited" => false}
+
+      assert {:ok, %DeviceStatus{credentials_inhibited: false}} =
+               Device.merge_device_status("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", params)
+    end
+
+    test "fails with invalid value" do
+      params = %{"credentials_inhibited" => "invalid"}
+
+      assert {:error, %Ecto.Changeset{}} =
+               Device.merge_device_status("autotestrealm", "f0VMRgIBAQAAAAAAAAAAAA", params)
+    end
   end
 
   test "list_devices/1 returns all devices" do

@@ -20,6 +20,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
 
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.JWTTestHelper
 
   @expected_introspection %{
@@ -41,6 +42,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
     "first_credentials_request" => "2016-08-20T09:44:00.000Z",
     "last_credentials_request_ip" => "198.51.100.89",
     "last_seen_ip" => "198.51.100.81",
+    "credentials_inhibited" => false,
     "total_received_bytes" => 4_500_000,
     "total_received_msgs" => 45000,
     "groups" => []
@@ -106,7 +108,10 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
         }
       }
 
-      assert Device.merge_device_status!("autotestrealm", @expected_device_id, unset_alias) == :ok
+      assert {:ok, %DeviceStatus{aliases: aliases}} =
+               Device.merge_device_status("autotestrealm", @expected_device_id, unset_alias)
+
+      assert Enum.member?(aliases, "test_tag") == false
     end
 
     test "remove device alias", %{conn: conn} do
@@ -116,7 +121,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
         }
       }
 
-      assert Device.merge_device_status!("autotestrealm", @expected_device_id, set_alias) == :ok
+      assert {:ok, %DeviceStatus{aliases: %{"test_tag" => "test_alias"}}} =
+               Device.merge_device_status("autotestrealm", @expected_device_id, set_alias)
 
       unset_device_alias_payload = %{
         "data" => %{

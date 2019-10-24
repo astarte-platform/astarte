@@ -172,7 +172,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     {select, from, where, suffix} =
       if opts[:details] do
         select = """
-        SELECT TOKEN(device_id), device_id, aliases, introspection,
+        SELECT TOKEN(device_id), device_id, aliases, introspection, inhibit_credentials_request,
         introspection_minor, connected, last_connection, last_disconnection,
         first_registration, first_credentials_request, last_credentials_request_ip,
         last_seen_ip, total_received_msgs, total_received_bytes, groups
