@@ -23,7 +23,9 @@ manually).
 emits these Credentials through a policy which is usually imposed by the Authority emitting the
 Credentials or by Pairing itself. They are designed to be transient, revokable and reasonably
 short-lived - however, the actual behavior and their lifecycle is entirely orchestrated by the
-Authority emitting them.
+Authority emitting them. The emission of *Transport Credentials* can be inhibited for a specific
+Device, you can read how to do that in the [User
+Guide](040-connect_device.html#credentials-secret-pairing-and-transports)
 
 Transports, by design, have no knowledge nor access to *Credentials Secret*, but have full authority
 over the authentication mechanism for devices. In fact, each Transport is free to choose the
