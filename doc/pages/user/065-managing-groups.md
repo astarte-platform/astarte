@@ -7,14 +7,7 @@ The examples below will use `astartectl` but you can achieve the same results us
 ### Reserved group prefixes
 
 Some prefixes are reserved for internal use. It's not possible to create groups with a name starting
-with these words:
-- `astarte`
-- `interface`
-- `interfaces`
-- `devices`
-- `query`
-- `realm`
-- `triggers`
+with the `~` and `@` characters.
 
 ## Creating a group
 
