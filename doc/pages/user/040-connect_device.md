@@ -27,6 +27,19 @@ API](https://docs.astarte-platform.org/snapshot/api/?urls.primaryName=Pairing%20
 is then used for obtaining information about which Transports the Device can use for communicating,
 and for obtaining Credentials for its assigned Transports.
 
+The ability to request Credentials of a Device can be inhibited with [AppEngine
+API](/api/#/device/updateDeviceStatus) or using
+[`astartectl`](https://github.com/astarte-platform/astartectl) with this command:
+
+```
+astartectl appengine devices credentials inhibit <device_id_or_alias> true \
+  -k <appengine-key> -r <realm-name> -u <astarte-api-url>
+```
+
+Once its `credentials_inhibited` field is set to `true`, a Device is not able to request new
+Credentials. Note that Credentials that were already emitted will still be valid until their
+expiration.
+
 As, from a user's standpoint, the way a Device communicates with Astarte is entirely
 Transport-specific, this guide will cover using Astarte/MQTT through one of Astarte's SDKs. If you
 are using a different Transport, please refer to its User Guide, or if you wish to implement your
