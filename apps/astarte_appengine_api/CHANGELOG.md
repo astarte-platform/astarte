@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Fix invalid dates handling, they should not cause an internal server error.
 - Gracefully handle existing aliases instead of returning an internal server error.
+- Fix querying object aggregated interface with explicit timestamp, use value_timestamp to avoid
+an internal server error.
 
 ## [0.10.1] - 2019-10-02
 ### Fixed
