@@ -406,6 +406,15 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(client, device_id, :object, interface_row, opts) do
+    # We need to know if mappings have explicit_timestamp set, so we retrieve it from the
+    # first one.
+    endpoint =
+      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
+      |> CQEx.Result.head()
+
+    mapping =
+      Queries.retrieve_mapping(client, interface_row[:interface_id], endpoint[:endpoint_id])
+
     do_get_interface_values!(
       client,
       device_id,
@@ -415,7 +424,7 @@ defmodule Astarte.AppEngine.API.Device do
       nil,
       nil,
       "/",
-      opts
+      %{opts | explicit_timestamp: mapping.explicit_timestamp}
     )
   end
 
@@ -513,6 +522,15 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
+    # We need to know if mappings have explicit_timestamp set, so we retrieve it from the
+    # first one.
+    endpoint =
+      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
+      |> CQEx.Result.head()
+
+    mapping =
+      Queries.retrieve_mapping(client, interface_row[:interface_id], endpoint[:endpoint_id])
+
     endpoint_rows =
       Queries.retrieve_all_endpoints_for_interface!(client, interface_row[:interface_id])
 
@@ -526,7 +544,7 @@ defmodule Astarte.AppEngine.API.Device do
         nil,
         endpoint_rows,
         path,
-        opts
+        %{opts | explicit_timestamp: mapping.explicit_timestamp}
       )
 
     cond do
