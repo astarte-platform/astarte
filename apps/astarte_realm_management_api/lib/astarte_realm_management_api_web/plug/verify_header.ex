@@ -49,7 +49,11 @@ defmodule Astarte.RealmManagement.APIWeb.Plug.VerifyHeader do
       jwk
     else
       {:error, reason} ->
-        Logger.warn("Couldn't get JWT public key PEM: #{inspect(reason)}")
+        _ =
+          Logger.error("Couldn't get JWT public key PEM: #{inspect(reason)}.",
+            tag: "get_jwt_secret_error"
+          )
+
         nil
     end
   end
