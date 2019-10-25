@@ -19,8 +19,6 @@
 defmodule Astarte.RealmManagement.API.Auth do
   alias Astarte.RealmManagement.API.RPC.RealmManagement
 
-  require Logger
-
   def fetch_public_key(realm) do
     RealmManagement.get_jwt_public_key_pem(realm)
   end
