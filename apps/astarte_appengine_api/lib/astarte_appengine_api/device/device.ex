@@ -886,14 +886,22 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp maybe_downsample_to(values, count, :object, %InterfaceValuesOptions{
          downsample_to: downsampled_size,
-         downsample_key: downsample_key
+         downsample_key: downsample_key,
+         explicit_timestamp: explicit_timestamp
        })
        when downsampled_size > 2 do
+    timestamp_column =
+      if explicit_timestamp do
+        :value_timestamp
+      else
+        :reception_timestamp
+      end
+
     avg_bucket_size = max(1, (count - 2) / (downsampled_size - 2))
 
-    sample_to_x_fun = fn sample -> Keyword.get(sample, :reception_timestamp) end
+    sample_to_x_fun = fn sample -> Keyword.get(sample, timestamp_column) end
     sample_to_y_fun = fn sample -> Keyword.get(sample, downsample_key) end
-    xy_to_sample_fun = fn x, y -> [{:reception_timestamp, x}, {downsample_key, y}] end
+    xy_to_sample_fun = fn x, y -> [{timestamp_column, x}, {downsample_key, y}] end
 
     ExLTTB.Stream.downsample(
       values,
@@ -1043,6 +1051,13 @@ defmodule Astarte.AppEngine.API.Device do
          column_atom_to_pretty_name,
          %{format: "table"} = opts
        ) do
+    timestamp_column =
+      if opts.explicit_timestamp do
+        :value_timestamp
+      else
+        :reception_timestamp
+      end
+
     {_cols_count, columns, reverse_table_header} =
       Queries.first_result_row(values)
       |> List.foldl({1, %{"timestamp" => 0}, ["timestamp"]}, fn {column, _column_value},
@@ -1062,7 +1077,7 @@ defmodule Astarte.AppEngine.API.Device do
       for value <- values do
         base_array_entry = [
           AstarteValue.to_json_friendly(
-            value[:reception_timestamp],
+            value[timestamp_column],
             :datetime,
             keep_milliseconds: opts.keep_milliseconds
           )
@@ -1094,6 +1109,13 @@ defmodule Astarte.AppEngine.API.Device do
          column_atom_to_pretty_name,
          %{format: "disjoint_tables"} = opts
        ) do
+    timestamp_column =
+      if opts.explicit_timestamp do
+        :value_timestamp
+      else
+        :reception_timestamp
+      end
+
     reversed_columns_map =
       Enum.reduce(values, %{}, fn value, columns_acc ->
         List.foldl(value, columns_acc, fn {column, column_value}, acc ->
@@ -1104,7 +1126,7 @@ defmodule Astarte.AppEngine.API.Device do
               [
                 column_value,
                 AstarteValue.to_json_friendly(
-                  value[:reception_timestamp],
+                  value[timestamp_column],
                   :datetime,
                   keep_milliseconds: opts.keep_milliseconds
                 )
@@ -1137,12 +1159,19 @@ defmodule Astarte.AppEngine.API.Device do
          column_atom_to_pretty_name,
          %{format: "structured"} = opts
        ) do
+    timestamp_column =
+      if opts.explicit_timestamp do
+        :value_timestamp
+      else
+        :reception_timestamp
+      end
+
     values_list =
       for value <- values do
         base_array_entry = %{
           "timestamp" =>
             AstarteValue.to_json_friendly(
-              value[:reception_timestamp],
+              value[timestamp_column],
               :datetime,
               keep_milliseconds: opts.keep_milliseconds
             )
