@@ -24,6 +24,7 @@ defmodule Astarte.RealmManagement.APIWeb.RealmConfigController do
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
+  plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
   plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
 
   def show(conn, %{"realm_name" => realm_name, "group" => "auth"}) do

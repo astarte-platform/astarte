@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2019 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,19 +16,16 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionController do
-  use Astarte.RealmManagement.APIWeb, :controller
+defmodule Astarte.RealmManagement.APIWeb.Plug.LogRealm do
+  def init(opts) do
+    opts
+  end
 
-  alias Astarte.RealmManagement.API.Interfaces
-
-  plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
-  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
-
-  action_fallback Astarte.RealmManagement.APIWeb.FallbackController
-
-  def index(conn, %{"realm_name" => realm_name, "id" => id}) do
-    with {:ok, interfaces} <- Interfaces.list_interface_major_versions(realm_name, id) do
-      render(conn, "index.json", interfaces: interfaces)
+  def call(conn, _opts) do
+    with %{"realm_name" => realm} <- conn.path_params do
+      Logger.metadata(realm: realm)
     end
+
+    conn
   end
 end
