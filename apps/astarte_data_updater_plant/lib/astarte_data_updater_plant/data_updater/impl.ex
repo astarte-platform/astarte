@@ -1575,11 +1575,69 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         end
 
       :object ->
-        endpoint_id =
-          CQLUtils.endpoint_id(interface_descriptor.name, interface_descriptor.major_version, "")
+        with {:guessed, guessed_endpoints} <-
+               EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
+             :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+          endpoint_id =
+            CQLUtils.endpoint_id(
+              interface_descriptor.name,
+              interface_descriptor.major_version,
+              ""
+            )
 
-        {:ok, %Mapping{endpoint_id: endpoint_id}}
+          {:ok, %Mapping{endpoint_id: endpoint_id}}
+        else
+          {:ok, _endpoint_id} ->
+            # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
+            Logger.warn(
+              "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
+                "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
+                "the common prefix",
+              tag: "invalid_path"
+            )
+
+            {:error, :mapping_not_found}
+
+          {:error, :not_found} ->
+            Logger.warn(
+              "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
+                "interface #{inspect(interface_descriptor.name)}",
+              tag: "invalid_path"
+            )
+
+            {:error, :mapping_not_found}
+
+          {:error, :invalid_object_aggregation_path} ->
+            Logger.warn(
+              "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
+                "interface #{inspect(interface_descriptor.name)}",
+              tag: "invalid_path"
+            )
+
+            {:error, :mapping_not_found}
+        end
     end
+  end
+
+  defp check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+    received_path_depth = path_or_endpoint_depth(path)
+
+    Enum.reduce_while(guessed_endpoints, :ok, fn
+      endpoint_id, _acc ->
+        with {:ok, %Mapping{endpoint: endpoint}} <- Map.fetch(mappings, endpoint_id),
+             endpoint_depth when received_path_depth == endpoint_depth - 1 <-
+               path_or_endpoint_depth(endpoint) do
+          {:cont, :ok}
+        else
+          _ ->
+            {:halt, {:error, :invalid_object_aggregation_path}}
+        end
+    end)
+  end
+
+  defp path_or_endpoint_depth(path) when is_binary(path) do
+    String.split(path, "/", trim: true)
+    |> length()
   end
 
   defp can_write_on_interface?(interface_descriptor) do
