@@ -143,7 +143,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       new_state.device_id,
       timestamp_ms,
       new_state.total_received_msgs,
-      new_state.total_received_bytes
+      new_state.total_received_bytes,
+      new_state.interface_exchanged_msgs,
+      new_state.interface_exchanged_bytes
     )
 
     trigger_targets = Map.get(new_state.device_triggers, :on_device_disconnection, [])
