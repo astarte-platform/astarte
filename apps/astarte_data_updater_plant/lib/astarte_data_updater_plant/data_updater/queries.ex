@@ -480,14 +480,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         timestamp_ms,
         total_received_msgs,
-        total_received_bytes
+        total_received_bytes,
+        interface_exchanged_msgs,
+        interface_exchanged_bytes
       ) do
     device_update_statement = """
     UPDATE devices
     SET connected=false,
         last_disconnection=:last_disconnection,
         total_received_msgs=:total_received_msgs,
-        total_received_bytes=:total_received_bytes
+        total_received_bytes=:total_received_bytes,
+        exchanged_bytes_by_interface+=:exchanged_bytes_by_interface,
+        exchanged_msgs_by_interface+=:exchanged_msgs_by_interface
     WHERE device_id=:device_id
     """
 
@@ -498,6 +502,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:last_disconnection, timestamp_ms)
       |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
       |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+      |> DatabaseQuery.put(:exchanged_bytes_by_interface, interface_exchanged_bytes)
+      |> DatabaseQuery.put(:exchanged_msgs_by_interface, interface_exchanged_msgs)
       |> DatabaseQuery.consistency(:local_quorum)
 
     DatabaseQuery.call!(db_client, device_update_query)
