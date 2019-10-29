@@ -65,6 +65,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       data_triggers: %{},
       volatile_triggers: [],
       introspection_triggers: %{},
+      interface_exchanged_bytes: %{},
+      interface_exchanged_msgs: %{},
       last_seen_message: 0,
       last_device_triggers_refresh: 0
     }
