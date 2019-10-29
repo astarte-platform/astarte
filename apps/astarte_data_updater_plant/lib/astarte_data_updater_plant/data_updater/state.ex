@@ -34,6 +34,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :connected,
     :total_received_msgs,
     :total_received_bytes,
+    :initial_interface_exchanged_bytes,
+    :initial_interface_exchanged_msgs,
+    :interface_exchanged_bytes,
+    :interface_exchanged_msgs,
     :last_seen_message,
     :last_device_triggers_refresh,
     :datastream_maximum_storage_retention
