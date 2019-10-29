@@ -55,6 +55,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         pending_empty_cache boolean,
         total_received_msgs bigint,
         total_received_bytes bigint,
+        exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
+        exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
         last_pairing_ip inet,
         last_seen_ip inet,
 
