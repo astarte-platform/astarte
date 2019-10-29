@@ -459,7 +459,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       new_state = %{new_state | paths_cache: paths_cache}
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-      update_stats(new_state, interface, path, payload)
+      update_stats(new_state, interface, interface_descriptor.major_version, path, payload)
     else
       {:error, :cannot_write_on_server_owned_interface} ->
         Logger.warn(
@@ -469,20 +469,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:error, :invalid_path} ->
         Logger.warn("Received invalid path: #{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:error, :mapping_not_found} ->
         Logger.warn("Mapping not found for #{interface}#{path}. Maybe outdated introspection?")
 
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:error, :interface_loading_failed} ->
         Logger.warn("Cannot load interface: #{interface}.")
@@ -490,37 +490,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         # could be a missing interface in the DB
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:guessed, _guessed_endpoints} ->
         Logger.warn("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:error, :undecodable_bson_payload} ->
         Logger.warn("Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_value_type} ->
         Logger.warn("Received invalid value: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:error, :value_size_exceeded} ->
         Logger.warn("Received huge payload: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_object_key} ->
         Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
-        update_stats(new_state, interface, path, payload)
+        update_stats(new_state, interface, nil, path, payload)
     end
   end
 
@@ -620,12 +620,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp update_stats(state, interface, path, payload) do
+  defp update_stats(state, interface, major, path, payload) do
     %{
       state
       | total_received_msgs: state.total_received_msgs + 1,
         total_received_bytes:
           state.total_received_bytes + byte_size(payload) + byte_size(interface) + byte_size(path)
+    }
+    |> update_interface_stats(interface, major, path, payload)
+  end
+
+  defp update_interface_stats(state, interface, major, _path, _payload)
+       when interface == "" or major == nil do
+    # Skip when we can't identify a specific major or interface is empty (e.g. control messages)
+    # TODO: restructure code to access major version even in the else branch of handle_data
+    state
+  end
+
+  defp update_interface_stats(state, interface, major, path, payload) do
+    %State{
+      initial_interface_exchanged_bytes: initial_interface_exchanged_bytes,
+      initial_interface_exchanged_msgs: initial_interface_exchanged_msgs,
+      interface_exchanged_bytes: interface_exchanged_bytes,
+      interface_exchanged_msgs: interface_exchanged_msgs
+    } = state
+
+    bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
+
+    # If present, get exchanged bytes from live count, otherwise fallback to initial
+    # count and in case nothing is there too, fallback to 0
+    exchanged_bytes =
+      Map.get_lazy(interface_exchanged_bytes, {interface, major}, fn ->
+        Map.get(initial_interface_exchanged_bytes, {interface, major}, 0)
+      end)
+
+    # As above but with msgs
+    exchanged_msgs =
+      Map.get_lazy(interface_exchanged_msgs, {interface, major}, fn ->
+        Map.get(initial_interface_exchanged_msgs, {interface, major}, 0)
+      end)
+
+    updated_interface_exchanged_bytes =
+      Map.put(interface_exchanged_bytes, {interface, major}, exchanged_bytes + bytes)
+
+    updated_interface_exchanged_msgs =
+      Map.put(interface_exchanged_msgs, {interface, major}, exchanged_msgs + 1)
+
+    %{
+      state
+      | interface_exchanged_bytes: updated_interface_exchanged_bytes,
+        interface_exchanged_msgs: updated_interface_exchanged_msgs
     }
   end
 
@@ -637,7 +681,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Logger.warn("Discarding invalid introspection: #{inspect(payload)}.")
         ask_clean_session(state)
         MessageTracker.discard(state.message_tracker, message_id)
-        update_stats(state, "", "", payload)
+        update_stats(state, "", nil, "", payload)
     end
   end
 
@@ -896,7 +940,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     ask_clean_session(state)
     MessageTracker.discard(state.message_tracker, message_id)
 
-    update_stats(state, "", path, payload)
+    update_stats(state, "", nil, path, payload)
   end
 
   def handle_install_volatile_trigger(
