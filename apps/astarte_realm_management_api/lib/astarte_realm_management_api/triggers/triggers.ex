@@ -124,7 +124,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   """
   def update_trigger(_realm_name, %Trigger{} = trigger, attrs) do
-    Logger.debug("Update: #{inspect(trigger)}")
+    _ = Logger.debug("Update: #{inspect(trigger)}.")
 
     trigger
     |> Trigger.changeset(attrs)
