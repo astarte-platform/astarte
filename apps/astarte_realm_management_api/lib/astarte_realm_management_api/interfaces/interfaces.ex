@@ -20,8 +20,6 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   alias Astarte.Core.Interface
   alias Astarte.RealmManagement.API.RPC.RealmManagement
 
-  require Logger
-
   def list_interfaces(realm_name) do
     RealmManagement.get_interfaces_list(realm_name)
   end

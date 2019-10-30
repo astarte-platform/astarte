@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionController do
 
   alias Astarte.RealmManagement.API.Interfaces
 
+  plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
   plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController

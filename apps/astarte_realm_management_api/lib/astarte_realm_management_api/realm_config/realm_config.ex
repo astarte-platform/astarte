@@ -20,8 +20,6 @@ defmodule Astarte.RealmManagement.API.RealmConfig do
   alias Astarte.RealmManagement.API.RealmConfig.AuthConfig
   alias Astarte.RealmManagement.API.RPC.RealmManagement
 
-  require Logger
-
   def get_auth_config(realm) do
     with {:ok, jwt_public_key_pem} <- RealmManagement.get_jwt_public_key_pem(realm) do
       {:ok, %AuthConfig{jwt_public_key_pem: jwt_public_key_pem}}

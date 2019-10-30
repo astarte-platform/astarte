@@ -219,7 +219,7 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       {:error, reason}
     rescue
       ArgumentError ->
-        Logger.warn("Received unknown error: #{inspect(name)}")
+        _ = Logger.warn("Received unknown error: #{inspect(name)}.", tag: "amqp_generic_error")
         {:error, :unknown}
     end
   end

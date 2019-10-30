@@ -82,7 +82,9 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:conform, "== 2.5.2"},
       {:guardian, "~> 1.2"},
       {:distillery, "~> 1.5", runtime: false},
-      {:excoveralls, "~> 0.11", only: :test}
+      {:excoveralls, "~> 0.11", only: :test},
+      {:pretty_log, "~> 0.1"},
+      {:plug_logger_with_meta, "~> 0.1"}
     ]
   end
 end

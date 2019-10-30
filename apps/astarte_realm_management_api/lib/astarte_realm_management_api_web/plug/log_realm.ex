@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2019 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,16 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Auth do
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
+defmodule Astarte.RealmManagement.APIWeb.Plug.LogRealm do
+  def init(opts) do
+    opts
+  end
 
-  def fetch_public_key(realm) do
-    RealmManagement.get_jwt_public_key_pem(realm)
+  def call(conn, _opts) do
+    with %{"realm_name" => realm} <- conn.path_params do
+      Logger.metadata(realm: realm)
+    end
+
+    conn
   end
 end

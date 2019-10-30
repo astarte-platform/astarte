@@ -17,8 +17,22 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
   server: true,
   version: Application.spec(:astarte_realm_management_api, :vsn)
 
-# Do not print debug messages in production
-config :logger, level: :info
+config :logger, :console,
+  format: {PrettyLog.LogfmtFormatter, :format},
+  metadata: [
+    :method,
+    :request_path,
+    :status_code,
+    :elapsed,
+    :realm,
+    :module,
+    :function,
+    :request_id,
+    :tag
+  ],
+  compile_time_purge_matching: [
+    [level_lower_than: :info]
+  ]
 
 # ## SSL Support
 #
