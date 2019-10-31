@@ -20,7 +20,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
   import Ecto.Changeset
 
   alias Astarte.AppEngine.API.Device.DeviceStatus
-  alias Astarte.AppEngine.API.Device.InterfaceVersion
+  alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.Core.Device
 
   @primary_key {:id, :binary_id, autogenerate: false}
@@ -62,12 +62,28 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       "inhibit_credentials_request" => credentials_inhibited,
       "total_received_msgs" => total_received_msgs,
       "total_received_bytes" => total_received_bytes,
-      "groups" => groups_map
+      "groups" => groups_map,
+      "exchanged_msgs_by_interface" => exchanged_msgs_by_interface,
+      "exchanged_bytes_by_interface" => exchanged_bytes_by_interface
     } = row
 
     introspection =
-      Map.merge(introspection_major || %{}, introspection_minor || %{}, fn _key, major, minor ->
-        %InterfaceVersion{major: major, minor: minor}
+      Map.merge(introspection_major || %{}, introspection_minor || %{}, fn
+        interface_name, major, minor ->
+          exchanged_msgs =
+            (exchanged_msgs_by_interface || %{})
+            |> Map.get({interface_name, major}, 0)
+
+          exchanged_bytes =
+            (exchanged_bytes_by_interface || %{})
+            |> Map.get({interface_name, major}, 0)
+
+          %InterfaceInfo{
+            major: major,
+            minor: minor,
+            exchanged_msgs: exchanged_msgs,
+            exchanged_bytes: exchanged_bytes
+          }
       end)
 
     # groups_map could be nil, default to empty map
