@@ -61,7 +61,11 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
       first_registration: device_status.first_registration,
       first_credentials_request: device_status.first_credentials_request,
       aliases: device_status.aliases,
-      groups: device_status.groups
+      groups: device_status.groups,
+      previous_interfaces:
+        render_many(device_status.previous_interfaces, DeviceStatusView, "interface_info.json",
+          as: :interface_info
+        )
     }
   end
 
@@ -80,6 +84,16 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
 
       {interface_name, info_map}
     end
+  end
+
+  def render("interface_info.json", %{interface_info: interface_info}) do
+    %{
+      name: interface_info.name,
+      minor: interface_info.minor,
+      major: interface_info.major,
+      exchanged_msgs: interface_info.exchanged_msgs,
+      exchanged_bytes: interface_info.exchanged_bytes
+    }
   end
 
   defp build_links(%{"realm_name" => realm} = params, last_token) do
