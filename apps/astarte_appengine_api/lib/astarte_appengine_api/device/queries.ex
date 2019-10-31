@@ -436,6 +436,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , exchanged_msgs_by_interface
     , exchanged_bytes_by_interface
     , groups
+    , old_introspection
     , inhibit_credentials_request
   """
 
@@ -457,6 +458,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       exchanged_msgs_by_interface: exchanged_msgs_by_interface,
       exchanged_bytes_by_interface: exchanged_bytes_by_interface,
       groups: groups_map,
+      old_introspection: old_introspection,
       inhibit_credentials_request: credentials_inhibited
     ] = row
 
@@ -495,6 +497,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         end
       end)
 
+    previous_interfaces =
+      old_introspection
+      |> convert_map_result()
+      |> convert_tuple_keys()
+      |> Enum.map(fn {{interface_name, major}, minor} ->
+        msgs = Map.get(interface_msgs_map, {interface_name, major}, 0)
+        bytes = Map.get(interface_bytes_map, {interface_name, major}, 0)
+
+        %InterfaceInfo{
+          name: interface_name,
+          major: major,
+          minor: minor,
+          exchanged_msgs: msgs,
+          exchanged_bytes: bytes
+        }
+      end)
+
     # groups_map could be nil, default to empty keyword list
     groups = Keyword.keys(groups_map || [])
 
@@ -512,6 +531,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
+      previous_interfaces: previous_interfaces,
       groups: groups
     }
   end
