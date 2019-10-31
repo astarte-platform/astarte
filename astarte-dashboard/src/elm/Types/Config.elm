@@ -21,10 +21,13 @@ module Types.Config exposing
     ( AuthConfig(..)
     , AuthType(..)
     , Config
+    , Params
     , decoder
     , defaultAuthConfig
-    , empty
+    , editorOnly
     , getAuthConfig
+    , getParams
+    , isEditorOnly
     )
 
 import Json.Decode as Decode exposing (Decoder, andThen, field, list, maybe, nullable, string)
@@ -32,7 +35,12 @@ import Json.Decode.Pipeline exposing (optional, required)
 import JsonHelpers as JsonHelpers
 
 
-type alias Config =
+type Config
+    = EditorOnly
+    | Standard Params
+
+
+type alias Params =
     { realmManagementApiUrl : String
     , defaultRealm : Maybe String
     , defaultAuth : AuthType
@@ -40,13 +48,9 @@ type alias Config =
     }
 
 
-empty : Config
-empty =
-    { realmManagementApiUrl = ""
-    , defaultRealm = Nothing
-    , defaultAuth = Token
-    , enabledAuth = [ TokenConfig ]
-    }
+editorOnly : Config
+editorOnly =
+    EditorOnly
 
 
 type AuthType
@@ -59,17 +63,37 @@ type AuthConfig
     | TokenConfig
 
 
-getAuthConfig : AuthType -> Config -> Maybe AuthConfig
-getAuthConfig authType config =
-    config.enabledAuth
+isEditorOnly : Config -> Bool
+isEditorOnly config =
+    case config of
+        EditorOnly ->
+            True
+
+        _ ->
+            False
+
+
+getParams : Config -> Maybe Params
+getParams config =
+    case config of
+        EditorOnly ->
+            Nothing
+
+        Standard params ->
+            Just params
+
+
+getAuthConfig : AuthType -> Params -> Maybe AuthConfig
+getAuthConfig authType configParams =
+    configParams.enabledAuth
         |> List.filter (configMatch authType)
         |> List.head
 
 
-defaultAuthConfig : Config -> AuthConfig
-defaultAuthConfig config =
-    config.enabledAuth
-        |> List.filter (configMatch config.defaultAuth)
+defaultAuthConfig : Params -> AuthConfig
+defaultAuthConfig configParams =
+    configParams.enabledAuth
+        |> List.filter (configMatch configParams.defaultAuth)
         |> List.head
         -- If it's a valid config, this will never trigger
         |> Maybe.withDefault TokenConfig
@@ -94,11 +118,12 @@ configMatch authType authConfig =
 
 decoder : Decoder Config
 decoder =
-    Decode.succeed Config
+    Decode.succeed Params
         |> required "realm_management_api_url" string
         |> optional "default_realm" (nullable string) Nothing
         |> required "default_auth" authTypeDecoder
         |> required "auth" (list authConfigDecoder)
+        |> Decode.map Standard
 
 
 authTypeDecoder : Decoder AuthType

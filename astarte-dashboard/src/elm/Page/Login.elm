@@ -54,7 +54,7 @@ type alias Model =
     }
 
 
-init : Config -> AuthType -> ( Model, Cmd Msg )
+init : Config.Params -> AuthType -> ( Model, Cmd Msg )
 init config requestedAuth =
     let
         requestedAuthConfig =

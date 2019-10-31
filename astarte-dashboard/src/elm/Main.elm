@@ -95,7 +95,7 @@ init jsParam location key =
         configFromJavascript =
             Decode.decodeValue (at [ "config" ] Config.decoder) jsParam
                 |> Result.toMaybe
-                |> Maybe.withDefault Config.empty
+                |> Maybe.withDefault Config.editorOnly
 
         previousSession =
             Decode.decodeValue (at [ "previousSession" ] string) jsParam
@@ -135,8 +135,14 @@ init jsParam location key =
 initNewSession : String -> Config -> Session
 initNewSession hostUrl config =
     let
+        apiUrl =
+            config
+                |> Config.getParams
+                |> Maybe.map .realmManagementApiUrl
+                |> Maybe.withDefault ""
+
         apiConfig =
-            { realmManagementUrl = config.realmManagementApiUrl
+            { realmManagementUrl = apiUrl
             , realm = ""
             , token = ""
             }
@@ -390,7 +396,7 @@ handleBatchedMessages message ( model, cmd ) =
     )
 
 
-pageInit : RealmRoute -> Config -> Session -> ( Page, Cmd Msg, Session )
+pageInit : RealmRoute -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
 pageInit realmRoute config session =
     case realmRoute of
         Route.Auth _ _ ->
@@ -447,7 +453,7 @@ pageInit realmRoute config session =
             initTriggerBuilderPage (Just name) session session.apiConfig.realm
 
 
-initLoginPage : Config -> Session -> ( Page, Cmd Msg, Session )
+initLoginPage : Config.Params -> Session -> ( Page, Cmd Msg, Session )
 initLoginPage config session =
     let
         authType =
@@ -494,8 +500,16 @@ initInterfacesPage session realm =
 initInterfaceBuilderPage : Maybe ( String, Int ) -> Session -> String -> ( Page, Cmd Msg, Session )
 initInterfaceBuilderPage maybeInterfaceId session realm =
     let
+        pageMode =
+            case maybeInterfaceId of
+                Nothing ->
+                    InterfaceBuilder.New
+
+                Just ( name, major ) ->
+                    InterfaceBuilder.Edit ( name, major )
+
         ( initialModel, initialCommand ) =
-            InterfaceBuilder.init maybeInterfaceId session
+            InterfaceBuilder.init pageMode session
     in
     ( Realm realm (InterfaceBuilderPage initialModel)
     , Cmd.map InterfaceBuilderMsg initialCommand
@@ -539,6 +553,18 @@ initSettingsPage session realm =
     )
 
 
+initInterfaceEditorPage : Session -> ( Page, Cmd Msg, Session )
+initInterfaceEditorPage session =
+    let
+        ( initialModel, initialCommand ) =
+            InterfaceBuilder.init InterfaceBuilder.EditorOnly session
+    in
+    ( Realm "" (InterfaceBuilderPage initialModel)
+    , Cmd.map InterfaceBuilderMsg initialCommand
+    , session
+    )
+
+
 
 -- ROUTE PROCESSING
 
@@ -562,25 +588,37 @@ processRoute config session ( maybeRoute, maybeToken ) =
     let
         loggedIn =
             Session.isLoggedIn session
+
+        configParams =
+            Config.getParams config
     in
-    case maybeRoute of
-        Nothing ->
+    case ( configParams, maybeRoute ) of
+        ( Nothing, Nothing ) ->
+            initInterfaceEditorPage session
+
+        ( _, Just Route.InterfaceEditor ) ->
+            initInterfaceEditorPage session
+
+        ( Nothing, _ ) ->
+            initInterfaceEditorPage session
+
+        ( Just params, Nothing ) ->
             if loggedIn then
-                processRealmRoute maybeToken Route.Home config session
+                processRealmRoute maybeToken Route.Home params session
 
             else
-                initLoginPage config session
+                initLoginPage params session
 
-        Just Route.Root ->
+        ( Just params, Just Route.Root ) ->
             if loggedIn then
-                processRealmRoute maybeToken Route.Home config session
+                processRealmRoute maybeToken Route.Home params session
 
             else
-                initLoginPage config session
+                initLoginPage params session
 
-        Just (Route.RealmSelection loginTypeString) ->
+        ( Just params, Just (Route.RealmSelection loginTypeString) ) ->
             if loggedIn then
-                processRealmRoute maybeToken Route.ListInterfaces config session
+                processRealmRoute maybeToken Route.ListInterfaces params session
 
             else
                 let
@@ -595,13 +633,13 @@ processRoute config session ( maybeRoute, maybeToken ) =
                     updatedSession =
                         { session | loginStatus = loginStatus }
                 in
-                initLoginPage config updatedSession
+                initLoginPage params updatedSession
 
-        Just (Route.Realm realmRoute) ->
-            processRealmRoute maybeToken realmRoute config session
+        ( Just params, Just (Route.Realm realmRoute) ) ->
+            processRealmRoute maybeToken realmRoute params session
 
 
-processRealmRoute : Maybe String -> RealmRoute -> Config -> Session -> ( Page, Cmd Msg, Session )
+processRealmRoute : Maybe String -> RealmRoute -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
 processRealmRoute maybeToken realmRoute config session =
     let
         apiConfig =
@@ -638,7 +676,7 @@ processRealmRoute maybeToken realmRoute config session =
                 pageInit realmRoute config session
 
 
-attemptLogin : Maybe String -> Maybe String -> Maybe String -> Config -> Session -> ( Page, Cmd Msg, Session )
+attemptLogin : Maybe String -> Maybe String -> Maybe String -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
 attemptLogin maybeRealm maybeToken maybeOauthUrl config session =
     let
         apiConfig =
@@ -699,8 +737,54 @@ view model =
     }
 
 
+
+{-
+   as for elm-bootstrap 5.1.0, vertical navbars are not supported.
+   This is the implementation using bootstrap css classes
+-}
+
+
 renderNavbar : Model -> Html Msg
 renderNavbar model =
+    if Config.isEditorOnly model.config then
+        editorNavBar model
+
+    else
+        standardNavBar model
+
+
+editorNavBar : Model -> Html Msg
+editorNavBar model =
+    Navbar.config NavbarMsg
+        |> Navbar.withAnimation
+        |> Navbar.attrs
+            [ classList
+                [ ( "navbar-vertical", True )
+                , ( "fixed-left", True )
+                ]
+            ]
+        |> Navbar.collapseMedium
+        |> Navbar.brand
+            [ href <| Route.toString (Route.Realm Route.Home) ]
+            [ img
+                [ src <| Assets.path Assets.dashboardIcon
+                , style "height" "3em"
+                , Spacing.mr3
+                ]
+                []
+            , div
+                [ class "realm-brand" ]
+                [ p [ Spacing.mb0 ] [ text "Astarte" ]
+                , small [ class "font-weight-light" ] [ text "dashboard" ]
+                ]
+            ]
+        |> Navbar.customItems
+            [ editorNavbarLinks model.selectedPage ]
+        |> Navbar.view model.navbarState
+
+
+standardNavBar : Model -> Html Msg
+standardNavBar model =
     case model.selectedPage of
         Public (LoginPage _) ->
             text ""
@@ -734,11 +818,30 @@ renderNavbar model =
                 |> Navbar.view model.navbarState
 
 
+editorNavbarLinks : Page -> Navbar.CustomItem Msg
+editorNavbarLinks selectedPage =
+    let
+        isTriggerEditor =
+            case selectedPage of
+                Realm _ (TriggerBuilderPage _) ->
+                    True
 
-{-
-   as for elm-bootstrap 5.1.0, vertical navbars are not supported.
-   This is the implementation using bootstrap css classes
--}
+                _ ->
+                    False
+    in
+    Navbar.customItem <|
+        Grid.container
+            [ Flex.col ]
+            [ hr [] []
+            , ul
+                [ class "navbar-nav" ]
+                [ renderNavbarLink
+                    "Interface Editor"
+                    Icons.Interface
+                    (not isTriggerEditor)
+                    Route.InterfaceEditor
+                ]
+            ]
 
 
 navbarLinks : Page -> Navbar.CustomItem Msg
