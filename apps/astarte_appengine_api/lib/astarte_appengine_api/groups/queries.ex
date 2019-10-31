@@ -176,7 +176,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         introspection_minor, connected, last_connection, last_disconnection,
         first_registration, first_credentials_request, last_credentials_request_ip,
         last_seen_ip, total_received_msgs, total_received_bytes, groups,
-        exchanged_msgs_by_interface, exchanged_bytes_by_interface
+        exchanged_msgs_by_interface, exchanged_bytes_by_interface, old_introspection
         """
 
         from = """
