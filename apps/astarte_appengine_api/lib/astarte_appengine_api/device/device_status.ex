@@ -65,7 +65,8 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       "total_received_bytes" => total_received_bytes,
       "groups" => groups_map,
       "exchanged_msgs_by_interface" => exchanged_msgs_by_interface,
-      "exchanged_bytes_by_interface" => exchanged_bytes_by_interface
+      "exchanged_bytes_by_interface" => exchanged_bytes_by_interface,
+      "old_introspection" => old_introspection
     } = row
 
     introspection =
@@ -87,6 +88,25 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
           }
       end)
 
+    previous_interfaces =
+      Enum.map(old_introspection || %{}, fn {{interface_name, major}, minor} ->
+        exchanged_msgs =
+          (exchanged_msgs_by_interface || %{})
+          |> Map.get({interface_name, major}, 0)
+
+        exchanged_bytes =
+          (exchanged_bytes_by_interface || %{})
+          |> Map.get({interface_name, major}, 0)
+
+        %InterfaceInfo{
+          name: interface_name,
+          major: major,
+          minor: minor,
+          exchanged_msgs: exchanged_msgs,
+          exchanged_bytes: exchanged_bytes
+        }
+      end)
+
     # groups_map could be nil, default to empty map
     groups = Map.keys(groups_map || %{})
 
@@ -104,6 +124,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
+      previous_interfaces: previous_interfaces,
       groups: groups
     }
   end
