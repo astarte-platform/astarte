@@ -75,6 +75,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         pending_empty_cache boolean,
         total_received_msgs bigint,
         total_received_bytes bigint,
+        exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
+        exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
         last_credentials_request_ip inet,
         last_seen_ip inet,
         groups map<text, timeuuid>,
@@ -94,7 +96,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
      device_id, aliases, connected, last_connection, last_disconnection,
      first_registration, first_credentials_request, last_seen_ip, last_credentials_request_ip,
      total_received_msgs, total_received_bytes, inhibit_credentials_request,
-     introspection, introspection_minor
+     introspection, introspection_minor, exchanged_msgs_by_interface, exchanged_bytes_by_interface
   )
   VALUES
     (
@@ -104,7 +106,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
        'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1},
       {'com.test.LCDMonitor' : 3, 'com.test.SimpleStreamTest' : 0,
-       'com.example.TestObject': 5, 'com.example.PixelsConfiguration': 0}
+       'com.example.TestObject': 5, 'com.example.PixelsConfiguration': 0},
+      :exchanged_msgs_by_interface, :exchanged_bytes_by_interface
     );
   """
 
@@ -459,14 +462,27 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       |> DatabaseQuery.statement(@insert_device_statement)
 
     devices_list = [
-      {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000, %{"display_name" => "device_a"}},
-      {"olFkumNuZ_J0f_d6-8XCDg", 10, nil},
-      {"4UQbIokuRufdtbVZt9AsLg", 22, %{"display_name" => "device_b", "serial" => "1234"}},
-      {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{"display_name" => "device_c"}},
-      {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{"display_name" => "device_d"}}
+      {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
+       %{
+         {"com.example.TestObject", 1} => 9300,
+         {"com.example.PixelsConfiguration", 1} => 4230,
+         {"com.test.LCDMonitor", 1} => 10
+       },
+       %{
+         {"com.example.TestObject", 1} => 2_000_000,
+         {"com.example.PixelsConfiguration", 1} => 2_010_000,
+         {"com.test.LCDMonitor", 1} => 3000
+       }, %{"display_name" => "device_a"}},
+      {"olFkumNuZ_J0f_d6-8XCDg", 10, nil, nil, nil},
+      {"4UQbIokuRufdtbVZt9AsLg", 22, %{{"com.test.LCDMonitor", 1} => 4},
+       %{{"com.test.LCDMonitor", 1} => 16}, %{"display_name" => "device_b", "serial" => "1234"}},
+      {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{}, %{}, %{"display_name" => "device_c"}},
+      {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{{"com.test.SimpleStreamTest", 1} => 9},
+       %{{"com.test.SimpleStreamTest", 1} => 250}, %{"display_name" => "device_d"}}
     ]
 
-    for {encoded_device_id, total_received_bytes, aliases} <- devices_list do
+    for {encoded_device_id, total_received_bytes, interface_msgs_map, interface_bytes_map,
+         aliases} <- devices_list do
       device_id = Base.url_decode64!(encoded_device_id, padding: false)
 
       insert_device_query =
@@ -474,6 +490,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         |> DatabaseQuery.put(:device_id, device_id)
         |> DatabaseQuery.put(:aliases, aliases)
         |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+        |> DatabaseQuery.put(:exchanged_msgs_by_interface, interface_msgs_map)
+        |> DatabaseQuery.put(:exchanged_bytes_by_interface, interface_bytes_map)
 
       DatabaseQuery.call!(client, insert_device_query)
 
