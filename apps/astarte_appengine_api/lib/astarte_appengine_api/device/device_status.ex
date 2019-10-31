@@ -37,6 +37,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :credentials_inhibited, :boolean
     field :total_received_msgs, :integer
     field :total_received_bytes, :integer
+    field :previous_interfaces, {:array, :map}
     field :groups, {:array, :string}
   end
 
