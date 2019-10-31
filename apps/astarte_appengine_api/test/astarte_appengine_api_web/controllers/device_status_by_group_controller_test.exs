@@ -61,6 +61,16 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     }
   }
 
+  @expected_previous_interfaces [
+    %{
+      "name" => "com.test.LCDMonitor",
+      "major" => 0,
+      "minor" => 1,
+      "exchanged_msgs" => 42,
+      "exchanged_bytes" => 9000
+    }
+  ]
+
   @expected_device_id "f0VMRgIBAQAAAAAAAAAAAA"
   @expected_device_status %{
     "connected" => false,
@@ -76,6 +86,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     "credentials_inhibited" => false,
     "total_received_bytes" => 4_500_000,
     "total_received_msgs" => 45000,
+    "previous_interfaces" => @expected_previous_interfaces,
     "groups" => [@group_name]
   }
 

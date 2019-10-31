@@ -53,6 +53,16 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     }
   }
 
+  @expected_previous_interfaces [
+    %InterfaceInfo{
+      name: "com.test.LCDMonitor",
+      major: 0,
+      minor: 1,
+      exchanged_msgs: 42,
+      exchanged_bytes: 9000
+    }
+  ]
+
   @expected_device_status %DeviceStatus{
     connected: false,
     id: "f0VMRgIBAQAAAAAAAAAAAA",
@@ -119,6 +129,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     credentials_inhibited: false,
     total_received_bytes: 4_500_000,
     total_received_msgs: 45000,
+    previous_interfaces: @expected_previous_interfaces,
     groups: []
   }
 

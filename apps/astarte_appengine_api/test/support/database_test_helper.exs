@@ -62,6 +62,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         aliases map<ascii, varchar>,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
+        old_introspection map<frozen<tuple<ascii, int>>, int>,
         protocol_revision int,
         first_registration timestamp,
         credentials_secret ascii,
@@ -466,12 +467,14 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
        %{
          {"com.example.TestObject", 1} => 9300,
          {"com.example.PixelsConfiguration", 1} => 4230,
-         {"com.test.LCDMonitor", 1} => 10
+         {"com.test.LCDMonitor", 1} => 10,
+         {"com.test.LCDMonitor", 0} => 42
        },
        %{
          {"com.example.TestObject", 1} => 2_000_000,
          {"com.example.PixelsConfiguration", 1} => 2_010_000,
-         {"com.test.LCDMonitor", 1} => 3000
+         {"com.test.LCDMonitor", 1} => 3000,
+         {"com.test.LCDMonitor", 0} => 9000
        }, %{"display_name" => "device_a"}},
       {"olFkumNuZ_J0f_d6-8XCDg", 10, nil, nil, nil},
       {"4UQbIokuRufdtbVZt9AsLg", 22, %{{"com.test.LCDMonitor", 1} => 4},
@@ -505,6 +508,23 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         DatabaseQuery.call!(client, insert_alias_query)
       end
     end
+
+    old_introspection_statement = """
+    INSERT INTO autotestrealm.devices
+    (device_id, old_introspection) VALUES (:device_id, :old_introspection)
+    """
+
+    old_introspection = %{{"com.test.LCDMonitor", 0} => 1}
+
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(old_introspection_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:old_introspection, old_introspection)
+
+    DatabaseQuery.call!(client, query)
 
     query =
       DatabaseQuery.new()
