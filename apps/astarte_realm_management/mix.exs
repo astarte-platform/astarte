@@ -67,7 +67,8 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
-      {:excoveralls, "~> 0.11", only: :test}
+      {:excoveralls, "~> 0.11", only: :test},
+      {:pretty_log, "~> 0.1"}
     ]
   end
 end
