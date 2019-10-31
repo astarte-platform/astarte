@@ -17,6 +17,7 @@
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   use Astarte.AppEngine.APIWeb, :view
+  alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
   alias Astarte.AppEngine.APIWeb.Router.Helpers, as: RouterHelpers
 
@@ -69,8 +70,15 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   end
 
   def render("introspection.json", %{introspection: introspection}) do
-    for {interface_name, %{major: major, minor: minor}} <- introspection, into: %{} do
-      {interface_name, %{minor: minor, major: major}}
+    for {interface_name, %InterfaceInfo{} = info} <- introspection, into: %{} do
+      info_map = %{
+        minor: info.minor,
+        major: info.major,
+        exchanged_msgs: info.exchanged_msgs,
+        exchanged_bytes: info.exchanged_bytes
+      }
+
+      {interface_name, info_map}
     end
   end
 
