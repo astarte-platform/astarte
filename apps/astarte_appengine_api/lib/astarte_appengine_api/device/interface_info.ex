@@ -17,6 +17,7 @@
 
 defmodule Astarte.AppEngine.API.Device.InterfaceInfo do
   defstruct [
+    :name,
     :major,
     :minor,
     :exchanged_msgs,
