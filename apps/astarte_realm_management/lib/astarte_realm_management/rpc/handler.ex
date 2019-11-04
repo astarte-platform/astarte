@@ -169,116 +169,140 @@ defmodule Astarte.RealmManagement.RPC.Handler do
   end
 
   def handle_rpc(payload) do
-    case Call.decode(payload) do
-      %Call{call: call_tuple} when call_tuple != nil ->
-        case call_tuple do
-          {:get_health, %GetHealth{}} ->
-            encode_reply(:get_health, Engine.get_health())
+    result =
+      case Call.decode(payload) do
+        %Call{call: call_tuple} when call_tuple != nil ->
+          case call_tuple do
+            {:get_health, %GetHealth{}} ->
+              encode_reply(:get_health, Engine.get_health())
 
-          {:install_interface,
-           %InstallInterface{
-             realm_name: realm_name,
-             interface_json: interface_json,
-             async_operation: async_operation
-           }} ->
-            encode_reply(
-              :install_interface,
-              Engine.install_interface(realm_name, interface_json, async: async_operation)
-            )
+            {:install_interface,
+             %InstallInterface{
+               realm_name: realm_name,
+               interface_json: interface_json,
+               async_operation: async_operation
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
 
-          {:get_interface_source,
-           %GetInterfaceSource{
-             realm_name: realm_name,
-             interface_name: interface_name,
-             interface_major_version: interface_major_version
-           }} ->
-            encode_reply(
-              :get_interface_source,
-              Engine.interface_source(realm_name, interface_name, interface_major_version)
-            )
-
-          {:get_interface_versions_list,
-           %GetInterfaceVersionsList{realm_name: realm_name, interface_name: interface_name}} ->
-            encode_reply(
-              :get_interface_versions_list,
-              Engine.list_interface_versions(realm_name, interface_name)
-            )
-
-          {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
-            encode_reply(:get_interfaces_list, Engine.get_interfaces_list(realm_name))
-
-          {:update_interface,
-           %UpdateInterface{
-             realm_name: realm_name,
-             interface_json: interface_json,
-             async_operation: async_operation
-           }} ->
-            encode_reply(
-              :update_interface,
-              Engine.update_interface(realm_name, interface_json, async: async_operation)
-            )
-
-          {:delete_interface,
-           %DeleteInterface{
-             realm_name: realm_name,
-             interface_name: interface_name,
-             interface_major_version: interface_major_version,
-             async_operation: async_operation
-           }} ->
-            encode_reply(
-              :delete_interface,
-              Engine.delete_interface(
-                realm_name,
-                interface_name,
-                interface_major_version,
-                async: async_operation
+              encode_reply(
+                :install_interface,
+                Engine.install_interface(realm_name, interface_json, async: async_operation)
               )
-            )
 
-          {:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}} ->
-            encode_reply(:get_jwt_public_key_pem, Engine.get_jwt_public_key_pem(realm_name))
+            {:get_interface_source,
+             %GetInterfaceSource{
+               realm_name: realm_name,
+               interface_name: interface_name,
+               interface_major_version: interface_major_version
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
 
-          {:update_jwt_public_key_pem,
-           %UpdateJWTPublicKeyPEM{realm_name: realm_name, jwt_public_key_pem: pem}} ->
-            encode_reply(
-              :update_jwt_public_key_pem,
-              Engine.update_jwt_public_key_pem(realm_name, pem)
-            )
-
-          {:install_trigger,
-           %InstallTrigger{
-             realm_name: realm_name,
-             trigger_name: trigger_name,
-             action: action,
-             serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
-           }} ->
-            encode_reply(
-              :install_trigger,
-              Engine.install_trigger(
-                realm_name,
-                trigger_name,
-                action,
-                serialized_tagged_simple_triggers
+              encode_reply(
+                :get_interface_source,
+                Engine.interface_source(realm_name, interface_name, interface_major_version)
               )
-            )
 
-          {:get_trigger, %GetTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
-            encode_reply(:get_trigger, Engine.get_trigger(realm_name, trigger_name))
+            {:get_interface_versions_list,
+             %GetInterfaceVersionsList{realm_name: realm_name, interface_name: interface_name}} ->
+              _ = Logger.metadata(realm: realm_name)
 
-          {:get_triggers_list, %GetTriggersList{realm_name: realm_name}} ->
-            encode_reply(:get_triggers_list, Engine.get_triggers_list(realm_name))
+              encode_reply(
+                :get_interface_versions_list,
+                Engine.list_interface_versions(realm_name, interface_name)
+              )
 
-          {:delete_trigger, %DeleteTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
-            encode_reply(:delete_trigger, Engine.delete_trigger(realm_name, trigger_name))
+            {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+              encode_reply(:get_interfaces_list, Engine.get_interfaces_list(realm_name))
 
-          invalid_call ->
-            Logger.warn("Received unexpected call: #{inspect(invalid_call)}")
-            {:error, :unexpected_call}
-        end
+            {:update_interface,
+             %UpdateInterface{
+               realm_name: realm_name,
+               interface_json: interface_json,
+               async_operation: async_operation
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
 
-      invalid_message ->
-        Logger.warn("Received unexpected message: #{inspect(invalid_message)}")
-        {:error, :unexpected_message}
-    end
+              encode_reply(
+                :update_interface,
+                Engine.update_interface(realm_name, interface_json, async: async_operation)
+              )
+
+            {:delete_interface,
+             %DeleteInterface{
+               realm_name: realm_name,
+               interface_name: interface_name,
+               interface_major_version: interface_major_version,
+               async_operation: async_operation
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :delete_interface,
+                Engine.delete_interface(
+                  realm_name,
+                  interface_name,
+                  interface_major_version,
+                  async: async_operation
+                )
+              )
+
+            {:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+              encode_reply(:get_jwt_public_key_pem, Engine.get_jwt_public_key_pem(realm_name))
+
+            {:update_jwt_public_key_pem,
+             %UpdateJWTPublicKeyPEM{realm_name: realm_name, jwt_public_key_pem: pem}} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :update_jwt_public_key_pem,
+                Engine.update_jwt_public_key_pem(realm_name, pem)
+              )
+
+            {:install_trigger,
+             %InstallTrigger{
+               realm_name: realm_name,
+               trigger_name: trigger_name,
+               action: action,
+               serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :install_trigger,
+                Engine.install_trigger(
+                  realm_name,
+                  trigger_name,
+                  action,
+                  serialized_tagged_simple_triggers
+                )
+              )
+
+            {:get_trigger, %GetTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+              encode_reply(:get_trigger, Engine.get_trigger(realm_name, trigger_name))
+
+            {:get_triggers_list, %GetTriggersList{realm_name: realm_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+              encode_reply(:get_triggers_list, Engine.get_triggers_list(realm_name))
+
+            {:delete_trigger, %DeleteTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+              encode_reply(:delete_trigger, Engine.delete_trigger(realm_name, trigger_name))
+
+            invalid_call ->
+              _ = Logger.warn("Received unexpected call: #{inspect(invalid_call)}.")
+              {:error, :unexpected_call}
+          end
+
+        invalid_message ->
+          _ = Logger.warn("Received unexpected message: #{inspect(invalid_message)}.")
+          {:error, :unexpected_message}
+      end
+
+    _ = Logger.metadata(realm: nil)
+
+    result
   end
 end

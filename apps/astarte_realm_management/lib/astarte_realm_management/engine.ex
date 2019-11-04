@@ -79,6 +79,7 @@ defmodule Astarte.RealmManagement.Engine do
         )
 
       if opts[:async] do
+        # TODO: add _ = Logger.metadata(realm: realm_name)
         Task.start(Queries, :install_new_interface, [client, interface_doc, automaton])
 
         {:ok, :started}
@@ -144,6 +145,7 @@ defmodule Astarte.RealmManagement.Engine do
         end)
 
       if opts[:async] do
+        # TODO: add _ = Logger.metadata(realm: realm_name)
         Task.start_link(__MODULE__, :execute_interface_update, [
           client,
           interface_update,
@@ -326,6 +328,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:triggers, {:ok, false}} <-
            {:triggers, Queries.has_interface_simple_triggers?(client, interface_id)} do
       if opts[:async] do
+        # TODO: add _ = Logger.metadata(realm: realm_name)
         Task.start_link(Engine, :execute_interface_deletion, [client, name, major])
 
         {:ok, :started}
