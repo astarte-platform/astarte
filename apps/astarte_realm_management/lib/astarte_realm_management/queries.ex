@@ -165,31 +165,42 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("Failed batch upsert due to database error: #{error_message}")
+        _ = Logger.warn("Failed batch due to database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Failed batch upsert due to database error: #{inspect(reason)}")
+        _ =
+          Logger.warn("Failed batch due to database error: #{inspect(reason)}.", tag: "db_error")
+
         {:error, :database_error}
     end
   end
 
   defp execute_batch(client, queries) do
-    Logger.debug("Trying to run #{inspect(length(queries))} queries, not running in batched mode")
+    _ =
+      Logger.debug(
+        "Trying to run #{inspect(length(queries))} queries, not running in batched mode."
+      )
 
     Enum.reduce_while(queries, :ok, fn query, _acc ->
       with {:ok, _result} <- DatabaseQuery.call(client, query) do
         {:cont, :ok}
       else
         %{acc: _, msg: err_msg} ->
-          Logger.warn("Failed due to database error: #{err_msg}, changed will not be undone!")
+          _ =
+            Logger.warn(
+              "Failed due to database error: #{err_msg}. Changes will not be undone!",
+              tag: "db_error"
+            )
 
           {:halt, {:error, :database_error}}
 
         {:error, err} ->
-          Logger.warn(
-            "Failed due to database error: #{inspect(err)}, changes will not be undone!"
-          )
+          _ =
+            Logger.warn(
+              "Failed due to database error: #{inspect(err)}. Changes will not be undone!",
+              tag: "db_error"
+            )
 
           {:halt, {:error, :database_error}}
       end
@@ -212,12 +223,12 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       %{acc: _, msg: err_msg} ->
-        Logger.warn("Health is not good: #{err_msg}")
+        _ = Logger.warn("Health is not good: #{err_msg}.", tag: "health_check_bad")
 
         {:error, :health_check_bad}
 
       {:error, err} ->
-        Logger.warn("Health is not good, reason: #{inspect(err)}.")
+        _ = Logger.warn("Health is not good, reason: #{inspect(err)}.", tag: "health_check_bad")
 
         {:error, :health_check_bad}
     end
@@ -258,7 +269,7 @@ defmodule Astarte.RealmManagement.Queries do
 
     {:ok, _} =
       if create_table_statement != "" do
-        Logger.debug("install_new_interface: creating new table.")
+        _ = Logger.debug("Creating new table.")
         DatabaseQuery.call(client, create_table_statement)
       else
         {:ok, nil}
@@ -401,7 +412,10 @@ defmodule Astarte.RealmManagement.Queries do
       ) do
     add_cols = create_one_object_columns_for_mappings(new_mappings)
 
-    Logger.debug("interface update: going to add #{inspect(add_cols)} to #{table_name}.")
+    _ =
+      Logger.debug("Interface update: going to add #{inspect(add_cols)} to #{table_name}.",
+        tag: "db_interface_add_table_cols"
+      )
 
     update_storage_statement = """
     ALTER TABLE #{table_name}
@@ -413,11 +427,11 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("update_interface_storage: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("update_interface_storage: database error: #{inspect(reason)}")
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -427,7 +441,12 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_interface(client, interface_name, interface_major_version) do
-    Logger.info("delete interface: #{interface_name}")
+    _ =
+      Logger.info("Delete interface.",
+        interface: interface_name,
+        interface_major: interface_major_version,
+        tag: "db_delete_interface"
+      )
 
     delete_endpoints_statement = "DELETE FROM endpoints WHERE interface_id=:interface_id"
 
@@ -453,9 +472,11 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.error(
-          "database error while deleting #{interface_name}, reason: #{inspect(reason)}"
-        )
+        _ =
+          Logger.error(
+            "Database error while deleting #{interface_name}, reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
 
         {:error, :database_error}
     end
@@ -471,11 +492,11 @@ defmodule Astarte.RealmManagement.Queries do
     delete_statement = "DROP TABLE IF EXISTS #{table_name}"
 
     with {:ok, _res} <- DatabaseQuery.call(client, delete_statement) do
-      Logger.info("Deleted #{table_name} table.")
+      _ = Logger.info("Deleted #{table_name} table.", tag: "db_delete_interface_table")
       :ok
     else
       {:error, reason} ->
-        Logger.warn("Database error: #{inspect(reason)}")
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -511,7 +532,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, false}
 
       {:error, reason} ->
-        Logger.warn("is_any_device_using_interface?: database error: #{inspect(reason)}.")
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -541,7 +562,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warn("delete_devices_with_data_on_interface: database error: #{inspect(reason)}")
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -572,7 +593,11 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warn("Database error: cannot delete values. reason: #{inspect(reason)}")
+        _ =
+          Logger.warn("Database error: cannot delete values. Reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
+
         {:error, :database_error}
     end
   end
@@ -633,7 +658,11 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warn("Database error: cannot delete path values. reason: #{inspect(reason)}")
+        _ =
+          Logger.warn("Database error: cannot delete path values. Reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
+
         {:error, :database_error}
     end
   end
@@ -687,7 +716,11 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warn("database error while deleting all paths: #{inspect(reason)}")
+        _ =
+          Logger.warn("Database error while deleting all paths: #{inspect(reason)}.",
+            tag: "db_error"
+          )
+
         {:error, :database_error}
     end
   end
@@ -713,11 +746,11 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :interface_not_found}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("interface_available_versions: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("interface_available_versions: database error: #{inspect(reason)}")
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -741,11 +774,11 @@ defmodule Astarte.RealmManagement.Queries do
       {:ok, count != 0}
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("is_interface_major_available?: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("is_interface_major_available?: database error: #{inspect(reason)}")
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -785,11 +818,11 @@ defmodule Astarte.RealmManagement.Queries do
       end
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("has_correct_casing: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("has_correct_casing: database error: #{inspect(reason)}")
+        Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -884,11 +917,11 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :interface_not_found}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("interface_source: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("interface_source: failed, reason: #{inspect(reason)}.")
+        _ = Logger.warn("Failed, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -912,11 +945,13 @@ defmodule Astarte.RealmManagement.Queries do
       {:ok, list}
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("get_interfaces_list: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("get_interfaces_list: failed, reason: #{inspect(reason)}.")
+        _ =
+          Logger.warn("Database error: failed with reason: #{inspect(reason)}.", tag: "db_error")
+
         {:error, :database_error}
     end
   end
@@ -944,11 +979,11 @@ defmodule Astarte.RealmManagement.Queries do
       end
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("interface_owns_simple_triggers?: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("interface_owns_simple_triggers?: failed with reason #{inspect(reason)}")
+        _ = Logger.warn("Failed with reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1009,7 +1044,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       not_ok ->
-        Logger.warn("Database error: #{inspect(not_ok)}")
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_trigger}
     end
   end
@@ -1058,7 +1093,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       not_ok ->
-        Logger.warn("Database error: #{inspect(not_ok)}")
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_simple_trigger}
     end
   end
@@ -1086,7 +1121,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :trigger_not_found}
 
       not_ok ->
-        Logger.warn("Queries.retrieve_trigger_uuid: database error: #{inspect(not_ok)}")
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_retrieve_trigger_uuid}
     end
   end
@@ -1114,7 +1149,7 @@ defmodule Astarte.RealmManagement.Queries do
         :ok
       else
         not_ok ->
-          Logger.warn("Queries.delete_trigger: database error: #{inspect(not_ok)}")
+          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_delete_trigger}
       end
     end
@@ -1131,7 +1166,7 @@ defmodule Astarte.RealmManagement.Queries do
         end
       else
         not_ok ->
-          Logger.warn("Queries.get_triggers_list: database error: #{inspect(not_ok)}")
+          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_list_triggers}
       end
 
@@ -1156,7 +1191,7 @@ defmodule Astarte.RealmManagement.Queries do
           {:error, :trigger_not_found}
 
         not_ok ->
-          Logger.warn("Queries.retrieve_trigger: database error: #{inspect(not_ok)}")
+          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_retrieve_trigger}
       end
     end
@@ -1194,11 +1229,10 @@ defmodule Astarte.RealmManagement.Queries do
         }
       else
         not_ok ->
-          Logger.warn(
-            "Queries.retrieve_simple_trigger: possible inconsistency found: database error: #{
-              inspect(not_ok)
-            }"
-          )
+          _ =
+            Logger.warn("Possible inconsistency found: database error: #{inspect(not_ok)}.",
+              tag: "db_error"
+            )
 
           {:error, :cannot_retrieve_simple_trigger}
       end
@@ -1207,7 +1241,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :simple_trigger_not_found}
 
       not_ok ->
-        Logger.warn("Queries.retrieve_trigger: database error: #{inspect(not_ok)}")
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_retrieve_simple_trigger}
     end
   end
@@ -1242,7 +1276,7 @@ defmodule Astarte.RealmManagement.Queries do
         :ok
       else
         not_ok ->
-          Logger.warn("Queries.delete_simple_trigger: database error: #{inspect(not_ok)}")
+          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_delete_simple_trigger}
       end
     end
@@ -1265,9 +1299,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :trigger_not_found}
 
       not_ok ->
-        Logger.warn(
-          "Queries.retrieve_simple_trigger_astarte_ref: database error: #{inspect(not_ok)}"
-        )
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
 
         {:error, :cannot_retrieve_simple_trigger}
     end
