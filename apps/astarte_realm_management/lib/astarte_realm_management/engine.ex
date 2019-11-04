@@ -59,7 +59,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def install_interface(realm_name, interface_json, opts \\ []) do
-    Logger.debug("Going to install a new interface on realm #{realm_name}.")
+    _ = Logger.info("Going to install a new interface.", tag: "install_interface")
 
     with {:ok, client} <- Database.connect(realm_name),
          {:ok, json_obj} <- Jason.decode(interface_json),
@@ -71,7 +71,12 @@ defmodule Astarte.RealmManagement.Engine do
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
          :ok <- Queries.check_correct_casing(client, name),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
-      Logger.info("Installing interface #{name} v#{Integer.to_string(major)} on #{realm_name}.")
+      _ =
+        Logger.info("Installing interface.",
+          interface: name,
+          interface_major: major,
+          tag: "install_interface_started"
+        )
 
       if opts[:async] do
         Task.start(Queries, :install_new_interface, [client, interface_doc, automaton])
@@ -82,11 +87,19 @@ defmodule Astarte.RealmManagement.Engine do
       end
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
-        Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
+        _ =
+          Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}.",
+            tag: "invalid_json"
+          )
+
         {:error, :invalid_interface_document}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        Logger.warn("Received invalid interface: #{inspect(changeset)}")
+        _ =
+          Logger.warn("Received invalid interface: #{inspect(changeset)}.",
+            tag: "invalid_interface_document"
+          )
+
         {:error, :invalid_interface_document}
 
       {:error, :database_connection_error} ->
@@ -107,7 +120,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def update_interface(realm_name, interface_json, opts \\ []) do
-    Logger.debug("Going to update an interface on realm #{realm_name}.")
+    _ = Logger.info("Going to perform interface update.", tag: "update_interface")
 
     with {:ok, client} <- Database.connect(realm_name),
          {:ok, json_obj} <- Jason.decode(interface_json),
@@ -123,8 +136,6 @@ defmodule Astarte.RealmManagement.Engine do
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
          {:ok, new_mappings} <- extract_new_mappings(client, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
-      Logger.info("Updating interface #{name} v#{Integer.to_string(major)} on #{realm_name}.")
-
       new_mappings_list = Map.values(new_mappings)
 
       interface_update =
@@ -155,11 +166,19 @@ defmodule Astarte.RealmManagement.Engine do
       end
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
-        Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}")
+        _ =
+          Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}.",
+            tag: "invalid_json"
+          )
+
         {:error, :invalid_interface_document}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        Logger.warn("Received invalid interface: #{inspect(changeset)}")
+        _ =
+          Logger.warn("Received invalid interface: #{inspect(changeset)}.",
+            tag: "invalid_interface_document"
+          )
+
         {:error, :invalid_interface_document}
 
       {:error, :database_connection_error} ->
@@ -192,6 +211,16 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def execute_interface_update(client, interface_descriptor, new_mappings, automaton, descr, doc) do
+    name = interface_descriptor.name
+    major = interface_descriptor.major_version
+
+    _ =
+      Logger.info("Updating interface.",
+        interface: name,
+        interface_major: major,
+        tag: "update_interface_started"
+      )
+
     with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
       Queries.update_interface(client, interface_descriptor, new_mappings, automaton, descr, doc)
     end
@@ -234,7 +263,7 @@ defmodule Astarte.RealmManagement.Engine do
       :ok
     else
       incompatible_value ->
-        Logger.debug("Incompatible change: #{inspect(incompatible_value)}")
+        _ = Logger.debug("Incompatible change: #{inspect(incompatible_value)}.")
         {:error, :invalid_update}
     end
   end
@@ -280,7 +309,12 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do
-    Logger.debug("Going to delete #{name} v#{Integer.to_string(major)} on #{realm_name}.")
+    _ =
+      Logger.info("Going to delete interface.",
+        tag: "delete_interface",
+        interface: name,
+        interface_major: major
+      )
 
     with {:major, 0} <- {:major, major},
          {:ok, client} <- Database.connect(realm_name),
@@ -324,6 +358,13 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          :ok <- Queries.delete_interface_storage(client, descriptor),
          :ok <- Queries.delete_devices_with_data_on_interface(client, name) do
+      _ =
+        Logger.info("Interface deletion started.",
+          interface: name,
+          interface_major: major,
+          tag: "delete_interface_started"
+        )
+
       Queries.delete_interface(client, name, major)
     end
   end
@@ -378,6 +419,7 @@ defmodule Astarte.RealmManagement.Engine do
              List.first(Application.get_env(:cqerl, :cassandra_nodes)),
              keyspace: realm_name
            ) do
+      _ = Logger.info("Updating JWT public key PEM.", tag: "updating_jwt_pub_key")
       Queries.update_jwt_public_key_pem(client, jwt_public_key_pem)
     else
       {:error, :shutdown} ->
@@ -386,6 +428,12 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def install_trigger(realm_name, trigger_name, action, serialized_tagged_simple_triggers) do
+    _ =
+      Logger.info("Going to install a new trigger.",
+        trigger_name: trigger_name,
+        tag: "install_trigger"
+      )
+
     with {:ok, client} <- get_database_client(realm_name),
          {:exists?, {:error, :trigger_not_found}} <-
            {:exists?, Queries.retrieve_trigger_uuid(client, trigger_name)},
@@ -396,6 +444,12 @@ defmodule Astarte.RealmManagement.Engine do
          :ok <- validate_simple_triggers(client, simple_trigger_maps),
          # TODO: these should be batched together
          :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, target) do
+      _ =
+        Logger.info("Installing trigger.",
+          trigger_name: trigger_name,
+          tag: "install_trigger_started"
+        )
+
       Queries.install_trigger(client, trigger)
     else
       {:exists?, _} ->
@@ -573,8 +627,13 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def delete_trigger(realm_name, trigger_name) do
+    _ = Logger.info("Going to delete trigger.", trigger_name: trigger_name, tag: "delete_trigger")
+
     with {:ok, client} <- get_database_client(realm_name),
          {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
+      _ =
+        Logger.info("Deleting trigger.", trigger_name: trigger_name, tag: "delete_trigger_started")
+
       delete_all_succeeded =
         Enum.all?(trigger.simple_triggers_uuids, fn simple_trigger_uuid ->
           Queries.delete_simple_trigger(client, trigger.trigger_uuid, simple_trigger_uuid) == :ok
