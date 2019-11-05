@@ -375,7 +375,11 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def interface_source(realm_name, interface_name, major_version) do
-    _ = Logger.debug("Get interface source.")
+    _ =
+      Logger.debug("Get interface source.",
+        interface: interface_name,
+        interface_major: major_version
+      )
 
     with {:ok, client} <- Database.connect(realm_name),
          {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
@@ -384,7 +388,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def list_interface_versions(realm_name, interface_name) do
-    _ = Logger.debug("List interface versions.")
+    _ = Logger.debug("List interface versions.", interface: interface_name)
 
     with {:ok, client} <- Database.connect(realm_name) do
       Queries.interface_available_versions(client, interface_name)
@@ -595,7 +599,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def get_trigger(realm_name, trigger_name) do
-    _ = Logger.debug("Get trigger.")
+    _ = Logger.debug("Get trigger.", trigger_name: trigger_name)
 
     with {:ok, client} <- get_database_client(realm_name),
          {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(client, trigger_name) do
