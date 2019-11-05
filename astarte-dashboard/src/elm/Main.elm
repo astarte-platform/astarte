@@ -466,6 +466,9 @@ pageInit realmRoute config session =
         Route.DeviceList ->
             initDeviceListPage session session.apiConfig.realm
 
+        Route.ShowDevice deviceId ->
+            initDeviceListPage session session.apiConfig.realm
+
 
 initLoginPage : Config.Params -> Session -> ( Page, Cmd Msg, Session )
 initLoginPage config session =
