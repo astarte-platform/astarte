@@ -145,6 +145,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         retention int,
         expiry int,
         allow_unset boolean,
+        explicit_timestamp boolean,
 
         PRIMARY KEY ((interface_id), endpoint_id)
     );

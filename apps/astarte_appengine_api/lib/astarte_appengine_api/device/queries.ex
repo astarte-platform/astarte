@@ -821,13 +821,20 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def retrieve_object_datastream_values(client, device_id, interface_row, path, columns, opts) do
+    timestamp_column =
+      if opts.explicit_timestamp do
+        "value_timestamp"
+      else
+        "reception_timestamp"
+      end
+
     {since_statement, since_value} =
       cond do
         opts.since != nil ->
-          {"AND reception_timestamp >= :since", opts.since}
+          {"AND #{timestamp_column} >= :since", opts.since}
 
         opts.since_after != nil ->
-          {"AND reception_timestamp > :since", opts.since_after}
+          {"AND #{timestamp_column} > :since", opts.since_after}
 
         opts.since == nil and opts.since_after == nil ->
           {"", nil}
@@ -835,7 +842,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     {to_statement, to_value} =
       if opts.to != nil do
-        {"AND reception_timestamp < :to_timestamp", opts.to}
+        {"AND #{timestamp_column} < :to_timestamp", opts.to}
       else
         {"", nil}
       end
@@ -846,7 +853,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       cond do
         # Check the explicit user defined limit to know if we have to reorder data
         opts.limit != nil and since_value == nil ->
-          {"ORDER BY reception_timestamp DESC LIMIT :limit_nrows", query_limit}
+          {"ORDER BY #{timestamp_column} DESC LIMIT :limit_nrows", query_limit}
 
         query_limit != nil ->
           {"LIMIT :limit_nrows", query_limit}
@@ -861,7 +868,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       } ;"
 
     values_query_statement =
-      "SELECT #{columns} reception_timestamp FROM #{interface_row[:storage]} #{where_clause};"
+      "SELECT #{columns} #{timestamp_column} FROM #{interface_row[:storage]} #{where_clause};"
 
     values_query =
       DatabaseQuery.new()
@@ -896,7 +903,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     values = DatabaseQuery.call!(client, values_query)
 
     count_query_statement =
-      "SELECT count(reception_timestamp) FROM #{interface_row[:storage]} #{where_clause} ;"
+      "SELECT count(#{timestamp_column}) FROM #{interface_row[:storage]} #{where_clause} ;"
 
     count_query =
       values_query
