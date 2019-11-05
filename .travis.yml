@@ -13,3 +13,11 @@ script:
   - cd doc
   - mix docs
   - cd -
+
+deploy:
+  provider: script
+  script: bash doc/deploy-to-gh-pages.sh
+  skip_cleanup: true
+  on:
+    tags: false
+    condition: $TRAVIS_BRANCH =~ ^(master|release-[0-9]+\.[0-9]+)$
