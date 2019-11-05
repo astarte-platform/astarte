@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Editor only mode, a mode with an Interface editor but no Astarte connection.
+- Device list page
 
 ### Changed
 - Migrated to Elm 0.19

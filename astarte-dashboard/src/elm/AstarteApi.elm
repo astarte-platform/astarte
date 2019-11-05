@@ -25,6 +25,8 @@ module AstarteApi exposing
     , configDecoder
     , deleteInterface
     , deleteTrigger
+    , detailedDeviceList
+    , deviceList
     , encodeConfig
     , errorToHumanReadable
     , getInterface
@@ -56,9 +58,11 @@ import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode exposing (Value)
 import JsonHelpers
 import Task
+import Types.Device as Device exposing (Device)
 import Types.Interface as Interface exposing (Interface)
 import Types.RealmConfig as RealmConfig exposing (RealmConfig)
 import Types.Trigger as Trigger exposing (Trigger)
+import Url.Builder exposing (crossOrigin)
 
 
 type Error
@@ -73,6 +77,7 @@ type Error
 
 type alias Config =
     { realmManagementUrl : String
+    , appengineUrl : String
     , realm : String
     , token : String
     }
@@ -437,10 +442,44 @@ deleteTrigger apiConfig triggerName okMsg errorMsg loginMsg =
         |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
+
+-- Devices
+
+
+deviceList : Config -> (Result Error (List String) -> msg) -> Cmd msg
+deviceList apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = crossOrigin apiConfig.appengineUrl [ apiConfig.realm, "devices" ] []
+        , body = Http.emptyBody
+        , expect = expectAstarteReply resultMsg <| field "data" (list string)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+detailedDeviceList : Config -> (Result Error (List Device) -> msg) -> Cmd msg
+detailedDeviceList apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url =
+            crossOrigin apiConfig.appengineUrl
+                [ apiConfig.realm, "devices" ]
+                [ Url.Builder.string "details" "true" ]
+        , body = Http.emptyBody
+        , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Device.decoder)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
 encodeConfig : Config -> Value
 encodeConfig config =
     Encode.object
         [ ( "realm_management_url", Encode.string config.realmManagementUrl )
+        , ( "appengine_url", Encode.string config.appengineUrl )
         , ( "realm", Encode.string config.realm )
         , ( "token", Encode.string config.token )
         ]
@@ -450,6 +489,7 @@ configDecoder : Decoder Config
 configDecoder =
     Decode.succeed Config
         |> required "realm_management_url" Decode.string
+        |> required "appengine_url" Decode.string
         |> required "realm" Decode.string
         |> required "token" Decode.string
 

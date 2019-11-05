@@ -35,7 +35,9 @@ $fa-font-path:        "../../../node_modules/@fortawesome/fontawesome-free/webfo
 
 // Custom components
 
-$navbar-width: 300px;
+$navbar-width:          300px;
+$connected-color:       #5bcc6c;
+$disconnected-color:    #cc5b6d;
 
 .navbar-vertical.navbar-expand-lg {
     position: fixed;
@@ -110,4 +112,14 @@ $navbar-width: 300px;
         border-left: 1.4px solid $warning;
         transform: rotate(45deg);
     }
+}
+
+.icon-connected {
+    color: $connected-color;
+    margin-left: 1em;
+}
+
+.icon-disconnected {
+    color: $disconnected-color;
+    margin-left: 1em;
 }

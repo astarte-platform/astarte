@@ -32,6 +32,7 @@ import Http
 import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode
+import Page.DeviceList as DeviceList
 import Page.Home as Home
 import Page.InterfaceBuilder as InterfaceBuilder
 import Page.Interfaces as Interfaces
@@ -135,14 +136,19 @@ init jsParam location key =
 initNewSession : String -> Config -> Session
 initNewSession hostUrl config =
     let
-        apiUrl =
-            config
-                |> Config.getParams
-                |> Maybe.map .realmManagementApiUrl
-                |> Maybe.withDefault ""
+        ( realUrl, appUrl ) =
+            case Config.getParams config of
+                Just params ->
+                    ( params.realmManagementApiUrl
+                    , params.appengineApiUrl
+                    )
+
+                Nothing ->
+                    ( "", "" )
 
         apiConfig =
-            { realmManagementUrl = apiUrl
+            { realmManagementUrl = realUrl
+            , appengineUrl = appUrl
             , realm = ""
             , token = ""
             }
@@ -169,6 +175,7 @@ type RealmPage
     | TriggersPage Triggers.Model
     | TriggerBuilderPage TriggerBuilder.Model
     | RealmSettingsPage RealmSettings.Model
+    | DeviceListPage DeviceList.Model
 
 
 
@@ -187,6 +194,7 @@ type Msg
     | RealmSettingsMsg RealmSettings.Msg
     | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
+    | DeviceListMsg DeviceList.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
 
@@ -334,6 +342,9 @@ updateRealmPage realm realmPage msg model =
                 ( TriggerBuilderMsg subMsg, TriggerBuilderPage subModel ) ->
                     updateRealmPageHelper realm (TriggerBuilder.update model.session subMsg subModel) TriggerBuilderMsg TriggerBuilderPage
 
+                ( DeviceListMsg subMsg, DeviceListPage subModel ) ->
+                    updateRealmPageHelper realm (DeviceList.update model.session subMsg subModel) DeviceListMsg DeviceListPage
+
                 -- Ignore messages from not matching pages
                 ( _, _ ) ->
                     ( model.selectedPage, Cmd.none, Noop )
@@ -452,6 +463,9 @@ pageInit realmRoute config session =
         Route.ShowTrigger name ->
             initTriggerBuilderPage (Just name) session session.apiConfig.realm
 
+        Route.DeviceList ->
+            initDeviceListPage session session.apiConfig.realm
+
 
 initLoginPage : Config.Params -> Session -> ( Page, Cmd Msg, Session )
 initLoginPage config session =
@@ -537,6 +551,18 @@ initTriggerBuilderPage maybeTriggerName session realm =
     in
     ( Realm realm (TriggerBuilderPage initialModel)
     , Cmd.map TriggerBuilderMsg initialCommand
+    , session
+    )
+
+
+initDeviceListPage : Session -> String -> ( Page, Cmd Msg, Session )
+initDeviceListPage session realm =
+    let
+        ( initialModel, initialCommand ) =
+            DeviceList.init session
+    in
+    ( Realm realm (DeviceListPage initialModel)
+    , Cmd.map DeviceListMsg initialCommand
     , session
     )
 
@@ -857,6 +883,9 @@ navbarLinks selectedPage =
                     Icons.Home
                     (isHomeRelated selectedPage)
                     (Route.Realm Route.Home)
+
+                -- Realm Management
+                , renderNavbarSeparator
                 , renderNavbarLink
                     "Interfaces"
                     Icons.Interface
@@ -868,12 +897,21 @@ navbarLinks selectedPage =
                     (isTriggersRelated selectedPage)
                     (Route.Realm Route.ListTriggers)
                 , renderNavbarLink
-                    "Settings"
+                    "Realm settings"
                     Icons.Settings
                     (isSettingsRelated selectedPage)
                     (Route.Realm Route.RealmSettings)
-                , li [ class "navbar-item" ]
-                    [ hr [] [] ]
+
+                -- AppEngine
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Devices"
+                    Icons.Device
+                    (isDeviceRelated selectedPage)
+                    (Route.Realm Route.DeviceList)
+
+                -- Common
+                , renderNavbarSeparator
                 , renderNavbarLink
                     "Logout"
                     Icons.Logout
@@ -899,6 +937,12 @@ renderNavbarLink name icon active route =
             , text name
             ]
         ]
+
+
+renderNavbarSeparator : Html Msg
+renderNavbarSeparator =
+    li [ class "navbar-item" ]
+        [ hr [] [] ]
 
 
 isHomeRelated : Page -> Bool
@@ -941,6 +985,16 @@ isSettingsRelated : Page -> Bool
 isSettingsRelated page =
     case page of
         Realm _ (RealmSettingsPage _) ->
+            True
+
+        _ ->
+            False
+
+
+isDeviceRelated : Page -> Bool
+isDeviceRelated page =
+    case page of
+        Realm _ (DeviceListPage _) ->
             True
 
         _ ->
@@ -992,6 +1046,10 @@ renderProtectedPage flashMessages realm page =
             TriggerBuilder.view submodel flashMessages
                 |> Html.map TriggerBuilderMsg
 
+        DeviceListPage submodel ->
+            DeviceList.view submodel flashMessages
+                |> Html.map DeviceListMsg
+
 
 
 -- SUBSCRIPTIONS
@@ -1029,6 +1087,9 @@ pageSubscriptions page =
 
         Realm _ (TriggersPage submodel) ->
             Sub.map TriggersMsg <| Triggers.subscriptions submodel
+
+        Realm _ (DeviceListPage submodel) ->
+            Sub.map DeviceListMsg <| DeviceList.subscriptions submodel
 
         Realm _ (RealmSettingsPage submodel) ->
             Sub.map RealmSettingsMsg <| RealmSettings.subscriptions submodel
