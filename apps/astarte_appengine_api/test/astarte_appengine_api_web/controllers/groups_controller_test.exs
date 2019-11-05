@@ -85,9 +85,9 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   end
 
   describe "create" do
-    test "rejects invalid group name", %{conn: conn} do
+    test "rejects group with ~ prefix", %{conn: conn} do
       params = %{
-        "group_name" => "astarte_reserved_group",
+        "group_name" => "~internal",
         "devices" => @group_devices
       }
 
@@ -96,9 +96,9 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
       assert json_response(conn, 422)["errors"]["group_name"] != nil
     end
 
-    test "rejects group names with astarte prefix", %{conn: conn} do
+    test "rejects group with @ prefix", %{conn: conn} do
       params = %{
-        "group_name" => "astarte-group",
+        "group_name" => "@astarte",
         "devices" => @group_devices
       }
 
