@@ -1092,6 +1092,36 @@ components:
           description: The groups the device belongs to.
           items:
             type: string
+        previous_interfaces:
+          type: array
+          description: The list of previously supported interfaces
+          items:
+            type: object
+            description: >-
+              An object representing an interface that was previously declared in the introspection
+              by the device
+            properties:
+              name:
+                type: string
+                description: The name of the interface
+              major:
+                type: integer
+                description: The major version of the interface
+              minor:
+                type: integer
+                description: The minor version of the interface
+              exchanged_msgs:
+                type: integer
+                description: >-
+                  The number of exchanged messages of this interface. Note that exchanged messages
+                  are the same for all (interface, major) combinations, i.e. com.my.Interface v1.2
+                  will have the same exchanged_msgs of com.my.Interface v1.x for every value of x
+              exchanged_bytes:
+                type: integer
+                description: >-
+                  The number of exchanged bytes of this interface. Note that exchanged bytes
+                  are the same for all (interface, major) combinations, i.e. com.my.Interface v1.2
+                  will have the same exchanged_bytes of com.my.Interface v1.x for every value of x
       example:
         id: hm8AjtbN5P2mxo_gfXSfvQ
         aliases:
@@ -1101,9 +1131,13 @@ components:
           com.example.ExampleInterface:
             major: 2
             minor: 0
+            exchanged_msgs: 20
+            exchanged_bytes: 200
           com.example.HelloWorldInterface:
             major: 1
             minor: 1
+            exchanged_msgs: 3
+            exchanged_bytes: 42
         connected: false
         last_connection: '2017-09-28T03:45:00.000Z'
         last_disconnection: '2017-09-29T18:25:00.000Z'
@@ -1117,6 +1151,12 @@ components:
         groups:
           - test-devices
           - first-floor
+        previous_interfaces:
+          - name: com.example.ExampleInterface
+            major: 1
+            minor: 1
+            exchanged_msgs: 5
+            exchanged_bytes: 102
     CreateGroupConfig:
       type: object
       required:
