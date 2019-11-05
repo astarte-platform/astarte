@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Trigger validation, checks that the interface is existing and performs validation on object aggregation triggers.
 
+### Changed
+- Changed logs format to logfmt.
+
 ## [0.10.1] - 2019-10-02
 ### Fixed
 - Use updated interface validation: object aggregated properties interfaces are not valid.

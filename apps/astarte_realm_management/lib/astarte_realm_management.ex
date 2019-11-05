@@ -18,12 +18,15 @@
 
 defmodule Astarte.RealmManagement do
   use Application
+  require Logger
 
   alias Astarte.RPC.Protocol.RealmManagement, as: Protocol
 
   alias Astarte.RealmManagement.RPC.Handler
 
   def start(_type, _args) do
+    _ = Logger.info("Starting application.", tag: "realm_management_app_start")
+
     children = [
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
     ]
