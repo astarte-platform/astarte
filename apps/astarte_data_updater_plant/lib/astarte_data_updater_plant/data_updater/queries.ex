@@ -411,7 +411,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def retrieve_device_stats_and_introspection!(db_client, device_id) do
     stats_and_introspection_statement = """
-    SELECT total_received_msgs, total_received_bytes, introspection
+    SELECT total_received_msgs, total_received_bytes, introspection,
+           exchanged_bytes_by_interface, exchanged_msgs_by_interface
     FROM devices
     WHERE device_id=:device_id
     """
@@ -426,23 +427,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       DatabaseQuery.call!(db_client, device_row_query)
       |> DatabaseResult.head()
 
-    introspection_map =
-      case device_row[:introspection] do
-        :null ->
-          %{}
+    introspection_map = convert_map_result(device_row[:introspection])
 
-        nil ->
-          %{}
+    initial_interface_exchanged_bytes =
+      convert_map_result(device_row[:exchanged_bytes_by_interface])
+      |> convert_tuple_keys()
 
-        result ->
-          Enum.into(result, %{})
-      end
+    initial_interface_exchanged_msgs =
+      convert_map_result(device_row[:exchanged_msgs_by_interface])
+      |> convert_tuple_keys()
 
     %{
       introspection: introspection_map,
       total_received_msgs: device_row[:total_received_msgs],
-      total_received_bytes: device_row[:total_received_bytes]
+      total_received_bytes: device_row[:total_received_bytes],
+      initial_interface_exchanged_bytes: initial_interface_exchanged_bytes,
+      initial_interface_exchanged_msgs: initial_interface_exchanged_msgs
     }
+  end
+
+  defp convert_map_result(nil), do: %{}
+  defp convert_map_result(result) when is_list(result), do: Enum.into(result, %{})
+  defp convert_map_result(result) when is_map(result), do: result
+
+  # CQEx returns tuple keys as lists, convert them to tuples
+  defp convert_tuple_keys(map) when is_map(map) do
+    for {key, value} <- map, into: %{} do
+      {List.to_tuple(key), value}
+    end
   end
 
   def set_device_connected!(db_client, device_id, timestamp_ms, ip_address) do
@@ -468,14 +480,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         timestamp_ms,
         total_received_msgs,
-        total_received_bytes
+        total_received_bytes,
+        interface_exchanged_msgs,
+        interface_exchanged_bytes
       ) do
     device_update_statement = """
     UPDATE devices
     SET connected=false,
         last_disconnection=:last_disconnection,
         total_received_msgs=:total_received_msgs,
-        total_received_bytes=:total_received_bytes
+        total_received_bytes=:total_received_bytes,
+        exchanged_bytes_by_interface+=:exchanged_bytes_by_interface,
+        exchanged_msgs_by_interface+=:exchanged_msgs_by_interface
     WHERE device_id=:device_id
     """
 
@@ -486,6 +502,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:last_disconnection, timestamp_ms)
       |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
       |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+      |> DatabaseQuery.put(:exchanged_bytes_by_interface, interface_exchanged_bytes)
+      |> DatabaseQuery.put(:exchanged_msgs_by_interface, interface_exchanged_msgs)
       |> DatabaseQuery.consistency(:local_quorum)
 
     DatabaseQuery.call!(db_client, device_update_query)

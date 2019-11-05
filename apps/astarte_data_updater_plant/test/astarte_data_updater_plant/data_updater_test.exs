@@ -153,9 +153,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     device_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT connected, total_received_msgs, total_received_bytes FROM devices WHERE device_id=:device_id;"
-      )
+      |> DatabaseQuery.statement("""
+      SELECT connected, total_received_msgs, total_received_bytes,
+      exchanged_msgs_by_interface, exchanged_bytes_by_interface
+      FROM devices WHERE device_id=:device_id;
+      """)
       |> DatabaseQuery.put(:device_id, device_id)
 
     device_row =
@@ -165,7 +167,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert device_row == [
              connected: true,
              total_received_msgs: 45000,
-             total_received_bytes: 4_500_000
+             total_received_bytes: 4_500_000,
+             exchanged_msgs_by_interface: nil,
+             exchanged_bytes_by_interface: nil
            ]
 
     # Introspection sub-test
@@ -926,7 +930,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert device_row == [
              connected: false,
              total_received_msgs: 45013,
-             total_received_bytes: 4_500_692
+             total_received_bytes: 4_500_692,
+             exchanged_msgs_by_interface: [
+               {["com.example.TestObject", 1], 5},
+               {["com.test.LCDMonitor", 1], 4},
+               {["com.test.SimpleStreamTest", 1], 1}
+             ],
+             exchanged_bytes_by_interface: [
+               {["com.example.TestObject", 1], 243},
+               {["com.test.LCDMonitor", 1], 187},
+               {["com.test.SimpleStreamTest", 1], 45}
+             ]
            ]
 
     assert AMQPTestHelper.awaiting_messages_count() == 0
