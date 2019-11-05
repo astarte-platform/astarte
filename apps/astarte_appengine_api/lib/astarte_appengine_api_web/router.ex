@@ -17,9 +17,11 @@
 
 defmodule Astarte.AppEngine.APIWeb.Router do
   use Astarte.AppEngine.APIWeb, :router
+  alias Astarte.AppEngine.APIWeb.Plug.LogRealm
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug LogRealm
     plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
   end
 
