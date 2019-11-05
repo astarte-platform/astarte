@@ -21,17 +21,47 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.AppEngine.API.Device.InterfaceVersion
   alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
 
   @expected_introspection %{
-    "com.example.PixelsConfiguration" => %InterfaceVersion{major: 1, minor: 0},
-    "com.example.TestObject" => %InterfaceVersion{major: 1, minor: 5},
-    "com.test.LCDMonitor" => %InterfaceVersion{major: 1, minor: 3},
-    "com.test.SimpleStreamTest" => %InterfaceVersion{major: 1, minor: 0}
+    "com.example.PixelsConfiguration" => %InterfaceInfo{
+      major: 1,
+      minor: 0,
+      exchanged_msgs: 4230,
+      exchanged_bytes: 2_010_000
+    },
+    "com.example.TestObject" => %InterfaceInfo{
+      major: 1,
+      minor: 5,
+      exchanged_msgs: 9300,
+      exchanged_bytes: 2_000_000
+    },
+    "com.test.LCDMonitor" => %InterfaceInfo{
+      major: 1,
+      minor: 3,
+      exchanged_msgs: 10,
+      exchanged_bytes: 3000
+    },
+    "com.test.SimpleStreamTest" => %InterfaceInfo{
+      major: 1,
+      minor: 0,
+      exchanged_msgs: 0,
+      exchanged_bytes: 0
+    }
   }
+
+  @expected_previous_interfaces [
+    %InterfaceInfo{
+      name: "com.test.LCDMonitor",
+      major: 0,
+      minor: 1,
+      exchanged_msgs: 42,
+      exchanged_bytes: 9000
+    }
+  ]
 
   @expected_device_status %DeviceStatus{
     connected: false,
@@ -99,6 +129,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     credentials_inhibited: false,
     total_received_bytes: 4_500_000,
     total_received_msgs: 45000,
+    previous_interfaces: @expected_previous_interfaces,
     groups: []
   }
 

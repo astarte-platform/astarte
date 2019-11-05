@@ -24,11 +24,41 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
   alias Astarte.AppEngine.API.JWTTestHelper
 
   @expected_introspection %{
-    "com.example.PixelsConfiguration" => %{"major" => 1, "minor" => 0},
-    "com.example.TestObject" => %{"major" => 1, "minor" => 5},
-    "com.test.LCDMonitor" => %{"major" => 1, "minor" => 3},
-    "com.test.SimpleStreamTest" => %{"major" => 1, "minor" => 0}
+    "com.example.PixelsConfiguration" => %{
+      "major" => 1,
+      "minor" => 0,
+      "exchanged_msgs" => 4230,
+      "exchanged_bytes" => 2_010_000
+    },
+    "com.example.TestObject" => %{
+      "major" => 1,
+      "minor" => 5,
+      "exchanged_msgs" => 9300,
+      "exchanged_bytes" => 2_000_000
+    },
+    "com.test.LCDMonitor" => %{
+      "major" => 1,
+      "minor" => 3,
+      "exchanged_msgs" => 10,
+      "exchanged_bytes" => 3000
+    },
+    "com.test.SimpleStreamTest" => %{
+      "major" => 1,
+      "minor" => 0,
+      "exchanged_msgs" => 0,
+      "exchanged_bytes" => 0
+    }
   }
+
+  @expected_previous_interfaces [
+    %{
+      "name" => "com.test.LCDMonitor",
+      "major" => 0,
+      "minor" => 1,
+      "exchanged_msgs" => 42,
+      "exchanged_bytes" => 9000
+    }
+  ]
 
   @expected_device_id "f0VMRgIBAQAAAAAAAAAAAA"
   @expected_device_status %{
@@ -45,6 +75,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
     "credentials_inhibited" => false,
     "total_received_bytes" => 4_500_000,
     "total_received_msgs" => 45000,
+    "previous_interfaces" => @expected_previous_interfaces,
     "groups" => []
   }
 

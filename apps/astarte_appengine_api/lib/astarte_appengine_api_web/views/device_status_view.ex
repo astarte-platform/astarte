@@ -17,6 +17,7 @@
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   use Astarte.AppEngine.APIWeb, :view
+  alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
   alias Astarte.AppEngine.APIWeb.Router.Helpers, as: RouterHelpers
 
@@ -60,7 +61,11 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
       first_registration: device_status.first_registration,
       first_credentials_request: device_status.first_credentials_request,
       aliases: device_status.aliases,
-      groups: device_status.groups
+      groups: device_status.groups,
+      previous_interfaces:
+        render_many(device_status.previous_interfaces, DeviceStatusView, "interface_info.json",
+          as: :interface_info
+        )
     }
   end
 
@@ -69,9 +74,26 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   end
 
   def render("introspection.json", %{introspection: introspection}) do
-    for {interface_name, %{major: major, minor: minor}} <- introspection, into: %{} do
-      {interface_name, %{minor: minor, major: major}}
+    for {interface_name, %InterfaceInfo{} = info} <- introspection, into: %{} do
+      info_map = %{
+        minor: info.minor,
+        major: info.major,
+        exchanged_msgs: info.exchanged_msgs,
+        exchanged_bytes: info.exchanged_bytes
+      }
+
+      {interface_name, info_map}
     end
+  end
+
+  def render("interface_info.json", %{interface_info: interface_info}) do
+    %{
+      name: interface_info.name,
+      minor: interface_info.minor,
+      major: interface_info.major,
+      exchanged_msgs: interface_info.exchanged_msgs,
+      exchanged_bytes: interface_info.exchanged_bytes
+    }
   end
 
   defp build_links(%{"realm_name" => realm} = params, last_token) do

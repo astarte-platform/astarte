@@ -15,9 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.AppEngine.API.Device.InterfaceVersion do
+defmodule Astarte.AppEngine.API.Device.InterfaceInfo do
   defstruct [
+    :name,
     :major,
-    :minor
+    :minor,
+    :exchanged_msgs,
+    :exchanged_bytes
   ]
 end

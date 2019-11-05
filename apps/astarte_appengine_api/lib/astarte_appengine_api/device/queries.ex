@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
-  alias Astarte.AppEngine.API.Device.InterfaceVersion
+  alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
@@ -433,7 +433,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , last_seen_ip
     , total_received_msgs
     , total_received_bytes
+    , exchanged_msgs_by_interface
+    , exchanged_bytes_by_interface
     , groups
+    , old_introspection
     , inhibit_credentials_request
   """
 
@@ -452,25 +455,63 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       last_seen_ip: last_seen_ip,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
+      exchanged_msgs_by_interface: exchanged_msgs_by_interface,
+      exchanged_bytes_by_interface: exchanged_bytes_by_interface,
       groups: groups_map,
+      old_introspection: old_introspection,
       inhibit_credentials_request: credentials_inhibited
     ] = row
 
+    interface_msgs_map =
+      exchanged_msgs_by_interface
+      |> convert_map_result()
+      |> convert_tuple_keys()
+
+    interface_bytes_map =
+      exchanged_bytes_by_interface
+      |> convert_map_result()
+      |> convert_tuple_keys()
+
     only_major_introspection =
       Enum.reduce(introspection_major || %{}, %{}, fn {interface, major}, acc ->
-        Map.put(acc, interface, %InterfaceVersion{major: major})
+        Map.put(acc, interface, %InterfaceInfo{major: major})
       end)
 
     introspection =
       Enum.reduce(introspection_minor || %{}, %{}, fn {interface, minor}, acc ->
         with {:ok, major_item} <- Map.fetch(only_major_introspection, interface) do
-          Map.put(acc, interface, %{major_item | minor: minor})
+          msgs = Map.get(interface_msgs_map, {interface, major_item.major}, 0)
+          bytes = Map.get(interface_bytes_map, {interface, major_item.major}, 0)
+
+          Map.put(acc, interface, %{
+            major_item
+            | minor: minor,
+              exchanged_msgs: msgs,
+              exchanged_bytes: bytes
+          })
         else
           :error ->
             device = Device.encode_device_id(device_id)
             Logger.warn("#{device} has no minor version for #{interface}. Corrupted entry?")
             acc
         end
+      end)
+
+    previous_interfaces =
+      old_introspection
+      |> convert_map_result()
+      |> convert_tuple_keys()
+      |> Enum.map(fn {{interface_name, major}, minor} ->
+        msgs = Map.get(interface_msgs_map, {interface_name, major}, 0)
+        bytes = Map.get(interface_bytes_map, {interface_name, major}, 0)
+
+        %InterfaceInfo{
+          name: interface_name,
+          major: major,
+          minor: minor,
+          exchanged_msgs: msgs,
+          exchanged_bytes: bytes
+        }
       end)
 
     # groups_map could be nil, default to empty keyword list
@@ -490,8 +531,20 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
+      previous_interfaces: previous_interfaces,
       groups: groups
     }
+  end
+
+  defp convert_map_result(nil), do: %{}
+  defp convert_map_result(result) when is_list(result), do: Enum.into(result, %{})
+  defp convert_map_result(result) when is_map(result), do: result
+
+  # CQEx returns tuple keys as lists, convert them to tuples
+  defp convert_tuple_keys(map) when is_map(map) do
+    for {key, value} <- map, into: %{} do
+      {List.to_tuple(key), value}
+    end
   end
 
   # TODO: copy&pasted from Device

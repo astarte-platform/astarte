@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add groups support, allowing to group devices and access them inside a group hierarchy.
 - Add Prometheus metrics.
+- Show interface stats (exchanged messages and bytes) in device introspection.
+- Add previous_interfaces field to device details.
 
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
