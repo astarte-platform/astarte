@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - Add groups related columns and tables (schema has been changed).
+- Add interface stats related columns (schema has been changed).
 
 ## [0.10.1] - 2019-10-02
 ### Added
