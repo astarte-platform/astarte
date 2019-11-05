@@ -30,8 +30,9 @@ import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 import Dict exposing (Dict)
 import Html exposing (Html, h5)
-import Html.Attributes exposing (class, for)
+import Html.Attributes exposing (class, for, href)
 import Icons exposing (Icon)
+import Route
 import Spinner
 import Types.Device exposing (Device)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -176,12 +177,19 @@ deviceRow device =
         displayNameCell =
             case Dict.get "name" device.aliases of
                 Just displayName ->
-                    Table.td [] [ Html.text displayName ]
+                    Table.td []
+                        [ Html.a
+                            [ href <| Route.toString <| Route.Realm (Route.ShowDevice device.id) ]
+                            [ Html.text displayName ]
+                        ]
 
                 Nothing ->
                     Table.td
                         [ Table.cellAttr <| class "text-monospace" ]
-                        [ Html.text device.id ]
+                        [ Html.a
+                            [ href <| Route.toString <| Route.Realm (Route.ShowDevice device.id) ]
+                            [ Html.text device.id ]
+                        ]
 
         ( statusCell, lastEventCell ) =
             if device.connected then
