@@ -17,7 +17,7 @@
 -}
 
 
-module Types.Device exposing (Device, decoder)
+module Types.Device exposing (Device, IntrospectionValue(..), decoder)
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
