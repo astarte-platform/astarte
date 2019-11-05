@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
+- Changed logs format to logfmt.
 
 ## [0.10.2] - Unreleased
 ### Fixed
