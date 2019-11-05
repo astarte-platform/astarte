@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Add support to multiple queues with consistent hashing
+- Save exchanged bytes and messages for all interfaces.
 
 ### Changed
 - Changed logs format to logfmt.
