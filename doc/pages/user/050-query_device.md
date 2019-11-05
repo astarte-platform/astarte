@@ -24,16 +24,35 @@ _Sample Response_
         "id": "f0VMRgIBAQAAAAAAAAAAAA",
         "first_registration": "2018-01-31T17:10:59.270Z",
         "connected": true,
-        "introspection" : {
+        "introspection": {
             "com.example.ExampleInterface" : {
                 "major" : 1,
-                "minor" : 0
+                "minor" : 0,
+                "exchanged_msgs": 20,
+                "exchanged_bytes": 200
             },
             "org.example.TestInterface" : {
                 "major" : 0,
-                "minor" : 2
+                "minor" : 2,
+                "exchanged_msgs": 8,
+                "exchanged_bytes": 147
             }
-        }
+        },
+        "aliases": {
+            "name": "device_a"
+        },
+        "groups": [
+            "my_group",
+        ],
+        "previous_interfaces": [
+            {
+                "name": "com.example.ExampleInterface",
+                "major" : 0,
+                "minor" : 2,
+                "exchanged_msgs": 3,
+                "exchanged_bytes": 120 
+            }
+        ]
     }
 }
 ```
