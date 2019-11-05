@@ -26,6 +26,7 @@ module AstarteApi exposing
     , deleteInterface
     , deleteTrigger
     , detailedDeviceList
+    , deviceInfos
     , deviceList
     , encodeConfig
     , errorToHumanReadable
@@ -470,6 +471,19 @@ detailedDeviceList apiConfig resultMsg =
                 [ Url.Builder.string "details" "true" ]
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Device.decoder)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deviceInfos : Config -> String -> (Result Error Device -> msg) -> Cmd msg
+deviceInfos apiConfig deviceId resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = crossOrigin apiConfig.appengineUrl [ apiConfig.realm, "devices", deviceId ] []
+        , body = Http.emptyBody
+        , expect = expectAstarteReply resultMsg <| field "data" Device.decoder
         , timeout = Nothing
         , tracker = Nothing
         }
