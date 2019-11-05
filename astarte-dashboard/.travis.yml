@@ -9,6 +9,7 @@ deploy:
   provider: pages
   local_dir: dist/
   repo: astarte-platform/online-interface-builder
+  fqdn: interfaces-editor.astarte-platform.org
   skip_cleanup: true
   github_token: $GITHUB_TOKEN
   keep_history: true
