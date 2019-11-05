@@ -409,8 +409,16 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         query =
           DatabaseQuery.new()
           |> DatabaseQuery.statement(@insert_into_interface_2)
-          |> DatabaseQuery.put(:automaton_accepting_states, <<131, 100, 0, 3, 110, 105, 108>>)
-          |> DatabaseQuery.put(:automaton_transitions, <<131, 100, 0, 3, 110, 105, 108>>)
+          |> DatabaseQuery.put(
+            :automaton_accepting_states,
+            Base.decode64!(
+              "g3QAAAACYQFtAAAAEHyfFOhPL5d/wSbV4buYdudhAm0AAAAQOzn9OuJhJv/lI0wt0VC4ZA=="
+            )
+          )
+          |> DatabaseQuery.put(
+            :automaton_transitions,
+            Base.decode64!("g3QAAAACaAJhAG0AAAAGc3RyaW5nYQFoAmEAbQAAAAV2YWx1ZWEC")
+          )
 
         DatabaseQuery.call!(client, query)
 
