@@ -37,6 +37,8 @@ defmodule Astarte.RealmManagement.Engine do
   alias CQEx.Client, as: DatabaseClient
 
   def get_health() do
+    _ = Logger.debug("Get health.")
+
     with {:ok, client} <- Database.connect(),
          :ok <- Queries.check_astarte_health(client, :each_quorum) do
       {:ok, %{status: :ready}}
@@ -373,6 +375,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def interface_source(realm_name, interface_name, major_version) do
+    _ = Logger.debug("Get interface source.")
+
     with {:ok, client} <- Database.connect(realm_name),
          {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
       Jason.encode(interface)
@@ -380,6 +384,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def list_interface_versions(realm_name, interface_name) do
+    _ = Logger.debug("List interface versions.")
+
     with {:ok, client} <- Database.connect(realm_name) do
       Queries.interface_available_versions(client, interface_name)
     else
@@ -392,6 +398,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def get_interfaces_list(realm_name) do
+    _ = Logger.debug("Get interfaces list.")
+
     with {:ok, client} <- Database.connect(realm_name) do
       Queries.get_interfaces_list(client)
     else
@@ -404,6 +412,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def get_jwt_public_key_pem(realm_name) do
+    _ = Logger.debug("Get JWT public key PEM.")
+
     with {:ok, client} <-
            DatabaseClient.new(
              List.first(Application.get_env(:cqerl, :cassandra_nodes)),
@@ -585,6 +595,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def get_trigger(realm_name, trigger_name) do
+    _ = Logger.debug("Get trigger.")
+
     with {:ok, client} <- get_database_client(realm_name),
          {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(client, trigger_name) do
       %Trigger{
@@ -624,6 +636,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def get_triggers_list(realm_name) do
+    _ = Logger.debug("Get triggers list.")
+
     with {:ok, client} <- get_database_client(realm_name) do
       Queries.get_triggers_list(client)
     end
