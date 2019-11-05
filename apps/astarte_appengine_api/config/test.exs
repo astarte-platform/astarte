@@ -12,8 +12,18 @@ config :cqerl,
      System.get_env("CASSANDRA_DB_PORT") || 9042}
   ]
 
-# Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, :console,
+  format: {PrettyLog.UserFriendlyFormatter, :format},
+  metadata: [
+    :method,
+    :request_path,
+    :status_code,
+    :elapsed,
+    :realm,
+    :function,
+    :request_id,
+    :tag
+  ]
 
 config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 

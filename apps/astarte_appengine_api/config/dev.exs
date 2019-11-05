@@ -13,8 +13,19 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   check_origin: false,
   watchers: []
 
-# Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger, :console,
+  format: {PrettyLog.LogfmtFormatter, :format},
+  metadata: [
+    :method,
+    :request_path,
+    :status_code,
+    :elapsed,
+    :realm,
+    :module,
+    :function,
+    :request_id,
+    :tag
+  ]
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
