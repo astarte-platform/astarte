@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ## [0.10.2] - Unreleased
+### Fixed
+- Change endpoint regular expression validation to match the one used by Astarte.
 
 ## [0.10.1] - 2019-10-02
 
