@@ -26,22 +26,25 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
       conn
     else
       {:error, :invalid_auth_path} ->
-        Logger.warn(
-          "Can't build auth_path with path_params: #{inspect(conn.path_params)} path_info: #{
-            inspect(conn.path_info)
-          } query_params: #{inspect(conn.query_params)}"
-        )
+        _ =
+          Logger.warn(
+            "Can't build auth_path with path_params: #{inspect(conn.path_params)} " <>
+              "path_info: #{inspect(conn.path_info)} query_params: #{inspect(conn.query_params)}",
+            tag: "invalid_request"
+          )
 
         conn
         |> FallbackController.auth_error({:unauthorized, :invalid_auth_path}, opts)
         |> halt()
 
       {:error, {:unauthorized, method, auth_path, authorizations}} ->
-        Logger.info(
-          "Unauthorized request: #{method} #{auth_path} failed with authorizations #{
-            inspect(authorizations)
-          }"
-        )
+        _ =
+          Logger.info(
+            "Unauthorized request: on #{auth_path}. " <>
+              "Failed with authorizations #{inspect(authorizations)}.",
+            method: method,
+            tag: "unauthorized_request"
+          )
 
         conn
         |> FallbackController.auth_error({:unauthorized, :authorization_path_not_matched}, opts)
@@ -65,6 +68,12 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
       Enum.any?(authorizations, fn auth_string ->
         case get_auth_regex(auth_string) do
           {:ok, {method_regex, path_regex}} ->
+            _ =
+              Logger.debug(
+                "Checking #{method} against #{inspect(method_regex)} and " <>
+                  "#{auth_path} against #{inspect(path_regex)}."
+              )
+
             Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)
 
           _ ->

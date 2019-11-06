@@ -16,6 +16,8 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.FallbackController do
+  require Logger
+
   @moduledoc """
   Translates controller action results into valid `Plug.Conn` responses.
 
@@ -122,6 +124,8 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
   end
 
   def call(conn, {:error, :unauthorized}) do
+    _ = Logger.info("Refusing unauthorized request.", tag: "unauthorized")
+
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
@@ -166,7 +170,10 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
   end
 
   # This is called when no JWT token is present
-  def auth_error(conn, {:unauthenticated, _reason}, _opts) do
+  def auth_error(conn, {:unauthenticated, reason}, _opts) do
+    _ =
+      Logger.info("Refusing unauthenticated request: #{inspect(reason)}.", tag: "unauthenticated")
+
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)

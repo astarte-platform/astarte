@@ -28,11 +28,11 @@ defmodule Astarte.AppEngine.API.Auth do
       {:ok, public_key}
     else
       {:error, :public_key_not_found} ->
-        Logger.warn("No public key found in realm #{realm}")
+        _ = Logger.warn("No public key found in realm #{realm}.", tag: "no_public_key_found")
         {:error, :public_key_not_found}
 
       {:error, :database_connection_error} ->
-        Logger.info("Auth request for unexisting realm #{realm}")
+        _ = Logger.info("Auth request for unexisting realm #{realm}.", tag: "unexisting_realm")
         # TODO: random busy wait here to prevent realm enumeration
         {:error, :not_existing_realm}
     end
