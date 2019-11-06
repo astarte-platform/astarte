@@ -60,7 +60,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {:ok, Enum.map(page, fn %{"group_name" => group_name} -> group_name end)}
       else
         {:error, reason} ->
-          Logger.warn("list_groups error: #{inspect(reason)}")
+          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
     end)
@@ -84,7 +84,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           {:error, :group_not_found}
 
         {:error, reason} ->
-          Logger.warn("list_groups error: #{inspect(reason)}")
+          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
     end)
@@ -111,7 +111,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           {:error, :group_not_found}
 
         {:error, reason} ->
-          Logger.warn("list_groups error: #{inspect(reason)}")
+          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
     end)
@@ -297,7 +297,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
       true
     else
       {:error, reason} ->
-        Logger.warn("device_exists? returned an error: #{inspect(reason)}")
+        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
         false
 
       [] ->
@@ -315,7 +315,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
       true
     else
       {:error, reason} ->
-        Logger.warn("device_exists? returned an error: #{inspect(reason)}")
+        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
         false
 
       [] ->
@@ -346,7 +346,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {:error, :device_not_found}
 
       {:error, reason} ->
-        Logger.warn("do_check_device_in_group returned an error: #{inspect(reason)}")
+        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
 
       [] ->
@@ -395,7 +395,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {:error, :device_not_found}
 
       {:error, reason} ->
-        Logger.warn("add_to_group error: #{inspect(reason)}")
+        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -423,7 +423,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {:error, :device_not_found}
 
       {:error, reason} ->
-        Logger.warn("retrieve_group_insertion_uuid error: #{inspect(reason)}")
+        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -477,7 +477,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           :ok
 
         {:error, reason} ->
-          Logger.warn("add_to_group error: #{inspect(reason)}")
+          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
     end
@@ -493,7 +493,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         {:error, :not_found}
 
       {:error, reason} ->
-        Logger.warn("prepare_with_realm error: #{inspect(reason)}")
+        _ = Logger.error("Database error: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end

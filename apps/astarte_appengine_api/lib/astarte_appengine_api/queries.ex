@@ -57,12 +57,13 @@ defmodule Astarte.AppEngine.API.Queries do
       :ok
     else
       %{acc: _, msg: err_msg} ->
-        Logger.warn("Health is not good: #{err_msg}")
+        _ = Logger.warn("Health is not good: #{err_msg}.", tag: "db_health_check_bad")
 
         {:error, :health_check_bad}
 
       {:error, err} ->
-        Logger.warn("Health is not good, reason: #{inspect(err)}.")
+        _ =
+          Logger.warn("Health is not good, reason: #{inspect(err)}.", tag: "db_health_check_bad")
 
         {:error, :health_check_bad}
     end

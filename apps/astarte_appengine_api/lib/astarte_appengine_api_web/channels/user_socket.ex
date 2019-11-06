@@ -40,7 +40,7 @@ defmodule Astarte.AppEngine.APIWeb.UserSocket do
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
   def connect(%{"realm" => realm} = payload, socket) do
-    Logger.debug("New socket connection request")
+    _ = Logger.debug("New socket connection request.")
 
     with token <- Map.get(payload, "token"),
          {:ok, %RoomsUser{} = user} <- authorized_user(realm, token) do
@@ -73,7 +73,7 @@ defmodule Astarte.AppEngine.APIWeb.UserSocket do
       {:ok, user}
     else
       error ->
-        Logger.debug("Channels auth error: #{inspect(error)}")
+        _ = Logger.debug("Channels auth error: #{inspect(error)}.")
         :error
     end
   end

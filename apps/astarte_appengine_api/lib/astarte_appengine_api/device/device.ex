@@ -889,14 +889,18 @@ defmodule Astarte.AppEngine.API.Device do
   defp maybe_downsample_to(values, nil, _aggregation, _opts) do
     # TODO: we can't downsample an object without a valid count, propagate an error changeset
     # when we start using changeset consistently here
-    Logger.warn("No valid count in maybe_downsample_to")
+    _ = Logger.warn("No valid count in maybe_downsample_to.", tag: "downsample_invalid_count")
     values
   end
 
   defp maybe_downsample_to(values, _count, :object, %InterfaceValuesOptions{downsample_key: nil}) do
     # TODO: we can't downsample an object without downsample_key, propagate an error changeset
     # when we start using changeset consistently here
-    Logger.warn("No valid downsample_key found in maybe_downsample_to")
+    _ =
+      Logger.warn("No valid downsample_key found in maybe_downsample_to.",
+        tag: "downsample_invalid_key"
+      )
+
     values
   end
 
@@ -1212,7 +1216,7 @@ defmodule Astarte.AppEngine.API.Device do
       Queries.device_alias_to_device_id(client, device_alias)
     else
       not_ok ->
-        Logger.warn("Device.device_alias_to_device_id: database error: #{inspect(not_ok)}")
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
