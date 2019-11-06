@@ -21,6 +21,9 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
   alias Astarte.AppEngine.API.Device.InterfaceValues
 
   plug Astarte.AppEngine.APIWeb.Plug.JoinPath
+  plug Astarte.AppEngine.APIWeb.Plug.LogDeviceId
+  plug Astarte.AppEngine.APIWeb.Plug.LogInterface
+  plug Astarte.AppEngine.APIWeb.Plug.LogPath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
@@ -32,8 +35,12 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
 
   def show(
         conn,
-        %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface, "path" => path} =
-          parameters
+        %{
+          "realm_name" => realm_name,
+          "device_id" => device_id,
+          "interface" => interface,
+          "path" => path
+        } = parameters
       ) do
     with {:ok, %InterfaceValues{} = interface_values} <-
            Device.get_interface_values!(realm_name, device_id, interface, path, parameters) do
@@ -43,7 +50,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
 
   def show(
         conn,
-        %{"realm_name" => realm_name, "device_id" => device_id, "id" => interface} = parameters
+        %{"realm_name" => realm_name, "device_id" => device_id, "interface" => interface} =
+          parameters
       ) do
     with {:ok, %InterfaceValues{} = interface_values} <-
            Device.get_interface_values!(realm_name, device_id, interface, parameters) do
@@ -56,7 +64,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
         %{
           "realm_name" => realm_name,
           "device_id" => device_id,
-          "id" => interface,
+          "interface" => interface,
           "path" => path,
           "data" => value
         } = parameters
@@ -77,7 +85,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
   def delete(conn, %{
         "realm_name" => realm_name,
         "device_id" => device_id,
-        "id" => interface,
+        "interface" => interface,
         "path" => path
       }) do
     with :ok <- Device.delete_interface_values(realm_name, device_id, interface, path) do

@@ -24,12 +24,16 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
   alias Astarte.AppEngine.APIWeb.InterfaceValuesView
 
   plug Astarte.AppEngine.APIWeb.Plug.JoinPath
+  plug Astarte.AppEngine.APIWeb.Plug.LogDeviceAlias
+  plug Astarte.AppEngine.APIWeb.Plug.LogInterface
+  plug Astarte.AppEngine.APIWeb.Plug.LogPath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name, "device_alias" => device_alias}) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_id <- Base.url_encode64(device_id, padding: false),
+         _ = Logger.metadata(device_id: encoded_id),
          {:ok, interfaces_by_device_alias} <- Device.list_interfaces(realm_name, encoded_id) do
       conn
       |> put_view(InterfaceValuesView)
@@ -42,12 +46,13 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
         %{
           "realm_name" => realm_name,
           "device_alias" => device_alias,
-          "id" => interface,
+          "interface" => interface,
           "path" => path
         } = parameters
       ) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         _ = Logger.metadata(device_id: encoded_device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
            Device.get_interface_values!(
              realm_name,
@@ -64,11 +69,12 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
 
   def show(
         conn,
-        %{"realm_name" => realm_name, "device_alias" => device_alias, "id" => interface} =
+        %{"realm_name" => realm_name, "device_alias" => device_alias, "interface" => interface} =
           parameters
       ) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         _ = Logger.metadata(device_id: encoded_device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
            Device.get_interface_values!(realm_name, encoded_device_id, interface, parameters) do
       conn
@@ -82,13 +88,14 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
         %{
           "realm_name" => realm_name,
           "device_alias" => device_alias,
-          "id" => interface,
+          "interface" => interface,
           "path" => path,
           "data" => value
         } = parameters
       ) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         _ = Logger.metadata(device_id: encoded_device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
            Device.update_interface_values!(
              realm_name,
@@ -107,11 +114,12 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
   def delete(conn, %{
         "realm_name" => realm_name,
         "device_alias" => device_alias,
-        "id" => interface,
+        "interface" => interface,
         "path" => path
       }) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
+         _ = Logger.metadata(device_id: encoded_device_id),
          :ok <- Device.delete_interface_values(realm_name, encoded_device_id, interface, path) do
       send_resp(conn, :no_content, "")
     end

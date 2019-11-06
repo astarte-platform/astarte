@@ -23,6 +23,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
+  plug Astarte.AppEngine.APIWeb.Plug.LogDeviceAlias
+
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   # TODO: should we allow to POST/create device aliases here by posting something like a DeviceAlias JSON object?
@@ -32,7 +34,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
     {:error, :devices_listing_by_alias_not_allowed}
   end
 
-  def show(conn, %{"realm_name" => realm_name, "id" => device_alias}) do
+  def show(conn, %{"realm_name" => realm_name, "device_alias" => device_alias}) do
     with {:ok, device_id} <- Device.device_alias_to_device_id(realm_name, device_alias),
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
          {:ok, device_status_by_alias} <- Device.get_device_status!(realm_name, encoded_device_id) do

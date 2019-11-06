@@ -22,6 +22,8 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
 
+  plug Astarte.AppEngine.APIWeb.Plug.LogDeviceId
+
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name, "details" => "true"} = params) do
@@ -36,7 +38,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "id" => id}) do
+  def show(conn, %{"realm_name" => realm_name, "device_id" => id}) do
     with {:ok, %DeviceStatus{} = device_status} <- Device.get_device_status!(realm_name, id) do
       render(conn, "show.json", device_status: device_status)
     end
@@ -44,7 +46,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusController do
 
   def update(%Plug.Conn{method: "PATCH"} = conn, %{
         "realm_name" => realm_name,
-        "id" => id,
+        "device_id" => id,
         "data" => data
       }) do
     # Here we handle merge/patch as described here https://tools.ietf.org/html/rfc7396

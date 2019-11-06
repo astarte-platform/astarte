@@ -32,37 +32,50 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   scope "/v1/:realm_name", Astarte.AppEngine.APIWeb do
     pipe_through :api
 
-    resources "/devices", DeviceStatusController, only: [:index, :show, :update]
+    resources "/devices", DeviceStatusController,
+      only: [:index, :show, :update],
+      param: "device_id"
 
-    resources "/devices-by-alias", DeviceStatusByAliasController, only: [:index, :show, :update]
+    resources "/devices-by-alias", DeviceStatusByAliasController,
+      only: [:index, :show, :update],
+      param: "device_alias"
 
-    resources "/devices/:device_id/interfaces", InterfaceValuesController, only: [:index, :show]
+    resources "/devices/:device_id/interfaces", InterfaceValuesController,
+      only: [:index, :show],
+      param: "interface"
 
-    get "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :show
+    get "/devices/:device_id/interfaces/:interface/*path_tokens", InterfaceValuesController, :show
 
-    put "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :update
+    put "/devices/:device_id/interfaces/:interface/*path_tokens",
+        InterfaceValuesController,
+        :update
 
-    post "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :update
+    post "/devices/:device_id/interfaces/:interface/*path_tokens",
+         InterfaceValuesController,
+         :update
 
-    delete "/devices/:device_id/interfaces/:id/*path_tokens", InterfaceValuesController, :delete
+    delete "/devices/:device_id/interfaces/:interface/*path_tokens",
+           InterfaceValuesController,
+           :delete
 
     resources "/devices-by-alias/:device_alias/interfaces",
               InterfaceValuesByDeviceAliasController,
-              only: [:index, :show]
+              only: [:index, :show],
+              param: "interface"
 
-    get "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    get "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
         InterfaceValuesByDeviceAliasController,
         :show
 
-    put "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    put "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
         InterfaceValuesByDeviceAliasController,
         :update
 
-    post "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    post "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
          InterfaceValuesByDeviceAliasController,
          :update
 
-    delete "/devices-by-alias/:device_alias/interfaces/:id/*path_tokens",
+    delete "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
            InterfaceValuesByDeviceAliasController,
            :delete
 
