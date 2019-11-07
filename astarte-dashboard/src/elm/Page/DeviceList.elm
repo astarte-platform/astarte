@@ -193,12 +193,12 @@ deviceRow device =
 
         ( statusCell, lastEventCell ) =
             if device.connected then
-                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-connected" ] ]
+                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-connected", Spacing.ml3 ] ]
                 , Table.td [] [ Html.text <| "Connected at " ++ device.lastConnection ]
                 )
 
             else
-                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-disconnected" ] ]
+                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-disconnected", Spacing.ml3 ] ]
                 , Table.td [] [ Html.text <| "Disconnected at " ++ device.lastDisconnection ]
                 )
     in
