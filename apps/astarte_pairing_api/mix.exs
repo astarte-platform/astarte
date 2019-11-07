@@ -82,7 +82,8 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
-      {:mox, "~> 0.3", only: :test}
+      {:mox, "~> 0.3", only: :test},
+      {:pretty_log, "~> 0.1"}
     ]
   end
 end
