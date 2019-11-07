@@ -23,6 +23,7 @@ defmodule Astarte.Pairing.APIWeb.FallbackController do
   See `Phoenix.Controller.action_fallback/1` for more details.
   """
   use Astarte.Pairing.APIWeb, :controller
+  require Logger
 
   def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
     conn
@@ -39,6 +40,8 @@ defmodule Astarte.Pairing.APIWeb.FallbackController do
   end
 
   def call(conn, {:error, :unauthorized}) do
+    _ = Logger.info("Refusing unauthorized request.", tag: "unauthorized")
+
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.Pairing.APIWeb.ErrorView)
@@ -53,7 +56,10 @@ defmodule Astarte.Pairing.APIWeb.FallbackController do
   end
 
   # This is the final call made by EnsureAuthenticated
-  def auth_error(conn, {:unauthenticated, _reason}, _opts) do
+  def auth_error(conn, {:unauthenticated, reason}, _opts) do
+    _ =
+      Logger.info("Refusing unauthenticated request: #{inspect(reason)}.", tag: "unauthenticated")
+
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.Pairing.APIWeb.ErrorView)
