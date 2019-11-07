@@ -40,7 +40,7 @@ defmodule Astarte.Pairing.APIWeb.Endpoint do
   end
 
   plug Plug.RequestId
-  plug Plug.Logger
+  plug PlugLoggerWithMeta
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
