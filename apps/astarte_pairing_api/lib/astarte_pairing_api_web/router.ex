@@ -21,20 +21,19 @@ defmodule Astarte.Pairing.APIWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Astarte.Pairing.APIWeb.Plug.LogRealm
   end
 
-  scope "/v1", Astarte.Pairing.APIWeb do
+  scope "/v1/:realm_name", Astarte.Pairing.APIWeb do
     pipe_through :api
 
-    post "/:realm_name/agent/devices", AgentController, :create
+    post "/agent/devices", AgentController, :create
 
-    get "/:realm_name/devices/:hw_id", DeviceController, :show_info
+    get "/devices/:hw_id", DeviceController, :show_info
 
-    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials",
-         DeviceController,
-         :create_credentials
+    post "/devices/:hw_id/protocols/:protocol/credentials", DeviceController, :create_credentials
 
-    post "/:realm_name/devices/:hw_id/protocols/:protocol/credentials/verify",
+    post "/devices/:hw_id/protocols/:protocol/credentials/verify",
          DeviceController,
          :verify_credentials
   end
