@@ -19,37 +19,22 @@ defmodule Astarte.AppEngine.API.Device.MapTree do
   @spec inflate_tree(map) :: map
   def inflate_tree(values_map) do
     Enum.reduce(values_map, %{}, fn {key, value}, acc ->
-      new_value =
-        if String.contains?(key, "/") do
-          build_tree_from_path(key, value)
-        else
-          %{key => value}
-        end
+      value_map = build_tree_from_path(key, value)
 
-      merge_tree(acc, new_value)
+      merge_tree(acc, value_map)
     end)
   end
 
   defp build_tree_from_path(path, value) do
     tokens = String.split(path, "/")
 
-    List.foldr(tokens, value, fn token, subtree ->
-      %{token => subtree}
-    end)
+    put_in(%{}, Enum.map(tokens, &Access.key(&1, %{})), value)
   end
 
-  defp merge_tree(existing_tree, new_tree) do
-    {subkey, subtree} = Enum.at(new_tree, 0)
-
-    cond do
-      Map.get(existing_tree, subkey) == nil ->
-        Map.put(existing_tree, subkey, subtree)
-
-      is_map(subtree) ->
-        Map.put(existing_tree, subkey, merge_tree(Map.get(existing_tree, subkey), subtree))
-
-      true ->
-        Map.put(existing_tree, subkey, subtree)
-    end
+  defp merge_tree(existing_tree, new_map) do
+    Map.merge(existing_tree, new_map, fn
+      _k, existing_submap, new_submap when is_map(existing_submap) and is_map(new_submap) ->
+        merge_tree(existing_submap, new_submap)
+    end)
   end
 end
