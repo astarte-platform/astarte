@@ -236,15 +236,19 @@ defmodule Astarte.AppEngine.API.Device do
        }}
     else
       {:ownership, :device} ->
+        _ = Logger.warn("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
         {:error, :cannot_write_to_device_owned}
 
       {:error, :endpoint_guess_not_allowed} ->
+        _ = Logger.warn("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
         {:error, :read_only_resource}
 
       {:error, :unexpected_value_type, expected: value_type} ->
+        _ = Logger.warn("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
 
       {:error, reason} ->
+        _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
     end
   end
