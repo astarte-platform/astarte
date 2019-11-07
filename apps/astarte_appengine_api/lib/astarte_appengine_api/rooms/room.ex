@@ -172,11 +172,19 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
            }}
 
         {:error, %{error_name: reason}} ->
-          Logger.warn("install_volatile_trigger failed with reason: #{inspect(reason)}")
+          _ =
+            Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+              tag: "install_volatile_trigger_failed"
+            )
+
           {:reply, {:error, reason}, state}
 
         {:error, reason} ->
-          Logger.warn("install_volatile_trigger failed with reason: #{inspect(reason)}")
+          _ =
+            Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+              tag: "install_volatile_trigger_failed"
+            )
+
           {:reply, {:error, reason}, state}
       end
     end
@@ -203,7 +211,11 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         {:reply, {:error, :not_found}, state}
 
       {:error, reason} ->
-        Logger.warn("delete_volatile_trigger failed with reason: #{inspect(reason)}")
+        _ =
+          Logger.warn("Volatile trigger delete failed, reason: #{inspect(reason)}.",
+            tag: "delete_volatile_trigger_failed"
+          )
+
         {:reply, {:error, :unwatch_failed}, state}
     end
   end

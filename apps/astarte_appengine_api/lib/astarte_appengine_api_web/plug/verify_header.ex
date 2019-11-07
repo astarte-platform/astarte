@@ -3,6 +3,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
   This is a wrapper around `Guardian.Plug.VerifyHeader` that allows to recover
   the JWT public key dynamically using informations contained in the connection
   """
+  require Logger
 
   alias Astarte.AppEngine.API.Auth
   alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader
@@ -28,7 +29,12 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
          %JWK{} = jwk <- JWK.from_pem(public_key_pem) do
       jwk
     else
-      _ ->
+      error ->
+        _ =
+          Logger.error("Couldn't get JWT public key PEM: #{inspect(error)}.",
+            tag: "get_jwt_secret_error"
+          )
+
         nil
     end
   end

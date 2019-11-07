@@ -45,16 +45,22 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   end
 
   def terminate(reason, %Channel{conn: conn} = chan) do
-    Logger.warn(
-      "Rooms.AMQPClient terminating with reason #{inspect(reason)}, closing Channel and Connection"
-    )
+    _ =
+      Logger.warn(
+        "Rooms.AMQPClient terminating with reason: #{inspect(reason)}, " <>
+          "closing Channel and Connection.",
+        tag: "rooms_events_consumer_terminate"
+      )
 
     Channel.close(chan)
     Connection.close(conn)
   end
 
   def terminate(reason, :not_connected) do
-    Logger.warn("Rooms.AMQPClient terminating with reason #{inspect(reason)}")
+    _ =
+      Logger.warn("Rooms.AMQPClient terminating with reason #{inspect(reason)}.",
+        tag: "rooms_events_consumer_terminate"
+      )
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
@@ -74,7 +80,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
 
   # Message consumed
   def handle_info({:basic_deliver, payload, meta}, chan) do
-    Logger.debug("got event, payload: #{inspect(payload)} meta: #{inspect(meta)}")
+    _ = Logger.debug("Got event, payload: #{inspect(payload)} meta: #{inspect(meta)}.")
 
     EventsDispatcher.dispatch(payload)
 
@@ -90,7 +96,10 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   end
 
   def handle_info({:DOWN, _, :process, chan_pid, reason}, %Channel{pid: chan_pid, conn: conn}) do
-    Logger.warn("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reopen...")
+    _ =
+      Logger.warn("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reopen...",
+        tag: "rooms_events_chan_crash"
+      )
 
     %Connection{
       pid: conn_pid
@@ -119,12 +128,16 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
       {:ok, chan}
     else
       {:error, reason} ->
-        Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
+        _ =
+          Logger.warn("RabbitMQ Connection error: #{inspect(reason)}.",
+            tag: "rooms_events_conn_err"
+          )
+
         retry_after(@connection_backoff)
         {:ok, :not_connected}
 
       _ ->
-        Logger.warn("Unknown RabbitMQ connection error")
+        _ = Logger.warn("Unknown RabbitMQ connection error.", tag: "rooms_events_conn_err")
         retry_after(@connection_backoff)
         {:ok, :not_connected}
     end
@@ -150,7 +163,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   end
 
   defp retry_after(backoff) do
-    Logger.warn("Retrying connection in #{backoff} ms")
+    _ = Logger.warn("Retrying connection in #{backoff} ms.", tag: "rooms_events_conn_retry")
     :erlang.send_after(backoff, self(), :try_to_connect)
   end
 end

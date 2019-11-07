@@ -46,19 +46,32 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
     else
       {:room_pid, []} ->
         # The room is dead, uninstall the trigger
-        Logger.warn("dispatch: unexisting room for event #{inspect(simple_event)}")
+        _ =
+          Logger.warn("Dispatch: unexisting room for event #{inspect(simple_event)}.",
+            tag: "unexisting_room_for_event"
+          )
+
         DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
         {:error, :no_room_for_event}
 
       {:error, :trigger_not_found} ->
         # The room has unwatched the trigger, uninstall it again
-        Logger.warn("dispatch: trigger not found for event #{inspect(simple_event)}")
+        _ =
+          Logger.warn("Dispatch: trigger not found for event #{inspect(simple_event)}.",
+            tag: "room_trigger_not_found"
+          )
+
         DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
         {:error, :trigger_not_found}
 
       {:error, reason} ->
         # Dispatch error
-        Logger.warn("dispatch: failed for event #{inspect(simple_event)} with reason #{reason}")
+        _ =
+          Logger.warn(
+            "Dispatch: failed for event #{inspect(simple_event)} with reason #{reason}.",
+            tag: "room_failed_dispatch"
+          )
+
         {:error, :dispatch_error}
     end
   end

@@ -25,6 +25,10 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
   alias Astarte.AppEngine.APIWeb.InterfaceValuesView
 
   plug Astarte.AppEngine.APIWeb.Plug.JoinPath
+  plug Astarte.AppEngine.APIWeb.Plug.LogGroupName
+  plug Astarte.AppEngine.APIWeb.Plug.LogDeviceId
+  plug Astarte.AppEngine.APIWeb.Plug.LogInterface
+  plug Astarte.AppEngine.APIWeb.Plug.LogPath
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 

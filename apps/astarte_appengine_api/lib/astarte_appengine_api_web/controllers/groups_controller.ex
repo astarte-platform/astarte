@@ -22,6 +22,8 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.API.Groups.Group
 
+  plug Astarte.AppEngine.APIWeb.Plug.LogGroupName
+
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name}) do

@@ -20,6 +20,7 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
   @moduledoc """
   This module sends RPC to VMQPlugin
   """
+  require Logger
 
   alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
 
@@ -39,6 +40,8 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
   def publish(topic, payload, qos)
       when is_binary(topic) and is_binary(payload) and is_integer(qos) and qos >= 0 and qos <= 2 do
     with {:ok, tokens} <- split_topic(topic) do
+      _ = Logger.debug("Going to publish value on MQTT.")
+
       %Publish{
         topic_tokens: tokens,
         payload: payload,
@@ -65,15 +68,22 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
 
   defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
     %Reply{reply: reply} = Reply.decode(encoded_reply)
+
+    _ = Logger.debug("Got reply from VWQ: #{inspect(reply)}.")
+
     reply
   end
 
   defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
+    _ = Logger.debug("Got ok reply from VMQ.")
+
     :ok
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
+
+    _ = Logger.error("Error while publishing value on MQTT.", tag: "vmq_publish_error")
 
     {:error, error_map}
   end

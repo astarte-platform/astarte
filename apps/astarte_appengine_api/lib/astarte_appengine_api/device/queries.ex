@@ -66,7 +66,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:error, :device_not_found}
 
       {:error, reason} ->
-        Logger.warn("retrieve_interfaces_list: error: #{inspect(reason)}")
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -323,7 +323,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         _timestamp
       ) do
     if endpoint.allow_unset == false do
-      Logger.warn("Tried to unset value on allow_unset=false mapping.")
+      _ =
+        Logger.warn("Tried to unset value on allow_unset=false mapping.", tag: "unset_not_allowed")
+
       # TODO: should we handle this situation?
     end
 
@@ -492,7 +494,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         else
           :error ->
             device = Device.encode_device_id(device_id)
-            Logger.warn("#{device} has no minor version for #{interface}. Corrupted entry?")
+
+            _ =
+              Logger.error("Introspection has no minor version for interface. Corrupted entry?",
+                interface: interface,
+                device_id: device
+              )
+
             acc
         end
       end)
@@ -587,11 +595,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:error, :device_not_found}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("retrieve_device_status: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("retrieve_device_status: failed with reason #{inspect(reason)}")
+        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -652,11 +660,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       end
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("retrieve_devices_list: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("retrieve_devices_list: failed with reason #{inspect(reason)}")
+        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -682,7 +690,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:error, :device_not_found}
 
       not_ok ->
-        Logger.warn("Device.device_alias_to_device_id: database error: #{inspect(not_ok)}")
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -740,11 +748,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:error, :device_not_found}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("insert_alias: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("insert_alias: failed, reason: #{inspect(reason)}.")
+        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -805,16 +813,21 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         :ok
       else
         %{acc: _, msg: error_message} ->
-          Logger.warn("delete_alias: database error: #{error_message}")
+          _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
           {:error, :database_error}
 
         {:error, reason} ->
-          Logger.warn("delete_alias: failed, reason: #{inspect(reason)}.")
+          _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
     else
       {:check, _} ->
-        Logger.warn("delete_alias: incosistent alias for #{inspect(device_id)}/#{alias_tag}")
+        _ =
+          Logger.error("Inconsistent alias for #{alias_tag}.",
+            device_id: device_id,
+            tag: "inconsistent_alias"
+          )
+
         {:error, :database_error}
 
       :empty_dataset ->
@@ -824,11 +837,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:error, :alias_tag_not_found}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("delete_alias: database error: #{error_message}")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("delete_alias: failed, reason: #{inspect(reason)}.")
+        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -864,11 +877,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       :ok
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}", tag: "db_error")
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Update failed, reason: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warn("Update failed, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -978,7 +991,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       min(count, opts.limit)
     else
       error ->
-        Logger.warn("Can't retrieve count for #{inspect(count_query)}: #{inspect(error)}")
+        _ =
+          Logger.warn("Can't retrieve count for #{inspect(count_query)}: #{inspect(error)}.",
+            tag: "db_error"
+          )
+
         nil
     end
   end

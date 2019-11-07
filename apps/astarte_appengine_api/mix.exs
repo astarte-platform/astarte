@@ -94,7 +94,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:prometheus_ex, "~> 3.0"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
-      {:mox, "~> 0.3", only: :test}
+      {:mox, "~> 0.3", only: :test},
+      {:pretty_log, "~> 0.1"},
+      {:plug_logger_with_meta, "~> 0.1"}
     ]
   end
 end
