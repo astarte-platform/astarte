@@ -125,7 +125,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   end
 
   defp decode_reply({:error, reason}) do
-    Logger.warn("rpc_call failed with error #{inspect(reason)}")
+    _ = Logger.warn("rpc_call failed with error #{inspect(reason)}.", tag: "rpc_call_error")
     {:error, :rpc_error}
   end
 

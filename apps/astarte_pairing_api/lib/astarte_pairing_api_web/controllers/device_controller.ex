@@ -29,6 +29,8 @@ defmodule Astarte.Pairing.APIWeb.DeviceController do
 
   @bearer_regex ~r/bearer\:?\s+(.*)$/i
 
+  plug Astarte.Pairing.APIWeb.Plug.LogHwId
+
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
   def create_credentials(conn, %{

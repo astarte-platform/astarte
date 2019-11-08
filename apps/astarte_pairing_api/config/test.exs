@@ -24,8 +24,19 @@ config :astarte_pairing_api, Astarte.Pairing.APIWeb.Endpoint,
   http: [port: 4001],
   server: false
 
-# Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, :console,
+  format: {PrettyLog.UserFriendlyFormatter, :format},
+  metadata: [
+    :method,
+    :request_path,
+    :status_code,
+    :elapsed,
+    :realm,
+    :hw_id,
+    :function,
+    :request_id,
+    :tag
+  ]
 
 config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 

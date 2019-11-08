@@ -35,8 +35,23 @@ config :astarte_pairing_api, Astarte.Pairing.APIWeb.Endpoint,
   server: true,
   version: Application.spec(:astarte_pairing_api, :vsn)
 
-# Do not print debug messages in production
-config :logger, level: :info
+config :logger, :console,
+  format: {PrettyLog.LogfmtFormatter, :format},
+  metadata: [
+    :method,
+    :request_path,
+    :status_code,
+    :elapsed,
+    :realm,
+    :hw_id,
+    :module,
+    :function,
+    :request_id,
+    :tag
+  ],
+  compile_time_purge_matching: [
+    [level_lower_than: :info]
+  ]
 
 # ## SSL Support
 #
