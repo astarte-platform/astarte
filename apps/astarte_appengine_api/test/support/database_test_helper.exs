@@ -20,6 +20,28 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   alias CQEx.Query, as: DatabaseQuery
   alias Astarte.AppEngine.API.JWTTestHelper
 
+  @devices_list [
+    {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
+     %{
+       {"com.example.TestObject", 1} => 9300,
+       {"com.example.PixelsConfiguration", 1} => 4230,
+       {"com.test.LCDMonitor", 1} => 10,
+       {"com.test.LCDMonitor", 0} => 42
+     },
+     %{
+       {"com.example.TestObject", 1} => 2_000_000,
+       {"com.example.PixelsConfiguration", 1} => 2_010_000,
+       {"com.test.LCDMonitor", 1} => 3000,
+       {"com.test.LCDMonitor", 0} => 9000
+     }, %{"display_name" => "device_a"}},
+    {"olFkumNuZ_J0f_d6-8XCDg", 10, nil, nil, nil},
+    {"4UQbIokuRufdtbVZt9AsLg", 22, %{{"com.test.LCDMonitor", 1} => 4},
+     %{{"com.test.LCDMonitor", 1} => 16}, %{"display_name" => "device_b", "serial" => "1234"}},
+    {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{}, %{}, %{"display_name" => "device_c"}},
+    {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{{"com.test.SimpleStreamTest", 1} => 9},
+     %{{"com.test.SimpleStreamTest", 1} => 250}, %{"display_name" => "device_d"}}
+  ]
+
   @create_autotestrealm """
     CREATE KEYSPACE autotestrealm
       WITH
@@ -463,30 +485,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_device_statement)
 
-    devices_list = [
-      {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
-       %{
-         {"com.example.TestObject", 1} => 9300,
-         {"com.example.PixelsConfiguration", 1} => 4230,
-         {"com.test.LCDMonitor", 1} => 10,
-         {"com.test.LCDMonitor", 0} => 42
-       },
-       %{
-         {"com.example.TestObject", 1} => 2_000_000,
-         {"com.example.PixelsConfiguration", 1} => 2_010_000,
-         {"com.test.LCDMonitor", 1} => 3000,
-         {"com.test.LCDMonitor", 0} => 9000
-       }, %{"display_name" => "device_a"}},
-      {"olFkumNuZ_J0f_d6-8XCDg", 10, nil, nil, nil},
-      {"4UQbIokuRufdtbVZt9AsLg", 22, %{{"com.test.LCDMonitor", 1} => 4},
-       %{{"com.test.LCDMonitor", 1} => 16}, %{"display_name" => "device_b", "serial" => "1234"}},
-      {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{}, %{}, %{"display_name" => "device_c"}},
-      {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{{"com.test.SimpleStreamTest", 1} => 9},
-       %{{"com.test.SimpleStreamTest", 1} => 250}, %{"display_name" => "device_d"}}
-    ]
-
     for {encoded_device_id, total_received_bytes, interface_msgs_map, interface_bytes_map,
-         aliases} <- devices_list do
+         aliases} <- @devices_list do
       device_id = Base.url_decode64!(encoded_device_id, padding: false)
 
       insert_device_query =
@@ -599,6 +599,27 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     end)
 
     :ok
+  end
+
+  def fake_connect_device(encoded_device_id, connected) when is_boolean(connected) do
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id(encoded_device_id)
+
+    Xandra.Cluster.run(:xandra, fn conn ->
+      query = """
+      INSERT INTO autotestrealm.devices
+      (device_id, connected) VALUES (:device_id, :connected)
+      """
+
+      params = %{"device_id" => device_id, "connected" => connected}
+      prepared = Xandra.prepare!(conn, query)
+      %Xandra.Void{} = Xandra.execute!(conn, prepared, params)
+    end)
+
+    :ok
+  end
+
+  def devices_count do
+    length(@devices_list)
   end
 
   def destroy_local_test_keyspace do
