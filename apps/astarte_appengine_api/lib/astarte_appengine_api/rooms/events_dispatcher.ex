@@ -35,13 +35,23 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
       parent_trigger_id: parent_trigger_id,
       realm: realm,
       device_id: device_id,
+      timestamp: timestamp_ms,
       event: {_event_type, event}
     } = simple_event
+
+    timestamp =
+      case timestamp_ms do
+        nil ->
+          DateTime.utc_now()
+
+        timestamp_ms when is_integer(timestamp_ms) ->
+          DateTime.from_unix!(timestamp_ms, :millisecond)
+      end
 
     with {:room_pid, [{pid, _}]} <-
            {:room_pid,
             Registry.lookup(Registry.AstarteRooms, {:parent_trigger_id, parent_trigger_id})},
-         :ok <- Room.broadcast_event(pid, simple_trigger_id, device_id, event) do
+         :ok <- Room.broadcast_event(pid, simple_trigger_id, device_id, timestamp, event) do
       :ok
     else
       {:room_pid, []} ->
