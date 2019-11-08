@@ -52,6 +52,9 @@ tags:
     description: >-
       Manage groups creation, allowing to create a new group, add or remove
       devices from it and query devices that belong to it
+  - name: stats
+    description: >-
+      Retrieve stats (e.g. total number of devices, connected devices, etc).
 paths:
   '/{realm_name}/devices':
     get:
@@ -852,6 +855,23 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/GroupOrDeviceNotFound'
+  '/{realm_name}/stats/devices':
+    get:
+      tags:
+        - stats
+      summary: Retrieve devices stats
+      description: >-
+        Return stats regarding devices in a Realm
+      operationId: getDevicesStats
+      security:
+        - JWT: []
+      parameters:
+        - $ref: '#/components/parameters/RealmName'
+      responses:
+        '200':
+          $ref: '#/components/responses/GetDevicesStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
   securitySchemes:
     JWT:
@@ -1012,6 +1032,15 @@ components:
                   detail:
                     type: string
                     example: Device not found
+    GetDevicesStats:
+      description: Devices stats
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/DevicesStats'
   parameters:
     GroupName:
       name: group_name
@@ -1179,6 +1208,17 @@ components:
         group_name:
           type: string
           example: mygroupname
+    DevicesStats:
+      type: object
+      properties:
+        total_devices:
+          description: The total number of devices in the Realm
+          type: integer
+          example: 203
+        connected_devices:
+          description: The number of devices currently connected in the Realm
+          type: integer
+          example: 30
     NotFoundError:
       type: object
       properties:
