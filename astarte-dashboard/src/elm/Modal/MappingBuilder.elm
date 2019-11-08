@@ -14,6 +14,7 @@ import Bootstrap.Utilities.Display as Display
 import Html exposing (Html, text)
 import Html.Attributes exposing (for, selected, value)
 import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping)
+import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
 
 
 type alias Model =
@@ -21,8 +22,15 @@ type alias Model =
     , editMode : Bool
     , interfaceTypeProperties : Bool
     , interfaceAggregationObject : Bool
+    , endpointWarningPopup : SuggestionPopup
     , visibility : Modal.Visibility
     }
+
+
+type InterfaceNameStatus
+    = InvalidEndpoint
+    | DeprecatedEndpoint
+    | GoodEndpoint
 
 
 empty : Model
@@ -31,6 +39,7 @@ empty =
     , editMode = False
     , interfaceTypeProperties = True
     , interfaceAggregationObject = False
+    , endpointWarningPopup = SuggestionPopup.new ""
     , visibility = Modal.hidden
     }
 
@@ -41,6 +50,8 @@ init interfaceMapping editMode isProperties isObject shown =
     , editMode = editMode
     , interfaceTypeProperties = isProperties
     , interfaceAggregationObject = isObject
+    , endpointWarningPopup =
+        SuggestionPopup.new "Endpoints of depth 1 in Object aggregate interfaces are deprecated. The endpoint should have depth level of 2 or more (e.g. /my/endpoint)."
     , visibility =
         if shown then
             Modal.shown
@@ -77,6 +88,8 @@ type Msg
     | UpdateMappingTimestamp Bool
     | UpdateMappingDescription String
     | UpdateMappingDoc String
+      -- SuggestionPopup
+    | SuggestionPopupMsg SuggestionPopup.Msg
 
 
 type ExternalMsg
@@ -197,6 +210,14 @@ update message model =
             , Noop
             )
 
+        SuggestionPopupMsg msg ->
+            ( { model
+                | endpointWarningPopup =
+                    SuggestionPopup.update model.endpointWarningPopup msg
+              }
+            , Noop
+            )
+
 
 view : Model -> Html Msg
 view model =
@@ -215,6 +236,7 @@ view model =
                 model.interfaceTypeProperties
                 model.interfaceAggregationObject
                 model.editMode
+                model.endpointWarningPopup
             ]
         |> Modal.footer []
             [ Button.button
@@ -232,26 +254,12 @@ view model =
         |> Modal.view model.visibility
 
 
-renderBody : InterfaceMapping -> Bool -> Bool -> Bool -> Html Msg
-renderBody mapping isProperties isObject editMode =
+renderBody : InterfaceMapping -> Bool -> Bool -> Bool -> SuggestionPopup -> Html Msg
+renderBody mapping isProperties isObject editMode endpointWarningPopup =
     Form.form []
         [ Form.row []
             [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "mappingEndpoint" ] [ text "Endpoint" ]
-                    , Input.text
-                        [ Input.id "Endpoint"
-                        , Input.value mapping.endpoint
-                        , Input.disabled editMode
-                        , Input.onInput UpdateMappingEndpoint
-                        , if InterfaceMapping.isValidEndpoint mapping.endpoint then
-                            Input.success
-
-                          else
-                            Input.danger
-                        ]
-                    ]
-                ]
+                [ renderMappingEndpointInput mapping.endpoint isObject editMode endpointWarningPopup ]
             ]
         , Form.row []
             [ Form.col
@@ -418,3 +426,41 @@ renderMappingTypeItem itemSelected mappingType =
         , selected itemSelected
         ]
         [ text <| InterfaceMapping.mappingTypeToEnglishString mappingType ]
+
+
+renderMappingEndpointInput : String -> Bool -> Bool -> SuggestionPopup -> Html Msg
+renderMappingEndpointInput endpoint isObject editMode endpointWarningPopup =
+    let
+        endpointStatus =
+            case ( InterfaceMapping.isValidEndpoint endpoint, InterfaceMapping.isGoodEndpoint endpoint isObject ) of
+                ( True, True ) ->
+                    GoodEndpoint
+
+                ( True, False ) ->
+                    DeprecatedEndpoint
+
+                ( False, _ ) ->
+                    InvalidEndpoint
+    in
+    Form.group []
+        [ Form.label [ for "mappingEndpoint" ] [ text "Endpoint" ]
+        , Input.text
+            [ Input.id "Endpoint"
+            , Input.value endpoint
+            , Input.disabled editMode
+            , Input.onInput UpdateMappingEndpoint
+            , Input.success |> when (endpointStatus == GoodEndpoint)
+            , Input.danger |> when (endpointStatus == InvalidEndpoint)
+            ]
+        , Html.map SuggestionPopupMsg
+            (SuggestionPopup.view endpointWarningPopup <| endpointStatus == DeprecatedEndpoint)
+        ]
+
+
+when : Bool -> Input.Option m -> Input.Option m
+when condition attribute =
+    if condition then
+        attribute
+
+    else
+        Input.attrs []
