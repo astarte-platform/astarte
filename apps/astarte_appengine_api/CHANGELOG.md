@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 
 ## [0.10.2] - Unreleased
+### Added
+- Add timestamp field to channel events.
+
 ### Fixed
 - Fix invalid dates handling, they should not cause an internal server error.
 - Gracefully handle existing aliases instead of returning an internal server error.
