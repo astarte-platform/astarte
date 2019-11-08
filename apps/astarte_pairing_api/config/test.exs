@@ -32,7 +32,7 @@ config :logger, :console,
     :status_code,
     :elapsed,
     :realm,
-    :device_id,
+    :hw_id,
     :function,
     :request_id,
     :tag
