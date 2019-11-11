@@ -25,6 +25,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
   alias Astarte.AppEngine.API.Rooms.UnwatchRequest
   alias Astarte.AppEngine.API.Rooms.WatchRequest
   alias Astarte.AppEngine.APIWeb.ChangesetView
+  alias Astarte.AppEngine.APIWeb.WatchRequestView
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Phoenix.Socket
 
@@ -53,7 +54,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
          user <- socket.assigns[:user],
          true <- watch_authorized?(request, user),
          :ok <- Room.watch(socket.assigns[:room_name], request) do
-      broadcast(socket, "watch_added", request)
+      payload = WatchRequestView.render("watch_request.json", %{watch_request: request})
+      broadcast(socket, "watch_added", payload)
       {:reply, :ok, socket}
     else
       {:error, %Ecto.Changeset{} = changeset} ->
