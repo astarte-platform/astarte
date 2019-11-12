@@ -23,7 +23,6 @@ This schema describes how an Astarte interface should be declared
 |**ownership**|`string`|Identifies the quality of the interface. Interfaces are meant to be unidirectional, and this property defines who's sending or receiving data. device means the device/gateway is sending data to Astarte, consumer means the device/gateway is receiving data from Astarte. Bidirectional mode is not supported, you should instantiate another interface for that.| :white_check_mark: Yes|
 |**aggregation**|`string`|Identifies the aggregation of the mappings of the interface. Individual means every mapping changes state or streams data independently, whereas an object aggregation treats the interface as an object, making all the mappings changes interdependent. Choosing the right aggregation might drastically improve performances.|No, default: `"individual"`|
 |**explicit_timestamp**|`boolean`|Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If true explicit timestamp will also be used for sorting. This feature is only supported on datastreams.|No, default: `false`|
-|**has_metadata**|`boolean`|If true it will be possible to decorate the value with additional metadata. This feature is only supported on non aggregate interfaces.|No, default: `false`|
 |**description**|`string`|An optional description of the interface.|No|
 |**doc**|`string`|A string containing documentation that will be injected in the generated client code.|No|
 |**mappings**|[`Astarte Mapping Schema`](#reference-astarte-mapping-schema) `[1-1024]`|Mappings define the endpoint of the interface, where actual data is stored/streamed. They are defined as relative URLs (e.g. /my/path) and can be parametrized (e.g.: /%{myparam}/path). A valid interface must have no mappings clash, which means that every mapping must resolve to a unique path or collection of paths (including parametrization). Every mapping acquires type, quality and aggregation of the interface.| :white_check_mark: Yes|
@@ -85,13 +84,6 @@ Identifies the aggregation of the mappings of the interface. Individual means ev
 ### astarte.interface.schema.explicit_timestamp
 
 Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If true explicit timestamp will also be used for sorting. This feature is only supported on datastreams.
-
-* **Type**: `boolean`
-* **Required**: No, default: `false`
-
-### astarte.interface.schema.has_metadata
-
-If true it will be possible to decorate the value with additional metadata. This feature is only supported on non aggregate interfaces.
 
 * **Type**: `boolean`
 * **Required**: No, default: `false`

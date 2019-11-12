@@ -130,11 +130,6 @@ In Astarte, this concept is mapped to interface `aggregation`. In case aggregati
 
 Aggregation is a powerful mechanism that can be used to map interfaces to real world *"objects"*. Moreover, aggregated interfaces can also be parametrized, although with [some limitations](#limitations).
 
-## Metadata
-In case [`aggregation`](#aggregation) is `individual`, it might be desirable to attach some additional information to each value when it gets produced. In this case, Astarte allows to attach *metadata*: a map of key:value pairs which can contain arbitrary, schema-less data. Metadata is not indexed, but can be optionally retrieved or used in triggers.
-
-Metadata is disabled by default: you can enable metadata on an interface by setting `has_metadata` to `true`.
-
 ## Datastream-specific features
 `datastream` interfaces are highly tunable, depending on the kind of data they are representing: it is possible to fine tune several aspects of how data is stored, transferred and indexed. The following properties can be set either at interface level, making them the default for each mapping, or at mapping level, overriding any interface-wide setting.
 
