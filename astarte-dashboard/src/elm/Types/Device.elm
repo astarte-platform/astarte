@@ -31,17 +31,20 @@ type alias Device =
     , introspection : List IntrospectionValue
     , totalReceivedMsgs : Int
     , totalReceivedBytes : Int
-    , firstRegistration : String
-    , firstCredentialsRequest : String
-    , lastSeenIp : String
-    , lastDisconnection : String
-    , lastCredentialsRequestIp : String
-    , lastConnection : String
+    , firstRegistration : Maybe String
+    , firstCredentialsRequest : Maybe String
+    , lastSeenIp : Maybe String
+    , lastDisconnection : Maybe String
+    , lastCredentialsRequestIp : Maybe String
+    , lastConnection : Maybe String
+    , credentialsinhibited : Bool
+    , groups : List String
+    , previousInterfaces : List IntrospectionValue
     }
 
 
 type IntrospectionValue
-    = InterfaceRef String Int Int
+    = InterfaceInfo String Int Int Int Int
 
 
 
@@ -57,40 +60,77 @@ decoder =
         |> required "introspection" introspectionsDecoder
         |> required "total_received_msgs" Decode.int
         |> required "total_received_bytes" Decode.int
-        |> required "first_registration" Decode.string
-        |> required "first_credentials_request" Decode.string
-        |> required "last_seen_ip" Decode.string
-        |> optional "last_connection" Decode.string ""
-        |> required "last_credentials_request_ip" Decode.string
-        |> required "last_connection" Decode.string
+        |> required "first_registration" (Decode.nullable Decode.string)
+        |> required "first_credentials_request" (Decode.nullable Decode.string)
+        |> required "last_seen_ip" (Decode.nullable Decode.string)
+        |> required "last_disconnection" (Decode.nullable Decode.string)
+        |> required "last_credentials_request_ip" (Decode.nullable Decode.string)
+        |> required "last_connection" (Decode.nullable Decode.string)
+        |> required "credentials_inhibited" Decode.bool
+        |> required "groups" (Decode.list Decode.string)
+        |> required "previous_interfaces" previousInterfacesDecoder
 
 
 introspectionsDecoder : Decoder (List IntrospectionValue)
 introspectionsDecoder =
-    Decode.dict interfaceVersionDecoder
+    Decode.dict interfaceDataDecoder
         |> Decode.map introspectionHelper
 
 
-introspectionHelper : Dict String InterfaceVersion -> List IntrospectionValue
+introspectionHelper : Dict String InterfaceData -> List IntrospectionValue
 introspectionHelper introspections =
     introspections
         |> Dict.toList
         |> List.map interfaceIdHelper
 
 
-interfaceIdHelper : ( String, InterfaceVersion ) -> IntrospectionValue
-interfaceIdHelper ( interfaceName, interfaceVersion ) =
-    InterfaceRef interfaceName interfaceVersion.major interfaceVersion.minor
+interfaceIdHelper : ( String, InterfaceData ) -> IntrospectionValue
+interfaceIdHelper ( interfaceName, interfaceData ) =
+    InterfaceInfo interfaceName interfaceData.major interfaceData.minor interfaceData.exchangedBytes interfaceData.exchangedMsgs
 
 
-type alias InterfaceVersion =
+type alias InterfaceData =
     { major : Int
     , minor : Int
+    , exchangedBytes : Int
+    , exchangedMsgs : Int
     }
 
 
-interfaceVersionDecoder : Decoder InterfaceVersion
-interfaceVersionDecoder =
-    Decode.map2 InterfaceVersion
+interfaceDataDecoder : Decoder InterfaceData
+interfaceDataDecoder =
+    Decode.map4 InterfaceData
         (Decode.field "major" Decode.int)
         (Decode.field "minor" Decode.int)
+        (Decode.field "exchanged_bytes" Decode.int)
+        (Decode.field "exchanged_msgs" Decode.int)
+
+
+previousInterfacesDecoder : Decoder (List IntrospectionValue)
+previousInterfacesDecoder =
+    Decode.list previousInterfaceDataDecoder
+        |> Decode.map (List.map previousInterfacesDecoderHelper)
+
+
+previousInterfacesDecoderHelper : PreviousInterfaceData -> IntrospectionValue
+previousInterfacesDecoderHelper interfaceData =
+    InterfaceInfo interfaceData.name interfaceData.major interfaceData.minor interfaceData.exchangedBytes interfaceData.exchangedMsgs
+
+
+type alias PreviousInterfaceData =
+    { name : String
+    , major : Int
+    , minor : Int
+    , exchangedBytes : Int
+    , exchangedMsgs : Int
+    }
+
+
+previousInterfaceDataDecoder : Decoder PreviousInterfaceData
+previousInterfaceDataDecoder =
+    Decode.map5 PreviousInterfaceData
+        (Decode.field "name" Decode.string)
+        (Decode.field "major" Decode.int)
+        (Decode.field "minor" Decode.int)
+        (Decode.field "exchanged_bytes" Decode.int)
+        (Decode.field "exchanged_msgs" Decode.int)
