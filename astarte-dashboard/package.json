@@ -51,5 +51,8 @@
     "webpack-cli": "^3.3.10",
     "webpack-dev-server": "^3.9.0",
     "webpack-merge": "^4.2.2"
+  },
+  "dependencies": {
+    "phoenix": "^1.4.11"
   }
 }
