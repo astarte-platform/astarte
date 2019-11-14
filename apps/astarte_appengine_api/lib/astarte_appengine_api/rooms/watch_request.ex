@@ -38,25 +38,20 @@ defmodule Astarte.AppEngine.API.Rooms.WatchRequest do
     data
     |> cast(params, @required)
     |> validate_required(@required)
-    |> validate_device_id(:device_id)
+    |> validate_change(:device_id, &validate_device_id/2)
     |> cast_embed(:simple_trigger, required: true)
   end
 
-  defp validate_device_id(%Ecto.Changeset{} = changeset, field) do
-    with {:ok, device_id} <- fetch_change(changeset, field),
-         {:ok, _decoded_id} <- Device.decode_device_id(device_id) do
-      changeset
-    else
-      :error ->
-        # No device id found, already an error changeset
-        changeset
+  defp validate_device_id(field, device_id) do
+    case Device.decode_device_id(device_id) do
+      {:ok, _decoded_id} ->
+        []
 
       {:error, :invalid_device_id} ->
-        # device_device_id failed
-        add_error(changeset, field, "is not a valid device id")
+        [{field, "is not a valid device id"}]
 
       {:error, :extended_id_not_allowed} ->
-        add_error(changeset, field, "is too long, device id must be 128 bits")
+        [{field, "is too long, device id must be 128 bits"}]
     end
   end
 end
