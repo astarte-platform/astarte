@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.DatabaseTestHelper
+  alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.API.Rooms.EventsDispatcher
   alias Astarte.AppEngine.API.Rooms.Room
@@ -51,6 +52,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   @path "/my/watched/path"
   @authorized_watch_path_exact "#{@device_id}/#{@interface_exact}#{@path}"
   @authorized_watch_path_regex "#{@device_id}/#{@interface_regex}.*"
+  @grouped_device_id_1 "4UQbIokuRufdtbVZt9AsLg"
+  @grouped_device_id_2 "aWag-VlVKC--1S-vfzZ9uQ"
+  @group_name "my_group"
+  @authorized_group_watch_path "groups/#{@group_name}/#{@interface_exact}#{@path}"
+  @authorized_group "groups/#{@group_name}"
 
   @dup_rpc_destination Protocol.amqp_queue()
 
@@ -108,7 +114,16 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   }
 
   setup_all do
-    DatabaseTestHelper.create_public_key_only_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
+
+    :ok = DatabaseTestHelper.seed_data()
+
+    group_params = %{
+      group_name: @group_name,
+      devices: [@grouped_device_id_1, @grouped_device_id_2]
+    }
+
+    {:ok, _} = Groups.create_group(@realm, group_params)
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
@@ -189,6 +204,39 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       ref = push(socket, "watch", invalid_simple_trigger_payload)
       assert_reply ref, :error, %{errors: _errors}
+    end
+
+    test "fails if without both device_id and group_name", %{socket: socket} do
+      invalid_simple_trigger_payload = %{
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", invalid_simple_trigger_payload)
+      assert_reply ref, :error, %{errors: _errors}
+    end
+
+    test "fails if both device_id and group_name are specified", %{socket: socket} do
+      device_and_group_payload = %{
+        "device_id" => @device_id,
+        "group_name" => @group_name,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", device_and_group_payload)
+      assert_reply ref, :error, %{errors: _errors}
+    end
+
+    test "fails with group data_trigger if device_id is not *", %{socket: socket} do
+      invalid_payload = %{
+        "group_name" => @group_name,
+        "name" => @name,
+        "simple_trigger" => @device_simple_trigger
+      }
+
+      ref = push(socket, "watch", invalid_payload)
+      assert_reply ref, :error, %{reason: "device_id must be * for group triggers"}
     end
 
     test "fails on unauthorized paths", %{socket: socket} do
@@ -387,6 +435,51 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       watch_cleanup(socket, @name)
     end
+
+    test "installs volatile trigger to all devices with group WatchRequest", %{
+      socket: socket,
+      room_process: room_process
+    } do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @grouped_device_id_1
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @grouped_device_id_2
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "group_name" => @group_name,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
+      assert_reply ref, :ok, %{}
+
+      watch_cleanup(socket, @name)
+    end
   end
 
   describe "unwatch" do
@@ -452,6 +545,61 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       watch_payload = %{
         "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_broadcast "watch_added", _
+      assert_reply ref, :ok, %{}
+
+      unwatch_payload = %{"name" => @name}
+
+      ref = push(socket, "unwatch", unwatch_payload)
+      assert_broadcast "watch_removed", _
+      assert_reply ref, :ok, %{}
+    end
+
+    test "correctly handles group volatile triggers", %{
+      socket: socket,
+      room_process: room_process
+    } do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn _serialized_install_1, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
+      |> expect(:rpc_call, fn _serialized_install_2, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
+      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
+        assert %Call{call: {:delete_volatile_trigger, %DeleteVolatileTrigger{} = delete_call}} =
+                 Call.decode(serialized_call)
+
+        assert %DeleteVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @grouped_device_id_1
+               } = delete_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
+        assert %Call{call: {:delete_volatile_trigger, %DeleteVolatileTrigger{} = delete_call}} =
+                 Call.decode(serialized_call)
+
+        assert %DeleteVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @grouped_device_id_2
+               } = delete_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "group_name" => @group_name,
         "name" => @name,
         "simple_trigger" => @data_simple_trigger
       }
@@ -608,6 +756,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
         "JOIN::#{@authorized_room_name}",
         "WATCH::#{@authorized_watch_path_exact}",
         "WATCH::#{@authorized_watch_path_regex}",
+        "WATCH::#{@authorized_group_watch_path}",
+        "WATCH::#{@authorized_group}",
         "WATCH::#{@device_id}"
       ])
 
