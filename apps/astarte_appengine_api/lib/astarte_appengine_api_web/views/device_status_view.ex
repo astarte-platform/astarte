@@ -46,7 +46,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
   def render("device_status.json", %{device_status: device_status}) do
     %{
       id: device_status.id,
-      connected: device_status.connected,
+      connected: device_status.connected || false,
       introspection:
         render_one(device_status.introspection, DeviceStatusView, "introspection.json",
           as: :introspection
