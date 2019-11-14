@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Gracefully handle existing aliases instead of returning an internal server error.
 - Fix querying object aggregated interface with explicit timestamp, use value_timestamp to avoid
 an internal server error.
+- Device details now show false in the connected field for never connected devices (null was
+  returned before)
 
 ## [0.10.1] - 2019-10-02
 ### Fixed
