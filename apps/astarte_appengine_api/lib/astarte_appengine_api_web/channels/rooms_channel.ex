@@ -133,19 +133,24 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
   end
 
   defp watch_authorized?(%WatchRequest{} = request, %RoomsUser{} = user) do
-    %WatchRequest{
-      device_id: device_id,
-      simple_trigger: simple_trigger_config
-    } = request
-
     %RoomsUser{
       watch_authorizations: authorizations
     } = user
 
-    can_watch_simple_trigger?(simple_trigger_config, device_id, authorizations)
+    %WatchRequest{
+      simple_trigger: simple_trigger_config
+    } = request
+
+    case request do
+      %WatchRequest{device_id: device_id} when is_binary(device_id) ->
+        can_watch_simple_trigger_for_device?(simple_trigger_config, device_id, authorizations)
+
+      %WatchRequest{group_name: group_name} when is_binary(group_name) ->
+        can_watch_simple_trigger_for_group?(simple_trigger_config, group_name, authorizations)
+    end
   end
 
-  defp can_watch_simple_trigger?(
+  defp can_watch_simple_trigger_for_device?(
          %SimpleTriggerConfig{type: "data_trigger"} = trigger,
          device_id,
          watch_authorizations
@@ -162,7 +167,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
     end)
   end
 
-  defp can_watch_simple_trigger?(
+  defp can_watch_simple_trigger_for_device?(
          %SimpleTriggerConfig{type: "device_trigger"} = trigger,
          device_id,
          watch_authorizations
@@ -180,6 +185,35 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
       # Conflicting device ids, reject
       false
     end
+  end
+
+  defp can_watch_simple_trigger_for_group?(
+         %SimpleTriggerConfig{type: "data_trigger"} = trigger,
+         group_name,
+         watch_authorizations
+       ) do
+    %SimpleTriggerConfig{
+      interface_name: interface_name,
+      match_path: path
+    } = trigger
+
+    watch_path = "groups/#{group_name}/#{interface_name}#{path}"
+
+    Enum.any?(watch_authorizations, fn authz_string ->
+      can_watch_path?(watch_path, authz_string)
+    end)
+  end
+
+  defp can_watch_simple_trigger_for_group?(
+         %SimpleTriggerConfig{type: "device_trigger"},
+         group_name,
+         watch_authorizations
+       ) do
+    watch_path = "groups/#{group_name}"
+
+    Enum.any?(watch_authorizations, fn authz_string ->
+      can_watch_path?(watch_path, authz_string)
+    end)
   end
 
   defp can_watch_path?(path, authz_string) do
