@@ -122,3 +122,18 @@ $disconnected-color:    #cc5b6d;
 .icon-disconnected {
     color: $disconnected-color;
 }
+
+.piechart-container {
+    max-height: 300px;
+
+    svg {
+        height: 100%
+    }
+}
+
+.square {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+}
