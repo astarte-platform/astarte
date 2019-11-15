@@ -33,6 +33,8 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
 
   alias Astarte.AppEngine.API.Config
 
+  require Logger
+
   @rpc_client Config.rpc_client()
   @destination Protocol.amqp_queue()
 
@@ -66,6 +68,11 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
   defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
     %Reply{reply: reply} = Reply.decode(encoded_reply)
     reply
+  end
+
+  defp decode_reply({:error, reason}) do
+    _ = Logger.warn("RPC error: #{inspect(reason)}.", tag: "rpc_remote_exception")
+    {:error, reason}
   end
 
   defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do

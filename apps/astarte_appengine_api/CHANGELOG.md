@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 an internal server error.
 - Device details now show false in the connected field for never connected devices (null was
   returned before)
+- Handle out-of-band RPC errors gracefully instead of crashing.
 
 ## [0.10.1] - 2019-10-02
 ### Fixed
