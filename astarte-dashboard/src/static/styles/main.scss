@@ -38,6 +38,7 @@ $fa-font-path:        "../../../node_modules/@fortawesome/fontawesome-free/webfo
 $navbar-width:          300px;
 $connected-color:       #5bcc6c;
 $disconnected-color:    #cc5b6d;
+$never-connected-color: #101010;
 
 .navbar-vertical.navbar-expand-lg {
     position: fixed;
@@ -121,6 +122,10 @@ $disconnected-color:    #cc5b6d;
 
 .icon-disconnected {
     color: $disconnected-color;
+}
+
+.icon-never-connected {
+    color: $never-connected-color
 }
 
 .piechart-container {
