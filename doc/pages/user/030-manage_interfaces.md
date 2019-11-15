@@ -42,29 +42,31 @@ GET realm.api.<your astarte domain>/v1/test/interfaces/com.my.Interface1/0
 _Sample Response_
 ```
 {
-  "version_minor": 2,
-  "version_major": 0,
-  "type": "properties",
-  "ownership": "device",
-  "mappings": [
-    {
-      "type": "integer",
-      "path": "/myValue",
-      "description": "This is quite an important value."
-    },
-    {
-      "type": "integer",
-      "path": "/myBetterValue",
-      "description": "A better revision, introduced in minor 2, supported only by some devices"
-    },
-    {
-      "type": "boolean",
-      "path": "/awesome",
-      "allow_unset": true,
-      "description": "Introduced in minor 1, tells you if the device is awesome. Optional."
-    }
-  ],
-  "interface_name": "com.my.Interface1"
+  "data": {
+    "version_minor": 2,
+    "version_major": 0,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+      {
+        "type": "integer",
+        "path": "/myValue",
+        "description": "This is quite an important value."
+      },
+      {
+        "type": "integer",
+        "path": "/myBetterValue",
+        "description": "A better revision, introduced in minor 2, supported only by some devices"
+      },
+      {
+        "type": "boolean",
+        "path": "/awesome",
+        "allow_unset": true,
+        "description": "Introduced in minor 1, tells you if the device is awesome. Optional."
+      }
+    ],
+    "interface_name": "com.my.Interface1"
+  }
 }
 ```
 
