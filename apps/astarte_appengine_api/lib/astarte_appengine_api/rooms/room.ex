@@ -19,6 +19,8 @@
 defmodule Astarte.AppEngine.API.Rooms.Room do
   use GenServer, restart: :transient
 
+  alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.API.Rooms.WatchRequest
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
@@ -120,92 +122,31 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
   def handle_call({:watch, watch_request}, _from, state) do
     %{
-      watch_id_to_request: watch_id_to_request,
-      watch_name_to_id: watch_name_to_id,
-      room_uuid: room_uuid,
-      realm: realm
+      watch_name_to_id: watch_name_to_id
     } = state
 
-    if Map.has_key?(watch_name_to_id, watch_request.name) do
-      {:reply, {:error, :duplicate_watch}, state}
+    with {:duplicate, false} <- {:duplicate, Map.has_key?(watch_name_to_id, watch_request.name)},
+         {:ok, new_state} <- do_watch(watch_request, state) do
+      {:reply, :ok, new_state}
     else
-      %WatchRequest{
-        name: name,
-        device_id: device_id,
-        simple_trigger: simple_trigger_config
-      } = watch_request
+      {:duplicate, true} ->
+        {:reply, {:error, :duplicate_watch}, state}
 
-      %TaggedSimpleTrigger{
-        object_id: object_id,
-        object_type: object_type,
-        simple_trigger_container: simple_trigger_container
-      } = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
-
-      trigger_id = Utils.get_uuid()
-
-      amqp_trigger_target = %AMQPTriggerTarget{
-        simple_trigger_id: trigger_id,
-        parent_trigger_id: room_uuid,
-        routing_key: Config.rooms_events_routing_key()
-      }
-
-      trigger_target_container = %TriggerTargetContainer{
-        trigger_target: {:amqp_trigger_target, amqp_trigger_target}
-      }
-
-      volatile_trigger = %VolatileTrigger{
-        object_id: object_id,
-        object_type: object_type,
-        serialized_simple_trigger: SimpleTriggerContainer.encode(simple_trigger_container),
-        parent_id: room_uuid,
-        simple_trigger_id: trigger_id,
-        serialized_trigger_target: TriggerTargetContainer.encode(trigger_target_container)
-      }
-
-      case DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
-        :ok ->
-          {:reply, :ok,
-           %{
-             state
-             | watch_id_to_request: Map.put(watch_id_to_request, trigger_id, watch_request),
-               watch_name_to_id: Map.put(watch_name_to_id, name, trigger_id)
-           }}
-
-        {:error, %{error_name: reason}} ->
-          _ =
-            Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
-              tag: "install_volatile_trigger_failed"
-            )
-
-          {:reply, {:error, reason}, state}
-
-        {:error, reason} ->
-          _ =
-            Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
-              tag: "install_volatile_trigger_failed"
-            )
-
-          {:reply, {:error, reason}, state}
-      end
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
     end
   end
 
   def handle_call({:unwatch, watch_name}, _from, state) do
     %{
       watch_id_to_request: watch_id_to_request,
-      watch_name_to_id: watch_name_to_id,
-      realm: realm
+      watch_name_to_id: watch_name_to_id
     } = state
 
     with {:ok, trigger_id} <- Map.fetch(watch_name_to_id, watch_name),
-         {:ok, %WatchRequest{device_id: device_id}} <- Map.fetch(watch_id_to_request, trigger_id),
-         :ok <- DataUpdaterPlant.delete_volatile_trigger(realm, device_id, trigger_id) do
-      {:reply, :ok,
-       %{
-         state
-         | watch_id_to_request: Map.delete(watch_id_to_request, trigger_id),
-           watch_name_to_id: Map.delete(watch_name_to_id, watch_name)
-       }}
+         {:ok, %WatchRequest{} = watch_request} <- Map.fetch(watch_id_to_request, trigger_id),
+         {:ok, new_state} <- do_unwatch(watch_request, trigger_id, state) do
+      {:reply, :ok, new_state}
     else
       :error ->
         {:reply, {:error, :not_found}, state}
@@ -251,13 +192,206 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     end
   end
 
-  defp room_cleanup(%{watch_id_to_request: watch_id_to_request, realm: realm} = _state) do
-    Enum.each(watch_id_to_request, fn {trigger_id, watch_request} ->
-      %WatchRequest{
-        device_id: device_id
-      } = watch_request
+  defp do_watch(%WatchRequest{group_name: group_name} = watch_request, state)
+       when is_binary(group_name) do
+    %{
+      watch_id_to_request: watch_id_to_request,
+      room_uuid: room_uuid,
+      watch_name_to_id: watch_name_to_id,
+      realm: realm
+    } = state
 
-      DataUpdaterPlant.delete_volatile_trigger(realm, device_id, trigger_id)
+    %WatchRequest{
+      name: name,
+      simple_trigger: simple_trigger_config
+    } = watch_request
+
+    trigger_id = Utils.get_uuid()
+    volatile_trigger = build_volatile_trigger(room_uuid, trigger_id, simple_trigger_config)
+
+    with :ok <- validate_simple_trigger_for_group(simple_trigger_config),
+         :ok <- install_group_volatile_trigger(realm, group_name, volatile_trigger) do
+      new_state = %{
+        state
+        | watch_id_to_request: Map.put(watch_id_to_request, trigger_id, watch_request),
+          watch_name_to_id: Map.put(watch_name_to_id, name, trigger_id)
+      }
+
+      {:ok, new_state}
+    else
+      {:error, reason} ->
+        _ =
+          Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+            tag: "install_volatile_trigger_failed"
+          )
+
+        {:error, reason}
+    end
+  end
+
+  defp do_watch(%WatchRequest{device_id: device_id} = watch_request, state)
+       when is_binary(device_id) do
+    %{
+      watch_id_to_request: watch_id_to_request,
+      room_uuid: room_uuid,
+      watch_name_to_id: watch_name_to_id,
+      realm: realm
+    } = state
+
+    %WatchRequest{
+      name: name,
+      simple_trigger: simple_trigger_config
+    } = watch_request
+
+    trigger_id = Utils.get_uuid()
+    volatile_trigger = build_volatile_trigger(room_uuid, trigger_id, simple_trigger_config)
+
+    case DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
+      :ok ->
+        new_state = %{
+          state
+          | watch_id_to_request: Map.put(watch_id_to_request, trigger_id, watch_request),
+            watch_name_to_id: Map.put(watch_name_to_id, name, trigger_id)
+        }
+
+        {:ok, new_state}
+
+      {:error, %{error_name: reason}} ->
+        _ =
+          Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+            tag: "install_volatile_trigger_failed"
+          )
+
+        {:error, reason}
+
+      {:error, reason} ->
+        _ =
+          Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+            tag: "install_volatile_trigger_failed"
+          )
+
+        {:error, reason}
+    end
+  end
+
+  defp validate_simple_trigger_for_group(%SimpleTriggerConfig{type: "device_trigger"} = config) do
+    # * is the only supported in group device triggers, check it
+    if config.device_id != "*" do
+      {:error, "device_id must be * for group triggers"}
+    else
+      :ok
+    end
+  end
+
+  defp validate_simple_trigger_for_group(_config) do
+    :ok
+  end
+
+  defp do_unwatch(%WatchRequest{group_name: group_name} = watch_request, trigger_id, state)
+       when is_binary(group_name) do
+    %{
+      watch_id_to_request: watch_id_to_request,
+      watch_name_to_id: watch_name_to_id,
+      realm: realm
+    } = state
+
+    %WatchRequest{
+      name: watch_name
+    } = watch_request
+
+    # TODO: handle pagination
+    with {:ok, %DevicesList{devices: device_ids}} <- Groups.list_devices(realm, group_name) do
+      # We don't check the return value of delete_volatile_trigger because we want
+      # to iterate all devices even if some of them fails
+      Enum.each(device_ids, fn device_id ->
+        DataUpdaterPlant.delete_volatile_trigger(realm, device_id, trigger_id)
+      end)
+
+      new_state = %{
+        state
+        | watch_id_to_request: Map.delete(watch_id_to_request, trigger_id),
+          watch_name_to_id: Map.delete(watch_name_to_id, watch_name)
+      }
+
+      {:ok, new_state}
+    end
+  end
+
+  defp do_unwatch(%WatchRequest{device_id: device_id} = watch_request, trigger_id, state)
+       when is_binary(device_id) do
+    %{
+      watch_id_to_request: watch_id_to_request,
+      watch_name_to_id: watch_name_to_id,
+      realm: realm
+    } = state
+
+    %WatchRequest{
+      name: watch_name
+    } = watch_request
+
+    case DataUpdaterPlant.delete_volatile_trigger(realm, device_id, trigger_id) do
+      :ok ->
+        new_state = %{
+          state
+          | watch_id_to_request: Map.delete(watch_id_to_request, trigger_id),
+            watch_name_to_id: Map.delete(watch_name_to_id, watch_name)
+        }
+
+        {:ok, new_state}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp install_group_volatile_trigger(realm, group_name, volatile_trigger) do
+    # TODO: handle pagination
+    with {:ok, %DevicesList{devices: device_ids}} <- Groups.list_devices(realm, group_name) do
+      Enum.reduce_while(device_ids, :ok, fn device_id, _acc ->
+        case DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
+          :ok ->
+            {:cont, :ok}
+
+          {:error, %{error_name: reason}} ->
+            {:halt, {:error, reason}}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+      end)
+    end
+  end
+
+  defp build_volatile_trigger(room_uuid, trigger_id, simple_trigger_config) do
+    %TaggedSimpleTrigger{
+      object_id: object_id,
+      object_type: object_type,
+      simple_trigger_container: simple_trigger_container
+    } = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
+
+    amqp_trigger_target = %AMQPTriggerTarget{
+      simple_trigger_id: trigger_id,
+      parent_trigger_id: room_uuid,
+      routing_key: Config.rooms_events_routing_key()
+    }
+
+    trigger_target_container = %TriggerTargetContainer{
+      trigger_target: {:amqp_trigger_target, amqp_trigger_target}
+    }
+
+    %VolatileTrigger{
+      object_id: object_id,
+      object_type: object_type,
+      serialized_simple_trigger: SimpleTriggerContainer.encode(simple_trigger_container),
+      parent_id: room_uuid,
+      simple_trigger_id: trigger_id,
+      serialized_trigger_target: TriggerTargetContainer.encode(trigger_target_container)
+    }
+  end
+
+  defp room_cleanup(%{watch_id_to_request: watch_id_to_request} = state) do
+    Enum.each(watch_id_to_request, fn {trigger_id, watch_request} ->
+      do_unwatch(watch_request, trigger_id, state)
     end)
   end
 

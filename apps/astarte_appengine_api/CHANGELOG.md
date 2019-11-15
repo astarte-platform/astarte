@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add Prometheus metrics.
 - Show interface stats (exchanged messages and bytes) in device introspection.
 - Add previous_interfaces field to device details.
+- Allow installing group triggers in Astarte Channels.
 
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
