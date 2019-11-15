@@ -742,9 +742,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                "path" => @path,
                "value" => @event_value
              }
-             |> Poison.encode() == Poison.encode(event)
-
-      leave_and_wait(socket)
+             |> Jason.encode() == Jason.encode(event)
     end
 
     test "work also with nil timestamp", %{
