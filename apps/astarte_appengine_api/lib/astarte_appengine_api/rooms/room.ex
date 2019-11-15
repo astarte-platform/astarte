@@ -79,8 +79,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     |> GenServer.call({:unwatch, watch_name})
   end
 
-  def broadcast_event(pid, trigger_id, device_id, event) do
-    GenServer.call(pid, {:broadcast_event, trigger_id, device_id, event})
+  def broadcast_event(pid, trigger_id, device_id, timestamp, event) do
+    GenServer.call(pid, {:broadcast_event, trigger_id, device_id, timestamp, event})
   end
 
   # Callbacks
@@ -220,7 +220,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     end
   end
 
-  def handle_call({:broadcast_event, trigger_id, device_id, event}, _from, state) do
+  def handle_call({:broadcast_event, trigger_id, device_id, timestamp, event}, _from, state) do
     %{room_name: room_name, watch_id_to_request: watch_id_to_request} = state
 
     reply =
@@ -229,6 +229,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       else
         payload = %{
           "device_id" => device_id,
+          "timestamp" => timestamp,
           "event" => event
         }
 

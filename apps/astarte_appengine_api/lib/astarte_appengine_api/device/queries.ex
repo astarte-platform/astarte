@@ -529,7 +529,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       id: Base.url_encode64(device_id, padding: false),
       aliases: Enum.into(aliases || [], %{}),
       introspection: introspection,
-      connected: connected,
+      connected: connected || false,
       last_connection: millis_or_null_to_datetime!(last_connection),
       last_disconnection: millis_or_null_to_datetime!(last_disconnection),
       first_registration: millis_or_null_to_datetime!(first_registration),

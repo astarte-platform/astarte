@@ -72,6 +72,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     "device_id" => @device_id
   }
 
+  @timestamp 1_573_233_693_478
+
   @unauthorized_reason %{reason: "unauthorized"}
 
   @encoded_generic_ok_reply %Reply{
@@ -97,6 +99,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     parent_trigger_id: nil,
     realm: @realm,
     device_id: @device_id,
+    timestamp: @timestamp,
     event: {
       :incoming_data_event,
       %IncomingDataEvent{
@@ -188,7 +191,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", invalid_simple_trigger_payload)
-      assert_reply ref, :error, %{errors: _errors}
+      assert_reply(ref, :error, %{errors: _errors})
     end
 
     test "fails on unauthorized paths", %{socket: socket} do
@@ -201,7 +204,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", unauthorized_device_id_payload)
-      assert_reply ref, :error, @unauthorized_reason
+      assert_reply(ref, :error, @unauthorized_reason)
 
       unauthorized_interface =
         Map.put(@data_simple_trigger, "interface_name", "com.OtherInterface")
@@ -213,7 +216,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", unauthorized_interface_payload)
-      assert_reply ref, :error, @unauthorized_reason
+      assert_reply(ref, :error, @unauthorized_reason)
     end
 
     test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
@@ -230,7 +233,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_reply ref, :error, %{reason: @error_string}
+      assert_reply(ref, :error, %{reason: @error_string})
     end
 
     test "succeeds on authorized exact path", %{socket: socket, room_process: room_process} do
@@ -255,8 +258,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast "watch_added", _
-      assert_reply ref, :ok, %{}
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
       watch_cleanup(socket, @name)
     end
@@ -286,11 +289,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast "watch_added", _
-      assert_reply ref, :ok, %{}
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
       ref = push(socket, "watch", watch_payload)
-      assert_reply ref, :error, %{reason: "already existing"}
+      assert_reply(ref, :error, %{reason: "already existing"})
 
       watch_cleanup(socket, @name)
     end
@@ -325,8 +328,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast "watch_added", _
-      assert_reply ref, :ok, %{}
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
       watch_cleanup(socket, @name)
     end
@@ -345,7 +348,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", conflicting_device_id_payload_1)
-      assert_reply ref, :error, @unauthorized_reason
+      assert_reply(ref, :error, @unauthorized_reason)
 
       conflicting_device_id_payload_2 = %{
         "device_id" => other_device_id,
@@ -354,7 +357,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", conflicting_device_id_payload_2)
-      assert_reply ref, :error, @unauthorized_reason
+      assert_reply(ref, :error, @unauthorized_reason)
     end
 
     test "succeeds on authorized device_id", %{socket: socket, room_process: room_process} do
@@ -382,8 +385,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast "watch_added", _
-      assert_reply ref, :ok, %{}
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
       watch_cleanup(socket, @name)
     end
@@ -396,14 +399,14 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       invalid_payload = %{}
 
       ref = push(socket, "unwatch", invalid_payload)
-      assert_reply ref, :error, _
+      assert_reply(ref, :error, _)
     end
 
     test "fails for non existing", %{socket: socket} do
       nonexisting_payload = %{"name" => "nonexisting"}
 
       ref = push(socket, "unwatch", nonexisting_payload)
-      assert_reply ref, :error, %{reason: "not found"}
+      assert_reply(ref, :error, %{reason: "not found"})
     end
 
     test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
@@ -426,13 +429,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast "watch_added", _
-      assert_reply ref, :ok, %{}
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
       unwatch_payload = %{"name" => @name}
 
       ref = push(socket, "unwatch", unwatch_payload)
-      assert_reply ref, :error, %{reason: "unwatch failed"}
+      assert_reply(ref, :error, %{reason: "unwatch failed"})
 
       watch_cleanup(socket, @name)
     end
@@ -457,8 +460,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast "watch_added", _
-      assert_reply ref, :ok, %{}
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
       unwatch_payload = %{"name" => @name}
 
@@ -564,8 +567,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast "watch_added", _
-      assert_reply ref, :ok, %{}
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
       %{room_uuid: room_uuid, watch_id_to_request: watch_map} = :sys.get_state(room_process)
 
@@ -576,7 +579,85 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
         |> SimpleEvent.encode()
 
       assert :ok = EventsDispatcher.dispatch(existing_room_serialized_event)
-      assert_broadcast "new_event", %{"device_id" => @device_id, "event" => event}
+
+      timestamp = DateTime.from_unix!(@timestamp, :millisecond)
+
+      assert_broadcast("new_event", %{
+        "device_id" => @device_id,
+        "timestamp" => ^timestamp,
+        "event" => event
+      })
+
+      assert %{
+               "type" => "incoming_data",
+               "interface" => @interface_exact,
+               "path" => @path,
+               "value" => @event_value
+             }
+             |> Poison.encode() == Poison.encode(event)
+
+      leave_and_wait(socket)
+    end
+
+    test "work also with nil timestamp", %{
+      socket: socket,
+      room_process: room_process
+    } do
+      MockRPCClient
+      |> allow(self(), room_process)
+      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
+        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
+                 Call.decode(serialized_call)
+
+        assert %InstallVolatileTrigger{
+                 realm_name: @realm,
+                 device_id: @device_id
+               } = install_call
+
+        {:ok, @encoded_generic_ok_reply}
+      end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
+
+      watch_payload = %{
+        "device_id" => @device_id,
+        "name" => @name,
+        "simple_trigger" => @data_simple_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
+
+      %{room_uuid: room_uuid, watch_id_to_request: watch_map} = :sys.get_state(room_process)
+
+      [simple_trigger_id | _] = Map.keys(watch_map)
+
+      existing_room_serialized_event =
+        %{
+          @simple_event
+          | parent_trigger_id: room_uuid,
+            simple_trigger_id: simple_trigger_id,
+            timestamp: nil
+        }
+        |> SimpleEvent.encode()
+
+      now_ms =
+        DateTime.utc_now()
+        |> DateTime.to_unix(:millisecond)
+
+      assert :ok = EventsDispatcher.dispatch(existing_room_serialized_event)
+
+      assert_broadcast("new_event", %{
+        "device_id" => @device_id,
+        "timestamp" => timestamp,
+        "event" => event
+      })
+
+      timestamp_ms = DateTime.to_unix(timestamp, :millisecond)
+
+      assert_in_delta(now_ms, timestamp_ms, 1_000)
 
       assert %{
                "type" => "incoming_data",
