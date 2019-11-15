@@ -192,15 +192,21 @@ deviceRow device =
                         ]
 
         ( statusCell, lastEventCell ) =
-            if device.connected then
-                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-connected", Spacing.ml3 ] ]
-                , Table.td [] [ Html.text <| "Connected at " ++ device.lastConnection ]
-                )
+            case ( device.lastConnection, device.connected ) of
+                ( Nothing, _ ) ->
+                    ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-never-connected", Spacing.ml3 ] ]
+                    , Table.td [] [ Html.text <| "Never connected" ]
+                    )
 
-            else
-                ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-disconnected", Spacing.ml3 ] ]
-                , Table.td [] [ Html.text <| "Disconnected at " ++ device.lastDisconnection ]
-                )
+                ( Just lastConnection, True ) ->
+                    ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-connected", Spacing.ml3 ] ]
+                    , Table.td [] [ Html.text <| "Connected at " ++ lastConnection ]
+                    )
+
+                ( Just lastConnection, False ) ->
+                    ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-disconnected", Spacing.ml3 ] ]
+                    , Table.td [] [ Html.text <| "Disconnected at " ++ Maybe.withDefault "" device.lastDisconnection ]
+                    )
     in
     Table.tr []
         [ statusCell
