@@ -4,15 +4,19 @@ sudo: required
 dist: bionic
 services:
   - docker
+elixir:
+  - 1.6.5
+otp_release:
+  - 20.3
 env:
   global:
     - CASSANDRA_DB_HOST=localhost RABBITMQ_HOST=localhost MIX_ENV=test
   jobs:
     - RABBITMQ_VERSION=3.7.15 CASSANDRA_IMAGE=cassandra:3.11.4
-matrix:
-  include:
-    - elixir: 1.6.5
-      otp_release: 20.3
+cache:
+  directories:
+    - deps
+    - _build
 before_install:
   - docker pull rabbitmq:$RABBITMQ_VERSION
   - docker run -d -p 127.0.0.1:5672:5672 -p 127.0.0.1:15672:15672 rabbitmq:$RABBITMQ_VERSION
