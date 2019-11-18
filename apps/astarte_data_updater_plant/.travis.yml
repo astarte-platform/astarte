@@ -26,4 +26,5 @@ before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
 script:
+  - mix format --check-formatted
   - mix coveralls.travis
