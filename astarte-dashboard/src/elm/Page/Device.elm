@@ -20,6 +20,7 @@
 module Page.Device exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import AstarteApi
+import Bootstrap.Badge as Badge
 import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -34,9 +35,14 @@ import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (Html, h5)
 import Html.Attributes exposing (class)
-import Icons
+import Icons exposing (Icon)
+import Json.Decode as Decode exposing (Decoder, Value)
+import Ports
 import Spinner
+import Time
+import Types.AstarteValue as AstarteValue
 import Types.Device as Device exposing (Device)
+import Types.DeviceEvent as DeviceEvent exposing (DeviceEvent)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.FlashMessageHelpers as FlashMessageHelpers
@@ -47,6 +53,7 @@ import Ui.PieChart as PieChart
 type alias Model =
     { deviceId : String
     , device : Maybe Device
+    , receivedEvents : List JSEvent
     , spinner : Spinner.Model
     , showSpinner : Bool
     }
@@ -56,6 +63,7 @@ init : Session -> String -> ( Model, Cmd Msg )
 init session deviceId =
     ( { deviceId = deviceId
       , device = Nothing
+      , receivedEvents = []
       , spinner = Spinner.init
       , showSpinner = True
       }
@@ -70,6 +78,8 @@ type Msg
     | SpinnerMsg Spinner.Msg
       -- API
     | DeviceInfosDone (Result AstarteApi.Error Device)
+      -- Ports
+    | OnDeviceEventReceived (Result Decode.Error JSEvent)
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -81,27 +91,46 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        DeviceInfosDone result ->
-            case result of
-                Ok device ->
-                    ( { model
-                        | device = Just device
-                        , showSpinner = False
-                      }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+        DeviceInfosDone (Ok device) ->
+            let
+                interfaces =
+                    device.introspection
+                        |> List.map
+                            (\i ->
+                                case i of
+                                    Device.InterfaceInfo name major _ _ _ ->
+                                        { name = name
+                                        , major = major
+                                        }
+                            )
 
+                phoenixSocketParams =
+                    { secureConnection = session.apiConfig.secureConnection
+                    , appengineUrl = session.apiConfig.appengineUrl
+                    , realm = session.apiConfig.realm
+                    , token = session.apiConfig.token
+                    , deviceId = model.deviceId
+                    , interfaces = interfaces
+                    }
+            in
+            ( { model
+                | device = Just device
+                , showSpinner = False
+              }
+            , Ports.listenToDeviceEvents phoenixSocketParams
+            , ExternalMsg.Noop
+            )
+
+        DeviceInfosDone (Err error) ->
+            let
                 -- TODO handle error
-                Err error ->
-                    let
-                        ( message, details ) =
-                            AstarteApi.errorToHumanReadable error
-                    in
-                    ( { model | showSpinner = False }
-                    , Cmd.none
-                    , ExternalMsg.AddFlashMessage FlashMessage.Error message details
-                    )
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( { model | showSpinner = False }
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
 
         Forward externalMsg ->
             ( model
@@ -113,6 +142,22 @@ update session msg model =
             ( { model | spinner = Spinner.update spinnerMsg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
+            )
+
+        OnDeviceEventReceived (Ok event) ->
+            let
+                newEventList =
+                    List.append model.receivedEvents [ event ]
+            in
+            ( { model | receivedEvents = newEventList }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        OnDeviceEventReceived (Err error) ->
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Unrecognized Device Event recerived" [ Decode.errorToString error ]
             )
 
 
@@ -140,6 +185,7 @@ view model flashMessages =
                     , deviceIntrospectionCard device HalfWidth
                     , devicePreviousInterfacesCard device HalfWidth
                     , deviceStatsCard device FullWidth
+                    , deviceChannelCard model.receivedEvents FullWidth
                     ]
                 ]
 
@@ -440,6 +486,131 @@ deviceEventsCard device width =
         |> renderCard "Device Status Events" width
 
 
+deviceChannelCard : List JSEvent -> CardWidth -> Grid.Column Msg
+deviceChannelCard events width =
+    renderCard "Device Live Events"
+        width
+        [ Grid.row
+            [ Row.attrs [ Spacing.mt3 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ Html.div [ class "device-event-container", Spacing.p3 ]
+                    [ Html.ul
+                        [ class "list-unstyled" ]
+                        (List.map renderEvent events)
+                    ]
+                ]
+            ]
+        ]
+
+
+type LabelType
+    = ChannelLabel
+    | DeviceConnectedLabel
+    | DeviceDisconnectedLabel
+    | IncommingDataLabel
+
+
+renderLabel : LabelType -> Html Msg
+renderLabel labelType =
+    case labelType of
+        ChannelLabel ->
+            Badge.badgeSecondary [ Spacing.mr2 ] [ Html.text "channel" ]
+
+        DeviceConnectedLabel ->
+            Badge.badgeSuccess [ Spacing.mr2 ] [ Html.text "device connected" ]
+
+        DeviceDisconnectedLabel ->
+            Badge.badgeDanger [ Spacing.mr2 ] [ Html.text "device disconnected" ]
+
+        IncommingDataLabel ->
+            Badge.badgeInfo [ Spacing.mr2 ] [ Html.text "incoming data" ]
+
+
+renderEvent : JSEvent -> Html Msg
+renderEvent event =
+    case event of
+        AstarteDeviceEvent deviceEvent ->
+            renderDeviceEvent deviceEvent
+
+        SystemMessage systemMessage ->
+            let
+                textColor =
+                    case systemMessage.level of
+                        Error ->
+                            Color.red
+
+                        _ ->
+                            Color.hsl 0 0 0.4
+            in
+            renderEventItem systemMessage.timestamp (Just textColor) ChannelLabel <| Html.text systemMessage.message
+
+
+renderDeviceEvent : DeviceEvent -> Html Msg
+renderDeviceEvent event =
+    let
+        ( label, message ) =
+            case event.data of
+                DeviceEvent.DeviceConnected data ->
+                    ( DeviceConnectedLabel
+                    , Html.span [] [ Html.text <| "IP : " ++ data.ip ]
+                    )
+
+                DeviceEvent.DeviceDisconnected ->
+                    ( DeviceDisconnectedLabel
+                    , Html.span [] [ Html.text "Device disconnected" ]
+                    )
+
+                DeviceEvent.IncomingData data ->
+                    ( IncommingDataLabel
+                    , Html.span []
+                        [ Html.span [ Spacing.mr2 ] [ Html.text <| data.interface ++ data.path ]
+                        , Html.span [ class "text-monospace" ] [ Html.text <| AstarteValue.toString data.value ]
+                        ]
+                    )
+
+                DeviceEvent.Other eventType ->
+                    ( ChannelLabel
+                    , Html.span [] [ Html.text <| "Unknown event type " ++ eventType ]
+                    )
+
+                _ ->
+                    -- No trigger installed for those events
+                    ( ChannelLabel
+                    , Html.span [] [ Html.text "Error, unexpected event received" ]
+                    )
+    in
+    renderEventItem event.timestamp Nothing label message
+
+
+renderEventItem : Time.Posix -> Maybe Color -> LabelType -> Html Msg -> Html Msg
+renderEventItem timestamp mColor label content =
+    let
+        classes =
+            case mColor of
+                Just textColor ->
+                    [ Spacing.px2
+                    , textColor
+                        |> Color.toCssString
+                        |> Html.Attributes.style "color"
+                    ]
+
+                Nothing ->
+                    [ Spacing.px2 ]
+    in
+    Html.li classes
+        [ Html.node "small"
+            [ class "text-monospace"
+            , Spacing.mr2
+            , Color.hsl 0 0 0.4
+                |> Color.toCssString
+                |> Html.Attributes.style "color"
+            ]
+            [ Html.text <| "[" ++ timeToString timestamp ++ "]" ]
+        , renderLabel label
+        , content
+        ]
+
+
 renderConnectionStatus : Device -> Html Msg
 renderConnectionStatus device =
     case ( device.lastConnection, device.connected ) of
@@ -569,6 +740,87 @@ nonEmptyValue ( label, maybeVal ) =
             Nothing
 
 
+timeToString : Time.Posix -> String
+timeToString time =
+    let
+        -- TODO detect this from config/javascript
+        timezone =
+            Time.utc
+    in
+    [ String.padLeft 2 '0' <| String.fromInt <| Time.toHour timezone time
+    , ":"
+    , String.padLeft 2 '0' <| String.fromInt <| Time.toMinute timezone time
+    , ":"
+    , String.padLeft 2 '0' <| String.fromInt <| Time.toSecond timezone time
+    , "."
+    , String.padLeft 3 '0' <| String.fromInt <| Time.toMillis timezone time
+    ]
+        |> String.join ""
+
+
+
+-- JS messages decoding
+
+
+type JSEvent
+    = SystemMessage SystemEvent
+    | AstarteDeviceEvent DeviceEvent
+
+
+type alias SystemEvent =
+    { level : MessageLevel
+    , message : String
+    , timestamp : Time.Posix
+    }
+
+
+type MessageLevel
+    = Error
+    | Warning
+    | Info
+    | Debug
+
+
+systemEventDecoder : Decoder SystemEvent
+systemEventDecoder =
+    Decode.map3 SystemEvent
+        (Decode.field "level" Decode.string |> Decode.andThen messageLevelDecoder)
+        (Decode.field "message" Decode.string)
+        (Decode.field "timestamp" Decode.int |> Decode.andThen timeDecoder)
+
+
+timeDecoder : Int -> Decoder Time.Posix
+timeDecoder t =
+    Decode.succeed <| Time.millisToPosix t
+
+
+messageLevelDecoder : String -> Decoder MessageLevel
+messageLevelDecoder s =
+    case s of
+        "error" ->
+            Decode.succeed Error
+
+        "warning" ->
+            Decode.succeed Warning
+
+        "info" ->
+            Decode.succeed Info
+
+        "debug" ->
+            Decode.succeed Debug
+
+        _ ->
+            Decode.fail "unknown message level"
+
+
+jsReplyDecoder : Decoder JSEvent
+jsReplyDecoder =
+    Decode.oneOf
+        [ Decode.map AstarteDeviceEvent DeviceEvent.decoder
+        , Decode.map SystemMessage systemEventDecoder
+        ]
+
+
 
 -- SUBSCRIPTIONS
 
@@ -576,7 +828,15 @@ nonEmptyValue ( label, maybeVal ) =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     if model.showSpinner then
-        Sub.map SpinnerMsg Spinner.subscription
+        Sub.batch
+            [ Sub.map SpinnerMsg Spinner.subscription
+            , Sub.map OnDeviceEventReceived deviceEventReceived
+            ]
 
     else
-        Sub.none
+        Sub.map OnDeviceEventReceived deviceEventReceived
+
+
+deviceEventReceived : Sub (Result Decode.Error JSEvent)
+deviceEventReceived =
+    Ports.onDeviceEventReceived (Decode.decodeValue jsReplyDecoder)
