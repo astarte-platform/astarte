@@ -22,6 +22,9 @@ before_install:
   - docker run -d -p 127.0.0.1:5672:5672 -p 127.0.0.1:15672:15672 rabbitmq:$RABBITMQ_VERSION
   - docker pull $CASSANDRA_IMAGE
   - docker run -d -p 127.0.0.1:9042:9042 $CASSANDRA_IMAGE
+  # Install wait-for-cassandra and wait for it to start
+  - npm install -g wait-for-cassandra
+  - wait-for-cassandra -T 120000 -h $CASSANDRA_DB_HOST
 before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
