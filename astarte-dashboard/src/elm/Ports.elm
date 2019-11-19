@@ -17,7 +17,7 @@
 -}
 
 
-port module Ports exposing (onSessionChange, storeSession)
+port module Ports exposing (listenToDeviceEvents, onDeviceEventReceived, onSessionChange, storeSession)
 
 import Json.Encode exposing (Value)
 
@@ -26,3 +26,25 @@ port storeSession : Maybe String -> Cmd msg
 
 
 port onSessionChange : (Value -> msg) -> Sub msg
+
+
+type alias DeviceSocketParams =
+    { secureConnection : Bool
+    , appengineUrl : String
+    , realm : String
+    , token : String
+    , deviceId : String
+    , interfaces : List InterfaceId
+    }
+
+
+type alias InterfaceId =
+    { name : String
+    , major : Int
+    }
+
+
+port listenToDeviceEvents : DeviceSocketParams -> Cmd msg
+
+
+port onDeviceEventReceived : (Value -> msg) -> Sub msg
