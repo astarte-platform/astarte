@@ -1,17 +1,30 @@
 language: elixir
-# Needed for Cassandra
-sudo: required
+dist: bionic
 services:
-  - cassandra
-  - rabbitmq
+  - docker
+elixir:
+  - 1.6.5
+otp_release:
+  - 20.3
 env:
-  - CASSANDRA_DB_HOST=localhost RABBITMQ_HOST=localhost MIX_ENV=test
-matrix:
-  include:
-    - elixir: 1.6.5
-      otp_release: 20.3
+  global:
+    - CASSANDRA_DB_HOST=localhost RABBITMQ_HOST=localhost MIX_ENV=test
+  jobs:
+    - RABBITMQ_VERSION=3.7.15 CASSANDRA_IMAGE=cassandra:3.11.4
+cache:
+  directories:
+    - deps
+    - _build
+before_install:
+  - docker pull rabbitmq:$RABBITMQ_VERSION
+  - docker run -d -p 127.0.0.1:5672:5672 -p 127.0.0.1:15672:15672 rabbitmq:$RABBITMQ_VERSION
+  - docker pull $CASSANDRA_IMAGE
+  - docker run -d -p 127.0.0.1:9042:9042 $CASSANDRA_IMAGE
+  # Install wait-for-cassandra and wait for it to start
+  - npm install -g wait-for-cassandra
+  - wait-for-cassandra -T 120000 -h $CASSANDRA_DB_HOST
 before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
-after_script:
+script:
   - mix coveralls.travis
