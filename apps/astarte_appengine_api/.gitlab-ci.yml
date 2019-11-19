@@ -1,92 +1,51 @@
 stages:
-    - build
+    - test
     - deploy
-
-before_script:
-    - mix local.hex --force
-    - mix local.rebar
 
 variables:
     APPLICATION_NAME: astarte_appengine_api
-    CASSANDRA_CLUSTER_NAME: astartetest
-    DOCKER_VERNEMQ_USER_AUTOTEST: 'autotest'
 
-mix:test-ci:
+mix:test-coverage:
+    stage: test
     image: elixir:1.6.5
     services:
-        - cassandra:3.11.2
-        - erlio/docker-vernemq:1.2.0
-        - rabbitmq:3.6
-    stage: build
-    script:
-        - export MIX_ENV=test
+        - cassandra:3.11.4
+        - rabbitmq:3.7.15
+    cache:
+        key: "$CI_COMMIT_REF_SLUG"
+        paths:
+            - deps
+            - _build
+    before_script:
+        - mix local.hex --force
+        - mix local.rebar
         - mix deps.get
-        - mix deps.compile
-        - mix compile
-        - mix coveralls --exclude cassandra_only
-    except:
+    script:
+        - mix coveralls
+
+docker:test-container:
+    stage: test
+    image: docker:latest
+    only:
+        - merge_requests
+    services:
+        - docker:stable-dind
+    before_script:
+        - docker info
+    script:
+        - docker build -t $CI_REGISTRY/astarte-ng/astarte_appengine_api:testing .
+
+docker:snapshot-prod-container:
+    stage: deploy
+    image: docker:latest
+    only:
         - branches@Astarte-NG/astarte_appengine_api
-
-mix:build:
-    image: elixir:1.6.5
-    services:
-        - cassandra:3.11.2
-        - erlio/docker-vernemq:1.2.0
-        - rabbitmq:3.6
-    stage: build
-    script:
-        - export MIX_ENV=test
-        - mix deps.get
-        - mix deps.compile
-        - mix compile
-        - mix coveralls --exclude cassandra_only
-        - export MIX_ENV=dev
-        - mix release
-    only:
-        - master@Astarte-NG/astarte_appengine_api
-
-mix:release-build:
-    image: elixir:1.6.5
-    services:
-        - cassandra:3.11.2
-        - erlio/docker-vernemq:1.2.0
-        - rabbitmq:3.6
-    stage: build
-    script:
-        - export MIX_ENV=test
-        - mix deps.get
-        - mix deps.compile
-        - mix compile
-        - mix coveralls --exclude cassandra_only
-        - export MIX_ENV=prod
-        - mix release
-    only:
-        - tags@Astarte-NG/astarte_appengine_api
-
-docker:snapshot-container:
-    image: docker:latest
-    before_script:
-        - docker info
-        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
     services:
         - docker:stable-dind
-    stage: deploy
-    only:
-        - master@Astarte-NG/astarte_appengine_api
-    script:
-        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:snapshot .
-        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:snapshot
-
-docker:testing-container:
-    image: docker:latest
     before_script:
         - docker info
-        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $DOCKER_REGISTRY
-    services:
-        - docker:stable-dind
-    stage: deploy
-    only:
-        - testing@Astarte-NG/astarte_appengine_api
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
     script:
-        - docker build -t $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:testing .
-        - docker push $DOCKER_REGISTRY/astarte-ng/astarte_appengine_api:testing
+        - export IMAGE_TAG=$([[ $CI_COMMIT_REF_NAME == "master" ]] && echo "snapshot" || echo $CI_COMMIT_REF_NAME | sed 's/release-\(.*\)/\1-snapshot/g')
+        - docker build -t $CI_REGISTRY/astarte-ng/astarte_appengine_api:$IMAGE_TAG .
+        - docker push $CI_REGISTRY/astarte-ng/astarte_appengine_api:$IMAGE_TAG
