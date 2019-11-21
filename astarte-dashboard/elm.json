@@ -21,6 +21,7 @@
             "elm-community/typed-svg": "5.1.0",
             "folkertdev/one-true-path-experiment": "4.0.3",
             "gampleman/elm-visualization": "2.0.1",
+            "rtfeldman/elm-iso8601-date-strings": "1.1.3",
             "rundis/elm-bootstrap": "5.1.0"
         },
         "indirect": {
