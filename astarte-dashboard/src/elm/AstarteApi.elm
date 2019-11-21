@@ -19,6 +19,7 @@
 
 module AstarteApi exposing
     ( Config
+    , DeviceStats
     , Error
     , addDeviceToGroup
     , addNewInterface
@@ -31,6 +32,7 @@ module AstarteApi exposing
     , deviceData
     , deviceInfos
     , deviceList
+    , deviceStats
     , encodeConfig
     , errorToHumanReadable
     , getInterface
@@ -293,6 +295,19 @@ buildHeaders token =
         [ Http.header "Authorization" ("Bearer " ++ token) ]
 
 
+type alias DeviceStats =
+    { connectedDevices : Int
+    , totalDevices : Int
+    }
+
+
+deviceStatsDecoder : Decoder DeviceStats
+deviceStatsDecoder =
+    Decode.map2 DeviceStats
+        (Decode.field "connected_devices" Decode.int)
+        (Decode.field "total_devices" Decode.int)
+
+
 
 -- Realm config
 
@@ -540,6 +555,19 @@ updateDeviceAliases apiConfig deviceId aliases resultMsg =
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
         , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", Device.encodeAliases aliases ) ]
         , expect = expectWhateverAstarteReply resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deviceStats : Config -> (Result Error DeviceStats -> msg) -> Cmd msg
+deviceStats apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "stats", "devices" ] []
+        , body = Http.emptyBody
+        , expect = expectAstarteReply resultMsg <| field "data" deviceStatsDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
