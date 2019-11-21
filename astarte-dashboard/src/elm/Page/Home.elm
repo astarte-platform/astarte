@@ -20,39 +20,72 @@
 module Page.Home exposing (Model, Msg, init, subscriptions, update, view)
 
 import Assets
+import AstarteApi exposing (DeviceStats)
+import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Flex as Flex
+import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
-import Html exposing (Html, a, br, div, h2, h5, img, p, text)
+import Color exposing (Color)
+import Html exposing (Html)
 import Html.Attributes exposing (class, href, src, target)
+import Icons
+import Maybe.Extra exposing (values)
 import Spinner
+import TypedSvg as Svg
+import TypedSvg.Attributes as SvgAttr
+import TypedSvg.Types as SvgTypes
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage exposing (FlashMessage)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
+import Ui.Card as Card
 
 
 type alias Model =
-    { spinner : Spinner.Model
+    { deviceStats : Maybe DeviceStats
+    , appengineHealth : Maybe Bool
+    , realmManagementHealth : Maybe Bool
+    , installedInterfaces : Maybe Int
+    , installedTriggers : Maybe Int
+    , spinner : Spinner.Model
     , showSpinner : Bool
     }
 
 
 init : Session -> ( Model, Cmd Msg )
-init _ =
-    ( { spinner = Spinner.init
-      , showSpinner = False
+init session =
+    ( { deviceStats = Nothing
+      , appengineHealth = Nothing
+      , realmManagementHealth = Nothing
+      , installedInterfaces = Nothing
+      , installedTriggers = Nothing
+      , spinner = Spinner.init
+      , showSpinner = True
       }
-    , Cmd.none
+    , Cmd.batch
+        [ AstarteApi.deviceStats session.apiConfig DeviceStatsDone
+        , AstarteApi.appEngineApiHealth session.apiConfig AppEngineHealthCheckDone
+        , AstarteApi.realmManagementApiHealth session.apiConfig RealmManagementHealthCheckDone
+        , AstarteApi.listInterfaces session.apiConfig ListInterfacesDone AstarteError LoginRequired
+        , AstarteApi.listTriggers session.apiConfig ListTriggersDone AstarteError LoginRequired
+        ]
     )
 
 
 type Msg
     = Forward ExternalMsg
+    | DeviceStatsDone (Result AstarteApi.Error DeviceStats)
+    | AppEngineHealthCheckDone (Result AstarteApi.Error Bool)
+    | RealmManagementHealthCheckDone (Result AstarteApi.Error Bool)
+    | ListInterfacesDone (List String)
+    | ListTriggersDone (List String)
+    | AstarteError AstarteApi.Error
+    | LoginRequired
       -- spinner
     | SpinnerMsg Spinner.Msg
 
@@ -60,6 +93,69 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update _ msg model =
     case msg of
+        DeviceStatsDone (Ok stats) ->
+            ( { model
+                | showSpinner = False
+                , deviceStats = Just stats
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        DeviceStatsDone (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( { model | showSpinner = False }
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
+        AppEngineHealthCheckDone (Ok healthy) ->
+            ( { model | appengineHealth = Just healthy }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        AppEngineHealthCheckDone (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( { model | appengineHealth = Just False }
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
+        RealmManagementHealthCheckDone (Ok healthy) ->
+            ( { model | realmManagementHealth = Just healthy }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        RealmManagementHealthCheckDone (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( { model | realmManagementHealth = Just False }
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
+        ListInterfacesDone interfaceList ->
+            ( { model | installedInterfaces = Just <| List.length interfaceList }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        ListTriggersDone triggerList ->
+            ( { model | installedTriggers = Just <| List.length triggerList }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
         Forward externalMsg ->
             ( model
             , Cmd.none
@@ -72,14 +168,16 @@ update _ msg model =
             , ExternalMsg.Noop
             )
 
+        _ ->
+            ( model
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid
-        [ class "bg-white"
-        , Border.rounded
-        , Spacing.pb3
-        ]
+    Grid.containerFluid []
         [ Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
@@ -90,48 +188,215 @@ view model flashMessages =
             Spinner.view Spinner.defaultConfig model.spinner
 
           else
-            text ""
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ h5
-                    [ Display.inline
-                    , class "text-secondary"
-                    , class "font-weight-normal"
-                    , class "align-middle"
-                    ]
-                    [ text "Home" ]
+            Html.text ""
+        , Grid.row []
+            (values
+                [ Just (welcomeCard Card.FullWidth)
+                , Just (apiHealthCard Card.HalfWidth model.appengineHealth model.realmManagementHealth)
+                , Maybe.map (appengineCard Card.HalfWidth) model.deviceStats
+                , Maybe.map (interfacesCard Card.HalfWidth) model.installedInterfaces
+                , Maybe.map (triggersCard Card.HalfWidth) model.installedTriggers
                 ]
-            ]
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
+            )
+        ]
+
+
+welcomeCard : Card.Width -> Grid.Column Msg
+welcomeCard width =
+    Card.viewHeadless
+        width
+        [ Grid.row []
             [ Grid.col
                 [ Col.sm12
                 , Col.attrs [ Flex.block ]
                 ]
-                [ div
+                [ Html.div
                     [ Display.inlineBlockMd
                     , Spacing.pl2
                     ]
-                    [ h2
+                    [ Html.h2
                         [ Spacing.pt3 ]
-                        [ text "Welcome to Astarte Dashboard!" ]
-                    , p
+                        [ Html.text "Welcome to Astarte Dashboard!" ]
+                    , Html.p
                         [ Spacing.pl2 ]
-                        [ text "Here you can easily manage your interfaces and triggers."
-                        , br [] []
-                        , text "Read the"
-                        , a [ target "_blank", href "https://docs.astarte-platform.org/" ] [ text " docs " ]
-                        , text "for more detailed informations on Astarte."
+                        [ Html.text "Here you can easily manage your Astarte realm."
+                        , Html.br [] []
+                        , Html.text "Read the"
+                        , Html.a [ target "_blank", href "https://docs.astarte-platform.org/" ] [ Html.text " documentation " ]
+                        , Html.text "for more detailed informations on Astarte."
                         ]
                     ]
-                , div
+                , Html.div
                     [ Display.inlineBlockMd, Spacing.mxAuto ]
-                    [ img [ src <| Assets.path Assets.homepageImage ] [] ]
+                    [ Html.img [ src <| Assets.path Assets.homepageImage ] [] ]
                 ]
             ]
         ]
+
+
+interfacesCard : Card.Width -> Int -> Grid.Column Msg
+interfacesCard width interfaceCount =
+    let
+        interfaceText =
+            if interfaceCount == 0 then
+                "No interface installed."
+
+            else
+                String.fromInt interfaceCount
+
+        description =
+            if interfaceCount == 0 then
+                Html.p [ Spacing.mt3 ]
+                    [ Html.text "Interfaces defines how data is exchanged between Astarte and its peers."
+                    , Html.br [] []
+                    , Html.a
+                        [ target "_blank", href "https://docs.astarte-platform.org/snapshot/030-interface.html" ]
+                        [ Html.text "Learn more..." ]
+                    ]
+
+            else
+                Html.text ""
+    in
+    Card.view width
+        "Interfaces"
+        [ Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ description
+                , Card.htmlRow
+                    ( "Installed interfaces"
+                    , Html.span []
+                        [ Html.text interfaceText
+                        , Html.a
+                            [ href "/interfaces/new"
+                            , Spacing.ml3
+                            ]
+                            [ Icons.render Icons.Add [ Spacing.mr1 ]
+                            , Html.text "Install new interface..."
+                            ]
+                        ]
+                    )
+                ]
+            ]
+        ]
+
+
+triggersCard : Card.Width -> Int -> Grid.Column Msg
+triggersCard width triggerCount =
+    let
+        triggerText =
+            if triggerCount == 0 then
+                "No triggers installed."
+
+            else
+                String.fromInt triggerCount
+
+        description =
+            if triggerCount == 0 then
+                Html.p [ Spacing.mt3 ]
+                    [ Html.text "Triggers in Astarte are the go-to mechanism for generating push events."
+                    , Html.br [] []
+                    , Html.text "Triggers allow users to specify conditions upon which a custom payload is delivered to a recipient, using a specific action, which usually maps to a specific transport/protocol, such as HTTP."
+                    , Html.br [] []
+                    , Html.a
+                        [ target "_blank", href "https://docs.astarte-platform.org/snapshot/060-using_triggers.html" ]
+                        [ Html.text "Learn more..." ]
+                    ]
+
+            else
+                Html.text ""
+    in
+    Card.view width
+        "Triggers"
+        [ Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ description
+                , Card.htmlRow
+                    ( "Installed triggers"
+                    , Html.span []
+                        [ Html.text triggerText
+                        , Html.a
+                            [ href "/triggers/new"
+                            , Spacing.ml3
+                            ]
+                            [ Icons.render Icons.Add [ Spacing.mr1 ]
+                            , Html.text "Install new trigger..."
+                            ]
+                        ]
+                    )
+                ]
+            ]
+        ]
+
+
+apiHealthCard : Card.Width -> Maybe Bool -> Maybe Bool -> Grid.Column Msg
+apiHealthCard width appengineHelath realmManagementHealth =
+    Card.view width
+        "API Health"
+        [ Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ Card.htmlRow ( "Realm management API", renderHealth appengineHelath )
+                , Card.htmlRow ( "AppEngine API", renderHealth realmManagementHealth )
+                ]
+            ]
+        ]
+
+
+appengineCard : Card.Width -> DeviceStats -> Grid.Column Msg
+appengineCard width stats =
+    Card.view width
+        "Devices"
+        [ Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ Card.textRow ( "Total registered devices", String.fromInt stats.totalDevices )
+                , Card.textRow ( "Currently connected devices", String.fromInt stats.connectedDevices ++ "/" ++ String.fromInt stats.totalDevices )
+                ]
+            ]
+        ]
+
+
+renderHealth : Maybe Bool -> Html Msg
+renderHealth healthy =
+    case healthy of
+        Nothing ->
+            Html.span []
+                [ Html.text "Checking..." ]
+
+        Just True ->
+            Html.span []
+                [ Icons.renderWithColor Color.green Icons.Healthy [ Spacing.mr1 ]
+                , Html.text "Healthy"
+                ]
+
+        Just False ->
+            Html.span []
+                [ Icons.renderWithColor Color.red Icons.Unhealthy [ Spacing.mr1 ]
+                , Html.text "Unhealthy"
+                ]
+
+
+lighter : Float -> Color -> Color
+lighter percent baseColor =
+    let
+        hslaColor =
+            Color.toHsla baseColor
+
+        newLightness =
+            bind 0 1 <| hslaColor.lightness * (1 + percent)
+    in
+    { hslaColor | lightness = newLightness }
+        |> Color.fromHsla
+
+
+bind : Float -> Float -> Float -> Float
+bind min max val =
+    if val < min then
+        min
+
+    else if val > max then
+        max
+
+    else
+        val
 
 
 

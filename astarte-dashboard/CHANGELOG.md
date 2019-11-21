@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Device groups editing.
 - API health check.
 - Mapping database retention policy and TTL.
+- API status and installed interfaces/triggers in Home page.
 
 ### Changed
 - New datastream mappings have explicit\_timestamp by default
