@@ -1020,7 +1020,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, new_state}
 
         {:device_trigger, _} ->
-          {:ok, new_state}
+          {:ok, load_trigger(new_state, trigger, target)}
       end
     end
   end
