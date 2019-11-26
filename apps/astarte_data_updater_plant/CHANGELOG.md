@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Do not accept invalid paths that have consecutive slashes.
 - Do not accept invalid paths in object aggregated interfaces.
 - Do not delete all congruent triggers when deleting a volatile trigger.
+- Load volatile device triggers as soon as they're installed.
 
 ## [0.10.1] - 2019-10-02
 ### Fixed
