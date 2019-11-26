@@ -20,7 +20,7 @@ use Mix.Config
 
 config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 
-config :astarte_pairing, :broker_url, "ssl://broker.beta.astarte.cloud:8883/"
+config :astarte_pairing, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
 
 config :astarte_pairing,
        :cfssl_url,

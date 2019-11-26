@@ -55,7 +55,7 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
     "astarte_pairing.broker_url": [
       commented: true,
       datatype: :binary,
-      default: "ssl://broker.beta.astarte.cloud:8883/",
+      default: "mqtss://broker.beta.astarte.cloud:8883/",
       doc: "The external broker URL which should be used by devices.",
       env_var: "PAIRING_BROKER_URL",
       hidden: false,
