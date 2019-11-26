@@ -21,6 +21,7 @@ mix:test-coverage:
         - mix local.rebar
         - mix deps.get
     script:
+        - mix format --check-formatted
         - mix coveralls
 
 docker:test-container:
