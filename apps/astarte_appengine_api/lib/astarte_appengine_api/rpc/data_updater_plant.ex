@@ -21,6 +21,8 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
   This module sends RPC to DataUpdaterPlant
   """
 
+  require Logger
+
   alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
 
   alias Astarte.RPC.Protocol.DataUpdaterPlant.{
@@ -84,6 +86,11 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
   defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
     %Reply{reply: reply} = Reply.decode(encoded_reply)
     reply
+  end
+
+  defp decode_reply({:error, reason}) do
+    _ = Logger.warn("RPC error: #{inspect(reason)}.", tag: "rpc_remote_exception")
+    {:error, reason}
   end
 
   defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do

@@ -1,22 +1,37 @@
 language: elixir
-# Required for Cassandra
-sudo: required
+dist: bionic
 services:
-  - cassandra
-  - rabbitmq
+  - docker
+elixir:
+  - 1.8.1
+otp_release:
+  - 21.3
 env:
-  - CASSANDRA_DB_HOST=localhost RABBITMQ_HOST=localhost MIX_ENV=test
-matrix:
-  include:
-    - elixir: 1.8.1
-      otp_release: 21.3
+  global:
+    - CASSANDRA_DB_HOST=localhost RABBITMQ_HOST=localhost MIX_ENV=test
+  jobs:
+    - RABBITMQ_VERSION=3.7.15 CASSANDRA_IMAGE=cassandra:3.11.4
+cache:
+  directories:
+    - deps
+    - _build
+before_install:
+  - docker pull $CASSANDRA_IMAGE
+  - docker run -d -p 127.0.0.1:9042:9042 $CASSANDRA_IMAGE
+  - docker pull rabbitmq:$RABBITMQ_VERSION
+  - docker run -d -p 127.0.0.1:5672:5672 -p 127.0.0.1:15672:15672 --name rabbitmq rabbitmq:$RABBITMQ_VERSION
+  # Install wget and python to download and execute rabbitmqadmin
+  - docker exec rabbitmq bash -c 'apt-get update && apt-get install wget python -y'
+  - docker exec rabbitmq rabbitmq-plugins enable rabbitmq_management
+  - docker exec rabbitmq wget http://guest:guest@localhost:15672/cli/rabbitmqadmin -O /usr/local/bin/rabbitmqadmin
+  - docker exec rabbitmq chmod +x /usr/local/bin/rabbitmqadmin
+  # Declare the astarte_events exchange
+  - docker exec rabbitmq rabbitmqadmin declare exchange name=astarte_events type=direct
+  # Install wait-for-cassandra and wait for it to start
+  - npm install -g wait-for-cassandra
+  - wait-for-cassandra -T 120000 -h $CASSANDRA_DB_HOST
 before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
-  # Declare events exchange
-  - sudo rabbitmq-plugins enable rabbitmq_management
-  - sudo wget http://guest:guest@localhost:15672/cli/rabbitmqadmin -O /usr/local/bin/rabbitmqadmin
-  - sudo chmod +x /usr/local/bin/rabbitmqadmin
-  - rabbitmqadmin declare exchange name=astarte_events type=direct
-after_script:
+script:
   - mix coveralls.travis
