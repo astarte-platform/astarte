@@ -1052,7 +1052,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, new_state}
 
         {:device_trigger, _} ->
-          {:ok, new_state}
+          {:ok, load_trigger(new_state, trigger, target)}
       end
     end
   end
@@ -1082,32 +1082,59 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp delete_volatile_trigger(
          state,
          {obj_id, _obj_type},
-         {{:data_trigger, proto_buf_data_trigger}, trigger_target}
+         {{:data_trigger, proto_buf_data_trigger}, trigger_target_to_be_deleted}
        ) do
     if Map.get(state.interface_ids_to_name, obj_id) do
-      data_trigger =
+      data_trigger_to_be_deleted =
         SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
+
+      data_triggers = state.data_triggers
 
       event_type =
         EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
 
-      data_trigger_key = data_trigger_to_key(state, data_trigger, event_type)
+      data_trigger_key = data_trigger_to_key(state, data_trigger_to_be_deleted, event_type)
+      existing_triggers_for_key = Map.get(data_triggers, data_trigger_key, [])
+
+      # Separate triggers for key between the trigger congruent with the one being deleted
+      # and all the other triggers
+      {congruent_data_trigger_for_key, other_data_triggers_for_key} =
+        Enum.reduce(existing_triggers_for_key, {nil, []}, fn
+          trigger, {congruent_data_trigger_for_key, other_data_triggers_for_key} ->
+            if DataTrigger.are_congruent?(trigger, data_trigger_to_be_deleted) do
+              {trigger, other_data_triggers_for_key}
+            else
+              {congruent_data_trigger_for_key, [trigger | other_data_triggers_for_key]}
+            end
+        end)
+
+      next_data_triggers_for_key =
+        case congruent_data_trigger_for_key do
+          nil ->
+            # Trying to delete an unexisting volatile trigger, just return old data triggers
+            existing_triggers_for_key
+
+          %DataTrigger{trigger_targets: [^trigger_target_to_be_deleted]} ->
+            # The target of the deleted trigger was the only target, just remove it
+            other_data_triggers_for_key
+
+          %DataTrigger{trigger_targets: targets} ->
+            # The trigger has other targets, drop the one that is being deleted and update
+            new_trigger_targets = Enum.reject(targets, &(&1 == trigger_target_to_be_deleted))
+
+            new_congruent_data_trigger_for_key = %{
+              congruent_data_trigger_for_key
+              | trigger_targets: new_trigger_targets
+            }
+
+            [new_congruent_data_trigger_for_key | other_data_triggers_for_key]
+        end
 
       next_data_triggers =
-        case Map.get(state.data_triggers, data_trigger_key) do
-          [_one_trigger] ->
-            Map.delete(state.data_triggers, data_trigger_key)
-
-          nil ->
-            state.data_triggers
-
-          triggers_chain ->
-            new_chain =
-              Enum.reject(triggers_chain, fn chain_target ->
-                chain_target == trigger_target
-              end)
-
-            Map.put(state.data_triggers, data_trigger_key, new_chain)
+        if is_list(next_data_triggers_for_key) and length(next_data_triggers_for_key) > 0 do
+          Map.put(data_triggers, data_trigger_key, next_data_triggers_for_key)
+        else
+          Map.delete(data_triggers, data_trigger_key)
         end
 
       {:ok, %{state | data_triggers: next_data_triggers}}
