@@ -10,7 +10,7 @@ env:
   global:
     - RABBITMQ_HOST=localhost MIX_ENV=test
   jobs:
-    - RABBITMQ_VERSION=3.7.15
+    - RABBITMQ_VERSION=3.7.21
 cache:
   directories:
     - deps
@@ -21,6 +21,7 @@ before_install:
 before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
-# Note: --exclude wip might be removed once we don't have to exclude any test.
 script:
+  - mix format --check-formatted
+  # Note: --exclude wip might be removed once we don't have to exclude any test.
   - mix coveralls.travis --exclude wip
