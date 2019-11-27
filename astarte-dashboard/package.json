@@ -45,11 +45,14 @@
     "rimraf": "^2.7.1",
     "sass-loader": "^7.3.1",
     "style-loader": "^0.23.1",
-    "uglifyjs-webpack-plugin": "^2.2.0",
+    "terser-webpack-plugin": "^2.2.1",
     "url-loader": "^1.1.2",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.10",
     "webpack-dev-server": "^3.9.0",
     "webpack-merge": "^4.2.2"
+  },
+  "dependencies": {
+    "phoenix": "^1.4.11"
   }
 }

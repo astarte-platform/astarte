@@ -17,9 +17,14 @@
 */
 
 require( './styles/main.scss' );
-var $ = jQuery = require( '../../node_modules/jquery/dist/jquery.js' );
 
-var dashboardConfig = null
+const $ = require("jquery");
+const { Socket } = require("phoenix");
+
+let dashboardConfig = null;
+let phoenixSocket = null;
+let channel = null;
+let app;
 
 $.getJSON("/user-config/config.json", function(result) {
     if (result.realm_management_api_url) {
@@ -39,13 +44,15 @@ $.getJSON("/user-config/config.json", function(result) {
         }
 
     //init app
-    var app = require('../elm/Main').Elm.Main.init({flags: parameters});
+    app = require('../elm/Main').Elm.Main.init({flags: parameters});
 
     /* begin Elm ports */
     app.ports.storeSession.subscribe(function(session) {
         console.log("storing session");
         localStorage.session = session;
     });
+
+    app.ports.listenToDeviceEvents.subscribe(connectToChannel);
 
     window.addEventListener("storage", function(event) {
         if (event.storageArea === localStorage && event.key === "session") {
@@ -56,4 +63,211 @@ $.getJSON("/user-config/config.json", function(result) {
     /* end Elm ports */
 });
 
+function openSocket(params)
+{
+    console.log("opening web socket");
 
+    if (phoenixSocket) {
+        console.log("web socket already opened");
+        return;
+    }
+
+    if (!params.appengineUrl) {
+        console.log("no appengine url provided");
+        return;
+    }
+
+    let protocol;
+    if (params.secureConnection) {
+        protocol = "wss";
+    } else {
+        protocol = "ws";
+    }
+
+    let socketUrl = protocol + "://" + params.appengineUrl + "/socket";
+    socketUrl = socketUrl.replace("/v1", ""); // TODO workaraound! remove when fixed in 0.11
+
+    let socketParams =
+        { params:
+            { realm: params.realm
+            , token: params.token
+            }
+        };
+    phoenixSocket = new Socket(socketUrl, socketParams);
+    phoenixSocket.onError(socketErrorHandler);
+    phoenixSocket.onClose(socketCloseHandler);
+    phoenixSocket.onOpen( () => console.log("Socket opened"));
+    phoenixSocket.connect();
+}
+
+function connectToChannel(params)
+{
+    console.log("joining room for device id " + params.deviceId);
+
+    if (!phoenixSocket) {
+        openSocket(params);
+    }
+
+    if (channel) {
+        // already in a room, leave and retry
+        console.log("already in a room");
+        channel.leave()
+            .receive("ok", () => {
+                channel = null;
+                connectToChannel(params)
+            })
+            .receive("error", resp => {
+                console.log("Unable to leave previous room", resp);
+            });
+
+        return;
+    }
+
+    // This should be unique and you should have JOIN and WATCH permissions for it in the JWT
+    let salt = Math.floor(Math.random() * 10000);
+    let room_name = "dashboard_" + params.deviceId + "_" + salt;
+    channel = phoenixSocket.channel("rooms:" + params.realm + ":" + room_name, {});
+
+    channel.join()
+        .receive("ok", resp => {
+            roomJoinedHandler(resp, params);
+        })
+        .receive("error", resp => {
+            console.log("Unable to join", resp);
+            app.ports.onDeviceEventReceived.send(
+                { message: "Error joining room for device " + params.deviceId
+                , level: "error"
+                , timestamp: Date.now()
+                });
+        });
+}
+
+function socketErrorHandler()
+{
+    console.log("There was an error with the connection!");
+    app.ports.onDeviceEventReceived.send(
+        { message: "Phoenix socket connection error"
+        , level: "error"
+        , timestamp: Date.now()
+        });
+}
+
+function socketCloseHandler()
+{
+    console.log("The connection dropped");
+    phoenixSocket = null;
+}
+
+function roomJoinedHandler(resp, params)
+{
+    console.log("Joined successfully", resp);
+    app.ports.onDeviceEventReceived.send(
+        { message: "Joined room for device " + params.deviceId
+        , level: "info"
+        , timestamp: Date.now()
+        });
+
+    // triggers
+    installConnectionTrigger(params.deviceId);
+    installDisconnectionTrigger(params.deviceId);
+
+    params.interfaces.forEach( (installedInterface) => {
+        installInterfaceTrigger(params.deviceId, installedInterface.name, installedInterface.major)
+    });
+
+    // events
+    channel.on("new_event", payload => {
+        app.ports.onDeviceEventReceived.send(payload);
+    });
+}
+
+function installConnectionTrigger(deviceId)
+{
+    let connection_trigger_payload = {
+        name: "connectiontrigger-" + deviceId,
+        device_id: deviceId,
+        simple_trigger: {
+            type: "device_trigger",
+            on: "device_connected",
+            device_id: deviceId
+        }
+    };
+
+    channel.push("watch", connection_trigger_payload)
+        .receive("ok", resp => {
+            app.ports.onDeviceEventReceived.send(
+                { message: "Device connection trigger installed"
+                , level: "info"
+                , timestamp: Date.now()
+                });
+        })
+        .receive("error", resp => {
+            app.ports.onDeviceEventReceived.send(
+                { message: "Failed to install the connection trigger"
+                , level: "error"
+                , timestamp: Date.now()
+                });
+        });
+}
+
+function installDisconnectionTrigger(deviceId)
+{
+    let disconnection_trigger_payload = {
+        name: "disconnectiontrigger-" + deviceId,
+        device_id: deviceId,
+        simple_trigger: {
+            type: "device_trigger",
+            on: "device_disconnected",
+            device_id: deviceId
+        }
+    };
+
+    channel.push("watch", disconnection_trigger_payload)
+        .receive("ok", resp => {
+            app.ports.onDeviceEventReceived.send(
+                { message: "Device disconnection trigger installed"
+                , level: "info"
+                , timestamp: Date.now()
+                });
+        })
+        .receive("error", resp => {
+            app.ports.onDeviceEventReceived.send(
+                { message: "Failed to install the disconnection trigger"
+                , level: "error"
+                , timestamp: Date.now()
+                });
+        });
+
+}
+
+function installInterfaceTrigger(deviceId, name, major)
+{
+    let data_trigger_payload = {
+        name: "datatrigger-" + name + "-" + deviceId,
+        device_id: deviceId,
+        simple_trigger: {
+            type: "data_trigger",
+            on: "incoming_data",
+            interface_name: name,
+            interface_major: major,
+            value_match_operator: "*",
+            match_path: "/*"
+        }
+    };
+
+    channel.push("watch", data_trigger_payload)
+        .receive("ok", resp => {
+            app.ports.onDeviceEventReceived.send(
+                { message: "Data trigger for interface " + name + " installed"
+                , level: "info"
+                , timestamp: Date.now()
+                });
+        })
+        .receive("error", resp => {
+            app.ports.onDeviceEventReceived.send(
+                { message: "Failed to install data trigger for interface " + name
+                , level: "error"
+                , timestamp: Date.now()
+                });
+        });
+}

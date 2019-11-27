@@ -142,3 +142,9 @@ $never-connected-color: #101010;
     height: 1em;
     vertical-align: middle;
 }
+
+.device-event-container {
+    height: 50em;
+    overflow-y: scroll;
+    background-color: #fbfbfb;
+}

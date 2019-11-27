@@ -55,6 +55,7 @@ import Json.Decode.Pipeline exposing (hardcoded, optional, required)
 import Json.Encode as Encode
 import JsonHelpers
 import Regex exposing (Regex)
+import Types.AstarteValue as AstarteValue
 
 
 type alias InterfaceMapping =
@@ -120,24 +121,6 @@ type Retention
 validEndpointRegex : Regex
 validEndpointRegex =
     Regex.fromString "^(/(%{([a-zA-Z][a-zA-Z0-9_]*)}|[a-zA-Z][a-zA-Z0-9]*)){1,64}"
-        |> Maybe.withDefault Regex.never
-
-
-longIntRegex : Regex
-longIntRegex =
-    Regex.fromString "^[\\+-]?[\\d]+$"
-        |> Maybe.withDefault Regex.never
-
-
-base64Regex : Regex
-base64Regex =
-    Regex.fromString "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
-        |> Maybe.withDefault Regex.never
-
-
-dateTimeRegex : Regex
-dateTimeRegex =
-    Regex.fromString "^([\\+-]?\\d{4}(?!\\d{2}\\b))((-?)((0[1-9]|1[0-2])(\\3([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24\\:?00)([\\.,]\\d+(?!:))?)?(\\17[0-5]\\d([\\.,]\\d+)?)?([zZ]|([\\+-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?$"
         |> Maybe.withDefault Regex.never
 
 
@@ -478,16 +461,16 @@ validateBaseType baseType value =
                     False
 
         LongIntMapping ->
-            Regex.contains longIntRegex value
+            AstarteValue.isLongInt value
 
         StringMapping ->
             True
 
         BinaryBlobMapping ->
-            Regex.contains base64Regex value
+            AstarteValue.isBinaryBlob value
 
         DateTimeMapping ->
-            Regex.contains dateTimeRegex value
+            AstarteValue.isDateTime value
 
 
 toList : String -> List String
