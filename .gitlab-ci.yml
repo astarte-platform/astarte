@@ -8,7 +8,7 @@ mix:test-coverage:
     stage: test
     image: elixir:1.8.1
     services:
-        - cassandra:3.11.4
+        - cassandra:3.11.5
     cache:
         key: "$CI_COMMIT_REF_SLUG"
         paths:
@@ -21,3 +21,21 @@ mix:test-coverage:
     script:
         - mix format --check-formatted
         - mix coveralls
+
+mix:test-dialyzer:
+    stage: test
+    image: elixir:1.8.1
+    cache:
+        key: "$CI_COMMIT_REF_SLUG"
+        paths:
+            - deps
+            - _build
+            - dialyzer_cache
+    before_script:
+        - mix local.hex --force
+        - mix local.rebar
+        - export MIX_ENV=ci
+        - mix deps.get
+    script:
+        # TODO: we do this until we fix all dialyzer errors to force a CI success, so that plts get cached
+        - mix dialyzer || echo "Done"
