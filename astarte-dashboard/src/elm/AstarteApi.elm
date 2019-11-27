@@ -77,7 +77,8 @@ type Error
 
 
 type alias Config =
-    { realmManagementUrl : String
+    { secureConnection : Bool
+    , realmManagementUrl : String
     , appengineUrl : String
     , realm : String
     , token : String
@@ -272,7 +273,7 @@ realmConfig apiConfig okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/config/auth" ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "config", "auth" ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply AnswerWithData <| field "data" RealmConfig.decoder
         , timeout = Nothing
@@ -286,7 +287,7 @@ updateRealmConfig apiConfig realmConf okMsg errorMsg loginMsg =
     Http.request
         { method = "PUT"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/config/auth" ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "config", "auth" ] []
         , body = Http.jsonBody <| Encode.object [ ( "data", RealmConfig.encode realmConf ) ]
         , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
@@ -304,7 +305,7 @@ listInterfaces apiConfig okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces" ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "interfaces" ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply AnswerWithData <| field "data" (list string)
         , timeout = Nothing
@@ -318,7 +319,7 @@ listInterfaceMajors apiConfig interfaceName okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interfaceName ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "interfaces", interfaceName ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply AnswerWithData <| field "data" (list int)
         , timeout = Nothing
@@ -332,7 +333,11 @@ getInterface apiConfig interfaceName major okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interfaceName, "/", String.fromInt major ]
+        , url =
+            buildUrl apiConfig.secureConnection
+                apiConfig.realmManagementUrl
+                [ apiConfig.realm, "interfaces", interfaceName, String.fromInt major ]
+                []
         , body = Http.emptyBody
         , expect = expectAstarteReply AnswerWithData <| field "data" Interface.decoder
         , timeout = Nothing
@@ -346,7 +351,11 @@ deleteInterface apiConfig interfaceName major okMsg errorMsg loginMsg =
     Http.request
         { method = "DELETE"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interfaceName, "/", String.fromInt major ]
+        , url =
+            buildUrl apiConfig.secureConnection
+                apiConfig.realmManagementUrl
+                [ apiConfig.realm, "interfaces", interfaceName, String.fromInt major ]
+                []
         , body = Http.emptyBody
         , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
@@ -360,7 +369,7 @@ addNewInterface apiConfig interface okMsg errorMsg loginMsg =
     Http.request
         { method = "POST"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces" ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "interfaces" ] []
         , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
         , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
@@ -374,7 +383,11 @@ updateInterface apiConfig interface okMsg errorMsg loginMsg =
     Http.request
         { method = "PUT"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/interfaces/", interface.name, "/", String.fromInt interface.major ]
+        , url =
+            buildUrl apiConfig.secureConnection
+                apiConfig.realmManagementUrl
+                [ apiConfig.realm, "interfaces", interface.name, String.fromInt interface.major ]
+                []
         , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
         , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
@@ -392,7 +405,7 @@ listTriggers apiConfig okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers" ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "triggers" ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply AnswerWithData <| field "data" (list string)
         , timeout = Nothing
@@ -406,7 +419,7 @@ getTrigger apiConfig triggerName okMsg errorMsg loginMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers/", triggerName ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "triggers", triggerName ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply AnswerWithData <| field "data" Trigger.decoder
         , timeout = Nothing
@@ -420,7 +433,7 @@ addNewTrigger apiConfig trigger okMsg errorMsg loginMsg =
     Http.request
         { method = "POST"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers" ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "triggers" ] []
         , body = Http.jsonBody <| Encode.object [ ( "data", Trigger.encode trigger ) ]
         , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
@@ -434,7 +447,7 @@ deleteTrigger apiConfig triggerName okMsg errorMsg loginMsg =
     Http.request
         { method = "DELETE"
         , headers = buildHeaders apiConfig.token
-        , url = String.concat [ apiConfig.realmManagementUrl, "/", apiConfig.realm, "/triggers/", triggerName ]
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ apiConfig.realm, "triggers", triggerName ] []
         , body = Http.emptyBody
         , expect = expectWhateverAstarteReply Answer
         , timeout = Nothing
@@ -452,7 +465,7 @@ deviceList apiConfig resultMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = crossOrigin apiConfig.appengineUrl [ apiConfig.realm, "devices" ] []
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "devices" ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" (list string)
         , timeout = Nothing
@@ -466,7 +479,8 @@ detailedDeviceList apiConfig resultMsg =
         { method = "GET"
         , headers = buildHeaders apiConfig.token
         , url =
-            crossOrigin apiConfig.appengineUrl
+            buildUrl apiConfig.secureConnection
+                apiConfig.appengineUrl
                 [ apiConfig.realm, "devices" ]
                 [ Url.Builder.string "details" "true" ]
         , body = Http.emptyBody
@@ -481,7 +495,7 @@ deviceInfos apiConfig deviceId resultMsg =
     Http.request
         { method = "GET"
         , headers = buildHeaders apiConfig.token
-        , url = crossOrigin apiConfig.appengineUrl [ apiConfig.realm, "devices", deviceId ] []
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "devices", deviceId ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" Device.decoder
         , timeout = Nothing
@@ -489,10 +503,24 @@ deviceInfos apiConfig deviceId resultMsg =
         }
 
 
+buildUrl : Bool -> String -> List String -> List Url.Builder.QueryParameter -> String
+buildUrl secure host path query =
+    let
+        protocol =
+            if secure then
+                "https://"
+
+            else
+                "http://"
+    in
+    crossOrigin (protocol ++ host) path query
+
+
 encodeConfig : Config -> Value
 encodeConfig config =
     Encode.object
-        [ ( "realm_management_url", Encode.string config.realmManagementUrl )
+        [ ( "secure_connection", Encode.bool config.secureConnection )
+        , ( "realm_management_url", Encode.string config.realmManagementUrl )
         , ( "appengine_url", Encode.string config.appengineUrl )
         , ( "realm", Encode.string config.realm )
         , ( "token", Encode.string config.token )
@@ -502,6 +530,7 @@ encodeConfig config =
 configDecoder : Decoder Config
 configDecoder =
     Decode.succeed Config
+        |> required "secure_connection" Decode.bool
         |> required "realm_management_url" Decode.string
         |> required "appengine_url" Decode.string
         |> required "realm" Decode.string

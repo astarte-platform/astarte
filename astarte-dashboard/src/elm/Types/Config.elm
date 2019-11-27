@@ -30,7 +30,7 @@ module Types.Config exposing
     , isEditorOnly
     )
 
-import Json.Decode as Decode exposing (Decoder, andThen, field, list, maybe, nullable, string)
+import Json.Decode as Decode exposing (Decoder, andThen, bool, field, list, maybe, nullable, string)
 import Json.Decode.Pipeline exposing (optional, required)
 import JsonHelpers as JsonHelpers
 
@@ -41,7 +41,8 @@ type Config
 
 
 type alias Params =
-    { realmManagementApiUrl : String
+    { secureConnection : Bool
+    , realmManagementApiUrl : String
     , appengineApiUrl : String
     , defaultRealm : Maybe String
     , defaultAuth : AuthType
@@ -117,15 +118,72 @@ configMatch authType authConfig =
 -- Decoding
 
 
+type alias ParamsChangeset =
+    { realmManagementApiUrl : String
+    , appengineApiUrl : String
+    , defaultRealm : Maybe String
+    , defaultAuth : AuthType
+    , enabledAuth : List AuthConfig
+    }
+
+
 decoder : Decoder Config
 decoder =
-    Decode.succeed Params
-        |> required "realm_management_api_url" string
-        |> required "appengine_api_url" string
-        |> optional "default_realm" (nullable string) Nothing
-        |> required "default_auth" authTypeDecoder
-        |> required "auth" (list authConfigDecoder)
-        |> Decode.map Standard
+    Decode.map5 ParamsChangeset
+        (Decode.field "realm_management_api_url" decodeHttpUrl)
+        (Decode.field "appengine_api_url" decodeHttpUrl)
+        (Decode.maybe <| Decode.field "default_realm" Decode.string)
+        (Decode.field "default_auth" authTypeDecoder)
+        (Decode.field "auth" <| Decode.list authConfigDecoder)
+        |> Decode.andThen validateChangeset
+
+
+decodeHttpUrl : Decoder String
+decodeHttpUrl =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                if String.startsWith "http" str then
+                    Decode.succeed str
+
+                else
+                    Decode.fail "Provided string is not an http url"
+            )
+
+
+validateChangeset : ParamsChangeset -> Decoder Config
+validateChangeset params =
+    let
+        urls =
+            ( String.split "://" params.appengineApiUrl
+            , String.split "://" params.realmManagementApiUrl
+            )
+    in
+    case urls of
+        ( [ "http", aeUrl ], [ "http", rmUrl ] ) ->
+            Decode.succeed <|
+                Standard
+                    { secureConnection = False
+                    , realmManagementApiUrl = aeUrl
+                    , appengineApiUrl = rmUrl
+                    , defaultRealm = params.defaultRealm
+                    , defaultAuth = params.defaultAuth
+                    , enabledAuth = params.enabledAuth
+                    }
+
+        ( [ "https", aeUrl ], [ "https", rmUrl ] ) ->
+            Decode.succeed <|
+                Standard
+                    { secureConnection = True
+                    , realmManagementApiUrl = aeUrl
+                    , appengineApiUrl = rmUrl
+                    , defaultRealm = params.defaultRealm
+                    , defaultAuth = params.defaultAuth
+                    , enabledAuth = params.enabledAuth
+                    }
+
+        _ ->
+            Decode.fail "Realm Management and AppEngine protocol mismatch"
 
 
 authTypeDecoder : Decoder AuthType
