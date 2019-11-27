@@ -38,6 +38,7 @@ defmodule Astarte.Housekeeping.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
+      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -51,6 +52,14 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp dialyzer_cache_directory(:ci) do
+    "dialyzer_cache"
+  end
+
+  defp dialyzer_cache_directory(_) do
+    nil
+  end
 
   defp astarte_required_modules("true") do
     [
@@ -73,7 +82,8 @@ defmodule Astarte.Housekeeping.Mixfile do
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
-      {:excoveralls, "~> 0.10", only: :test}
+      {:excoveralls, "~> 0.10", only: :test},
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
 end
