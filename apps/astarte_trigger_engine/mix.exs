@@ -34,12 +34,21 @@ defmodule Astarte.TriggerEngine.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
+      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp dialyzer_cache_directory(:ci) do
+    "dialyzer_cache"
+  end
+
+  defp dialyzer_cache_directory(_) do
+    nil
+  end
 
   defp astarte_required_modules("true") do
     [
@@ -75,7 +84,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:jason, "~> 1.0"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
-      {:mox, "~> 0.3", only: :test}
+      {:mox, "~> 0.3", only: :test},
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
 end
