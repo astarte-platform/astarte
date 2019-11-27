@@ -52,7 +52,7 @@ valueDecoder =
         [ Decode.map Bool_ Decode.bool
         , Decode.map Int_ Decode.int
         , Decode.map Double_ Decode.float
-        , Decode.map LongInt_ lontIntDecoder
+        , Decode.map LongInt_ longIntDecoder
         , Decode.map Date_ dateDecoder
         , Decode.map Binary_ binaryDecoder
         , Decode.map String_ Decode.string
@@ -92,8 +92,8 @@ isLongInt value =
     Regex.contains longIntRegex value
 
 
-lontIntDecoder : Decoder String
-lontIntDecoder =
+longIntDecoder : Decoder String
+longIntDecoder =
     Decode.string
         |> Decode.andThen
             (\str ->
