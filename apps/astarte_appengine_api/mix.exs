@@ -33,6 +33,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
+      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -50,6 +51,14 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp dialyzer_cache_directory(:ci) do
+    "dialyzer_cache"
+  end
+
+  defp dialyzer_cache_directory(_) do
+    nil
+  end
 
   defp astarte_required_modules("true") do
     [
@@ -96,7 +105,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:excoveralls, "~> 0.11", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:pretty_log, "~> 0.1"},
-      {:plug_logger_with_meta, "~> 0.1"}
+      {:plug_logger_with_meta, "~> 0.1"},
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
 end
