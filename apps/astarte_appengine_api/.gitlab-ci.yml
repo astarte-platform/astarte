@@ -24,6 +24,24 @@ mix:test-coverage:
         - mix format --check-formatted
         - mix coveralls
 
+mix:test-dialyzer:
+    stage: test
+    image: elixir:1.8.1
+    cache:
+        key: "$CI_COMMIT_REF_SLUG"
+        paths:
+            - deps
+            - _build
+            - dialyzer_cache
+    before_script:
+        - mix local.hex --force
+        - mix local.rebar
+        - export MIX_ENV=ci
+        - mix deps.get
+    script:
+        # TODO: we do this until we fix all dialyzer errors to force a CI success, so that plts get cached
+        - mix dialyzer || echo "Done"
+
 docker:test-container:
     stage: test
     image: docker:latest
@@ -49,4 +67,19 @@ docker:snapshot-prod-container:
     script:
         - export IMAGE_TAG=$([[ $CI_COMMIT_REF_NAME == "master" ]] && echo "snapshot" || echo $CI_COMMIT_REF_NAME | sed 's/release-\(.*\)/\1-snapshot/g')
         - docker build -t $CI_REGISTRY/astarte-ng/astarte_appengine_api:$IMAGE_TAG .
+        - docker push $CI_REGISTRY/astarte-ng/astarte_appengine_api:$IMAGE_TAG
+
+docker:snapshot-dev-container:
+    stage: deploy
+    image: docker:latest
+    only:
+        - branches@Astarte-NG/astarte_appengine_api
+    services:
+        - docker:stable-dind
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    script:
+        - export IMAGE_TAG=$([[ $CI_COMMIT_REF_NAME == "master" ]] && echo "snapshot" || echo $CI_COMMIT_REF_NAME | sed 's/release-\(.*\)/\1-snapshot/g')-dev
+        - docker build --build-arg BUILD_ENV=dev -t $CI_REGISTRY/astarte-ng/astarte_appengine_api:$IMAGE_TAG .
         - docker push $CI_REGISTRY/astarte-ng/astarte_appengine_api:$IMAGE_TAG

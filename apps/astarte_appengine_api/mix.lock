@@ -17,6 +17,7 @@
   "cyanide": {:git, "https://github.com/ispirata/cyanide.git", "b29af008ba93181df3d2cb352261900acd17e3f7", []},
   "db_connection": {:hex, :db_connection, "2.1.1", "a51e8a2ee54ef2ae6ec41a668c85787ed40cb8944928c191280fe34c15b76ae5", [:mix], [{:connection, "~> 1.0.2", [hex: :connection, repo: "hexpm", optional: false]}], "hexpm"},
   "decimal": {:hex, :decimal, "1.7.0", "30d6b52c88541f9a66637359ddf85016df9eb266170d53105f02e4a67e00c5aa", [:mix], [], "hexpm"},
+  "dialyzex": {:git, "https://github.com/Comcast/dialyzex.git", "5e17345b61ba18bc5402a5d1b44a0bf04f2fb85c", []},
   "distillery": {:hex, :distillery, "1.5.5", "c6132d5c0152bdce6850fb6c942d58f1971b169b6965d908dc4e8767cfa51a95", [:mix], [], "hexpm"},
   "ecto": {:hex, :ecto, "3.1.7", "fa21d06ef56cdc2fdaa62574e8c3ba34a2751d44ea34c30bc65f0728421043e5", [:mix], [{:decimal, "~> 1.6", [hex: :decimal, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]}], "hexpm"},
   "ex_lttb": {:hex, :ex_lttb, "0.3.0", "aec7aab96be6535c4c8f143c2b5f2191a9d1a6f512690ec6d6f4f6bce0223b0f", [:mix], [], "hexpm"},
