@@ -38,7 +38,7 @@ type Event
     | DeviceDisconnected
     | IncomingData ValueParams
     | ValueStored ValueParams
-    | ValueChange ValueChangeParams
+    | ValueChanged ValueChangeParams
     | ValueChangeApplied ValueChangeParams
     | PathCreated ValueParams
     | PathRemoved PathParams
@@ -111,8 +111,8 @@ knownEventsDecoderHelper eventType =
         "value_stored" ->
             Decode.map ValueStored valueParamsDecoder
 
-        "value_change" ->
-            Decode.map ValueChange valueChangeParamsDecoder
+        "value_changed" ->
+            Decode.map ValueChanged valueChangeParamsDecoder
 
         "value_change_applied" ->
             Decode.map ValueChangeApplied valueChangeParamsDecoder
@@ -124,7 +124,7 @@ knownEventsDecoderHelper eventType =
             Decode.map PathRemoved pathParamsDecoder
 
         _ ->
-            Decode.fail <| "Uknown event type " ++ eventType
+            Decode.fail <| "Unknown event type " ++ eventType
 
 
 connectionParamsDecoder : Decoder ConnectionParams
