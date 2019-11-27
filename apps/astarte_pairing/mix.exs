@@ -33,6 +33,7 @@ defmodule Astarte.Pairing.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
+      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -47,6 +48,14 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp dialyzer_cache_directory(:ci) do
+    "dialyzer_cache"
+  end
+
+  defp dialyzer_cache_directory(_) do
+    nil
+  end
 
   defp astarte_required_modules("true") do
     [
@@ -74,7 +83,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:conform, "== 2.5.2"},
       {:bcrypt_elixir, "~> 1.0"},
       {:excoveralls, "~> 0.11", only: :test},
-      {:distillery, "~> 1.5", runtime: false}
+      {:distillery, "~> 1.5", runtime: false},
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
 end
