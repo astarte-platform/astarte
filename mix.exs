@@ -34,6 +34,7 @@ defmodule Astarte.DataAccess.Mixfile do
       ],
       description: description(),
       package: package(),
+      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       source_url: "https://github.com/astarte-platform/astarte_data_access",
       homepage_url: "https://astarte-platform.org/"
@@ -45,6 +46,14 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       extra_applications: [:logger]
     ]
+  end
+
+  defp dialyzer_cache_directory(:ci) do
+    "dialyzer_cache"
+  end
+
+  defp dialyzer_cache_directory(_) do
+    nil
   end
 
   defp astarte_required_modules("true") do
@@ -66,8 +75,8 @@ defmodule Astarte.DataAccess.Mixfile do
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       {:conform, "== 2.5.2"},
-      {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
-      {:excoveralls, "~> 0.10", only: :test}
+      {:excoveralls, "~> 0.10", only: :test},
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
 
