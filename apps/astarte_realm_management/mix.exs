@@ -33,6 +33,7 @@ defmodule Astarte.RealmManagement.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
+      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -42,6 +43,14 @@ defmodule Astarte.RealmManagement.Mixfile do
       extra_applications: [:lager, :logger],
       mod: {Astarte.RealmManagement, []}
     ]
+  end
+
+  defp dialyzer_cache_directory(:ci) do
+    "dialyzer_cache"
+  end
+
+  defp dialyzer_cache_directory(_) do
+    nil
   end
 
   defp astarte_required_modules("true") do
@@ -68,7 +77,8 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
-      {:pretty_log, "~> 0.1"}
+      {:pretty_log, "~> 0.1"},
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
 end
