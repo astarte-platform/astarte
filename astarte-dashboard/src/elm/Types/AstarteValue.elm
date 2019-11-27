@@ -17,9 +17,10 @@
 -}
 
 
-module Types.AstarteValue exposing (AstarteValue, decoder, toString)
+module Types.AstarteValue exposing (AstarteValue, decoder, isBinaryBlob, isDateTime, isLongInt, toString)
 
 import Json.Decode as Decode exposing (Decoder)
+import Regex exposing (Regex)
 
 
 type AstarteValue
@@ -58,19 +59,76 @@ valueDecoder =
         ]
 
 
+longIntRegex : Regex
+longIntRegex =
+    Regex.fromString "^[\\+-]?[\\d]+$"
+        |> Maybe.withDefault Regex.never
+
+
+base64Regex : Regex
+base64Regex =
+    Regex.fromString "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+        |> Maybe.withDefault Regex.never
+
+
+dateTimeRegex : Regex
+dateTimeRegex =
+    Regex.fromString "^([\\+-]?\\d{4}(?!\\d{2}\\b))((-?)((0[1-9]|1[0-2])(\\3([12]\\d|0[1-9]|3[01]))?|W([0-4]\\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\\d|[12]\\d{2}|3([0-5]\\d|6[1-6])))([T\\s]((([01]\\d|2[0-3])((:?)[0-5]\\d)?|24\\:?00)([\\.,]\\d+(?!:))?)?(\\17[0-5]\\d([\\.,]\\d+)?)?([zZ]|([\\+-])([01]\\d|2[0-3]):?([0-5]\\d)?)?)?)?$"
+        |> Maybe.withDefault Regex.never
+
+
+isBinaryBlob : String -> Bool
+isBinaryBlob value =
+    Regex.contains base64Regex value
+
+
+isDateTime : String -> Bool
+isDateTime value =
+    Regex.contains dateTimeRegex value
+
+
+isLongInt : String -> Bool
+isLongInt value =
+    Regex.contains longIntRegex value
+
+
 lontIntDecoder : Decoder String
 lontIntDecoder =
-    Decode.fail "Not implemented"
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                if Regex.contains longIntRegex str then
+                    Decode.succeed str
+
+                else
+                    Decode.fail "Invalid long integer format"
+            )
 
 
 dateDecoder : Decoder String
 dateDecoder =
-    Decode.fail "Not implemented"
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                if Regex.contains longIntRegex str then
+                    Decode.succeed str
+
+                else
+                    Decode.fail "Invalid date time format"
+            )
 
 
 binaryDecoder : Decoder String
 binaryDecoder =
-    Decode.fail "Not implemented"
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                if Regex.contains longIntRegex str then
+                    Decode.succeed str
+
+                else
+                    Decode.fail "Invalid binary blob value"
+            )
 
 
 toString : AstarteValue -> String
