@@ -522,7 +522,7 @@ defmodule Astarte.RealmManagement.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(devices_statement)
       |> DatabaseQuery.put(:group_name, "devices-by-interface-#{interface_name}-v0")
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, devices_query),
          [key: _device_id] <- DatabaseResult.head(result) do
@@ -544,7 +544,7 @@ defmodule Astarte.RealmManagement.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(devices_statement)
       |> DatabaseQuery.put(:group_name, "devices-with-data-on-interface-#{interface_name}-v0")
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     DatabaseQuery.call(client, devices_query)
   end
@@ -686,7 +686,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.statement(all_paths_statement)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     DatabaseQuery.call(client, all_paths_query)
   end
@@ -736,7 +736,7 @@ defmodule Astarte.RealmManagement.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(interface_versions_statement)
       |> DatabaseQuery.put(:interface_name, interface_name)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, query),
          [head | tail] <- Enum.to_list(result) do
@@ -767,7 +767,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.statement(interface_available_major_statement)
       |> DatabaseQuery.put(:interface_name, interface_name)
       |> DatabaseQuery.put(:interface_major, interface_major)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, query),
          [count: count] <- DatabaseResult.head(result) do
@@ -794,7 +794,7 @@ defmodule Astarte.RealmManagement.Queries do
     all_names_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(all_names_statement)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, all_names_query) do
       found_name =
@@ -839,7 +839,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.statement(all_interface_cols_statement)
       |> DatabaseQuery.put(:name, interface_name)
       |> DatabaseQuery.put(:major_version, interface_major)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     all_endpoints_cols_statement = """
     SELECT *
@@ -850,7 +850,7 @@ defmodule Astarte.RealmManagement.Queries do
     endpoints_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(all_endpoints_cols_statement)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, query),
          interface_row when is_list(interface_row) <- DatabaseResult.head(result),
@@ -934,7 +934,7 @@ defmodule Astarte.RealmManagement.Queries do
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(interfaces_list_statement)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, query) do
       list =
@@ -968,7 +968,7 @@ defmodule Astarte.RealmManagement.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(simple_triggers_statement)
       |> DatabaseQuery.put(:object_id, object_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(db_client, simple_triggers_query),
          [count: count] <- DatabaseResult.head(result) do

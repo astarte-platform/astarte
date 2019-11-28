@@ -40,7 +40,7 @@ defmodule Astarte.RealmManagement.Engine do
     _ = Logger.debug("Get health.")
 
     with {:ok, client} <- Database.connect(),
-         :ok <- Queries.check_astarte_health(client, :each_quorum) do
+         :ok <- Queries.check_astarte_health(client, :quorum) do
       {:ok, %{status: :ready}}
     else
       {:error, :health_check_bad} ->
