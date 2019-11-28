@@ -12,9 +12,6 @@ env:
   jobs:
     - RABBITMQ_VERSION=3.7.21 CASSANDRA_IMAGE=cassandra:3.11.5
     - RABBITMQ_VERSION=3.7.21 CASSANDRA_IMAGE=scylladb/scylla:3.1.1
-jobs:
-  allow_failures:
-    - env: RABBITMQ_VERSION=3.7.21 CASSANDRA_IMAGE=scylladb/scylla:3.1.1
 cache:
   directories:
     - deps
