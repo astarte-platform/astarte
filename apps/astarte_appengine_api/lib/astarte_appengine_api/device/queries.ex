@@ -680,7 +680,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(device_id_statement)
       |> DatabaseQuery.put(:device_alias, device_alias)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, device_id_query),
          [object_uuid: device_id] <- DatabaseResult.head(result) do
@@ -768,7 +768,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(retrieve_aliases_statement)
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+      |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
          [aliases: aliases] <- DatabaseResult.head(result),
