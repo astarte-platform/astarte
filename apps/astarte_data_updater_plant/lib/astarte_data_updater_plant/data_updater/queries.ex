@@ -490,8 +490,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         last_disconnection=:last_disconnection,
         total_received_msgs=:total_received_msgs,
         total_received_bytes=:total_received_bytes,
-        exchanged_bytes_by_interface+=:exchanged_bytes_by_interface,
-        exchanged_msgs_by_interface+=:exchanged_msgs_by_interface
+        exchanged_bytes_by_interface=exchanged_bytes_by_interface + :exchanged_bytes_by_interface,
+        exchanged_msgs_by_interface=exchanged_msgs_by_interface + :exchanged_msgs_by_interface
     WHERE device_id=:device_id
     """
 
