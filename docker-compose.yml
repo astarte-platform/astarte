@@ -1,38 +1,110 @@
 version: '2'
 services:
-  # Astarte main services
-  astarte-standalone:
-    image: astarte/astarte:snapshot
+  astarte-housekeeping:
+    image: astarte/astarte_housekeeping:snapshot
+    env_file:
+     - ./compose.env
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+      - "cassandra"
+
+  astarte-housekeeping-api:
+    image: astarte/astarte_housekeeping_api:snapshot
     env_file:
      - ./compose.env
     environment:
-      ASTARTE_CASSANDRA_NODES: "cassandra:9042"
+      HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping.pub"
+    ports:
+      - "4001:4001"
+    volumes:
+      - ./compose/astarte-keys/housekeeping.pub:/keys/housekeeping.pub
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+
+  astarte-realm-management:
+    image: astarte/astarte_realm_management:snapshot
+    env_file:
+     - ./compose.env
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+      - "cassandra"
+
+  astarte-realm-management-api:
+    image: astarte/astarte_realm_management_api:snapshot
+    env_file:
+     - ./compose.env
+    ports:
+      - "4000:4000"
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+
+  astarte-pairing:
+    image: astarte/astarte_pairing:snapshot
+    env_file:
+     - ./compose.env
+    environment:
+      PAIRING_CFSSL_URL: "http://cfssl:8080"
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+      - "cassandra"
+
+  astarte-pairing-api:
+    image: astarte/astarte_pairing_api:snapshot
+    env_file:
+     - ./compose.env
+    ports:
+      - "4003:4003"
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+
+  astarte-appengine-api:
+    image: astarte/astarte_appengine_api:snapshot
+    env_file:
+     - ./compose.env
+    environment:
       APPENGINE_API_MQTT_HOST: "vernemq"
       APPENGINE_API_MQTT_USERNAME: "appengine"
       APPENGINE_API_MQTT_PASSWORD: "appengine"
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
+    ports:
+      - "4002:4002"
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+      - "cassandra"
+
+  astarte-data-updater-plant:
+    image: astarte/astarte_data_updater_plant:snapshot
+    env_file:
+     - ./compose.env
+    environment:
       DATA_UPDATER_PLANT_AMQP_CONSUMER_HOST: "rabbitmq"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST: "rabbitmq"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_PORT: "5672"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_USERNAME: "guest"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_PASSWORD: "guest"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_VIRTUAL_HOST: "/"
-      TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
-      ASTARTE_RPC_AMQP_CONNECTION_HOST: "rabbitmq"
-      HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping.pub"
-      PAIRING_CFSSL_URL: "http://cfssl:8080"
-    ports:
-      - "4000:4000"
-      - "4001:4001"
-      - "4002:4002"
-      - "4003:4003"
-    volumes:
-      - ./compose/astarte-keys/housekeeping.pub:/keys/housekeeping.pub
+    restart: on-failure
     depends_on:
       - "rabbitmq"
       - "cassandra"
-      - "vernemq"
-    # We don't wait for anything, as supervisord will restart stuff until it hits.
+
+  astarte-trigger-engine:
+    image: astarte/astarte_trigger_engine:snapshot
+    env_file:
+     - ./compose.env
+    environment:
+      TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
+    restart: on-failure
+    depends_on:
+      - "rabbitmq"
+      - "cassandra"
 
   astarte-dashboard:
     image: astarte/astarte-dashboard:snapshot
@@ -41,18 +113,20 @@ services:
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json
     depends_on:
-      - "astarte-standalone"
+      - "astarte-realm-management-api"
+      - "astarte-appengine-api"
 
   astarte-grafana:
     image: astarte/grafana:snapshot
     ports:
       - "3000:3000"
     depends_on:
-      - "astarte-standalone"
+      - "astarte-appengine-api"
 
   # RabbitMQ
   rabbitmq:
     image: rabbitmq:3.7
+    restart: on-failure
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
 
