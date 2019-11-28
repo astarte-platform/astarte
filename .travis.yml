@@ -10,7 +10,11 @@ env:
   global:
     - CASSANDRA_DB_HOST=localhost MIX_ENV=test
   jobs:
-    - CASSANDRA_IMAGE=cassandra:3.11.4
+    - CASSANDRA_IMAGE=cassandra:3.11.5
+    - CASSANDRA_IMAGE=scylladb/scylla:3.1.1
+jobs:
+  allow_failures:
+    - env: CASSANDRA_IMAGE=scylladb/scylla:3.1.1
 cache:
   directories:
     - deps
@@ -25,4 +29,5 @@ before_script:
   # Needed or Elixir 1.6 will fail due to a non-updated index
   - ~/.mix/rebar3 update
 script:
+  - mix format --check-formatted
   - mix coveralls.travis
