@@ -61,16 +61,6 @@ init interfaceMapping editMode isProperties isObject shown =
     }
 
 
-show : Model -> Model
-show model =
-    { model | visibility = Modal.shown }
-
-
-hide : Model -> Model
-hide model =
-    { model | visibility = Modal.hidden }
-
-
 type ModalResult
     = ModalCancel
     | ModalOk
