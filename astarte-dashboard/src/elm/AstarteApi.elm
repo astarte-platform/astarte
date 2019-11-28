@@ -44,7 +44,6 @@ import Http
 import Json.Decode as Decode
     exposing
         ( Decoder
-        , andThen
         , at
         , decodeString
         , field
@@ -57,8 +56,6 @@ import Json.Decode as Decode
         )
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode exposing (Value)
-import JsonHelpers
-import Task
 import Types.Device as Device exposing (Device)
 import Types.Interface as Interface exposing (Interface)
 import Types.RealmConfig as RealmConfig exposing (RealmConfig)

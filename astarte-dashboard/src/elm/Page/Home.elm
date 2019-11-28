@@ -31,7 +31,7 @@ import Html exposing (Html, a, br, div, h2, h5, img, p, text)
 import Html.Attributes exposing (class, href, src, target)
 import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
 

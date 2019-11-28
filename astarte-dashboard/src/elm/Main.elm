@@ -28,7 +28,6 @@ import Browser exposing (UrlRequest(..))
 import Browser.Navigation
 import Html exposing (Html, a, div, hr, img, li, p, small, span, text, ul)
 import Html.Attributes exposing (class, classList, href, src, style)
-import Http
 import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode

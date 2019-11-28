@@ -23,7 +23,7 @@ module Types.RealmConfig exposing
     , encode
     )
 
-import Json.Decode as Decode exposing (Decoder, Value, field, map, string)
+import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
 
 
@@ -40,4 +40,4 @@ encode config =
 
 decoder : Decoder RealmConfig
 decoder =
-    map RealmConfig (field "jwt_public_key_pem" string)
+    Decode.map RealmConfig (Decode.field "jwt_public_key_pem" Decode.string)

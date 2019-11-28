@@ -21,22 +21,20 @@ module Page.Device exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import AstarteApi
 import Bootstrap.Badge as Badge
-import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
-import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (Html, h5)
 import Html.Attributes exposing (class)
-import Icons exposing (Icon)
-import Json.Decode as Decode exposing (Decoder, Value)
+import Icons
+import Json.Decode as Decode exposing (Decoder)
 import Ports
 import Spinner
 import Time
@@ -44,7 +42,7 @@ import Types.AstarteValue as AstarteValue
 import Types.Device as Device exposing (Device)
 import Types.DeviceEvent as DeviceEvent exposing (DeviceEvent)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
 import Ui.PieChart as PieChart

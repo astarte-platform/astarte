@@ -37,16 +37,15 @@ import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebounce
 import Html exposing (Html, b, h5, text)
 import Html.Attributes exposing (class, for, readonly, selected, value)
 import Html.Events exposing (onSubmit)
-import Icons exposing (Icon)
+import Icons
 import Regex exposing (Regex)
 import Route
 import Spinner
 import Task
-import Time
 import Types.DataTrigger as DataTrigger exposing (DataTrigger, DataTriggerEvent)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger, DeviceTriggerEvent)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping, MappingType(..))

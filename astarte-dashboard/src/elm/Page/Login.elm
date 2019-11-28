@@ -34,11 +34,10 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Browser.Navigation
 import Html exposing (Html, a, img, text)
 import Html.Attributes exposing (class, href, placeholder, src)
-import Http
 import Route
-import Types.Config as Config exposing (AuthConfig(..), AuthType(..), Config, getAuthConfig)
+import Types.Config as Config exposing (AuthConfig(..), AuthType(..), getAuthConfig)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
 import Url.Builder

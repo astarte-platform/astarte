@@ -21,7 +21,6 @@ module Types.DeviceEvent exposing (DeviceEvent, Event(..), decoder)
 
 import Iso8601
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (optional, required)
 import Time
 import Types.AstarteValue as AstarteValue exposing (AstarteValue)
 

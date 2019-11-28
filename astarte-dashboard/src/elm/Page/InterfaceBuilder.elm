@@ -41,18 +41,17 @@ import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
-import Dict exposing (Dict)
+import Dict
 import Html exposing (Html, b, br, h5, p, small, text)
 import Html.Attributes exposing (class, for, selected, value)
 import Html.Events exposing (onSubmit)
-import Icons exposing (Icon)
+import Icons
 import Modal.MappingBuilder as MappingBuilder
 import Route
 import Spinner
 import Task
-import Time exposing (Posix)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping

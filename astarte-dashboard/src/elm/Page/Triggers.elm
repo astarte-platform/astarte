@@ -30,13 +30,12 @@ import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 import Html exposing (Html, a, h4, h5, text)
 import Html.Attributes exposing (class, href)
-import Html.Events exposing (onClick, onInput)
-import Icons exposing (Icon)
-import Json.Decode as Decode
+import Html.Events exposing (onClick)
+import Icons
 import Route
 import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
 

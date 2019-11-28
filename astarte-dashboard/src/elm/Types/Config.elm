@@ -30,8 +30,8 @@ module Types.Config exposing
     , isEditorOnly
     )
 
-import Json.Decode as Decode exposing (Decoder, andThen, bool, field, list, maybe, nullable, string)
-import Json.Decode.Pipeline exposing (optional, required)
+import Json.Decode as Decode exposing (Decoder, andThen, field, list, maybe, nullable, string)
+import Json.Decode.Pipeline exposing (optional)
 import JsonHelpers as JsonHelpers
 
 
