@@ -203,7 +203,7 @@ deviceRow device =
                     , Table.td [] [ Html.text <| "Connected at " ++ lastConnection ]
                     )
 
-                ( Just lastConnection, False ) ->
+                ( Just _, False ) ->
                     ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-disconnected", Spacing.ml3 ] ]
                     , Table.td [] [ Html.text <| "Disconnected at " ++ Maybe.withDefault "" device.lastDisconnection ]
                     )

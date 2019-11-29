@@ -117,7 +117,7 @@ update message model =
                     , Noop
                     )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Noop
                     )
@@ -132,7 +132,7 @@ update message model =
                     , Noop
                     )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Noop
                     )
@@ -157,7 +157,7 @@ update message model =
                     , Noop
                     )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Noop
                     )

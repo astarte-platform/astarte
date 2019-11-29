@@ -191,7 +191,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Trigger.Device deviceTrigger ->
+                Trigger.Device _ ->
                     ( { model
                         | trigger = trigger
                         , editMode = True
@@ -903,7 +903,6 @@ view model flashMessages =
                     Col.attrs [ Display.none ]
                 ]
                 [ renderTriggerSource
-                    model.trigger
                     model.sourceBuffer
                     model.sourceBufferStatus
                     model.editMode
@@ -1307,8 +1306,8 @@ renderDeviceTrigger deviceTrigger editMode =
     ]
 
 
-renderTriggerSource : Trigger -> String -> BufferStatus -> Bool -> Html Msg
-renderTriggerSource trigger sourceBuffer status editMode =
+renderTriggerSource : String -> BufferStatus -> Bool -> Html Msg
+renderTriggerSource sourceBuffer status editMode =
     Textarea.textarea
         [ Textarea.id "triggerSource"
         , Textarea.attrs [ readonly editMode ]

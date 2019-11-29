@@ -74,7 +74,7 @@ update (SuggestionPopup status) msg =
         AutoHide ->
             SuggestionPopup { status | timeoutCounter = 2 }
 
-        CountDown now ->
+        CountDown _ ->
             if status.timeoutCounter > 1 then
                 SuggestionPopup { status | timeoutCounter = status.timeoutCounter - 1 }
 

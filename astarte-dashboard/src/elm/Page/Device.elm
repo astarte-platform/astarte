@@ -283,7 +283,7 @@ deviceStatsCard device width =
         piecharList =
             (introspectionStats ++ [ others ])
                 |> List.map (\info -> ( info.name, toFloat info.bytes ))
-                |> List.filter (\( name, val ) -> val > 0)
+                |> List.filter (\t -> Tuple.second t > 0)
 
         listLength =
             List.length piecharList
@@ -331,7 +331,7 @@ deviceStatsCard device width =
 
 
 labelHelper : ( String, Float ) -> Color -> Html Msg
-labelHelper ( name, val ) color =
+labelHelper ( name, _ ) color =
     Html.li []
         [ Html.span
             [ class "square"

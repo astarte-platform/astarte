@@ -693,7 +693,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -728,7 +728,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -945,7 +945,7 @@ view model flashMessages =
                   else
                     Col.attrs [ Display.none ]
                 ]
-                [ renderInterfaceSource model.interface model.sourceBuffer model.sourceBufferStatus ]
+                [ renderInterfaceSource model.sourceBuffer model.sourceBufferStatus ]
             ]
         , Grid.row []
             [ Grid.col
@@ -1346,8 +1346,8 @@ renderConfirmButton editMode =
         ]
 
 
-renderInterfaceSource : Interface -> String -> BufferStatus -> Html Msg
-renderInterfaceSource interface sourceBuffer status =
+renderInterfaceSource : String -> BufferStatus -> Html Msg
+renderInterfaceSource sourceBuffer status =
     Textarea.textarea
         [ Textarea.id "interfaceSource"
         , Textarea.rows 30

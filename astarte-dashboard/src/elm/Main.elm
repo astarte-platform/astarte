@@ -426,7 +426,7 @@ pageInit realmRoute config session =
 
         Route.Logout ->
             let
-                ( page, command, updatedSession ) =
+                ( page, _, updatedSession ) =
                     initLoginPage config session
 
                 logoutPath =
@@ -1032,8 +1032,8 @@ renderPage model page =
         Public publicPage ->
             renderPublicPage model.flashMessages publicPage
 
-        Realm realm realmPage ->
-            renderProtectedPage model.flashMessages realm realmPage
+        Realm _ realmPage ->
+            renderProtectedPage model.flashMessages realmPage
 
 
 renderPublicPage : List FlashMessage -> PublicPage -> Html Msg
@@ -1044,8 +1044,8 @@ renderPublicPage flashMessages page =
                 |> Html.map LoginMsg
 
 
-renderProtectedPage : List FlashMessage -> String -> RealmPage -> Html Msg
-renderProtectedPage flashMessages realm page =
+renderProtectedPage : List FlashMessage -> RealmPage -> Html Msg
+renderProtectedPage flashMessages page =
     case page of
         HomePage submodel ->
             Home.view submodel flashMessages

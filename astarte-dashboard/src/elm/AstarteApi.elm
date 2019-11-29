@@ -116,7 +116,7 @@ handleHttpResponse decoder response =
         Http.BadStatus_ metadata body ->
             Err <| parseBadStatus metadata body
 
-        Http.GoodStatus_ metadata body ->
+        Http.GoodStatus_ _ body ->
             case decodeString decoder body of
                 Ok value ->
                     Ok value
@@ -140,7 +140,7 @@ handleHttpResponseIgnoringContent response =
         Http.BadStatus_ metadata body ->
             Err <| parseBadStatus metadata body
 
-        Http.GoodStatus_ metadata body ->
+        Http.GoodStatus_ _ _ ->
             Ok ()
 
 
