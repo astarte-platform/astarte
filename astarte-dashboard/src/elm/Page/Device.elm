@@ -729,12 +729,7 @@ renderIntrospectionValue value =
 
 nonEmptyValue : ( String, Maybe String ) -> Maybe ( String, String )
 nonEmptyValue ( label, maybeVal ) =
-    case maybeVal of
-        Just value ->
-            Just ( label, value )
-
-        Nothing ->
-            Nothing
+    Maybe.map (\v -> ( label, v )) maybeVal
 
 
 timeToString : Time.Posix -> String
