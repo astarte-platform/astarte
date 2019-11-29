@@ -36,6 +36,7 @@ import Html.Attributes exposing (class, href)
 import Html.Events
 import Icons
 import Json.Decode as Decode exposing (Decoder)
+import ListUtils exposing (addWhen)
 import Modal.NewAlias as NewAlias
 import Ports
 import Spinner
@@ -54,6 +55,7 @@ type alias Model =
     { deviceId : String
     , device : Maybe Device
     , receivedEvents : List JSEvent
+    , portConnected : Bool
     , spinner : Spinner.Model
     , showSpinner : Bool
     , newAliasModal : NewAlias.Model
@@ -64,6 +66,7 @@ init : Session -> String -> ( Model, Cmd Msg )
 init session deviceId =
     ( { deviceId = deviceId
       , device = Nothing
+      , portConnected = False
       , receivedEvents = []
       , spinner = Spinner.init
       , showSpinner = True
@@ -75,6 +78,7 @@ init session deviceId =
 
 type Msg
     = Refresh
+    | UpdateDeviceInfo Time.Posix
     | Forward ExternalMsg
     | OpenNewAliasPopup
     | UpdateModal NewAlias.Msg
@@ -96,35 +100,21 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        DeviceInfosDone (Ok device) ->
-            let
-                interfaces =
-                    device.introspection
-                        |> List.map
-                            (\i ->
-                                case i of
-                                    Device.InterfaceInfo name major _ _ _ ->
-                                        { name = name
-                                        , major = major
-                                        }
-                            )
-
-                phoenixSocketParams =
-                    { secureConnection = session.apiConfig.secureConnection
-                    , appengineUrl = session.apiConfig.appengineUrl
-                    , realm = session.apiConfig.realm
-                    , token = session.apiConfig.token
-                    , deviceId = model.deviceId
-                    , interfaces = interfaces
-                    }
-            in
-            ( { model
-                | device = Just device
-                , showSpinner = False
-              }
-            , Ports.listenToDeviceEvents phoenixSocketParams
+        UpdateDeviceInfo _ ->
+            ( model
+            , AstarteApi.deviceInfos session.apiConfig model.deviceId <| DeviceInfosDone
             , ExternalMsg.Noop
             )
+
+        DeviceInfosDone (Ok device) ->
+            if model.portConnected then
+                ( { model | device = Just device }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
+
+            else
+                connectToPort model session device
 
         DeviceInfosDone (Err error) ->
             let
@@ -227,6 +217,39 @@ handleModalCommand session model cmd =
 
         ( _, NewAlias.Noop ) ->
             Cmd.none
+
+
+connectToPort : Model -> Session -> Device -> ( Model, Cmd Msg, ExternalMsg )
+connectToPort model session device =
+    let
+        interfaces =
+            device.introspection
+                |> List.map
+                    (\i ->
+                        case i of
+                            Device.InterfaceInfo name major _ _ _ ->
+                                { name = name
+                                , major = major
+                                }
+                    )
+
+        phoenixSocketParams =
+            { secureConnection = session.apiConfig.secureConnection
+            , appengineUrl = session.apiConfig.appengineUrl
+            , realm = session.apiConfig.realm
+            , token = session.apiConfig.token
+            , deviceId = model.deviceId
+            , interfaces = interfaces
+            }
+    in
+    ( { model
+        | device = Just device
+        , portConnected = True
+        , showSpinner = False
+      }
+    , Ports.listenToDeviceEvents phoenixSocketParams
+    , ExternalMsg.Noop
+    )
 
 
 type CardWidth
@@ -928,14 +951,11 @@ jsReplyDecoder =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.showSpinner then
-        Sub.batch
-            [ Sub.map SpinnerMsg Spinner.subscription
-            , Sub.map OnDeviceEventReceived deviceEventReceived
-            ]
-
-    else
-        Sub.map OnDeviceEventReceived deviceEventReceived
+    [ Sub.map OnDeviceEventReceived deviceEventReceived
+    , Time.every (30 * 1000) UpdateDeviceInfo
+    ]
+        |> addWhen model.showSpinner (Sub.map SpinnerMsg Spinner.subscription)
+        |> Sub.batch
 
 
 deviceEventReceived : Sub (Result Decode.Error JSEvent)
