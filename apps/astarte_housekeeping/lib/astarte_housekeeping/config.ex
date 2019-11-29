@@ -23,4 +23,12 @@ defmodule Astarte.Housekeeping.Config do
   def astarte_keyspace_replication_factor do
     Application.get_env(:astarte_housekeeping, :astarte_keyspace_replication_factor, 1)
   end
+
+  @doc """
+  Returns Cassandra nodes formatted in the Xandra format.
+  """
+  def xandra_nodes do
+    Application.get_env(:astarte_data_access, :cassandra_nodes, "localhost")
+    |> String.split(",")
+  end
 end
