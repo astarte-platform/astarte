@@ -203,7 +203,6 @@ type Msg
     | UpdateInterfaceType Interface.InterfaceType
     | UpdateInterfaceAggregation Interface.AggregationType
     | UpdateInterfaceOwnership Interface.Owner
-    | UpdateInterfaceHasMeta Bool
     | UpdateInterfaceDescription String
     | UpdateInterfaceDoc String
       -- common mapping messages
@@ -611,19 +610,6 @@ update session msg model =
             let
                 newInterface =
                     Interface.setOwnership newOwner model.interface
-            in
-            ( { model
-                | interface = newInterface
-                , sourceBuffer = Interface.toPrettySource newInterface
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
-        UpdateInterfaceHasMeta hasMeta ->
-            let
-                newInterface =
-                    Interface.setHasMeta hasMeta model.interface
             in
             ( { model
                 | interface = newInterface
