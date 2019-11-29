@@ -86,7 +86,7 @@ realmRouteParser =
 fromUrl : Url -> ( Maybe Route, Maybe String )
 fromUrl url =
     ( parse routeParser url
-    , parseToken url.fragment
+    , url.fragment |> Maybe.andThen parseToken
     )
 
 
@@ -156,20 +156,15 @@ toString route =
     "/" ++ String.join "/" pieces
 
 
-parseToken : Maybe String -> Maybe String
-parseToken maybeFragment =
-    case maybeFragment of
-        Nothing ->
-            Nothing
+parseToken : String -> Maybe String
+parseToken hash =
+    if String.isEmpty hash then
+        Nothing
 
-        Just hash ->
-            if String.isEmpty hash then
-                Nothing
-
-            else
-                String.split "&" hash
-                    |> List.filter (String.contains "access_token")
-                    |> List.head
-                    |> Maybe.map (String.split "=")
-                    |> Maybe.map List.reverse
-                    |> Maybe.andThen List.head
+    else
+        String.split "&" hash
+            |> List.filter (String.contains "access_token")
+            |> List.head
+            |> Maybe.map (String.split "=")
+            |> Maybe.map List.reverse
+            |> Maybe.andThen List.head

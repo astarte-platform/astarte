@@ -108,11 +108,6 @@ setInterfaceMajor major dataTrigger =
     { dataTrigger | interfaceMajor = major }
 
 
-setDataTriggerEvent : DataTriggerEvent -> DataTrigger -> DataTrigger
-setDataTriggerEvent dataTriggerEvent dataTrigger =
-    { dataTrigger | on = dataTriggerEvent }
-
-
 setPath : String -> DataTrigger -> DataTrigger
 setPath path dataTrigger =
     { dataTrigger | path = path }

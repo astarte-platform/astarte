@@ -19,7 +19,7 @@
 
 module Ui.PieChart exposing (view)
 
-import Array exposing (Array)
+import Array
 import Color exposing (Color)
 import Path
 import Shape exposing (defaultPieConfig)

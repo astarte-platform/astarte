@@ -104,9 +104,7 @@ encode t =
         [ ( "name", Encode.string t.name )
         , ( "action"
           , Encode.object
-                ([ ( "http_post_url", Encode.string t.url ) ]
-                    ++ templateEncoder t.template
-                )
+                (( "http_post_url", Encode.string t.url ) :: templateEncoder t.template)
           )
         , ( "simple_triggers", Encode.list simpleTriggerEncoder [ t.simpleTrigger ] )
         ]

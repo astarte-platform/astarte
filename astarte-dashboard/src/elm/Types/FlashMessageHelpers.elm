@@ -23,7 +23,7 @@ import Bootstrap.ListGroup as ListGroup
 import Html exposing (Html, li, text, ul)
 import Html.Events exposing (onClick)
 import Types.ExternalMessage exposing (ExternalMsg(..))
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 
 
 renderFlashMessages : List FlashMessage -> (ExternalMsg -> a) -> Html a

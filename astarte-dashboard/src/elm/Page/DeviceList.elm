@@ -28,15 +28,15 @@ import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
-import Dict exposing (Dict)
+import Dict
 import Html exposing (Html, h5)
-import Html.Attributes exposing (class, for, href)
-import Icons exposing (Icon)
+import Html.Attributes exposing (class, href)
+import Icons
 import Route
 import Spinner
 import Types.Device exposing (Device)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
 
@@ -203,7 +203,7 @@ deviceRow device =
                     , Table.td [] [ Html.text <| "Connected at " ++ lastConnection ]
                     )
 
-                ( Just lastConnection, False ) ->
+                ( Just _, False ) ->
                     ( Table.td [] [ Icons.render Icons.FullCircle [ class "icon-disconnected", Spacing.ml3 ] ]
                     , Table.td [] [ Html.text <| "Disconnected at " ++ Maybe.withDefault "" device.lastDisconnection ]
                     )

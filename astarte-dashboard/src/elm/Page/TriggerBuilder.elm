@@ -37,16 +37,15 @@ import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebounce
 import Html exposing (Html, b, h5, text)
 import Html.Attributes exposing (class, for, readonly, selected, value)
 import Html.Events exposing (onSubmit)
-import Icons exposing (Icon)
+import Icons
 import Regex exposing (Regex)
 import Route
 import Spinner
 import Task
-import Time
 import Types.DataTrigger as DataTrigger exposing (DataTrigger, DataTriggerEvent)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger, DeviceTriggerEvent)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping, MappingType(..))
@@ -192,7 +191,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Trigger.Device deviceTrigger ->
+                Trigger.Device _ ->
                     ( { model
                         | trigger = trigger
                         , editMode = True
@@ -904,7 +903,6 @@ view model flashMessages =
                     Col.attrs [ Display.none ]
                 ]
                 [ renderTriggerSource
-                    model.trigger
                     model.sourceBuffer
                     model.sourceBufferStatus
                     model.editMode
@@ -1099,7 +1097,7 @@ renderSimpleTrigger model =
                 Trigger.Device _ ->
                     False
     in
-    [ Form.row []
+    Form.row []
         [ Form.col [ Col.sm12 ]
             [ Form.group []
                 [ Form.label [ for "triggerSimpleTriggerType" ] [ text "Trigger type" ]
@@ -1122,8 +1120,7 @@ renderSimpleTrigger model =
                 ]
             ]
         ]
-    ]
-        ++ (case model.trigger.simpleTrigger of
+        :: (case model.trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
                     renderDataTrigger dataTrigger model
 
@@ -1308,8 +1305,8 @@ renderDeviceTrigger deviceTrigger editMode =
     ]
 
 
-renderTriggerSource : Trigger -> String -> BufferStatus -> Bool -> Html Msg
-renderTriggerSource trigger sourceBuffer status editMode =
+renderTriggerSource : String -> BufferStatus -> Bool -> Html Msg
+renderTriggerSource sourceBuffer status editMode =
     Textarea.textarea
         [ Textarea.id "triggerSource"
         , Textarea.attrs [ readonly editMode ]

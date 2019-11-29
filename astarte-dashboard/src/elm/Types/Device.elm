@@ -21,7 +21,7 @@ module Types.Device exposing (Device, IntrospectionValue(..), decoder)
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (optional, required)
+import Json.Decode.Pipeline exposing (required)
 
 
 type alias Device =

@@ -23,7 +23,7 @@ import Bootstrap.Utilities.Display as Display
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick, onMouseLeave)
-import Icons exposing (Icon)
+import Icons
 import Time exposing (Posix)
 
 
@@ -74,7 +74,7 @@ update (SuggestionPopup status) msg =
         AutoHide ->
             SuggestionPopup { status | timeoutCounter = 2 }
 
-        CountDown now ->
+        CountDown _ ->
             if status.timeoutCounter > 1 then
                 SuggestionPopup { status | timeoutCounter = status.timeoutCounter - 1 }
 

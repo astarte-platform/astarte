@@ -21,22 +21,20 @@ module Page.Device exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import AstarteApi
 import Bootstrap.Badge as Badge
-import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
-import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (Html, h5)
 import Html.Attributes exposing (class)
-import Icons exposing (Icon)
-import Json.Decode as Decode exposing (Decoder, Value)
+import Icons
+import Json.Decode as Decode exposing (Decoder)
 import Ports
 import Spinner
 import Time
@@ -44,7 +42,7 @@ import Types.AstarteValue as AstarteValue
 import Types.Device as Device exposing (Device)
 import Types.DeviceEvent as DeviceEvent exposing (DeviceEvent)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
 import Ui.PieChart as PieChart
@@ -210,7 +208,7 @@ renderCard cardName width innerItems =
     Grid.col (classWidth ++ [ Col.attrs [ Spacing.p2 ] ])
         [ Grid.containerFluid
             [ class "bg-white", Border.rounded, Spacing.p3, Size.h100 ]
-            ([ Grid.row
+            (Grid.row
                 [ Row.attrs [ Spacing.mt2 ] ]
                 [ Grid.col [ Col.sm12 ]
                     [ h5
@@ -222,8 +220,7 @@ renderCard cardName width innerItems =
                         [ Html.text cardName ]
                     ]
                 ]
-             ]
-                ++ innerItems
+                :: innerItems
             )
         ]
 
@@ -285,7 +282,7 @@ deviceStatsCard device width =
         piecharList =
             (introspectionStats ++ [ others ])
                 |> List.map (\info -> ( info.name, toFloat info.bytes ))
-                |> List.filter (\( name, val ) -> val > 0)
+                |> List.filter (\t -> Tuple.second t > 0)
 
         listLength =
             List.length piecharList
@@ -333,7 +330,7 @@ deviceStatsCard device width =
 
 
 labelHelper : ( String, Float ) -> Color -> Html Msg
-labelHelper ( name, val ) color =
+labelHelper ( name, _ ) color =
     Html.li []
         [ Html.span
             [ class "square"
@@ -732,12 +729,7 @@ renderIntrospectionValue value =
 
 nonEmptyValue : ( String, Maybe String ) -> Maybe ( String, String )
 nonEmptyValue ( label, maybeVal ) =
-    case maybeVal of
-        Just value ->
-            Just ( label, value )
-
-        Nothing ->
-            Nothing
+    Maybe.map (\v -> ( label, v )) maybeVal
 
 
 timeToString : Time.Posix -> String

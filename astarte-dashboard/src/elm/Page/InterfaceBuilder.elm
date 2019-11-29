@@ -41,18 +41,17 @@ import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
-import Dict exposing (Dict)
+import Dict
 import Html exposing (Html, b, br, h5, p, small, text)
 import Html.Attributes exposing (class, for, selected, value)
 import Html.Events exposing (onSubmit)
-import Icons exposing (Icon)
+import Icons
 import Modal.MappingBuilder as MappingBuilder
 import Route
 import Spinner
 import Task
-import Time exposing (Posix)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping
@@ -204,7 +203,6 @@ type Msg
     | UpdateInterfaceType Interface.InterfaceType
     | UpdateInterfaceAggregation Interface.AggregationType
     | UpdateInterfaceOwnership Interface.Owner
-    | UpdateInterfaceHasMeta Bool
     | UpdateInterfaceDescription String
     | UpdateInterfaceDoc String
       -- common mapping messages
@@ -621,19 +619,6 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        UpdateInterfaceHasMeta hasMeta ->
-            let
-                newInterface =
-                    Interface.setHasMeta hasMeta model.interface
-            in
-            ( { model
-                | interface = newInterface
-                , sourceBuffer = Interface.toPrettySource newInterface
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
         UpdateInterfaceDescription newDescription ->
             let
                 newInterface =
@@ -694,7 +679,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -729,7 +714,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Err err ->
+                Err _ ->
                     ( model
                     , Cmd.none
                     , ExternalMsg.Noop
@@ -946,7 +931,7 @@ view model flashMessages =
                   else
                     Col.attrs [ Display.none ]
                 ]
-                [ renderInterfaceSource model.interface model.sourceBuffer model.sourceBufferStatus ]
+                [ renderInterfaceSource model.sourceBuffer model.sourceBufferStatus ]
             ]
         , Grid.row []
             [ Grid.col
@@ -1347,8 +1332,8 @@ renderConfirmButton editMode =
         ]
 
 
-renderInterfaceSource : Interface -> String -> BufferStatus -> Html Msg
-renderInterfaceSource interface sourceBuffer status =
+renderInterfaceSource : String -> BufferStatus -> Html Msg
+renderInterfaceSource sourceBuffer status =
     Textarea.textarea
         [ Textarea.id "interfaceSource"
         , Textarea.rows 30
@@ -1440,11 +1425,10 @@ renderMappingHeader mapping =
     Accordion.headerH5 [] (Accordion.toggle [] [ text mapping.endpoint ])
         |> Accordion.appendHeader
             (if mapping.draft then
-                [ small
+                small
                     [ Display.inline, Spacing.p2 ]
                     [ text <| mappingTypeToEnglishString mapping.mType ]
-                ]
-                    ++ renderMappingControls mapping
+                    :: renderMappingControls mapping
 
              else
                 [ small

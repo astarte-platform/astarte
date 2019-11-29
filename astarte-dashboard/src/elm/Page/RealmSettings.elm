@@ -32,11 +32,11 @@ import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 import Html exposing (Html, h5, p, text)
 import Html.Attributes exposing (class, for)
-import Icons exposing (Icon)
+import Icons
 import Route
 import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
+import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.RealmConfig exposing (RealmConfig)
 import Types.Session exposing (Session)
