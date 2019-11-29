@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - add astarte_import tool, which allows users to import devices and data using XML files.
 
+### Changed
+- Use separate docker images with docker-compose
+- Use Scylla instead of Cassandra with docker-compose
+
 ## [0.10.1] - 2019-10-02
 
 ## [0.10.0] - 2019-04-16
