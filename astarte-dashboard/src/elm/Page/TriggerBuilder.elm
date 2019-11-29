@@ -1097,7 +1097,7 @@ renderSimpleTrigger model =
                 Trigger.Device _ ->
                     False
     in
-    [ Form.row []
+    Form.row []
         [ Form.col [ Col.sm12 ]
             [ Form.group []
                 [ Form.label [ for "triggerSimpleTriggerType" ] [ text "Trigger type" ]
@@ -1120,8 +1120,7 @@ renderSimpleTrigger model =
                 ]
             ]
         ]
-    ]
-        ++ (case model.trigger.simpleTrigger of
+        :: (case model.trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
                     renderDataTrigger dataTrigger model
 

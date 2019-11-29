@@ -1425,11 +1425,10 @@ renderMappingHeader mapping =
     Accordion.headerH5 [] (Accordion.toggle [] [ text mapping.endpoint ])
         |> Accordion.appendHeader
             (if mapping.draft then
-                [ small
+                small
                     [ Display.inline, Spacing.p2 ]
                     [ text <| mappingTypeToEnglishString mapping.mType ]
-                ]
-                    ++ renderMappingControls mapping
+                    :: renderMappingControls mapping
 
              else
                 [ small

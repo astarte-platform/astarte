@@ -208,7 +208,7 @@ renderCard cardName width innerItems =
     Grid.col (classWidth ++ [ Col.attrs [ Spacing.p2 ] ])
         [ Grid.containerFluid
             [ class "bg-white", Border.rounded, Spacing.p3, Size.h100 ]
-            ([ Grid.row
+            (Grid.row
                 [ Row.attrs [ Spacing.mt2 ] ]
                 [ Grid.col [ Col.sm12 ]
                     [ h5
@@ -220,8 +220,7 @@ renderCard cardName width innerItems =
                         [ Html.text cardName ]
                     ]
                 ]
-             ]
-                ++ innerItems
+                :: innerItems
             )
         ]
 
