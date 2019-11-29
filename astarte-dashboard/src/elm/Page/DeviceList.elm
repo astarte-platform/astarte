@@ -32,8 +32,10 @@ import Dict
 import Html exposing (Html, h5)
 import Html.Attributes exposing (class, href)
 import Icons
+import ListUtils exposing (addWhen)
 import Route
 import Spinner
+import Time
 import Types.Device exposing (Device)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage)
@@ -60,6 +62,7 @@ init session =
 
 type Msg
     = RefreshTable
+    | RefreshDeviceList Time.Posix
     | Forward ExternalMsg
       -- spinner
     | SpinnerMsg Spinner.Msg
@@ -72,6 +75,12 @@ update session msg model =
     case msg of
         RefreshTable ->
             ( { model | showSpinner = True }
+            , AstarteApi.detailedDeviceList session.apiConfig <| DeviceListDone
+            , ExternalMsg.Noop
+            )
+
+        RefreshDeviceList _ ->
+            ( model
             , AstarteApi.detailedDeviceList session.apiConfig <| DeviceListDone
             , ExternalMsg.Noop
             )
@@ -221,8 +230,6 @@ deviceRow device =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.showSpinner then
-        Sub.map SpinnerMsg Spinner.subscription
-
-    else
-        Sub.none
+    [ Time.every (30 * 1000) RefreshDeviceList ]
+        |> addWhen model.showSpinner (Sub.map SpinnerMsg Spinner.subscription)
+        |> Sub.batch
