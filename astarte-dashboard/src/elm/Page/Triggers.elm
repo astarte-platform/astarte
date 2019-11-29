@@ -32,8 +32,10 @@ import Html exposing (Html, a, h4, h5, text)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick)
 import Icons
+import ListUtils exposing (addWhen)
 import Route
 import Spinner
+import Time
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
@@ -63,6 +65,7 @@ init session =
 type Msg
     = GetTriggerList
     | GetTriggerListDone (List String)
+    | RefreshTriggerList Time.Posix
     | AddNewTrigger
     | ShowError String AstarteApi.Error
     | RedirectToLogin
@@ -89,6 +92,15 @@ update session msg model =
                 , showSpinner = False
               }
             , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        RefreshTriggerList _ ->
+            ( model
+            , AstarteApi.listTriggers session.apiConfig
+                GetTriggerListDone
+                (ShowError "Could not refresh trigger list")
+                RedirectToLogin
             , ExternalMsg.Noop
             )
 
@@ -204,8 +216,6 @@ renderSingleTrigger triggerName =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.showSpinner then
-        Sub.map SpinnerMsg Spinner.subscription
-
-    else
-        Sub.none
+    [ Time.every (30 * 1000) RefreshTriggerList ]
+        |> addWhen model.showSpinner (Sub.map SpinnerMsg Spinner.subscription)
+        |> Sub.batch
