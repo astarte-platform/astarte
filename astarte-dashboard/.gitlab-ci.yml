@@ -12,6 +12,8 @@ next:build:
         - apt-get -y update
         - apt-get -y install netbase build-essential autoconf libffi-dev
         - npm install
+        - npm install -g elm-analyse
+        - elm-analyse
         - npm run deploy
 
 docker:snapshot-container:
