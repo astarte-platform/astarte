@@ -17,7 +17,7 @@
 -}
 
 
-module Page.Home exposing (Model, Msg, init, update, view)
+module Page.Home exposing (Model, Msg, init, subscriptions, update, view)
 
 import Assets
 import Bootstrap.Grid as Grid
@@ -31,7 +31,7 @@ import Html exposing (Html, a, br, div, h2, h5, img, p, text)
 import Html.Attributes exposing (class, href, src, target)
 import Spinner
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
-import Types.FlashMessage as FlashMessage exposing (FlashMessage)
+import Types.FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
 
@@ -43,7 +43,7 @@ type alias Model =
 
 
 init : Session -> ( Model, Cmd Msg )
-init session =
+init _ =
     ( { spinner = Spinner.init
       , showSpinner = False
       }
@@ -58,7 +58,7 @@ type Msg
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
-update session msg model =
+update _ msg model =
     case msg of
         Forward externalMsg ->
             ( model
