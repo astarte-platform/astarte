@@ -33,6 +33,7 @@ type Icon
     | Device
     | ExclamationMark
     | FullCircle
+    | Group
     | Home
     | Interface
     | Logout
@@ -73,6 +74,9 @@ className icon =
 
         FullCircle ->
             "fa-circle"
+
+        Group ->
+            "fa-object-group"
 
         Home ->
             "fa-home"
