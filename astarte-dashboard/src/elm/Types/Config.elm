@@ -164,8 +164,8 @@ validateChangeset params =
             Decode.succeed <|
                 Standard
                     { secureConnection = False
-                    , realmManagementApiUrl = aeUrl
-                    , appengineApiUrl = rmUrl
+                    , realmManagementApiUrl = rmUrl
+                    , appengineApiUrl = aeUrl
                     , defaultRealm = params.defaultRealm
                     , defaultAuth = params.defaultAuth
                     , enabledAuth = params.enabledAuth
@@ -175,8 +175,8 @@ validateChangeset params =
             Decode.succeed <|
                 Standard
                     { secureConnection = True
-                    , realmManagementApiUrl = aeUrl
-                    , appengineApiUrl = rmUrl
+                    , realmManagementApiUrl = rmUrl
+                    , appengineApiUrl = aeUrl
                     , defaultRealm = params.defaultRealm
                     , defaultAuth = params.defaultAuth
                     , enabledAuth = params.enabledAuth
