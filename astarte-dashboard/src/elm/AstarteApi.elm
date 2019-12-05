@@ -26,6 +26,7 @@ module AstarteApi exposing
     , deleteInterface
     , deleteTrigger
     , detailedDeviceList
+    , deviceData
     , deviceInfos
     , deviceList
     , encodeConfig
@@ -60,6 +61,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode exposing (Value)
 import Types.Device as Device exposing (Device)
+import Types.DeviceData as DeviceData exposing (DeviceData)
 import Types.Interface as Interface exposing (Interface)
 import Types.RealmConfig as RealmConfig exposing (RealmConfig)
 import Types.Trigger as Trigger exposing (Trigger)
@@ -528,6 +530,23 @@ groupList apiConfig resultMsg =
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "groups" ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Decode.string)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+deviceData : Config -> String -> String -> (Result Error (List DeviceData) -> msg) -> Cmd msg
+deviceData apiConfig deviceId interfaceName resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url =
+            buildUrl apiConfig.secureConnection
+                apiConfig.appengineUrl
+                [ apiConfig.realm, "devices", deviceId, "interfaces", interfaceName ]
+                []
+        , body = Http.emptyBody
+        , expect = expectAstarteReply resultMsg <| field "data" DeviceData.decoder
         , timeout = Nothing
         , tracker = Nothing
         }
