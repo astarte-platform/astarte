@@ -30,6 +30,7 @@ defmodule Astarte.Pairing.RPC.Handler do
     AstarteMQTTV1Status,
     Call,
     GenericErrorReply,
+    GenericOkReply,
     GetAgentPublicKeyPEMs,
     GetAgentPublicKeyPEMsReply,
     GetCredentials,
@@ -40,6 +41,7 @@ defmodule Astarte.Pairing.RPC.Handler do
     RegisterDevice,
     RegisterDeviceReply,
     Reply,
+    UnregisterDevice,
     VerifyCredentials,
     VerifyCredentialsReply
   }
@@ -116,6 +118,16 @@ defmodule Astarte.Pairing.RPC.Handler do
         %RegisterDeviceReply{credentials_secret: credentials_secret}
         |> encode_reply(:register_device_reply)
         |> ok_wrap()
+
+      {:error, reason} ->
+        generic_error(reason)
+    end
+  end
+
+  defp call_rpc({:unregister_device, %UnregisterDevice{realm: realm, device_id: device_id}}) do
+    case Engine.unregister_device(realm, device_id) do
+      :ok ->
+        generic_ok()
 
       {:error, reason} ->
         generic_error(reason)
@@ -247,6 +259,12 @@ defmodule Astarte.Pairing.RPC.Handler do
     }
     |> encode_reply(:generic_error_reply)
     |> ok_wrap
+  end
+
+  defp generic_ok do
+    %GenericOkReply{}
+    |> encode_reply(:generic_ok_reply)
+    |> ok_wrap()
   end
 
   defp reason_to_certificate_validation_error(:cert_expired), do: :EXPIRED
