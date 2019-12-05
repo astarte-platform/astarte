@@ -12,7 +12,9 @@ module.exports = merge(common, {
     ],
     devServer: {
         // serve index.html in place of 404 responses
-        historyApiFallback: true,
+        historyApiFallback: {
+          disableDotRule: true
+        },
         contentBase: './src',
         hot: true
     },
