@@ -23,6 +23,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
   alias Astarte.RPC.Protocol.Pairing.{
     GenericErrorReply,
+    GenericOkReply,
     GetAgentPublicKeyPEMsReply,
     RegisterDeviceReply,
     Reply
@@ -52,15 +53,17 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
   @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
   @timeout 30_000
 
+  @encoded_pubkey_response %Reply{
+                             reply:
+                               {:get_agent_public_key_pems_reply,
+                                %GetAgentPublicKeyPEMsReply{
+                                  agent_public_key_pems: @agent_public_key_pems
+                                }}
+                           }
+                           |> Reply.encode()
+
   describe "register device" do
-    @encoded_pubkey_response %Reply{
-                               reply:
-                                 {:get_agent_public_key_pems_reply,
-                                  %GetAgentPublicKeyPEMsReply{
-                                    agent_public_key_pems: @agent_public_key_pems
-                                  }}
-                             }
-                             |> Reply.encode()
+    setup [:verify_on_exit!, :authorize_conn]
 
     @encoded_register_response %Reply{
                                  reply:
@@ -75,17 +78,6 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
                                               %GenericErrorReply{error_name: "already_registered"}}
                                          }
                                          |> Reply.encode()
-
-    setup %{conn: conn} do
-      jwt = JWTTestHelper.gen_jwt_all_access_token()
-
-      conn =
-        conn
-        |> put_req_header("accept", "application/json")
-        |> put_req_header("authorization", "bearer #{jwt}")
-
-      {:ok, conn: conn}
-    end
 
     test "renders credentials_secret when data is valid", %{conn: conn} do
       MockRPCClient
@@ -171,5 +163,75 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
       assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
     end
+  end
+
+  describe "unregister device" do
+    setup [:verify_on_exit!, :authorize_conn]
+
+    @device_id "Lwf5dutoSuqS0kbG44-BOw"
+
+    @encoded_generic_ok_response %Reply{
+                                   reply: {:generic_ok_reply, %GenericOkReply{}}
+                                 }
+                                 |> Reply.encode()
+    @encoded_device_not_registered_response %Reply{
+                                              reply:
+                                                {:generic_error_reply,
+                                                 %GenericErrorReply{
+                                                   error_name: "device_not_registered"
+                                                 }}
+                                            }
+                                            |> Reply.encode()
+
+    test "successful call", %{conn: conn} do
+      MockRPCClient
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_pubkey_response}
+      end)
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_generic_ok_response}
+      end)
+
+      conn = delete(conn, agent_path(conn, :delete, @realm, @device_id))
+      assert response(conn, 204) == ""
+    end
+
+    test "renders errors when device is not registered", %{conn: conn} do
+      MockRPCClient
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_pubkey_response}
+      end)
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_device_not_registered_response}
+      end)
+
+      conn = delete(conn, agent_path(conn, :delete, @realm, @device_id))
+      assert json_response(conn, 404)["errors"] == %{"detail" => "Device not found"}
+    end
+
+    test "renders errors when unauthorized", %{conn: conn} do
+      MockRPCClient
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_pubkey_response}
+      end)
+
+      conn =
+        conn
+        |> delete_req_header("authorization")
+        |> delete(agent_path(conn, :delete, @realm, @device_id))
+
+      assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
+    end
+  end
+
+  defp authorize_conn(%{conn: conn}) do
+    jwt = JWTTestHelper.gen_jwt_all_access_token()
+
+    conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("authorization", "bearer #{jwt}")
+
+    {:ok, conn: conn}
   end
 end

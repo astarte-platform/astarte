@@ -32,6 +32,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     AstarteMQTTV1CredentialsStatus,
     Call,
     GenericErrorReply,
+    GenericOkReply,
     GetAgentPublicKeyPEMs,
     GetAgentPublicKeyPEMsReply,
     GetCredentials,
@@ -42,6 +43,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     RegisterDevice,
     RegisterDeviceReply,
     Reply,
+    UnregisterDevice,
     VerifyCredentials,
     VerifyCredentialsReply
   }
@@ -69,6 +71,14 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   def register_device(realm, hw_id) do
     %RegisterDevice{realm: realm, hw_id: hw_id}
     |> encode_call(:register_device)
+    |> @rpc_client.rpc_call(@destination, @timeout)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def unregister_device(realm, device_id) do
+    %UnregisterDevice{realm: realm, device_id: device_id}
+    |> encode_call(:unregister_device)
     |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
     |> extract_reply()
@@ -166,10 +176,20 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     {:error, :forbidden}
   end
 
+  defp extract_reply(
+         {:generic_error_reply, %GenericErrorReply{error_name: "device_not_registered"}}
+       ) do
+    {:error, :device_not_found}
+  end
+
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 
     {:error, error_map}
+  end
+
+  defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
+    :ok
   end
 
   defp extract_credentials({:astarte_mqtt_v1, %AstarteMQTTV1Credentials{client_crt: client_crt}}) do

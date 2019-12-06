@@ -31,6 +31,10 @@ defmodule Astarte.Pairing.APIWeb.ErrorView do
     %{errors: %{detail: "Page not found"}}
   end
 
+  def render("404_device_not_found.json", _assigns) do
+    %{errors: %{detail: "Device not found"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end

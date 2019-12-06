@@ -27,6 +27,7 @@ defmodule Astarte.Pairing.APIWeb.Router do
     pipe_through :api
 
     post "/:realm_name/agent/devices", AgentController, :create
+    delete "/:realm_name/agent/devices/:device_id", AgentController, :delete
 
     get "/:realm_name/devices/:hw_id", DeviceController, :show_info
 
