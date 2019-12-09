@@ -21,17 +21,6 @@ defmodule Astarte.Housekeeping.Engine do
 
   alias Astarte.Housekeeping.Queries
 
-  def init do
-    client = CQEx.Client.new!()
-
-    unless Queries.astarte_keyspace_exists?(client) do
-      Logger.info("Astarte keyspace not found, creating it")
-      Queries.create_astarte_keyspace(client)
-    else
-      :ok
-    end
-  end
-
   def create_realm(realm, public_key_pem, replication_factor, opts \\ []) do
     Logger.info(
       "create_realm: creating #{realm} with replication: #{inspect(replication_factor)}"

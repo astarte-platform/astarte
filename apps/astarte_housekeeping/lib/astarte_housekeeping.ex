@@ -22,12 +22,9 @@ defmodule Astarte.Housekeeping do
   alias Astarte.RPC.Protocol.Housekeeping, as: Protocol
 
   alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Engine
   alias Astarte.Housekeeping.RPC.Handler
 
   def start(_type, _args) do
-    :ok = Engine.init()
-
     children = [
       {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
