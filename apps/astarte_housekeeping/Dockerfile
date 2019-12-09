@@ -39,5 +39,7 @@ RUN apt-get -qq install libssl1.1
 ARG BUILD_ENV=prod
 
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_housekeeping .
+COPY --from=builder /app/entrypoint.sh .
 
-CMD ["./bin/astarte_housekeeping", "foreground"]
+ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
+CMD ["foreground"]
