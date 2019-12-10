@@ -24,15 +24,25 @@ defmodule Astarte.Housekeeping.QueriesTest do
 
   @realm "test"
 
+  setup_all do
+    DatabaseTestHelper.wait_and_initialize()
+
+    on_exit(fn ->
+      DatabaseTestHelper.drop_astarte_keyspace()
+    end)
+  end
+
+  setup [:realm_cleanup]
+
   test "realm creation" do
+    assert Astarte.Housekeeping.Queries.create_realm(@realm, "testpublickey", 1, []) == :ok
+  end
+
+  defp realm_cleanup(_context) do
     on_exit(fn ->
       DatabaseTestHelper.realm_cleanup(@realm)
     end)
 
-    client = CQEx.Client.new!()
-
-    assert(
-      Astarte.Housekeeping.Queries.create_realm(client, @realm, "testpublickey", 1, []) == :ok
-    )
+    :ok
   end
 end

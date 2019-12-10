@@ -43,6 +43,14 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
 
+  setup_all do
+    :ok = DatabaseTestHelper.wait_and_initialize()
+
+    on_exit(fn ->
+      DatabaseTestHelper.drop_astarte_keyspace()
+    end)
+  end
+
   defp generic_error(
          error_name,
          user_readable_message \\ nil,
