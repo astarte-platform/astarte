@@ -1,6 +1,5 @@
 use Mix.Config
 
-config :cqerl, :cassandra_nodes, [
-  {System.get_env("CASSANDRA_DB_HOST") || "localhost",
-   System.get_env("CASSANDRA_DB_PORT") || 9042}
-]
+config :astarte_data_access,
+       :cassandra_nodes,
+       System.get_env("ASTARTE_CASSANDRA_NODES") || "localhost"
