@@ -107,8 +107,13 @@ allowing a de-facto "retry" until there's certainty the Device has access to its
 Secret*. Please note that when Registering a Device, a new *Credentials Secret* is generated every
 time.
 
+## Unregistering a device
+
 Once the *Credentials Secret* is used for retrieving Credentials for a Transport for the first time,
-Astarte prevents further registration of the same Device again. There's no defined procedure for
-substituting a *Credentials Secret* - it can be done by performing manual operation, but it should
-be considered an unusual/emergency procedure (e.g.: a Device has been tampered and got back to its
-plant with its previous *Credentials Secret* compromised).
+Astarte prevents further registration of the same Device again.
+
+If there's the need of registering the device again (e.g.: a Device has been tampered and got back
+to its plant with its previous *Credentials Secret* compromised), it is possible to explicitly
+unregister the device to obtain a new *Credentials Secret* using [Pairing's Agent
+APIs](api/index.html?urls.primaryName=Pairing%20API#/agent/unregisterDevice) or with `astartectl`
+(see the output of `astartectl pairing agent unregister -h` for more documentation).
