@@ -63,13 +63,15 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_rpc, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true}
+      {:astarte_core, in_umbrella: true},
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_rpc, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
+      {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
       {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
@@ -77,9 +79,7 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp deps do
     [
-      {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
-      {:cqerl,
-       github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
+      {:xandra, "~> 0.13"},
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.10", only: :test},

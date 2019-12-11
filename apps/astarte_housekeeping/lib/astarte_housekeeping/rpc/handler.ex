@@ -74,16 +74,21 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             async_operation: async
           }}
        ) do
-    if Astarte.Housekeeping.Engine.realm_exists?(realm) do
-      generic_error(:existing_realm, "realm already exists")
+    with {:ok, false} <- Astarte.Housekeeping.Engine.is_realm_existing(realm),
+         datacenter_replication_factors_map = Enum.into(datacenter_replication_factors, %{}),
+         :ok <-
+           Engine.create_realm(realm, pub_key, datacenter_replication_factors_map, async: async) do
+      generic_ok(async)
     else
-      datacenter_replication_factors_map = Enum.into(datacenter_replication_factors, %{})
+      # This comes from is_realm_existing
+      {:ok, true} ->
+        generic_error(:existing_realm, "realm already exists")
 
-      case Engine.create_realm(realm, pub_key, datacenter_replication_factors_map, async: async) do
-        {:error, {reason, details}} -> generic_error(reason, details)
-        {:error, reason} -> generic_error(reason)
-        :ok -> generic_ok(async)
-      end
+      {:error, {reason, details}} ->
+        generic_error(reason, details)
+
+      {:error, reason} ->
+        generic_error(reason)
     end
   end
 
@@ -96,23 +101,32 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             async_operation: async
           }}
        ) do
-    if Astarte.Housekeeping.Engine.realm_exists?(realm) do
-      generic_error(:existing_realm, "realm already exists")
+    with {:ok, false} <- Astarte.Housekeeping.Engine.is_realm_existing(realm),
+         :ok <- Engine.create_realm(realm, pub_key, replication_factor, async: async) do
+      generic_ok(async)
     else
-      case Engine.create_realm(realm, pub_key, replication_factor, async: async) do
-        {:error, {reason, details}} -> generic_error(reason, details)
-        {:error, reason} -> generic_error(reason)
-        :ok -> generic_ok(async)
-      end
+      # This comes from is_realm_existing
+      {:ok, true} ->
+        generic_error(:existing_realm, "realm already exists")
+
+      {:error, {reason, details}} ->
+        generic_error(reason, details)
+
+      {:error, reason} ->
+        generic_error(reason)
     end
   end
 
   defp call_rpc({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
-    exists = Astarte.Housekeeping.Engine.realm_exists?(realm)
+    case Astarte.Housekeeping.Engine.is_realm_existing(realm) do
+      {:ok, exists?} ->
+        %DoesRealmExistReply{exists: exists?}
+        |> encode_reply(:does_realm_exist_reply)
+        |> ok_wrap
 
-    %DoesRealmExistReply{exists: exists}
-    |> encode_reply(:does_realm_exist_reply)
-    |> ok_wrap
+      {:error, reason} ->
+        generic_error(reason)
+    end
   end
 
   defp call_rpc({:get_health, %GetHealth{}}) do
@@ -132,11 +146,15 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   end
 
   defp call_rpc({:get_realms_list, %GetRealmsList{}}) do
-    list = Astarte.Housekeeping.Engine.realms_list()
+    case Astarte.Housekeeping.Engine.list_realms() do
+      {:ok, list} ->
+        %GetRealmsListReply{realms_names: list}
+        |> encode_reply(:get_realms_list_reply)
+        |> ok_wrap
 
-    %GetRealmsListReply{realms_names: list}
-    |> encode_reply(:get_realms_list_reply)
-    |> ok_wrap
+      {:error, reason} ->
+        generic_error(reason)
+    end
   end
 
   defp call_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do

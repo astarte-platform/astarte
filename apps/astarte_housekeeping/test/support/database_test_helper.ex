@@ -17,28 +17,52 @@
 #
 
 defmodule Astarte.Housekeeping.DatabaseTestHelper do
-  alias CQEx.{Client, Query}
+  alias Astarte.Housekeeping.Queries
 
-  def realm_cleanup(realm) do
-    c = Client.new!()
+  def wait_and_initialize(retries \\ 10) do
+    case Queries.initialize_database() do
+      :ok ->
+        :ok
 
-    delete_from_astarte_statement = """
-    DELETE FROM astarte.realms
-    WHERE realm_name=:realm_name
-    """
+      {:error, :database_connection_error} ->
+        if retries > 0 do
+          :timer.sleep(100)
+          wait_and_initialize(retries - 1)
+        else
+          {:error, :database_connection_error}
+        end
 
-    delete_from_astarte_query =
-      Query.new()
-      |> Query.statement(delete_from_astarte_statement)
-      |> Query.put(:realm_name, realm)
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
 
-    drop_keyspace_query =
-      Query.new()
-      |> Query.statement("DROP KEYSPACE #{realm}")
+  def drop_astarte_keyspace do
+    query = "DROP KEYSPACE astarte"
 
-    Query.call!(c, delete_from_astarte_query)
-    Query.call!(c, drop_keyspace_query)
+    _ = Xandra.Cluster.execute(:xandra, query, %{}, timeout: 60_000)
 
     :ok
+  end
+
+  def realm_cleanup(realm) do
+    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
+      delete_from_astarte_query = """
+      DELETE FROM astarte.realms
+      WHERE realm_name=:realm_name
+      """
+
+      delete_from_astarte_prepared = Xandra.prepare!(conn, delete_from_astarte_query)
+
+      _ = Xandra.execute!(conn, delete_from_astarte_prepared, %{"realm_name" => realm})
+
+      delete_keyspace_query = """
+      DROP KEYSPACE #{realm}
+      """
+
+      _ = Xandra.execute!(conn, delete_keyspace_query)
+
+      :ok
+    end)
   end
 end

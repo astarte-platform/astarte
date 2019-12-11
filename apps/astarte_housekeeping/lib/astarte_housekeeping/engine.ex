@@ -19,41 +19,26 @@
 defmodule Astarte.Housekeeping.Engine do
   require Logger
 
-  alias CQEx.Client, as: DatabaseClient
-
   alias Astarte.Housekeeping.Queries
-
-  def init do
-    client = CQEx.Client.new!()
-
-    unless Queries.astarte_keyspace_exists?(client) do
-      Logger.info("Astarte keyspace not found, creating it")
-      Queries.create_astarte_keyspace(client)
-    else
-      :ok
-    end
-  end
 
   def create_realm(realm, public_key_pem, replication_factor, opts \\ []) do
     Logger.info(
       "create_realm: creating #{realm} with replication: #{inspect(replication_factor)}"
     )
 
-    client = get_db_client()
-
-    Queries.create_realm(client, realm, public_key_pem, replication_factor, opts)
+    Queries.create_realm(realm, public_key_pem, replication_factor, opts)
   end
 
-  def get_health() do
-    with {:ok, client} <- DatabaseClient.new(),
-         :ok <- Queries.check_astarte_health(client, :each_quorum) do
-      {:ok, %{status: :ready}}
-    else
+  def get_health do
+    case Queries.check_astarte_health(:quorum) do
+      :ok ->
+        {:ok, %{status: :ready}}
+
       {:error, :health_check_bad} ->
-        with {:ok, client} <- DatabaseClient.new(),
-             :ok <- Queries.check_astarte_health(client, :one) do
-          {:ok, %{status: :degraded}}
-        else
+        case Queries.check_astarte_health(:one) do
+          :ok ->
+            {:ok, %{status: :degraded}}
+
           {:error, :health_check_bad} ->
             {:ok, %{status: :bad}}
 
@@ -67,21 +52,14 @@ defmodule Astarte.Housekeeping.Engine do
   end
 
   def get_realm(realm) do
-    get_db_client()
-    |> Queries.get_realm(realm)
+    Queries.get_realm(realm)
   end
 
-  def realm_exists?(realm) do
-    get_db_client()
-    |> Queries.realm_exists?(realm)
+  def is_realm_existing(realm) do
+    Queries.is_realm_existing(realm)
   end
 
-  def realms_list() do
-    get_db_client()
-    |> Queries.realms_list()
-  end
-
-  defp get_db_client do
-    DatabaseClient.new!()
+  def list_realms do
+    Queries.list_realms()
   end
 end
