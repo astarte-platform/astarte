@@ -91,6 +91,65 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
+  def unregister_device(client, device_id) do
+    with :ok <- check_already_registered_device(client, device_id),
+         :ok <- do_unregister_device(client, device_id) do
+      :ok
+    else
+      %{acc: _acc, msg: msg} ->
+        Logger.warn("DB error: #{inspect(msg)}")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Unregister error: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp check_already_registered_device(client, device_id) do
+    statement = """
+    SELECT device_id
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    query =
+      Query.new()
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
+      |> Query.consistency(:quorum)
+
+    with {:ok, res} <- Query.call(client, query) do
+      case Result.head(res) do
+        [device_id: _device_id] ->
+          :ok
+
+        :empty_dataset ->
+          {:error, :device_not_registered}
+      end
+    end
+  end
+
+  defp do_unregister_device(client, device_id) do
+    statement = """
+    INSERT INTO devices
+    (device_id, first_credentials_request, credentials_secret)
+    VALUES (:device_id, :first_credentials_request, :credentials_secret)
+    """
+
+    query =
+      Query.new()
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
+      |> Query.put(:first_credentials_request, nil)
+      |> Query.put(:credentials_secret, nil)
+      |> Query.consistency(:quorum)
+
+    with {:ok, _res} <- Query.call(client, query) do
+      :ok
+    end
+  end
+
   def select_device_for_credentials_request(client, device_id) do
     statement = """
     SELECT first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret

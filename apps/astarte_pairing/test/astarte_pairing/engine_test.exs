@@ -161,6 +161,43 @@ defmodule Astarte.Pairing.EngineTest do
     end
   end
 
+  describe "unregister device" do
+    setup [:seed_devices]
+
+    test "fails with non-existing realm" do
+      realm = "nonexisting"
+      device_id = TestHelper.random_128_bit_hw_id()
+
+      assert {:error, :realm_not_found} = Engine.unregister_device(realm, device_id)
+    end
+
+    test "fails with invalid device_id" do
+      assert {:error, :invalid_device_id} = Engine.unregister_device(@test_realm, "invalid")
+    end
+
+    test "fails with never registered device_id" do
+      device_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+
+      assert {:error, :device_not_registered} = Engine.unregister_device(@test_realm, device_id)
+    end
+
+    test "succeeds with registered and confirmed device_id, and makes it possible to register it again" do
+      device_id = DatabaseTestHelper.registered_and_confirmed_128_hw_id()
+
+      assert :ok = Engine.unregister_device(@test_realm, device_id)
+
+      assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, device_id)
+    end
+
+    test "succeeds when unregistering the same device multiple times" do
+      device_id = DatabaseTestHelper.registered_and_confirmed_128_hw_id()
+
+      assert :ok = Engine.unregister_device(@test_realm, device_id)
+
+      assert :ok = Engine.unregister_device(@test_realm, device_id)
+    end
+  end
+
   describe "get_credentials" do
     setup [:seed_devices, :registered_device]
 

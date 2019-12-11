@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Allow specifying initial introspection when registering a device.
 
+## [0.10.2] - 2019-12-09
+### Added
+- Add device unregister call, allowing to reset the registration of a device.
+
 ## [0.10.1] - 2019-10-02
 
 ## [0.10.0] - 2019-04-16

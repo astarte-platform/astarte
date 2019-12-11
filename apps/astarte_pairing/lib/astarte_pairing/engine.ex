@@ -163,6 +163,26 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
+  def unregister_device(realm, encoded_device_id) do
+    Logger.debug(
+      "unregister_device request for device #{inspect(encoded_device_id)} " <>
+        "in realm #{inspect(realm)}"
+    )
+
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         cassandra_node <- Config.cassandra_node(),
+         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         :ok <- Queries.unregister_device(client, device_id) do
+      :ok
+    else
+      {:error, :shutdown} ->
+        {:error, :realm_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   def verify_credentials(:astarte_mqtt_v1, %{client_crt: client_crt}, realm, hardware_id, secret) do
     Logger.debug(
       "verify_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
