@@ -83,7 +83,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:pretty_log, github: "ispirata/pretty_log"}
     ]
   end
 end
