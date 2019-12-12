@@ -22,9 +22,13 @@ defmodule Astarte.Housekeeping.Engine do
   alias Astarte.Housekeeping.Queries
 
   def create_realm(realm, public_key_pem, replication_factor, opts \\ []) do
-    Logger.info(
-      "create_realm: creating #{realm} with replication: #{inspect(replication_factor)}"
-    )
+    _ =
+      Logger.info(
+        "Creating new realm.",
+        tag: "create_realm",
+        realm: realm,
+        replication_factor: replication_factor
+      )
 
     Queries.create_realm(realm, public_key_pem, replication_factor, opts)
   end

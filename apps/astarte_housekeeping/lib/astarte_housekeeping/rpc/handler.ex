@@ -46,7 +46,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   end
 
   defp extract_call_tuple(%Call{call: nil}) do
-    Logger.warn("Received empty call")
+    _ = Logger.warn("Received empty call.", tag: "rpc_call_empty")
     {:error, :empty_call}
   end
 
@@ -55,12 +55,14 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   end
 
   defp call_rpc({:create_realm, %CreateRealm{realm: nil}}) do
-    Logger.warn("CreateRealm with realm == nil")
+    _ = Logger.warn("CreateRealm with realm == nil.", tag: "rpc_create_nil_realm")
     generic_error(:empty_name, "empty realm name")
   end
 
   defp call_rpc({:create_realm, %CreateRealm{jwt_public_key_pem: nil}}) do
-    Logger.warn("CreateRealm with jwt_public_key_pem == nil")
+    _ =
+      Logger.warn("CreateRealm with jwt_public_key_pem == nil.", tag: "rpc_create_nil_public_key")
+
     generic_error(:empty_public_key, "empty jwt public key pem")
   end
 
@@ -82,6 +84,12 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     else
       # This comes from is_realm_existing
       {:ok, true} ->
+        _ =
+          Logger.warn("CreateRealm with already existing realm.",
+            tag: "rpc_create_existing_realm",
+            realm: realm
+          )
+
         generic_error(:existing_realm, "realm already exists")
 
       {:error, {reason, details}} ->
@@ -107,6 +115,12 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     else
       # This comes from is_realm_existing
       {:ok, true} ->
+        _ =
+          Logger.warn("CreateRealm with already existing realm.",
+            tag: "rpc_create_existing_realm",
+            realm: realm
+          )
+
         generic_error(:existing_realm, "realm already exists")
 
       {:error, {reason, details}} ->

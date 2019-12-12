@@ -34,14 +34,22 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
     with {:ok, exists?} <- wait_connection_and_check_astarte_keyspace() do
       unless exists? do
-        _ = Logger.info("Astarte keyspace not found, creating it")
+        _ =
+          Logger.info("Astarte keyspace not found, creating it",
+            tag: "astarte_db_initialization_started"
+          )
+
         :ok = Queries.initialize_database()
       else
         :ok
       end
     else
       {:error, reason} ->
-        _ = Logger.error("Can't check if Astarte keyspace exists: #{inspect(reason)}")
+        _ =
+          Logger.error("Can't check if Astarte keyspace exists: #{inspect(reason)}",
+            tag: "astarte_db_initialization_failed"
+          )
+
         raise "init_database failed"
     end
 
@@ -79,7 +87,11 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   end
 
   defp stop_services do
-    _ = Logger.info("Astarte database correctly initialized")
+    _ =
+      Logger.info("Astarte database correctly initialized",
+        tag: "astarte_db_initialization_finished"
+      )
+
     :init.stop()
   end
 end
