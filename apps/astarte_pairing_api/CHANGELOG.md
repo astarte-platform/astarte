@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
 
+## [0.10.2] - 2019-12-09
+### Added
+- Add API to unregister a device.
+
 ## [0.10.1] - 2019-10-02
 
 ## [0.10.0] - 2019-04-16

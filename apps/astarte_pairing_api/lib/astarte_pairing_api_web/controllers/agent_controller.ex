@@ -33,4 +33,11 @@ defmodule Astarte.Pairing.APIWeb.AgentController do
       |> render("show.json", device_registration_response: response)
     end
   end
+
+  def delete(conn, %{"realm_name" => realm, "device_id" => device_id}) do
+    with :ok <- Agent.unregister_device(realm, device_id) do
+      conn
+      |> resp(:no_content, "")
+    end
+  end
 end

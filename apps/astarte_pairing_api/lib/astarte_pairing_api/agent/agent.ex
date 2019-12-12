@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.API.Agent do
   The Agent context.
   """
 
+  alias Astarte.Core.Device
   alias Astarte.Pairing.API.Agent.DeviceRegistrationRequest
   alias Astarte.Pairing.API.Agent.DeviceRegistrationResponse
   alias Astarte.Pairing.API.RPC.Pairing
@@ -46,6 +47,13 @@ defmodule Astarte.Pairing.API.Agent do
 
       {:error, _other} ->
         {:error, :rpc_error}
+    end
+  end
+
+  def unregister_device(realm, device_id) do
+    with {:ok, _} <- Device.decode_device_id(device_id),
+         :ok <- Pairing.unregister_device(realm, device_id) do
+      :ok
     end
   end
 end
