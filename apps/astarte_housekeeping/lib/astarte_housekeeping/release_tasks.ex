@@ -20,6 +20,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   require Logger
 
   alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Queries
 
   @start_apps [
@@ -51,6 +52,36 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
           )
 
         raise "init_database failed"
+    end
+
+    :ok = stop_services()
+  end
+
+  def migrate do
+    :ok = start_services()
+
+    _ = Logger.info("Starting to migrate the database", tag: "astarte_db_migration_started")
+
+    with {:ok, true} <- wait_connection_and_check_astarte_keyspace(),
+         :ok <- Migrator.run_astarte_keyspace_migrations(),
+         :ok <- Migrator.run_realms_migrations() do
+      :ok
+    else
+      {:ok, false} ->
+        _ =
+          Logger.error("Cannot migrate the database, Astarte keyspace does not exist",
+            tag: "astarte_db_migration_failed"
+          )
+
+        raise "migrate failed"
+
+      {:error, reason} ->
+        _ =
+          Logger.error("Cannot migrate the database: #{inspect(reason)}",
+            tag: "astarte_db_migration_failed"
+          )
+
+        raise "migrate failed"
     end
 
     :ok = stop_services()
