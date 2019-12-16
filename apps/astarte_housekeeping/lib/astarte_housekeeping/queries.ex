@@ -25,6 +25,9 @@ defmodule Astarte.Housekeeping.Queries do
 
   @default_replication_factor 1
 
+  @current_astarte_schema_version 2
+  @current_realm_schema_version 2
+
   def create_realm(realm_name, public_key_pem, nil = _replication_factor, opts) do
     create_realm(realm_name, public_key_pem, @default_replication_factor, opts)
   end
@@ -99,6 +102,7 @@ defmodule Astarte.Housekeeping.Queries do
            :ok <- create_simple_triggers_table(conn),
            :ok <- create_grouped_devices_table(conn),
            :ok <- insert_realm_public_key(conn, public_key_pem),
+           :ok <- insert_realm_astarte_schema_version(conn),
            :ok <- insert_realm(conn, realm_name) do
         :ok
       else
@@ -489,6 +493,31 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
+  defp insert_realm_astarte_schema_version(realm_conn) do
+    query = """
+    INSERT INTO kv_store
+    (group, key, value)
+    VALUES ('astarte', 'schema_version', bigintAsBlob(#{@current_realm_schema_version}));
+    """
+
+    with {:ok, %Xandra.Void{}} <-
+           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
   defp insert_realm(conn, realm_name) do
     query = """
     INSERT INTO astarte.realms (realm_name)
@@ -520,7 +549,7 @@ defmodule Astarte.Housekeeping.Queries do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- create_astarte_keyspace(conn),
            :ok <- create_realms_table(conn),
-           :ok <- create_astarte_schema_table(conn),
+           :ok <- create_astarte_kv_store(conn),
            :ok <- insert_astarte_schema_version(conn) do
         :ok
       else
@@ -593,11 +622,9 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   defp create_realms_table(conn) do
-    # TODO: replication_factor column is deprecated, remove it in next major
     query = """
     CREATE TABLE astarte.realms (
       realm_name varchar,
-      replication_factor int,
       PRIMARY KEY (realm_name)
     );
     """
@@ -620,12 +647,14 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_astarte_schema_table(conn) do
+  defp create_astarte_kv_store(conn) do
     query = """
-    CREATE TABLE astarte.astarte_schema (
-    config_key varchar,
-    config_value varchar,
-    PRIMARY KEY (config_key)
+    CREATE TABLE astarte.kv_store (
+      group varchar,
+      key varchar,
+      value blob,
+
+      PRIMARY KEY ((group), key)
     );
     """
 
@@ -649,8 +678,9 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp insert_astarte_schema_version(conn) do
     query = """
-    INSERT INTO astarte.astarte_schema
-    (config_key, config_value) VALUES ('schema_version', '0');
+    INSERT INTO astarte.kv_store
+    (group, key, value)
+    VALUES ('astarte', 'schema_version', bigintAsBlob(#{@current_astarte_schema_version}));
     """
 
     with {:ok, %Xandra.Void{}} <- Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
