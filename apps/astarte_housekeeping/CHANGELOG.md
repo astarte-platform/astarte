@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Add groups related columns and tables (schema has been changed).
 - Add interface stats related columns (schema has been changed).
+- Add database retention ttl and policy related columns (schema has been changed).
 
 ### Changed
 - Change database driver, start using Xandra.

@@ -292,6 +292,8 @@ defmodule Astarte.Housekeeping.Queries do
       reliability int,
       retention int,
       expiry int,
+      database_retention_ttl int,
+      database_retention_policy int,
       allow_unset boolean,
       explicit_timestamp boolean,
       description varchar,
