@@ -1,5 +1,45 @@
+# Ignore compose files
 compose/astarte-keys/*
 compose/vernemq-certs/*
 compose/cfssl-config/*.pem
 compose/cfssl-config/*.csr
 compose_generated.env
+
+# Ignore all keys
+*.der
+*.pem
+*.pub
+*.key
+*.key.pub
+*.key.pub.api
+
+# Standard Elixir gitignore to be applied to all apps
+_build
+apps/*/cover
+apps/*/deps
+apps/*/doc
+doc/doc
+apps/*/.fetch
+apps/*/db
+erl_crash.dump
+*.ez
+*.beam
+apps/*/config/*.secret.exs
+.elixir_ls/
+
+# Standard Erlang gitignore to be applied to all apps
+.eunit
+*.o
+*.beam
+*.plt
+apps/*/.concrete/DEV_MODE
+
+# rebar 2.x
+.rebar
+apps/*/rel/example_project
+apps/*/ebin/*.beam
+deps
+
+# rebar 3
+.rebar3
+apps/*/_checkouts/
