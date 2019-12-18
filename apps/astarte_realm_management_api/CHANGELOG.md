@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Authorization regular expressions must not have delimiters: they are implicit.
 - Changed logs format to logfmt.
 
-## [0.10.2] - Unreleased
+## [0.10.2] - 2019-12-09
 ### Fixed
 - Handle trigger not found reply from RPC, return 404 instead of 500.
 
