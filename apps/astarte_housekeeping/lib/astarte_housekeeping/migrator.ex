@@ -250,12 +250,21 @@ defmodule Astarte.Housekeeping.Migrator do
     Application.app_dir(:astarte_housekeeping, Path.join(["priv", "migrations", "realm"]))
   end
 
-  defp collect_migrations(migrations_path) do
+  defp collect_migrations(migrations_path, opts \\ []) do
+    sorting_function =
+      case Keyword.get(opts, :sorting_order, :ascending) do
+        :ascending ->
+          fn a, b -> a <= b end
+
+        :descending ->
+          fn a, b -> a >= b end
+      end
+
     Path.join([migrations_path, "*.sql"])
     |> Path.wildcard()
     |> Enum.map(&extract_migration_info/1)
     |> Enum.filter(&(&1 != nil))
-    |> Enum.sort()
+    |> Enum.sort(sorting_function)
   end
 
   defp extract_migration_info(file) do
