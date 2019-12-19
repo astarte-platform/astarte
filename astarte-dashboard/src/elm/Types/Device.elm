@@ -17,11 +17,12 @@
 -}
 
 
-module Types.Device exposing (Device, IntrospectionValue(..), decoder)
+module Types.Device exposing (Device, IntrospectionValue(..), decoder, encodeAliases)
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
+import Json.Encode as Encode exposing (Value)
 
 
 type alias Device =
@@ -134,3 +135,12 @@ previousInterfaceDataDecoder =
         (Decode.field "minor" Decode.int)
         (Decode.field "exchanged_bytes" Decode.int)
         (Decode.field "exchanged_msgs" Decode.int)
+
+
+
+-- Encoding
+
+
+encodeAliases : Dict String String -> Value
+encodeAliases aliases =
+    Encode.object [ ( "aliases", Encode.dict identity Encode.string aliases ) ]
