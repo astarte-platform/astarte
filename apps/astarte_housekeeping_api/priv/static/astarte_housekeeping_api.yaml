@@ -1,0 +1,170 @@
+openapi: 3.0.0
+servers:
+  - url: '{base_url}/v1'
+    variables:
+      base_url:
+        default: http://localhost:4001
+        description: >-
+          The base URL you're serving Astarte from. This should point to the base
+          path from which Housekeeping API is served. In case you are running a local
+          installation, this is likely `http://localhost:4001`. If you are on a
+          multi-domain instance, it is likely `https://housekeeping.api.<your host>/`. In
+          case you have a single domain instance, it is most likely
+          `https://<your host>/housekeeping`.
+info:
+  description: >-
+    APIs for Administration activities such as Realm creation and Astarte
+    configuration. This API is usually accessible only to system administrators,
+    and is not meant for the average user of Astarte, which should refer to
+    Realm Management API instead.
+  version: 0.11.0-dev
+  title: Astarte Housekeeping API
+  contact:
+    email: info@ispirata.com
+tags:
+  - name: realm
+    description: APIs for managing Realms.
+paths:
+  /realms:
+    get:
+      tags:
+        - realm
+      summary: Get all realms
+      description: Returns a list of all existing realms.
+      operationId: getRealms
+      security:
+        - JWT: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: string
+                example:
+                  data:
+                    - arealm
+                    - anotherrealm
+    post:
+      tags:
+        - realm
+      summary: Create a realm
+      description: >-
+        Creates a new realm, based on the provided realm configuration.
+        Realm creation will be executed asynchronously - it is not guaranteed that
+        the requested realm will be available as soon as the API call returns,
+        but it is guaranteed that it will be eventually created if no errors are
+        returned and Astarte is operating normally.
+      operationId: createRealm
+      security:
+        - JWT: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Realm'
+      requestBody:
+        $ref: '#/components/requestBodies/createRealmBody'
+  '/realms/{realm_name}':
+    get:
+      tags:
+        - realm
+      summary: Get realm configuration
+      description: Retrieves a realm's configuration.
+      operationId: getRealmConfiguration
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Realm'
+    put:
+      tags:
+        - realm
+      summary: Update a realm
+      description: Updates a realm's configuration.
+      operationId: updateRealm
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+      requestBody:
+        $ref: '#/components/requestBodies/createRealmBody'
+components:
+  securitySchemes:
+    JWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: >
+        To access APIs a valid JWT token must be passed in all requests
+        in the `Authorization` header. This token should be signed with
+        the private key provided upon Housekeeping API installation.
+
+
+        The following syntax must be used in the `Authorization` header :
+          `Bearer xxxxxx.yyyyyyy.zzzzzz`
+  requestBodies:
+    createRealmBody:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/Realm'
+      description: Realm JSON configuration object.
+      required: true
+  schemas:
+    Realm:
+      type: object
+      required:
+        - realm_name
+        - jwt_public_key_pem
+      properties:
+        realm_name:
+          type: string
+          example: myrealm
+        jwt_public_key_pem:
+          type: string
+          example: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+        replication_factor:
+          type: integer
+          example: 2
