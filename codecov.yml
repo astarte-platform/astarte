@@ -1,0 +1,31 @@
+fixes:
+  - "::apps/-- the project name --/"
+
+flags:
+  appengineapi:
+    paths:
+      - apps/astarte_appengine_api/
+  dataupdaterplant:
+    paths:
+      - apps/astarte_data_updater_plant/
+  triggerengine:
+    paths:
+      - apps/astarte_trigger_engine/
+  pairing:
+    paths:
+      - apps/astarte_pairing/
+  pairingapi:
+    paths:
+      - apps/astarte_pairing_api/
+  realmmanagement:
+    paths:
+      - apps/astarte_realm_management/
+  realmmanagementapi:
+    paths:
+      - apps/astarte_realm_management_api/
+  housekeeping:
+    paths:
+      - apps/astarte_housekeeping/
+  housekeepingapi:
+    paths:
+      - apps/astarte_housekeeping_api/
