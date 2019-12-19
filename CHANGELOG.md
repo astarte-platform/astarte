@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - add astarte_import tool, which allows users to import devices and data using XML files.
+- Add new `/v1/socket` route for Astarte Channels. The `/socket` route is **deprecated** and will be
+  removed in a future release.
 
 ### Changed
 - Use separate docker images with docker-compose
