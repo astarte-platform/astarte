@@ -36,10 +36,12 @@ module AstarteApi exposing
     , listInterfaces
     , listTriggers
     , realmConfig
+    , updateDeviceAliases
     , updateInterface
     , updateRealmConfig
     )
 
+import Dict exposing (Dict)
 import Http
 import Json.Decode as Decode
     exposing
@@ -495,6 +497,19 @@ deviceInfos apiConfig deviceId resultMsg =
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "devices", deviceId ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" Device.decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+updateDeviceAliases : Config -> String -> Dict String String -> (Result Error () -> msg) -> Cmd msg
+updateDeviceAliases apiConfig deviceId aliases resultMsg =
+    Http.request
+        { method = "PATCH"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "devices", deviceId ] []
+        , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", Device.encodeAliases aliases ) ]
+        , expect = expectWhateverAstarteReply resultMsg
         , timeout = Nothing
         , tracker = Nothing
         }
