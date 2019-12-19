@@ -1,0 +1,61 @@
+name: Docs generation for Github Pages
+
+on:
+  push:
+    paths:
+    - 'doc/**'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    branches:
+    - 'master'
+    - 'release-*'
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    # Checkout the source
+    - uses: actions/checkout@v2
+      with:
+        path: astarte
+    # Checkout the docs repository
+    - uses: actions/checkout@v2
+      with:
+        repository: astarte-platform/docs
+        path: docs
+    - uses: actions/setup-elixir@v1.2.0
+      with:
+        otp-version: 21.3
+        elixir-version: 1.8.1
+    - name: Install Dependencies
+      working-directory: ./astarte/doc
+      run: mix deps.get
+    - name: Build Docs
+      working-directory: ./astarte/doc
+      run: mix docs
+    - name: Copy Docs (preserving API)
+      # Note: git checkout might fail
+      run: |
+        export DOCS_DIRNAME="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+        rm -rf docs/$DOCS_DIRNAME
+        mkdir docs/$DOCS_DIRNAME
+        cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
+        cd docs
+        git checkout $DOCS_DIRNAME/api || echo "APIs probably aren't committed yet. Ensure an action is taken"
+        git add .
+        cd -
+    - name: Commit files
+      working-directory: ./docs
+      run: |
+        git config --local user.email "astarte-machine@ispirata.com"
+        git config --local user.name "Astarte Bot"
+        git commit -m "Update Documentation"
+    - name: Push changes
+      working-directory: ./docs
+      run: |
+        eval `ssh-agent -t 60 -s`
+        echo "${{ secrets.DOCS_DEPLOY_KEY }}" | ssh-add -
+        mkdir -p ~/.ssh/
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        git remote add topush "git@github.com:astarte-platform/docs.git"
+        git fetch topush
+        git push topush master

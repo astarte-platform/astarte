@@ -1,0 +1,176 @@
+name: Build and Test Astarte Apps
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+    - 'apps/**'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    branches:
+    - 'master'
+    - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests matching apps
+  pull_request:
+    paths:
+    - 'apps/**'
+    - '.github/**'
+
+env:
+  elixir_version: 1.8.1
+  otp_version: 21.3
+
+jobs:
+  test-dialyzer:
+    name: Check Dialyzer
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app:
+        - astarte_appengine_api
+        - astarte_data_updater_plant
+        - astarte_housekeeping
+        - astarte_housekeeping_api
+        - astarte_pairing
+        - astarte_pairing_api
+        - astarte_realm_management
+        - astarte_realm_management_api
+        - astarte_trigger_engine
+    env:
+      MIX_ENV: ci
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: apps/${{ matrix.app }}/deps
+        key: ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+          ${{ runner.os }}-mix-${{ matrix.app }}-
+          ${{ runner.os }}-mix-
+    - uses: actions/cache@v1
+      with:
+        path: apps/${{ matrix.app }}/_build
+        key: ${{ runner.os }}-_build-${{ matrix.app }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-_build-${{ matrix.app }}-
+          ${{ runner.os }}-_build-
+    - uses: actions/cache@v1
+      with:
+        path: apps/${{ matrix.app }}/dialyzer_cache
+        key: ${{ runner.os }}-dialyzer_cache-${{ matrix.app }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-dialyzer_cache-${{ matrix.app }}-
+          ${{ runner.os }}-dialyzer_cache-
+    - uses: actions/setup-elixir@v1.2.0
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Install Dependencies
+      working-directory: ./apps/${{ matrix.app }}
+      run: mix deps.get
+    - name: Run dialyzer
+      working-directory: ./apps/${{ matrix.app }}
+      # FIXME: This should be set to fail when dialyzer issues are fixed
+      run: mix dialyzer || exit 0
+
+  test-coverage:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    # Wait for Dialyzer to give it a go before building
+    needs:
+      - test-dialyzer
+    strategy:
+      matrix:
+        app:
+        - astarte_appengine_api
+        - astarte_data_updater_plant
+        - astarte_housekeeping
+        - astarte_housekeeping_api
+        - astarte_pairing
+        - astarte_pairing_api
+        - astarte_realm_management
+        - astarte_realm_management_api
+        - astarte_trigger_engine
+        database:
+        - "cassandra:3.11.5"
+        - "scylladb/scylla:3.1.1"
+        rabbitmq:
+        - "rabbitmq:3.7.21-management"
+    services:
+      rabbitmq:
+        image: ${{ matrix.rabbitmq }}
+        ports:
+        - 5672:5672
+        - 15672:15672
+      database:
+        image: ${{ matrix.database }}
+        ports:
+        - 9042:9042
+      cfssl:
+        image: ispirata/docker-alpine-cfssl-autotest:astarte
+        ports:
+        - 8080/tcp
+    env:
+      MIX_ENV: test
+      CASSANDRA_DB_HOST: localhost
+      ASTARTE_CASSANDRA_NODES: localhost
+      RABBITMQ_HOST: localhost
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: apps/${{ matrix.app }}/deps
+        key: ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+          ${{ runner.os }}-mix-${{ matrix.app }}-
+          ${{ runner.os }}-mix-
+    - uses: actions/cache@v1
+      with:
+        path: apps/${{ matrix.app }}/_build
+        key: ${{ runner.os }}-_build-${{ matrix.app }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-_build-${{ matrix.app }}-
+          ${{ runner.os }}-_build-
+    - uses: actions/setup-elixir@v1.2.0
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Install Dependencies
+      working-directory: ./apps/${{ matrix.app }}
+      run: mix deps.get
+    - name: Check formatting
+      working-directory: ./apps/${{ matrix.app }}
+      run: mix format --check-formatted
+    - name: Setup Events Exchange
+      if: matrix.app == 'astarte_appengine_api'
+      run: |
+        wget http://guest:guest@localhost:15672/cli/rabbitmqadmin -O rabbitmqadmin
+        chmod +x ./rabbitmqadmin
+        ./rabbitmqadmin declare exchange name=astarte_events type=direct
+        rm rabbitmqadmin
+    - name: Compile
+      working-directory: ./apps/${{ matrix.app }}
+      run: mix do compile
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '10.x'
+    - name: Wait for Cassandra
+      run: |
+        npm install -g wait-for-cassandra
+        wait-for-cassandra -T 120000 -h $CASSANDRA_DB_HOST
+    - name: Test and Coverage
+      working-directory: ./apps/${{ matrix.app }}
+      run: mix coveralls.json  --exclude wip -o coverage_results
+      env:
+        CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
+    - name: Upload Coverage Results to CodeCov
+      # Don't upload more than once per component
+      if: matrix.database == 'scylladb/scylla:3.1.1'
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        sed -i 's/-- the project name --/${{ matrix.app }}/g' codecov.yml
+        bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN -F $(echo ${{ matrix.app }} | sed s/astarte_//g | sed s/_//g)
