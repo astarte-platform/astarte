@@ -1,0 +1,50 @@
+stages:
+    - test
+    - deploy
+
+variables:
+    APPLICATION_NAME: astarte_pairing_api
+
+mix:test-coverage:
+    stage: test
+    image: elixir:1.6.5
+    services:
+        - rabbitmq:3.7.15
+    cache:
+        key: "$CI_COMMIT_REF_SLUG"
+        paths:
+            - deps
+            - _build
+    before_script:
+        - mix local.hex --force
+        - mix local.rebar
+        - mix deps.get
+    script:
+        - mix coveralls
+
+docker:test-container:
+    stage: test
+    image: docker:latest
+    only:
+        - merge_requests
+    services:
+        - docker:stable-dind
+    before_script:
+        - docker info
+    script:
+        - docker build -t $CI_REGISTRY/astarte-ng/astarte_pairing_api:testing .
+
+docker:snapshot-prod-container:
+    stage: deploy
+    image: docker:latest
+    only:
+        - branches@Astarte-NG/astarte_pairing_api
+    services:
+        - docker:stable-dind
+    before_script:
+        - docker info
+        - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    script:
+        - export IMAGE_TAG=$([[ $CI_COMMIT_REF_NAME == "master" ]] && echo "snapshot" || echo $CI_COMMIT_REF_NAME | sed 's/release-\(.*\)/\1-snapshot/g')
+        - docker build -t $CI_REGISTRY/astarte-ng/astarte_pairing_api:$IMAGE_TAG .
+        - docker push $CI_REGISTRY/astarte-ng/astarte_pairing_api:$IMAGE_TAG

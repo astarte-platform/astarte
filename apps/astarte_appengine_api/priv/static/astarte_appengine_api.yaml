@@ -1,0 +1,836 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2017 Ispirata Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+openapi: 3.0.0
+servers:
+  - url: '{base_url}/v1'
+    variables:
+      base_url:
+        default: http://localhost:4002
+        description: >-
+          The base URL you're serving Astarte from. This should point to the base
+          path from which AppEngine API is served. In case you are running a local
+          installation, this is likely `http://localhost:4002`. If you are on a
+          multi-domain instance, it is likely `https://appengine.api.<your host>/`.
+          In case you have a single domain instance, it is most likely
+          `https://<your host>/appengine`.
+
+info:
+  description: >-
+    Astarte's AppEngine API is the main entry point for any operations which have
+    an impact on devices and their data. Most Astarte applications would want to
+    use this API to interact with devices, stream and receive data, and oversee
+    their fleet.
+  version: 0.10.2
+  title: Astarte App Engine API
+  contact:
+    email: info@ispirata.com
+externalDocs:
+  description: User documentation
+  url: 'https://docs.astarte-platform.org/snapshot/050-query_device.html'
+tags:
+  - name: device
+    description: >-
+      Device data status retrival and publish. All operations on a device can be
+      done using both the device id or any of its aliases.
+paths:
+  '/{realm_name}/devices':
+    get:
+      tags:
+        - device
+      summary: Get devices list
+      description: >-
+        A paged list of all devices is returned. By default the device ID string
+        is returned for each already registered device. The complete device
+        status can be optionally retrieved rather than device ID string using
+        details option.
+      operationId: getDevicesList
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: The name of the realm the device list will be returned from.
+          required: true
+          schema:
+            type: string
+        - name: from_token
+          in: query
+          description: >-
+            Opaque devices list page pointer: it basically points to the
+            beginning of a devices page. If not specified the devices list is
+            displayed from the beginning. This format might change in future
+            versions so it should be passed without any furhter assumption about
+            type, format or its value.
+          required: false
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Maximum number of devices that will be returned for each page.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1000
+        - name: details
+          in: query
+          description: >-
+            If true detailed device status for all devices is returned rather
+            than the device id. See also DeviceStatus example.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Devices list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: string
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        format: uri
+                        description: A relative link to this response.
+                      next:
+                        type: string
+                        format: uri
+                        description: A relative link to next devices list page.
+                example:
+                  links:
+                    self: /v1/example/devices?limit=3
+                    next: >-
+                      /v1/example/devices?from_token=-2128516163519372076&limit=3
+                  data:
+                    - hjnD0GrEP3o9ED1SUuL4QQ
+                    - 8ZxuSGkU7pggwoomJeXo9g
+                    - k-IFKDPoVzIXUcFkF7U80A
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+  '/{realm_name}/devices/{device_id}':
+    parameters:
+      - name: realm_name
+        in: path
+        description: Name of the realm which the device belongs to.
+        required: true
+        schema:
+          type: string
+      - name: device_id
+        in: path
+        description: Device ID
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - device
+      summary: Get device general status
+      description: >-
+        A device overview status is returned. Overview includes an array of
+        reported interfaces (introspection), offline/online status, etc...
+      operationId: getDeviceStatus
+      security:
+        - JWT: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeviceStatus'
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Device not found
+    patch:
+      tags:
+        - device
+      summary: Update a device writeable property
+      description: Update any of the writeable device properties such as device aliases.
+      operationId: updateDeviceStatus
+      security:
+        - JWT: []
+      requestBody:
+        content:
+          application/merge-patch+json:
+            schema:
+              type: object
+        description: >-
+          A JSON Merge Patch containing the property changes which should be applied to
+          the device.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeviceStatus'
+        '400':
+          description: Bad request
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: Device not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Device not found
+  '/{realm_name}/devices-by-alias/{device_alias}':
+    parameters:
+      - name: realm_name
+        in: path
+        description: Name of the realm which the device belongs to.
+        required: true
+        schema:
+          type: string
+      - name: device_alias
+        in: path
+        description: One of the device aliases
+        required: true
+        schema:
+          type: string
+    get:
+      tags:
+        - device
+      summary: Get device general status
+      description: >-
+        A device overview status is returned. Overview includes an array of
+        reported interfaces (introspection), offline/online status, etc...
+      operationId: getDeviceStatusByAlias
+      security:
+        - JWT: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeviceStatus'
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Device not found
+    patch:
+      tags:
+        - device
+      summary: Update a device writeable property
+      description: Update any of the writeable device properties such as device aliases.
+      operationId: updateDeviceStatusByAlias
+      security:
+        - JWT: []
+      requestBody:
+        content:
+          application/merge-patch+json:
+            schema:
+              type: object
+        description: >-
+          A JSON Merge Patch containing the property changes which should be applied to
+          the device.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DeviceStatus'
+        '400':
+          description: Bad request
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: Device not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Device not found
+  '/{realm_name}/devices/{device_id}/interfaces':
+    get:
+      tags:
+        - device
+      summary: Get interfaces list
+      description: >-
+        Get a list of interfaces supported by a certain device. Interfaces that
+        are not reported by the device are not reported here. If a device stops
+        to advertise a certain interface, it should be retrived from a different
+        API, same applies for older versions of a certain interface.
+      operationId: getInterfaces
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Name of the realm which the device belongs to.
+          required: true
+          schema:
+            type: string
+        - name: device_id
+          in: path
+          description: Device ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              examples:
+                response:
+                  value:
+                    data:
+                      - com.test.foo
+                      - com.test.bar
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: Device not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Device not found
+  '/{realm_name}/devices/{device_id}/interfaces/{interface}':
+    get:
+      tags:
+        - device
+      summary: Get properties values
+      description: >-
+        Get a values snapshot for a given interface on a certain device. This
+        action performed on a data stream interface returns the most recent set
+        of data for each endpoint. More specific APIs should be used for
+        advances data stream actions.
+      operationId: getInterfacePropertiesValues
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Name of the realm which the device belongs to.
+          required: true
+          schema:
+            type: string
+        - name: device_id
+          in: path
+          description: Device ID
+          required: true
+          schema:
+            type: string
+        - name: interface
+          in: path
+          description: Interface name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: Interface not found in introspection or device not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Interface not found in device introspection
+  '/{realm_name}/devices/{device_id}/interfaces/{interface}/{path}':
+    get:
+      tags:
+        - device
+      summary: Get property value
+      description: >-
+        Retrieve a value on a given path. This action on a data production path
+        returns the last entry if no query parameters are specified.
+      operationId: getInterfacePropertyValue
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Name of the realm which the device belongs to.
+          required: true
+          schema:
+            type: string
+        - name: device_id
+          in: path
+          description: Device ID
+          required: true
+          schema:
+            type: string
+        - name: interface
+          in: path
+          description: Interface name
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          description: Endpoint Path
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: >-
+            Query all values since a certain timestamp (all entries where
+            timestamp >= since). This query parameter applies only on data
+            streams. It must be a ISO 8601 valid timestamp. It can't be used if
+            since is already used. See also 'since-after', to' and 'limit'
+            parameters.
+          required: false
+          schema:
+            type: string
+        - name: since_after
+          in: query
+          description: >-
+            Query all values since after a certain timestamp (all entries where
+            timestamp > since_after). This query parameter applies only on data
+            streams. It must be a ISO 8601 valid timestamp. It can't be used if
+            since is already specified. See also 'since', to' and 'limit'
+            parameters.
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          description: >-
+            Query all values up to a certain timestamp. If since is not
+            specified first entry date is assumed by default. This query
+            parameter applies only on data streams. It must be a ISO 8601 valid
+            timestamp. See also 'since' and 'limit' parameters.
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: >-
+            Limit number of retrieved data production entries to 'limit'. This
+            parameter must be always specified when 'since', 'since-after' and
+            'to' query parameters are used. If limit is specified without any
+            'since' and 'to' parameter, last 'limit' values are retrieved. When
+            'limit' entries are returned, it should be checked if any other
+            entry is left by using since-after the last received timestamp.  An
+            error is returned if limit exceeds maximum allowed value. See also
+            'since' and 'to' parameters.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: >-
+            Path not found or interface not found in introspection or device not
+            found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Path not found
+        '405':
+          description: Invalid Request
+    put:
+      tags:
+        - device
+      summary: Update and push a value on a path
+      description: >-
+        Update and push a property value to the device on a certain endpoint
+        path. interface should be an individual server owned property interface.
+        It mustn't be used to stream data to a device or to update single
+        properties that are members of an object aggregated interface.
+      operationId: updatePathValue
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Name of the realm which the device belongs to.
+          required: true
+          schema:
+            type: string
+        - name: device_id
+          in: path
+          description: Device ID
+          required: true
+          schema:
+            type: string
+        - name: interface
+          in: path
+          description: Interface name
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          description: Endpoint Path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: >-
+            Endpoint not found or interface not found in introspection or device
+            not found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+            application/json:
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Endpoint not found
+        '405':
+          description: Invalid object
+    post:
+      tags:
+        - device
+      summary: Stream data
+      description: >-
+        Stream a value on a certain path. Endpoint must be a member of a
+        datastream interface.
+      operationId: streamData
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Name of the realm which the device belongs to.
+          required: true
+          schema:
+            type: string
+        - name: device_id
+          in: path
+          description: Device ID
+          required: true
+          schema:
+            type: string
+        - name: interface
+          in: path
+          description: Interface name
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          description: Endpoint Path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: >-
+            Endpoint not found or interface not found in introspection or device
+            not found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+            application/json:
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Endpoint not found
+        '405':
+          description: Invalid object
+    delete:
+      tags:
+        - device
+      summary: Delete path and push an unset value message
+      description: >-
+        Unset a value on a certain path, path is also deleted. Endpoint must
+        support unset.
+      operationId: deletePathValue
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Name of the realm which the device belongs to.
+          required: true
+          schema:
+            type: string
+        - name: device_id
+          in: path
+          description: Device ID
+          required: true
+          schema:
+            type: string
+        - name: interface
+          in: path
+          description: Interface name
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          description: Endpoint Path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+        '401':
+          description: Realm doesn't exist or operation not allowed.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '404':
+          description: >-
+            Path not found or interface not found in introspection or device not
+            found.
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+            application/json:
+              examples:
+                response:
+                  value:
+                    errors:
+                      detail: Path not found
+        '405':
+          description: Invalid object
+components:
+  securitySchemes:
+    JWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: >
+        To access APIs a valid JWT token must be passed in all requests
+        in the `Authorization` header. This token should be signed with
+        the private key associated with the realm the request refers to.
+
+
+        The following syntax must be used in the `Authorization` header :
+          `Bearer xxxxxx.yyyyyyy.zzzzzz`
+  schemas:
+    DeviceStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The device ID.
+        aliases:
+          type: object
+          description: >-
+            A set of aliases and their tags. Each alias has an unique tag that
+            identifies its purpose.
+        introspection:
+          type: object
+          description: >-
+            A dictionary of available (installed) interfaces on the device. For
+            each interface version major and minor versions are provided.
+            Interfaces that are listed here might not be available on the server
+            (e.g. not installed).
+        connected:
+          type: boolean
+          description: True if the device is connected to the broker.
+        last_connection:
+          type: string
+          format: date-time
+          description: Last connection to the broker timestamp.
+        last_disconnection:
+          type: string
+          format: date-time
+          description: Last device disconnection timestamp.
+        first_registration:
+          type: string
+          format: date-time
+          description: First registration attempt timestamp.
+        first_credentials_request:
+          type: string
+          format: date-time
+          description: First credentials request timestamp.
+        last_seen_ip:
+          type: string
+          description: Last known device IP address.
+        last_credentials_request_ip:
+          type: string
+          description: Last known device IP address used while obtaining credentials.
+        total_received_bytes:
+          type: integer
+          description: Total ammount of received payload bytes.
+        total_received_msgs:
+          type: integer
+          description: Total ammount of received messages.
+      example:
+        id: hm8AjtbN5P2mxo_gfXSfvQ
+        aliases:
+          serial_number: '1234567'
+          display_name: my_device_name
+        introspection:
+          com.example.ExampleInterface:
+            major: 2
+            minor: 0
+          com.example.HelloWorldInterface:
+            major: 1
+            minor: 1
+        connected: false
+        last_connection: '2017-09-28T03:45:00.000Z'
+        last_disconnection: '2017-09-29T18:25:00.000Z'
+        first_registration: '2016-07-08T09:44:00.000Z'
+        first_credentials_request: '2016-08-20T09:44:00.000Z'
+        last_seen_ip: 198.51.100.81
+        last_credentials_request_ip: 98.51.100.89
+        total_received_bytes: 10240
+        total_received_msgs: 10
+    NotFoundError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+              description: Short error description
+      example:
+        errors:
+          detail: Device not found
+    UnauthorizedError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+              description: Short error description
+      example:
+        errors:
+          detail: Unauthorized
