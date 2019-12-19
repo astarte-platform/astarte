@@ -6,7 +6,7 @@ This tutorial will guide you through bringing up your Astarte instance, creating
 
 First of all, please keep in mind that **this setup is not meant to be used in production**: by default, no persistence is involved, the installation does not have any recovery mechanism, and you will have to restart services manually in case something goes awry. This guide is great if you want to take Astarte for a spin, or if you want to use an isolated instance for development.
 
-You will need a machine with at least 4GB of RAM (mainly due to Cassandra), with [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl), Python 3 and OpenSSL installed. You will need the PyJWT Python module for generating JWT tokens for Astarte, which you can install either via `pip3` (`pip3 install PyJWT`) or using your distribution's packages (e.g. `apt-get install python3-jwt` on Debian based distributions).
+You will need a machine with at least 4GB of RAM (mainly due to Cassandra), with [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl), [astartectl](https://github.com/astarte-platform/astartectl) and OpenSSL installed.
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
 
@@ -43,35 +43,34 @@ Now that we have our instance up and running, we can start setting up a Realm fo
 ```sh
 $ openssl genrsa -out test_realm.key 4096
 $ openssl rsa -in test_realm.key -pubout -outform PEM -out test_realm.key.pub
-$ awk '{printf "%s\\n", $0}' test_realm.key.pub > test_realm.key.pub.api
 ```
 
-Also, we will need a JWT token to authenticate against Housekeeping. `generate-compose-files.sh` created a public key automatically, which is in `compose/astarte-keys/housekeeping.pub`. To generate a JWT token for authorizing our calls, we will use the handy `generate-astarte-credentials` utility in Astarte's repository, which can also be easily inlined into cURL.
+Also, we will need a JWT token to authenticate against Housekeeping. `generate-compose-files.sh` created a public key automatically, which is in `compose/astarte-keys/housekeeping.pub`. To perform all of our Astarte interactions, we will use `astartectl`.
 
-Use cURL to invoke Housekeeping API for creating a new Realm:
+Use `astartectl` to create a new Realm:
 
 ```sh
-$ curl -X POST http://localhost:4001/v1/realms -H "Authorization: Bearer $(./generate-astarte-credentials -t housekeeping -p compose/astarte-keys/housekeeping.key)" -H "Content-Type: application/json" -d "{\"data\":{\"realm_name\": \"test\", \"jwt_public_key_pem\": \"$(cat test_realm.key.pub.api)\"}}"
+$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_realm.key.pub -k compose/astarte-keys/housekeeping.pub
 ```
 
 This creates a `test` realm, which should be ready to be used almost immediately. To ensure your realm is available and ready, check if it exists in Astarte by issuing:
 
 ```sh
-$ curl -X GET http://localhost:4001/v1/realms -H "Authorization: Bearer $(./generate-astarte-credentials -t housekeeping -p compose/astarte-keys/housekeeping.key)"
+$ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k compose/astarte-keys/housekeeping.pub
 ```
 
 ## Install an interface
 
-We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. Clone the repository, as we will have to install its `org.astarteplatform.Values` interface into our new realm. To do that, we can use cURL again:
+We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. Clone the repository, as we will have to install its `org.astarteplatform.Values` interface into our new realm. To do that, we can use `astartectl` again:
 
 ```sh
-$ curl -X POST http://localhost:4000/v1/test/interfaces -H "Authorization: Bearer $(./generate-astarte-credentials -t realm -p test_realm.key)" -H "Content-Type: application/json" -d "{\"data\": $(cat ../stream-qt5-test/interfaces/org.astarteplatform.Values.json)}"
+$ astartectl realm-management interfaces install ../stream-qt5-test/interfaces/org.astarteplatform.Values.json --realm-management-url http://localhost:4000/ -r test -k test_realm.key
 ```
 
 Now `org.astarteplatform.Values` should show up among our available interfaces:
 
 ```sh
-$ curl -X GET http://localhost:4000/v1/test/interfaces -H "Authorization: Bearer $(./generate-astarte-credentials -t realm -p test_realm.key)"
+$ astartectl realm-management interfaces ls --realm-management-url http://localhost:4000/ -r test -k test_realm.key
 ```
 
 Our Astarte instance is now ready for our devices.
@@ -82,17 +81,38 @@ We will also test Astarte's push capabilities with a trigger. This will send a P
 
 Due to how triggers work, it is fundamental to install the trigger before a device connects. Doing otherwise will cause the trigger to kick in at a later time, and as such no events will be streamed for a while.
 
-Replace `http://example.com` with your target URL in the command below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests.
+Replace `http://example.com` with your target URL in the command below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests. The resulting trigger would be:
+
+```json
+{
+  "name": "my_trigger",
+  "action": {
+    "http_post_url": "$TRIGGER_TARGET_URL"
+  },
+  "simple_triggers": [
+    {
+      "type": "data_trigger",
+      "on": "incoming_data",
+      "interface_name": "org.astarteplatform.Values",
+      "interface_major": 0,
+      "match_path": "/realValue",
+      "value_match_operator": ">",
+      "known_value": 0.6
+    }
+  ]
+}
+```
+
+Replace `$TRIGGER_TARGET_URL` with the URL your Trigger will target. Assuming you saved this as `my_trigger.json`, you can now install it through `astartectl`:
 
 ```sh
-$ export TRIGGER_TARGET_URL="http://example.com"
-$ curl -X POST http://localhost:4000/v1/test/triggers -H "Authorization: Bearer $(./generate-astarte-credentials -t realm -p test_realm.key)" -H "Content-Type: application/json" -d "{\"data\": {\"name\": \"my_trigger\", \"action\": {\"http_post_url\": \"$TRIGGER_TARGET_URL\"}, \"simple_triggers\": [{\"type\": \"data_trigger\", \"on\": \"incoming_data\", \"interface_name\": \"org.astarteplatform.Values\", \"interface_major\": 0, \"match_path\": \"/realValue\", \"value_match_operator\": \">\", \"known_value\": 0.6}]}}"
+$ astartectl realm-management triggers install my_trigger.json --realm-management-url http://localhost:4000/ -r test -k test_realm.key
 ```
 
 You can now check that your trigger is correctly installed:
 
 ```sh
-curl -X GET http://localhost:4000/v1/test/triggers/my_trigger -H "Authorization: Bearer $(./generate-astarte-credentials -t realm -p test_realm.key)"
+$ astartectl realm-management triggers ls --realm-management-url http://localhost:4000/ -r test -k test_realm.key
 ```
 
 ## Stream data
@@ -150,10 +170,10 @@ You can now run `stream-qt5-test` from your last build directory. Refer to its [
 
 ## Grab your tea
 
-Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-qt5-test`, you can get the last sent value via cURL:
+Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-qt5-test`, you can get the last sent value with `astartectl`:
 
 ```sh
-$ curl -X GET "http://localhost:4002/v1/test/devices/<your device id>/interfaces/org.astarteplatform.Values/realValue?limit=1" -H "Authorization: Bearer $(./generate-astarte-credentials -t appengine -p test_realm.key)"
+$ astartectl appengine devices get-samples <your device id> org.astarteplatform.Values /realValue --count 1 --appengine-url http://localhost:4002 -r test -k test_realm.key
 ```
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
