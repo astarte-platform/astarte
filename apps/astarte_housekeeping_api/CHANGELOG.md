@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - Authorization regular expressions must not have delimiters: they are implicit.
+- Move health check API from /v1/health to /health to be consistent with all Astarte components.
 
 ## [0.10.2] - 2019-12-09
 
