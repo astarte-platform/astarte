@@ -42,6 +42,24 @@ defmodule Astarte.Housekeeping.Migrator do
     end
   end
 
+  def latest_astarte_schema_version do
+    {version, _, _} =
+      astarte_migrations_path()
+      |> collect_migrations(sorting_order: :descending)
+      |> hd()
+
+    version
+  end
+
+  def latest_realm_schema_version do
+    {version, _, _} =
+      realm_migrations_path()
+      |> collect_migrations(sorting_order: :descending)
+      |> hd()
+
+    version
+  end
+
   defp migrate_realms([]) do
     _ = Logger.info("Finished migrating Realms.", tag: "realms_migration_finished")
     :ok
