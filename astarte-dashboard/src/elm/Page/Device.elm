@@ -289,7 +289,7 @@ deviceStatsCard device width =
 
         preferedColors =
             List.range 0 (listLength - 1)
-                |> List.map (\val -> Color.hsl (toFloat val / toFloat listLength) 0.7 0.7)
+                |> List.map (\val -> Color.hsl (indexToHue val listLength) 0.7 0.7)
 
         chartParams =
             { width = 800
@@ -327,6 +327,25 @@ deviceStatsCard device width =
                 ]
             ]
         ]
+
+
+indexToHue : Int -> Int -> Float
+indexToHue i max =
+    let
+        startingHue =
+            0.1
+
+        relative =
+            toFloat i / toFloat max
+
+        hue =
+            startingHue + relative
+    in
+    if hue > 1 then
+        hue - 1
+
+    else
+        hue
 
 
 labelHelper : ( String, Float ) -> Color -> Html Msg
