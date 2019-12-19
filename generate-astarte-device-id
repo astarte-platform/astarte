@@ -1,9 +1,0 @@
-#!/usr/bin/env python3
-import base64
-import uuid
-
-def generate_device_id():
-    device_id_bytes = uuid.uuid4().bytes
-    return base64.urlsafe_b64encode(device_id_bytes).replace(b"=", b"").decode()
-
-print(generate_device_id())
