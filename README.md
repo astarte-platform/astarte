@@ -13,12 +13,12 @@ Latest stable release is [v0.10.2](https://github.com/astarte-platform/astarte/t
 
 ## Let's try it!
 
-Can't be easier. Pick your favorite machine with at least 4GB of RAM (Cassandra can be hungry), make
-sure it has [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl) and
-OpenSSL installed, and simply:
+Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
+[Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl) and OpenSSL
+installed, and simply:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git -b release-0.10 && cd astarte
+$ git clone https://github.com/astarte-platform/astarte.git && cd astarte
 $ ./generate-compose-files.sh
 $ docker-compose up -d
 ```
@@ -45,26 +45,36 @@ make Astarte fit into your infrastructure, and which deployment mechanism you sh
 
 ## Where's all the code, anyway?
 
-Good question. This repository is a collection of utilities, home to Astarte's documentation and
-architecture decisions, and acts as an umbrella for the project. Astarte is a distributed system
-made up of several microservices, [which can all be found in
-Github](https://github.com/astarte-platform). Its core components are:
+Astarte is a distributed system made up of several microservices, [which can all be found in the
+apps directory](https://github.com/astarte-platform/astarte/tree/master/apps). Its core components
+are:
 
-* [Data Updater Plant](apps/astarte_data_updater_plant): Takes care of ingesting data into the
-  database, filtering and routing it to other Astarte components.
-* [Trigger Engine](apps/astarte_trigger_engine): Processes incoming events, applies rules, prepares
-  payloads and performs actions - it is the component that delivers data to your application.
-* [AppEngine API](apps/astarte_appengine_api): If you are building an application on top of
-  Astarte's APIs, you will most likely call into it.
-* [Pairing](apps/astarte_pairing) & [Pairing API](apps/astarte_pairing_api): Provides all the
-  information required to successfully communicate with Astarte, including the SSL certificate.
-* [Realm Management](apps/astarte_realm_management) & [Realm Management
-  API](apps/astarte_realm_management_api): Where realm configuration happens. Manage your triggers,
-  interfaces and more from here.
-* [Housekeeping](apps/astarte_housekeeping) & [Housekeeping API](apps/astarte_housekeeping_api): The
+* [Data Updater
+  Plant](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_data_updater_plant):
+  Takes care of ingesting data into the database, filtering and routing it to other Astarte
+  components.
+* [Trigger
+  Engine](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_trigger_engine):
+  Processes incoming events, applies rules, prepares payloads and performs actions - it is the
+  component that delivers data to your application.
+* [AppEngine
+  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_appengine_api): If you
+  are building an application on top of Astarte's APIs, you will most likely call into it.
+* [Pairing](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_pairing) & [Pairing
+  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_pairing_api): Provides
+  all the information required to successfully communicate with Astarte, including the SSL
+  certificate.
+* [Realm
+  Management](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_realm_management)
+  & [Realm Management
+  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_realm_management_api):
+  Where realm configuration happens. Manage your triggers, interfaces and more from here.
+* [Housekeeping](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_housekeeping)
+  & [Housekeeping
+  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_housekeeping_api): The
   *"superadmin"* component of Astarte: configure your global instance, create realms and more.
 
-All of them build on some common libraries:
+All of them build on some common libraries, hosted in separate repositories:
 
 * [Astarte Core](https://github.com/astarte-platform/astarte_core): All common functions and
   anything useful to Astarte's services go here.
@@ -86,15 +96,18 @@ Astarte is designed from the ground up to be run in containers, with
 deployment. Astarte's images can be found at [Docker Hub](https://hub.docker.com/u/astarte/), with
 every Astarte service coming with its own image.
 
-If you don't fancy containers, we plan on providing standalone binary packages soon.
+With the help of our [Kubernetes
+Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) and
+[`astartectl`](https://github.com/astarte-platform/astartectl), you can deploy your Astarte instance
+to your favorite cloud provider in a matter of minutes.
 
 ## Looks great! I want to contribute!
 
 That's awesome! Astarte is quite young as an Open Source project, so we're still setting up bits and
 pieces to make contributions easier and more effective, such as a shared roadmap, a proper
 contributor guide. For the time being, you can head over to the repository you want to contribute to
-and set up a Pull Request. There's a CLA to be signed, as we plan on moving Astarte to a more
-permissive license very soon.
+and set up a Pull Request. We're using [DCO](https://developercertificate.org/) for our
+contributions, so you'll need to sign off all commit messages before submitting a Pull Request.
 
 You can also join us on [#astarte slack channel on Elixir
 Slack](https://elixir-slackin.herokuapp.com/) and on [#astarte IRC channel on
@@ -114,8 +127,7 @@ possible way. Watch this space or subscribe to our newsletter to find out more a
 Glad you asked. Astarte is developed by [Ispirata](https://ispirata.com), who fuels its development
 thanks to the generosity of many customers running it in production. Besides consultancy,
 installation, maintenance, long-term support and customizations, Ispirata also commercializes
-Astarte Enterprise, an Astarte variant packing in some additional goodies and features, such as a
-Kubernetes Operator.
+Astarte Enterprise, an Astarte variant packing in some additional goodies and features.
 
 [Get in touch](https://ispirata.com/contact/) to find out how we can help you in getting Astarte in
 its best possible shape for your specific needs.
