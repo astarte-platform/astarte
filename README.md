@@ -4,7 +4,7 @@
 
 Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https://www.rabbitmq.com/) and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.com/).
 
-Latest stable release is [v0.10.0](https://github.com/astarte-platform/astarte/tree/v0.10.0).
+Latest stable release is [v0.10.2](https://github.com/astarte-platform/astarte/tree/v0.10.2).
 
 ## Let's try it!
 
