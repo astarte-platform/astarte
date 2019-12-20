@@ -20,13 +20,11 @@ defmodule Astarte.Housekeeping.Queries do
   require Logger
   alias Astarte.Core.Realm
   alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Migrator
 
   @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_-]*$/
 
   @default_replication_factor 1
-
-  @current_astarte_schema_version 2
-  @current_realm_schema_version 2
 
   def create_realm(realm_name, public_key_pem, nil = _replication_factor, opts) do
     create_realm(realm_name, public_key_pem, @default_replication_factor, opts)
@@ -499,7 +497,7 @@ defmodule Astarte.Housekeeping.Queries do
     query = """
     INSERT INTO kv_store
     (group, key, value)
-    VALUES ('astarte', 'schema_version', bigintAsBlob(#{@current_realm_schema_version}));
+    VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_realm_schema_version()}));
     """
 
     with {:ok, %Xandra.Void{}} <-
@@ -682,7 +680,7 @@ defmodule Astarte.Housekeeping.Queries do
     query = """
     INSERT INTO astarte.kv_store
     (group, key, value)
-    VALUES ('astarte', 'schema_version', bigintAsBlob(#{@current_astarte_schema_version}));
+    VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_astarte_schema_version()}));
     """
 
     with {:ok, %Xandra.Void{}} <- Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
