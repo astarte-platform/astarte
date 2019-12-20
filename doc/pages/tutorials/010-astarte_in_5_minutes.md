@@ -132,7 +132,7 @@ $ docker pull astarte/astarte-stream-qt5-test:snapshot
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(./generate-astarte-device-id)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(./generate-astarte-credentials -t pairing -p test_realm.key)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:snapshot
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_realm.key)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:snapshot
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
@@ -178,7 +178,7 @@ $ astartectl appengine devices get-samples <your device id> org.astarteplatform.
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
 
-Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `./generate-astarte-credentials -t realm -p test_realm.key`. Grant a longer expiration by using the `-e` parameter to avoid being logged out too quickly.
+Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt realm-management -k test_realm.key`. Grant a longer expiration by using the `-e` parameter to avoid being logged out too quickly.
 
 From here on, you can use all of Astarte's APIs and features from your own installation. You can add devices, experiment with interfaces, or develop your own applications on top of Astarte's triggers or AppEngine's APIs. And have a lot of fun!
 
@@ -191,19 +191,6 @@ $ docker-compose down
 ```
 
 Unless you add the `-v ` option, persistencies will be kept and next time you will `docker-compose up` the cluster will come back in the very same state you left it last time. `docker-compose down -v` is extremely useful during development, especially if you want a clean slate for testing your applications or your routines every time.
-
-## Troubleshooting
-
-### Could not generate credentials
-
-If `astarte-generate-credentials` fails with this error
-```
-Traceback (most recent call last):
-  File "./generate-astarte-credentials", line 37, in <module>
-    encoded = jwt.encode(claims, private_key_pem, algorithm="RS256")
-AttributeError: module 'jwt' has no attribute 'encode'
-```
-you have to remove the conflicting `jwt` pip package by uninstalling it with `pip3 uninstall jwt`.
 
 ## Final notes
 
