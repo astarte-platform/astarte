@@ -15,7 +15,7 @@ on:
   pull_request:
     paths:
     - 'apps/**'
-    - '.github/**'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
   elixir_version: 1.8.1
