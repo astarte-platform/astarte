@@ -32,9 +32,11 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (Html, h5)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, href)
+import Html.Events
 import Icons
 import Json.Decode as Decode exposing (Decoder)
+import Modal.NewAlias as NewAlias
 import Ports
 import Spinner
 import Time
@@ -54,6 +56,7 @@ type alias Model =
     , receivedEvents : List JSEvent
     , spinner : Spinner.Model
     , showSpinner : Bool
+    , newAliasModal : NewAlias.Model
     }
 
 
@@ -64,6 +67,7 @@ init session deviceId =
       , receivedEvents = []
       , spinner = Spinner.init
       , showSpinner = True
+      , newAliasModal = NewAlias.init False
       }
     , AstarteApi.deviceInfos session.apiConfig deviceId <| DeviceInfosDone
     )
@@ -72,6 +76,9 @@ init session deviceId =
 type Msg
     = Refresh
     | Forward ExternalMsg
+    | OpenNewAliasPopup
+    | UpdateModal NewAlias.Msg
+    | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
       -- spinner
     | SpinnerMsg Spinner.Msg
       -- API
@@ -130,6 +137,50 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
+        OpenNewAliasPopup ->
+            ( { model | newAliasModal = NewAlias.init True }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        UpdateModal modalMsg ->
+            let
+                ( newStatus, extenalCommand ) =
+                    NewAlias.update modalMsg model.newAliasModal
+            in
+            ( { model | newAliasModal = newStatus }
+            , handleModalCommand session model extenalCommand
+            , ExternalMsg.Noop
+            )
+
+        DeviceAliasesUpdated newAliases (Ok _) ->
+            case model.device of
+                Nothing ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Just device ->
+                    let
+                        updatedDevice =
+                            { device | aliases = newAliases }
+                    in
+                    ( { model | device = Just updatedDevice }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        DeviceAliasesUpdated _ (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
         Forward externalMsg ->
             ( model
             , Cmd.none
@@ -159,6 +210,25 @@ update session msg model =
             )
 
 
+handleModalCommand : Session -> Model -> NewAlias.ExternalMsg -> Cmd Msg
+handleModalCommand session model cmd =
+    case ( model.device, cmd ) of
+        ( Just device, NewAlias.AddAlias aliasTag aliasValue ) ->
+            let
+                newAliases =
+                    device.aliases
+                        |> Dict.insert aliasTag aliasValue
+            in
+            DeviceAliasesUpdated newAliases
+                |> AstarteApi.updateDeviceAliases session.apiConfig model.deviceId (Dict.fromList [ ( aliasTag, aliasValue ) ])
+
+        ( Nothing, _ ) ->
+            Cmd.none
+
+        ( _, NewAlias.Noop ) ->
+            Cmd.none
+
+
 type CardWidth
     = FullWidth
     | HalfWidth
@@ -185,6 +255,8 @@ view model flashMessages =
                     , deviceStatsCard device FullWidth
                     , deviceChannelCard model.receivedEvents FullWidth
                     ]
+                , NewAlias.view model.newAliasModal
+                    |> Html.map UpdateModal
                 ]
 
             Nothing ->
@@ -426,7 +498,24 @@ deviceAliasesCard device width =
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col [ Col.sm12 ]
-                [ renderAliases device.aliases
+                [ renderAliases device.aliases ]
+            ]
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ Html.a
+                    [ { message = OpenNewAliasPopup
+                      , preventDefault = True
+                      , stopPropagation = False
+                      }
+                        |> Decode.succeed
+                        |> Html.Events.custom "click"
+                    , href "#"
+                    , Html.Attributes.target "_self"
+                    ]
+                    [ Icons.render Icons.Add [ Spacing.mr1 ]
+                    , Html.text "Add new alias..."
+                    ]
                 ]
             ]
         ]
