@@ -14,11 +14,11 @@ services:
     env_file:
      - ./compose.env
     environment:
-      HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping.pub"
+      HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping_public.pem"
     ports:
       - "4001:4001"
     volumes:
-      - ./compose/astarte-keys/housekeeping.pub:/keys/housekeeping.pub
+      - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem
     restart: on-failure
     depends_on:
       - "rabbitmq"

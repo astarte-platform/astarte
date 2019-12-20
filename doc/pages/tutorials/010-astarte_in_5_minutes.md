@@ -38,25 +38,24 @@ To check everything went fine, use `docker ps` to verify relevant containers are
 
 ## Create a Realm
 
-Now that we have our instance up and running, we can start setting up a Realm for our device. We'll call our Realm `test`. Given we have no SSO or Authentication mechanism set up, we're just going to generate a public key to sign our JWTs with. You can create one with OpenSSL:
+Now that we have our instance up and running, we can start setting up a Realm for our device. We'll call our Realm `test`. Given we have no SSO or Authentication mechanism set up, we're just going to generate a public key to sign our JWTs with. You can create one with `astartectl`:
 
 ```sh
-$ openssl genrsa -out test_realm.key 4096
-$ openssl rsa -in test_realm.key -pubout -outform PEM -out test_realm.key.pub
+$ astartectl utils gen-keypair test
 ```
 
-Also, we will need a JWT token to authenticate against Housekeeping. `generate-compose-files.sh` created a public key automatically, which is in `compose/astarte-keys/housekeeping.pub`. To perform all of our Astarte interactions, we will use `astartectl`.
+Also, we will need a JWT token to authenticate against Housekeeping. `generate-compose-files.sh` created a keypair automatically, which is in `compose/astarte-keys/housekeeping_{private,public}.pem`. To perform all of our Astarte interactions, we will use `astartectl`.
 
 Use `astartectl` to create a new Realm:
 
 ```sh
-$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_realm.key.pub -k compose/astarte-keys/housekeeping.pub
+$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_public.pem -k compose/astarte-keys/housekeeping_private.pem
 ```
 
 This creates a `test` realm, which should be ready to be used almost immediately. To ensure your realm is available and ready, check if it exists in Astarte by issuing:
 
 ```sh
-$ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k compose/astarte-keys/housekeeping.pub
+$ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k compose/astarte-keys/housekeeping_private.pem
 ```
 
 ## Install an interface
@@ -64,13 +63,13 @@ $ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k
 We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. Clone the repository, as we will have to install its `org.astarteplatform.Values` interface into our new realm. To do that, we can use `astartectl` again:
 
 ```sh
-$ astartectl realm-management interfaces install ../stream-qt5-test/interfaces/org.astarteplatform.Values.json --realm-management-url http://localhost:4000/ -r test -k test_realm.key
+$ astartectl realm-management interfaces install ../stream-qt5-test/interfaces/org.astarteplatform.Values.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
 Now `org.astarteplatform.Values` should show up among our available interfaces:
 
 ```sh
-$ astartectl realm-management interfaces ls --realm-management-url http://localhost:4000/ -r test -k test_realm.key
+$ astartectl realm-management interfaces ls --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
 Our Astarte instance is now ready for our devices.
@@ -106,13 +105,13 @@ Replace `http://example.com` with your target URL in the command below, you can 
 Replace `$TRIGGER_TARGET_URL` with the URL your Trigger will target. Assuming you saved this as `my_trigger.json`, you can now install it through `astartectl`:
 
 ```sh
-$ astartectl realm-management triggers install my_trigger.json --realm-management-url http://localhost:4000/ -r test -k test_realm.key
+$ astartectl realm-management triggers install my_trigger.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
 You can now check that your trigger is correctly installed:
 
 ```sh
-$ astartectl realm-management triggers ls --realm-management-url http://localhost:4000/ -r test -k test_realm.key
+$ astartectl realm-management triggers ls --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
 ## Stream data
@@ -132,7 +131,7 @@ $ docker pull astarte/astarte-stream-qt5-test:snapshot
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_realm.key)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:snapshot
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:snapshot
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
@@ -173,12 +172,12 @@ You can now run `stream-qt5-test` from your last build directory. Refer to its [
 Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-qt5-test`, you can get the last sent value with `astartectl`:
 
 ```sh
-$ astartectl appengine devices get-samples <your device id> org.astarteplatform.Values /realValue --count 1 --appengine-url http://localhost:4002 -r test -k test_realm.key
+$ astartectl appengine devices get-samples <your device id> org.astarteplatform.Values /realValue --count 1 --appengine-url http://localhost:4002 -r test -k test_private.pem
 ```
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
 
-Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt realm-management -k test_realm.key`. Grant a longer expiration by using the `-e` parameter to avoid being logged out too quickly.
+Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt realm-management -k test_private.pem`. Grant a longer expiration by using the `-e` parameter to avoid being logged out too quickly.
 
 From here on, you can use all of Astarte's APIs and features from your own installation. You can add devices, experiment with interfaces, or develop your own applications on top of Astarte's triggers or AppEngine's APIs. And have a lot of fun!
 
