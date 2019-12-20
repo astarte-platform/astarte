@@ -27,12 +27,12 @@ So, if you're serious about getting Astarte in your production environment, you 
 
 Good question. This repository is a collection of utilities, home to Astarte's documentation and architecture decisions, and acts as an umbrella for the project. Astarte is a distributed system made up of several microservices, [which can all be found in Github](https://github.com/astarte-platform). Its core components are:
 
-* [Data Updater Plant](https://github.com/astarte-platform/astarte_data_updater_plant): Takes care of ingesting data into the database, filtering and routing it to other Astarte components.
-* [Trigger Engine](https://github.com/astarte-platform/astarte_trigger_engine): Processes incoming events, applies rules, prepares payloads and performs actions - it is the component that delivers data to your application.
-* [AppEngine API](https://github.com/astarte-platform/astarte_appengine_api): If you are building an application on top of Astarte's APIs, you will most likely call into it.
-* [Pairing](https://github.com/astarte-platform/astarte_pairing) & [Pairing API](https://github.com/astarte-platform/astarte_pairing_api): Provides all the information required to successfully communicate with Astarte, including the SSL certificate.
-* [Realm Management](https://github.com/astarte-platform/astarte_realm_management) & [Realm Management API](https://github.com/astarte-platform/astarte_realm_management_api): Where realm configuration happens. Manage your triggers, interfaces and more from here.
-* [Housekeeping](https://github.com/astarte-platform/astarte_housekeeping) & [Housekeeping API](https://github.com/astarte-platform/astarte_housekeeping_api): The *"superadmin"* component of Astarte: configure your global instance, create realms and more.
+* [Data Updater Plant](apps/astarte_data_updater_plant): Takes care of ingesting data into the database, filtering and routing it to other Astarte components.
+* [Trigger Engine](apps/astarte_trigger_engine): Processes incoming events, applies rules, prepares payloads and performs actions - it is the component that delivers data to your application.
+* [AppEngine API](apps/astarte_appengine_api): If you are building an application on top of Astarte's APIs, you will most likely call into it.
+* [Pairing](apps/astarte_pairing) & [Pairing API](apps/astarte_pairing_api): Provides all the information required to successfully communicate with Astarte, including the SSL certificate.
+* [Realm Management](apps/astarte_realm_management) & [Realm Management API](apps/astarte_realm_management_api): Where realm configuration happens. Manage your triggers, interfaces and more from here.
+* [Housekeeping](apps/astarte_housekeeping) & [Housekeeping API](apps/astarte_housekeeping_api): The *"superadmin"* component of Astarte: configure your global instance, create realms and more.
 
 All of them build on some common libraries:
 
