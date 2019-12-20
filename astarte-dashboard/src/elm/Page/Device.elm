@@ -560,7 +560,8 @@ renderDeviceEvent event =
                 DeviceEvent.IncomingData data ->
                     ( IncommingDataLabel
                     , Html.span []
-                        [ Html.span [ Spacing.mr2 ] [ Html.text <| data.interface ++ data.path ]
+                        [ Html.span [ Spacing.mr2 ] [ Html.text data.interface ]
+                        , Html.span [ Spacing.mr2 ] [ Html.text data.path ]
                         , Html.span [ class "text-monospace" ] [ Html.text <| AstarteValue.toString data.value ]
                         ]
                     )

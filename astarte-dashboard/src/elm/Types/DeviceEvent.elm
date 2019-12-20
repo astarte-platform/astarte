@@ -128,7 +128,7 @@ knownEventsDecoderHelper eventType =
 
 connectionParamsDecoder : Decoder ConnectionParams
 connectionParamsDecoder =
-    Decode.map ConnectionParams <| Decode.field "type" Decode.string
+    Decode.map ConnectionParams <| Decode.field "device_ip_address" Decode.string
 
 
 valueParamsDecoder : Decoder ValueParams
