@@ -21,12 +21,16 @@ defmodule Astarte.Housekeeping.APIWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
   end
 
   scope "/v1", Astarte.Housekeeping.APIWeb do
     pipe_through :api
 
     resources "/realms", RealmController, except: [:new, :edit, :delete]
-    get "/health", HealthController, :show
+  end
+
+  scope "/health", Astarte.Housekeeping.APIWeb do
+    get "/", HealthController, :show
   end
 end
