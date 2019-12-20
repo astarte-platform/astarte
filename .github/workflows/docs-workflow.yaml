@@ -4,7 +4,7 @@ on:
   push:
     paths:
     - 'doc/**'
-    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    - '.github/workflows/docs-workflow.yaml'
     branches:
     - 'master'
     - 'release-*'
