@@ -8,7 +8,7 @@ if [ ! -f ./compose/cfssl-config/ca.pem ] || [ ! -f ./compose/cfssl-config/ca-ke
 fi
 
 # Generate housekeeping keypairs
-if [ ! -f ./compose/astarte-keys/housekeeping.pub ] ; then
+if [ ! -f ./compose/astarte-keys/housekeeping_public.pem ] ; then
     cd compose/astarte-keys/
     astartectl utils gen-keypair housekeeping
     cd -
