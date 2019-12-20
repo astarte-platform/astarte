@@ -20,7 +20,6 @@
 module Page.DeviceData exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import AstarteApi
-import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
@@ -30,7 +29,7 @@ import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Spacing as Spacing
 import Html exposing (Html, h5)
 import Html.Attributes exposing (class)
-import Icons
+import ListUtils exposing (addWhen)
 import Spinner
 import Time
 import Types.AstarteValue as AstarteValue exposing (AstarteValue)
@@ -63,7 +62,7 @@ init session deviceId interfaceName =
 
 
 type Msg
-    = Refresh
+    = UpdateInterfaceData Time.Posix
     | DeviceDataDone (Result AstarteApi.Error (List DeviceData))
     | Forward ExternalMsg
     | SpinnerMsg Spinner.Msg
@@ -72,7 +71,7 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
-        Refresh ->
+        UpdateInterfaceData _ ->
             ( { model | showSpinner = True }
             , AstarteApi.deviceData session.apiConfig model.deviceId model.interfaceName <| DeviceDataDone
             , ExternalMsg.Noop
@@ -135,14 +134,6 @@ view model flashMessages =
                     , class "align-middle"
                     ]
                     [ Html.text <| "Device data for interface " ++ model.interfaceName ]
-                , Button.button
-                    [ Button.primary
-                    , Button.onClick Refresh
-                    , Button.attrs [ class "float-right" ]
-                    ]
-                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
-                    , Html.text "Reload"
-                    ]
                 ]
             ]
         , Grid.row
@@ -251,8 +242,7 @@ monthToStringNumber month =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.showSpinner then
-        Sub.map SpinnerMsg Spinner.subscription
-
-    else
-        Sub.none
+    [ Time.every (30 * 1000) UpdateInterfaceData
+    ]
+        |> addWhen model.showSpinner (Sub.map SpinnerMsg Spinner.subscription)
+        |> Sub.batch
