@@ -280,6 +280,9 @@ defmodule Astarte.Housekeeping.Migrator do
           )
 
         {:error, :database_connection_error}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
