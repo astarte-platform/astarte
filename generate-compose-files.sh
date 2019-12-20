@@ -10,8 +10,7 @@ fi
 # Generate housekeeping keypairs
 if [ ! -f ./compose/astarte-keys/housekeeping.pub ] ; then
     cd compose/astarte-keys/
-    openssl genrsa -out housekeeping.key 2048
-    openssl rsa -in housekeeping.key -out housekeeping.pub -pubout
+    astartectl utils gen-keypair housekeeping
     cd -
 fi
 
