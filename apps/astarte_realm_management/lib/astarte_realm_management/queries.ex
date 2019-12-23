@@ -28,6 +28,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Interface.Ownership
   alias Astarte.Core.Interface.Type, as: InterfaceType
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.DatabaseRetentionPolicy
   alias Astarte.Core.Mapping.Reliability
   alias Astarte.Core.Mapping.Retention
   alias Astarte.Core.Mapping.ValueType
@@ -317,13 +318,13 @@ defmodule Astarte.RealmManagement.Queries do
     INSERT INTO endpoints
     (
       interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
-      interface_type, endpoint, value_type, reliability, retention, expiry, allow_unset,
-      explicit_timestamp, description, doc
+      interface_type, endpoint, value_type, reliability, retention, database_retention_policy,
+      database_retention_ttl, expiry, allow_unset, explicit_timestamp, description, doc
     )
     VALUES (
       :interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version,
-      :interface_type, :endpoint, :value_type, :reliability, :retention, :expiry, :allow_unset,
-      :explicit_timestamp, :description, :doc
+      :interface_type, :endpoint, :value_type, :reliability, :retention, :database_retention_policy,
+      :database_retention_ttl, :expiry, :allow_unset, :explicit_timestamp, :description, :doc
     )
     """
 
@@ -339,6 +340,11 @@ defmodule Astarte.RealmManagement.Queries do
     |> DatabaseQuery.put(:value_type, ValueType.to_int(mapping.value_type))
     |> DatabaseQuery.put(:reliability, Reliability.to_int(mapping.reliability))
     |> DatabaseQuery.put(:retention, Retention.to_int(mapping.retention))
+    |> DatabaseQuery.put(
+      :database_retention_policy,
+      DatabaseRetentionPolicy.to_int(mapping.database_retention_policy)
+    )
+    |> DatabaseQuery.put(:database_retention_ttl, mapping.database_retention_ttl)
     |> DatabaseQuery.put(:expiry, mapping.expiry)
     |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
     |> DatabaseQuery.put(:explicit_timestamp, mapping.explicit_timestamp)
