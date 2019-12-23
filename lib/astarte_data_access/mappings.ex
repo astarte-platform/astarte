@@ -25,8 +25,8 @@ defmodule Astarte.DataAccess.Mappings do
           {:ok, list(%Mapping{})} | {:error, atom}
   def fetch_interface_mappings(db_client, interface_id) do
     mappings_statement = """
-    SELECT endpoint, value_type, reliability, retention, expiry, allow_unset, explicit_timestamp,
-      endpoint_id, interface_id
+    SELECT endpoint, value_type, reliability, retention, database_retention_policy,
+      database_retention_ttl, expiry, allow_unset, explicit_timestamp, endpoint_id, interface_id
     FROM endpoints
     WHERE interface_id=:interface_id
     """
