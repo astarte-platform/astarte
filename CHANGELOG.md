@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - Update requirements to OTP 21.3, Elixir 1.8.1 and Cassandra 3.11.4.
+- Fetch mapping database_retention_policy and database_retention_ttl.
 
 ## [0.10.1] - 2019-10-02
 
