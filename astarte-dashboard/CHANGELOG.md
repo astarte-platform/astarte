@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Migrated to Elm 0.19
 
+## [0.10.2] - 2019-12-09
+### Fixed
+- Change endpoint regular expression validation to match the one used by Astarte.
+
 ## [0.10.1] - 2019-10-02
 
 ## [0.10.0] - 2019-04-16
