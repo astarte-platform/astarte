@@ -92,7 +92,7 @@ view : Model -> Html Msg
 view model =
     Modal.config (Close ModalCancel)
         |> Modal.large
-        |> Modal.h5 [] [ Html.text "Add new alias" ]
+        |> Modal.h5 [] [ Html.text "Add New Alias" ]
         |> Modal.body []
             [ renderBody model.aliasTag model.aliasValue ]
         |> Modal.footer []
