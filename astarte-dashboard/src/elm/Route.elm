@@ -53,6 +53,7 @@ type RealmRoute
     | ShowTrigger String
     | DeviceList
     | ShowDevice String
+    | ShowDeviceData String String
     | GroupList
 
 
@@ -81,6 +82,7 @@ realmRouteParser =
         , map ShowTrigger (s "triggers" </> string)
         , map DeviceList (s "devices")
         , map ShowDevice (s "devices" </> string)
+        , map ShowDeviceData (s "devices" </> string </> s "interfaces" </> string)
         , map GroupList (s "groups")
         ]
 
@@ -154,6 +156,9 @@ toString route =
 
                 Realm (ShowDevice deviceId) ->
                     [ "devices", deviceId ]
+
+                Realm (ShowDeviceData deviceId interfaceName) ->
+                    [ "devices", deviceId, "interfaces", interfaceName ]
 
                 Realm GroupList ->
                     [ "groups" ]

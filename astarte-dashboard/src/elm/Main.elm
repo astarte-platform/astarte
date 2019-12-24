@@ -32,6 +32,7 @@ import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode
 import Page.Device as Device
+import Page.DeviceData as DeviceData
 import Page.DeviceList as DeviceList
 import Page.GroupList as GroupList
 import Page.Home as Home
@@ -180,6 +181,7 @@ type RealmPage
     | RealmSettingsPage RealmSettings.Model
     | DeviceListPage DeviceList.Model
     | DevicePage Device.Model
+    | DeviceDataPage DeviceData.Model
     | GroupListPage GroupList.Model
 
 
@@ -201,6 +203,7 @@ type Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | DeviceListMsg DeviceList.Msg
     | DeviceMsg Device.Msg
+    | DeviceDataMsg DeviceData.Msg
     | GroupListMsg GroupList.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
@@ -355,6 +358,9 @@ updateRealmPage realm realmPage msg model =
                 ( DeviceMsg subMsg, DevicePage subModel ) ->
                     updateRealmPageHelper realm (Device.update model.session subMsg subModel) DeviceMsg DevicePage
 
+                ( DeviceDataMsg subMsg, DeviceDataPage subModel ) ->
+                    updateRealmPageHelper realm (DeviceData.update model.session subMsg subModel) DeviceDataMsg DeviceDataPage
+
                 ( GroupListMsg subMsg, GroupListPage subModel ) ->
                     updateRealmPageHelper realm (GroupList.update model.session subMsg subModel) GroupListMsg GroupListPage
 
@@ -482,6 +488,9 @@ pageInit realmRoute config session =
         Route.ShowDevice deviceId ->
             initDevicePage deviceId session session.apiConfig.realm
 
+        Route.ShowDeviceData deviceId interfaceName ->
+            initDeviceDataPage deviceId interfaceName session session.apiConfig.realm
+
         Route.GroupList ->
             initGroupListPage session session.apiConfig.realm
 
@@ -594,6 +603,18 @@ initDevicePage deviceId session realm =
     in
     ( Realm realm (DevicePage initialModel)
     , Cmd.map DeviceMsg initialCommand
+    , session
+    )
+
+
+initDeviceDataPage : String -> String -> Session -> String -> ( Page, Cmd Msg, Session )
+initDeviceDataPage deviceId interfaceName session realm =
+    let
+        ( initialModel, initialCommand ) =
+            DeviceData.init session deviceId interfaceName
+    in
+    ( Realm realm (DeviceDataPage initialModel)
+    , Cmd.map DeviceDataMsg initialCommand
     , session
     )
 
@@ -1115,6 +1136,10 @@ renderProtectedPage flashMessages page =
             Device.view submodel flashMessages
                 |> Html.map DeviceMsg
 
+        DeviceDataPage submodel ->
+            DeviceData.view submodel flashMessages
+                |> Html.map DeviceDataMsg
+
         GroupListPage submodel ->
             GroupList.view submodel flashMessages
                 |> Html.map GroupListMsg
@@ -1162,6 +1187,9 @@ pageSubscriptions page =
 
         Realm _ (DevicePage submodel) ->
             Sub.map DeviceMsg <| Device.subscriptions submodel
+
+        Realm _ (DeviceDataPage submodel) ->
+            Sub.map DeviceDataMsg <| DeviceData.subscriptions submodel
 
         Realm _ (GroupListPage submodel) ->
             Sub.map GroupListMsg <| GroupList.subscriptions submodel

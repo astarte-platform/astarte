@@ -39,6 +39,7 @@ import Json.Decode as Decode exposing (Decoder)
 import ListUtils exposing (addWhen)
 import Modal.NewAlias as NewAlias
 import Ports
+import Route
 import Spinner
 import Time
 import Types.AstarteValue as AstarteValue
@@ -583,7 +584,7 @@ deviceIntrospectionCard device width =
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col [ Col.sm12 ]
-                [ renderIntrospectionInfo device.introspection ]
+                [ renderIntrospectionInfo device.id device.introspection ]
             ]
         ]
 
@@ -830,13 +831,13 @@ renderBoolRow ( label, value ) =
         renderTextRow ( label, "False" )
 
 
-renderIntrospectionInfo : List Device.IntrospectionValue -> Html Msg
-renderIntrospectionInfo introspectionValues =
+renderIntrospectionInfo : String -> List Device.IntrospectionValue -> Html Msg
+renderIntrospectionInfo deviceId introspectionValues =
     if List.isEmpty introspectionValues then
         Html.text "No introspection info"
 
     else
-        Html.ul [] (List.map renderIntrospectionValue introspectionValues)
+        Html.ul [] <| List.map (renderIntrospectionValue deviceId) introspectionValues
 
 
 renderPreviousInterfacesInfo : List Device.IntrospectionValue -> Html Msg
@@ -845,11 +846,25 @@ renderPreviousInterfacesInfo previousInterfaces =
         Html.text "No previous interfaces info"
 
     else
-        Html.ul [] (List.map renderIntrospectionValue previousInterfaces)
+        Html.ul [] (List.map renderPreviousIntrospectionValue previousInterfaces)
 
 
-renderIntrospectionValue : Device.IntrospectionValue -> Html Msg
-renderIntrospectionValue value =
+renderIntrospectionValue : String -> Device.IntrospectionValue -> Html Msg
+renderIntrospectionValue deviceId value =
+    case value of
+        Device.InterfaceInfo name major minor _ _ ->
+            Html.li []
+                [ Html.a
+                    [ href <| Route.toString <| Route.Realm (Route.ShowDeviceData deviceId name) ]
+                    [ [ name, " v", String.fromInt major, ".", String.fromInt minor ]
+                        |> String.join ""
+                        |> Html.text
+                    ]
+                ]
+
+
+renderPreviousIntrospectionValue : Device.IntrospectionValue -> Html Msg
+renderPreviousIntrospectionValue value =
     case value of
         Device.InterfaceInfo name major minor _ _ ->
             Html.li []
