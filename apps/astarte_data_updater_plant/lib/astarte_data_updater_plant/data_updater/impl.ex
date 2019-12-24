@@ -321,6 +321,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          interface_id <- interface_descriptor.interface_id,
          {:ok, endpoint} <- resolve_path(path, interface_descriptor, new_state.mappings),
          endpoint_id <- endpoint.endpoint_id,
+         db_retention_policy = endpoint.database_retention_policy,
+         db_ttl = endpoint.database_retention_ttl,
          {value, value_timestamp, _metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp),
          expected_types <-
@@ -383,6 +385,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
       end
 
+      realm_max_ttl = state.datastream_maximum_storage_retention
+
+      db_max_ttl =
+        cond do
+          db_retention_policy == :use_ttl and is_integer(realm_max_ttl) ->
+            min(db_ttl, realm_max_ttl)
+
+          db_retention_policy == :use_ttl ->
+            db_ttl
+
+          is_integer(realm_max_ttl) ->
+            realm_max_ttl
+
+          true ->
+            nil
+        end
+
       cond do
         interface_descriptor.type == :datastream and value != nil ->
           :ok =
@@ -398,7 +417,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   endpoint,
                   path
                 ),
-                state.datastream_maximum_storage_retention
+                db_max_ttl
               ) ->
                 :ok
 
@@ -411,7 +430,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   path,
                   maybe_explicit_value_timestamp,
                   timestamp,
-                  ttl: path_ttl(state.datastream_maximum_storage_retention)
+                  ttl: path_ttl(db_max_ttl)
                 )
             end
 
@@ -435,7 +454,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           value,
           maybe_explicit_value_timestamp,
           timestamp,
-          ttl: state.datastream_maximum_storage_retention
+          ttl: db_max_ttl
         )
 
       :ok = insert_result
@@ -454,7 +473,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           )
       end
 
-      ttl = state.datastream_maximum_storage_retention
+      ttl = db_max_ttl
       paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{}, ttl)
       new_state = %{new_state | paths_cache: paths_cache}
 
