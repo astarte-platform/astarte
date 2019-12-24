@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   interfaces should use /collectioname instead.
 - Auto refresh for interface, trigger and device Lists
 - Group list page
+- Device last sent data page
 
 ### Changed
 - Migrated to Elm 0.19
