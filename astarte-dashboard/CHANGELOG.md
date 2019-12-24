@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Device list page
 - Warn users about deprecated object aggregated / datastream path. New object aggregated
   interfaces should use /collectioname instead.
+- Auto refresh for interface, trigger and device Lists
 
 ### Changed
 - Migrated to Elm 0.19

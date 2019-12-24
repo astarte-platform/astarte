@@ -35,8 +35,10 @@ import Html exposing (Html, a, h5, text)
 import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick)
 import Icons
+import ListUtils exposing (addWhen)
 import Route
 import Spinner
+import Time
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
@@ -71,6 +73,7 @@ type Msg
     | GetInterfaceMajors String
     | GetInterfaceMajorsDone String (List Int)
     | OpenInterfaceBuilder
+    | RefreshInterfaceList Time.Posix
     | Forward ExternalMsg
     | ShowError String AstarteApi.Error
     | RedirectToLogin
@@ -148,6 +151,15 @@ update session msg model =
             ( model
             , Cmd.none
             , ExternalMsg.RequestRoute <| Route.Realm Route.Logout
+            )
+
+        RefreshInterfaceList _ ->
+            ( model
+            , AstarteApi.listInterfaces session.apiConfig
+                GetInterfaceListDone
+                (ShowError "Could not refresh interface list")
+                RedirectToLogin
+            , ExternalMsg.Noop
             )
 
         Forward externalMsg ->
@@ -297,11 +309,8 @@ renderMajor interfaceName major =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.showSpinner then
-        Sub.batch
-            [ Accordion.subscriptions model.accordionState AccordionMsg
-            , Sub.map SpinnerMsg Spinner.subscription
-            ]
-
-    else
-        Accordion.subscriptions model.accordionState AccordionMsg
+    [ Accordion.subscriptions model.accordionState AccordionMsg
+    , Time.every (30 * 1000) RefreshInterfaceList
+    ]
+        |> addWhen model.showSpinner (Sub.map SpinnerMsg Spinner.subscription)
+        |> Sub.batch
