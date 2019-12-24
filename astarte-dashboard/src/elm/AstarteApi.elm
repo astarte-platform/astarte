@@ -32,6 +32,7 @@ module AstarteApi exposing
     , errorToHumanReadable
     , getInterface
     , getTrigger
+    , groupList
     , listInterfaceMajors
     , listInterfaces
     , listTriggers
@@ -510,6 +511,23 @@ updateDeviceAliases apiConfig deviceId aliases resultMsg =
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "devices", deviceId ] []
         , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", Device.encodeAliases aliases ) ]
         , expect = expectWhateverAstarteReply resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+
+-- Groups
+
+
+groupList : Config -> (Result Error (List String) -> msg) -> Cmd msg
+groupList apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "groups" ] []
+        , body = Http.emptyBody
+        , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Decode.string)
         , timeout = Nothing
         , tracker = Nothing
         }

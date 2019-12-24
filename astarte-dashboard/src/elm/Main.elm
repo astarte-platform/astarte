@@ -33,6 +33,7 @@ import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode
 import Page.Device as Device
 import Page.DeviceList as DeviceList
+import Page.GroupList as GroupList
 import Page.Home as Home
 import Page.InterfaceBuilder as InterfaceBuilder
 import Page.Interfaces as Interfaces
@@ -179,6 +180,7 @@ type RealmPage
     | RealmSettingsPage RealmSettings.Model
     | DeviceListPage DeviceList.Model
     | DevicePage Device.Model
+    | GroupListPage GroupList.Model
 
 
 
@@ -199,6 +201,7 @@ type Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | DeviceListMsg DeviceList.Msg
     | DeviceMsg Device.Msg
+    | GroupListMsg GroupList.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
 
@@ -352,6 +355,9 @@ updateRealmPage realm realmPage msg model =
                 ( DeviceMsg subMsg, DevicePage subModel ) ->
                     updateRealmPageHelper realm (Device.update model.session subMsg subModel) DeviceMsg DevicePage
 
+                ( GroupListMsg subMsg, GroupListPage subModel ) ->
+                    updateRealmPageHelper realm (GroupList.update model.session subMsg subModel) GroupListMsg GroupListPage
+
                 -- Ignore messages from not matching pages
                 ( _, _ ) ->
                     ( model.selectedPage, Cmd.none, Noop )
@@ -476,6 +482,9 @@ pageInit realmRoute config session =
         Route.ShowDevice deviceId ->
             initDevicePage deviceId session session.apiConfig.realm
 
+        Route.GroupList ->
+            initGroupListPage session session.apiConfig.realm
+
 
 initLoginPage : Config.Params -> Session -> ( Page, Cmd Msg, Session )
 initLoginPage config session =
@@ -585,6 +594,18 @@ initDevicePage deviceId session realm =
     in
     ( Realm realm (DevicePage initialModel)
     , Cmd.map DeviceMsg initialCommand
+    , session
+    )
+
+
+initGroupListPage : Session -> String -> ( Page, Cmd Msg, Session )
+initGroupListPage session realm =
+    let
+        ( initialModel, initialCommand ) =
+            GroupList.init session
+    in
+    ( Realm realm (GroupListPage initialModel)
+    , Cmd.map GroupListMsg initialCommand
     , session
     )
 
@@ -931,6 +952,11 @@ navbarLinks selectedPage =
                     Icons.Device
                     (isDeviceRelated selectedPage)
                     (Route.Realm Route.DeviceList)
+                , renderNavbarLink
+                    "Groups"
+                    Icons.Group
+                    (isGroupRelated selectedPage)
+                    (Route.Realm Route.GroupList)
 
                 -- Common
                 , renderNavbarSeparator
@@ -1026,6 +1052,16 @@ isDeviceRelated page =
             False
 
 
+isGroupRelated : Page -> Bool
+isGroupRelated page =
+    case page of
+        Realm _ (GroupListPage _) ->
+            True
+
+        _ ->
+            False
+
+
 renderPage : Model -> Page -> Html Msg
 renderPage model page =
     case page of
@@ -1079,6 +1115,10 @@ renderProtectedPage flashMessages page =
             Device.view submodel flashMessages
                 |> Html.map DeviceMsg
 
+        GroupListPage submodel ->
+            GroupList.view submodel flashMessages
+                |> Html.map GroupListMsg
+
 
 
 -- SUBSCRIPTIONS
@@ -1122,6 +1162,9 @@ pageSubscriptions page =
 
         Realm _ (DevicePage submodel) ->
             Sub.map DeviceMsg <| Device.subscriptions submodel
+
+        Realm _ (GroupListPage submodel) ->
+            Sub.map GroupListMsg <| GroupList.subscriptions submodel
 
         Realm _ (RealmSettingsPage submodel) ->
             Sub.map RealmSettingsMsg <| RealmSettings.subscriptions submodel
