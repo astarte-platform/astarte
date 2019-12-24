@@ -120,7 +120,7 @@ type Retention
 
 validEndpointRegex : Regex
 validEndpointRegex =
-    Regex.fromString "^(/(%{([a-zA-Z][a-zA-Z0-9_]*)}|[a-zA-Z][a-zA-Z0-9]*)){1,64}"
+    Regex.fromString "^(/(%{([a-zA-Z][a-zA-Z0-9_]*)}|[a-zA-Z][a-zA-Z0-9_]*)){1,64}$"
         |> Maybe.withDefault Regex.never
 
 
