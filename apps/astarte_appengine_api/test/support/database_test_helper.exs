@@ -169,6 +169,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         value_type int,
         reliability int,
         retention int,
+        database_retention_policy int,
+        database_retention_ttl int,
         expiry int,
         allow_unset boolean,
         explicit_timestamp boolean,
