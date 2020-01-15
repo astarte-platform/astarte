@@ -20,6 +20,7 @@ if [ ! -f ./compose/vernemq-certs/cert ] ; then
 	# Structure
 	mkdir -p ca/certs ca/crl ca/newcerts ca/private
 	touch ca/index.txt
+	touch ca/index.txt.attr
 	echo 1000 > ca/serial
 
 	# The root CA
