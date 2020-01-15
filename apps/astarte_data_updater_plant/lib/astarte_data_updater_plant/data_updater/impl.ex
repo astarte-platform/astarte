@@ -1212,11 +1212,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          timestamp do
       any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
 
+      any_interface_id = SimpleTriggersProtobufUtils.any_interface_object_id()
+
+      # TODO when introspection triggers are supported, we should also forget any_interface
+      # introspection triggers here, or handle them separately
+
       state
       |> Map.put(:last_device_triggers_refresh, timestamp)
       |> Map.put(:device_triggers, %{})
+      |> forget_any_interface_data_triggers()
       |> populate_triggers_for_object!(db_client, any_device_id, :any_device)
       |> populate_triggers_for_object!(db_client, state.device_id, :device)
+      |> populate_triggers_for_object!(db_client, any_interface_id, :any_interface)
     else
       state
     end
@@ -1245,6 +1252,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     state
     |> forget_interfaces(interfaces_to_drop_list)
     |> Map.put(:interfaces_by_expiry, new_interfaces_by_expiry)
+  end
+
+  defp forget_any_interface_data_triggers(state) do
+    updated_data_triggers =
+      for {{_type, iface_id, _endpoint} = key, value} <- state.data_triggers,
+          iface_id != :any_interface,
+          into: %{} do
+        {key, value}
+      end
+
+    %{state | data_triggers: updated_data_triggers}
   end
 
   defp forget_interfaces(state, []) do
