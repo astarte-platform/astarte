@@ -26,6 +26,7 @@ defmodule Doc.MixProject do
       source_url: "https://git.ispirata.com/Astarte-NG/%{path}#L%{line}",
       extras: Path.wildcard("pages/*/*.md"),
       assets: "images/",
+      api_reference: false,
       groups_for_extras: [
         "Architecture, Design and Concepts": ~r"/architecture/",
         "User Guide": ~r"/user/",
