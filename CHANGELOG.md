@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0-beta.2] - Unreleased
 ### Changed
 - [realm_management] Handle hyphens in `interface_name`. ([#96](https://github.com/astarte-platform/astarte/issues/96))
+- [realm_management] Restrict the use of `*` as `interface_name` only to `incoming_data` data
+  triggers.
+
+### Fixed
+- [data_updater_plant] Load `incoming_data` triggers targeting `any_interface`.
+  ([#139](https://github.com/astarte-platform/astarte/issues/139))
 
 ## [0.11.0-beta.1] - 2019-12-26
 ### Added
