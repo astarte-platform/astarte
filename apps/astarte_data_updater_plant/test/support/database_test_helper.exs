@@ -474,47 +474,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         simple_trigger_data =
           %SimpleTriggerContainer{
             simple_trigger: {
-              :introspection_trigger,
-              %IntrospectionTrigger{
-                change_type: :INTERFACE_ADDED
-              }
-            }
-          }
-          |> SimpleTriggerContainer.encode()
-
-        trigger_target_data =
-          %TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
-          }
-          |> TriggerTargetContainer.encode()
-
-        # object_id f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177 means ':any_interface'
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(
-            :object_id,
-            :uuid.string_to_uuid("f7ee3cf3-b8af-ec2b-19f2-7e5bfd8d1177")
-          )
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:any_interface)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, interface_added_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
-
-        DatabaseQuery.call!(client, query)
-
-        simple_trigger_data =
-          %SimpleTriggerContainer{
-            simple_trigger: {
               :device_trigger,
               %DeviceTrigger{
                 device_event_type: :DEVICE_CONNECTED
