@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [0.11.0-beta.2] - Unreleased
+### Changed
+- [realm_management] Handle hyphens in `interface_name`. ([#96](https://github.com/astarte-platform/astarte/issues/96))
 
 ## [0.11.0-beta.1] - 2019-12-26
 ### Added
