@@ -110,12 +110,6 @@ validInterfaceNameRegex =
         |> Maybe.withDefault Regex.never
 
 
-goodInterfaceNameRegex : Regex
-goodInterfaceNameRegex =
-    Regex.fromString "^([a-z]{2,}\\.){2,}[A-Z][a-zA-Z0-9]*$"
-        |> Maybe.withDefault Regex.never
-
-
 
 -- Setters
 
@@ -431,7 +425,38 @@ isValidInterfaceName interfaceName =
 
 isGoodInterfaceName : String -> Bool
 isGoodInterfaceName interfaceName =
-    Regex.contains goodInterfaceNameRegex interfaceName
+    let
+        groups =
+            interfaceName
+                |> String.split "."
+                |> List.reverse
+
+        ( topGroup, otherGroups ) =
+            case groups of
+                a :: b ->
+                    ( a, b )
+
+                [] ->
+                    ( "", [] )
+    in
+    isValidInterfaceName interfaceName
+        && isTitleCase topGroup
+        && List.all isLowerCase otherGroups
+
+
+isLowerCase : String -> Bool
+isLowerCase str =
+    String.all Char.isLower str
+
+
+isTitleCase : String -> Bool
+isTitleCase str =
+    case String.uncons str of
+        Just ( c, _ ) ->
+            Char.isUpper c
+
+        Nothing ->
+            False
 
 
 toPrettySource : Interface -> String
