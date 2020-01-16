@@ -106,7 +106,7 @@ type AggregationType
 
 validInterfaceNameRegex : Regex
 validInterfaceNameRegex =
-    Regex.fromString "^[a-zA-Z]+(\\.[a-zA-Z0-9]+)*$"
+    Regex.fromString "^([a-zA-Z][a-zA-Z0-9]*\\.([a-zA-Z0-9][a-zA-Z0-9-]*\\.)*)?[a-zA-Z][a-zA-Z0-9]*$"
         |> Maybe.withDefault Regex.never
 
 
