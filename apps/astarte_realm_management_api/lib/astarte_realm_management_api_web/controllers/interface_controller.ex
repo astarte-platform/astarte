@@ -53,7 +53,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
         |> put_status(:conflict)
         |> render(err_atom)
 
-      {:error, :invalid_name_casing = err_atom} ->
+      {:error, :interface_name_collision = err_atom} ->
         conn
         |> put_status(:conflict)
         |> render(err_atom)
