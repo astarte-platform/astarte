@@ -44,6 +44,14 @@ An example skeleton looks like this:
 
 Valid values and variables are listed in the [Interface Schema](040-interface_schema.html).
 
+### Name limitations
+A valid interface name consists of a Reverse Domain Name containing alphanumeric characters, hyphens
+and dots. By design, both the top level domain and last domain component can not contain hyphens.
+
+Make sure that the differences between two distinct interface names are not limited to the casing
+or the presence of hyphens. This situation leads to a collision in the interface names which brings
+to an error in the interface installation process.
+
 ## Interface Type
 Interfaces have a well-known, predefined type, which can be either `property` or
 `datastream`. Every Device in Astarte can have any number of interfaces of any different types.
