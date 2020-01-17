@@ -19,10 +19,16 @@
 defmodule Astarte.Housekeeping.API.Application do
   use Application
 
+  alias Astarte.Housekeeping.APIWeb.Metrics
+
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
     import Supervisor.Spec
+
+    Metrics.PhoenixInstrumenter.setup()
+    Metrics.PipelineInstrumenter.setup()
+    Metrics.PrometheusExporter.setup()
 
     # Define workers and child supervisors to be supervised
     children = [
