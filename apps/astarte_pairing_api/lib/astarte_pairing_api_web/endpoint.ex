@@ -19,6 +19,10 @@
 defmodule Astarte.Pairing.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_pairing_api
 
+  alias Astarte.Pairing.APIWeb.Metrics
+
+  plug Metrics.PrometheusExporter
+  plug Metrics.PipelineInstrumenter
   plug RemoteIp
 
   socket "/socket", Astarte.Pairing.APIWeb.UserSocket, websocket: true

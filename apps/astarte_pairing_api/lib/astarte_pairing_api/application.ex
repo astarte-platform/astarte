@@ -19,9 +19,15 @@
 defmodule Astarte.Pairing.API.Application do
   use Application
 
+  alias Astarte.Pairing.APIWeb.Metrics
+
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    Metrics.PhoenixInstrumenter.setup()
+    Metrics.PipelineInstrumenter.setup()
+    Metrics.PrometheusExporter.setup()
+
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.Pairing.APIWeb.Endpoint,
