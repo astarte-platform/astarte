@@ -20,6 +20,7 @@ defmodule Astarte.Pairing do
   @moduledoc false
 
   use Application
+  require Logger
 
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.RPC.Handler
@@ -27,6 +28,7 @@ defmodule Astarte.Pairing do
   alias Astarte.RPC.Protocol.Pairing, as: Protocol
 
   def start(_type, _args) do
+    Logger.info("Starting application", tag: "pairing_app_start")
     Config.init!()
 
     children = [
