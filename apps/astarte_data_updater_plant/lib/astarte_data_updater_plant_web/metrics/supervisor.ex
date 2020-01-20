@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,23 +16,23 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataUpdaterPlant.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
-  @moduledoc false
+defmodule Astarte.DataUpdaterPlantWeb.Metrics.Supervisor do
+  use Supervisor
 
-  use Application
-  require Logger
+  def start_link(init_arg) do
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
 
-  def start(_type, _args) do
-    Logger.info("Starting application.", tag: "data_updater_plant_app_start")
+  @impl true
+  def init(_init_arg) do
+    Astarte.DataUpdaterPlantWeb.Metrics.setup()
 
+    # TODO: make the port configurable when we switch to Elixir native releases
     children = [
-      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
-      Astarte.DataUpdaterPlantWeb.Metrics.Supervisor
+      {Plug.Cowboy,
+       scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, options: [port: 4004]}
     ]
 
-    opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.init(children, strategy: :one_for_one)
   end
 end

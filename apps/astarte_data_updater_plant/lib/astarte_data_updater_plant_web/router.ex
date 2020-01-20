@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,23 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataUpdaterPlant.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
+defmodule Astarte.DataUpdaterPlantWeb.Router do
   @moduledoc false
 
-  use Application
-  require Logger
+  use Plug.Router
 
-  def start(_type, _args) do
-    Logger.info("Starting application.", tag: "data_updater_plant_app_start")
+  plug Astarte.DataUpdaterPlantWeb.Metrics.PrometheusExporter
 
-    children = [
-      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
-      Astarte.DataUpdaterPlantWeb.Metrics.Supervisor
-    ]
+  plug :match
+  plug :dispatch
 
-    opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
-    Supervisor.start_link(children, opts)
+  match _ do
+    send_resp(conn, 404, "Not found")
   end
 end
