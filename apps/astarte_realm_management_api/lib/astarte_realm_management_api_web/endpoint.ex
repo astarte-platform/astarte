@@ -19,6 +19,11 @@
 defmodule Astarte.RealmManagement.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_realm_management_api
 
+  alias Astarte.RealmManagement.APIWeb.Metrics
+
+  plug Metrics.PrometheusExporter
+  plug Metrics.PipelineInstrumenter
+
   socket "/socket", Astarte.RealmManagement.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
