@@ -71,7 +71,7 @@ defmodule Astarte.RealmManagement.Engine do
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, {:ok, false}} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
-         :ok <- Queries.check_correct_casing(client, name),
+         :ok <- Queries.check_interface_name_collision(client, name),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
       _ =
         Logger.info("Installing interface.",
@@ -114,8 +114,8 @@ defmodule Astarte.RealmManagement.Engine do
       {:interface_avail, {:ok, true}} ->
         {:error, :already_installed_interface}
 
-      {:error, :invalid_name_casing} ->
-        {:error, :invalid_name_casing}
+      {:error, :interface_name_collision} ->
+        {:error, :interface_name_collision}
 
       {:error, :overlapping_mappings} ->
         {:error, :overlapping_mappings}

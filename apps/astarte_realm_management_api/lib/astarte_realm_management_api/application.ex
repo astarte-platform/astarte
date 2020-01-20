@@ -19,6 +19,8 @@
 defmodule Astarte.RealmManagement.API.Application do
   use Application
 
+  alias Astarte.RealmManagement.APIWeb.Metrics
+
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
@@ -26,6 +28,10 @@ defmodule Astarte.RealmManagement.API.Application do
       Astarte.RealmManagement.APIWeb.Endpoint,
       Astarte.RPC.AMQP.Client
     ]
+
+    Metrics.PhoenixInstrumenter.setup()
+    Metrics.PipelineInstrumenter.setup()
+    Metrics.PrometheusExporter.setup()
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options

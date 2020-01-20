@@ -789,8 +789,13 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def check_correct_casing(client, interface_name) do
-    lowercase_interface = String.downcase(interface_name)
+  defp normalize_interface_name(interface_name) do
+    String.replace(interface_name, "-", "")
+    |> String.downcase()
+  end
+
+  def check_interface_name_collision(client, interface_name) do
+    normalized_interface = normalize_interface_name(interface_name)
 
     all_names_statement = """
     SELECT DISTINCT name
@@ -803,25 +808,19 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, all_names_query) do
-      found_name =
-        Enum.find_value(result, :not_found, fn row ->
-          if String.downcase(row[:name]) == lowercase_interface do
-            row[:name]
+      Enum.reduce_while(result, :ok, fn row, acc ->
+        if normalize_interface_name(row[:name]) == normalized_interface do
+          if row[:name] == interface_name do
+            # If there is already an interface with the same name, we know it's possible to install it.
+            # Version conflicts will be checked in another function.
+            {:halt, :ok}
           else
-            false
+            {:halt, {:error, :interface_name_collision}}
           end
-        end)
-
-      case found_name do
-        ^interface_name ->
-          :ok
-
-        :not_found ->
-          :ok
-
-        _ ->
-          {:error, :invalid_name_casing}
-      end
+        else
+          {:cont, :ok}
+        end
+      end)
     else
       %{acc: _, msg: error_message} ->
         _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")

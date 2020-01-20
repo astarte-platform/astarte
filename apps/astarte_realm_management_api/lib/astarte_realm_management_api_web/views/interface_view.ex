@@ -31,8 +31,14 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceView do
     %{errors: %{detail: "Interface already exists"}}
   end
 
-  def render("invalid_name_casing.json", _assigns) do
-    %{errors: %{detail: "Interface already exists with a different casing name"}}
+  def render("interface_name_collision.json", _assigns) do
+    %{
+      errors: %{
+        detail:
+          "Interface name collision detected. Make sure that the difference between " <>
+            "two interface names is not limited to the casing or the presence of hyphens."
+      }
+    }
   end
 
   def render("name_not_matching.json", _assigns) do

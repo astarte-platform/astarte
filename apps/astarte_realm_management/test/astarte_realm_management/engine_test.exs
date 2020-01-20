@@ -428,7 +428,48 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.install_interface("autotestrealm", @test_interface_a_0) == :ok
 
     assert Engine.install_interface("autotestrealm", @test_interface_a_name_mismatch) ==
-             {:error, :invalid_name_casing}
+             {:error, :interface_name_collision}
+  end
+
+  test "install of interfaces whose names are mapped to the same table fail" do
+    test_interface = """
+    {
+       "interface_name": "com.ispirataDevice-Log.Status",
+       "version_major": 1,
+       "version_minor": 2,
+       "type": "properties",
+       "ownership": "device",
+       "mappings": [
+         {
+           "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
+           "type": "string",
+           "allow_unset": true
+         }
+       ]
+    }
+    """
+
+    test_conflicting_interface = """
+    {
+       "interface_name": "com.ispirata-DeviceLog.Status",
+       "version_major": 1,
+       "version_minor": 2,
+       "type": "properties",
+       "ownership": "device",
+       "mappings": [
+         {
+           "endpoint": "/filterRules/%{ruleId}/%{filterKey}/value",
+           "type": "string",
+           "allow_unset": true
+         }
+       ]
+    }
+    """
+
+    assert Engine.install_interface("autotestrealm", test_interface) == :ok
+
+    assert Engine.install_interface("autotestrealm", test_conflicting_interface) ==
+             {:error, :interface_name_collision}
   end
 
   test "delete interface" do

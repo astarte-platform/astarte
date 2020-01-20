@@ -4,7 +4,7 @@ defmodule Doc.MixProject do
   def project do
     [
       app: :doc,
-      version: "0.11.0-dev",
+      version: "0.11.0-beta.2",
       elixir: "~> 1.4",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -26,6 +26,7 @@ defmodule Doc.MixProject do
       source_url: "https://git.ispirata.com/Astarte-NG/%{path}#L%{line}",
       extras: Path.wildcard("pages/*/*.md"),
       assets: "images/",
+      api_reference: false,
       groups_for_extras: [
         "Architecture, Design and Concepts": ~r"/architecture/",
         "User Guide": ~r"/user/",

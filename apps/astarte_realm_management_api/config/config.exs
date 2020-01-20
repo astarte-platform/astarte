@@ -22,7 +22,8 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "CixkA/Dn3ya0rSp9nV0ZkvE0qEaSp2cKH/hzp5LiPK9iEGjX6S92b8fDrnfgCS5Y",
   render_errors: [view: Astarte.RealmManagement.APIWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Astarte.RealmManagement.API.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Astarte.RealmManagement.API.PubSub, adapter: Phoenix.PubSub.PG2],
+  instrumenters: [Astarte.RealmManagement.APIWeb.Metrics.PhoenixInstrumenter]
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -33,6 +34,51 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.AuthGuardia
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 
 config :phoenix, :json_library, Jason
+
+config :prometheus, Astarte.RealmManagement.APIWeb.Metrics.PhoenixInstrumenter,
+  controller_call_labels: [:controller, :action],
+  duration_buckets: [
+    10,
+    25,
+    50,
+    100,
+    250,
+    500,
+    1000,
+    2500,
+    5000,
+    10_000,
+    25_000,
+    50_000,
+    100_000,
+    250_000,
+    500_000,
+    1_000_000,
+    2_500_000,
+    5_000_000,
+    10_000_000
+  ],
+  registry: :default,
+  duration_unit: :microseconds
+
+config :prometheus, Astarte.RealmManagement.APIWeb.Metrics.PipelineInstrumenter,
+  labels: [:status_class, :method, :host, :scheme, :request_path],
+  duration_buckets: [
+    10,
+    100,
+    1_000,
+    10_000,
+    100_000,
+    300_000,
+    500_000,
+    750_000,
+    1_000_000,
+    1_500_000,
+    2_000_000,
+    3_000_000
+  ],
+  registry: :default,
+  duration_unit: :microseconds
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
