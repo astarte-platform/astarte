@@ -88,6 +88,9 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:guardian, "~> 1.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
+      {:prometheus_process_collector, "~> 1.4"},
+      {:prometheus_phoenix, "~> 1.3"},
+      {:prometheus_plugs, "~> 1.1"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
