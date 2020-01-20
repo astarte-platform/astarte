@@ -1,0 +1,17 @@
+{
+    "interface_name": "org.astarte-platform.genericsensors.Values",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "Generic sensors sampled data.",
+    "doc": "Values allows generic sensors to stream samples. It is usually used in combination with AvailableSensors, which makes API client aware of what sensors and what unit of measure they are reporting. sensor_id represents an unique identifier for an individual sensor, and should match sensor_id in AvailableSensors when used in combination.",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value",
+            "type": "double",
+            "description": "Sampled real value.",
+            "doc": "Datastream of sampled real values."
+        }
+    ]
+}
