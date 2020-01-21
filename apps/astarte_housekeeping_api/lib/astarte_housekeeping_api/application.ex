@@ -18,6 +18,7 @@
 
 defmodule Astarte.Housekeeping.API.Application do
   use Application
+  require Logger
 
   alias Astarte.Housekeeping.APIWeb.Metrics
 
@@ -25,6 +26,8 @@ defmodule Astarte.Housekeeping.API.Application do
   # for more information on OTP Applications
   def start(_type, _args) do
     import Supervisor.Spec
+
+    Logger.info("Starting application.", tag: "housekeeping_api_start")
 
     Metrics.PhoenixInstrumenter.setup()
     Metrics.PipelineInstrumenter.setup()

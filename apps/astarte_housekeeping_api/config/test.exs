@@ -9,7 +9,9 @@ config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.Endpoint,
 config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, :console,
+  format: {PrettyLog.UserFriendlyFormatter, :format},
+  metadata: [:function]
 
 config :astarte_housekeeping_api,
        :test_priv_key,

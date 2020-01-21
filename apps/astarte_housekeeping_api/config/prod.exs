@@ -18,4 +18,16 @@ config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.Endpoint,
   version: Application.spec(:astarte_realm_management_api, :vsn)
 
 # Do not print debug messages in production
-config :logger, level: :info
+config :logger,
+  compile_time_purge_matching: [
+    [level_lower_than: :info]
+  ]
+
+config :logger, :console,
+  format: {PrettyLog.LogfmtFormatter, :format},
+  metadata: [
+    :realm,
+    :module,
+    :function,
+    :tag
+  ]
