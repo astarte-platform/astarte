@@ -17,7 +17,15 @@
 -}
 
 
-port module Ports exposing (listenToDeviceEvents, onDeviceEventReceived, onSessionChange, storeSession)
+port module Ports exposing
+    ( listenToDeviceEvents
+    , loadReactPage
+    , onDeviceEventReceived
+    , onPageRequested
+    , onSessionChange
+    , storeSession
+    , unloadReactPage
+    )
 
 import Json.Encode exposing (Value)
 
@@ -48,3 +56,19 @@ port listenToDeviceEvents : DeviceSocketParams -> Cmd msg
 
 
 port onDeviceEventReceived : (Value -> msg) -> Sub msg
+
+
+type alias ReactPage =
+    { name : String
+    , url : String
+    , opts : Value
+    }
+
+
+port loadReactPage : ReactPage -> Cmd msg
+
+
+port unloadReactPage : () -> Cmd msg
+
+
+port onPageRequested : (Value -> msg) -> Sub msg

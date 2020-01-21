@@ -55,6 +55,7 @@ type RealmRoute
     | ShowDevice String
     | ShowDeviceData String String
     | GroupList
+    | GroupDevices String
 
 
 routeParser : Parser (Route -> a) a
@@ -84,6 +85,7 @@ realmRouteParser =
         , map ShowDevice (s "devices" </> string)
         , map ShowDeviceData (s "devices" </> string </> s "interfaces" </> string)
         , map GroupList (s "groups")
+        , map GroupDevices (s "groups" </> string)
         ]
 
 
@@ -162,6 +164,9 @@ toString route =
 
                 Realm GroupList ->
                     [ "groups" ]
+
+                Realm (GroupDevices groupName) ->
+                    [ "groups", groupName ]
     in
     "/" ++ String.join "/" pieces
 

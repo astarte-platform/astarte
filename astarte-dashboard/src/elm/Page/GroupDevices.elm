@@ -17,7 +17,7 @@
 -}
 
 
-module Page.GroupList exposing (init, view)
+module Page.GroupDevices exposing (init, view)
 
 import AstarteApi
 import Html exposing (Html)
@@ -26,15 +26,14 @@ import Json.Encode
 import Ports
 import Route
 import Types.FlashMessage as FlashMessage exposing (FlashMessage)
-import Types.Session exposing (Session)
 
 
-init : Session -> Cmd ()
-init session =
+init : String -> Cmd ()
+init groupName =
     Ports.loadReactPage
-        { name = "groups"
-        , url = Route.toString <| Route.Realm Route.GroupList
-        , opts = Json.Encode.null
+        { name = "group-devices"
+        , url = Route.toString <| Route.Realm (Route.GroupDevices groupName)
+        , opts = Json.Encode.object [ ( "groupName", Json.Encode.string groupName ) ]
         }
 
 
