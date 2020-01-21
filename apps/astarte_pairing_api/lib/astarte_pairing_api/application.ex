@@ -19,6 +19,7 @@
 defmodule Astarte.Pairing.API.Application do
   use Application
 
+  require Logger
   alias Astarte.Pairing.APIWeb.Metrics
 
   # See https://hexdocs.pm/elixir/Application.html
@@ -28,6 +29,7 @@ defmodule Astarte.Pairing.API.Application do
     Metrics.PipelineInstrumenter.setup()
     Metrics.PrometheusExporter.setup()
 
+    Logger.info("Starting application.", tag: "pairing_api_start")
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.Pairing.APIWeb.Endpoint,
