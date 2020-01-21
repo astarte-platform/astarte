@@ -83,6 +83,8 @@ services:
     image: astarte/astarte_data_updater_plant:0.11-snapshot
     env_file:
      - ./compose.env
+    ports:
+      - "4004:4004"
     environment:
       DATA_UPDATER_PLANT_AMQP_CONSUMER_HOST: "rabbitmq"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST: "rabbitmq"
