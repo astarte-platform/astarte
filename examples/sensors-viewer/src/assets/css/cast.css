@@ -1,0 +1,188 @@
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Montserrat', sans-serif !important;
+}
+button {
+    cursor: pointer;
+    transition: 0.3s ease all;
+    text-decoration: none !important;
+}
+.container-fluid.main-div-card {
+    padding: 30px 0;
+}
+.sensor-main-div {
+    text-align: center;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+    font-weight: 600;
+    background: #39801d;
+    color: #ffffff;
+    padding: 20px 0;
+    font-size: 22px;
+}
+.col-12.sensor-id-search-div {
+    background: #f3f3f3;
+    padding: 30px 45px;
+}
+.sensor-id-search-div > .row.main-row {
+    width: 60%;
+    margin: auto;
+    align-items: center;
+}
+.main-row span {
+    font-weight: 500;
+}
+.main-row .input-group .form-control {
+    font-size: 13px;
+    font-weight: 500;
+    height: 40px;
+    border-radius: 2px;
+    background: #ffffff;
+}
+.main-row .input-group > .form-control:not(:last-child) {
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+.main-row .input-group > .input-group-append > .btn,
+.main-row .input-group > .input-group-prepend:first-child > .btn:not(:first-child),
+.main-row .input-group > .input-group-prepend:not(:first-child) > .btn{
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+.main-row .input-group-append {
+    margin-left: 10px;
+}
+.btn.btn-primary {
+    background: #39801d;
+    border-color: #39801d;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 14px;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 2px;
+}
+.btn.btn-primary:focus, .btn.btn-primary:hover{
+    background: #008000;
+    border-color: #008000;
+    box-shadow: none;
+}
+.card-main-row.row {
+    margin-top: 45px;
+}
+.main-card.card .card-body {
+    padding: 15px;
+}
+.main-card.card {
+    box-shadow: 0 1px 7px 0 rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 3px;
+    margin-bottom: 20px;
+}
+.main-card .card-header {
+    background: #ffffff;
+    padding: 15px;
+}
+.main-card .list-group {
+    padding: 15px 20px;
+    background: #f8f8f8;
+    margin: 5px 0;
+}
+.main-card .list-group-item {
+    border: none;
+    border-radius: 0;
+    padding: 5px 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #5d5d5d;
+    text-transform: capitalize;
+    background: transparent;
+}
+.main-card .temperature-list.list-group-item {
+    padding-top: 20px;
+}
+.main-card .list-group-item span {
+    color: #000000;
+    padding-right: 10px;
+}
+.col-12.device-status-div {
+    padding: 0 15px 30px;
+}
+.device-status-div h5 {
+    position: relative;
+    margin: 0;
+    padding-left: 20px;
+    font-size: 16px;
+    font-weight: 500;
+}
+.device-status-div h5 .status-tag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    margin: auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50px;
+}
+.temperature-list h1 {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.main-card.card .btn {
+    background: transparent;
+    border: none;
+    color: #000000;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 16px;
+    width: 100%;
+    text-align: left;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.main-card.card .btn:focus, .main-card.card .btn:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+.main-card.card .btn img {
+    height: 15px;
+}
+.modal-dialog.main-modal .modal-body {
+    padding: 30px 45px;
+}
+.main-modal .modal-body h6 {
+    text-align: center;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+.main-modal .form-label {
+    margin-bottom: 3px;
+    font-weight: 600;
+    font-size: 14px;
+}
+.main-modal .form-control {
+    font-size: 14px;
+    font-weight: 500;
+    height: 40px;
+    border-radius: 2px;
+    background: #f7f7f7;
+}
+.main-modal .form-control:focus{
+    box-shadow: none;
+    border-color: #ced4da;
+    background: #f7f7f7;
+}
+.main-modal .modal-body .btn {
+    margin-top: 15px;
+}
+.modal-open .modal{
+    background-color: rgba(0,0,0,0.7)
+}
