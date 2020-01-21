@@ -90,7 +90,7 @@ function openSocket(params) {
     protocol = "ws";
   }
 
-  let socketUrl = protocol + "://" + params.appengineUrl + "/socket";
+  let socketUrl = `${protocol}://${params.appengineUrl}/socket`;
   socketUrl = socketUrl.replace("/v1", ""); // TODO workaraound! remove when fixed in 0.11
 
   let socketParams = { params: { realm: params.realm, token: params.token } };
@@ -102,7 +102,7 @@ function openSocket(params) {
 }
 
 function connectToChannel(params) {
-  console.log("joining room for device id " + params.deviceId);
+  console.log(`joining room for device id ${params.deviceId}`);
 
   if (!phoenixSocket) {
     openSocket(params);
@@ -126,11 +126,8 @@ function connectToChannel(params) {
 
   // This should be unique and you should have JOIN and WATCH permissions for it in the JWT
   let salt = Math.floor(Math.random() * 10000);
-  let room_name = "dashboard_" + params.deviceId + "_" + salt;
-  channel = phoenixSocket.channel(
-    "rooms:" + params.realm + ":" + room_name,
-    {}
-  );
+  let room_name = `dashboard_${params.deviceId}_${salt}`;
+  channel = phoenixSocket.channel(`rooms:${params.realm}:{room_name}`, {});
 
   channel
     .join()
@@ -140,7 +137,7 @@ function connectToChannel(params) {
     .receive("error", resp => {
       console.log("Unable to join", resp);
       app.ports.onDeviceEventReceived.send({
-        message: "Error joining room for device " + params.deviceId,
+        message: `Error joining room for device ${params.deviceId}`,
         level: "error",
         timestamp: Date.now()
       });
@@ -164,7 +161,7 @@ function socketCloseHandler() {
 function roomJoinedHandler(resp, params) {
   console.log("Joined successfully", resp);
   app.ports.onDeviceEventReceived.send({
-    message: "Joined room for device " + params.deviceId,
+    message: `Joined room for device ${params.deviceId}`,
     level: "info",
     timestamp: Date.now()
   });
@@ -189,7 +186,7 @@ function roomJoinedHandler(resp, params) {
 
 function installConnectionTrigger(deviceId) {
   let connection_trigger_payload = {
-    name: "connectiontrigger-" + deviceId,
+    name: `connectiontrigger-${deviceId}`,
     device_id: deviceId,
     simple_trigger: {
       type: "device_trigger",
@@ -218,7 +215,7 @@ function installConnectionTrigger(deviceId) {
 
 function installDisconnectionTrigger(deviceId) {
   let disconnection_trigger_payload = {
-    name: "disconnectiontrigger-" + deviceId,
+    name: `disconnectiontrigger-${deviceId}`,
     device_id: deviceId,
     simple_trigger: {
       type: "device_trigger",
@@ -247,7 +244,7 @@ function installDisconnectionTrigger(deviceId) {
 
 function installInterfaceTrigger(deviceId, name, major) {
   let data_trigger_payload = {
-    name: "datatrigger-" + name + "-" + deviceId,
+    name: `datatrigger-${name}-${deviceId}`,
     device_id: deviceId,
     simple_trigger: {
       type: "data_trigger",
@@ -263,14 +260,14 @@ function installInterfaceTrigger(deviceId, name, major) {
     .push("watch", data_trigger_payload)
     .receive("ok", resp => {
       app.ports.onDeviceEventReceived.send({
-        message: "Data trigger for interface " + name + " installed",
+        message: `Data trigger for interface ${name} installed`,
         level: "info",
         timestamp: Date.now()
       });
     })
     .receive("error", resp => {
       app.ports.onDeviceEventReceived.send({
-        message: "Failed to install data trigger for interface " + name,
+        message: `Failed to install data trigger for interface ${name}`,
         level: "error",
         timestamp: Date.now()
       });
