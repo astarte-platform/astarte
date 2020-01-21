@@ -16,11 +16,26 @@
    limitations under the License.
 */
 
+import React from "react";
+import ReactDOM from "react-dom";
+import GroupsPage from "../react/GroupsPage.js";
+import GroupDevicesPage from "../react/GroupDevicesPage.js";
+import { createBrowserHistory } from "history";
+import {
+  Router,
+  Switch,
+  Route,
+  Link,
+  useParams,
+  useRouteMatch
+} from "react-router-dom";
+
 require("./styles/main.scss");
 
 const $ = require("jquery");
 const { Socket } = require("phoenix");
 
+let reactHistory = null;
 let dashboardConfig = null;
 let phoenixSocket = null;
 let channel = null;
@@ -41,7 +56,7 @@ $.getJSON("/user-config/config.json", function(result) {
     );
   })
   .always(function() {
-    parameters = {
+    let parameters = {
       config: dashboardConfig,
       previousSession: localStorage.session || null
     };
@@ -54,6 +69,9 @@ $.getJSON("/user-config/config.json", function(result) {
       console.log("storing session");
       localStorage.session = session;
     });
+
+    app.ports.loadReactPage.subscribe(loadPage);
+    app.ports.unloadReactPage.subscribe(clearReact);
 
     app.ports.listenToDeviceEvents.subscribe(connectToChannel);
 
@@ -260,16 +278,90 @@ function installInterfaceTrigger(deviceId, name, major) {
     .push("watch", data_trigger_payload)
     .receive("ok", resp => {
       app.ports.onDeviceEventReceived.send({
-        message: `Data trigger for interface ${name} installed`,
+        message: "Data trigger for interface " + name + " installed",
         level: "info",
         timestamp: Date.now()
       });
     })
     .receive("error", resp => {
       app.ports.onDeviceEventReceived.send({
-        message: `Failed to install data trigger for interface ${name}`,
+        message: "Failed to install data trigger for interface " + name,
         level: "error",
         timestamp: Date.now()
       });
     });
+}
+
+function loadPage(page) {
+  let elem = document.getElementById("react-page");
+  if (elem) {
+    console.log("React already initialized, skipping");
+    reactHistory.push({ pathname: page.url });
+    return;
+  }
+
+  let pageNode = document.getElementById("inner-page");
+
+  if (!pageNode) {
+    console.log("Elm side is not ready yet. retry later...");
+    setTimeout(function() {
+      loadPage(page);
+    }, 100);
+    return;
+  }
+
+  let node = document.createElement("div");
+  node.id = "react-page";
+  pageNode.appendChild(node);
+
+  reactHistory = createBrowserHistory();
+
+  const app = (
+    <Router history={reactHistory}>
+      <Switch>
+        <Route path="/groups">
+          <GroupsSubPath />
+        </Route>
+        <Route path="*">
+          <NoMatch />
+        </Route>
+      </Switch>
+    </Router>
+  );
+  ReactDOM.render(app, document.getElementById("react-page"));
+}
+
+function clearReact() {
+  let elem = document.getElementById("react-page");
+  if (elem) {
+    elem.remove();
+  }
+}
+
+function GroupsSubPath() {
+  let { path, url } = useRouteMatch();
+
+  return (
+    <Switch>
+      <Route exact path={path}>
+        <GroupsPage />
+      </Route>
+      <Route path={`${path}/:groupName`}>
+        <GroupDebicesSubPath />
+      </Route>
+    </Switch>
+  );
+}
+
+function GroupDebicesSubPath() {
+  let { groupName } = useParams();
+
+  return <GroupDevicesPage groupName={groupName} />;
+}
+
+function NoMatch() {
+  let { path, url } = useRouteMatch();
+  app.ports.onPageRequested.send(url);
+
+  return <p>Redirecting...</p>;
 }
