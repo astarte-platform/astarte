@@ -17,6 +17,7 @@
 
 defmodule Astarte.AppEngine.API.Application do
   use Application
+  require Logger
 
   alias Astarte.AppEngine.APIWeb.Metrics
 
@@ -26,6 +27,8 @@ defmodule Astarte.AppEngine.API.Application do
     alias Astarte.AppEngine.API.Config
 
     import Supervisor.Spec
+
+    Logger.info("Starting application.", tag: "appengine_api_start")
 
     Metrics.HealthStatus.setup()
     Metrics.PhoenixInstrumenter.setup()
