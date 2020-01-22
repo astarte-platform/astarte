@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - [pairing] Add Prometheus instrumenters and exporters.
 - [realm_management] Add Prometheus instrumenters and exporters.
+- [housekeeping_api] Add pretty_log.
+- [trigger_engine] Add pretty_log.
+- [pairing] Add pretty_log.
 - [pairing_api] Add Prometheus instrumenters and exporters
 - [realm_management_api] Add Prometheus instrumenters and exporters
 - [housekeeping_api] Add Prometheus instrumenters and exporters
