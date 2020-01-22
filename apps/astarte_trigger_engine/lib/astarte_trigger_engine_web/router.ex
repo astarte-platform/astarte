@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,20 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TriggerEngine.Application do
+defmodule Astarte.TriggerEngineWeb.Router do
   @moduledoc false
 
-  use Application
+  use Plug.Router
 
-  alias Astarte.TriggerEngine.AMQPEventsConsumer
+  plug Astarte.TriggerEngineWeb.Metrics.PrometheusExporter
 
-  def start(_type, _args) do
-    children = [
-      AMQPEventsConsumer,
-      Astarte.TriggerEngineWeb.Metrics.Supervisor
-    ]
+  plug :match
+  plug :dispatch
 
-    opts = [strategy: :one_for_one, name: Astarte.TriggerEngine.Supervisor]
-    Supervisor.start_link(children, opts)
+  match _ do
+    send_resp(conn, 404, "Not found")
   end
 end
