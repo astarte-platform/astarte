@@ -1,0 +1,58 @@
+:root {
+  --gray-light-dark: #ced4da;
+  --lighter-gray: #f3f3f3;
+}
+body {
+  font-family: "Montserrat", sans-serif;
+}
+.sensor-id-search-div,
+.main-modal .form-control,
+.main-modal .form-control:focus,
+.main-card .list-group {
+  background: var(--lighter-gray);
+}
+.btn.btn-primary,
+.main-modal .form-control,
+.main-row .input-group .form-control {
+  height: 2.5rem;
+}
+.device-status-div .status-tag {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+.temperature-list h1 {
+  text-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+}
+.main-card.card .btn {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 57px;
+}
+.main-card.card .btn:focus,
+.main-card.card .btn:hover,
+.main-modal .form-control:focus,
+.btn.btn-primary:focus,
+.btn.btn-primary:hover {
+  box-shadow: none;
+}
+.main-card.card .btn img {
+  height: 0.9375rem;
+}
+.main-card .list-group-item,
+.main-modal .form-label,
+.main-modal .form-control,
+.btn.btn-primary,
+.main-row .input-group .form-control {
+  font-size: 0.875rem;
+}
+.main-modal .form-control:focus {
+  border-color: var(--gray-light-dark);
+}
+.main-card.card {
+  box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.09);
+}
+.bg-sensor-theme {
+  background-color: #6aa8d8;
+}

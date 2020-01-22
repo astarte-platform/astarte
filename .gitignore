@@ -43,3 +43,6 @@ deps
 # rebar 3
 .rebar3
 apps/*/_checkouts/
+
+examples/*/node_modules/
+examples/*/.idea/
