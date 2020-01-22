@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [realm_management_api] Add Prometheus instrumenters and exporters
 - [housekeeping_api] Add Prometheus instrumenters and exporters
 - Add standard interfaces for generic sensors.
+- [trigger_engine] Add Prometheus instrumenters and exporters
 
 ### Changed
 - [realm_management] Handle hyphens in `interface_name`. ([#96](https://github.com/astarte-platform/astarte/issues/96))
