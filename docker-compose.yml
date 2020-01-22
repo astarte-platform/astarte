@@ -27,6 +27,8 @@ services:
     image: astarte/astarte_realm_management:0.11-snapshot
     env_file:
      - ./compose.env
+    ports:
+      - "4006:4006"
     restart: on-failure
     depends_on:
       - "rabbitmq"
