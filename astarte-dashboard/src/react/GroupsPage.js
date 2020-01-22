@@ -19,8 +19,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Spinner from "react-bootstrap/Spinner";
+import Table from "react-bootstrap/Table";
 
 import AstarteClient from "./AstarteClient.js";
+import Device from "./astarte/Device.js";
 import Card from "./ui/Card.js";
 
 export default class GroupsPage extends React.Component {
@@ -42,19 +44,35 @@ export default class GroupsPage extends React.Component {
 
     this.handleGroupsRequest = this.handleGroupsRequest.bind(this);
     this.handleGroupsError = this.handleGroupsError.bind(this);
+    this.handleDeviceList = this.handleDeviceList.bind(this);
+    this.handleDeviceError = this.handleDeviceError.bind(this);
 
-    let astarte = new AstarteClient(astarteConfig);
-    astarte
+    this.astarte = new AstarteClient(astarteConfig);
+    this.astarte
       .getGroupList()
       .then(this.handleGroupsRequest)
       .catch(this.handleGroupsError);
   }
 
-  handleGroupsRequest(data) {
+  handleGroupsRequest(response) {
+    let groupMap = response.data.reduce((acc, groupName) => {
+      acc.set(groupName, { name: groupName, loading: true });
+      return acc;
+    }, new Map());
+
+    for (let groupName of groupMap.keys()) {
+      this.astarte
+        .getDevicesInGroup(groupName, true)
+        .then(response => this.handleDeviceList(groupName, response))
+        .catch(err => this.handleDeviceError(groupName, err));
+    }
+
     this.setState({
       phase: "ok",
-      groups: data.data
+      groups: groupMap
     });
+
+    return null; // handle getDevices asynchronously
   }
 
   handleGroupsError(err) {
@@ -64,21 +82,59 @@ export default class GroupsPage extends React.Component {
     });
   }
 
+  handleDeviceList(groupName, response) {
+    let deviceList = response.data.map((value, index) => {
+      return Device.fromObject(value);
+    });
+
+    let groupMap = this.state.groups;
+    let newGroupState = groupMap.get(groupName);
+    newGroupState.loading = false;
+    newGroupState.totalDevices = deviceList.length;
+
+    let connectedDevices = deviceList.filter(device => device.connected);
+    newGroupState.connectedDevices = connectedDevices.length;
+
+    groupMap.set(groupName, newGroupState);
+
+    this.setState({
+      groups: groupMap
+    });
+  }
+
+  handleDeviceError(groupName, err) {
+    console.log(`Couldn't get the device list for group ${groupName}`);
+    console.log(err);
+  }
+
   render() {
     let innerHTML;
 
     switch (this.state.phase) {
       case "ok":
         innerHTML = (
-          <ul>
-            {this.state.groups.map((value, index) => {
-              return (
-                <li key={index}>
-                  <Link to={`/groups/${value}`}>{value}</Link>
-                </li>
-              );
-            })}
-          </ul>
+          <Table responsive>
+            <thead>
+              <tr>
+                <th>Group name</th>
+                <th>Connected devices</th>
+                <th>Total devices</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from(this.state.groups.values()).map((group, index) => {
+                return (
+                  <tr key={group.name}>
+                    <td>
+                      <Link to={`/groups/${group.name}`}>{group.name}</Link>
+                    </td>
+                    <td>{group.connectedDevices}</td>
+                    <td>{group.totalDevices}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
         );
         break;
 
