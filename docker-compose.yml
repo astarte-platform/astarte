@@ -46,6 +46,8 @@ services:
     image: astarte/astarte_pairing:0.11-snapshot
     env_file:
      - ./compose.env
+    ports:
+        - "4005:4005"
     environment:
       PAIRING_CFSSL_URL: "http://cfssl:8080"
     restart: on-failure

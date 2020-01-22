@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,25 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing do
+defmodule Astarte.PairingWeb.Router do
   @moduledoc false
 
-  use Application
+  use Plug.Router
 
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.RPC.Handler
+  plug Astarte.PairingWeb.Metrics.PrometheusExporter
 
-  alias Astarte.RPC.Protocol.Pairing, as: Protocol
+  plug :match
+  plug :dispatch
 
-  def start(_type, _args) do
-    Config.init!()
-
-    children = [
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
-      Astarte.PairingWeb.Metrics.Supervisor,
-      {Astarte.Pairing.CredentialsSecret.Cache, []}
-    ]
-
-    Supervisor.start_link(children, strategy: :one_for_one)
+  match _ do
+    send_resp(conn, 404, "Not found")
   end
 end
