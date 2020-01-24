@@ -35,6 +35,11 @@ config :astarte_pairing_api, Astarte.Pairing.APIWeb.Endpoint,
   server: true,
   version: Application.spec(:astarte_pairing_api, :vsn)
 
+config :logger,
+  compile_time_purge_matching: [
+    [level_lower_than: :info]
+  ]
+
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [
@@ -48,9 +53,6 @@ config :logger, :console,
     :function,
     :request_id,
     :tag
-  ],
-  compile_time_purge_matching: [
-    [level_lower_than: :info]
   ]
 
 # ## SSL Support

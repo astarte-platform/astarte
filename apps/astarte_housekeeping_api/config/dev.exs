@@ -30,7 +30,9 @@ config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.Endpoint,
 # different ports.
 
 # Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger, :console,
+  format: {PrettyLog.LogfmtFormatter, :format},
+  metadata: [:function]
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
