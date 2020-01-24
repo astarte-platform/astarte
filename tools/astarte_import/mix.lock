@@ -1,13 +1,13 @@
 %{
   "artificery": {:hex, :artificery, "0.4.2", "3ded6e29e13113af52811c72f414d1e88f711410cac1b619ab3a2666bbd7efd4", [:mix], [], "hexpm"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "f45dd3e03d24c828168c04c7ceff1a9fc5502d88", [branch: "release-0.11"]},
-  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "7d3681502b19020ce503fa2a3e8bbcaab4abbbff", [branch: "release-0.11"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "e35928d6e53c2baec163777ee2d0419adce25a02", [branch: "release-0.11"]},
+  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "92e439797bd8e22595dd81d19f8a58f47a656310", [branch: "release-0.11"]},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm"},
   "connection": {:hex, :connection, "1.0.4", "a1cae72211f0eef17705aaededacac3eb30e6625b04a6117c1b2db6ace7d5976", [:mix], [], "hexpm"},
   "cqerl": {:git, "https://github.com/matehat/cqerl.git", "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", [ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9"]},
   "cqex": {:git, "https://github.com/matehat/cqex.git", "a2c45667108f9b1e8a9c73c5250a04020bf72a30", [ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"]},
   "cyanide": {:git, "https://github.com/ispirata/cyanide.git", "ad73635117de361147ab77300689815b32c385e3", []},
-  "db_connection": {:hex, :db_connection, "1.1.3", "89b30ca1ef0a3b469b1c779579590688561d586694a3ce8792985d4d7e575a61", [:mix], [{:connection, "~> 1.0.2", [hex: :connection, repo: "hexpm", optional: false]}, {:poolboy, "~> 1.5", [hex: :poolboy, repo: "hexpm", optional: true]}, {:sbroker, "~> 1.0", [hex: :sbroker, repo: "hexpm", optional: true]}], "hexpm"},
+  "db_connection": {:hex, :db_connection, "2.2.0", "e923e88887cd60f9891fd324ac5e0290954511d090553c415fbf54be4c57ee63", [:mix], [{:connection, "~> 1.0.2", [hex: :connection, repo: "hexpm", optional: false]}], "hexpm"},
   "decimal": {:hex, :decimal, "1.8.1", "a4ef3f5f3428bdbc0d35374029ffcf4ede8533536fa79896dd450168d9acdf3c", [:mix], [], "hexpm"},
   "distillery": {:hex, :distillery, "2.0.14", "25fc1cdad06282334dbf4a11b6e869cc002855c4e11825157498491df2eed594", [:mix], [{:artificery, "~> 0.2", [hex: :artificery, repo: "hexpm", optional: false]}], "hexpm"},
   "ecto": {:hex, :ecto, "3.3.0", "9193e261d25c1814324d0b3304fccbadab840b286d270c3b75dfd28c30a3ae15", [:mix], [{:decimal, "~> 1.6", [hex: :decimal, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]}], "hexpm"},
@@ -24,5 +24,5 @@
   "semver": {:git, "https://github.com/nebularis/semver.git", "c7d509f38298ec6594be4efdcd8a8f2322760039", [ref: "c7d509"]},
   "snappy": {:git, "https://github.com/fdmanana/snappy-erlang-nif.git", "4e3b8611b6a1ff85a417b0f2fad8886c9485810e", [ref: "4e3b861"]},
   "uuid": {:hex, :uuid_erl, "1.7.2", "d596c8dd01a4ae48b9d8d51832ccc8f8302bf67acd01336aec3fcfae6b9d2bc2", [:rebar3], [{:quickrand, "~> 1.7.2", [hex: :quickrand, repo: "hexpm", optional: false]}], "hexpm"},
-  "xandra": {:hex, :xandra, "0.10.1", "af5706909e4b73a9014978deace90c00a8162e6d58fcd52b5c9fc0a9125d9e26", [:mix], [{:db_connection, "~> 1.0", [hex: :db_connection, repo: "hexpm", optional: false]}], "hexpm"},
+  "xandra": {:hex, :xandra, "0.13.0", "b1c5a7df942df23f59d3544cbfa45273da538d1b51455744cf51ad2fd154c089", [:mix], [{:db_connection, "~> 2.0", [hex: :db_connection, repo: "hexpm", optional: false]}, {:decimal, "~> 1.7", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm"},
 }
