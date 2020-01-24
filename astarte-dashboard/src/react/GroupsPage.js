@@ -112,30 +112,11 @@ export default class GroupsPage extends React.Component {
 
     switch (this.state.phase) {
       case "ok":
-        innerHTML = (
-          <Table responsive>
-            <thead>
-              <tr>
-                <th>Group name</th>
-                <th>Connected devices</th>
-                <th>Total devices</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from(this.state.groups.values()).map((group, index) => {
-                return (
-                  <tr key={group.name}>
-                    <td>
-                      <Link to={`/groups/${group.name}`}>{group.name}</Link>
-                    </td>
-                    <td>{group.connectedDevices}</td>
-                    <td>{group.totalDevices}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        );
+        if (this.state.groups.size > 0) {
+          innerHTML = this.renderGroupsTable();
+        } else {
+          innerHTML = <p>No registered group</p>;
+        }
         break;
 
       case "err":
@@ -148,5 +129,32 @@ export default class GroupsPage extends React.Component {
     }
 
     return <Card title="Groups">{innerHTML}</Card>;
+  }
+
+  renderGroupsTable() {
+    return (
+      <Table responsive>
+        <thead>
+          <tr>
+            <th>Group name</th>
+            <th>Connected devices</th>
+            <th>Total devices</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from(this.state.groups.values()).map((group, index) => {
+            return (
+              <tr key={group.name}>
+                <td>
+                  <Link to={`/groups/${group.name}`}>{group.name}</Link>
+                </td>
+                <td>{group.connectedDevices}</td>
+                <td>{group.totalDevices}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+    );
   }
 }
