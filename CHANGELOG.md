@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.11.0-beta.2] - Unreleased
+## [0.11.0-beta.2] - 2020-01-24
 ### Added
 - [pairing] Add Prometheus instrumenters and exporters.
 - [realm_management] Add Prometheus instrumenters and exporters.
@@ -62,6 +62,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - [appengine_api] Add timestamp field to channel events.
 - Add device unregister API, allowing to reset the registration of a device.
+- [trigger_engine] Trigger timestamp is now extracted from SimpleEvent and not generated.
+  This means that all triggers generated from the same event will have the same timestamp.
 
 ### Fixed
 - [appengine_api] Fix invalid dates handling, they should not cause an internal server error.
