@@ -85,7 +85,12 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:jason, "~> 1.0"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
+      {:plug_cowboy, "~> 2.1"},
+      {:prometheus_process_collector, "~> 1.4"},
+      {:prometheus_plugs, "~> 1.1"},
+      {:prometheus_ex, "~> 3.0"},
       {:mox, "~> 0.3", only: :test},
+      {:pretty_log, github: "ispirata/pretty_log"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

@@ -17,6 +17,11 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   server: true,
   version: Application.spec(:astarte_appengine_api, :vsn)
 
+config :logger,
+  compile_time_purge_matching: [
+    [level_lower_than: :info]
+  ]
+
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [
@@ -34,9 +39,6 @@ config :logger, :console,
     :function,
     :request_id,
     :tag
-  ],
-  compile_time_purge_matching: [
-    [level_lower_than: :info]
   ]
 
 # TODO: handle secret configuration with Conform

@@ -193,36 +193,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
         "Provide documentation for astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.version here.",
       hidden: true,
       to: "astarte_housekeeping_api.Elixir.Astarte.Housekeeping.APIWeb.Endpoint.version"
-    ],
-    "logger.console.format": [
-      commented: false,
-      datatype: :binary,
-      default: """
-      $time $metadata[$level] $message
-      """,
-      doc: "Provide documentation for logger.console.format here.",
-      hidden: true,
-      to: "logger.console.format"
-    ],
-    "logger.console.metadata": [
-      commented: false,
-      datatype: [
-        list: :atom
-      ],
-      default: [
-        :request_id
-      ],
-      doc: "Provide documentation for logger.console.metadata here.",
-      hidden: true,
-      to: "logger.console.metadata"
-    ],
-    "logger.level": [
-      commented: false,
-      datatype: :atom,
-      default: :info,
-      doc: "Provide documentation for logger.level here.",
-      hidden: true,
-      to: "logger.level"
     ]
   ],
   transforms: [

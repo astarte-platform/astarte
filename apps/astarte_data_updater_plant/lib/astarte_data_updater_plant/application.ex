@@ -24,26 +24,15 @@ defmodule Astarte.DataUpdaterPlant.Application do
   use Application
   require Logger
 
-  alias Astarte.DataUpdaterPlant.ConsumersSupervisor
-  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
-  alias Astarte.DataUpdaterPlant.RPC.Handler
-
-  alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
-
   def start(_type, _args) do
     Logger.info("Starting application.", tag: "data_updater_plant_app_start")
 
-    # List all child processes to be supervised
     children = [
-      {Registry, [keys: :unique, name: Registry.MessageTracker]},
-      {Registry, [keys: :unique, name: Registry.DataUpdater]},
-      ConsumersSupervisor,
-      AMQPEventsProducer,
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
-      Astarte.RPC.AMQP.Client
+      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
+      Astarte.DataUpdaterPlantWeb.Metrics.Supervisor
     ]
 
-    opts = [strategy: :rest_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
+    opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end

@@ -20,12 +20,16 @@ defmodule Astarte.TriggerEngine.Application do
   @moduledoc false
 
   use Application
+  require Logger
 
   alias Astarte.TriggerEngine.AMQPEventsConsumer
 
   def start(_type, _args) do
+    Logger.info("Starting application", tag: "trigger_engine_app_start")
+
     children = [
-      AMQPEventsConsumer
+      AMQPEventsConsumer,
+      Astarte.TriggerEngineWeb.Metrics.Supervisor
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.TriggerEngine.Supervisor]

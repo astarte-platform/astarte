@@ -28,7 +28,8 @@ defmodule Astarte.RealmManagement do
     _ = Logger.info("Starting application.", tag: "realm_management_app_start")
 
     children = [
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
+      Astarte.RealmManagementWeb.Metrics.Supervisor
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.RealmManagement.Supervisor]

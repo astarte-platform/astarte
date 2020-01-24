@@ -175,28 +175,6 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: true,
       to: "astarte_pairing_api.Elixir.Astarte.Pairing.APIWeb.Endpoint.check_origin"
     ],
-    "logger.console.metadata": [
-      commented: false,
-      datatype: [
-        list: :atom
-      ],
-      default: [
-        :request_id
-      ],
-      doc: "Provide documentation for logger.console.metadata here.",
-      hidden: true,
-      to: "logger.console.metadata"
-    ],
-    "logger.console.format": [
-      commented: false,
-      datatype: :binary,
-      default: """
-      [$level] $message
-      """,
-      doc: "Provide documentation for logger.console.format here.",
-      hidden: true,
-      to: "logger.console.format"
-    ],
     "phoenix.stacktrace_depth": [
       commented: false,
       datatype: :integer,

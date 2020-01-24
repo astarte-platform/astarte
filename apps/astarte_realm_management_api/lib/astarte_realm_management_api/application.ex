@@ -19,11 +19,14 @@
 defmodule Astarte.RealmManagement.API.Application do
   use Application
 
+  require Logger
   alias Astarte.RealmManagement.APIWeb.Metrics
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    Logger.info("Starting application", tag: "realm_management_api_start")
+
     children = [
       Astarte.RealmManagement.APIWeb.Endpoint,
       Astarte.RPC.AMQP.Client
