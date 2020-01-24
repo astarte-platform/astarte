@@ -22,6 +22,12 @@ module.exports = {
     module: {
         //noParse: /\.elm$/,
         rules: [{
+            test: /\.(js|jsx)$/,
+            exclude: /(node_modules|bower_components)/,
+            loader: "babel-loader",
+            options: { presets: ["@babel/env"] }
+        },
+        {
             test: /\.(eot|ttf|woff|woff2|svg)$/,
             use: [
                 {
@@ -52,5 +58,11 @@ module.exports = {
             inject: 'body',
             filename: 'index.html'
         })
-    ]
+    ],
+    node: {
+        console: true,
+        fs: "empty",
+        net: "empty",
+        tls: "empty"
+    }
 }

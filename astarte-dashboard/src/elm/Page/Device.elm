@@ -774,7 +774,10 @@ renderGroups groups =
 
 renderGroupValue : String -> Html Msg
 renderGroupValue group =
-    Html.li [] [ Html.text group ]
+    Html.li []
+        [ Html.a [ href <| Route.toString <| Route.Realm <| Route.GroupDevices group ]
+            [ Html.text group ]
+        ]
 
 
 renderAliases : Dict String String -> Html Msg
