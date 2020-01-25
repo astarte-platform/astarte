@@ -33,6 +33,28 @@ defmodule Astarte.Pairing.Engine do
 
   @version Mix.Project.config()[:version]
 
+  def get_health do
+    case Queries.check_astarte_health(:quorum) do
+      :ok ->
+        {:ok, %{status: :ready}}
+
+      {:error, :health_check_bad} ->
+        case Queries.check_astarte_health(:one) do
+          :ok ->
+            {:ok, %{status: :degraded}}
+
+          {:error, :health_check_bad} ->
+            {:ok, %{status: :bad}}
+
+          {:error, :database_connection_error} ->
+            {:ok, %{status: :error}}
+        end
+
+      {:error, :database_connection_error} ->
+        {:ok, %{status: :error}}
+    end
+  end
+
   def get_agent_public_key_pems(realm) do
     with cassandra_node <- Config.cassandra_node(),
          {:ok, client} <- Client.new(cassandra_node, keyspace: realm),

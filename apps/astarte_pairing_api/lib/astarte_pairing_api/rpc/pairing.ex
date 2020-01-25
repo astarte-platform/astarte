@@ -37,6 +37,8 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     GetAgentPublicKeyPEMsReply,
     GetCredentials,
     GetCredentialsReply,
+    GetHealth,
+    GetHealthReply,
     GetInfo,
     GetInfoReply,
     IntrospectionEntry,
@@ -64,6 +66,14 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   def get_info(realm, hw_id, secret) do
     %GetInfo{realm: realm, hw_id: hw_id, secret: secret}
     |> encode_call(:get_info)
+    |> @rpc_client.rpc_call(@destination, @timeout)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_health do
+    %GetHealth{}
+    |> encode_call(:get_health)
     |> @rpc_client.rpc_call(@destination, @timeout)
     |> decode_reply()
     |> extract_reply()
@@ -146,6 +156,18 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     {:ok, pems}
   end
 
+  defp extract_reply({:get_health_reply, %GetHealthReply{status: status}}) do
+    lowercase_status =
+      case status do
+        :READY -> :ready
+        :DEGRADED -> :degraded
+        :BAD -> :bad
+        :ERROR -> :error
+      end
+
+    {:ok, %{status: lowercase_status}}
+  end
+
   defp extract_reply(
          {:get_info_reply,
           %GetInfoReply{version: version, device_status: device_status, protocols: protocols}}
@@ -204,6 +226,10 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
 
   defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
     :ok
+  end
+
+  defp extract_reply({:error, :rpc_error}) do
+    {:error, :rpc_error}
   end
 
   defp extract_credentials({:astarte_mqtt_v1, %AstarteMQTTV1Credentials{client_crt: client_crt}}) do
