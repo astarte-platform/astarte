@@ -28,16 +28,15 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 ## Let's try it!
 
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
-[Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl) and OpenSSL
-installed, and simply:
+[Docker](https://www.docker.com/), and simply:
 
 ```sh
 $ git clone https://github.com/astarte-platform/astarte.git && cd astarte
-$ ./generate-compose-files.sh
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
 $ docker-compose up -d
 ```
 
-Make sure to use the latest stable release if you want a flawless experience
+Make sure to use the latest stable release if you want a flawless experience.
 
 You should be up and running in a matter of minutes. If you want a more thorough explanation and
 find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in
