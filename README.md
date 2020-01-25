@@ -1,29 +1,42 @@
-# Astarte: An Open Source IoT Platform
+# Astarte
+
+![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=release-0.11)
 
 <img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT
-platform written in [Elixir](https://github.com/elixir-lang/elixir). It is a turnkey solution which
-packs in everything you need for connecting a device fleet to a set of remote applications. It
-performs data modeling, automated data reduction, real-time events, and provides you with any
-feature you might expect in a modern IoT platform.
+platform focused on Data management and processing written in [Elixir](https://github.com/elixir-lang/elixir).
+It is a turnkey solution which packs in everything you need for connecting a device fleet to a set of
+remote applications and process data as it flows through a set of built-in features.
+
+It performs data modeling, automated data reduction, real-time events,
+and provides you with any feature you might expect in a modern IoT platform.
 
 Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https://www.rabbitmq.com/)
 and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.com/).
 
-Latest stable release is [v0.10.2](https://github.com/astarte-platform/astarte/tree/v0.10.2).
+## Resources and Quickstart
+
+ * [Astarte Documentation](https://docs.astarte-platform.org/0.11) - The main resource to learn about Astarte.
+ * [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your Astarte cluster(s).
+ * [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) - The preferred and
+   supported way to run Astarte - in Production, and pretty much anywhere else.
+ * Device SDKs - Connect your device to Astarte in a few lines of code. Available for
+   [Python](https://github.com/astarte-platform/astarte-device-sdk-python),
+   [Qt5](https://github.com/astarte-platform/astarte-device-sdk-qt5),
+   [ESP32](https://github.com/astarte-platform/astarte-device-sdk-esp32),
+   [Elixir](https://github.com/astarte-platform/astarte-device-sdk-elixir) and counting.
 
 ## Let's try it!
 
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
-[Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl) and OpenSSL
-installed, and simply:
+[Docker](https://www.docker.com/), and simply:
 
 ```sh
 $ git clone https://github.com/astarte-platform/astarte.git && cd astarte
-$ ./generate-compose-files.sh
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
 $ docker-compose up -d
 ```
 
-Make sure to use the latest stable release if you want a flawless experience
+Make sure to use the latest stable release if you want a flawless experience.
 
 You should be up and running in a matter of minutes. If you want a more thorough explanation and
 find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in
@@ -32,64 +45,17 @@ some fake or real devices to stream and process data while your tea gets ready.
 
 ## Sweet! Let's move it to production!
 
-Whoa, not so fast. Putting together an Astarte instance which can handle your IoT traffic might be
+Whoa, not so fast. Putting together an Astarte instance which can handle your data might be
 tricky, and requires some knowledge about the platform to make sure it won't break.
 
 So, if you're serious about getting Astarte in your production environment, you might want to learn
-more about it first. Start with [having a look at its
+more about it first. Start by [having a look at its
 architecture](http://docs.astarte-platform.org/snapshot/001-intro_architecture.html) and [finding
 out how it works](http://docs.astarte-platform.org/snapshot/001-intro_user.html). Once you feel
 confident, head over to the [Administration
-Manual](http://docs.astarte-platform.org/snapshot/001-intro_administrator.html) to find out how to
-make Astarte fit into your infrastructure, and which deployment mechanism you should choose.
+Manual](http://docs.astarte-platform.org/snapshot/001-intro_administrator.html).
 
-## Where's all the code, anyway?
-
-Astarte is a distributed system made up of several microservices, [which can all be found in the
-apps directory](https://github.com/astarte-platform/astarte/tree/master/apps). Its core components
-are:
-
-* [Data Updater
-  Plant](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_data_updater_plant):
-  Takes care of ingesting data into the database, filtering and routing it to other Astarte
-  components.
-* [Trigger
-  Engine](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_trigger_engine):
-  Processes incoming events, applies rules, prepares payloads and performs actions - it is the
-  component that delivers data to your application.
-* [AppEngine
-  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_appengine_api): If you
-  are building an application on top of Astarte's APIs, you will most likely call into it.
-* [Pairing](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_pairing) & [Pairing
-  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_pairing_api): Provides
-  all the information required to successfully communicate with Astarte, including the SSL
-  certificate.
-* [Realm
-  Management](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_realm_management)
-  & [Realm Management
-  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_realm_management_api):
-  Where realm configuration happens. Manage your triggers, interfaces and more from here.
-* [Housekeeping](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_housekeeping)
-  & [Housekeeping
-  API](https://github.com/astarte-platform/astarte/tree/master/apps/astarte_housekeeping_api): The
-  *"superadmin"* component of Astarte: configure your global instance, create realms and more.
-
-All of them build on some common libraries, hosted in separate repositories:
-
-* [Astarte Core](https://github.com/astarte-platform/astarte_core): All common functions and
-  anything useful to Astarte's services go here.
-* [Astarte RPC](https://github.com/astarte-platform/astarte_rpc): Defines
-  [protobuf](https://developers.google.com/protocol-buffers/) messages to allow all of Astarte's
-  services to talk together.
-* [Astarte Data Access](https://github.com/astarte-platform/astarte_data_access): Commodity
-  component which abstracts data access for services which need it.
-
-Astarte also needs a transport to communicate with devices:
-
-* [Astarte's VerneMQ plugin](https://github.com/astarte-platform/astarte_vmq_plugin): Turns the
-  amazing [VerneMQ](https://github.com/erlio/vernemq) into a full fledged Astarte Transport.
-
-## What about the binaries?
+## Where do I find binaries?
 
 Astarte is designed from the ground up to be run in containers, with
 [Kubernetes](https://github.com/kubernetes/kubernetes) as a first-class citizen when it comes to
@@ -118,9 +84,7 @@ philosophy, and have some tests.
 
 ## Any chance I can get a hosted and managed instance?
 
-Yup. Some infrastructure and cloud providers are working on releasing Astarte-based SaaS services,
-and we're also working on making Astarte deployable onto major cloud providers in the easiest
-possible way. Watch this space or subscribe to our newsletter to find out more about it.
+Yup, stay tuned :) or get in touch with us.
 
 ## I need some help with my installation! Where can I get commercial support?
 
@@ -134,6 +98,6 @@ its best possible shape for your specific needs.
 
 # License
 
-Astarte source code is released under Apache 2 License.
+Astarte source code is released under the Apache 2 License.
 
-Check LICENSE file for more information.
+Check the LICENSE file for more information.

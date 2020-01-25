@@ -6,7 +6,7 @@ This tutorial will guide you through bringing up your Astarte instance, creating
 
 First of all, please keep in mind that **this setup is not meant to be used in production**: by default, no persistence is involved, the installation does not have any recovery mechanism, and you will have to restart services manually in case something goes awry. This guide is great if you want to take Astarte for a spin, or if you want to use an isolated instance for development.
 
-You will need a machine with at least 4GB of RAM (mainly due to Cassandra), with [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl), [astartectl](https://github.com/astarte-platform/astartectl) and OpenSSL installed.
+You will need a machine with at least 4GB of RAM, with [Docker](https://www.docker.com/) and [astartectl](https://github.com/astarte-platform/astartectl) installed.
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
 
@@ -16,11 +16,11 @@ To get our Astarte instance running as fast as possible, we will install Astarte
 
 ```sh
 $ git clone https://github.com/astarte-platform/astarte.git -b v0.11.0-beta.2 && cd astarte
-$ ./generate-compose-files.sh
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
 $ docker-compose up -d
 ```
 
-`generate-compose-files.sh` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
+`docker-compose-initializer` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
 
 Compose might take some time to bring everything up, but usually within a minute from the containers creation Astarte will be ready. Compose will forward the following ports to your machine:
 
