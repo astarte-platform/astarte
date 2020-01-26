@@ -4,7 +4,7 @@ defmodule Doc.MixProject do
   def project do
     [
       app: :doc,
-      version: "0.11.0-beta.2",
+      version: "0.11.0-beta.3",
       elixir: "~> 1.4",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -31,7 +31,7 @@ defmodule Doc.MixProject do
         "Architecture, Design and Concepts": ~r"/architecture/",
         "User Guide": ~r"/user/",
         "Administrator Guide": ~r"/administrator/",
-        "Tutorials": ~r"/tutorials/",
+        Tutorials: ~r"/tutorials/",
         "REST API Reference": ~r"/api/"
       ],
       groups_for_modules: [
