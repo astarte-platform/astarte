@@ -52,7 +52,7 @@ defmodule Astarte.RealmManagement.RPC.Handler do
 
   require Logger
 
-  def get_health(:get_health, {:ok, %{status: status}}) do
+  def encode_reply(:get_health, {:ok, %{status: status}}) do
     protobuf_status =
       case status do
         :ready -> :READY
