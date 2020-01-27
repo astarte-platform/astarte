@@ -59,6 +59,8 @@ defmodule Astarte.Pairing.Engine do
       "get_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
 
+    :telemetry.execute([:astarte, :pairing, :get_credentials], %{}, %{realm: realm})
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
          {:ok, client} <- Config.cassandra_node() |> Client.new(keyspace: realm),
@@ -146,6 +148,8 @@ defmodule Astarte.Pairing.Engine do
     Logger.debug(
       "register_device request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
+
+    :telemetry.execute([:astarte, :pairing, :register_new_device], %{}, %{realm: realm})
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          cassandra_node <- Config.cassandra_node(),

@@ -18,6 +18,7 @@
 
 defmodule Astarte.PairingWeb.Metrics do
   def setup do
+    Astarte.PairingWeb.Metrics.PairingInstrumenter.setup()
     Astarte.PairingWeb.Metrics.PrometheusExporter.setup()
   end
 end
