@@ -32,6 +32,7 @@ defmodule Astarte.Pairing do
     Config.init!()
 
     children = [
+      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.PairingWeb.Metrics.Supervisor,
       {Astarte.Pairing.CredentialsSecret.Cache, []}
