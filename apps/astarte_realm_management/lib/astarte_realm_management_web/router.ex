@@ -31,10 +31,10 @@ defmodule Astarte.RealmManagementWeb.Router do
   get "/health" do
     try do
       case Engine.get_health() do
-        {:ok, :ready} ->
+        {:ok, %{status: :ready}} ->
           send_resp(conn, 200, "")
 
-        {:ok, :degraded} ->
+        {:ok, %{status: :degraded}} ->
           send_resp(conn, 200, "")
 
         _ ->

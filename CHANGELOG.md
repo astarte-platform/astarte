@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [housekeeping] Add Prometheus instrumenters and exporters.
 - [trigger_engine] Add health endpoint.
 - [housekeeping] Add health endpoint.
+- [realm_management] Add health endpoint.
 
 ## [0.11.0-beta.2] - 2020-01-24
 ### Added
