@@ -83,6 +83,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
+      {:xandra, "~> 0.13"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

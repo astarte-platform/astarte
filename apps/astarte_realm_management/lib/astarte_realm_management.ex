@@ -21,13 +21,14 @@ defmodule Astarte.RealmManagement do
   require Logger
 
   alias Astarte.RPC.Protocol.RealmManagement, as: Protocol
-
+  alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagement.RPC.Handler
 
   def start(_type, _args) do
     _ = Logger.info("Starting application.", tag: "realm_management_app_start")
 
     children = [
+      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.RealmManagementWeb.Metrics.Supervisor
     ]
