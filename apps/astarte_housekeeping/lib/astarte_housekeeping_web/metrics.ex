@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,8 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping do
-  use Application
-
-  def start(_type, _args) do
-    children = [
-      Astarte.Housekeeping.BackendSupervisor,
-      Astarte.HousekeepingWeb.Metrics.Supervisor
-    ]
-
-    opts = [strategy: :one_for_one, name: Astarte.Housekeeping.Supervisor]
-    Supervisor.start_link(children, opts)
+defmodule Astarte.HousekeepingWeb.Metrics do
+  def setup do
+    Astarte.HousekeepingWeb.Metrics.PrometheusExporter.setup()
   end
 end
