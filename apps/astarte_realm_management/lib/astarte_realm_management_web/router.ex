@@ -21,10 +21,30 @@ defmodule Astarte.RealmManagementWeb.Router do
 
   use Plug.Router
 
+  alias Astarte.RealmManagement.Engine
+
   plug Astarte.RealmManagementWeb.Metrics.PrometheusExporter
 
   plug :match
   plug :dispatch
+
+  get "/health" do
+    try do
+      case Engine.get_health() do
+        {:ok, :ready} ->
+          send_resp(conn, 200, "")
+
+        {:ok, :degraded} ->
+          send_resp(conn, 200, "")
+
+        _ ->
+          send_resp(conn, 503, "")
+      end
+    rescue
+      e ->
+        send_resp(conn, 500, "")
+    end
+  end
 
   match _ do
     send_resp(conn, 404, "Not found")
