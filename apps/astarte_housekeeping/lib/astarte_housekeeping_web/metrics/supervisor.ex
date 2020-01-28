@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,22 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping do
-  use Application
+defmodule Astarte.HousekeepingWeb.Metrics.Supervisor do
+  use Supervisor
 
-  def start(_type, _args) do
+  def start_link(init_arg) do
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
+
+  @impl true
+  def init(_init_arg) do
+    Astarte.HousekeepingWeb.Metrics.setup()
+
+    # TODO: make the port configurable when we switch to Elixir native releases
     children = [
-      Astarte.Housekeeping.BackendSupervisor,
-      Astarte.HousekeepingWeb.Metrics.Supervisor
+      {Plug.Cowboy, scheme: :http, plug: Astarte.HousekeepingWeb.Router, options: [port: 4008]}
     ]
 
-    opts = [strategy: :one_for_one, name: Astarte.Housekeeping.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.init(children, strategy: :one_for_one)
   end
 end

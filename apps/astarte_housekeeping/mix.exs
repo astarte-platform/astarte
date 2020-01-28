@@ -85,6 +85,10 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:plug_cowboy, "~> 2.1"},
+      {:prometheus_process_collector, "~> 1.4"},
+      {:prometheus_plugs, "~> 1.1"},
+      {:prometheus_ex, "~> 3.0"},
       {:pretty_log, github: "ispirata/pretty_log"}
     ]
   end

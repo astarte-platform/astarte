@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0-beta.3] - Unreleased
 - [pairing_api] Add health endpoint
 - [realm_management_api] Add health endpoint
+- [housekeeping] Add Prometheus instrumenters and exporters.
 
 ## [0.11.0-beta.2] - 2020-01-24
 ### Added
