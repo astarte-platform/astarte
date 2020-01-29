@@ -29,7 +29,7 @@ defmodule Astarte.TriggerEngineWeb.Metrics.Supervisor do
 
     # TODO: make the port configurable when we switch to Elixir native releases
     children = [
-      {Plug.Cowboy, scheme: :http, plug: Astarte.TriggerEngineWeb.Router, options: [port: 4007]}
+      {Plug.Cowboy, scheme: :http, plug: Astarte.TriggerEngineWeb.Router, options: [port: 4000]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
