@@ -5,7 +5,7 @@ services:
     env_file:
      - ./compose.env
     ports:
-      - "4008:4008"
+      - "4008:4000"
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -30,7 +30,7 @@ services:
     env_file:
      - ./compose.env
     ports:
-      - "4006:4006"
+      - "4006:4000"
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -51,7 +51,7 @@ services:
     env_file:
      - ./compose.env
     ports:
-        - "4005:4005"
+        - "4005:4000"
     environment:
       PAIRING_CFSSL_URL: "http://cfssl:8080"
     restart: on-failure
@@ -90,7 +90,7 @@ services:
     env_file:
      - ./compose.env
     ports:
-      - "4004:4004"
+      - "4004:4000"
     environment:
       DATA_UPDATER_PLANT_AMQP_CONSUMER_HOST: "rabbitmq"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST: "rabbitmq"
@@ -108,7 +108,7 @@ services:
     env_file:
      - ./compose.env
     ports:
-      - "4007:4007"
+      - "4007:4000"
     environment:
       TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
     restart: on-failure

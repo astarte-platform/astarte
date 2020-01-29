@@ -30,7 +30,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Metrics.Supervisor do
     # TODO: make the port configurable when we switch to Elixir native releases
     children = [
       {Plug.Cowboy,
-       scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, options: [port: 4004]}
+       scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, options: [port: 4000]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
