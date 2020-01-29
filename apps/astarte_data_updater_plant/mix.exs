@@ -80,7 +80,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
-      {:pretty_log, github: "ispirata/pretty_log"},
+      {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},

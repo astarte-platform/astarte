@@ -90,7 +90,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
       {:mox, "~> 0.3", only: :test},
-      {:pretty_log, github: "ispirata/pretty_log"},
+      {:pretty_log, "~> 0.1"},
       {:xandra, "~> 0.13"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
