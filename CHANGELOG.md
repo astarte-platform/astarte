@@ -5,12 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [0.11.0-beta.3] - Unreleased
-- [pairing_api] Add health endpoint
-- [realm_management_api] Add health endpoint
+- [pairing_api] Add health endpoint.
+- [realm_management_api] Add health endpoint.
 - [housekeeping] Add Prometheus instrumenters and exporters.
 - [trigger_engine] Add health endpoint.
 - [housekeeping] Add health endpoint.
 - [realm_management] Add health endpoint.
+- [pairing] Add health endpoint.
 
 ## [0.11.0-beta.2] - 2020-01-24
 ### Added
