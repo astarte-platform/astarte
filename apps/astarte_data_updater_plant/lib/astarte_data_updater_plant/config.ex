@@ -83,4 +83,12 @@ defmodule Astarte.DataUpdaterPlant.Config do
   def rpc_client do
     Application.get_env(:astarte_data_updater_plant, :rpc_client, Astarte.RPC.AMQP.Client)
   end
+
+  @doc """
+  Returns Cassandra nodes formatted in the Xandra format.
+  """
+  def xandra_nodes do
+    Application.get_env(:astarte_data_access, :cassandra_nodes, "localhost")
+    |> String.split(",")
+  end
 end

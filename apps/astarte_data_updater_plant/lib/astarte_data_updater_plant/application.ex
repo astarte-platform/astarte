@@ -24,10 +24,13 @@ defmodule Astarte.DataUpdaterPlant.Application do
   use Application
   require Logger
 
+  alias Astarte.DataUpdaterPlant.Config
+
   def start(_type, _args) do
     Logger.info("Starting application.", tag: "data_updater_plant_app_start")
 
     children = [
+      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
       Astarte.DataUpdaterPlant.DataPipelineSupervisor,
       Astarte.DataUpdaterPlantWeb.Metrics.Supervisor
     ]
