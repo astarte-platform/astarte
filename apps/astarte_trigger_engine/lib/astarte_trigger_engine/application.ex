@@ -23,11 +23,13 @@ defmodule Astarte.TriggerEngine.Application do
   require Logger
 
   alias Astarte.TriggerEngine.AMQPEventsConsumer
+  alias Astarte.TriggerEngine.Config
 
   def start(_type, _args) do
     Logger.info("Starting application", tag: "trigger_engine_app_start")
 
     children = [
+      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
       AMQPEventsConsumer,
       Astarte.TriggerEngineWeb.Metrics.Supervisor
     ]

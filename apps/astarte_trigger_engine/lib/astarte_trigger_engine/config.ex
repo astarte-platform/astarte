@@ -56,4 +56,12 @@ defmodule Astarte.TriggerEngine.Config do
     alias Astarte.TriggerEngine.EventsConsumer
     Application.get_env(:astarte_trigger_engine, :events_consumer, EventsConsumer)
   end
+
+  @doc """
+  Returns Cassandra nodes formatted in the Xandra format.
+  """
+  def xandra_nodes do
+    Application.get_env(:astarte_data_access, :cassandra_nodes, "localhost")
+    |> String.split(",")
+  end
 end
