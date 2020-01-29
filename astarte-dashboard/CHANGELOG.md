@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Support for data triggers matching "any interfaces".
 
+### Fixed
+- Handle property interfaces in Device data page.
+
 ## [0.11.0-beta.2] - 2020-01-24
 ### Added
 - Implement group viewer in ReactJS (start switching to ReactJS).
