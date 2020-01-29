@@ -19,18 +19,13 @@
 defmodule Astarte.Housekeeping do
   use Application
 
-  alias Astarte.RPC.Protocol.Housekeeping, as: Protocol
-
-  alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.RPC.Handler
-
   def start(_type, _args) do
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
+      Astarte.Housekeeping.BackendSupervisor,
+      Astarte.HousekeepingWeb.Metrics.Supervisor
     ]
 
-    opts = [strategy: :rest_for_one, name: Astarte.Housekeeping.Supervisor]
+    opts = [strategy: :one_for_one, name: Astarte.Housekeeping.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end

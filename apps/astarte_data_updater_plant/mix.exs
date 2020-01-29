@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   def project do
     [
       app: :astarte_data_updater_plant,
-      version: "0.11.0-beta.2",
+      version: "0.11.0-beta.3",
       elixir: "~> 1.8",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -84,6 +84,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},
+      {:xandra, "~> 0.13"},
       {:prometheus_ex, "~> 3.0"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]

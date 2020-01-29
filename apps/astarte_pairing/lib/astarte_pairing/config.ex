@@ -53,6 +53,14 @@ defmodule Astarte.Pairing.Config do
   end
 
   @doc """
+  Returns Cassandra nodes formatted in the Xandra format.
+  """
+  def xandra_nodes do
+    Application.get_env(:astarte_data_access, :cassandra_nodes, "localhost")
+    |> String.split(",")
+  end
+
+  @doc """
   Returns the CFSSL base_url
   """
   def cfssl_url do

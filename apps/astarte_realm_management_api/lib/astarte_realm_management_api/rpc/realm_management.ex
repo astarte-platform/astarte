@@ -23,6 +23,8 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     DeleteTrigger,
     GenericErrorReply,
     GenericOkReply,
+    GetHealth,
+    GetHealthReply,
     GetInterfacesList,
     GetInterfacesListReply,
     GetInterfaceSource,
@@ -191,6 +193,14 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
+  def get_health do
+    %GetHealth{}
+    |> encode_call(:get_health)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
@@ -211,6 +221,18 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     else
       :ok
     end
+  end
+
+  defp extract_reply({:get_health_reply, %GetHealthReply{status: status}}) do
+    lowercase_status =
+      case status do
+        :READY -> :ready
+        :DEGRADED -> :degraded
+        :BAD -> :bad
+        :ERROR -> :error
+      end
+
+    {:ok, %{status: lowercase_status}}
   end
 
   defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: name}}) do
@@ -285,5 +307,9 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   defp extract_reply({:get_triggers_list_reply, %GetTriggersListReply{triggers_names: triggers}}) do
     {:ok, triggers}
+  end
+
+  defp extract_reply({:error, :rpc_error}) do
+    {:error, :rpc_error}
   end
 end

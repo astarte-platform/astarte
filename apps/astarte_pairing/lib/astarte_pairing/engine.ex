@@ -33,6 +33,28 @@ defmodule Astarte.Pairing.Engine do
 
   @version Mix.Project.config()[:version]
 
+  def get_health do
+    case Queries.check_astarte_health(:quorum) do
+      :ok ->
+        {:ok, %{status: :ready}}
+
+      {:error, :health_check_bad} ->
+        case Queries.check_astarte_health(:one) do
+          :ok ->
+            {:ok, %{status: :degraded}}
+
+          {:error, :health_check_bad} ->
+            {:ok, %{status: :bad}}
+
+          {:error, :database_connection_error} ->
+            {:ok, %{status: :error}}
+        end
+
+      {:error, :database_connection_error} ->
+        {:ok, %{status: :error}}
+    end
+  end
+
   def get_agent_public_key_pems(realm) do
     with cassandra_node <- Config.cassandra_node(),
          {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
@@ -58,6 +80,8 @@ defmodule Astarte.Pairing.Engine do
     Logger.debug(
       "get_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
+
+    :telemetry.execute([:astarte, :pairing, :get_credentials], %{}, %{realm: realm})
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
@@ -146,6 +170,8 @@ defmodule Astarte.Pairing.Engine do
     Logger.debug(
       "register_device request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
+
+    :telemetry.execute([:astarte, :pairing, :register_new_device], %{}, %{realm: realm})
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          cassandra_node <- Config.cassandra_node(),

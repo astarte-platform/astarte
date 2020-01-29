@@ -22,7 +22,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      version: "0.11.0-beta.2",
+      version: "0.11.0-beta.3",
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -91,6 +91,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:prometheus_ex, "~> 3.0"},
       {:mox, "~> 0.3", only: :test},
       {:pretty_log, github: "ispirata/pretty_log"},
+      {:xandra, "~> 0.13"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

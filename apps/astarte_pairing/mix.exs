@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.Mixfile do
   def project do
     [
       app: :astarte_pairing,
-      version: "0.11.0-beta.2",
+      version: "0.11.0-beta.3",
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -89,7 +89,9 @@ defmodule Astarte.Pairing.Mixfile do
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
+      {:xandra, "~> 0.13"},
       {:pretty_log, github: "ispirata/pretty_log"},
+      {:telemetry, "~> 0.3"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

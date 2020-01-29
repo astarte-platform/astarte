@@ -35,6 +35,8 @@ defmodule Astarte.Pairing.RPC.Handler do
     GetAgentPublicKeyPEMsReply,
     GetCredentials,
     GetCredentialsReply,
+    GetHealth,
+    GetHealthReply,
     GetInfo,
     GetInfoReply,
     IntrospectionEntry,
@@ -106,7 +108,7 @@ defmodule Astarte.Pairing.RPC.Handler do
 
       %GetInfoReply{device_status: status, version: version, protocols: protocol_list}
       |> encode_reply(:get_info_reply)
-      |> ok_wrap
+      |> ok_wrap()
     else
       {:error, reason} ->
         generic_error(reason)
@@ -142,6 +144,22 @@ defmodule Astarte.Pairing.RPC.Handler do
       {:error, reason} ->
         generic_error(reason)
     end
+  end
+
+  defp call_rpc({:get_health, %GetHealth{}}) do
+    {:ok, %{status: status}} = Engine.get_health()
+
+    status_enum =
+      case status do
+        :ready -> :READY
+        :degraded -> :DEGRADED
+        :bad -> :BAD
+        :error -> :ERROR
+      end
+
+    %GetHealthReply{status: status_enum}
+    |> encode_reply(:get_health_reply)
+    |> ok_wrap()
   end
 
   defp call_rpc(
@@ -268,7 +286,7 @@ defmodule Astarte.Pairing.RPC.Handler do
       error_data: error_data
     }
     |> encode_reply(:generic_error_reply)
-    |> ok_wrap
+    |> ok_wrap()
   end
 
   defp generic_ok do

@@ -301,4 +301,41 @@ defmodule Astarte.Pairing.Queries do
       {[{interface_name, major_version} | majors], [{interface_name, minor_version} | minors]}
     end)
   end
+
+  def check_astarte_health(consistency) do
+    query = """
+    SELECT COUNT(*)
+    FROM astarte.realms
+    """
+
+    with {:ok, %Xandra.Page{} = page} <-
+           Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency),
+         {:ok, _} <- Enum.fetch(page, 0) do
+      :ok
+    else
+      :error ->
+        _ =
+          Logger.warn("Cannot retrieve count for astarte.realms table.",
+            tag: "health_check_error"
+          )
+
+        {:error, :health_check_bad}
+
+      {:error, %Xandra.Error{} = err} ->
+        _ =
+          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+            tag: "health_check_database_error"
+          )
+
+        {:error, :health_check_bad}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+            tag: "health_check_database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
 end

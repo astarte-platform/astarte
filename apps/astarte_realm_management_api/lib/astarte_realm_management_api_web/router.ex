@@ -36,4 +36,8 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
 
     resources "/:realm_name/triggers", TriggerController, except: [:new, :edit]
   end
+
+  scope "/health", Astarte.RealmManagement.APIWeb do
+    get "/", HealthController, :show
+  end
 end
