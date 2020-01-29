@@ -91,7 +91,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_phoenix, "~> 1.3"},
       {:prometheus_plugs, "~> 1.1"},
-      {:pretty_log, github: "ispirata/pretty_log"},
+      {:pretty_log, "~> 0.1"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

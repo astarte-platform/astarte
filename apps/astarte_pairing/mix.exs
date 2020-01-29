@@ -90,7 +90,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
       {:xandra, "~> 0.13"},
-      {:pretty_log, github: "ispirata/pretty_log"},
+      {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.3"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
