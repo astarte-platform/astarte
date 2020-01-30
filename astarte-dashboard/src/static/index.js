@@ -20,6 +20,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import GroupsPage from "../react/GroupsPage.js";
 import GroupDevicesPage from "../react/GroupDevicesPage.js";
+import NewGroupPage from "../react/NewGroupPage.js";
 import { createBrowserHistory } from "history";
 import {
   Router,
@@ -319,8 +320,14 @@ function loadPage(page) {
   const app = (
     <Router history={reactHistory}>
       <Switch>
-        <Route path="/groups">
-          <GroupsSubPath />
+        <Route exact path="/groups">
+          <GroupsPage history={reactHistory} />
+        </Route>
+        <Route exact path="/groups/new">
+          <NewGroupPage history={reactHistory} />
+        </Route>
+        <Route path="/groups/:groupName">
+          <GroupDebicesSubPath />
         </Route>
         <Route path="*">
           <NoMatch />
@@ -336,21 +343,6 @@ function clearReact() {
   if (elem) {
     elem.remove();
   }
-}
-
-function GroupsSubPath() {
-  let { path, url } = useRouteMatch();
-
-  return (
-    <Switch>
-      <Route exact path={path}>
-        <GroupsPage />
-      </Route>
-      <Route path={`${path}/:groupName`}>
-        <GroupDebicesSubPath />
-      </Route>
-    </Switch>
-  );
 }
 
 function GroupDebicesSubPath() {
