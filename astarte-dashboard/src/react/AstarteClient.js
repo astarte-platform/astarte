@@ -95,6 +95,29 @@ export default class AstarteClient {
     return Request(options);
   }
 
+  createGroup(groupName, deviceList) {
+    if (!this.appengineUrl) {
+      throw Error("AppEngine URL not configured");
+    }
+
+    let options = {
+      method: "POST",
+      uri: this.appengineUrl + `/${this.realm}/groups`,
+      headers: {
+        Authorization: `Bearer ${this.token}`
+      },
+      body: {
+        data: {
+          group_name: groupName,
+          devices: deviceList
+        }
+      },
+      json: true
+    };
+
+    return Request(options);
+  }
+
   getDevicesInGroup(groupName, details = false) {
     if (!this.appengineUrl) {
       throw Error("AppEngine URL not configured");
