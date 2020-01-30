@@ -150,7 +150,7 @@ init mode session =
       , objectReliability = InterfaceMapping.Unreliable
       , objectRetention = InterfaceMapping.Discard
       , objectExpiry = 0
-      , objectExplicitTimestamp = False
+      , objectExplicitTimestamp = True
       , deleteModalVisibility = Modal.hidden
       , confirmModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
@@ -258,7 +258,7 @@ update session msg model =
                             { reliability = InterfaceMapping.Unreliable
                             , retention = InterfaceMapping.Discard
                             , expiry = 0
-                            , explicitTimestamp = False
+                            , explicitTimestamp = True
                             }
             in
             ( { model
@@ -793,11 +793,22 @@ update session msg model =
                 shown =
                     True
 
+                isProperty =
+                    model.interface.iType == Interface.Properties
+
+                initialMapping =
+                    if isProperty then
+                        InterfaceMapping.empty
+
+                    else
+                        InterfaceMapping.empty
+                            |> InterfaceMapping.setExplicitTimestamp True
+
                 newMappingBuilderModel =
                     MappingBuilder.init
-                        InterfaceMapping.empty
+                        initialMapping
                         mappingEditMode
-                        (model.interface.iType == Interface.Properties)
+                        isProperty
                         (model.interface.aggregation == Interface.Object)
                         shown
             in
