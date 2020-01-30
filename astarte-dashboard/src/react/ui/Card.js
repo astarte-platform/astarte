@@ -31,7 +31,7 @@ export default class Card extends React.Component {
         </div>
         <div className="row mt-2">
           <div className="col-sm-12">
-            <h2 className="d-inline text-secondary font-weight-normal align-middle">
+            <h2 className="d-inline text-capitalize text-secondary font-weight-normal align-middle">
               {this.props.title}
             </h2>
           </div>
