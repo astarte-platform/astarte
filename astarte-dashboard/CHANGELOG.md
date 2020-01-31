@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0-beta.3] - unreleased
 ### Added
 - Support for data triggers matching "any interfaces".
+### Changed
+- New datastream mappings have explicit\_timestamp by default
 
 ### Fixed
 - Handle property interfaces in Device data page.
