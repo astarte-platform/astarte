@@ -1,0 +1,22 @@
+{
+    "interface_name": "objectdatastreams.org",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/objectendpoint1/x",
+            "type": "double"
+        },
+        {
+            "endpoint": "/objectendpoint1/y",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/objectendpoint1/d",
+            "type": "longinteger"
+        }
+    ]
+}

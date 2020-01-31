@@ -1,0 +1,17 @@
+{
+    "interface_name": "properties.org",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+        {
+            "endpoint": "/properties1",
+            "type": "double"
+        },
+        {
+            "endpoint": "/properties2",
+            "type": "string"
+        }
+    ]
+}
