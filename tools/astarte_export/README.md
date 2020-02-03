@@ -7,13 +7,13 @@ Astarte Export is an easy to use tool that allows to exporting all the devices a
 
 
 ```iex
-iex(astarte_export@127.0.0.1)5> Astarte.Export.export_realm_data("test", "/home/harika/MyApplication/GITHUB1/astarte/tools/astarte_export/test.xml")
-level=info ts=2020-01-14T08:11:12.880+05:30 msg="Export started ." module=Astarte.Export function=generate_xml/2 realm=test tag=export_started 
-level=info ts=2020-01-14T08:11:12.881+05:30 msg="Connecting to \"172.18.0.2\":\"9042\" cassandra database." module=Astarte.Export.FetchData.Queries function=get_connection/0
-level=info ts=2020-01-14T08:11:12.882+05:30 msg="Connected to database." module=Astarte.Export.FetchData.Queries function=get_connection/0
-level=info ts=2020-01-14T08:11:13.115+05:30 msg="Export Completed." module=Astarte.Export function=generate_xml/3 realm=test tag=export_completed
+iex(astarte_export@127.0.0.1)6> Astarte.Export.export_realm_data("test", "test.xml")
+level=info ts=2020-02-03T03:57:21.412+00:00 msg="Export started." module=Astarte.Export function=generate_xml/2 realm=test tag=export_started
+level=info ts=2020-02-03T03:57:21.413+00:00 msg="Connecting to \"172.23.0.3\":\"9042\" cassandra database." module=Astarte.Export.FetchData.Queries function=get_connection/0
+level=info ts=2020-02-03T03:57:21.414+00:00 msg="Connected to database." module=Astarte.Export.FetchData.Queries function=get_connection/0
+level=info ts=2020-02-03T03:57:21.437+00:00 msg="Export Completed." module=Astarte.Export function=generate_xml/2 realm=test tag=export_completed
 {:ok, :export_completed}
-iex(astarte_export@127.0.0.1)6>
+iex(astarte_export@127.0.0.1)7>
 ```
 The exported realm data is captured in xml_format as below.
 
