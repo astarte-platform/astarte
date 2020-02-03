@@ -57,6 +57,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
           timestamp
       end
 
+    :telemetry.execute([:astarte, :trigger_engine, :consumed_event], %{}, %{realm: realm})
     handle_simple_event(realm, device_id, headers, event_type, event, timestamp_ms)
   end
 
@@ -65,11 +66,46 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id),
          {:ok, payload} <-
            event_to_payload(realm, device_id, event_type, event, action, timestamp_ms),
-         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action) do
-      execute_action(payload, headers, action)
+         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action),
+         :ok <- execute_action(payload, headers, action) do
+      :telemetry.execute(
+        [:astarte, :trigger_engine, :http_action_executed],
+        %{},
+        %{realm: realm, status: :ok}
+      )
+
+      :ok
     else
+      {:error, :client_error} ->
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :http_action_executed],
+          %{},
+          %{realm: realm, status: :client_error}
+        )
+
+        :client_error
+
+      {:error, :server_error} ->
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :http_action_executed],
+          %{},
+          %{realm: realm, status: :server_error}
+        )
+
+        :server_error
+
+      {:error, :connection_error} ->
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :http_action_executed],
+          %{},
+          %{realm: realm, status: :connection_error}
+        )
+
+        :connection_error
+
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
+
         error
     end
   end
@@ -142,15 +178,43 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp execute_action(payload, headers, action) do
-    with {:ok, url} <- Map.fetch(action, "http_post_url") do
-      {status, response} = HTTPoison.post(url, payload, headers)
+    with {:ok, url} <- Map.fetch(action, "http_post_url"),
+         {:ok, response} <- HTTPoison.post(url, payload, headers) do
+      %HTTPoison.Response{status_code: status_code} = response
 
-      Logger.debug(
-        "http request status: #{inspect(status)}, got response: #{inspect(response)} from #{url}"
-      )
+      case status_code do
+        status_code when status_code in 200..399 ->
+          Logger.debug("http request status: :ok, got response: #{inspect(response)} from #{url}")
+          :ok
 
-      :ok
+        status_code when status_code in 400..499 ->
+          Logger.warn(
+            "Error while processing event: #{inspect(response)}. Payload: #{inspect(payload)}, headers: #{
+              inspect(headers)
+            }, action: #{inspect(action)}"
+          )
+
+          {:error, :client_error}
+
+        status_code when status_code > 500 ->
+          Logger.warn(
+            "Error while processing event: #{inspect(response)}. Payload: #{inspect(payload)}, headers: #{
+              inspect(headers)
+            }, action: #{inspect(action)}"
+          )
+
+          {:error, :server_error}
+      end
     else
+      {:error, reason} ->
+        Logger.warn(
+          "Error while processing the post request: #{inspect(reason)}. Payload: #{
+            inspect(payload)
+          }, headers: #{inspect(headers)}, action: #{inspect(action)}"
+        )
+
+        {:error, :connection_error}
+
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
         error
