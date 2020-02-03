@@ -33,9 +33,9 @@ config :xandra,
 
 config :xandra,
   cassandra_table_page_sizes: [device_table_page_size: 10,
-                               individual_datastreams: 10,
-                               object_datastreams: 10,
-                               individual_properties: 10]
+                               individual_datastreams: 1000,
+                               object_datastreams: 1000,
+                               individual_properties: 1000]
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format}, 

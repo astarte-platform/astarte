@@ -21,7 +21,7 @@ defmodule AstarteExport.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :connection, :db_connection]
+      extra_applications: [:logger, :xandra]
     ]
   end
 
