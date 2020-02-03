@@ -40,4 +40,4 @@ ARG BUILD_ENV=prod
 
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_export .
 
-CMD ["./bin/astarte_export", "foreground"]
+CMD ["sh", "-c", "./bin/astarte_export export ${REALM} ${OUTPUT_XML_FILE}"]
