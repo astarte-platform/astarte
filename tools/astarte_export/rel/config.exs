@@ -41,10 +41,10 @@ environment :prod do
   set vm_args: "rel/vm.args"
   
   set config_providers: [
-    {Mix.Releases.Config.Providers.Elixir, ["${RELEASE_ROOT_DIR}/etc/config.exs"]}
+    {Mix.Releases.Config.Providers.Elixir, ["${RELEASE_ROOT_DIR}/var/config.exs"]}
   ]
   set overlays: [
-    {:copy, "rel/config/config.exs", "etc/config.exs"}
+    {:copy, "rel/config/config.exs", "var/config.exs"}
   ]
 end
 
@@ -59,7 +59,7 @@ release :astarte_export do
     :runtime_tools
   ]
   set commands: [
-    import: "rel/commands/export"
+    export: "rel/commands/export"
   ]
 end
 

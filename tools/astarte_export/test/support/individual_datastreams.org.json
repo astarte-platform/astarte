@@ -1,0 +1,30 @@
+{
+    "interface_name": "org.individualdatastreams.values",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "mappings": [
+        {
+            "endpoint": "/testinstall1",
+            "type": "double"
+        },
+        {
+            "endpoint": "/testinstall2",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/testinstall3",
+            "type": "boolean"
+        },
+        {
+            "endpoint": "/testinstall4",
+            "type": "string"
+        },
+        {
+            "endpoint": "/testinstall5",
+            "type": "longinteger"
+        }
+        
+    ]
+}
