@@ -133,6 +133,9 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
       tag: "data_upd_crash_detected"
     )
 
+    # TODO: add realm to labels once it is made available to the module
+    :telemetry.execute([:astarte, :data_updater_plant, :data_updater, :detected_crash], %{}, %{})
+
     marked_ids =
       :queue.to_list(queue)
       |> List.foldl(%{}, fn item, acc ->

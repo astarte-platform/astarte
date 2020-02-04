@@ -454,7 +454,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       | static_headers
     ]
 
-    SimpleEvent.encode(simple_event)
-    |> wait_ok_publish(routing_key, headers)
+    result =
+      SimpleEvent.encode(simple_event)
+      |> wait_ok_publish(routing_key, headers)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :triggers_handler, :published_event],
+      %{},
+      %{
+        realm: simple_event.realm,
+        event_type: to_string(event_type)
+      }
+    )
+
+    result
   end
 end
