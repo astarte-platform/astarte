@@ -144,4 +144,29 @@ export default class AstarteClient {
 
     return Request(options);
   }
+
+  removeDeviceFromGroup(groupName, deviceId) {
+    if (!this.appengineUrl) {
+      throw Error("AppEngine URL not configured");
+    }
+
+    if (!groupName) {
+      throw Error("Invalid group name");
+    }
+
+    if (!deviceId) {
+      throw Error("Invalid device ID");
+    }
+
+    let options = {
+      method: "DELETE",
+      uri: `${this.appengineUrl}/${this.realm}/groups/${groupName}/devices/${deviceId}`,
+      headers: {
+        Authorization: `Bearer ${this.token}`
+      },
+      json: true
+    };
+
+    return Request(options);
+  }
 }
