@@ -327,7 +327,7 @@ function loadPage(page) {
           <NewGroupPage history={reactHistory} />
         </Route>
         <Route path="/groups/:groupName">
-          <GroupDebicesSubPath />
+          <GroupDebicesSubPath history={reactHistory} />
         </Route>
         <Route path="*">
           <NoMatch />
@@ -345,10 +345,10 @@ function clearReact() {
   }
 }
 
-function GroupDebicesSubPath() {
+function GroupDebicesSubPath(props) {
   let { groupName } = useParams();
 
-  return <GroupDevicesPage groupName={groupName} />;
+  return <GroupDevicesPage groupName={groupName} history={props.history} />;
 }
 
 function NoMatch() {
