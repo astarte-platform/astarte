@@ -156,7 +156,9 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_row} <-
            InterfaceQueries.retrieve_interface_row(client, interface, major_version),
          path <- "/" <> no_prefix_path,
-         {:ok, endpoint_ids} <- get_endpoint_ids(interface_row, path, allow_guess: true) do
+         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
+         {:ok, endpoint_ids} <-
+           get_endpoint_ids(interface_descriptor.automaton, path, allow_guess: true) do
       endpoint_query = Queries.prepare_value_type_query(interface_row[:interface_id])
 
       do_get_interface_values!(
@@ -173,23 +175,15 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  def update_interface_values!(
-        realm_name,
-        encoded_device_id,
-        interface,
-        no_prefix_path,
-        raw_value,
-        _params
-      ) do
-    with {:ok, client} <- Database.connect(realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
-         {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
-         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
-         {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
-         path <- "/" <> no_prefix_path,
-         {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path),
+  defp update_individual_interface_values(
+         client,
+         realm_name,
+         device_id,
+         interface_descriptor,
+         path,
+         raw_value
+       ) do
+    with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
          mapping <-
            Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
          {:ok, value} <- cast_value(mapping.value_type, raw_value),
@@ -214,7 +208,13 @@ defmodule Astarte.AppEngine.API.Device do
 
       case interface_descriptor.type do
         :properties ->
-          DataTransmitter.set_property(realm_name, device_id, interface, path, wrapped_value)
+          DataTransmitter.set_property(
+            realm_name,
+            device_id,
+            interface_descriptor.name,
+            path,
+            wrapped_value
+          )
 
         :datastream ->
           Queries.insert_path_into_db(
@@ -227,7 +227,13 @@ defmodule Astarte.AppEngine.API.Device do
             div(timestamp_micro, 1000)
           )
 
-          DataTransmitter.push_datastream(realm_name, device_id, interface, path, wrapped_value)
+          DataTransmitter.push_datastream(
+            realm_name,
+            device_id,
+            interface_descriptor.name,
+            path,
+            wrapped_value
+          )
       end
 
       {:ok,
@@ -235,10 +241,6 @@ defmodule Astarte.AppEngine.API.Device do
          data: raw_value
        }}
     else
-      {:ownership, :device} ->
-        _ = Logger.warn("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
-        {:error, :cannot_write_to_device_owned}
-
       {:error, :endpoint_guess_not_allowed} ->
         _ = Logger.warn("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
         {:error, :read_only_resource}
@@ -246,6 +248,43 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, :unexpected_value_type, expected: value_type} ->
         _ = Logger.warn("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
+
+      {:error, reason} ->
+        _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
+        {:error, reason}
+    end
+  end
+
+  def update_interface_values!(
+        realm_name,
+        encoded_device_id,
+        interface,
+        no_prefix_path,
+        raw_value,
+        _params
+      ) do
+    with {:ok, client} <- Database.connect(realm_name),
+         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, interface_row} <-
+           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+         {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
+         {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
+         path <- "/" <> no_prefix_path do
+      if interface_descriptor.aggregation == :individual do
+        update_individual_interface_values(
+          client,
+          realm_name,
+          device_id,
+          interface_descriptor,
+          path,
+          raw_value
+        )
+      end
+    else
+      {:ownership, :device} ->
+        _ = Logger.warn("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
+        {:error, :cannot_write_to_device_owned}
 
       {:error, reason} ->
         _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
@@ -365,7 +404,7 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
-         {:ok, [endpoint_id]} <- get_endpoint_ids(interface_row, path) do
+         {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path) do
       mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
 
       Queries.insert_value_into_db(
@@ -589,11 +628,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp get_endpoint_ids(interface_metadata, path, opts \\ []) do
-    automaton =
-      {:erlang.binary_to_term(interface_metadata[:automaton_transitions]),
-       :erlang.binary_to_term(interface_metadata[:automaton_accepting_states])}
-
+  defp get_endpoint_ids(automaton, path, opts \\ []) do
     allow_guess = opts[:allow_guess]
 
     case EndpointsAutomaton.resolve_path(path, automaton) do
