@@ -18,8 +18,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import Spinner from "react-bootstrap/Spinner";
-import Table from "react-bootstrap/Table";
+import { Button, Spinner, Table } from "react-bootstrap";
 
 import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
@@ -46,6 +45,7 @@ export default class GroupsPage extends React.Component {
     this.handleGroupsError = this.handleGroupsError.bind(this);
     this.handleDeviceList = this.handleDeviceList.bind(this);
     this.handleDeviceError = this.handleDeviceError.bind(this);
+    this.goNewGroupPage = this.goNewGroupPage.bind(this);
 
     this.astarte = new AstarteClient(astarteConfig);
     this.astarte
@@ -107,6 +107,10 @@ export default class GroupsPage extends React.Component {
     console.log(err);
   }
 
+  goNewGroupPage() {
+    this.props.history.push({ pathname: "/groups/new" });
+  }
+
   render() {
     let innerHTML;
 
@@ -128,7 +132,14 @@ export default class GroupsPage extends React.Component {
         break;
     }
 
-    return <Card title="Groups">{innerHTML}</Card>;
+    return (
+      <Card title="Groups">
+        {innerHTML}
+        <Button className="float-right" onClick={this.goNewGroupPage}>
+          Create new group
+        </Button>
+      </Card>
+    );
   }
 
   renderGroupsTable() {

@@ -30,8 +30,8 @@ export default class Device {
   }
 
   get name() {
-    if ("name" in this.aliases) {
-      return this.aliases.name;
+    if (this.aliases.has("name")) {
+      return this.aliases.get("name");
     } else {
       return this.id;
     }
@@ -67,7 +67,10 @@ export default class Device {
     }
 
     if ("aliases" in obj) {
-      device.aliases = obj.aliases;
+      device.aliases = new Map();
+      for (let [key, value] of Object.entries(obj.aliases)) {
+        device.aliases.set(key, value);
+      }
     }
 
     if ("groups" in obj) {
