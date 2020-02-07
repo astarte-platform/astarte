@@ -95,6 +95,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
     {:ok, _} = Registry.register(Registry.AstarteRooms, {:parent_trigger_id, room_uuid}, [])
 
+    :telemetry.execute(
+      [:astarte, :appengine, :channels, :room_opened],
+      %{},
+      %{realm: realm}
+    )
+
     {:ok,
      %{
        clients: MapSet.new(),
@@ -174,6 +180,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
           "event" => event
         }
 
+        :telemetry.execute(
+          [:astarte, :appengine, :channels, :event_sent],
+          %{},
+          %{realm: state.realm}
+        )
+
         Endpoint.broadcast("rooms:" <> room_name, "new_event", payload)
       end
 
@@ -186,6 +198,13 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
     if Enum.empty?(new_clients) do
       room_cleanup(state)
+
+      :telemetry.execute(
+        [:astarte, :appengine, :channels, :room_closed],
+        %{},
+        %{realm: state.realm}
+      )
+
       {:stop, :normal, %{state | watch_id_to_request: %{}, watch_name_to_id: %{}}}
     else
       {:noreply, %{state | clients: new_clients}}

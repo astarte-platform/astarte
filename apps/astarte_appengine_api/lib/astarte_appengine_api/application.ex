@@ -34,6 +34,7 @@ defmodule Astarte.AppEngine.API.Application do
     Metrics.PhoenixInstrumenter.setup()
     Metrics.PipelineInstrumenter.setup()
     Metrics.PrometheusExporter.setup()
+    Metrics.AppEngineInstrumenter.setup()
 
     # Define workers and child supervisors to be supervised
     children = [

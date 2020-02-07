@@ -45,6 +45,16 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     topic = make_topic(realm, device_id, interface, path)
 
+    exchanged_bytes = byte_size(bson_payload) + byte_size(interface) + byte_size(path)
+
+    :telemetry.execute(
+      [:astarte, :appengine, :device, :message_sent],
+      %{bytes: exchanged_bytes},
+      %{
+        realm: realm
+      }
+    )
+
     VMQPlugin.publish(topic, bson_payload, qos)
   end
 
@@ -66,6 +76,16 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     topic = make_topic(realm, device_id, interface, path)
 
+    exchanged_bytes = byte_size(bson_payload) + byte_size(interface) + byte_size(path)
+
+    :telemetry.execute(
+      [:astarte, :appengine, :device, :message_sent],
+      %{exchanged_bytes: exchanged_bytes},
+      %{
+        realm: realm
+      }
+    )
+
     VMQPlugin.publish(topic, bson_payload, @property_qos)
   end
 
@@ -74,6 +94,16 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   """
   def unset_property(realm, device_id, interface, path) do
     topic = make_topic(realm, device_id, interface, path)
+
+    exchanged_bytes = byte_size(interface) + byte_size(path)
+
+    :telemetry.execute(
+      [:astarte, :appengine, :device, :message_sent],
+      %{bytes: exchanged_bytes},
+      %{
+        realm: realm
+      }
+    )
 
     VMQPlugin.publish(topic, "", @property_qos)
   end
