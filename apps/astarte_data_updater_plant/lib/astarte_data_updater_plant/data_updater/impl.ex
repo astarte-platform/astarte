@@ -128,6 +128,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device connected.", ip_address: ip_address_string, tag: "device_connected")
+
+    :telemetry.execute([:astarte, :data_updater_plant, :data_updater, :device_connection], %{}, %{
+      realm: new_state.realm
+    })
+
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
@@ -160,6 +165,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device disconnected.", tag: "device_disconnected")
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :device_disconnection],
+      %{},
+      %{
+        realm: new_state.realm
+      }
+    )
+
     %{new_state | connected: false, last_seen_message: timestamp}
   end
 
@@ -437,6 +451,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         interface_descriptor.type == :datastream ->
           Logger.warn("Tried to unset a datastream")
           MessageTracker.discard(new_state.message_tracker, message_id)
+
+          :telemetry.execute(
+            [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+            %{},
+            %{
+              realm: new_state.realm
+            }
+          )
+
           raise "Unsupported"
 
         true ->
@@ -478,6 +501,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       new_state = %{new_state | paths_cache: paths_cache}
 
       MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :data_updater, :processed_message],
+        %{},
+        %{
+          realm: new_state.realm,
+          interface_type: interface_descriptor.type
+        }
+      )
+
       update_stats(new_state, interface, interface_descriptor.major_version, path, payload)
     else
       {:error, :cannot_write_on_server_owned_interface} ->
@@ -488,12 +521,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :invalid_path} ->
         Logger.warn("Received invalid path: #{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :mapping_not_found} ->
@@ -501,6 +552,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :interface_loading_failed} ->
@@ -509,36 +569,90 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         # could be a missing interface in the DB
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:guessed, _guessed_endpoints} ->
         Logger.warn("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :undecodable_bson_payload} ->
         Logger.warn("Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_value_type} ->
         Logger.warn("Received invalid value: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :value_size_exceeded} ->
         Logger.warn("Received huge payload: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_object_key} ->
         Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
         update_stats(new_state, interface, nil, path, payload)
     end
   end
@@ -640,11 +754,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp update_stats(state, interface, major, path, payload) do
+    exchanged_bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :exchanged_bytes],
+      %{bytes: exchanged_bytes},
+      %{
+        realm: state.realm
+      }
+    )
+
     %{
       state
       | total_received_msgs: state.total_received_msgs + 1,
-        total_received_bytes:
-          state.total_received_bytes + byte_size(payload) + byte_size(interface) + byte_size(path)
+        total_received_bytes: state.total_received_bytes + exchanged_bytes
     }
     |> update_interface_stats(interface, major, path, payload)
   end
@@ -700,6 +823,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Logger.warn("Discarding invalid introspection: #{inspect(payload)}.")
         ask_clean_session(state)
         MessageTracker.discard(state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
+          %{},
+          %{
+            realm: state.realm
+          }
+        )
+
         update_stats(state, "", nil, "", payload)
     end
   end
@@ -873,6 +1005,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :processed_introspection],
+      %{},
+      %{
+        realm: realm
+      }
+    )
+
     %{
       new_state
       | introspection: db_introspection_map,
@@ -950,6 +1090,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     MessageTracker.ack_delivery(state.message_tracker, message_id)
 
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :processed_empty_cache],
+      %{},
+      %{
+        realm: new_state.realm
+      }
+    )
+
     new_state
   end
 
@@ -958,6 +1106,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     ask_clean_session(state)
     MessageTracker.discard(state.message_tracker, message_id)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_control_message],
+      %{},
+      %{
+        realm: state.realm
+      }
+    )
 
     update_stats(state, "", nil, path, payload)
   end
@@ -1456,6 +1612,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     with :ok <- Queries.set_pending_empty_cache(db_client, device_id, true),
          :ok <- VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :data_updater, :clean_session_request],
+        %{},
+        %{
+          realm: state.realm
+        }
+      )
+
       :ok
     else
       {:error, reason} ->

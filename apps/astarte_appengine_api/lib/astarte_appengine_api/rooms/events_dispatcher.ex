@@ -61,6 +61,12 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
             tag: "unexisting_room_for_event"
           )
 
+        :telemetry.execute(
+          [:astarte, :appengine, :channels, :event_discarded],
+          %{},
+          %{realm: realm}
+        )
+
         DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
         {:error, :no_room_for_event}
 
@@ -70,6 +76,12 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
           Logger.warn("Dispatch: trigger not found for event #{inspect(simple_event)}.",
             tag: "room_trigger_not_found"
           )
+
+        :telemetry.execute(
+          [:astarte, :appengine, :channels, :event_discarded],
+          %{},
+          %{realm: realm}
+        )
 
         DataUpdaterPlant.delete_volatile_trigger(realm, device_id, simple_trigger_id)
         {:error, :trigger_not_found}
@@ -81,6 +93,12 @@ defmodule Astarte.AppEngine.API.Rooms.EventsDispatcher do
             "Dispatch: failed for event #{inspect(simple_event)} with reason #{reason}.",
             tag: "room_failed_dispatch"
           )
+
+        :telemetry.execute(
+          [:astarte, :appengine, :channels, :event_discarded],
+          %{},
+          %{realm: realm}
+        )
 
         {:error, :dispatch_error}
     end

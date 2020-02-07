@@ -107,6 +107,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:mox, "~> 0.3", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
+      {:telemetry, "~> 0.3"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

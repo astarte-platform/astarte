@@ -19,5 +19,6 @@
 defmodule Astarte.TriggerEngineWeb.Metrics do
   def setup do
     Astarte.TriggerEngineWeb.Metrics.PrometheusExporter.setup()
+    Astarte.TriggerEngineWeb.Metrics.TriggerEngineInstrumenter.setup()
   end
 end

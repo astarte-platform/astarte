@@ -19,5 +19,6 @@
 defmodule Astarte.DataUpdaterPlantWeb.Metrics do
   def setup do
     Astarte.DataUpdaterPlantWeb.Metrics.PrometheusExporter.setup()
+    Astarte.DataUpdaterPlantWeb.Metrics.DataUpdaterPlantInstrumenter.setup()
   end
 end

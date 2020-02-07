@@ -38,7 +38,7 @@
   "plug_cowboy": {:hex, :plug_cowboy, "2.1.1", "a196e4f428d7f5d6dba5ded314cc55cd0fbddf1110af620f75c0190e77844b33", [:mix], [{:cowboy, "~> 2.5", [hex: :cowboy, repo: "hexpm", optional: false]}, {:plug, "~> 1.7", [hex: :plug, repo: "hexpm", optional: false]}], "hexpm"},
   "plug_crypto": {:hex, :plug_crypto, "1.0.0", "18e49317d3fa343f24620ed22795ec29d4a5e602d52d1513ccea0b07d8ea7d4d", [:mix], [], "hexpm"},
   "pooler": {:hex, :pooler, "1.5.3", "898cd1fa301fc42d4a8ed598ce139b71ca85b54c16ab161152b5cc5fbdcfa1a8", [:rebar3], [], "hexpm"},
-  "pretty_log": {:git, "https://github.com/ispirata/pretty_log.git", "1c6877b2059bb894013f93686b8c7f68a6e3a2d9", []},
+  "pretty_log": {:hex, :pretty_log, "0.1.0", "c3327c3dd1105d810a6d068c4c588f1eaf281c4b3db16dab7ebf168ada24b7ff", [:mix], [{:logfmt, "~> 3.3", [hex: :logfmt, repo: "hexpm", optional: false]}], "hexpm"},
   "prometheus": {:hex, :prometheus, "4.4.1", "1e96073b3ed7788053768fea779cbc896ddc3bdd9ba60687f2ad50b252ac87d6", [:mix, :rebar3], [], "hexpm"},
   "prometheus_ex": {:hex, :prometheus_ex, "3.0.5", "fa58cfd983487fc5ead331e9a3e0aa622c67232b3ec71710ced122c4c453a02f", [:mix], [{:prometheus, "~> 4.0", [hex: :prometheus, repo: "hexpm", optional: false]}], "hexpm"},
   "prometheus_plugs": {:hex, :prometheus_plugs, "1.1.5", "25933d48f8af3a5941dd7b621c889749894d8a1082a6ff7c67cc99dec26377c5", [:mix], [{:accept, "~> 0.1", [hex: :accept, repo: "hexpm", optional: false]}, {:plug, "~> 1.0", [hex: :plug, repo: "hexpm", optional: false]}, {:prometheus_ex, "~> 1.1 or ~> 2.0 or ~> 3.0", [hex: :prometheus_ex, repo: "hexpm", optional: false]}, {:prometheus_process_collector, "~> 1.1", [hex: :prometheus_process_collector, repo: "hexpm", optional: true]}], "hexpm"},

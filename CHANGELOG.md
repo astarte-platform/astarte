@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [realm_management] Add health endpoint.
 - [pairing] Add health endpoint.
 - [data_updater_plant] Add health endpoint.
+- [data_updater_plant] Export specific metrics with telemetry.
+- [trigger_engine] Export specific metrics with telemetry.
+- [appengine_api] Export specific metrics with telemetry.
 
 ## [0.11.0-beta.2] - 2020-01-24
 ### Added
