@@ -32,9 +32,11 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Type
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.Mappings
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Ecto.Changeset
@@ -194,7 +196,6 @@ defmodule Astarte.AppEngine.API.Device do
 
       Queries.insert_value_into_db(
         client,
-        interface_descriptor.storage_type,
         device_id,
         interface_descriptor,
         endpoint_id,
@@ -224,7 +225,8 @@ defmodule Astarte.AppEngine.API.Device do
             endpoint_id,
             path,
             timestamp_micro,
-            div(timestamp_micro, 1000)
+            div(timestamp_micro, 1000),
+            []
           )
 
           DataTransmitter.push_datastream(
@@ -255,6 +257,157 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp path_or_endpoint_depth(path) when is_binary(path) do
+    String.split(path, "/", trim: true)
+    |> length()
+  end
+
+  defp resolve_object_aggregation_path(
+         path,
+         %InterfaceDescriptor{aggregation: :object} = interface_descriptor,
+         mappings
+       ) do
+    mappings =
+      Enum.into(mappings, %{}, fn mapping ->
+        {mapping.endpoint_id, mapping}
+      end)
+
+    with {:guessed, guessed_endpoints} <-
+           EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
+         :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+      endpoint_id =
+        CQLUtils.endpoint_id(
+          interface_descriptor.name,
+          interface_descriptor.major_version,
+          ""
+        )
+
+      {:ok, %Mapping{endpoint_id: endpoint_id}}
+    else
+      {:ok, _endpoint_id} ->
+        # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
+        Logger.warn(
+          "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
+            "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
+            "the common prefix",
+          tag: "invalid_path"
+        )
+
+        {:error, :mapping_not_found}
+
+      {:error, :not_found} ->
+        Logger.warn(
+          "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
+            "interface #{inspect(interface_descriptor.name)}",
+          tag: "invalid_path"
+        )
+
+        {:error, :mapping_not_found}
+
+      {:error, :invalid_object_aggregation_path} ->
+        Logger.warn(
+          "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
+            "interface #{inspect(interface_descriptor.name)}",
+          tag: "invalid_path"
+        )
+
+        {:error, :mapping_not_found}
+    end
+  end
+
+  defp check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+    received_path_depth = path_or_endpoint_depth(path)
+
+    Enum.reduce_while(guessed_endpoints, :ok, fn
+      endpoint_id, _acc ->
+        with {:ok, %Mapping{endpoint: endpoint}} <- Map.fetch(mappings, endpoint_id),
+             endpoint_depth when received_path_depth == endpoint_depth - 1 <-
+               path_or_endpoint_depth(endpoint) do
+          {:cont, :ok}
+        else
+          _ ->
+            {:halt, {:error, :invalid_object_aggregation_path}}
+        end
+    end)
+  end
+
+  defp update_object_interface_values(
+         client,
+         realm_name,
+         device_id,
+         interface_descriptor,
+         path,
+         raw_value
+       ) do
+    timestamp_micro =
+      DateTime.utc_now()
+      |> DateTime.to_unix(:microseconds)
+
+    with {:ok, mappings} <-
+           Mappings.fetch_interface_mappings(client, interface_descriptor.interface_id),
+         {:ok, endpoint} <-
+           resolve_object_aggregation_path(path, interface_descriptor, mappings),
+         endpoint_id <- endpoint.endpoint_id,
+         expected_types <- extract_expected_types(mappings),
+         :ok <- validate_value_type(expected_types, raw_value) do
+      Queries.insert_value_into_db(
+        client,
+        device_id,
+        interface_descriptor,
+        nil,
+        nil,
+        path,
+        raw_value,
+        timestamp_micro
+      )
+
+      wrapped_value = wrap_to_bson_struct(nil, raw_value)
+
+      Queries.insert_path_into_db(
+        client,
+        device_id,
+        interface_descriptor,
+        endpoint_id,
+        path,
+        timestamp_micro,
+        div(timestamp_micro, 1000),
+        []
+      )
+
+      DataTransmitter.push_datastream(
+        realm_name,
+        device_id,
+        interface_descriptor.name,
+        path,
+        wrapped_value
+      )
+
+      {:ok,
+       %InterfaceValues{
+         data: raw_value
+       }}
+    else
+      {:error, :unexpected_value_type, expected: value_type} ->
+        Logger.warn("Unexpected value type.", tag: "unexpected_value_type")
+        {:error, :unexpected_value_type, expected: value_type}
+
+      {:error, :invalid_object_aggregation_path} ->
+        Logger.warn("Error while trying to publish on path for object aggregated interface.",
+          tag: "invalid_object_aggregation_path"
+        )
+
+        {:error, :invalid_object_aggregation_path}
+
+      {:error, :mapping_not_found} ->
+        {:error, :mapping_not_found}
+
+      {:error, reason} ->
+        Logger.warn("Unhandled error while updating object interface values: #{inspect(reason)}.")
+
+        {:error, reason}
+    end
+  end
+
   def update_interface_values!(
         realm_name,
         encoded_device_id,
@@ -280,6 +433,15 @@ defmodule Astarte.AppEngine.API.Device do
           path,
           raw_value
         )
+      else
+        update_object_interface_values(
+          client,
+          realm_name,
+          device_id,
+          interface_descriptor,
+          path,
+          raw_value
+        )
       end
     else
       {:ownership, :device} ->
@@ -290,6 +452,33 @@ defmodule Astarte.AppEngine.API.Device do
         _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
     end
+  end
+
+  defp extract_expected_types(mappings) do
+    Enum.into(mappings, %{}, fn mapping ->
+      expected_key =
+        mapping.endpoint
+        |> String.split("/")
+        |> List.last()
+
+      {expected_key, mapping.value_type}
+    end)
+  end
+
+  defp validate_value_type(expected_types, object)
+       when is_map(expected_types) and is_map(object) do
+    Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
+      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+           :ok <- validate_value_type(expected_type, value) do
+        {:cont, :ok}
+      else
+        {:error, reason, expected} ->
+          {:halt, {:error, reason, expected}}
+
+        :error ->
+          {:halt, {:error, :unexpected_object_key}}
+      end
+    end)
   end
 
   defp validate_value_type(value_type, value) do
@@ -409,7 +598,6 @@ defmodule Astarte.AppEngine.API.Device do
 
       Queries.insert_value_into_db(
         client,
-        interface_descriptor.storage_type,
         device_id,
         interface_descriptor,
         endpoint_id,
