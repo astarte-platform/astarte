@@ -951,7 +951,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              expected_reply
   end
 
-  test "update_interface_values!/6" do
+  test "update_interface_values/6" do
     test_realm = "autotestrealm"
     missing_id = "f0VMRgIBAQAAAAAAAAAAAQ"
     test_interface = "com.example.PixelsConfiguration"
@@ -959,7 +959,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     path = "/1/2/color"
     par = %{}
 
-    assert Device.update_interface_values!(
+    assert Device.update_interface_values(
              test_realm,
              missing_id,
              test_interface,
@@ -971,7 +971,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     device_id = "f0VMRgIBAQAAAAAAAAAAAA"
     short_path = "/something"
 
-    assert Device.update_interface_values!(
+    assert Device.update_interface_values(
              test_realm,
              device_id,
              test_interface,
@@ -983,7 +983,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     ro_interface = "com.test.SimpleStreamTest"
     ro_path = "/0/value"
 
-    assert Device.update_interface_values!(
+    assert Device.update_interface_values(
              test_realm,
              device_id,
              ro_interface,
@@ -994,7 +994,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     missing_interface = "com.test.Missing"
 
-    assert Device.update_interface_values!(
+    assert Device.update_interface_values(
              test_realm,
              device_id,
              missing_interface,

@@ -408,7 +408,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  def update_interface_values!(
+  def update_interface_values(
         realm_name,
         encoded_device_id,
         interface,

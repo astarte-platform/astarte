@@ -70,7 +70,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
         } = parameters
       ) do
     with {:ok, %InterfaceValues{} = interface_values} <-
-           Device.update_interface_values!(
+           Device.update_interface_values(
              realm_name,
              device_id,
              interface,
