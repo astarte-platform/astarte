@@ -192,7 +192,7 @@ defmodule Astarte.AppEngine.API.Device do
          :ok <- validate_value_type(mapping.value_type, value) do
       timestamp_micro =
         DateTime.utc_now()
-        |> DateTime.to_unix(:microseconds)
+        |> DateTime.to_unix(:microsecond)
 
       Queries.insert_value_into_db(
         client,
@@ -341,7 +341,7 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     timestamp_micro =
       DateTime.utc_now()
-      |> DateTime.to_unix(:microseconds)
+      |> DateTime.to_unix(:microsecond)
 
     with {:ok, mappings} <-
            Mappings.fetch_interface_mappings(client, interface_descriptor.interface_id),
