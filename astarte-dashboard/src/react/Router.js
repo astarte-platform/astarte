@@ -31,6 +31,12 @@ import GroupDevicesPage from "./GroupDevicesPage.js";
 import NewGroupPage from "./NewGroupPage.js";
 import DevicesPage from "./DevicesPage.js";
 import RegisterDevicePage from "./RegisterDevicePage.js";
+import FlowInstancesPage from "./FlowInstancesPage.js";
+import FlowDetailsPage from "./FlowDetailsPage.js";
+import FlowConfigurationPage from "./FlowConfigurationPage.js";
+import PipelinesPage from "./PipelinesPage.js";
+import PipelineSourcePage from "./PipelineSourcePage.js";
+import NewPipelinePage from "./NewPipelinePage.js";
 
 export function getRouter(reactHistory, astarteClient, fallback) {
 
@@ -57,6 +63,24 @@ export function getRouter(reactHistory, astarteClient, fallback) {
         <Route path="/groups/:groupName">
           <GroupDevicesSubPath {...pageProps} />
         </Route>
+        <Route exact path="/flows">
+          <FlowInstancesPage {...pageProps} />
+        </Route>
+        <Route path="/flows/new/:pipelineId">
+          <FlowConfiguration {...pageProps} />
+        </Route>
+        <Route path="/flows/:flowName">
+          <FlowDetails {...pageProps} />
+        </Route>
+        <Route exact path="/pipelines">
+          <PipelinesPage {...pageProps} />
+        </Route>
+        <Route exact path="/pipelines/new">
+          <NewPipelinePage {...pageProps} />
+        </Route>
+        <Route exact path="/pipelines/:pipelineId">
+          <PipelineSubPath {...pageProps} />
+        </Route>
         <Route path="*">
           <NoMatch fallback={fallback} />
         </Route>
@@ -69,6 +93,28 @@ function GroupDevicesSubPath(props) {
   let { groupName } = useParams();
 
   return <GroupDevicesPage groupName={groupName} {...props} />;
+}
+
+function FlowDetails(props) {
+  const { flowName } = useParams();
+
+  return <FlowDetailsPage flowName={flowName} {...props} />;
+}
+
+function FlowConfiguration(props) {
+  const { pipelineId } = useParams();
+
+  return (
+    <FlowConfigurationPage pipelineId={pipelineId} {...props} />
+  );
+}
+
+function PipelineSubPath(props) {
+  const { pipelineId } = useParams();
+
+  return (
+    <PipelineSourcePage pipelineId={pipelineId} {...props} />
+  );
 }
 
 function NoMatch(props) {

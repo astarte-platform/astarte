@@ -203,6 +203,8 @@ type RealmPage
 type ReactPageCategory
     = Devices
     | Groups
+    | Flow
+    | Pipelines
 
 
 
@@ -549,6 +551,24 @@ pageInit realmRoute config session =
 
         Route.GroupDevices groupName ->
             initReactPage session Groups "group-devices" realmRoute
+
+        Route.FlowInstances ->
+            initReactPage session Flow "flow-instances" realmRoute
+
+        Route.FlowConfigure _ ->
+            initReactPage session Flow "flow-configure" realmRoute
+
+        Route.FlowDetails _ ->
+            initReactPage session Flow "flow-details" realmRoute
+
+        Route.PipelineList ->
+            initReactPage session Pipelines "pipeline-list" realmRoute
+
+        Route.NewPipeline ->
+            initReactPage session Pipelines "pipeline-new" realmRoute
+
+        Route.PipelineShowSource _ ->
+            initReactPage session Pipelines "pipeline-show-source" realmRoute
 
 
 initReactPage : Session -> ReactPageCategory -> String -> RealmRoute -> ( Page, Cmd Msg, Session )
@@ -1020,6 +1040,19 @@ navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHeal
                     (isGroupRelated selectedPage)
                     (Route.Realm Route.GroupList)
 
+                -- Flow
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Flows"
+                    Icons.Flow
+                    (isFlowRelated selectedPage)
+                    (Route.Realm Route.FlowInstances)
+                , renderNavbarLink
+                    "Pipelines"
+                    Icons.Pipeline
+                    (isPipelinesRelated selectedPage)
+                    (Route.Realm Route.PipelineList)
+
                 -- General
                 , renderNavbarSeparator
                 , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth
@@ -1177,6 +1210,26 @@ isGroupRelated : Page -> Bool
 isGroupRelated page =
     case page of
         Realm _ (ReactInitPage Groups) ->
+            True
+
+        _ ->
+            False
+
+
+isFlowRelated : Page -> Bool
+isFlowRelated page =
+    case page of
+        Realm _ (ReactInitPage Flow) ->
+            True
+
+        _ ->
+            False
+
+
+isPipelinesRelated : Page -> Bool
+isPipelinesRelated page =
+    case page of
+        Realm _ (ReactInitPage Pipelines) ->
             True
 
         _ ->

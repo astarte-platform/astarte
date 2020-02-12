@@ -57,6 +57,12 @@ type RealmRoute
     | RegisterDevice
     | GroupList
     | GroupDevices String
+    | FlowInstances
+    | FlowConfigure String
+    | FlowDetails String
+    | PipelineList
+    | PipelineShowSource String
+    | NewPipeline
 
 
 routeParser : Parser (Route -> a) a
@@ -88,6 +94,12 @@ realmRouteParser =
         , map ShowDeviceData (s "devices" </> string </> s "interfaces" </> string)
         , map GroupList (s "groups")
         , map GroupDevices (s "groups" </> string)
+        , map FlowInstances (s "flows")
+        , map FlowConfigure (s "flows" </> s "new" </> string)
+        , map FlowDetails (s "flows" </> string)
+        , map PipelineList (s "pipelines")
+        , map NewPipeline (s "pipelines" </> s "new")
+        , map PipelineShowSource (s "pipelines" </> string)
         ]
 
 
@@ -172,6 +184,24 @@ toString route =
 
                 Realm (GroupDevices groupName) ->
                     [ "groups", groupName ]
+
+                Realm FlowInstances ->
+                    [ "flows" ]
+
+                Realm (FlowConfigure pipelineId) ->
+                    [ "flows", "new", pipelineId ]
+
+                Realm (FlowDetails flowName) ->
+                    [ "flows", flowName ]
+
+                Realm PipelineList ->
+                    [ "pipelines" ]
+
+                Realm NewPipeline ->
+                    [ "pipelines", "new" ]
+
+                Realm (PipelineShowSource pipelineName) ->
+                    [ "pipelines", pipelineName ]
     in
     "/" ++ String.join "/" pieces
 
