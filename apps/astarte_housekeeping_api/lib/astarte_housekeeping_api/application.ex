@@ -27,6 +27,12 @@ defmodule Astarte.Housekeeping.API.Application do
   def start(_type, _args) do
     import Supervisor.Spec
 
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
+
     Logger.info("Starting application.", tag: "housekeeping_api_start")
 
     Metrics.PhoenixInstrumenter.setup()

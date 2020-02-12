@@ -29,6 +29,12 @@ defmodule Astarte.Pairing.API.Application do
     Metrics.PipelineInstrumenter.setup()
     Metrics.PrometheusExporter.setup()
 
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
+
     Logger.info("Starting application.", tag: "pairing_api_start")
     # Define workers and child supervisors to be supervised
     children = [

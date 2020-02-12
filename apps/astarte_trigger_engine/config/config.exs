@@ -26,9 +26,6 @@ config :lager,
   error_logger_redirect: false,
   handlers: [level: :critical]
 
-# make amqp supervisors logs less verbose
-config :logger, handle_otp_reports: false
-
 config :astarte_trigger_engine, :amqp_consumer_options,
   host: "localhost",
   username: "guest",
