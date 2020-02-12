@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [trigger_engine] Export specific metrics with telemetry.
 - [appengine_api] Export specific metrics with telemetry.
 - [all] Make Elixir logger handle OTP requests: print stack traces only when needed.
+- [appengine_api] Handle aggregated server owned interfaces.
 
 ## [0.11.0-beta.2] - 2020-01-24
 ### Added
