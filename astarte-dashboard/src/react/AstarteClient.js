@@ -43,6 +43,10 @@ export default class AstarteClient {
       internalConfig.pairingUrl = new URL(config.pairingUrl);
     }
 
+    if (config.flowUrl) {
+      internalConfig.flowUrl = new URL(config.flowUrl);
+    }
+
     if (config.onSocketError) {
       this.onSocketError = config.onSocketError;
     }
@@ -67,6 +71,10 @@ export default class AstarteClient {
       deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`,
       phoenixSocket:         astarteAPIurl`${"appengineUrl"}/v1/socket`,
       registerDevice:        astarteAPIurl`${"pairingUrl"}/v1/${"realm"}/agent/devices`,
+      flows:                 astarteAPIurl`${"flowUrl"}/v1/${"realm"}/flows`,
+      flowInstance:          astarteAPIurl`${"flowUrl"}/v1/${"realm"}/flows/${"instanceName"}`,
+      pipelines:             astarteAPIurl`${"flowUrl"}/v1/${"realm"}/pipelines`,
+      pipelineSource:        astarteAPIurl`${"flowUrl"}/v1/${"realm"}/pipelines/${"pipelineId"}`,
     };
     this.apiConfig = apiConfig;
 
@@ -160,6 +168,50 @@ export default class AstarteClient {
     return this._post(this.apiConfig["registerDevice"](this.config), {
       hw_id: deviceId
     });
+  }
+
+  getFlowInstances() {
+    return this._get(this.apiConfig["flows"](this.config));
+  }
+
+  getFlowDetails(flowName) {
+    return this._get(
+      this.apiConfig["flowInstance"]({ ...this.config, instanceName: flowName })
+    );
+  }
+
+  createNewFlowInstance(pipelineConfig) {
+    return this._post(this.apiConfig["flows"](this.config), pipelineConfig);
+  }
+
+  deleteFlowInstance(flowName) {
+    return this._delete(
+      this.apiConfig["flowInstance"]({ ...this.config, instanceName: flowName })
+    );
+  }
+
+  getPipelineDefinitions() {
+    return this._get(
+      this.apiConfig["pipelines"](this.config)
+    );
+  }
+
+  registerPipeline(pipeline) {
+    return this._post(this.apiConfig["pipelines"](this.config), pipeline);
+  }
+
+  getPipelineInputConfig(pipelineId) {
+    return this._get(
+      this.apiConfig["pipelineSource"]({ ...this.config, pipelineId: pipelineId })
+    );
+  }
+
+  getPipelineSource(pipelineId) {
+    return this._get(this.apiConfig["pipelineSource"]({...this.config, pipelineId: pipelineId}));
+  }
+
+  deletePipeline(pipelineId) {
+    return this._delete(this.apiConfig["pipelineSource"]({...this.config, pipelineId: pipelineId}));
   }
 
   _get(url) {
