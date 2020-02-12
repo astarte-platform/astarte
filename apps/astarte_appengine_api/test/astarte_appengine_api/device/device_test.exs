@@ -951,57 +951,120 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              expected_reply
   end
 
-  test "update_interface_values/6" do
-    test_realm = "autotestrealm"
-    missing_id = "f0VMRgIBAQAAAAAAAAAAAQ"
-    test_interface = "com.example.PixelsConfiguration"
-    value = "#ff00ff"
-    path = "/1/2/color"
-    par = %{}
+  describe "update_interface_values with individual aggregation" do
+    test "fails with invalid parameters" do
+      test_realm = "autotestrealm"
+      missing_id = "f0VMRgIBAQAAAAAAAAAAAQ"
+      test_interface = "com.example.PixelsConfiguration"
+      value = "#ff00ff"
+      path = "/1/2/color"
+      par = %{}
 
-    assert Device.update_interface_values(
-             test_realm,
-             missing_id,
-             test_interface,
-             path,
-             value,
-             par
-           ) == {:error, :device_not_found}
+      assert Device.update_interface_values(
+               test_realm,
+               missing_id,
+               test_interface,
+               path,
+               value,
+               par
+             ) == {:error, :device_not_found}
 
-    device_id = "f0VMRgIBAQAAAAAAAAAAAA"
-    short_path = "/something"
+      device_id = "f0VMRgIBAQAAAAAAAAAAAA"
+      short_path = "/something"
 
-    assert Device.update_interface_values(
-             test_realm,
-             device_id,
-             test_interface,
-             short_path,
-             value,
-             par
-           ) == {:error, :read_only_resource}
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               test_interface,
+               short_path,
+               value,
+               par
+             ) == {:error, :read_only_resource}
 
-    ro_interface = "com.test.SimpleStreamTest"
-    ro_path = "/0/value"
+      ro_interface = "com.test.SimpleStreamTest"
+      ro_path = "/0/value"
 
-    assert Device.update_interface_values(
-             test_realm,
-             device_id,
-             ro_interface,
-             ro_path,
-             value,
-             par
-           ) == {:error, :cannot_write_to_device_owned}
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               ro_interface,
+               ro_path,
+               value,
+               par
+             ) == {:error, :cannot_write_to_device_owned}
 
-    missing_interface = "com.test.Missing"
+      missing_interface = "com.test.Missing"
 
-    assert Device.update_interface_values(
-             test_realm,
-             device_id,
-             missing_interface,
-             ro_path,
-             value,
-             par
-           ) == {:error, :interface_not_in_introspection}
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               missing_interface,
+               ro_path,
+               value,
+               par
+             ) == {:error, :interface_not_in_introspection}
+    end
+  end
+
+  describe "update_interface_values with object aggregation" do
+    setup do
+      DatabaseTestHelper.create_object_receiving_device()
+
+      on_exit(fn ->
+        DatabaseTestHelper.remove_object_receiving_device()
+      end)
+    end
+
+    test "fails with unexpected type" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      path = "/my_path"
+      par = nil
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               path,
+               %{"enable" => "true", "samplingPeriod" => 10},
+               par
+             ) == {:error, :unexpected_value_type, expected: :boolean}
+    end
+
+    test "fails with invalid path" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      value = %{"enable" => true, "samplingPeriod" => 10}
+      par = nil
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               "/",
+               value,
+               par
+             ) == {:error, :mapping_not_found}
+    end
+
+    test "fails when path cannot be resolved" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      value = %{"enable" => true, "samplingPeriod" => 10}
+      par = nil
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               "/a/b",
+               value,
+               par
+             ) == {:error, :mapping_not_found}
+    end
   end
 
   test "device_alias_to_device_id/2 returns device IDs (uuid)" do
