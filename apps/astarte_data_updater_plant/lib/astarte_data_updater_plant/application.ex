@@ -27,6 +27,12 @@ defmodule Astarte.DataUpdaterPlant.Application do
   alias Astarte.DataUpdaterPlant.Config
 
   def start(_type, _args) do
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
+
     Logger.info("Starting application.", tag: "data_updater_plant_app_start")
 
     children = [

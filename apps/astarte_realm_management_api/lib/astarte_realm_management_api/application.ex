@@ -25,6 +25,12 @@ defmodule Astarte.RealmManagement.API.Application do
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
+
     Logger.info("Starting application", tag: "realm_management_api_start")
 
     children = [

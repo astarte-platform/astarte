@@ -26,6 +26,12 @@ defmodule Astarte.TriggerEngine.Application do
   alias Astarte.TriggerEngine.Config
 
   def start(_type, _args) do
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
+
     Logger.info("Starting application", tag: "trigger_engine_app_start")
 
     children = [
