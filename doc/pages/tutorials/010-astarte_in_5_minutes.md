@@ -60,15 +60,17 @@ $ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k
 
 ## Install an interface
 
-We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. Clone the repository, as we will have to install its `org.astarteplatform.Values` interface into our new realm. To do that, we can use `astartectl` again:
+We will use Astarte’s standard interfaces for our test. You can install them by running:
 
-```sh
-$ astartectl realm-management interfaces install ../stream-qt5-test/interfaces/org.astarteplatform.Values.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+```
+$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.Values.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.SamplingRate.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.AvailableSensors.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
-Now `org.astarteplatform.Values` should show up among our available interfaces:
+Now `org.astarte-platform.genericsensors.Values`, `org.astarte-platform.genericsensors.SamplingRate` and `org.astarte-platform.genericsensors.AvailableSensors` should show up among our available interfaces:
 
-```sh
+```
 $ astartectl realm-management interfaces ls --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
@@ -80,9 +82,9 @@ We will also test Astarte's push capabilities with a trigger. This will send a P
 
 Due to how triggers work, it is fundamental to install the trigger before a device connects. Doing otherwise will cause the trigger to kick in at a later time, and as such no events will be streamed for a while.
 
-Replace `http://example.com` with your target URL in the command below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests. The resulting trigger would be:
+Replace `http://example.com` with your target URL in the command below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests. In this case, we will use the `org.astarte-platform.genericsensors.Values` interface for the sake of testing. The resulting trigger would be:
 
-```json
+```
 {
   "name": "my_trigger",
   "action": {
@@ -92,7 +94,7 @@ Replace `http://example.com` with your target URL in the command below, you can 
     {
       "type": "data_trigger",
       "on": "incoming_data",
-      "interface_name": "org.astarteplatform.Values",
+      "interface_name": "org.astarte-platform.genericsensors.Values",
       "interface_major": 0,
       "match_path": "/realValue",
       "value_match_operator": ">",
