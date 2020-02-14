@@ -38,8 +38,10 @@ import Icons
 import Json.Decode as Decode exposing (Decoder)
 import ListUtils exposing (addWhen)
 import Modal.NewAlias as NewAlias
+import Modal.SelectGroup as SelectGroup
 import Ports
 import Route
+import Set
 import Spinner
 import Time
 import Types.AstarteValue as AstarteValue
@@ -59,7 +61,9 @@ type alias Model =
     , portConnected : Bool
     , spinner : Spinner.Model
     , showSpinner : Bool
+    , existingGroups : List String
     , newAliasModal : NewAlias.Model
+    , selectGroupModal : SelectGroup.Model
     }
 
 
@@ -71,7 +75,9 @@ init session deviceId =
       , receivedEvents = []
       , spinner = Spinner.init
       , showSpinner = True
+      , existingGroups = []
       , newAliasModal = NewAlias.init False
+      , selectGroupModal = SelectGroup.init False []
       }
     , AstarteApi.deviceInfos session.apiConfig deviceId <| DeviceInfosDone
     )
@@ -82,12 +88,16 @@ type Msg
     | UpdateDeviceInfo Time.Posix
     | Forward ExternalMsg
     | OpenNewAliasPopup
-    | UpdateModal NewAlias.Msg
+    | OpenGroupsPopup
+    | UpdateAliasModal NewAlias.Msg
+    | UpdateGroupModal SelectGroup.Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
       -- spinner
     | SpinnerMsg Spinner.Msg
       -- API
     | DeviceInfosDone (Result AstarteApi.Error Device)
+    | GroupListDone (Result AstarteApi.Error (List String))
+    | AddGroupToDeviceDone (Result AstarteApi.Error ())
       -- Ports
     | OnDeviceEventReceived (Result Decode.Error JSEvent)
 
@@ -108,14 +118,21 @@ update session msg model =
             )
 
         DeviceInfosDone (Ok device) ->
-            if model.portConnected then
-                ( { model | device = Just device }
-                , Cmd.none
-                , ExternalMsg.Noop
-                )
+            let
+                ( newModel, command, externalCommand ) =
+                    if model.portConnected then
+                        ( { model | device = Just device }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
 
-            else
-                connectToPort model session device
+                    else
+                        connectToPort model session device
+            in
+            ( newModel
+            , Cmd.batch [ command, AstarteApi.groupList session.apiConfig <| GroupListDone ]
+            , externalCommand
+            )
 
         DeviceInfosDone (Err error) ->
             let
@@ -128,19 +145,75 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
+        GroupListDone (Ok groups) ->
+            case model.device of
+                Just device ->
+                    ( { model | existingGroups = subtractList groups device.groups }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Nothing ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        GroupListDone (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
+        AddGroupToDeviceDone (Ok _) ->
+            ( model
+            , AstarteApi.deviceInfos session.apiConfig model.deviceId <| DeviceInfosDone
+            , ExternalMsg.Noop
+            )
+
+        AddGroupToDeviceDone (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
         OpenNewAliasPopup ->
             ( { model | newAliasModal = NewAlias.init True }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
-        UpdateModal modalMsg ->
+        OpenGroupsPopup ->
+            ( { model | selectGroupModal = SelectGroup.init True model.existingGroups }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        UpdateAliasModal modalMsg ->
             let
                 ( newStatus, extenalCommand ) =
                     NewAlias.update modalMsg model.newAliasModal
             in
             ( { model | newAliasModal = newStatus }
-            , handleModalCommand session model extenalCommand
+            , handleAliasModalCommand session model extenalCommand
+            , ExternalMsg.Noop
+            )
+
+        UpdateGroupModal modalMsg ->
+            let
+                ( newStatus, extenalCommand ) =
+                    SelectGroup.update modalMsg model.selectGroupModal
+            in
+            ( { model | selectGroupModal = newStatus }
+            , handleGroupModalCommand session model extenalCommand
             , ExternalMsg.Noop
             )
 
@@ -201,8 +274,8 @@ update session msg model =
             )
 
 
-handleModalCommand : Session -> Model -> NewAlias.ExternalMsg -> Cmd Msg
-handleModalCommand session model cmd =
+handleAliasModalCommand : Session -> Model -> NewAlias.ExternalMsg -> Cmd Msg
+handleAliasModalCommand session model cmd =
     case ( model.device, cmd ) of
         ( Just device, NewAlias.AddAlias aliasTag aliasValue ) ->
             let
@@ -218,6 +291,38 @@ handleModalCommand session model cmd =
 
         ( _, NewAlias.Noop ) ->
             Cmd.none
+
+
+handleGroupModalCommand : Session -> Model -> SelectGroup.ExternalMsg -> Cmd Msg
+handleGroupModalCommand session model cmd =
+    case ( model.device, cmd ) of
+        ( Just device, SelectGroup.SelectedGroup groupName ) ->
+            AstarteApi.addDeviceToGroup session.apiConfig groupName model.deviceId AddGroupToDeviceDone
+
+        ( Nothing, _ ) ->
+            Cmd.none
+
+        ( _, SelectGroup.Noop ) ->
+            Cmd.none
+
+
+subtractList : List comparable -> List comparable -> List comparable
+subtractList listA listB =
+    let
+        -- Only use Sets for the subtrahend to preserve ordering in the minuend
+        setB =
+            Set.fromList listB
+    in
+    List.foldl
+        (\item acc ->
+            if Set.member item setB then
+                acc
+
+            else
+                item :: acc
+        )
+        []
+        listA
 
 
 connectToPort : Model -> Session -> Device -> ( Model, Cmd Msg, ExternalMsg )
@@ -273,14 +378,16 @@ view model flashMessages =
                     [ deviceInfoCard device HalfWidth
                     , deviceEventsCard device HalfWidth
                     , deviceAliasesCard device HalfWidth
-                    , deviceGroupsCard device HalfWidth
+                    , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) HalfWidth
                     , deviceIntrospectionCard device HalfWidth
                     , devicePreviousInterfacesCard device HalfWidth
                     , deviceStatsCard device FullWidth
                     , deviceChannelCard model.receivedEvents FullWidth
                     ]
                 , NewAlias.view model.newAliasModal
-                    |> Html.map UpdateModal
+                    |> Html.map UpdateAliasModal
+                , SelectGroup.view model.selectGroupModal
+                    |> Html.map UpdateGroupModal
                 ]
 
             Nothing ->
@@ -564,14 +671,39 @@ deviceAliasesCard device width =
         ]
 
 
-deviceGroupsCard : Device -> CardWidth -> Grid.Column Msg
-deviceGroupsCard device width =
+deviceGroupsCard : Device -> Bool -> CardWidth -> Grid.Column Msg
+deviceGroupsCard device showAddToGroup width =
     renderCard "Groups"
         width
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col [ Col.sm12 ]
                 [ renderGroups device.groups
+                ]
+            ]
+        , Grid.row
+            [ Row.attrs
+                (if showAddToGroup then
+                    [ Spacing.mt2 ]
+
+                 else
+                    [ Display.none ]
+                )
+            ]
+            [ Grid.col [ Col.sm12 ]
+                [ Html.a
+                    [ { message = OpenGroupsPopup
+                      , preventDefault = True
+                      , stopPropagation = False
+                      }
+                        |> Decode.succeed
+                        |> Html.Events.custom "click"
+                    , href "#"
+                    , Html.Attributes.target "_self"
+                    ]
+                    [ Icons.render Icons.Add [ Spacing.mr1 ]
+                    , Html.text "Add to existing group..."
+                    ]
                 ]
             ]
         ]

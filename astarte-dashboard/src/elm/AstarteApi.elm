@@ -20,6 +20,7 @@
 module AstarteApi exposing
     ( Config
     , Error
+    , addDeviceToGroup
     , addNewInterface
     , addNewTrigger
     , configDecoder
@@ -530,6 +531,19 @@ groupList apiConfig resultMsg =
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "groups" ] []
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Decode.string)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+addDeviceToGroup : Config -> String -> String -> (Result Error () -> msg) -> Cmd msg
+addDeviceToGroup apiConfig groupName deviceId resultMsg =
+    Http.request
+        { method = "POST"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ apiConfig.realm, "groups", groupName, "devices" ] []
+        , body = Http.jsonBody <| Encode.object [ ( "data", Encode.object [ ( "device_id", Encode.string deviceId ) ] ) ]
+        , expect = expectWhateverAstarteReply resultMsg
         , timeout = Nothing
         , tracker = Nothing
         }
