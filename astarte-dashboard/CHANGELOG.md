@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Support for data triggers matching "any interfaces".
 - Group creation page.
+- Device groups editing.
 
 ### Changed
 - New datastream mappings have explicit\_timestamp by default

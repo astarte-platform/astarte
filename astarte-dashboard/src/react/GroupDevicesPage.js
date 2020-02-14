@@ -17,10 +17,14 @@
 */
 
 import React from "react";
-import OverlayTrigger from "react-bootstrap/OverlayTrigger";
-import Table from "react-bootstrap/Table";
-import Tooltip from "react-bootstrap/Tooltip";
-import Spinner from "react-bootstrap/Spinner";
+import {
+  Button,
+  Modal,
+  OverlayTrigger,
+  Spinner,
+  Table,
+  Tooltip
+} from "react-bootstrap";
 
 import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
@@ -39,17 +43,26 @@ export default class GroupDevicesPage extends React.Component {
       realmManagementUrl: protocol + config.realm_management_url,
       appengineUrl: protocol + config.appengine_url
     };
+    this.astarte = new AstarteClient(astarteConfig);
 
-    this.state = {
-      phase: "loading"
-    };
-
+    this.loadGroups = this.loadGroups.bind(this);
     this.handleDeviesRequest = this.handleDeviesRequest.bind(this);
     this.handleDevicesError = this.handleDevicesError.bind(this);
+    this.showModal = this.showModal.bind(this);
+    this.handleModalCancel = this.handleModalCancel.bind(this);
+    this.removeDevice = this.removeDevice.bind(this);
 
-    let astarte = new AstarteClient(astarteConfig);
-    astarte
-      .getDevicesInGroup(props.groupName, true)
+    this.loadGroups();
+  }
+
+  loadGroups() {
+    this.state = {
+      phase: "loading",
+      showModal: false
+    };
+
+    this.astarte
+      .getDevicesInGroup(this.props.groupName, true)
       .then(this.handleDeviesRequest)
       .catch(this.handleDevicesError);
   }
@@ -72,12 +85,46 @@ export default class GroupDevicesPage extends React.Component {
     });
   }
 
+  showModal(device) {
+    this.setState({
+      showModal: true,
+      selectedDeviceName: device.name,
+      selectedDeviceId: device.id
+    });
+  }
+
+  handleModalCancel() {
+    this.setState({
+      showModal: false
+    });
+  }
+
+  removeDevice() {
+    this.setState({
+      removingDevice: true
+    });
+
+    this.astarte
+      .removeDeviceFromGroup(this.props.groupName, this.state.selectedDeviceId)
+      .finally(() => {
+        if (this.state.devices?.length == 1) {
+          this.props.history.push({ pathname: "/groups" });
+        } else {
+          this.setState({
+            removingDevice: false,
+            showModal: false
+          });
+          this.loadGroups();
+        }
+      });
+  }
+
   render() {
     let innerHTML;
 
     switch (this.state.phase) {
       case "ok":
-        innerHTML = deviceTable(this.state.devices);
+        innerHTML = deviceTable(this.state.devices, this.showModal);
         break;
 
       case "err":
@@ -92,12 +139,48 @@ export default class GroupDevicesPage extends React.Component {
     return (
       <Card title={`Devices in group "${this.props.groupName}"`}>
         {innerHTML}
+        <Modal
+          size="lg"
+          show={this.state.showModal}
+          onHide={this.handleModalCancel}
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Warning</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {this.state.devices?.length == 1 ? (
+              <p>
+                This is the last device in the group. Removing this device will
+                delete the group
+              </p>
+            ) : null}
+            <p>{`Remove device "${this.state.selectedDeviceName}" from group "${this.props.groupName}"?`}</p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.handleModalCancel}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={this.removeDevice}>
+              <>
+                {this.state.removingDevice ? (
+                  <Spinner
+                    className="mr-1"
+                    size="sm"
+                    animation="border"
+                    role="status"
+                  />
+                ) : null}
+                Remove
+              </>
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </Card>
     );
   }
 }
 
-function deviceTable(deviceList) {
+function deviceTable(deviceList, showModal) {
   return (
     <Table responsive>
       <thead>
@@ -105,14 +188,19 @@ function deviceTable(deviceList) {
           <th>Status</th>
           <th>Device ID</th>
           <th>Last connection event</th>
+          <th>Actions</th>
         </tr>
       </thead>
-      <tbody>{deviceList.map(deviceTableRow)}</tbody>
+      <tbody>
+        {deviceList.map((device, index) =>
+          deviceTableRow(device, index, showModal)
+        )}
+      </tbody>
     </Table>
   );
 }
 
-function deviceTableRow(device, index) {
+function deviceTableRow(device, index, showModal) {
   let colorClass;
   let lastEvent;
   let tooltipText;
@@ -152,6 +240,26 @@ function deviceTableRow(device, index) {
         <Link to={`/devices/${device.id}`}>{device.name}</Link>
       </td>
       <td>{lastEvent}</td>
+      <td>
+        <OverlayTrigger
+          placement="left"
+          delay={{ show: 150, hide: 400 }}
+          style={{
+            backgroundColor: "rgba(255, 100, 100, 0.85)",
+            padding: "2px 10px",
+            color: "white",
+            borderRadius: 3
+          }}
+          overlay={<Tooltip>Remove from group</Tooltip>}
+        >
+          <Button
+            as="i"
+            variant="danger"
+            className="fas fa-times"
+            onClick={() => showModal(device)}
+          ></Button>
+        </OverlayTrigger>
+      </td>
     </tr>
   );
 }
