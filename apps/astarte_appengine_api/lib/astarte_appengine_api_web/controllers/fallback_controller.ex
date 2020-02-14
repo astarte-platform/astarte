@@ -169,6 +169,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"409_alias_already_in_use")
   end
 
+  def call(conn, {:error, :mapping_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"404_mapping_not_found")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, reason}, _opts) do
     _ =

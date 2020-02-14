@@ -122,7 +122,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupController do
       ) do
     with {:ok, true} <- Groups.check_device_in_group(realm_name, group_name, device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
-           Device.update_interface_values!(
+           Device.update_interface_values(
              realm_name,
              device_id,
              interface,

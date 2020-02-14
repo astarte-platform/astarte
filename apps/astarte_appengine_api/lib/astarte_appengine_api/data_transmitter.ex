@@ -49,7 +49,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     :telemetry.execute(
       [:astarte, :appengine, :device, :message_sent],
-      %{bytes: exchanged_bytes},
+      %{exchanged_bytes: exchanged_bytes},
       %{
         realm: realm
       }
@@ -99,7 +99,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
     :telemetry.execute(
       [:astarte, :appengine, :device, :message_sent],
-      %{bytes: exchanged_bytes},
+      %{exchanged_bytes: exchanged_bytes},
       %{
         realm: realm
       }

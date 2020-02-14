@@ -620,6 +620,135 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     :ok
   end
 
+  def create_object_receiving_device do
+    {:ok, client} = Database.connect()
+
+    insert_object_receiving_device(client)
+    create_server_owned_aggregated_object_table(client)
+    insert_object_receiving_device_endpoints(client)
+    insert_into_interface_obj_aggregated(client)
+  end
+
+  defp insert_object_receiving_device_endpoints(client) do
+    insert_endpoint_queries = [
+      """
+      INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      (65c96ecb-f2d5-b440-4840-16cd84d2c2be, 76c99541-dd31-6369-bcdd-f2fdacc2d3ff, False, '/%{sensor_id}/enable', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 1, 1, 9);
+      """,
+      """
+      INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      (65c96ecb-f2d5-b440-4840-16cd84d2c2be, 6ebd007e-dd74-8e32-f032-78d433b1b8e7, False, '/%{sensor_id}/samplingPeriod', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 1, 1, 3);
+      """
+    ]
+
+    Enum.each(insert_endpoint_queries, fn query ->
+      DatabaseQuery.call!(client, query)
+    end)
+  end
+
+  defp insert_into_interface_obj_aggregated(client) do
+    insert_into_interface_obj_aggregated_query = """
+    INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+    ('org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 0, :automaton_accepting_states, :automaton_transitions, 2, 65c96ecb-f2d5-b440-4840-16cd84d2c2be, 1, 2, 'aRDva0l_nericsensors_serverownedaggregateobj_v0', 5, 2);
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_into_interface_obj_aggregated_query)
+      |> DatabaseQuery.put(
+        :automaton_accepting_states,
+        "83740000000261026d0000001076c99541dd316369bcddf2fdacc2d3ff61036d000000106ebd007edd748e32f03278d433b1b8e7"
+        |> Base.decode16!(case: :lower)
+      )
+      |> DatabaseQuery.put(
+        :automaton_transitions,
+        "837400000003680261006d000000006101680261016d00000006656e61626c656102680261016d0000000e73616d706c696e67506572696f646103"
+        |> Base.decode16!(case: :lower)
+      )
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  defp create_server_owned_aggregated_object_table(client) do
+    create_server_owned_aggregated_object_table_query = """
+    CREATE TABLE autotestrealm.com_example_server_owned_aggregated_object_v1 (
+    device_id uuid,
+    path varchar,
+    reception_timestamp timestamp,
+    reception_timestamp_submillis smallint,
+    v_boolean_value boolean,
+    v_value double,
+    PRIMARY KEY ((device_id, path), reception_timestamp, reception_timestamp_submillis));
+    """
+
+    DatabaseQuery.call!(client, create_server_owned_aggregated_object_table_query)
+  end
+
+  defp insert_object_receiving_device(client) do
+    insert_object_receiving_device_query = """
+    INSERT INTO autotestrealm.devices
+    (
+     device_id, aliases, connected, last_connection, last_disconnection,
+     first_registration, first_credentials_request, last_seen_ip, last_credentials_request_ip,
+     total_received_msgs, total_received_bytes, inhibit_credentials_request,
+     introspection, introspection_minor, exchanged_msgs_by_interface, exchanged_bytes_by_interface
+    )
+    VALUES
+    (
+      :device_id, :aliases, false, '2020-02-11 04:05+0020', '2020-02-10 04:05+0940',
+      '2016-08-15 11:05+0121', '2016-08-20 11:05+0121', '198.51.100.81', '198.51.100.89',
+      45000, 1234, false,
+      {'org.astarte-platform.genericsensors.ServerOwnedAggregateObj': 0},
+      {'org.astarte-platform.genericsensors.ServerOwnedAggregateObj': 1},
+      :exchanged_msgs_by_interface, :exchanged_bytes_by_interface
+    );
+    """
+
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_object_receiving_device_query)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:aliases, %{"display_name" => "receiving_device"})
+      |> DatabaseQuery.put(:exchanged_msgs_by_interface, %{
+        {"org.astarte-platform.genericsensors.ServerOwnedAggregateObj", 0} => 16
+      })
+      |> DatabaseQuery.put(:exchanged_bytes_by_interface, %{
+        {"org.astarte-platform.genericsensors.ServerOwnedAggregateObj", 0} => 1024
+      })
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  def remove_object_receiving_device do
+    {:ok, client} = Database.connect()
+
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
+
+    delete_query = "DELETE FROM autotestrealm.devices WHERE device_id=:device_id;"
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_query)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    DatabaseQuery.call!(client, query)
+
+    query = "DROP TABLE autotestrealm.com_example_server_owned_aggregated_object_v1;"
+    DatabaseQuery.call!(client, query)
+
+    query =
+      "DELETE FROM autotestrealm.endpoints WHERE interface_id=65c96ecb-f2d5-b440-4840-16cd84d2c2be;"
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      "DELETE FROM autotestrealm.interfaces WHERE name='org.astarte-platform.genericsensors.ServerOwnedAggregateObj';"
+
+    DatabaseQuery.call!(client, query)
+  end
+
   def devices_count do
     length(@devices_list)
   end
