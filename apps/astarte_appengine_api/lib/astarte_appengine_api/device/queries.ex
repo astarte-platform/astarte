@@ -276,28 +276,34 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     DatabaseQuery.call!(client, all_paths_query)
   end
 
-  # TODO Copy&pasted from data updater plant, make it a library
   def insert_path_into_db(
         db_client,
         device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
-          interface_descriptor,
+        %InterfaceDescriptor{storage_type: storage_type} = interface_descriptor,
         endpoint_id,
         path,
         value_timestamp,
-        reception_timestamp
-      ) do
-    property_table = String.replace(interface_descriptor.storage, "datastreams", "properties")
-
+        reception_timestamp,
+        _opts
+      )
+      when storage_type in [
+             :multi_interface_individual_datastream_dbtable,
+             :one_object_datastream_dbtable
+           ] do
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
+
+    insert_statement = """
+    INSERT INTO individual_properties
+        (device_id, interface_id, endpoint_id, path,
+        reception_timestamp, reception_timestamp_submillis, datetime_value)
+    VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp,
+        :reception_timestamp_submillis, :datetime_value);
+    """
+
     insert_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "INSERT INTO #{property_table} " <>
-          "(device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis, datetime_value) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp, :reception_timestamp_submillis, :datetime_value);"
-      )
+      |> DatabaseQuery.statement(insert_statement)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
@@ -314,9 +320,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
         db_client,
-        :multi_interface_individual_properties_dbtable,
         device_id,
-        interface_descriptor,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          interface_descriptor,
         _endpoint_id,
         endpoint,
         path,
@@ -349,9 +355,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
         db_client,
-        :multi_interface_individual_properties_dbtable,
         device_id,
-        interface_descriptor,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          interface_descriptor,
         endpoint_id,
         endpoint,
         path,
@@ -384,34 +390,90 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
         db_client,
-        :multi_interface_individual_datastream_dbtable,
         device_id,
-        interface_descriptor,
-        endpoint_id,
-        endpoint,
+        %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
+        _endpoint_id,
+        _mapping,
         path,
         value,
         timestamp
       ) do
-    # TODO: use received value_timestamp when needed
+    endpoint_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(
+        "SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;"
+      )
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+
+    endpoint_rows = DatabaseQuery.call!(db_client, endpoint_query)
+
+    explicit_timestamp_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(
+        "SELECT explicit_timestamp FROM endpoints WHERE interface_id=:interface_id LIMIT 1;"
+      )
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+
+    [explicit_timestamp: explicit_timestamp] =
+      DatabaseQuery.call!(db_client, explicit_timestamp_query)
+      |> DatabaseResult.head()
+
+    # FIXME: new atoms are created here, we should avoid this. We need to replace CQEx.
+    column_atoms =
+      Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
+        endpoint_name =
+          endpoint[:endpoint]
+          |> String.split("/")
+          |> List.last()
+
+        column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
+
+        Map.put(column_atoms_acc, endpoint_name, String.to_atom(column_name))
+      end)
+
+    {query_values, placeholders, query_columns} =
+      Enum.reduce(value, {%{}, "", ""}, fn {obj_key, obj_value},
+                                           {query_values_acc, placeholders_acc, query_acc} ->
+        if column_atoms[obj_key] != nil do
+          column_name = CQLUtils.endpoint_to_db_column_name(obj_key)
+
+          db_value = to_db_friendly_type(obj_value)
+          next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], db_value)
+          next_placeholders_acc = "#{placeholders_acc} :#{to_string(column_atoms[obj_key])},"
+          next_query_acc = "#{query_acc} #{column_name}, "
+
+          {next_query_values_acc, next_placeholders_acc, next_query_acc}
+        else
+          Logger.warn(
+            "Unexpected object key #{inspect(obj_key)} with value #{inspect(obj_value)}."
+          )
+
+          query_values_acc
+        end
+      end)
+
+    {query_columns, placeholders} =
+      if explicit_timestamp do
+        {"value_timestamp, #{query_columns}", ":value_timestamp, #{placeholders}"}
+      else
+        {query_columns, placeholders}
+      end
+
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} " <>
-          "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{
-            CQLUtils.type_to_db_column_name(endpoint.value_type)
-          }) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value);"
+        "INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
+          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
       )
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
       |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 100))
-      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+      |> DatabaseQuery.merge(query_values)
+
+    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
 
     DatabaseQuery.call!(db_client, insert_query)
 

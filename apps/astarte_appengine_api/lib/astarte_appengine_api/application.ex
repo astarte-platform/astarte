@@ -28,6 +28,12 @@ defmodule Astarte.AppEngine.API.Application do
 
     import Supervisor.Spec
 
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
+
     Logger.info("Starting application.", tag: "appengine_api_start")
 
     Metrics.HealthStatus.setup()

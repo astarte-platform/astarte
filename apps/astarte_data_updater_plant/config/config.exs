@@ -8,9 +8,6 @@ config :lager,
   error_logger_redirect: false,
   handlers: [level: :critical]
 
-# make amqp supervisors logs less verbose
-config :logger, handle_otp_reports: false
-
 config :astarte_data_updater_plant, :data_queue_prefix, "astarte_data_"
 
 config :astarte_data_updater_plant, :amqp_consumer_options,

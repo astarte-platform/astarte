@@ -97,7 +97,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
          encoded_device_id <- Base.url_encode64(device_id, padding: false),
          _ = Logger.metadata(device_id: encoded_device_id),
          {:ok, %InterfaceValues{} = interface_values} <-
-           Device.update_interface_values!(
+           Device.update_interface_values(
              realm_name,
              encoded_device_id,
              interface,

@@ -27,9 +27,9 @@ This is a JSON representation of an example trigger:
     {
       "type": "data_trigger",
       "on": "incoming_data",
-      "interface_name": "org.astarteplatform.Values",
+      "interface_name": "org.astarte-platform.genericsensors.Values",
       "interface_major": 0,
-      "match_path": "/realValue",
+      "match_path": "/streamTest/value",
       "value_match_operator": ">",
       "known_value": 0.4
     }
@@ -42,7 +42,7 @@ only a single entry in the `simple_triggers` array, but support for multiple sim
 different ways to combine them) is planned for future releases.
 
 The `condition` in the example specifies that when data is received on the
-`org.astarteplatform.Values` interface on `/realValue` path, if the value of said data is `> 0.4`,
+`org.astarte-platform.genericsensors.Values` interface on `/streamTest/value` path, if the value of said data is `> 0.4`,
 then the trigger is activated. For more information about all the possible conditions, check out the
 [Conditions section](#conditions)
 
@@ -55,8 +55,8 @@ The `action` object describes what the result of the trigger will be. In this sp
   "device_id": "<device_id>",
   "event": {
     "type": "incoming_data",
-    "interface": "org.astarteplatform.Values",
-    "path": "/realValue",
+    "interface": "org.astarte-platform.genericsensors.Values",
+    "path": "/streamTest/value",
     "value": <some_value>
   }
 }

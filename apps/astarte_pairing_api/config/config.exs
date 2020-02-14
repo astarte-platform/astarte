@@ -46,9 +46,6 @@ config :lager,
   error_logger_redirect: false,
   handlers: [level: :critical]
 
-# make amqp supervisors logs less verbose
-config :logger, handle_otp_reports: false
-
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.AuthGuardian,
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 

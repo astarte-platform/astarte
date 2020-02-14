@@ -57,7 +57,7 @@ Now, when a device connects, `<post-url>` will receive the following JSON payloa
 ## Data Trigger
 
 This trigger will send a `POST` request to `<post-url>` every time a device sends data to the
-`org.astarteplatform.Values` major version `0` interface on the `/realValue` path.
+`org.astarte-platform.genericsensors.Values` major version `0` interface on the `/streamTest/value` path.
 
 This is the JSON representation of the trigger
 ```json
@@ -70,9 +70,9 @@ This is the JSON representation of the trigger
         {
             "type": "data_trigger",
             "on": "incoming_data",
-            "interface_name": "org.astarteplatform.Values",
+            "interface_name": "org.astarte-platform.genericsensors.Values",
             "interface_major": 0,
-            "match_path": "/realValue",
+            "match_path": "/streamTest/value",
             "value_match_operator": "*"
         }
     ]
@@ -96,8 +96,8 @@ following JSON payload:
   "device_id": "<device_id>",
   "event": {
     "type": "incoming_data",
-    "interface": "org.astarteplatform.Values",
-    "path": "/realValue",
+    "interface": "org.astarte-platform.genericsensors.Values",
+    "path": "/streamTest/value",
     "value": <value>
   }
 }

@@ -28,6 +28,12 @@ defmodule Astarte.Pairing do
   alias Astarte.RPC.Protocol.Pairing, as: Protocol
 
   def start(_type, _args) do
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
+
     Logger.info("Starting application", tag: "pairing_app_start")
     Config.init!()
 
