@@ -43,16 +43,16 @@ To install a Transient Trigger, one should issue a `watch` event in the Channel,
     "simple_trigger": {
         "type": "data_trigger",
         "on": "incoming_data",
-        "interface_name": "org.astarteplatform.Values",
+        "interface_name": "org.astarte-platform.genericsensors.Values",
         "interface_major": 0,
-        "match_path": "/realValue",
+        "match_path": "/streamTest/value",
         "value_match_operator": ">",
         "known_value": 0.6
     }
 }
 ```
 
-This installs in the Room a Transient Trigger which will trigger an event everytime a value higher than `0.6` is sent on the path `/realValue` of the `datastream` interface `org.astarteplatform.Values` by the device `f0VMRgIBAQAAAAAAAAAAAA`, and will be received by every user currently in the room. If a user isn't in the room at the time of the event, he will not get it, and there's no way he can retrieve it if he joined at a later time.
+This installs in the Room a Transient Trigger which will trigger an event everytime a value higher than `0.6` is sent on the path `/streamTest/value` of the `datastream` interface `org.astarte-platform.genericsensors.Values` by the device `f0VMRgIBAQAAAAAAAAAAAA`, and will be received by every user currently in the room. If a user isn't in the room at the time of the event, he will not get it, and there's no way he can retrieve it if he joined at a later time.
 
 Triggers can be uninstalled by issuing an `unwatch` event in the Channel. The payload of the event should be the name of the trigger which should be uninstalled.
 
@@ -70,4 +70,4 @@ The `JOIN` verb has the following semantic: `JOIN::<regex>`, where regex matches
 
 The `WATCH` verb allows a user to install a Trigger within a room. Its semantics define which kind of trigger, and upon which entities the user is allowed to act. Watch semantics are `WATCH::<regex>`, where `regex` is a regular expression which matches a device, path or interface (or a mixture of them) in almost very same fashion as the `a_aea` claim (which is used in AppEngine).
 
-Given different kind of triggers impact different Astarte entities, the Authorization claim implicitly defines which kind of triggers a user will be able to install. For example, `f0VMRgIBAQAAAAAAAAAAAA/org.astarteplatform.Values.*` will allow installing data triggers such as the one shown in the previous example, but won't let the user install device-wide triggers (such as connect/disconnect events). A claim such as `f0VMRgIBAQAAAAAAAAAAAA` or `f0VMRgIBAQAAAAAAAAAAAA.*`, instead, will allow device-level triggers to be installed.
+Given different kind of triggers impact different Astarte entities, the Authorization claim implicitly defines which kind of triggers a user will be able to install. For example, `f0VMRgIBAQAAAAAAAAAAAA/org.astarte-platform.genericsensors.Values.*` will allow installing data triggers such as the one shown in the previous example, but won't let the user install device-wide triggers (such as connect/disconnect events). A claim such as `f0VMRgIBAQAAAAAAAAAAAA` or `f0VMRgIBAQAAAAAAAAAAAA.*`, instead, will allow device-level triggers to be installed.

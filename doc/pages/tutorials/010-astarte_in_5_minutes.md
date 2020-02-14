@@ -60,13 +60,13 @@ $ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k
 
 ## Install an interface
 
-We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. Clone the repository, as we will have to install its `org.astarteplatform.Values` interface into our new realm. To do that, we can use `astartectl` again:
+We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. However before starting, we will have to install `org.astarte-platform.genericsensors.Values` interface into our new realm. To do that, we can use `astartectl` again:
 
 ```sh
-$ astartectl realm-management interfaces install ../stream-qt5-test/interfaces/org.astarteplatform.Values.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.Values.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
-Now `org.astarteplatform.Values` should show up among our available interfaces:
+Now `org.astarte-platform.genericsensors.Values` should show up among our available interfaces:
 
 ```sh
 $ astartectl realm-management interfaces ls --realm-management-url http://localhost:4000/ -r test -k test_private.pem
@@ -92,9 +92,9 @@ Replace `http://example.com` with your target URL in the command below, you can 
     {
       "type": "data_trigger",
       "on": "incoming_data",
-      "interface_name": "org.astarteplatform.Values",
+      "interface_name": "org.astarte-platform.genericsensors.Values",
       "interface_major": 0,
-      "match_path": "/realValue",
+      "match_path": "/streamTest/value",
       "value_match_operator": ">",
       "known_value": 0.6
     }
@@ -172,7 +172,7 @@ You can now run `stream-qt5-test` from your last build directory. Refer to its [
 Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-qt5-test`, you can get the last sent value with `astartectl`:
 
 ```sh
-$ astartectl appengine devices get-samples <your device id> org.astarteplatform.Values /realValue --count 1 --appengine-url http://localhost:4002 -r test -k test_private.pem
+$ astartectl appengine devices get-samples <your device id> org.astarte-platform.genericsensors.Values /streamTest/value --count 1 --appengine-url http://localhost:4002 -r test -k test_private.pem
 ```
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
