@@ -16,15 +16,30 @@
    limitations under the License.
 */
 
-$body-bg:               #eee;
+$body-bg:               #f1f1f1;
 
 $font-weight-light:     200;
 $font-weight-normal:    300;
 $font-weight-bold:      700;
 $small-font-size:       70%;
 
-$primary:               #7086C0;
+$green:                 #5bcc6c;
+$red:                   #cc5b6d;
+$dark-blue:             #27303d;
+
+$primary:               #487fc7;
+$inactive:              #676e6e;
 $input-disabled-bg:     #fafafa;
+
+$navbar-width:          13em;
+$navbar-color:          $dark-blue;
+$navbar-padding-y:      0rem;
+$navbar-padding-x:      0rem;
+$nav-link-padding-y:    1rem;
+$nav-link-padding-x:    2rem;
+$navbar-nav-link-padding-x: 1rem;
+$navbar-light-color:        $inactive;
+$navbar-light-active-color: $primary;
 
 @import "./node_modules/bootstrap/scss/bootstrap";
 
@@ -32,13 +47,59 @@ $fa-font-path:        "../../../node_modules/@fortawesome/fontawesome-free/webfo
 
 @import "./node_modules/@fortawesome/fontawesome-free/scss/fontawesome";
 @import "./node_modules/@fortawesome/fontawesome-free/scss/solid";
+@import "./node_modules/@fortawesome/fontawesome-free/scss/regular";
 
 // Custom components
 
-$navbar-width:          300px;
-$connected-color:       #5bcc6c;
-$disconnected-color:    #cc5b6d;
+$connected-color:       $green;
+$disconnected-color:    $red;
 $never-connected-color: #101010;
+
+.color-green {
+    color: $green;
+}
+
+.color-red {
+    color: $red;
+}
+
+.navbar-brand {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    margin: 0;
+    text-align: center;
+    background-color: darken($navbar-color, 5%);
+}
+
+.brand-logo {
+    height: 4rem;
+    margin: auto;
+}
+
+.navbar-item {
+    color: $navbar-dark-color;
+
+    hr {
+        margin: 1rem 0.5rem;
+        border-color: rgba($navbar-dark-color, 0.2);
+    }
+}
+
+.navbar-status {
+    font-size: 0.9rem;
+
+    b {
+        color: rgba($navbar-dark-active-color, 0.7);
+    }
+}
+
+.navbar-item.active {
+    background-color: lighten($navbar-color, 25%);
+}
+
+.navbar-vertical {
+    background-color: $navbar-color;
+}
 
 .navbar-vertical.navbar-expand-lg {
     position: fixed;
@@ -64,20 +125,10 @@ $never-connected-color: #101010;
     text-align: center;
 }
 
-.nav-link {
-    padding-left: 1rem;
-}
-
 .login-logo {
     position: relative;
     top: 10px;
     z-index: 2;
-}
-
-.realm-brand {
-    display: inline-block;
-    vertical-align: bottom;
-    line-height: 1.3rem;
 }
 
 .suggestion {
