@@ -23,6 +23,7 @@ module AstarteApi exposing
     , addDeviceToGroup
     , addNewInterface
     , addNewTrigger
+    , appEngineApiHealth
     , configDecoder
     , deleteInterface
     , deleteTrigger
@@ -39,6 +40,7 @@ module AstarteApi exposing
     , listInterfaces
     , listTriggers
     , realmConfig
+    , realmManagementApiHealth
     , updateDeviceAliases
     , updateInterface
     , updateRealmConfig
@@ -107,6 +109,11 @@ expectWhateverAstarteReply toMsg =
     Http.expectStringResponse toMsg handleHttpResponseIgnoringContent
 
 
+expectHealthCheck : (Result Error Bool -> msg) -> Http.Expect msg
+expectHealthCheck toMsg =
+    Http.expectStringResponse toMsg checkHealth
+
+
 handleHttpResponse : Decoder a -> Http.Response String -> Result Error a
 handleHttpResponse decoder response =
     case response of
@@ -148,6 +155,25 @@ handleHttpResponseIgnoringContent response =
 
         Http.GoodStatus_ _ _ ->
             Ok ()
+
+
+checkHealth : Http.Response String -> Result Error Bool
+checkHealth response =
+    case response of
+        Http.BadUrl_ _ ->
+            Ok False
+
+        Http.Timeout_ ->
+            Ok False
+
+        Http.NetworkError_ ->
+            Ok False
+
+        Http.BadStatus_ _ _ ->
+            Ok False
+
+        Http.GoodStatus_ _ _ ->
+            Ok True
 
 
 parseBadStatus : Http.Metadata -> String -> Error
@@ -561,6 +587,36 @@ deviceData apiConfig deviceId interfaceName resultMsg =
                 []
         , body = Http.emptyBody
         , expect = expectAstarteReply resultMsg <| field "data" DeviceData.decoder
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+
+-- Health checks
+
+
+realmManagementApiHealth : Config -> (Result Error Bool -> msg) -> Cmd msg
+realmManagementApiHealth apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "health" ] []
+        , body = Http.emptyBody
+        , expect = expectHealthCheck resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+appEngineApiHealth : Config -> (Result Error Bool -> msg) -> Cmd msg
+appEngineApiHealth apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "health" ] []
+        , body = Http.emptyBody
+        , expect = expectHealthCheck resultMsg
         , timeout = Nothing
         , tracker = Nothing
         }
