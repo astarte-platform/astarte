@@ -34,6 +34,7 @@ type Icon
     | ExclamationMark
     | FullCircle
     | Group
+    | Healthy
     | Home
     | Interface
     | Logout
@@ -41,6 +42,7 @@ type Icon
     | Settings
     | ToggleSidebar
     | Trigger
+    | Unhealthy
 
 
 render : Icon -> List (Html.Attribute msg) -> Html msg
@@ -78,6 +80,9 @@ className icon =
         Group ->
             "fa-object-group"
 
+        Healthy ->
+            "fa-heart"
+
         Home ->
             "fa-home"
 
@@ -98,3 +103,6 @@ className icon =
 
         Trigger ->
             "fa-bolt"
+
+        Unhealthy ->
+            "fa-heart-broken"
