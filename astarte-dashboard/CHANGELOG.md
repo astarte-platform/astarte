@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support for data triggers matching "any interfaces".
 - Group creation page.
 - Device groups editing.
+- API health check.
 
 ### Changed
 - New datastream mappings have explicit\_timestamp by default
 - Data triggers will match path /* by default
+- Expect API configuration URLs not ending with /v1
 
 ### Fixed
 - Handle property interfaces in Device data page.
