@@ -20,136 +20,83 @@ import Request from "request-promise";
 
 export default class AstarteClient {
   constructor(config) {
+    let internalConfig = {};
+
     if (config.realm) {
-      this.realm = config.realm;
+      internalConfig.realm = config.realm;
     } else {
       throw Error("Missing parameter: realm");
     }
+
+    if (config.realmManagementUrl) {
+      internalConfig.realmManagementUrl = new URL(config.realmManagementUrl);
+    }
+
+    if (config.appengineUrl) {
+      internalConfig.appengineUrl = new URL(config.appengineUrl);
+    }
+
+    this.config = internalConfig;
 
     if (config.token) {
       this.token = config.token;
     }
 
-    if (config.realmManagementUrl) {
-      this.realmManagementUrl = new URL(config.realmManagementUrl);
-    }
-
-    if (config.appengineUrl) {
-      this.appengineUrl = new URL(config.appengineUrl);
-    }
+    // prettier-ignore
+    let apiConfig = {
+      auth:                  astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/config/auth`,
+      devices:               astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices`,
+      detailedDevices:       astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices?details=true`,
+      groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
+      groupDevices:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices`,
+      detailedGroupDevices:  astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices?details=true`,
+      deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`
+    };
+    this.apiConfig = apiConfig;
   }
 
   getConfigAuth() {
-    if (!this.realmManagementUrl) {
-      throw Error("Realm Management URL not configured");
-    }
-
-    let options = {
-      method: "GET",
-      uri: this.realmManagementUrl + `/${this.realm}/config/auth`,
-      headers: {
-        Authorization: `Bearer ${this.token}`
-      },
-      json: true
-    };
-
-    return Request(options);
+    return this._get(this.apiConfig["auth"](this.config));
   }
 
   getDevices(details = false) {
-    if (!this.appengineUrl) {
-      throw Error("AppEngine URL not configured");
-    }
-
-    let endpointUri = this.appengineUrl + `/${this.realm}/devices`;
+    let endpointUri;
     if (details) {
-      endpointUri += "?details=true";
+      endpointUri = this.apiConfig["detailedDevices"];
+    } else {
+      endpointUri = this.apiConfig["devices"];
     }
 
-    let options = {
-      method: "GET",
-      uri: endpointUri,
-      headers: {
-        Authorization: `Bearer ${this.token}`
-      },
-      json: true
-    };
-
-    return Request(options);
+    return this._get(endpointUri(this.config));
   }
 
   getGroupList() {
-    if (!this.appengineUrl) {
-      throw Error("AppEngine URL not configured");
-    }
-
-    let options = {
-      method: "GET",
-      uri: this.appengineUrl + `/${this.realm}/groups`,
-      headers: {
-        Authorization: `Bearer ${this.token}`
-      },
-      json: true
-    };
-
-    return Request(options);
+    return this._get(this.apiConfig["groups"](this.config));
   }
 
   createGroup(groupName, deviceList) {
-    if (!this.appengineUrl) {
-      throw Error("AppEngine URL not configured");
-    }
-
-    let options = {
-      method: "POST",
-      uri: this.appengineUrl + `/${this.realm}/groups`,
-      headers: {
-        Authorization: `Bearer ${this.token}`
-      },
-      body: {
-        data: {
-          group_name: groupName,
-          devices: deviceList
-        }
-      },
-      json: true
-    };
-
-    return Request(options);
+    return this._post(this.apiConfig["groups"](this.config), {
+      group_name: groupName,
+      devices: deviceList
+    });
   }
 
   getDevicesInGroup(groupName, details = false) {
-    if (!this.appengineUrl) {
-      throw Error("AppEngine URL not configured");
-    }
-
     if (!groupName) {
       throw Error("Invalid group name");
     }
 
-    let endpointUri =
-      this.appengineUrl + `/${this.realm}/groups/${groupName}/devices`;
+    let endpointUri;
     if (details) {
-      endpointUri += "?details=true";
+      endpointUri = this.apiConfig["detailedGroupDevices"];
+    } else {
+      endpointUri = this.apiConfig["groupDevices"];
     }
 
-    let options = {
-      method: "GET",
-      uri: endpointUri,
-      headers: {
-        Authorization: `Bearer ${this.token}`
-      },
-      json: true
-    };
-
-    return Request(options);
+    return this._get(endpointUri({ ...this.config, groupName: groupName }));
   }
 
   removeDeviceFromGroup(groupName, deviceId) {
-    if (!this.appengineUrl) {
-      throw Error("AppEngine URL not configured");
-    }
-
     if (!groupName) {
       throw Error("Invalid group name");
     }
@@ -158,15 +105,60 @@ export default class AstarteClient {
       throw Error("Invalid device ID");
     }
 
-    let options = {
-      method: "DELETE",
-      uri: `${this.appengineUrl}/${this.realm}/groups/${groupName}/devices/${deviceId}`,
+    return this._delete(
+      this.apiConfig["deviceInGroup"]({
+        ...this.config,
+        groupName: groupName,
+        deviceId: deviceId
+      })
+    );
+  }
+
+  _get(url) {
+    return Request({
+      method: "GET",
+      uri: url,
       headers: {
         Authorization: `Bearer ${this.token}`
       },
       json: true
-    };
-
-    return Request(options);
+    });
   }
+
+  _post(url, data) {
+    return Request({
+      method: "POST",
+      uri: url,
+      headers: {
+        Authorization: `Bearer ${this.token}`
+      },
+      body: {
+        data: data
+      },
+      json: true
+    });
+  }
+
+  _delete(url) {
+    return Request({
+      method: "DELETE",
+      uri: url,
+      headers: {
+        Authorization: `Bearer ${this.token}`
+      },
+      json: true
+    });
+  }
+}
+
+function astarteAPIurl(strings, ...keys) {
+  return function(...values) {
+    let dict = values[values.length - 1] || {};
+    let result = [strings[0]];
+    keys.forEach(function(key, i) {
+      let value = Number.isInteger(key) ? values[key] : dict[key];
+      result.push(value, strings[i + 1]);
+    });
+    return result.join("");
+  };
 }
