@@ -20,9 +20,13 @@
 module Main exposing (main)
 
 import Assets
+import AstarteApi
 import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Col as Col
+import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
 import Bootstrap.Utilities.Flex as Flex
+import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation
@@ -80,6 +84,8 @@ type alias Model =
     , session : Session
     , navbarState : Navbar.State
     , config : Config
+    , appEngineApiHealth : Maybe Bool
+    , realmManagementApiHealth : Maybe Bool
     }
 
 
@@ -127,12 +133,16 @@ init jsParam location key =
             , session = updatedSession
             , navbarState = navbarState
             , config = configFromJavascript
+            , appEngineApiHealth = Nothing
+            , realmManagementApiHealth = Nothing
             }
     in
     ( initialModel
     , Cmd.batch
         [ navbarCmd
         , initialCommand
+        , AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
+        , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
         ]
     )
 
@@ -211,6 +221,8 @@ type Msg
     | DeviceDataMsg DeviceData.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
+    | AppEngineHealthCheckDone (Result AstarteApi.Error Bool)
+    | RealmManagementHealthCheckDone (Result AstarteApi.Error Bool)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -305,6 +317,16 @@ update msg model =
                         model.flashMessages
             in
             ( { model | flashMessages = filteredMessages }
+            , Cmd.none
+            )
+
+        AppEngineHealthCheckDone (Ok healty) ->
+            ( { model | appEngineApiHealth = Just healty }
+            , Cmd.none
+            )
+
+        RealmManagementHealthCheckDone (Ok healty) ->
+            ( { model | realmManagementApiHealth = Just healty }
             , Cmd.none
             )
 
@@ -870,26 +892,9 @@ editorNavBar model =
     Navbar.config NavbarMsg
         |> Navbar.withAnimation
         |> Navbar.attrs
-            [ classList
-                [ ( "navbar-vertical", True )
-                , ( "fixed-left", True )
-                ]
-            ]
+            [ class "navbar-vertical fixed-left" ]
         |> Navbar.collapseMedium
-        |> Navbar.brand
-            [ href <| Route.toString (Route.Realm Route.Home) ]
-            [ img
-                [ src <| Assets.path Assets.dashboardIcon
-                , style "height" "3em"
-                , Spacing.mr3
-                ]
-                []
-            , div
-                [ class "realm-brand" ]
-                [ p [ Spacing.mb0 ] [ text "Astarte" ]
-                , small [ class "font-weight-light" ] [ text "dashboard" ]
-                ]
-            ]
+        |> dashboardBrand
         |> Navbar.customItems
             [ editorNavbarLinks model.selectedPage ]
         |> Navbar.view model.navbarState
@@ -903,31 +908,28 @@ standardNavBar model =
 
         Realm realmName _ ->
             Navbar.config NavbarMsg
+                |> Navbar.darkCustomClass "my-navbar-color"
                 |> Navbar.withAnimation
                 |> Navbar.attrs
-                    [ classList
-                        [ ( "navbar-vertical", True )
-                        , ( "fixed-left", True )
-                        ]
-                    ]
+                    [ class "navbar-vertical fixed-left" ]
                 |> Navbar.collapseMedium
-                |> Navbar.brand
-                    [ href <| Route.toString (Route.Realm Route.Home) ]
-                    [ img
-                        [ src <| Assets.path Assets.dashboardIcon
-                        , style "height" "3em"
-                        , Spacing.mr3
-                        ]
-                        []
-                    , div
-                        [ class "realm-brand" ]
-                        [ p [ Spacing.mb0 ] [ text realmName ]
-                        , small [ class "font-weight-light" ] [ text "dashboard" ]
-                        ]
-                    ]
+                |> dashboardBrand
                 |> Navbar.customItems
-                    [ navbarLinks model.selectedPage ]
+                    [ navbarLinks realmName model.selectedPage model.appEngineApiHealth model.realmManagementApiHealth ]
                 |> Navbar.view model.navbarState
+
+
+dashboardBrand : Navbar.Config Msg -> Navbar.Config Msg
+dashboardBrand prevConfig =
+    Navbar.brand
+        [ href <| Route.toString (Route.Realm Route.Home) ]
+        [ img
+            [ src <| Assets.path Assets.dashboardIcon
+            , class "brand-logo"
+            ]
+            []
+        ]
+        prevConfig
 
 
 editorNavbarLinks : Page -> Navbar.CustomItem Msg
@@ -944,9 +946,10 @@ editorNavbarLinks selectedPage =
     Navbar.customItem <|
         Grid.container
             [ Flex.col ]
-            [ hr [] []
-            , ul
-                [ class "navbar-nav" ]
+            [ ul
+                [ class "navbar-nav"
+                , Size.w100
+                ]
                 [ renderNavbarLink
                     "Interface Editor"
                     Icons.Interface
@@ -956,14 +959,18 @@ editorNavbarLinks selectedPage =
             ]
 
 
-navbarLinks : Page -> Navbar.CustomItem Msg
-navbarLinks selectedPage =
+navbarLinks : String -> Page -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
+navbarLinks realm selectedPage appEngineHealth realmManagementHealth =
     Navbar.customItem <|
         Grid.container
-            [ Flex.col ]
-            [ hr [] []
-            , ul
-                [ class "navbar-nav" ]
+            [ Flex.col
+            , Spacing.p0
+            ]
+            [ ul
+                [ class "navbar-nav"
+                , Size.w100
+                , Spacing.mt2
+                ]
                 [ renderNavbarLink
                     "Home"
                     Icons.Home
@@ -1001,7 +1008,9 @@ navbarLinks selectedPage =
                     (isGroupRelated selectedPage)
                     (Route.Realm Route.GroupList)
 
-                -- Common
+                -- General
+                , renderNavbarSeparator
+                , renderStatusRow realm appEngineHealth realmManagementHealth
                 , renderNavbarSeparator
                 , renderNavbarLink
                     "Logout"
@@ -1012,9 +1021,63 @@ navbarLinks selectedPage =
             ]
 
 
+renderStatusRow : String -> Maybe Bool -> Maybe Bool -> Html Msg
+renderStatusRow realm appEngineHealth realmManagementHealth =
+    Html.li
+        [ class "navbar-status navbar-item", Spacing.pl2 ]
+        [ statusRow "Realm"
+            [ Html.span [] [ Html.text realm ] ]
+        , statusRow "API Status"
+            [ healthItem "AppEngine" appEngineHealth
+            , healthItem "Realm Management" realmManagementHealth
+            ]
+        ]
+
+
+healthItem : String -> Maybe Bool -> Html Msg
+healthItem label maybeHealthy =
+    let
+        spacing =
+            Spacing.my1
+    in
+    case maybeHealthy of
+        Nothing ->
+            Html.div [ spacing ]
+                [ Icons.render Icons.EmptyCircle [ Spacing.mr2 ]
+                , Html.text label
+                ]
+
+        Just True ->
+            Html.div [ spacing ]
+                [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-green" ]
+                , Html.text label
+                ]
+
+        Just False ->
+            Html.div [ spacing ]
+                [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-red" ]
+                , Html.text label
+                ]
+
+
+statusRow : String -> List (Html Msg) -> Html Msg
+statusRow label items =
+    Grid.row [ Row.attrs [ Spacing.mb2, Spacing.pl2, class "no-gutters" ] ]
+        [ Grid.col []
+            [ Html.b [] [ Html.text label ] ]
+        , Grid.col [ Col.sm12 ]
+            items
+        ]
+
+
 renderNavbarLink : String -> Icon -> Bool -> Route -> Html Msg
 renderNavbarLink name icon active route =
-    li [ class "navbar-item" ]
+    li
+        [ classList
+            [ ( "navbar-item", True )
+            , ( "active", active )
+            ]
+        ]
         [ a
             [ classList
                 [ ( "nav-link", True )

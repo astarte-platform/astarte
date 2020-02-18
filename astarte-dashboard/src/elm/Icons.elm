@@ -32,8 +32,10 @@ type Icon
     | Delete
     | Device
     | ExclamationMark
+    | EmptyCircle
     | FullCircle
     | Group
+    | Healthy
     | Home
     | Interface
     | Logout
@@ -41,17 +43,28 @@ type Icon
     | Settings
     | ToggleSidebar
     | Trigger
+    | Unhealthy
 
 
 render : Icon -> List (Html.Attribute msg) -> Html msg
 render icon attributes =
     let
         classes =
-            [ class "fas"
+            [ class <| classType icon
             , class <| className icon
             ]
     in
     i (classes ++ attributes) []
+
+
+classType : Icon -> String
+classType icon =
+    case icon of
+        EmptyCircle ->
+            "far"
+
+        _ ->
+            "fas"
 
 
 className : Icon -> String
@@ -72,11 +85,17 @@ className icon =
         ExclamationMark ->
             "fa-exclamation-circle"
 
+        EmptyCircle ->
+            "fa-circle"
+
         FullCircle ->
             "fa-circle"
 
         Group ->
             "fa-object-group"
+
+        Healthy ->
+            "fa-heart"
 
         Home ->
             "fa-home"
@@ -98,3 +117,6 @@ className icon =
 
         Trigger ->
             "fa-bolt"
+
+        Unhealthy ->
+            "fa-heart-broken"
