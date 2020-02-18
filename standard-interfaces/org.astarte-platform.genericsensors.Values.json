@@ -10,6 +10,7 @@
         {
             "endpoint": "/%{sensor_id}/value",
             "type": "double",
+            "explicit_timestamp": true,
             "description": "Sampled real value.",
             "doc": "Datastream of sampled real values."
         }
