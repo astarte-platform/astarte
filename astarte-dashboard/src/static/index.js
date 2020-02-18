@@ -16,20 +16,9 @@
    limitations under the License.
 */
 
-import React from "react";
 import ReactDOM from "react-dom";
-import GroupsPage from "../react/GroupsPage.js";
-import GroupDevicesPage from "../react/GroupDevicesPage.js";
-import NewGroupPage from "../react/NewGroupPage.js";
 import { createBrowserHistory } from "history";
-import {
-  Router,
-  Switch,
-  Route,
-  Link,
-  useParams,
-  useRouteMatch
-} from "react-router-dom";
+import { getRouter } from "../react/Router.js";
 
 require("./styles/main.scss");
 
@@ -317,25 +306,8 @@ function loadPage(page) {
 
   reactHistory = createBrowserHistory();
 
-  const app = (
-    <Router history={reactHistory}>
-      <Switch>
-        <Route exact path="/groups">
-          <GroupsPage history={reactHistory} />
-        </Route>
-        <Route exact path="/groups/new">
-          <NewGroupPage history={reactHistory} />
-        </Route>
-        <Route path="/groups/:groupName">
-          <GroupDevicesSubPath history={reactHistory} />
-        </Route>
-        <Route path="*">
-          <NoMatch />
-        </Route>
-      </Switch>
-    </Router>
-  );
-  ReactDOM.render(app, document.getElementById("react-page"));
+  const reactApp = getRouter(reactHistory, noMatchFallback);
+  ReactDOM.render(reactApp, document.getElementById("react-page"));
 }
 
 function clearReact() {
@@ -345,15 +317,6 @@ function clearReact() {
   }
 }
 
-function GroupDevicesSubPath(props) {
-  let { groupName } = useParams();
-
-  return <GroupDevicesPage groupName={groupName} history={props.history} />;
-}
-
-function NoMatch() {
-  let { path, url } = useRouteMatch();
+function noMatchFallback(url) {
   app.ports.onPageRequested.send(url);
-
-  return <p>Redirecting...</p>;
 }
