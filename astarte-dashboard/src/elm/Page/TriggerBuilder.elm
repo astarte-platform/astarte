@@ -181,13 +181,18 @@ update session msg model =
                         , selectedInterfaceMajor = Just dataTrigger.interfaceMajor
                         , sourceBuffer = Trigger.toPrettySource trigger
                         , sourceBufferStatus = Valid
+                        , showSpinner = False
                       }
-                    , AstarteApi.getInterface session.apiConfig
-                        dataTrigger.interfaceName
-                        dataTrigger.interfaceMajor
-                        GetInterfaceDone
-                        (ShowError "Could not retrieve selected interface")
-                        RedirectToLogin
+                    , if dataTrigger.interfaceName == "*" then
+                        Cmd.none
+
+                      else
+                        AstarteApi.getInterface session.apiConfig
+                            dataTrigger.interfaceName
+                            dataTrigger.interfaceMajor
+                            GetInterfaceDone
+                            (ShowError "Could not retrieve selected interface")
+                            RedirectToLogin
                     , ExternalMsg.Noop
                     )
 
@@ -537,10 +542,26 @@ update session msg model =
             case model.trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
                     let
-                        newSimpleTrigger =
-                            dataTrigger
-                                |> DataTrigger.setInterfaceName interfaceName
-                                |> Trigger.Data
+                        ( newSimpleTrigger, command ) =
+                            if interfaceName == "*" then
+                                ( dataTrigger
+                                    |> DataTrigger.setInterfaceName interfaceName
+                                    |> DataTrigger.setPath "/*"
+                                    |> DataTrigger.setOperator DataTrigger.Any
+                                    |> Trigger.Data
+                                , Cmd.none
+                                )
+
+                            else
+                                ( dataTrigger
+                                    |> DataTrigger.setInterfaceName interfaceName
+                                    |> Trigger.Data
+                                , AstarteApi.listInterfaceMajors session.apiConfig
+                                    interfaceName
+                                    GetInterfaceMajorsDone
+                                    (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
+                                    RedirectToLogin
+                                )
 
                         newTrigger =
                             Trigger.setSimpleTrigger newSimpleTrigger model.trigger
@@ -553,11 +574,7 @@ update session msg model =
                         , selectedInterfaceName = interfaceName
                         , selectedInterfaceMajor = Nothing
                       }
-                    , AstarteApi.listInterfaceMajors session.apiConfig
-                        interfaceName
-                        GetInterfaceMajorsDone
-                        (ShowError <| "Could not retrieve major versions for " ++ interfaceName ++ " interface")
-                        RedirectToLogin
+                    , command
                     , ExternalMsg.Noop
                     )
 
@@ -1131,8 +1148,18 @@ renderSimpleTrigger model =
 
 renderDataTrigger : DataTrigger -> Model -> List (Html Msg)
 renderDataTrigger dataTrigger model =
+    let
+        isAnyInterface =
+            model.selectedInterfaceName == "*"
+    in
     [ Form.row []
-        [ Form.col [ Col.sm8 ]
+        [ Form.col
+            [ if isAnyInterface then
+                Col.sm12
+
+              else
+                Col.sm8
+            ]
             [ Form.group []
                 [ Form.label [ for "triggerInterfaceName" ] [ text "Interface name" ]
                 , Select.select
@@ -1141,15 +1168,25 @@ renderDataTrigger dataTrigger model =
                     , Select.onChange UpdateDataTriggerInterfaceName
                     , case model.refInterface of
                         Nothing ->
-                            Select.danger
+                            if model.selectedInterfaceName == "*" then
+                                Select.success
+
+                            else
+                                Select.danger
 
                         Just _ ->
                             Select.success
                     ]
-                    (List.map (interfacesOption dataTrigger.interfaceName) model.interfaces)
+                    (renderAvailableInterfaces dataTrigger.interfaceName model.interfaces)
                 ]
             ]
-        , Form.col [ Col.sm4 ]
+        , Form.col
+            [ if isAnyInterface then
+                Col.attrs [ Display.none ]
+
+              else
+                Col.sm4
+            ]
             [ Form.group []
                 [ Form.label [ for "triggerInterfaceMajor" ] [ text "Interface major" ]
                 , Select.select
@@ -1189,7 +1226,13 @@ renderDataTrigger dataTrigger model =
                 ]
             ]
         ]
-    , Form.row []
+    , Form.row
+        (if isAnyInterface then
+            [ Row.attrs [ Display.none ] ]
+
+         else
+            []
+        )
         [ Form.col [ Col.sm12 ]
             [ Form.group []
                 [ Form.label [ for "triggerPath" ] [ text "Path" ]
@@ -1207,7 +1250,13 @@ renderDataTrigger dataTrigger model =
                 ]
             ]
         ]
-    , Form.row []
+    , Form.row
+        (if isAnyInterface then
+            [ Row.attrs [ Display.none ] ]
+
+         else
+            []
+        )
         [ Form.col [ Col.sm4 ]
             [ Form.group []
                 [ Form.label [ for "triggerOperator" ] [ text "Operator" ]
@@ -1254,16 +1303,24 @@ isValidKnownValue maybeType value =
             False
 
 
+renderAvailableInterfaces : String -> List String -> List (Select.Item Msg)
+renderAvailableInterfaces selectedInterface installedInterfaces =
+    availableInterfaces installedInterfaces
+        |> selectOptions selectedInterface
+
+
 renderAvailableOperators : DataTrigger.Operator -> Maybe InterfaceMapping.MappingType -> List (Select.Item Msg)
 renderAvailableOperators selectedOperator mappingType =
     aviableOperators mappingType
+        |> selectOptions (operatorToId selectedOperator)
+
+
+selectOptions : String -> List ( String, String ) -> List (Select.Item Msg)
+selectOptions selectedId options =
+    options
         |> List.map
             (\( id, txt ) ->
-                Select.item
-                    [ value id
-                    , selected <| id == operatorToId selectedOperator
-                    ]
-                    [ text txt ]
+                renderOption id (id == selectedId) txt
             )
 
 
@@ -1373,6 +1430,13 @@ renderDeleteTriggerModal model =
                 [ text "Confirm" ]
             ]
         |> Modal.view model.deleteModalVisibility
+
+
+availableInterfaces : List String -> List ( String, String )
+availableInterfaces installedInterfaces =
+    installedInterfaces
+        |> List.map (\v -> ( v, v ))
+        |> (::) ( "*", "Any interface" )
 
 
 aviableOperators : Maybe InterfaceMapping.MappingType -> List ( String, String )

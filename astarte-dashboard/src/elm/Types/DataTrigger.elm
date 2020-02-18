@@ -57,7 +57,7 @@ empty =
     { interfaceName = ""
     , interfaceMajor = 0
     , on = IncomingData
-    , path = ""
+    , path = "/*"
     , operator = Any
     , knownValue = ""
     , knownValueType = JString
@@ -247,7 +247,7 @@ decoder : Decoder DataTrigger
 decoder =
     Decode.succeed toDecoder
         |> required "interface_name" string
-        |> required "interface_major" int
+        |> optional "interface_major" int 0
         |> required "on" dataTriggerEventDecoder
         |> required "match_path" string
         |> required "value_match_operator" dataTriggerOperatorDecoder

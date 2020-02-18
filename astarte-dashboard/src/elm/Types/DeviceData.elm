@@ -28,7 +28,7 @@ import Types.AstarteValue as AstarteValue exposing (AstarteValue)
 
 type DeviceData
     = PathToken String (List DeviceData)
-    | PathValue String AstarteValue Time.Posix
+    | PathValue String AstarteValue Time.Posix -- TODO differentiate Datastream from Properties
 
 
 type TreeNode
@@ -68,11 +68,24 @@ treeDecoder : Decoder (Dict String TreeNode)
 treeDecoder =
     Decode.dict <|
         Decode.oneOf
-            [ Decode.map2 Leaf
-                (Decode.field "value" AstarteValue.decoder)
-                (Decode.field "reception_timestamp" Iso8601.decoder)
+            [ datastreamValueDecoder
+            , propertyValueDecoder
             , Decode.map InternalNode <| Decode.lazy (\_ -> treeDecoder)
             ]
+
+
+datastreamValueDecoder : Decoder TreeNode
+datastreamValueDecoder =
+    Decode.map2 Leaf
+        (Decode.field "value" AstarteValue.decoder)
+        (Decode.field "reception_timestamp" Iso8601.decoder)
+
+
+propertyValueDecoder : Decoder TreeNode
+propertyValueDecoder =
+    Decode.map2 Leaf
+        AstarteValue.decoder
+        (Decode.succeed <| Time.millisToPosix 0)
 
 
 unwrap : Dict String TreeNode -> List DeviceData

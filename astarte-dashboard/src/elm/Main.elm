@@ -31,9 +31,11 @@ import Html.Attributes exposing (class, classList, href, src, style)
 import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode
+import ListUtils exposing (addWhen)
 import Page.Device as Device
 import Page.DeviceData as DeviceData
 import Page.DeviceList as DeviceList
+import Page.GroupDevices as GroupDevices
 import Page.GroupList as GroupList
 import Page.Home as Home
 import Page.InterfaceBuilder as InterfaceBuilder
@@ -182,7 +184,8 @@ type RealmPage
     | DeviceListPage DeviceList.Model
     | DevicePage Device.Model
     | DeviceDataPage DeviceData.Model
-    | GroupListPage GroupList.Model
+    | GroupListPage
+    | GroupDevicesPage
 
 
 
@@ -190,9 +193,11 @@ type RealmPage
 
 
 type Msg
-    = NavbarMsg Navbar.State
+    = Ignore
+    | NavbarMsg Navbar.State
     | NewUrl Url
     | UrlRequest UrlRequest
+    | UpdateRelativeURL (Maybe String)
     | UpdateSession (Maybe Session)
     | LoginMsg Login.Msg
     | HomeMsg Home.Msg
@@ -204,7 +209,6 @@ type Msg
     | DeviceListMsg DeviceList.Msg
     | DeviceMsg Device.Msg
     | DeviceDataMsg DeviceData.Msg
-    | GroupListMsg GroupList.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
 
@@ -212,6 +216,11 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Ignore ->
+            ( model
+            , Cmd.none
+            )
+
         NavbarMsg state ->
             ( { model | navbarState = state }
             , Cmd.none
@@ -231,6 +240,16 @@ update msg model =
                     ( model
                     , Browser.Navigation.load externalUrl
                     )
+
+        UpdateRelativeURL (Just relativeURL) ->
+            ( model
+            , Browser.Navigation.pushUrl model.navigationKey relativeURL
+            )
+
+        UpdateRelativeURL Nothing ->
+            ( model
+            , Cmd.none
+            )
 
         UpdateSession Nothing ->
             let
@@ -360,9 +379,6 @@ updateRealmPage realm realmPage msg model =
 
                 ( DeviceDataMsg subMsg, DeviceDataPage subModel ) ->
                     updateRealmPageHelper realm (DeviceData.update model.session subMsg subModel) DeviceDataMsg DeviceDataPage
-
-                ( GroupListMsg subMsg, GroupListPage subModel ) ->
-                    updateRealmPageHelper realm (GroupList.update model.session subMsg subModel) GroupListMsg GroupListPage
 
                 -- Ignore messages from not matching pages
                 ( _, _ ) ->
@@ -494,6 +510,12 @@ pageInit realmRoute config session =
         Route.GroupList ->
             initGroupListPage session session.apiConfig.realm
 
+        Route.GroupDevices groupName ->
+            ( Realm session.apiConfig.realm GroupDevicesPage
+            , Cmd.map (\a -> Ignore) (GroupDevices.init groupName)
+            , session
+            )
+
 
 initLoginPage : Config.Params -> Session -> ( Page, Cmd Msg, Session )
 initLoginPage config session =
@@ -621,12 +643,8 @@ initDeviceDataPage deviceId interfaceName session realm =
 
 initGroupListPage : Session -> String -> ( Page, Cmd Msg, Session )
 initGroupListPage session realm =
-    let
-        ( initialModel, initialCommand ) =
-            GroupList.init session
-    in
-    ( Realm realm (GroupListPage initialModel)
-    , Cmd.map GroupListMsg initialCommand
+    ( Realm realm GroupListPage
+    , Cmd.map (\a -> Ignore) (GroupList.init session)
     , session
     )
 
@@ -669,7 +687,11 @@ setRoute model ( maybeRoute, maybeToken ) =
         | selectedPage = page
         , session = updatedSession
       }
-    , command
+    , if isReactBased page then
+        command
+
+      else
+        Cmd.batch [ command, Ports.unloadReactPage () ]
     )
 
 
@@ -1076,7 +1098,23 @@ isDeviceRelated page =
 isGroupRelated : Page -> Bool
 isGroupRelated page =
     case page of
-        Realm _ (GroupListPage _) ->
+        Realm _ GroupListPage ->
+            True
+
+        Realm _ GroupDevicesPage ->
+            True
+
+        _ ->
+            False
+
+
+isReactBased : Page -> Bool
+isReactBased page =
+    case page of
+        Realm _ GroupListPage ->
+            True
+
+        Realm _ GroupDevicesPage ->
             True
 
         _ ->
@@ -1140,9 +1178,13 @@ renderProtectedPage flashMessages page =
             DeviceData.view submodel flashMessages
                 |> Html.map DeviceDataMsg
 
-        GroupListPage submodel ->
-            GroupList.view submodel flashMessages
-                |> Html.map GroupListMsg
+        GroupListPage ->
+            GroupList.view flashMessages
+                |> Html.map (\a -> Ignore)
+
+        GroupDevicesPage ->
+            GroupDevices.view flashMessages
+                |> Html.map (\a -> Ignore)
 
 
 
@@ -1151,20 +1193,13 @@ renderProtectedPage flashMessages page =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if List.isEmpty model.flashMessages then
-        Sub.batch
-            [ Navbar.subscriptions model.navbarState NavbarMsg
-            , Sub.map UpdateSession sessionChange
-            , pageSubscriptions model.selectedPage
-            ]
-
-    else
-        Sub.batch
-            [ Navbar.subscriptions model.navbarState NavbarMsg
-            , Time.every 1000 ClearOldFlashMessages
-            , Sub.map UpdateSession sessionChange
-            , pageSubscriptions model.selectedPage
-            ]
+    [ Navbar.subscriptions model.navbarState NavbarMsg
+    , Sub.map UpdateSession sessionChange
+    , pageSubscriptions model.selectedPage
+    , Sub.map UpdateRelativeURL pageRequestedFromJS
+    ]
+        |> addWhen (not <| List.isEmpty model.flashMessages) (Time.every 1000 ClearOldFlashMessages)
+        |> Sub.batch
 
 
 pageSubscriptions : Page -> Sub Msg
@@ -1191,9 +1226,6 @@ pageSubscriptions page =
         Realm _ (DeviceDataPage submodel) ->
             Sub.map DeviceDataMsg <| DeviceData.subscriptions submodel
 
-        Realm _ (GroupListPage submodel) ->
-            Sub.map GroupListMsg <| GroupList.subscriptions submodel
-
         Realm _ (RealmSettingsPage submodel) ->
             Sub.map RealmSettingsMsg <| RealmSettings.subscriptions submodel
 
@@ -1212,3 +1244,8 @@ storeSession session =
         |> Encode.encode 0
         |> Just
         |> Ports.storeSession
+
+
+pageRequestedFromJS : Sub (Maybe String)
+pageRequestedFromJS =
+    Ports.onPageRequested (Decode.decodeValue Decode.string >> Result.toMaybe)
