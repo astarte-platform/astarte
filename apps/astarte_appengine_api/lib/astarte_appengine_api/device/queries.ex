@@ -391,6 +391,42 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   def insert_value_into_db(
         db_client,
         device_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
+          interface_descriptor,
+        endpoint_id,
+        endpoint,
+        path,
+        value,
+        timestamp
+      ) do
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement("""
+      INSERT INTO #{interface_descriptor.storage}
+        (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis,
+        #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
+        VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value);
+      """)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
+      |> DatabaseQuery.put(:path, path)
+      |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
+      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 100))
+      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+
+    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
+
+    DatabaseQuery.call!(db_client, insert_query)
+
+    :ok
+  end
+
+  # TODO Copy&pasted from data updater plant, make it a library
+  def insert_value_into_db(
+        db_client,
+        device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint_id,
         _mapping,
