@@ -1,6 +1,6 @@
 {
   "name": "astarte-dashboard",
-  "version": "0.11.0-beta.3",
+  "version": "1.0.0-dev",
   "description": "Astarte dashboard",
   "main": "public/index.html",
   "keywords": [
