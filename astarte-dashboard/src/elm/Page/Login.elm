@@ -29,11 +29,12 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Browser.Navigation
 import Html exposing (Html, a, img, text)
-import Html.Attributes exposing (class, href, placeholder, src)
+import Html.Attributes exposing (class, for, href, placeholder, src, target)
 import Route
 import Types.Config as Config exposing (AuthConfig(..), AuthType(..), getAuthConfig)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -207,71 +208,122 @@ loginWithOAuth model hostUrl =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.container []
-        [ Grid.row
-            [ Row.centerSm
-            , Row.attrs [ Spacing.mt5 ]
+    Grid.containerFluid []
+        [ Grid.row []
+            [ imageColumn
+            , formColumn model flashMessages
             ]
-            [ Grid.col [ Col.sm3 ]
-                [ img
-                    [ src <| Assets.path Assets.loginImage
-                    , Size.w100
-                    , class "login-logo"
-                    ]
-                    []
-                ]
-            ]
-        , Grid.row
-            [ Row.centerSm ]
-            [ Grid.col
-                [ Col.sm5 ]
-                [ Form.form
-                    [ class "bg-white"
-                    , Spacing.p3
-                    , Border.rounded
-                    ]
-                    [ Form.row []
-                        [ Form.col [ Col.sm12 ]
-                            [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
-                        ]
-                    , Form.row []
-                        [ Form.col [ Col.sm12 ]
-                            [ Input.text
-                                [ Input.id "astarteRealm"
-                                , Input.placeholder "Astarte Realm"
-                                , Input.value model.realm
-                                , Input.onInput UpdateRealm
-                                ]
-                            ]
-                        ]
-                    , renderAuthInfo model
-                    , Form.row
-                        (if model.allowSwitching then
-                            []
+        ]
 
-                         else
-                            [ Row.attrs [ Display.none ] ]
-                        )
-                        [ Form.col [ Col.sm12 ]
-                            [ toggleLoginTypeLink model.loginType ]
-                        ]
-                    , Form.row
-                        [ Row.topSm
-                        , Row.centerSm
-                        ]
-                        [ Form.col
-                            [ Col.sm4 ]
-                            [ Button.button
-                                [ Button.primary
-                                , Button.attrs [ Size.w100 ]
-                                , Button.onClick Login
-                                ]
-                                [ text "Login" ]
-                            ]
-                        ]
+
+formColumn : Model -> List FlashMessage -> Grid.Column Msg
+formColumn model flashMessages =
+    Grid.col
+        [ Col.lg6
+        , Col.md12
+        , Col.attrs
+            [ class "bg-white"
+            , Flex.block
+            , Flex.col
+            , Flex.alignItemsCenter
+            , Flex.justifyCenter
+            ]
+        ]
+        [ FlashMessageHelpers.renderFlashMessages flashMessages Forward
+        , loginForm model
+        ]
+
+
+loginForm : Model -> Html Msg
+loginForm model =
+    Form.form
+        [ class "login-form"
+        , Spacing.p3
+        , Size.w100
+        ]
+        [ Form.row []
+            [ Form.col [ Col.sm12 ]
+                [ Html.h1 [] [ Html.text "Sign In" ]
+                ]
+            ]
+        , Form.row []
+            [ Form.col [ Col.sm12 ]
+                [ Form.label [ for "astarteRealm" ] [ text "Realm" ]
+                , Input.text
+                    [ Input.id "astarteRealm"
+                    , Input.placeholder "Astarte Realm"
+                    , Input.value model.realm
+                    , Input.onInput UpdateRealm
                     ]
                 ]
             ]
+        , renderAuthInfo model
+        , Form.row []
+            [ Form.col
+                [ Col.sm12 ]
+                [ Button.button
+                    [ Button.primary
+                    , Button.attrs [ Size.w100, Size.w100 ]
+                    , Button.onClick Login
+                    ]
+                    [ text "Login" ]
+                ]
+            ]
+        , Form.row
+            (if model.allowSwitching then
+                []
+
+             else
+                [ Row.attrs [ Display.none ] ]
+            )
+            [ Form.col [ Col.sm12 ]
+                [ toggleLoginTypeLink model.loginType ]
+            ]
+        , additionalInfos model.loginType
+        ]
+
+
+imageColumn : Grid.Column Msg
+imageColumn =
+    Grid.col
+        [ Col.lg6
+        , Col.attrs
+            [ Flex.blockLg
+            , Flex.col
+            , Flex.alignItemsCenter
+            , Flex.justifyCenter
+            , Display.none
+            , Spacing.p0
+            , class "position-relative no-gutters"
+            , class "login-image-container"
+            ]
+        ]
+        [ Html.img
+            [ src <| Assets.path Assets.loginBackgroundTop
+            , Size.w100
+            , class "position-absolute"
+            , class "top-background-image"
+            ]
+            []
+        , Html.img
+            [ src <| Assets.path Assets.loginBackgroundBottom
+            , Size.w100
+            , class "position-absolute"
+            , class "bottom-background-image"
+            ]
+            []
+        , Html.img
+            [ src <| Assets.path Assets.loginLogo
+            , class "logo"
+            , Spacing.m4
+            ]
+            []
+        , Html.img
+            [ src <| Assets.path Assets.loginAstarteMascotte
+            , class "mascotte"
+            , Spacing.m4
+            ]
+            []
         ]
 
 
@@ -303,7 +355,8 @@ renderAuthInfo model =
         Token ->
             Form.row []
                 [ Form.col [ Col.sm12 ]
-                    [ Textarea.textarea
+                    [ Form.label [ for "authToken" ] [ text "Token" ]
+                    , Textarea.textarea
                         [ Textarea.id "authToken"
                         , Textarea.attrs [ placeholder "Auth Token" ]
                         , Textarea.rows 4
@@ -317,7 +370,8 @@ renderAuthInfo model =
             if model.showAuthUrl then
                 Form.row []
                     [ Form.col [ Col.sm12 ]
-                        [ Input.text
+                        [ Form.label [ for "authUrl" ] [ text "Authentication URL" ]
+                        , Input.text
                             [ Input.id "authUrl"
                             , Input.placeholder "Authentication server URL"
                             , Input.value model.authUrl
@@ -328,3 +382,33 @@ renderAuthInfo model =
 
             else
                 text ""
+
+
+additionalInfos : AuthType -> Html Msg
+additionalInfos loginType =
+    case loginType of
+        Token ->
+            Form.row [ Row.attrs [ Spacing.mt5 ] ]
+                [ Form.col [ Col.sm12 ]
+                    [ Grid.containerFluid
+                        [ Border.all
+                        , Border.rounded
+                        , Spacing.p2
+                        , class "bg-light"
+                        ]
+                        [ Html.text "A valid JWT token should be used, you can use "
+                        , Html.a
+                            [ href "https://github.com/astarte-platform/astartectl#installation"
+                            , target "_blank"
+                            ]
+                            [ Html.text "astartectl" ]
+                        , Html.text " to generate one:"
+                        , Html.br [] []
+                        , Html.code []
+                            [ Html.text "$ astartectl utils gen-jwt all-realm-apis -k your_key.pem" ]
+                        ]
+                    ]
+                ]
+
+        OAuth ->
+            text ""

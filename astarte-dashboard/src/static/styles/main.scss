@@ -40,6 +40,7 @@ $nav-link-padding-x:    2rem;
 $navbar-nav-link-padding-x: 1rem;
 $navbar-light-color:        $inactive;
 $navbar-light-active-color: $primary;
+$code-color:            $dark-blue;
 
 @import "./node_modules/bootstrap/scss/bootstrap";
 
@@ -61,6 +62,31 @@ $never-connected-color: #101010;
 
 .color-red {
     color: $red;
+}
+
+.login-form {
+    max-width: 50rem;
+}
+
+.login-image-container {
+    height: 100vh;
+    background-color: $dark-blue;
+
+    .top-background-image {
+        top: 0;
+    }
+
+    .bottom-background-image {
+        bottom: 0;
+    }
+
+    .logo {
+        width: 26rem;
+    }
+
+    .mascotte {
+        width: 19rem;
+    }
 }
 
 .navbar-brand {

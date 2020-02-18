@@ -861,13 +861,21 @@ view : Model -> Browser.Document Msg
 view model =
     { title = "Astarte - Dashboard"
     , body =
-        [ renderNavbar model
-        , div
-            [ class "main-content"
-            , Spacing.p3
-            ]
-            [ renderPage model model.selectedPage ]
-        ]
+        case model.selectedPage of
+            Public (LoginPage _) ->
+                [ div
+                    [ class "main-content" ]
+                    [ renderPage model model.selectedPage ]
+                ]
+
+            Realm _ _ ->
+                [ renderNavbar model
+                , div
+                    [ class "main-content"
+                    , Spacing.p3
+                    ]
+                    [ renderPage model model.selectedPage ]
+                ]
     }
 
 

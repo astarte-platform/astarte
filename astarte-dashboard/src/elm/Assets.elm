@@ -21,7 +21,11 @@ module Assets exposing
     ( AssetPath(..)
     , dashboardIcon
     , homepageImage
+    , loginAstarteMascotte
+    , loginBackgroundBottom
+    , loginBackgroundTop
     , loginImage
+    , loginLogo
     , path
     )
 
@@ -35,9 +39,29 @@ path (AssetPath str) =
     str
 
 
+loginAstarteMascotte : AssetPath
+loginAstarteMascotte =
+    AssetPath "/static/img/mascotte-computer.svg"
+
+
+loginBackgroundTop : AssetPath
+loginBackgroundTop =
+    AssetPath "/static/img/background-login-top.svg"
+
+
+loginBackgroundBottom : AssetPath
+loginBackgroundBottom =
+    AssetPath "/static/img/background-login-bottom.svg"
+
+
 loginImage : AssetPath
 loginImage =
     AssetPath "/static/img/login.svg"
+
+
+loginLogo : AssetPath
+loginLogo =
+    AssetPath "/static/img/logo-login.svg"
 
 
 dashboardIcon : AssetPath
