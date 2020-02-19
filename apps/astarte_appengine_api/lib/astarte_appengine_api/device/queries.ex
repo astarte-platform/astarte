@@ -228,6 +228,35 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     }
   end
 
+  def fetch_datastream_maximum_storage_retention(client) do
+    maximum_storage_retention_statement = """
+    SELECT blobAsInt(value)
+    FROM kv_store
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(maximum_storage_retention_statement)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, res} <- DatabaseQuery.call(client, query),
+         ["system.blobasint(value)": maximum_storage_retention] <- DatabaseResult.head(res) do
+      {:ok, maximum_storage_retention}
+    else
+      :empty_dataset ->
+        {:ok, nil}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("Database error: #{error_message}.")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Failed with reason: #{inspect(reason)}.")
+        {:error, :database_error}
+    end
+  end
+
   def last_datastream_value!(
         client,
         device_id,
@@ -276,6 +305,15 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     DatabaseQuery.call!(client, all_paths_query)
   end
 
+  defp get_ttl_string(opts) do
+    with {:ok, value} when is_integer(value) <- Keyword.fetch(opts, :ttl) do
+      "USING TTL #{to_string(value)}"
+    else
+      _any_error ->
+        ""
+    end
+  end
+
   def insert_path_into_db(
         db_client,
         device_id,
@@ -284,7 +322,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         path,
         value_timestamp,
         reception_timestamp,
-        _opts
+        opts
       )
       when storage_type in [
              :multi_interface_individual_datastream_dbtable,
@@ -293,12 +331,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
 
+    ttl_string = get_ttl_string(opts)
+
     insert_statement = """
     INSERT INTO individual_properties
         (device_id, interface_id, endpoint_id, path,
         reception_timestamp, reception_timestamp_submillis, datetime_value)
     VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp,
-        :reception_timestamp_submillis, :datetime_value);
+        :reception_timestamp_submillis, :datetime_value) #{ttl_string};
     """
 
     insert_query =
@@ -327,7 +367,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         endpoint,
         path,
         nil,
-        _timestamp
+        _timestamp,
+        _opts
       ) do
     if endpoint.allow_unset == false do
       _ =
@@ -362,18 +403,21 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         endpoint,
         path,
         value,
-        timestamp
+        timestamp,
+        opts
       ) do
+    ttl_string = get_ttl_string(opts)
+
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} " <>
-          "(device_id, interface_id, endpoint_id, path, reception_timestamp, #{
-            CQLUtils.type_to_db_column_name(endpoint.value_type)
-          }) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp, :value);"
-      )
+      |> DatabaseQuery.statement("""
+      INSERT INTO #{interface_descriptor.storage}
+        (device_id, interface_id, endpoint_id, path, reception_timestamp,
+          #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
+        VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp,
+          :value) #{ttl_string};
+      """)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
@@ -397,15 +441,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         endpoint,
         path,
         value,
-        timestamp
+        timestamp,
+        opts
       ) do
+    ttl_string = get_ttl_string(opts)
+
     insert_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement("""
       INSERT INTO #{interface_descriptor.storage}
         (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis,
-        #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
-        VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value);
+          #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
+        VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp,
+          :reception_timestamp_submillis, :value) #{ttl_string};
       """)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
@@ -432,8 +480,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         _mapping,
         path,
         value,
-        timestamp
+        timestamp,
+        opts
       ) do
+    ttl_string = get_ttl_string(opts)
+
     endpoint_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
@@ -498,10 +549,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
-          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis);"
-      )
+      |> DatabaseQuery.statement("""
+      INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis)
+        VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{
+        ttl_string
+      };
+      """)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))

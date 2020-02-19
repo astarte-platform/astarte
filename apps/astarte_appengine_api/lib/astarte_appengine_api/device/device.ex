@@ -189,10 +189,28 @@ defmodule Astarte.AppEngine.API.Device do
          mapping <-
            Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
          {:ok, value} <- cast_value(mapping.value_type, raw_value),
-         :ok <- validate_value_type(mapping.value_type, value) do
+         :ok <- validate_value_type(mapping.value_type, value),
+         {:ok, realm_max_ttl} <-
+           Queries.fetch_datastream_maximum_storage_retention(client) do
       timestamp_micro =
         DateTime.utc_now()
         |> DateTime.to_unix(:microsecond)
+
+      db_max_ttl =
+        if mapping.database_retention_policy == :use_ttl do
+          min(realm_max_ttl, mapping.database_retention_ttl)
+        else
+          realm_max_ttl
+        end
+
+      opts =
+        case db_max_ttl do
+          nil ->
+            []
+
+          _ ->
+            [ttl: db_max_ttl]
+        end
 
       Queries.insert_value_into_db(
         client,
@@ -202,7 +220,8 @@ defmodule Astarte.AppEngine.API.Device do
         mapping,
         path,
         value,
-        timestamp_micro
+        timestamp_micro,
+        opts
       )
 
       wrapped_value = wrap_to_bson_struct(mapping.value_type, value)
@@ -226,7 +245,7 @@ defmodule Astarte.AppEngine.API.Device do
             path,
             timestamp_micro,
             div(timestamp_micro, 1000),
-            []
+            opts
           )
 
           DataTransmitter.push_datastream(
@@ -331,6 +350,14 @@ defmodule Astarte.AppEngine.API.Device do
     end)
   end
 
+  defp object_retention([first | _rest] = _mappings) do
+    if first.database_retention_policy == :no_ttl do
+      nil
+    else
+      first.database_retention_ttl
+    end
+  end
+
   defp update_object_interface_values(
          client,
          realm_name,
@@ -349,7 +376,20 @@ defmodule Astarte.AppEngine.API.Device do
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,
          expected_types <- extract_expected_types(mappings),
-         :ok <- validate_value_type(expected_types, raw_value) do
+         :ok <- validate_value_type(expected_types, raw_value),
+         {:ok, realm_max_ttl} <-
+           Queries.fetch_datastream_maximum_storage_retention(client) do
+      db_max_ttl = min(realm_max_ttl, object_retention(mappings))
+
+      opts =
+        case db_max_ttl do
+          nil ->
+            []
+
+          _ ->
+            [ttl: db_max_ttl]
+        end
+
       Queries.insert_value_into_db(
         client,
         device_id,
@@ -358,7 +398,8 @@ defmodule Astarte.AppEngine.API.Device do
         nil,
         path,
         raw_value,
-        timestamp_micro
+        timestamp_micro,
+        opts
       )
 
       wrapped_value = wrap_to_bson_struct(nil, raw_value)
@@ -371,7 +412,7 @@ defmodule Astarte.AppEngine.API.Device do
         path,
         timestamp_micro,
         div(timestamp_micro, 1000),
-        []
+        opts
       )
 
       DataTransmitter.push_datastream(
@@ -400,6 +441,10 @@ defmodule Astarte.AppEngine.API.Device do
 
       {:error, :mapping_not_found} ->
         {:error, :mapping_not_found}
+
+      {:error, :database_error} ->
+        Logger.warn("Error while trying to retrieve ttl.", tag: "database_error")
+        {:error, :database_error}
 
       {:error, reason} ->
         Logger.warn("Unhandled error while updating object interface values: #{inspect(reason)}.")
@@ -604,7 +649,8 @@ defmodule Astarte.AppEngine.API.Device do
         mapping,
         path,
         nil,
-        nil
+        nil,
+        []
       )
 
       case interface_descriptor.type do
