@@ -26,6 +26,15 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
 
+  alias Astarte.RPC.Protocol.VMQ.Plugin.{
+    Call,
+    GenericOkReply,
+    Publish,
+    Reply
+  }
+
+  import Mox
+
   @expected_introspection %{
     "com.example.PixelsConfiguration" => %InterfaceInfo{
       major: 1,
@@ -952,6 +961,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   describe "update_interface_values with individual aggregation" do
+    setup do
+      DatabaseTestHelper.create_datastream_receiving_device()
+
+      on_exit(fn ->
+        DatabaseTestHelper.remove_datastream_receiving_device()
+      end)
+    end
+
     test "fails with invalid parameters" do
       test_realm = "autotestrealm"
       missing_id = "f0VMRgIBAQAAAAAAAAAAAQ"
@@ -1003,6 +1020,116 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                value,
                par
              ) == {:error, :interface_not_in_introspection}
+    end
+
+    test "is successful and data on the interface can be retrieved" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      test_interface = "org.ServerOwnedIndividual"
+      value = 10
+      path = "/1/samplingPeriod"
+      par = %{}
+
+      request_ts_1 = DateTime.utc_now()
+
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, _destination ->
+        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+
+        encoded_payload = Cyanide.encode!(%{v: value})
+        path_tokens = String.split(path, "/")
+
+        assert %Publish{
+                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
+                 payload: ^encoded_payload,
+                 qos: 0
+               } = publish_call
+
+        {:ok,
+         %Reply{
+           reply: {:generic_ok_reply, %GenericOkReply{}}
+         }
+         |> Reply.encode()}
+      end)
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               test_interface,
+               path,
+               value,
+               par
+             ) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: 10,
+                  metadata: nil
+                }}
+
+      path = "/2/samplingPeriod"
+      value = 11
+
+      request_ts_2 = DateTime.utc_now()
+
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, _destination ->
+        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+
+        encoded_payload = Cyanide.encode!(%{v: value})
+        path_tokens = String.split(path, "/")
+
+        assert %Publish{
+                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
+                 payload: ^encoded_payload,
+                 qos: 0
+               } = publish_call
+
+        {:ok,
+         %Reply{
+           reply: {:generic_ok_reply, %GenericOkReply{}}
+         }
+         |> Reply.encode()}
+      end)
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               test_interface,
+               path,
+               value,
+               par
+             ) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: 11,
+                  metadata: nil
+                }}
+
+      result = Device.get_interface_values!(test_realm, device_id, test_interface, %{})
+
+      assert {:ok,
+              %Astarte.AppEngine.API.Device.InterfaceValues{
+                data: %{
+                  "1" => %{
+                    "samplingPeriod" => %{
+                      "reception_timestamp" => reception_ts_1,
+                      "timestamp" => ts_1,
+                      "value" => 10
+                    }
+                  },
+                  "2" => %{
+                    "samplingPeriod" => %{
+                      "reception_timestamp" => reception_ts_2,
+                      "timestamp" => ts_2,
+                      "value" => 11
+                    }
+                  }
+                },
+                metadata: nil
+              }} = result
+
+      assert_in_delta(DateTime.to_unix(request_ts_1), DateTime.to_unix(ts_1), 1000)
+      assert_in_delta(DateTime.to_unix(request_ts_2), DateTime.to_unix(ts_2), 1000)
     end
   end
 
@@ -1064,6 +1191,112 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                value,
                par
              ) == {:error, :mapping_not_found}
+    end
+
+    test "is successful and data on the interface can be retrieved" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      path = "/my_path"
+      value = %{"enable" => true, "samplingPeriod" => 10}
+      par = nil
+
+      request_ts_1 = DateTime.utc_now()
+
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, _destination ->
+        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+
+        encoded_payload = Cyanide.encode!(%{v: value})
+        path_tokens = String.split(path, "/")
+
+        assert %Publish{
+                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
+                 payload: ^encoded_payload,
+                 qos: 0
+               } = publish_call
+
+        {:ok,
+         %Reply{
+           reply: {:generic_ok_reply, %GenericOkReply{}}
+         }
+         |> Reply.encode()}
+      end)
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               path,
+               value,
+               par
+             ) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: %{"enable" => true, "samplingPeriod" => 10},
+                  metadata: nil
+                }}
+
+      path = "/my_new_path"
+      value = %{"enable" => false, "samplingPeriod" => 100}
+
+      request_ts_2 = DateTime.utc_now()
+
+      MockRPCClient
+      |> expect(:rpc_call, 2, fn serialized_call, _destination ->
+        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+
+        encoded_payload = Cyanide.encode!(%{v: value})
+        path_tokens = String.split(path, "/")
+
+        assert %Publish{
+                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
+                 payload: ^encoded_payload,
+                 qos: 0
+               } = publish_call
+
+        {:ok,
+         %Reply{
+           reply: {:generic_ok_reply, %GenericOkReply{}}
+         }
+         |> Reply.encode()}
+      end)
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               path,
+               value,
+               par
+             ) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: %{"enable" => false, "samplingPeriod" => 100},
+                  metadata: nil
+                }}
+
+      result = Device.get_interface_values!(test_realm, device_id, interface, %{})
+
+      assert {:ok,
+              %Astarte.AppEngine.API.Device.InterfaceValues{
+                data: %{
+                  "my_new_path" => %{
+                    "enable" => false,
+                    "samplingPeriod" => 100.0,
+                    "timestamp" => time1
+                  },
+                  "my_path" => %{
+                    "enable" => true,
+                    "samplingPeriod" => 10.0,
+                    "timestamp" => time2
+                  }
+                },
+                metadata: nil
+              }} = result
+
+      assert_in_delta(DateTime.to_unix(request_ts_1), DateTime.to_unix(time1), 1000)
+      assert_in_delta(DateTime.to_unix(request_ts_2), DateTime.to_unix(time2), 1000)
     end
   end
 
