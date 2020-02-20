@@ -1300,6 +1300,134 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     end
   end
 
+  describe "ttl is handled properly for server owned individual interface" do
+    setup do
+      DatabaseTestHelper.create_datastream_receiving_device()
+      DatabaseTestHelper.set_realm_ttl(5)
+
+      on_exit(fn ->
+        DatabaseTestHelper.unset_realm_ttl()
+        DatabaseTestHelper.remove_datastream_receiving_device()
+      end)
+    end
+
+    test "update_interface_values" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      test_interface = "org.ServerOwnedIndividual"
+      value = 10
+      path = "/1/samplingPeriod"
+      par = %{}
+
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, _destination ->
+        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+
+        encoded_payload = Cyanide.encode!(%{v: value})
+        path_tokens = String.split(path, "/")
+
+        assert %Publish{
+                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
+                 payload: ^encoded_payload,
+                 qos: 0
+               } = publish_call
+
+        {:ok,
+         %Reply{
+           reply: {:generic_ok_reply, %GenericOkReply{}}
+         }
+         |> Reply.encode()}
+      end)
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               test_interface,
+               path,
+               value,
+               par
+             ) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: 10,
+                  metadata: nil
+                }}
+
+      :timer.sleep(6000)
+
+      assert Device.get_interface_values!(test_realm, device_id, test_interface, %{}) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: %{},
+                  metadata: nil
+                }}
+    end
+  end
+
+  describe "ttl is handled properly for server owned object aggregated interface" do
+    setup do
+      DatabaseTestHelper.create_object_receiving_device()
+      DatabaseTestHelper.set_realm_ttl(5)
+
+      on_exit(fn ->
+        DatabaseTestHelper.unset_realm_ttl()
+        DatabaseTestHelper.remove_object_receiving_device()
+      end)
+    end
+
+    test "update_interface_values" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      test_interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      path = "/my_path"
+      value = %{"enable" => true, "samplingPeriod" => 10}
+      par = nil
+
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, _destination ->
+        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+
+        encoded_payload = Cyanide.encode!(%{v: value})
+        path_tokens = String.split(path, "/")
+
+        assert %Publish{
+                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
+                 payload: ^encoded_payload,
+                 qos: 0
+               } = publish_call
+
+        {:ok,
+         %Reply{
+           reply: {:generic_ok_reply, %GenericOkReply{}}
+         }
+         |> Reply.encode()}
+      end)
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               test_interface,
+               path,
+               value,
+               par
+             ) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: %{"enable" => true, "samplingPeriod" => 10},
+                  metadata: nil
+                }}
+
+      :timer.sleep(6000)
+
+      assert Device.get_interface_values!(test_realm, device_id, test_interface, %{}) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: [],
+                  metadata: nil
+                }}
+    end
+  end
+
   test "device_alias_to_device_id/2 returns device IDs (uuid)" do
     assert Device.device_alias_to_device_id("autotestrealm", "device_a") ==
              {:ok, <<127, 69, 76, 70, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}

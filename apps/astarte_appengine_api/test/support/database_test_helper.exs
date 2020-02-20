@@ -851,6 +851,36 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     DatabaseQuery.call!(client, query)
   end
 
+  def set_realm_ttl(ttl_s) do
+    set_realm_ttl_statement = """
+      INSERT INTO autotestrealm.kv_store (group, key, value)
+      VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:ttl_s))
+    """
+
+    {:ok, client} = Database.connect()
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(set_realm_ttl_statement)
+      |> DatabaseQuery.put(:ttl_s, ttl_s)
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  def unset_realm_ttl do
+    unset_realm_ttl_statement = """
+      DELETE FROM autotestrealm.kv_store WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    {:ok, client} = Database.connect()
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(unset_realm_ttl_statement)
+
+    DatabaseQuery.call!(client, query)
+  end
+
   def devices_count do
     length(@devices_list)
   end
