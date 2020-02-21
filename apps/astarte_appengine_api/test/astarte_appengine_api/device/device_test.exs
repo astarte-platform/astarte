@@ -954,7 +954,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     DatabaseQuery.call!(client, "TRUNCATE com_example_testobject_v1")
     DatabaseQuery.call!(client, "TRUNCATE individual_properties")
 
-    expected_reply = {:ok, %InterfaceValues{data: []}}
+    expected_reply = {:ok, %InterfaceValues{data: %{}}}
 
     assert Device.get_interface_values!(test, device_id, "com.example.TestObject", %{}) ==
              expected_reply
@@ -1422,7 +1422,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       assert Device.get_interface_values!(test_realm, device_id, test_interface, %{}) ==
                {:ok,
                 %Astarte.AppEngine.API.Device.InterfaceValues{
-                  data: [],
+                  data: %{},
                   metadata: nil
                 }}
     end
