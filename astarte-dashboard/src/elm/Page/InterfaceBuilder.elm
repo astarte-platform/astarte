@@ -38,6 +38,7 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
@@ -88,6 +89,8 @@ type alias Model =
     , objectRetention : InterfaceMapping.Retention
     , objectExpiry : Int
     , objectExplicitTimestamp : Bool
+    , objectDatabaseRetention : InterfaceMapping.DatabaseRetention
+    , objectTTL : Int
 
     -- mapping builder
     , mappingBuilderModel : MappingBuilder.Model
@@ -151,6 +154,8 @@ init mode session =
       , objectRetention = InterfaceMapping.Discard
       , objectExpiry = 0
       , objectExplicitTimestamp = True
+      , objectDatabaseRetention = InterfaceMapping.NoTTL
+      , objectTTL = 60
       , deleteModalVisibility = Modal.hidden
       , confirmModalVisibility = Modal.hidden
       , confirmInterfaceName = ""
@@ -210,6 +215,8 @@ type Msg
     | UpdateObjectMappingRetention String
     | UpdateObjectMappingExpiry String
     | UpdateObjectMappingExplicitTimestamp Bool
+    | UpdateObjectMappingDatabaseRetention String
+    | UpdateObjectMappingTTL String
       -- modal
     | UpdateConfirmInterfaceName String
     | MappingBuilderMsg MappingBuilder.Msg
@@ -593,7 +600,13 @@ update session msg model =
                     if newAggregation == Interface.Object then
                         model.interface
                             |> Interface.setAggregation Interface.Object
-                            |> Interface.setOwnership Interface.Device
+                            |> Interface.setObjectMappingAttributes
+                                model.objectReliability
+                                model.objectRetention
+                                model.objectExpiry
+                                model.objectExplicitTimestamp
+                                model.objectDatabaseRetention
+                                model.objectTTL
 
                     else
                         Interface.setAggregation Interface.Individual model.interface
@@ -669,6 +682,8 @@ update session msg model =
                                     model.objectRetention
                                     model.objectExpiry
                                     model.objectExplicitTimestamp
+                                    model.objectDatabaseRetention
+                                    model.objectTTL
                     in
                     ( { model
                         | objectReliability = reliability
@@ -703,6 +718,8 @@ update session msg model =
                                     retention
                                     expiry
                                     model.objectExplicitTimestamp
+                                    model.objectDatabaseRetention
+                                    model.objectTTL
                     in
                     ( { model
                         | objectRetention = retention
@@ -732,9 +749,83 @@ update session msg model =
                                         model.objectRetention
                                         expiry
                                         model.objectExplicitTimestamp
+                                        model.objectDatabaseRetention
+                                        model.objectTTL
                         in
                         ( { model
                             | objectExpiry = expiry
+                            , interface = newInterface
+                            , sourceBuffer = Interface.toPrettySource newInterface
+                          }
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                    else
+                        ( model
+                        , Cmd.none
+                        , ExternalMsg.Noop
+                        )
+
+                Nothing ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateObjectMappingDatabaseRetention newDatabaseRetention ->
+            case InterfaceMapping.stringToDatabaseRetention newDatabaseRetention of
+                Ok databaseRetention ->
+                    let
+                        ttl =
+                            if databaseRetention == InterfaceMapping.NoTTL then
+                                0
+
+                            else
+                                model.objectTTL
+
+                        newInterface =
+                            model.interface
+                                |> Interface.setObjectMappingAttributes
+                                    model.objectReliability
+                                    model.objectRetention
+                                    model.objectExpiry
+                                    model.objectExplicitTimestamp
+                                    databaseRetention
+                                    ttl
+                    in
+                    ( { model
+                        | objectDatabaseRetention = databaseRetention
+                        , interface = newInterface
+                        , sourceBuffer = Interface.toPrettySource newInterface
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Err _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateObjectMappingTTL newTTL ->
+            case String.toInt newTTL of
+                Just ttl ->
+                    if ttl >= 60 then
+                        let
+                            newInterface =
+                                model.interface
+                                    |> Interface.setObjectMappingAttributes
+                                        model.objectReliability
+                                        model.objectRetention
+                                        model.objectExpiry
+                                        model.objectExplicitTimestamp
+                                        model.objectDatabaseRetention
+                                        ttl
+                        in
+                        ( { model
+                            | objectTTL = ttl
                             , interface = newInterface
                             , sourceBuffer = Interface.toPrettySource newInterface
                           }
@@ -763,6 +854,8 @@ update session msg model =
                             model.objectRetention
                             model.objectExpiry
                             explicitTimestamp
+                            model.objectDatabaseRetention
+                            model.objectTTL
             in
             ( { model
                 | objectExplicitTimestamp = explicitTimestamp
@@ -882,6 +975,8 @@ handleMappingBuilderMessages message model =
                             |> InterfaceMapping.setReliability model.objectReliability
                             |> InterfaceMapping.setExpiry model.objectExpiry
                             |> InterfaceMapping.setExplicitTimestamp model.objectExplicitTimestamp
+                            |> InterfaceMapping.setDatabaseRetention model.objectDatabaseRetention
+                            |> InterfaceMapping.setTTL model.objectTTL
 
                     else
                         mapping
@@ -1093,14 +1188,14 @@ renderContent model interface interfaceEditMode accordionState =
                                 (Radio.radioList "interfaceOwnership"
                                     [ Radio.create
                                         [ Radio.id "iorb1"
-                                        , Radio.disabled <| interfaceEditMode || interface.aggregation == Interface.Object
+                                        , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Device
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Device
                                         ]
                                         "Device"
                                     , Radio.create
                                         [ Radio.id "iorb2"
-                                        , Radio.disabled <| interfaceEditMode || interface.aggregation == Interface.Object
+                                        , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Server
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Server
                                         ]
@@ -1235,7 +1330,7 @@ renderCommonMappingSettings model =
          else
             [ Row.attrs [ Display.none ] ]
         )
-        [ Form.col [ Col.sm4 ]
+        [ Form.col [ Col.sm6 ]
             [ Form.group []
                 [ Form.label [ for "objectMappingReliability" ] [ text "Reliability" ]
                 , Select.select
@@ -1262,11 +1357,25 @@ renderCommonMappingSettings model =
                 ]
             ]
         , Form.col
+            [ Col.sm6
+            , Col.attrs [ Flex.alignItemsCenter, Flex.block ]
+            ]
+            [ Form.group []
+                [ Checkbox.checkbox
+                    [ Checkbox.id "objectMappingExpTimestamp"
+                    , Checkbox.disabled model.interfaceEditMode
+                    , Checkbox.checked model.objectExplicitTimestamp
+                    , Checkbox.onCheck UpdateObjectMappingExplicitTimestamp
+                    ]
+                    "Explicit timestamp"
+                ]
+            ]
+        , Form.col
             [ if model.objectRetention == InterfaceMapping.Discard then
-                Col.sm8
+                Col.sm12
 
               else
-                Col.sm4
+                Col.sm6
             ]
             [ Form.group []
                 [ Form.label [ for "objectMappingRetention" ] [ text "Retention" ]
@@ -1298,7 +1407,7 @@ renderCommonMappingSettings model =
                 Col.attrs [ Display.none ]
 
               else
-                Col.sm4
+                Col.sm6
             ]
             [ Form.group []
                 [ Form.label [ for "objectMappingExpiry" ] [ text "Expiry" ]
@@ -1310,19 +1419,56 @@ renderCommonMappingSettings model =
                     ]
                     |> InputGroup.config
                     |> InputGroup.successors
-                        [ InputGroup.span [] [ text "ms" ] ]
+                        [ InputGroup.span [] [ text "milliseconds" ] ]
                     |> InputGroup.view
                 ]
             ]
-        , Form.col [ Col.sm6 ]
+        , Form.col
+            [ if model.objectDatabaseRetention == InterfaceMapping.NoTTL then
+                Col.sm12
+
+              else
+                Col.sm6
+            ]
             [ Form.group []
-                [ Checkbox.checkbox
-                    [ Checkbox.id "objectMappingExpTimestamp"
-                    , Checkbox.disabled model.interfaceEditMode
-                    , Checkbox.checked model.objectExplicitTimestamp
-                    , Checkbox.onCheck UpdateObjectMappingExplicitTimestamp
+                [ Form.label [ for "objectDatabaseRetention" ] [ text "Database Retention" ]
+                , Select.select
+                    [ Select.id "objectDatabaseRetention"
+                    , Select.disabled model.interfaceEditMode
+                    , Select.onChange UpdateObjectMappingDatabaseRetention
                     ]
-                    "Explicit timestamp"
+                    [ Select.item
+                        [ value "no_ttl"
+                        , selected <| model.objectDatabaseRetention == InterfaceMapping.NoTTL
+                        ]
+                        [ text "No TTL" ]
+                    , Select.item
+                        [ value "use_ttl"
+                        , selected <| model.objectDatabaseRetention == InterfaceMapping.UseTTL
+                        ]
+                        [ text "Use TTL" ]
+                    ]
+                ]
+            ]
+        , Form.col
+            [ if model.objectDatabaseRetention == InterfaceMapping.NoTTL then
+                Col.attrs [ Display.none ]
+
+              else
+                Col.sm6
+            ]
+            [ Form.group []
+                [ Form.label [ for "objectTTL" ] [ text "TTL" ]
+                , InputGroup.number
+                    [ Input.id "objectTTL"
+                    , Input.disabled model.interfaceEditMode
+                    , Input.value <| String.fromInt model.objectTTL
+                    , Input.onInput UpdateObjectMappingTTL
+                    ]
+                    |> InputGroup.config
+                    |> InputGroup.successors
+                        [ InputGroup.span [] [ text "seconds" ] ]
+                    |> InputGroup.view
                 ]
             ]
         ]

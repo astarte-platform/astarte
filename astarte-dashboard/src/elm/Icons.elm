@@ -20,10 +20,12 @@
 module Icons exposing
     ( Icon(..)
     , render
+    , renderWithColor
     )
 
+import Color exposing (Color)
 import Html exposing (Html, i)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, style)
 
 
 type Icon
@@ -44,6 +46,11 @@ type Icon
     | ToggleSidebar
     | Trigger
     | Unhealthy
+
+
+renderWithColor : Color -> Icon -> List (Html.Attribute msg) -> Html msg
+renderWithColor color icon attributes =
+    render icon <| attributes ++ [ style "color" <| Color.toCssString color ]
 
 
 render : Icon -> List (Html.Attribute msg) -> Html msg

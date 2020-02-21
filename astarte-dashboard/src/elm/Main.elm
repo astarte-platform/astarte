@@ -378,6 +378,9 @@ updateRealmPage realm realmPage msg model =
     let
         ( page, command, externalMsg ) =
             case ( msg, realmPage ) of
+                ( HomeMsg subMsg, HomePage subModel ) ->
+                    updateRealmPageHelper realm (Home.update model.session subMsg subModel) HomeMsg HomePage
+
                 ( InterfacesMsg subMsg, InterfacesPage subModel ) ->
                     updateRealmPageHelper realm (Interfaces.update model.session subMsg subModel) InterfacesMsg InterfacesPage
 
@@ -1276,6 +1279,9 @@ subscriptions model =
 pageSubscriptions : Page -> Sub Msg
 pageSubscriptions page =
     case page of
+        Realm _ (HomePage submodel) ->
+            Sub.map HomeMsg <| Home.subscriptions submodel
+
         Realm _ (InterfaceBuilderPage submodel) ->
             Sub.map InterfaceBuilderMsg <| InterfaceBuilder.subscriptions submodel
 

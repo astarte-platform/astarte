@@ -135,7 +135,7 @@ function connectToChannel(params) {
   // This should be unique and you should have JOIN and WATCH permissions for it in the JWT
   let salt = Math.floor(Math.random() * 10000);
   let room_name = `dashboard_${params.deviceId}_${salt}`;
-  channel = phoenixSocket.channel(`rooms:${params.realm}:{room_name}`, {});
+  channel = phoenixSocket.channel(`rooms:${params.realm}:${room_name}`, {});
 
   channel
     .join()
