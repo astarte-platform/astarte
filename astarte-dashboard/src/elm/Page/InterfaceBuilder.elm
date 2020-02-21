@@ -600,7 +600,6 @@ update session msg model =
                     if newAggregation == Interface.Object then
                         model.interface
                             |> Interface.setAggregation Interface.Object
-                            |> Interface.setOwnership Interface.Device
                             |> Interface.setObjectMappingAttributes
                                 model.objectReliability
                                 model.objectRetention
@@ -1189,14 +1188,14 @@ renderContent model interface interfaceEditMode accordionState =
                                 (Radio.radioList "interfaceOwnership"
                                     [ Radio.create
                                         [ Radio.id "iorb1"
-                                        , Radio.disabled <| interfaceEditMode || interface.aggregation == Interface.Object
+                                        , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Device
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Device
                                         ]
                                         "Device"
                                     , Radio.create
                                         [ Radio.id "iorb2"
-                                        , Radio.disabled <| interfaceEditMode || interface.aggregation == Interface.Object
+                                        , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Server
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Server
                                         ]
