@@ -870,6 +870,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def fetch_interface(client, interface_name, interface_major) do
+    # TODO: replace with retrieve_interface_row
     all_interface_cols_statement = """
     SELECT *
     FROM interfaces
@@ -883,6 +884,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:major_version, interface_major)
       |> DatabaseQuery.consistency(:quorum)
 
+    # TODO: replace with Astarte.DataAccess.Mappings.fetch_interface_mappings
     all_endpoints_cols_statement = """
     SELECT *
     FROM endpoints
@@ -904,6 +906,8 @@ defmodule Astarte.RealmManagement.Queries do
           %{
             endpoint_id: endpoint_id,
             allow_unset: allow_unset,
+            database_retention_policy: database_retention_policy,
+            database_retention_ttl: database_retention_ttl,
             explicit_timestamp: explicit_timestamp,
             endpoint: endpoint,
             expiry: expiry,
@@ -917,6 +921,9 @@ defmodule Astarte.RealmManagement.Queries do
           %Mapping{
             endpoint_id: endpoint_id,
             allow_unset: allow_unset,
+            database_retention_policy:
+              database_retention_policy_from_maybe_int(database_retention_policy),
+            database_retention_ttl: database_retention_ttl,
             explicit_timestamp: explicit_timestamp,
             endpoint: endpoint,
             expiry: expiry,
@@ -965,6 +972,13 @@ defmodule Astarte.RealmManagement.Queries do
       {:error, reason} ->
         _ = Logger.warn("Failed, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
+    end
+  end
+
+  defp database_retention_policy_from_maybe_int(database_retention_policy) do
+    case database_retention_policy do
+      nil -> :no_ttl
+      any_int -> DatabaseRetentionPolicy.from_int(database_retention_policy)
     end
   end
 
