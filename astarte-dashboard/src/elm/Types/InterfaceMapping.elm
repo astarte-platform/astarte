@@ -19,6 +19,7 @@
 
 module Types.InterfaceMapping exposing
     ( BaseType(..)
+    , DatabaseRetention(..)
     , InterfaceMapping
     , MappingType(..)
     , Reliability(..)
@@ -36,6 +37,7 @@ module Types.InterfaceMapping exposing
     , reliabilityToEnglishString
     , retentionToEnglishString
     , setAllowUnset
+    , setDatabaseRetention
     , setDescription
     , setDoc
     , setDraft
@@ -44,7 +46,9 @@ module Types.InterfaceMapping exposing
     , setExplicitTimestamp
     , setReliability
     , setRetention
+    , setTTL
     , setType
+    , stringToDatabaseRetention
     , stringToMappingType
     , stringToReliability
     , stringToRetention
@@ -64,6 +68,8 @@ type alias InterfaceMapping =
     , reliability : Reliability
     , retention : Retention
     , expiry : Int
+    , databaseRetention : DatabaseRetention
+    , ttl : Int
     , allowUnset : Bool
     , explicitTimestamp : Bool
     , description : String
@@ -79,6 +85,8 @@ empty =
     , reliability = Unreliable
     , retention = Discard
     , expiry = 0
+    , databaseRetention = NoTTL
+    , ttl = 60
     , allowUnset = False
     , explicitTimestamp = False
     , description = ""
@@ -112,6 +120,11 @@ type Retention
     = Discard
     | Volatile
     | Stored
+
+
+type DatabaseRetention
+    = NoTTL
+    | UseTTL
 
 
 
@@ -181,6 +194,16 @@ setExpiry expiry mapping =
     { mapping | expiry = expiry }
 
 
+setDatabaseRetention : DatabaseRetention -> InterfaceMapping -> InterfaceMapping
+setDatabaseRetention databaseRetention mapping =
+    { mapping | databaseRetention = databaseRetention }
+
+
+setTTL : Int -> InterfaceMapping -> InterfaceMapping
+setTTL ttl mapping =
+    { mapping | ttl = ttl }
+
+
 setAllowUnset : Bool -> InterfaceMapping -> InterfaceMapping
 setAllowUnset allow mapping =
     { mapping | allowUnset = allow }
@@ -219,6 +242,8 @@ encode mapping =
         [ ( "reliability", encodeReliability mapping.reliability, mapping.reliability == Unreliable )
         , ( "retention", encodeRetention mapping.retention, mapping.retention == Discard )
         , ( "expiry", Encode.int mapping.expiry, mapping.expiry == 0 )
+        , ( "database_retention_policy", databaseRetentionEncoder mapping.databaseRetention, mapping.databaseRetention == NoTTL )
+        , ( "database_retention_ttl", Encode.int mapping.ttl, mapping.databaseRetention == NoTTL )
         , ( "allow_unset", Encode.bool mapping.allowUnset, mapping.allowUnset == False )
         , ( "explicit_timestamp", Encode.bool mapping.explicitTimestamp, mapping.explicitTimestamp == False )
         , ( "description", Encode.string mapping.description, mapping.description == "" )
@@ -259,6 +284,16 @@ encodeRetention r =
 
         Stored ->
             Encode.string "stored"
+
+
+databaseRetentionEncoder : DatabaseRetention -> Value
+databaseRetentionEncoder r =
+    case r of
+        NoTTL ->
+            Encode.string "no_ttl"
+
+        UseTTL ->
+            Encode.string "use_ttl"
 
 
 mappingTypeToString : MappingType -> String
@@ -308,6 +343,8 @@ decoder =
         |> optional "reliability" reliabilityDecoder Unreliable
         |> optional "retention" retentionDecoder Discard
         |> optional "expiry" int 0
+        |> optional "database_retention_policy" databaseRetentionDecoder NoTTL
+        |> optional "database_retention_ttl" int 60
         |> optional "allow_unset" bool False
         |> optional "explicit_timestamp" bool False
         |> optional "description" string ""
@@ -331,6 +368,12 @@ retentionDecoder : Decoder Retention
 retentionDecoder =
     Decode.string
         |> Decode.andThen (stringToRetention >> JsonHelpers.resultToDecoder)
+
+
+databaseRetentionDecoder : Decoder DatabaseRetention
+databaseRetentionDecoder =
+    Decode.string
+        |> Decode.andThen (stringToDatabaseRetention >> JsonHelpers.resultToDecoder)
 
 
 stringToMappingType : String -> Result String MappingType
@@ -412,6 +455,19 @@ stringToRetention s =
 
         _ ->
             Err <| "Unknown retention: " ++ s
+
+
+stringToDatabaseRetention : String -> Result String DatabaseRetention
+stringToDatabaseRetention s =
+    case s of
+        "no_ttl" ->
+            Ok NoTTL
+
+        "use_ttl" ->
+            Ok UseTTL
+
+        _ ->
+            Err <| "Unknown retention policy: " ++ s
 
 
 

@@ -74,6 +74,8 @@ type Msg
     | UpdateMappingReliability String
     | UpdateMappingRetention String
     | UpdateMappingExpiry String
+    | UpdateMappingDatabaseRetention String
+    | UpdateMappingTTL String
     | UpdateMappingAllowUnset Bool
     | UpdateMappingTimestamp Bool
     | UpdateMappingDescription String
@@ -167,6 +169,39 @@ update message model =
                 Just expiry ->
                     if expiry >= 0 then
                         ( { model | interfaceMapping = InterfaceMapping.setExpiry expiry model.interfaceMapping }
+                        , Noop
+                        )
+
+                    else
+                        ( model
+                        , Noop
+                        )
+
+                Nothing ->
+                    ( model
+                    , Noop
+                    )
+
+        UpdateMappingDatabaseRetention newDatabaseRetention ->
+            case InterfaceMapping.stringToDatabaseRetention newDatabaseRetention of
+                Ok databaseRetention ->
+                    ( { model
+                        | interfaceMapping =
+                            InterfaceMapping.setDatabaseRetention databaseRetention model.interfaceMapping
+                      }
+                    , Noop
+                    )
+
+                Err _ ->
+                    ( model
+                    , Noop
+                    )
+
+        UpdateMappingTTL stringTTL ->
+            case String.toInt stringTTL of
+                Just ttl ->
+                    if ttl >= 60 then
+                        ( { model | interfaceMapping = InterfaceMapping.setTTL ttl model.interfaceMapping }
                         , Noop
                         )
 
@@ -366,6 +401,52 @@ renderBody mapping isProperties isObject editMode endpointWarningPopup =
                         |> InputGroup.config
                         |> InputGroup.successors
                             [ InputGroup.span [] [ text "ms" ] ]
+                        |> InputGroup.view
+                    ]
+                ]
+            , Form.col
+                [ if mapping.databaseRetention == InterfaceMapping.NoTTL then
+                    Col.sm12
+
+                  else
+                    Col.sm6
+                ]
+                [ Form.group []
+                    [ Form.label [ for "mappingDatabaseRetention" ] [ text "Database retention" ]
+                    , Select.select
+                        [ Select.id "mappingDatabaseRetention"
+                        , Select.onChange UpdateMappingDatabaseRetention
+                        ]
+                        [ Select.item
+                            [ value "no_ttl"
+                            , selected <| mapping.databaseRetention == InterfaceMapping.NoTTL
+                            ]
+                            [ text "No TTL" ]
+                        , Select.item
+                            [ value "use_ttl"
+                            , selected <| mapping.databaseRetention == InterfaceMapping.UseTTL
+                            ]
+                            [ text "Use TTL" ]
+                        ]
+                    ]
+                ]
+            , Form.col
+                [ if mapping.databaseRetention == InterfaceMapping.NoTTL then
+                    Col.attrs [ Display.none ]
+
+                  else
+                    Col.sm6
+                ]
+                [ Form.group []
+                    [ Form.label [ for "mappingTTL" ] [ text "TTL" ]
+                    , InputGroup.number
+                        [ Input.id "mappingTTL"
+                        , Input.value <| String.fromInt mapping.ttl
+                        , Input.onInput UpdateMappingTTL
+                        ]
+                        |> InputGroup.config
+                        |> InputGroup.successors
+                            [ InputGroup.span [] [ text "s" ] ]
                         |> InputGroup.view
                     ]
                 ]

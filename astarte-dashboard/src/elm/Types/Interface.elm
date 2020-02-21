@@ -245,9 +245,11 @@ setObjectMappingAttributes :
     -> InterfaceMapping.Retention
     -> Int
     -> Bool
+    -> InterfaceMapping.DatabaseRetention
+    -> Int
     -> Interface
     -> Interface
-setObjectMappingAttributes reliability retention expiry explicitTimestamp interface =
+setObjectMappingAttributes reliability retention expiry explicitTimestamp databaseRetention ttl interface =
     let
         newMappings =
             Dict.map
@@ -257,6 +259,8 @@ setObjectMappingAttributes reliability retention expiry explicitTimestamp interf
                         , retention = retention
                         , expiry = expiry
                         , explicitTimestamp = explicitTimestamp
+                        , databaseRetention = databaseRetention
+                        , ttl = ttl
                     }
                 )
                 interface.mappings
