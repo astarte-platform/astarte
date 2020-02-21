@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Data triggers will match path /* by default
 - Expect API configuration URLs not ending with /v1
 - Build Docker image with the latest nginx 1.x version
+- Enable server owned, object aggregated, datastream interfaces.
 
 ### Fixed
 - Handle property interfaces in Device data page.
