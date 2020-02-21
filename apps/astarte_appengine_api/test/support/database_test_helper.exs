@@ -241,6 +241,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       endpoint_id uuid,
       path varchar,
       reception_timestamp timestamp,
+      reception_timestamp_submillis smallint,
 
       double_value double,
       integer_value int,
@@ -620,6 +621,107 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     :ok
   end
 
+  def create_datastream_receiving_device do
+    {:ok, client} = Database.connect()
+
+    insert_datastream_receiving_device(client)
+    insert_datastream_receiving_device_endpoints(client)
+    insert_into_interface_datastream(client)
+  end
+
+  defp insert_datastream_receiving_device(client) do
+    insert_datastream_receiving_device_query = """
+    INSERT INTO autotestrealm.devices
+    (
+     device_id, aliases, connected, last_connection, last_disconnection,
+     first_registration, first_credentials_request, last_seen_ip, last_credentials_request_ip,
+     total_received_msgs, total_received_bytes, inhibit_credentials_request,
+     introspection, introspection_minor, exchanged_msgs_by_interface, exchanged_bytes_by_interface
+    )
+    VALUES
+    (
+      :device_id, :aliases, false, '2020-02-11 04:05+0020', '2020-02-10 04:05+0940',
+      '2016-08-15 11:05+0121', '2016-08-20 11:05+0121', '198.51.100.81', '198.51.100.89',
+      22000, 246, false,
+      {'org.ServerOwnedIndividual': 0},
+      {'org.ServerOwnedIndividual': 1},
+      :exchanged_msgs_by_interface, :exchanged_bytes_by_interface
+    );
+    """
+
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_datastream_receiving_device_query)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.put(:aliases, %{"display_name" => "receiving_device"})
+      |> DatabaseQuery.put(:exchanged_msgs_by_interface, %{
+        {"org.ServerOwnedIndividual", 0} => 16
+      })
+      |> DatabaseQuery.put(:exchanged_bytes_by_interface, %{
+        {"org.ServerOwnedIndividual", 0} => 1024
+      })
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  defp insert_datastream_receiving_device_endpoints(client) do
+    insert_endpoint_query = """
+    INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+    (13ccc31d-f911-29df-cbe6-be22635293bd, 44c2421d-1abf-f3ec-14e1-986928d764aa, False, '/%{sensor_id}/samplingPeriod', 0, 0, 1, 'org.ServerOwnedIndividual', 2, 1, 1, 3);
+    """
+
+    DatabaseQuery.call!(client, insert_endpoint_query)
+  end
+
+  defp insert_into_interface_datastream(client) do
+    insert_into_interface_datastream_query = """
+    INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+    ('org.ServerOwnedIndividual', 0, :automaton_accepting_states, :automaton_transitions, 1, 13ccc31d-f911-29df-cbe6-be22635293bd, 1, 2, 'individual_datastreams', 2, 2);
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_into_interface_datastream_query)
+      |> DatabaseQuery.put(
+        :automaton_accepting_states,
+        "83740000000161026d0000001044c2421d1abff3ec14e1986928d764aa"
+        |> Base.decode16!(case: :lower)
+      )
+      |> DatabaseQuery.put(
+        :automaton_transitions,
+        "837400000002680261006d000000006101680261016d0000000e73616d706c696e67506572696f646102"
+        |> Base.decode16!(case: :lower)
+      )
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  def remove_datastream_receiving_device do
+    {:ok, client} = Database.connect()
+
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
+
+    delete_query = "DELETE FROM autotestrealm.devices WHERE device_id=:device_id;"
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_query)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      "DELETE FROM autotestrealm.endpoints WHERE interface_id=13ccc31d-f911-29df-cbe6-be22635293bd;"
+
+    DatabaseQuery.call!(client, query)
+
+    query = "DELETE FROM autotestrealm.interfaces WHERE name='org.ServerOwnedIndividual';"
+
+    DatabaseQuery.call!(client, query)
+  end
+
   def create_object_receiving_device do
     {:ok, client} = Database.connect()
 
@@ -649,7 +751,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   defp insert_into_interface_obj_aggregated(client) do
     insert_into_interface_obj_aggregated_query = """
     INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
-    ('org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 0, :automaton_accepting_states, :automaton_transitions, 2, 65c96ecb-f2d5-b440-4840-16cd84d2c2be, 1, 2, 'aRDva0l_nericsensors_serverownedaggregateobj_v0', 5, 2);
+    ('org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 0, :automaton_accepting_states, :automaton_transitions, 2, 65c96ecb-f2d5-b440-4840-16cd84d2c2be, 1, 2, 'com_example_server_owned_aggregated_object_v1', 5, 2);
     """
 
     query =
@@ -676,8 +778,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     path varchar,
     reception_timestamp timestamp,
     reception_timestamp_submillis smallint,
-    v_boolean_value boolean,
-    v_value double,
+    v_enable boolean,
+    v_samplingPeriod double,
     PRIMARY KEY ((device_id, path), reception_timestamp, reception_timestamp_submillis));
     """
 
@@ -745,6 +847,36 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
 
     query =
       "DELETE FROM autotestrealm.interfaces WHERE name='org.astarte-platform.genericsensors.ServerOwnedAggregateObj';"
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  def set_realm_ttl(ttl_s) do
+    set_realm_ttl_statement = """
+      INSERT INTO autotestrealm.kv_store (group, key, value)
+      VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:ttl_s))
+    """
+
+    {:ok, client} = Database.connect()
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(set_realm_ttl_statement)
+      |> DatabaseQuery.put(:ttl_s, ttl_s)
+
+    DatabaseQuery.call!(client, query)
+  end
+
+  def unset_realm_ttl do
+    unset_realm_ttl_statement = """
+      DELETE FROM autotestrealm.kv_store WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    {:ok, client} = Database.connect()
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(unset_realm_ttl_statement)
 
     DatabaseQuery.call!(client, query)
   end
