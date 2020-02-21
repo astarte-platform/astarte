@@ -6,9 +6,9 @@ variables:
 
 mix:test-coverage:
     stage: test
-    image: elixir:1.8.1
+    image: elixir:1.10.1
     services:
-        - cassandra:3.11.5
+        - cassandra:3.11.6
     cache:
         key: "$CI_COMMIT_REF_SLUG"
         paths:
@@ -24,7 +24,7 @@ mix:test-coverage:
 
 mix:test-dialyzer:
     stage: test
-    image: elixir:1.8.1
+    image: elixir:1.10.1
     cache:
         key: "$CI_COMMIT_REF_SLUG"
         paths:

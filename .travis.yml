@@ -3,15 +3,15 @@ dist: bionic
 services:
   - docker
 elixir:
-  - 1.8.1
+  - 1.10.1
 otp_release:
-  - 21.3
+  - 22.2
 env:
   global:
     - CASSANDRA_DB_HOST=localhost MIX_ENV=test
   jobs:
     - CASSANDRA_IMAGE=cassandra:3.11.5
-    - CASSANDRA_IMAGE=scylladb/scylla:3.1.1
+    - CASSANDRA_IMAGE=scylladb/scylla:3.3.rc1-202002170456
 cache:
   directories:
     - deps
