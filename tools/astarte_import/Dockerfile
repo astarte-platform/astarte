@@ -14,7 +14,7 @@ RUN mix deps.get
 RUN mix release
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:stretch-slim
+FROM debian:buster-slim
 RUN apt-get -qq update
 
 # Set the locale

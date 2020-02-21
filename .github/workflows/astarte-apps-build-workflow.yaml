@@ -18,8 +18,8 @@ on:
     - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
-  elixir_version: 1.8.1
-  otp_version: 21.3
+  elixir_version: 1.10.1
+  otp_version: 22.2
 
 jobs:
   test-dialyzer:
@@ -95,9 +95,9 @@ jobs:
         - astarte_trigger_engine
         database:
         - "cassandra:3.11.5"
-        - "scylladb/scylla:3.1.1"
+        - "scylladb/scylla:3.3.rc1-202002170456"
         rabbitmq:
-        - "rabbitmq:3.7.21-management"
+        - "rabbitmq:3.8.3-rc.1-management"
     services:
       rabbitmq:
         image: ${{ matrix.rabbitmq }}

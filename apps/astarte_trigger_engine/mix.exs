@@ -22,8 +22,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      version: "0.11.0-beta.3",
-      elixir: "~> 1.8",
+      version: "1.0.0-dev",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -59,9 +59,9 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "master"},
       {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-0.11"}
+       github: "astarte-platform/astarte_data_access", branch: "master"}
     ]
   end
 
@@ -74,7 +74,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.2.1"},
+      {:amqp, "~> 1.2"},
       {:bbmustache, "~> 1.5"},
       {:conform, "== 2.5.2"},
       {:cyanide, github: "ispirata/cyanide"},

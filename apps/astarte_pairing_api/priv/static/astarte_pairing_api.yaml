@@ -13,7 +13,7 @@ servers:
           instance, it is most likely `https://<your host>/pairing`.
 info:
   description: 'Control device registration, authentication an authorization'
-  version: 0.11.0-beta.3
+  version: 1.0.0-dev
   title: Astarte Pairing API
   contact:
     email: info@ispirata.com

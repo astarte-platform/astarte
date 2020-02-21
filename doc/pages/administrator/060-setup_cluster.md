@@ -44,7 +44,7 @@ metadata:
 spec:
   # This is the most minimal set of reasonable configuration to spin up an Astarte
   # instance with reasonable defaults and enough control over the deployment.
-  version: 0.11-snapshot
+  version: snapshot
   api:
     host: "api.astarte.yourdomain.com" # MANDATORY
   rabbitmq:

@@ -22,8 +22,8 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   def project do
     [
       app: :astarte_housekeeping_api,
-      version: "0.11.0-beta.3",
-      elixir: "~> 1.8",
+      version: "1.0.0-dev",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.11"}
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "master"}
     ]
   end
 
@@ -80,7 +80,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
     [
       {:conform, "== 2.5.2"},
       {:jason, "~> 1.0"},
-      {:phoenix, "~> 1.4.0"},
+      {:phoenix, "~> 1.4"},
       {:phoenix_ecto, "~> 4.0"},
       {:gettext, "~> 0.11"},
       {:cors_plug, "~> 1.5"},
