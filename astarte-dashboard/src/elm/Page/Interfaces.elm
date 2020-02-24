@@ -21,7 +21,6 @@ module Page.Interfaces exposing (Model, Msg, init, subscriptions, update, view)
 
 import AstarteApi
 import Bootstrap.Accordion as Accordion
-import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -213,94 +212,88 @@ view model flashMessages =
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ h5
-                    [ Display.inline
-                    , class "text-secondary"
-                    , class "font-weight-normal"
-                    , class "align-middle"
-                    ]
-                    [ if Dict.isEmpty model.interfaces then
-                        text "No interfaces installed"
-
-                      else
-                        text "Interfaces"
-                    ]
-                , Button.button
-                    [ Button.primary
-                    , Button.onClick OpenInterfaceBuilder
-                    , Button.attrs [ class "float-right" ]
-                    ]
-                    [ text "Install a New Interface ..." ]
-                , Button.button
-                    [ Button.primary
-                    , Button.onClick GetInterfaceList
-                    , Button.attrs [ class "float-right", Spacing.mr1 ]
-                    ]
-                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
-                    , text "Reload"
-                    ]
+                [ Html.h3 []
+                    [ Html.text "Interfaces" ]
                 ]
             ]
-        , Grid.row []
-            [ Grid.col
-                [ Col.sm12 ]
-                [ Accordion.config AccordionMsg
-                    |> Accordion.withAnimation
-                    |> Accordion.cards
-                        (model.interfaces
-                            |> Dict.toList
-                            |> List.map renderInterfaceCard
-                        )
-                    |> Accordion.view model.accordionState
+        , Grid.row [ Row.attrs [ Spacing.mt3 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ ListGroup.ul
+                    (model.interfaces
+                        |> Dict.toList
+                        |> List.map interfaceLinks
+                        |> addWhen (Dict.isEmpty model.interfaces) noInterfaceInstalledRow
+                        |> (::) addInterfaceRow
+                    )
                 ]
             ]
         ]
 
 
-renderInterfaceCard : ( String, List Int ) -> Accordion.Card Msg
-renderInterfaceCard ( interfaceName, majors ) =
-    Accordion.card
-        { id = interfaceNameToHtmlId interfaceName
-        , options = [ Card.attrs [ Spacing.mt2 ] ]
-        , header =
-            Accordion.headerH4
-                [ onClick <| GetInterfaceMajors interfaceName ]
-                (Accordion.toggle []
-                    [ text interfaceName ]
-                )
-        , blocks =
-            [ Accordion.listGroup
-                (if List.isEmpty majors then
-                    [ ListGroup.li [] [ text "Loading..." ] ]
-
-                 else
-                    List.map (renderMajor interfaceName) majors
-                )
-            ]
-        }
-
-
-interfaceNameToHtmlId : String -> String
-interfaceNameToHtmlId name =
-    name
-        |> String.map
-            (\c ->
-                if c == '.' then
-                    '-'
-
-                else
-                    c
-            )
-        |> String.append "m"
-
-
-renderMajor : String -> Int -> ListGroup.Item Msg
-renderMajor interfaceName major =
+noInterfaceInstalledRow : ListGroup.Item Msg
+noInterfaceInstalledRow =
     ListGroup.li []
-        [ a
-            [ href <| Route.toString <| Route.Realm (Route.ShowInterface interfaceName major) ]
-            [ text <| interfaceName ++ " v" ++ String.fromInt major ]
+        [ Html.text "No interface installed" ]
+
+
+addInterfaceRow : ListGroup.Item Msg
+addInterfaceRow =
+    ListGroup.li []
+        [ Html.a
+            [ href <| Route.toString <| Route.Realm Route.NewInterface ]
+            [ Icons.render Icons.Add [ Spacing.mr2 ]
+            , Html.text "Install a new interface ..."
+            ]
         ]
+
+
+interfaceLinks : ( String, List Int ) -> ListGroup.Item Msg
+interfaceLinks ( interfaceName, majors ) =
+    let
+        latestVer =
+            List.maximum majors
+    in
+    case latestVer of
+        Nothing ->
+            ListGroup.li [] [ Html.text interfaceName ]
+
+        Just latest ->
+            ListGroup.li []
+                [ Grid.containerFluid [ Spacing.p0 ]
+                    [ Grid.simpleRow
+                        [ Grid.col []
+                            [ Html.a
+                                [ href <| Route.toString <| Route.Realm (Route.ShowInterface interfaceName latest) ]
+                                [ Icons.render Icons.Interface [ Spacing.mr2 ]
+                                , Html.text interfaceName
+                                ]
+                            ]
+                        , Grid.col [ Col.mdAuto ]
+                            (List.map (majorBadgeLink interfaceName) majors)
+                        ]
+                    ]
+                ]
+
+
+majorBadgeLink : String -> Int -> Html Msg
+majorBadgeLink interfaceName major =
+    let
+        badgeColorClass =
+            if major == 0 then
+                "badge-secondary"
+
+            else
+                "badge-primary"
+    in
+    Html.a
+        [ class "badge"
+        , class badgeColorClass
+        , Spacing.mr1
+        , Spacing.px2
+        , Spacing.py1
+        , href <| Route.toString <| Route.Realm (Route.ShowInterface interfaceName major)
+        ]
+        [ Html.text <| "v" ++ String.fromInt major ]
 
 
 
