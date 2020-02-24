@@ -164,52 +164,47 @@ view model flashMessages =
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ h5
-                    [ Display.inline
-                    , class "text-secondary"
-                    , class "font-weight-normal"
-                    , class "align-middle"
-                    ]
-                    [ if List.isEmpty model.triggers then
-                        text "No trigger installed"
-
-                      else
-                        text "Triggers"
-                    ]
-                , Button.button
-                    [ Button.primary
-                    , Button.onClick AddNewTrigger
-                    , Button.attrs [ class "float-right" ]
-                    ]
-                    [ text "Install a New trigger ..." ]
-                , Button.button
-                    [ Button.primary
-                    , Button.onClick GetTriggerList
-                    , Button.attrs [ class "float-right", Spacing.mr1 ]
-                    ]
-                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
-                    , text "Reload"
-                    ]
+                [ Html.h3 []
+                    [ Html.text "Triggers" ]
                 ]
             ]
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ ListGroup.ul <| List.map renderSingleTrigger model.triggers ]
+        , Grid.row [ Row.attrs [ Spacing.mt3 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ ListGroup.ul
+                    (model.triggers
+                        |> List.map triggerLink
+                        |> addWhen (List.isEmpty model.triggers) noTriggersInstalledRow
+                        |> (::) addTriggerRow
+                    )
+                ]
             ]
         ]
 
 
-renderSingleTrigger : String -> ListGroup.Item Msg
-renderSingleTrigger triggerName =
-    ListGroup.li
-        [ ListGroup.attrs [ Spacing.p0, Spacing.mb2 ] ]
-        [ h4
-            [ class "card-header" ]
-            [ a
-                [ href <| Route.toString <| Route.Realm (Route.ShowTrigger triggerName) ]
-                [ text triggerName ]
+noTriggersInstalledRow : ListGroup.Item Msg
+noTriggersInstalledRow =
+    ListGroup.li []
+        [ Html.text "No trigger installed" ]
+
+
+addTriggerRow : ListGroup.Item Msg
+addTriggerRow =
+    ListGroup.li []
+        [ Html.a
+            [ href <| Route.toString <| Route.Realm Route.NewTrigger ]
+            [ Icons.render Icons.Add [ Spacing.mr2 ]
+            , Html.text "Install a new trigger ..."
+            ]
+        ]
+
+
+triggerLink : String -> ListGroup.Item Msg
+triggerLink triggerName =
+    ListGroup.li []
+        [ Html.a
+            [ href <| Route.toString <| Route.Realm (Route.ShowTrigger triggerName) ]
+            [ Icons.render Icons.Trigger [ Spacing.mr2 ]
+            , Html.text triggerName
             ]
         ]
 
