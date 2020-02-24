@@ -23,9 +23,6 @@ defmodule Astarte.AppEngine.APIWeb.Endpoint do
   plug Metrics.PrometheusExporter
   plug Metrics.PipelineInstrumenter
 
-  # TODO: this route for the socket is deprecated, remove it in Astarte 1.0
-  socket "/socket", Astarte.AppEngine.APIWeb.UserSocket, websocket: true
-
   socket "/v1/socket", Astarte.AppEngine.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
