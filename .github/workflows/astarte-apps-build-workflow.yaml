@@ -26,6 +26,7 @@ jobs:
     name: Check Dialyzer
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         app:
         - astarte_appengine_api
@@ -82,6 +83,7 @@ jobs:
     needs:
       - test-dialyzer
     strategy:
+      fail-fast: false
       matrix:
         app:
         - astarte_appengine_api
