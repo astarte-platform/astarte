@@ -71,12 +71,42 @@ defmodule Astarte.AppEngine.API.Device do
          credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),
          :ok <- change_credentials_inhibited(client, device_id, credentials_inhibited_change),
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
-         :ok <- update_aliases(client, device_id, aliases_change) do
+         metadata_change <- Map.get(changeset.changes, :metadata, %{}),
+         :ok <- update_aliases(client, device_id, aliases_change),
+         :ok <- update_metadata(client, device_id, metadata_change) do
       # Manually merge aliases since changesets don't perform maps deep merge
-      merged_aliases = merge_aliases(device_status.aliases, updated_device_status.aliases)
+      merged_aliases = merge_data(device_status.aliases, updated_device_status.aliases)
+      merged_metadata = merge_data(device_status.metadata, updated_device_status.metadata)
 
-      {:ok, %{updated_device_status | aliases: merged_aliases}}
+      updated_map =
+        updated_device_status
+        |> Map.put(:aliases, merged_aliases)
+        |> Map.put(:metadata, merged_metadata)
+
+      {:ok, updated_map}
     end
+  end
+
+  defp update_metadata(client, device_id, metadata) do
+    Enum.reduce_while(metadata, :ok, fn
+      {metadata_key, nil}, _acc ->
+        case Queries.delete_metadata(client, device_id, metadata_key) do
+          :ok ->
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+
+      {metadata_key, metadata_value}, _acc ->
+        case Queries.insert_metadata(client, device_id, metadata_key, metadata_value) do
+          :ok ->
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+    end)
   end
 
   defp update_aliases(client, device_id, aliases) do
@@ -95,8 +125,8 @@ defmodule Astarte.AppEngine.API.Device do
     end)
   end
 
-  defp merge_aliases(old_aliases, new_aliases) when is_map(old_aliases) do
-    Map.merge(old_aliases, new_aliases)
+  defp merge_data(old_data, new_data) when is_map(old_data) and is_map(new_data) do
+    Map.merge(old_data, new_data)
     |> Enum.reject(fn {_, v} -> v == nil end)
     |> Enum.into(%{})
   end

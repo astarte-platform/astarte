@@ -76,6 +76,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     connected: false,
     id: "f0VMRgIBAQAAAAAAAAAAAA",
     aliases: %{"display_name" => "device_a"},
+    metadata: %{"metadata_key" => "device_a_metadata"},
     introspection: @expected_introspection,
     last_connection: %DateTime{
       calendar: Calendar.ISO,
@@ -1586,6 +1587,38 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     assert Device.get_device_status!("autotestrealm", @expected_device_status.id) ==
              {:ok, @expected_device_status}
+  end
+
+  test "update device metadata using merge_device_status/3" do
+    params = %{"metadata" => %{"metadata_key" => "new_metadata"}}
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             params
+           ) ==
+             {:ok,
+              Map.put(@expected_device_status, :metadata, %{"metadata_key" => "new_metadata"})}
+  end
+
+  test "delete metadata with existing key using merge_device_status" do
+    modified_metadata = %{"metadata" => %{"metadata_key" => nil}}
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             modified_metadata
+           ) == {:ok, Map.put(@expected_device_status, :metadata, %{})}
+  end
+
+  test "delete metadata with non existing key using merge_device_status" do
+    modified_metadata = %{"metadata" => %{"non_existing_key" => nil}}
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             modified_metadata
+           ) == {:error, :metadata_key_not_found}
   end
 
   describe "updating credentials_inhibited with merge_device_status/3" do

@@ -66,6 +66,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Group not found"}}
   end
 
+  def render("422_metadata_key_not_found.json", _assigns) do
+    %{errors: %{detail: "Metadata key not found"}}
+  end
+
   def render("409_group_already_exists.json", _assigns) do
     %{errors: %{detail: "Group already exists"}}
   end
