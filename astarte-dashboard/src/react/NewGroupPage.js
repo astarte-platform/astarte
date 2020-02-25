@@ -30,7 +30,7 @@ import {
 
 import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
-import Card from "./ui/Card.js";
+import SingleCardPage from "./ui/SingleCardPage.js";
 import CheckableDeviceTable from "./ui/CheckableDeviceTable.js";
 import { Link } from "react-router-dom";
 
@@ -210,7 +210,9 @@ export default class NewGroupPage extends React.Component {
         break;
     }
 
-    return <Card title={`Create a new group`}>{innerHTML}</Card>;
+    return (
+      <SingleCardPage title={`Create a New Group`}>{innerHTML}</SingleCardPage>
+    );
   }
 }
 

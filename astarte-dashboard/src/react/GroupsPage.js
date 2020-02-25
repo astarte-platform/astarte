@@ -22,7 +22,7 @@ import { Button, Spinner, Table } from "react-bootstrap";
 
 import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
-import Card from "./ui/Card.js";
+import SingleCardPage from "./ui/SingleCardPage.js";
 
 export default class GroupsPage extends React.Component {
   constructor(props) {
@@ -133,12 +133,12 @@ export default class GroupsPage extends React.Component {
     }
 
     return (
-      <Card title="Groups">
+      <SingleCardPage title="Groups">
         {innerHTML}
         <Button className="float-right" onClick={this.goNewGroupPage}>
           Create new group
         </Button>
-      </Card>
+      </SingleCardPage>
     );
   }
 

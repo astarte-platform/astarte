@@ -28,7 +28,7 @@ import {
 
 import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
-import Card from "./ui/Card.js";
+import SingleCardPage from "./ui/SingleCardPage.js";
 import { Link } from "react-router-dom";
 
 export default class GroupDevicesPage extends React.Component {
@@ -137,7 +137,7 @@ export default class GroupDevicesPage extends React.Component {
     }
 
     return (
-      <Card title={`Devices in group "${this.props.groupName}"`}>
+      <SingleCardPage title={`Devices in Group "${this.props.groupName}"`}>
         {innerHTML}
         <Modal
           size="lg"
@@ -175,7 +175,7 @@ export default class GroupDevicesPage extends React.Component {
             </Button>
           </Modal.Footer>
         </Modal>
-      </Card>
+      </SingleCardPage>
     );
   }
 }
