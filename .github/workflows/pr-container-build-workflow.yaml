@@ -12,6 +12,7 @@ jobs:
     name: Test Container Build
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         app:
         - astarte_appengine_api
