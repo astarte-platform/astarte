@@ -290,7 +290,7 @@ defmodule Astarte.Pairing.RPC.Handler do
   end
 
   defp generic_ok do
-    %GenericOkReply{}
+    %GenericOkReply{async_operation: false}
     |> encode_reply(:generic_ok_reply)
     |> ok_wrap()
   end
@@ -313,7 +313,7 @@ defmodule Astarte.Pairing.RPC.Handler do
   end
 
   defp encode_reply(reply, reply_type) do
-    %Reply{reply: {reply_type, reply}}
+    %Reply{reply: {reply_type, reply}, error: false}
     |> Reply.encode()
   end
 
