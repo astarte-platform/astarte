@@ -53,11 +53,12 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   defp generic_error(
          error_name,
-         user_readable_message \\ nil,
-         user_readable_error_name \\ nil,
-         error_data \\ nil
+         user_readable_message \\ "",
+         user_readable_error_name \\ "",
+         error_data \\ ""
        ) do
     %Reply{
+      version: 0,
       reply:
         {:generic_error_reply,
          %GenericErrorReply{
@@ -71,7 +72,11 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   end
 
   defp generic_ok(async \\ false) do
-    %Reply{reply: {:generic_ok_reply, %GenericOkReply{async_operation: async}}}
+    %Reply{
+      version: 0,
+      error: false,
+      reply: {:generic_ok_reply, %GenericOkReply{async_operation: async}}
+    }
   end
 
   test "invalid empty message" do
@@ -141,7 +146,11 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
       |> Call.encode()
 
-    expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}}}
+    expected = %Reply{
+      error: false,
+      reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}},
+      version: 0
+    }
 
     {:ok, exists_reply} = Handler.handle_rpc(encoded)
 
@@ -174,6 +183,8 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       |> Call.encode()
 
     expected = %Reply{
+      version: 0,
+      error: false,
       reply:
         {:get_realm_reply,
          %GetRealmReply{
@@ -216,13 +227,16 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       |> Call.encode()
 
     expected = %Reply{
+      version: 0,
+      error: false,
       reply:
         {:get_realm_reply,
          %GetRealmReply{
            realm_name: @test_realm,
            jwt_public_key_pem: @public_key_pem,
            replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-           datacenter_replication_factors: [{"datacenter1", 1}]
+           datacenter_replication_factors: [{"datacenter1", 1}],
+           replication_factor: 0
          }}
     }
 
@@ -279,7 +293,11 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @not_existing_realm}}}
       |> Call.encode()
 
-    expected = %Reply{reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: false}}}
+    expected = %Reply{
+      version: 0,
+      error: false,
+      reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: false}}
+    }
 
     {:ok, enc_reply} = Handler.handle_rpc(encoded)
 
@@ -327,6 +345,8 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     {:ok, reply} = Handler.handle_rpc(encoded)
 
     expected = %Reply{
+      version: 0,
+      error: false,
       reply:
         {:get_realm_reply,
          %GetRealmReply{
