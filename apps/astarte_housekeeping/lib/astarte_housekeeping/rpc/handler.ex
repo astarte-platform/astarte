@@ -54,14 +54,14 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     {:ok, call_tuple}
   end
 
-  defp call_rpc({:create_realm, %CreateRealm{realm: nil}}) do
-    _ = Logger.warn("CreateRealm with realm == nil.", tag: "rpc_create_nil_realm")
+  defp call_rpc({:create_realm, %CreateRealm{realm: ""}}) do
+    _ = Logger.warn("CreateRealm with empty realm.", tag: "rpc_create_nil_realm")
     generic_error(:empty_name, "empty realm name")
   end
 
-  defp call_rpc({:create_realm, %CreateRealm{jwt_public_key_pem: nil}}) do
+  defp call_rpc({:create_realm, %CreateRealm{jwt_public_key_pem: ""}}) do
     _ =
-      Logger.warn("CreateRealm with jwt_public_key_pem == nil.", tag: "rpc_create_nil_public_key")
+      Logger.warn("CreateRealm with empty jwt_public_key_pem.", tag: "rpc_create_nil_public_key")
 
     generic_error(:empty_public_key, "empty jwt public key pem")
   end
@@ -98,6 +98,12 @@ defmodule Astarte.Housekeeping.RPC.Handler do
       {:error, reason} ->
         generic_error(reason)
     end
+  end
+
+  defp call_rpc({:create_realm, %CreateRealm{replication_factor: 0} = call}) do
+    # Due to new proto3 defaults, if replication factor is not explictly set, it now defaults
+    # to 0 instead of nil. Hide this implementation detail to the outside world.
+    call_rpc({:create_realm, %{call | replication_factor: nil}})
   end
 
   defp call_rpc(
