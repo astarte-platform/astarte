@@ -439,6 +439,40 @@ deviceInfoCard device width =
         ]
 
 
+tableHeaderRightXl : String -> Table.Cell Msg
+tableHeaderRightXl label =
+    Table.th
+        (List.map Table.cellAttr
+            [ Display.tableCellXl
+            , Display.none
+            , class "text-right"
+            ]
+        )
+        [ Html.text label ]
+
+
+tableHeaderRight : String -> Table.Cell Msg
+tableHeaderRight label =
+    Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text label ]
+
+
+tableCellRightXl : String -> Table.Cell Msg
+tableCellRightXl value =
+    Table.td
+        (List.map Table.cellAttr
+            [ Display.tableCellXl
+            , Display.none
+            , class "text-right"
+            ]
+        )
+        [ Html.text value ]
+
+
+tableCellRight : String -> Table.Cell Msg
+tableCellRight value =
+    Table.td [ Table.cellAttr <| class "text-right" ] [ Html.text value ]
+
+
 type alias ComputedInterfaceStats =
     { name : String
     , bytes : Int
@@ -504,21 +538,21 @@ deviceStatsCard device width =
     renderCard "Device stats" width <|
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm6 ]
+            [ Grid.col []
                 [ Table.simpleTable
                     ( Table.simpleThead
                         [ Table.th [] [ Html.text "Interface" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Bytes" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Bytes (%)" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Messages" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Messages (%)" ]
+                        , tableHeaderRight "Bytes"
+                        , tableHeaderRightXl "Bytes (%)"
+                        , tableHeaderRight "Messages"
+                        , tableHeaderRightXl "Messages (%)"
                         ]
                     , Table.tbody []
                         (List.map renderInterfaceStats <| introspectionStats ++ [ others, total ])
                     )
                 ]
             , Grid.col
-                [ Col.sm6, Col.attrs [ class "piechart-container" ] ]
+                [ Col.md12, Col.xl4, Col.attrs [ class "piechart-container" ] ]
                 [ PieChart.view chartParams
                 , Html.ul
                     [ class "list-unstyled"
@@ -613,20 +647,10 @@ renderStats name bytes totalBytes msgs totalMsgs =
     Table.tr []
         [ Table.td []
             [ Html.text name ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ Html.text <| String.fromInt bytes ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ totalBytes
-                |> formatPercentFloat
-                |> Html.text
-            ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ Html.text <| String.fromInt msgs ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ totalMsgs
-                |> formatPercentFloat
-                |> Html.text
-            ]
+        , tableCellRight <| String.fromInt bytes
+        , tableCellRightXl <| formatPercentFloat <| totalBytes
+        , tableCellRight <| String.fromInt msgs
+        , tableCellRightXl <| formatPercentFloat <| totalMsgs
         ]
 
 
