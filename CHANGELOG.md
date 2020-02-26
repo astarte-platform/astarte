@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.11.0-beta.3] - Unreleased
+## [0.11.0-rc.0] - 2020-02-26
 - [realm_management] Correctly handle parametric endpoints regardless of the ordering, so that overlapping endpoints are always refused.
 - [pairing_api] Add health endpoint.
 - [realm_management_api] Add health endpoint.

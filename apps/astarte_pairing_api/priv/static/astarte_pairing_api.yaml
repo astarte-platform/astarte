@@ -13,7 +13,7 @@ servers:
           instance, it is most likely `https://<your host>/pairing`.
 info:
   description: 'Control device registration, authentication an authorization'
-  version: 0.11.0-beta.3
+  version: 0.11.0-rc.0
   title: Astarte Pairing API
   contact:
     email: info@ispirata.com
@@ -22,12 +22,12 @@ tags:
     description: Device registration and credentials secret emission
     externalDocs:
       description: Find out more
-      url: 'https://docs.astarte-platform.org/snapshot/050-pairing_mechanism.html'
+      url: 'https://docs.astarte-platform.org/0.11/050-pairing_mechanism.html'
   - name: device
     description: Device credentials emission and info
     externalDocs:
       description: Find out more
-      url: 'https://docs.astarte-platform.org/snapshot/050-pairing_mechanism.html'
+      url: 'https://docs.astarte-platform.org/0.11/050-pairing_mechanism.html'
 paths:
   '/{realm_name}/agent/devices':
     post:
