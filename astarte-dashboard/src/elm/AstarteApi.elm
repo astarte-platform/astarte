@@ -43,6 +43,7 @@ module AstarteApi exposing
     , listTriggers
     , realmConfig
     , realmManagementApiHealth
+    , setCredentialInhibited
     , updateDeviceAliases
     , updateInterface
     , updateRealmConfig
@@ -554,6 +555,22 @@ updateDeviceAliases apiConfig deviceId aliases resultMsg =
         , headers = buildHeaders apiConfig.token
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
         , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", Device.encodeAliases aliases ) ]
+        , expect = expectWhateverAstarteReply resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+setCredentialInhibited : Config -> String -> Bool -> (Result Error () -> msg) -> Cmd msg
+setCredentialInhibited apiConfig deviceId enabled resultMsg =
+    Http.request
+        { method = "PATCH"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
+        , body =
+            Http.stringBody "application/merge-patch+json" <|
+                Encode.encode 0 <|
+                    Encode.object [ ( "data", Device.encodeCredentialsInhibited enabled ) ]
         , expect = expectWhateverAstarteReply resultMsg
         , timeout = Nothing
         , tracker = Nothing
