@@ -16,7 +16,7 @@ info:
     Astarte's Realm Management API is the main mechanism to configure a Realm.
     It allows installing and managing Interfaces, Triggers and any configuration
     of the Realm itself.
-  version: 0.11.0-beta.3
+  version: 0.11.0-rc.0
   title: Astarte Realm Management API
   contact:
     email: info@ispirata.com
@@ -31,12 +31,12 @@ tags:
       possible) and updating Interfaces in a Realm.
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/snapshot/030-manage_interfaces.html'
+      url: 'https://docs.astarte-platform.org/0.11/030-manage_interfaces.html'
   - name: trigger
     description: Trigger management
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/snapshot/060-triggers.html'
+      url: 'https://docs.astarte-platform.org/0.11/060-triggers.html'
 paths:
   '/{realm_name}/config/auth':
     parameters:
@@ -172,7 +172,7 @@ paths:
         Server side validation is performed and the interface upgrade is
         performed aynchronously. For more information about what is allowed when
         updating an interface, see [the
-        doc](https://docs.astarte-platform.org/snapshot/030-interface.html#versioning).
+        doc](https://docs.astarte-platform.org/0.11/030-interface.html#versioning).
         This operation cannot be reverted.
       operationId: updateInterface
       security:

@@ -44,16 +44,16 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
              {:error, "some random string"}
 
     expectedReply = %Reply{
+      version: 0,
       error: true,
       reply:
         {:generic_error_reply,
          %GenericErrorReply{
-           error_data: nil,
+           error_data: "",
            error_name: "fake_error",
-           user_readable_error_name: nil,
-           user_readable_message: nil
-         }},
-      version: 1
+           user_readable_error_name: "",
+           user_readable_message: ""
+         }}
     }
 
     {:ok, buf} = Handler.encode_reply(:test, {:error, :fake_error})
@@ -62,6 +62,7 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
 
   test "decode replies" do
     expectedReply = %Reply{
+      version: 0,
       error: false,
       reply:
         {:get_interface_source_reply,
@@ -74,6 +75,7 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
     assert Reply.decode(buf) == expectedReply
 
     expectedReply = %Reply{
+      version: 0,
       error: false,
       reply:
         {:get_interface_versions_list_reply,
@@ -100,6 +102,7 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
     assert Reply.decode(buf) == expectedReply
 
     expectedReply = %Reply{
+      version: 0,
       error: false,
       reply:
         {:get_interfaces_list_reply,

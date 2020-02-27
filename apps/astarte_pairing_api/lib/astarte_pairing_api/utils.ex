@@ -26,12 +26,12 @@ defmodule Astarte.Pairing.API.Utils do
   to the changeset.
   """
   def error_map_into_changeset(%Ecto.Changeset{} = changeset, error_map) do
-    Enum.reduce(error_map, %{changeset | valid?: false}, fn {k, v}, acc ->
-      if v do
+    Enum.reduce(error_map, %{changeset | valid?: false}, fn
+      {k, v}, acc when is_binary(v) and v != "" ->
         Ecto.Changeset.add_error(acc, k, v)
-      else
+
+      _, acc ->
         acc
-      end
     end)
   end
 end

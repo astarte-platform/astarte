@@ -131,7 +131,16 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
 
       expected_err_reply = %Reply{
         error: true,
-        reply: {:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "realm_not_found",
+             error_data: "",
+             user_readable_error_name: "",
+             user_readable_message: "",
+             user_readable_message: ""
+           }},
+        version: 0
       }
 
       assert Reply.decode(reply) == expected_err_reply
@@ -178,7 +187,16 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
 
       expected_err_reply = %Reply{
         error: true,
-        reply: {:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "realm_not_found",
+             error_data: "",
+             user_readable_error_name: "",
+             user_readable_message: "",
+             user_readable_message: ""
+           }},
+        version: 0
       }
 
       assert Reply.decode(reply) == expected_err_reply
@@ -366,7 +384,15 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
 
       expected_err_reply = %Reply{
         error: true,
-        reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_device_id"}}
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "invalid_device_id",
+             error_data: "",
+             user_readable_error_name: "",
+             user_readable_message: ""
+           }},
+        version: 0
       }
 
       assert expected_err_reply == Reply.decode(reply)
@@ -457,7 +483,15 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
 
       expected_err_reply = %Reply{
         error: true,
-        reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_ip"}}
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "invalid_ip",
+             error_data: "",
+             user_readable_error_name: "",
+             user_readable_message: ""
+           }},
+        version: 0
       }
 
       assert expected_err_reply == Reply.decode(reply)

@@ -126,7 +126,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Handler do
   end
 
   defp encode_reply(reply, reply_type) do
-    %Reply{reply: {reply_type, reply}}
+    %Reply{reply: {reply_type, reply}, error: false}
     |> Reply.encode()
   end
 

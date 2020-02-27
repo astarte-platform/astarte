@@ -186,12 +186,12 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
 
     # Add the available infos from the error map
     error_changeset =
-      Enum.reduce(error_map, changeset, fn {k, v}, acc ->
-        if v do
+      Enum.reduce(error_map, changeset, fn
+        {k, v}, acc when is_binary(v) and v != "" ->
           Ecto.Changeset.add_error(acc, k, v)
-        else
+
+        _, acc ->
           acc
-        end
       end)
 
     {:error, error_changeset}
