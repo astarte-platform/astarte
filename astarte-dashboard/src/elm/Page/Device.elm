@@ -21,12 +21,14 @@ module Page.Device exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import AstarteApi
 import Bootstrap.Badge as Badge
+import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Color exposing (Color)
@@ -92,12 +94,14 @@ type Msg
     | UpdateAliasModal NewAlias.Msg
     | UpdateGroupModal SelectGroup.Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
+    | SetCredentialsInhibited Bool
       -- spinner
     | SpinnerMsg Spinner.Msg
       -- API
     | DeviceInfosDone (Result AstarteApi.Error Device)
     | GroupListDone (Result AstarteApi.Error (List String))
     | AddGroupToDeviceDone (Result AstarteApi.Error ())
+    | SetCredentialsInhibitedDone Bool (Result AstarteApi.Error ())
       -- Ports
     | OnDeviceEventReceived (Result Decode.Error JSEvent)
 
@@ -236,6 +240,33 @@ update session msg model =
                     )
 
         DeviceAliasesUpdated _ (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
+        SetCredentialsInhibited enabled ->
+            ( model
+            , AstarteApi.setCredentialInhibited session.apiConfig model.deviceId enabled (SetCredentialsInhibitedDone enabled)
+            , ExternalMsg.Noop
+            )
+
+        SetCredentialsInhibitedDone enabled (Ok _) ->
+            let
+                newDevice =
+                    model.device
+                        |> Maybe.map (\r -> { r | credentialsinhibited = enabled })
+            in
+            ( { model | device = newDevice }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        SetCredentialsInhibitedDone _ (Err error) ->
             let
                 ( message, details ) =
                     AstarteApi.errorToHumanReadable error
@@ -410,7 +441,7 @@ renderCard cardName width innerItems =
     in
     Grid.col (classWidth ++ [ Col.attrs [ Spacing.p2 ] ])
         [ Grid.containerFluid
-            [ class "bg-white", Border.rounded, Spacing.p3, Size.h100 ]
+            [ class "bg-white", Border.rounded, Spacing.p3, Size.h100, Flex.block, Flex.col ]
             (Grid.row
                 [ Row.attrs [ Spacing.mt2 ] ]
                 [ Grid.col [ Col.sm12 ]
@@ -436,7 +467,43 @@ deviceInfoCard device width =
         , renderTextRow ( "Device name", Dict.get "name" device.aliases |> Maybe.withDefault "No name alias set" )
         , renderHtmlRow ( "Status", renderConnectionStatus device )
         , renderBoolRow ( "Credentials inhibited", device.credentialsinhibited )
+        , Grid.row [ Row.attrs [ class "flex-grow-1" ] ] []
+        , buttonsRow device.credentialsinhibited
         ]
+
+
+tableHeaderRightXl : String -> Table.Cell Msg
+tableHeaderRightXl label =
+    Table.th
+        (List.map Table.cellAttr
+            [ Display.tableCellXl
+            , Display.none
+            , class "text-right"
+            ]
+        )
+        [ Html.text label ]
+
+
+tableHeaderRight : String -> Table.Cell Msg
+tableHeaderRight label =
+    Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text label ]
+
+
+tableCellRightXl : String -> Table.Cell Msg
+tableCellRightXl value =
+    Table.td
+        (List.map Table.cellAttr
+            [ Display.tableCellXl
+            , Display.none
+            , class "text-right"
+            ]
+        )
+        [ Html.text value ]
+
+
+tableCellRight : String -> Table.Cell Msg
+tableCellRight value =
+    Table.td [ Table.cellAttr <| class "text-right" ] [ Html.text value ]
 
 
 type alias ComputedInterfaceStats =
@@ -504,21 +571,21 @@ deviceStatsCard device width =
     renderCard "Device stats" width <|
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm6 ]
+            [ Grid.col []
                 [ Table.simpleTable
                     ( Table.simpleThead
                         [ Table.th [] [ Html.text "Interface" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Bytes" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Bytes (%)" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Messages" ]
-                        , Table.th [ Table.cellAttr <| class "text-right" ] [ Html.text "Messages (%)" ]
+                        , tableHeaderRight "Bytes"
+                        , tableHeaderRightXl "Bytes (%)"
+                        , tableHeaderRight "Messages"
+                        , tableHeaderRightXl "Messages (%)"
                         ]
                     , Table.tbody []
                         (List.map renderInterfaceStats <| introspectionStats ++ [ others, total ])
                     )
                 ]
             , Grid.col
-                [ Col.sm6, Col.attrs [ class "piechart-container" ] ]
+                [ Col.md12, Col.xl4, Col.attrs [ class "piechart-container" ] ]
                 [ PieChart.view chartParams
                 , Html.ul
                     [ class "list-unstyled"
@@ -613,20 +680,10 @@ renderStats name bytes totalBytes msgs totalMsgs =
     Table.tr []
         [ Table.td []
             [ Html.text name ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ Html.text <| String.fromInt bytes ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ totalBytes
-                |> formatPercentFloat
-                |> Html.text
-            ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ Html.text <| String.fromInt msgs ]
-        , Table.td [ Table.cellAttr <| class "text-right" ]
-            [ totalMsgs
-                |> formatPercentFloat
-                |> Html.text
-            ]
+        , tableCellRight <| String.fromInt bytes
+        , tableCellRightXl <| formatPercentFloat <| totalBytes
+        , tableCellRight <| String.fromInt msgs
+        , tableCellRightXl <| formatPercentFloat <| totalMsgs
         ]
 
 
@@ -893,6 +950,31 @@ renderConnectionStatus device =
                 [ Icons.render Icons.FullCircle [ class "icon-disconnected", Spacing.mr1 ]
                 , Html.text "Disconnected"
                 ]
+
+
+buttonsRow : Bool -> Html Msg
+buttonsRow deviceCredentialsInhibited =
+    Grid.row []
+        [ Grid.col
+            [ Col.sm12
+            , Col.attrs [ Flex.block, Flex.rowReverse ]
+            ]
+            [ if deviceCredentialsInhibited then
+                Button.button
+                    [ Button.success
+                    , Button.onClick (SetCredentialsInhibited False)
+                    ]
+                    [ Html.text "Enable credentials request" ]
+
+              else
+                Button.button
+                    [ Button.danger
+                    , Button.attrs [ Spacing.mr1 ]
+                    , Button.onClick (SetCredentialsInhibited True)
+                    ]
+                    [ Html.text "Inhibit credentials" ]
+            ]
+        ]
 
 
 renderGroups : List String -> Html Msg

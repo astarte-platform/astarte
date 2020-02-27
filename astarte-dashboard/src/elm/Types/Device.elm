@@ -17,7 +17,7 @@
 -}
 
 
-module Types.Device exposing (Device, IntrospectionValue(..), decoder, encodeAliases)
+module Types.Device exposing (Device, IntrospectionValue(..), decoder, encodeAliases, encodeCredentialsInhibited)
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
@@ -144,3 +144,8 @@ previousInterfaceDataDecoder =
 encodeAliases : Dict String String -> Value
 encodeAliases aliases =
     Encode.object [ ( "aliases", Encode.dict identity Encode.string aliases ) ]
+
+
+encodeCredentialsInhibited : Bool -> Value
+encodeCredentialsInhibited enabled =
+    Encode.object [ ( "credentials_inhibited", Encode.bool enabled ) ]

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Layout and palette restyle.
 
-## [0.11.0-beta.3] - unreleased
+## [0.11.0-rc.0] - 2020-01-26
 ### Added
 - Support for data triggers matching "any interfaces".
 - Group creation page.
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - API health check.
 - Mapping database retention policy and TTL.
 - API status and installed interfaces/triggers in Home page.
+- Add button for device credential inhibit/enable.
 
 ### Changed
 - New datastream mappings have explicit\_timestamp by default
