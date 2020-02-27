@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def project do
     [
       app: :astarte_appengine_api,
-      version: "0.11.0-rc.0",
+      version: "1.0.0-dev",
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -70,10 +70,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-0.11"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.11"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
