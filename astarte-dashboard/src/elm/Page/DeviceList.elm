@@ -137,21 +137,8 @@ view model flashMessages =
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ h5
-                    [ Display.inline
-                    , class "text-secondary"
-                    , class "font-weight-normal"
-                    , class "align-middle"
-                    ]
-                    [ Html.text "Device list" ]
-                , Button.button
-                    [ Button.primary
-                    , Button.onClick RefreshTable
-                    , Button.attrs [ class "float-right" ]
-                    ]
-                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
-                    , Html.text "Reload"
-                    ]
+                [ Html.h3 []
+                    [ Html.text "Device List" ]
                 ]
             ]
         , Grid.row

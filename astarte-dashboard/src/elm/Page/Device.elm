@@ -568,7 +568,7 @@ deviceStatsCard device width =
             , data = piecharList
             }
     in
-    renderCard "Device stats" width <|
+    renderCard "Device Stats" width <|
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col []

@@ -218,13 +218,8 @@ view model flashMessages =
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
                 [ Col.sm12 ]
-                [ h5
-                    [ Display.inline
-                    , class "text-secondary"
-                    , class "font-weight-normal"
-                    , class "align-middle"
-                    ]
-                    [ text "Realm settings" ]
+                [ Html.h3 []
+                    [ text "Realm Settings" ]
                 ]
             ]
         , Grid.row

@@ -941,19 +941,15 @@ renderContent : Model -> Html Msg
 renderContent model =
     Form.form [ Spacing.mt2Sm ]
         ([ Form.row []
-            [ Form.col [ Col.sm11 ]
-                [ h5
-                    [ Display.inline
-                    , class "align-middle"
-                    , class "font-weight-normal"
-                    , class "text-truncate"
-                    ]
+            [ Form.col []
+                [ Html.h3
+                    [ class "text-truncate" ]
                     [ text
                         (if model.editMode then
                             model.trigger.name
 
                          else
-                            "Install a new trigger"
+                            "Install a New Trigger"
                         )
                     , if model.editMode then
                         Button.button
@@ -969,10 +965,9 @@ renderContent model =
                         text ""
                     ]
                 ]
-            , Form.col [ Col.sm1 ]
+            , Form.col [ Col.smAuto ]
                 [ Button.button
                     [ Button.secondary
-                    , Button.attrs [ class "float-right" ]
                     , Button.onClick ToggleSource
                     ]
                     [ Icons.render Icons.ToggleSidebar [] ]

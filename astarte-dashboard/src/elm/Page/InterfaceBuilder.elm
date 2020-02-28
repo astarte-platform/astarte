@@ -1060,20 +1060,16 @@ renderContent model interface interfaceEditMode accordionState =
     Grid.containerFluid []
         [ Form.form []
             [ Form.row []
-                [ Form.col [ Col.sm11 ]
-                    [ h5
-                        [ Display.inline
-                        , class "align-middle"
-                        , class "font-weight-normal"
-                        , class "text-truncate"
-                        ]
+                [ Form.col []
+                    [ Html.h3
+                        [ class "text-truncate" ]
                         [ text
                             (case model.builderMode of
                                 EditorOnly ->
                                     "Interface Editor"
 
                                 New ->
-                                    "Install a new interface"
+                                    "Install a New Interface"
 
                                 Edit _ ->
                                     interface.name
@@ -1092,10 +1088,9 @@ renderContent model interface interfaceEditMode accordionState =
                             text ""
                         ]
                     ]
-                , Form.col [ Col.sm1 ]
+                , Form.col [ Col.smAuto ]
                     [ Button.button
                         [ Button.secondary
-                        , Button.attrs [ class "float-right" ]
                         , Button.onClick ToggleSource
                         ]
                         [ Icons.render Icons.ToggleSidebar [] ]
