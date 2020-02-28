@@ -56,3 +56,11 @@ body {
 .bg-sensor-theme {
   background-color: #6aa8d8;
 }
+
+.connected {
+  background-color: #008000;
+}
+
+.disconnected {
+  background-color: #ff0000;
+}
