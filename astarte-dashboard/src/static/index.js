@@ -32,13 +32,7 @@ let channel = null;
 let app;
 
 $.getJSON("/user-config/config.json", function(result) {
-  if (result.realm_management_api_url) {
-    dashboardConfig = result;
-  } else {
-    console.log(
-      "Invalid Astarte dashboard configuration file. Starting in editor only mode"
-    );
-  }
+  dashboardConfig = result;
 })
   .fail(function(jqXHR, textStatus, errorThrown) {
     console.log(

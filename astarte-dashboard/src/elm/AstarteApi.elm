@@ -88,6 +88,8 @@ type alias Config =
     { secureConnection : Bool
     , realmManagementUrl : String
     , appengineUrl : String
+    , pairingUrl : String
+    , flowUrl : String
     , realm : String
     , token : String
     }
@@ -686,6 +688,8 @@ encodeConfig config =
         [ ( "secure_connection", Encode.bool config.secureConnection )
         , ( "realm_management_url", Encode.string config.realmManagementUrl )
         , ( "appengine_url", Encode.string config.appengineUrl )
+        , ( "pairing_url", Encode.string config.appengineUrl )
+        , ( "flow_url", Encode.string config.appengineUrl )
         , ( "realm", Encode.string config.realm )
         , ( "token", Encode.string config.token )
         ]
@@ -697,6 +701,8 @@ configDecoder =
         |> required "secure_connection" Decode.bool
         |> required "realm_management_url" Decode.string
         |> required "appengine_url" Decode.string
+        |> required "pairing_url" Decode.string
+        |> required "flow_url" Decode.string
         |> required "realm" Decode.string
         |> required "token" Decode.string
 
