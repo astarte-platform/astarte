@@ -298,6 +298,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
