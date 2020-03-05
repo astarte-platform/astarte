@@ -698,6 +698,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
+  # TODO: We need tests for this function
   def validate_value_type(expected_type, %DateTime{} = value) do
     ValueType.validate_value(expected_type, value)
   end
@@ -707,7 +708,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:error, :unexpected_value_type}
   end
 
-  def validate_value_type(expected_types, %{} = object) do
+  def validate_value_type(%{} = expected_types, %{} = object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
       with {:ok, expected_type} <- Map.fetch(expected_types, key),
            :ok <- ValueType.validate_value(expected_type, value) do
@@ -720,6 +721,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:halt, {:error, :unexpected_object_key}}
       end
     end)
+  end
+
+  # TODO: we should test for this kind of unexpected messages
+  # We expected an individual value, but we received an aggregated
+  def validate_value_type(expected_types, %{} = object) do
+    {:error, :unexpected_value_type}
+  end
+
+  # TODO: we should test for this kind of unexpected messages
+  # We expected an aggregated, but we received an individual
+  def validate_value_type(%{} = expected_types, object) do
+    {:error, :unexpected_value_type}
   end
 
   def validate_value_type(expected_type, value) do
