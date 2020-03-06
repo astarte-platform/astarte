@@ -71,7 +71,7 @@ defmodule Astarte.DataAccess.InterfacesTest do
   end
 
   test "check if interfaces exists" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     assert Interface.check_if_interface_exists(db_client, "com.test.SimpleStreamTest", 0) ==
              {:error, :interface_not_found}
@@ -91,14 +91,14 @@ defmodule Astarte.DataAccess.InterfacesTest do
   end
 
   test "fetch_interface_descriptor returns an InterfaceDescriptor struct" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     assert Interface.fetch_interface_descriptor(db_client, "com.test.SimpleStreamTest", 1) ==
              {:ok, @simplestreamtest_interface_descriptor}
   end
 
   test "retrieve_interface_row returns a row with expected values" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     {:ok, row} = Interface.retrieve_interface_row(db_client, "com.test.SimpleStreamTest", 1)
 

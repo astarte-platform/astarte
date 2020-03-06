@@ -41,7 +41,7 @@ defmodule Astarte.DataAccess.DataTest do
   end
 
   test "check if path exists" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
@@ -63,7 +63,7 @@ defmodule Astarte.DataAccess.DataTest do
   end
 
   test "fetch property value on a certain interface" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
@@ -85,7 +85,7 @@ defmodule Astarte.DataAccess.DataTest do
   end
 
   test "fetch last path update" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 

@@ -38,7 +38,7 @@ defmodule Astarte.DataAccess.DeviceTest do
   end
 
   test "retrieve interface version for a certain device" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
     assert Device.interface_version(db_client, device_id, "com.test.SimpleStreamTest") == {:ok, 1}

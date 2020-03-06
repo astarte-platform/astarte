@@ -372,7 +372,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
   """
 
   def connect_to_test_keyspace() do
-    Database.connect("autotestrealm")
+    Database.connect(realm: "autotestrealm")
   end
 
   def insert_empty_device(client, device_id) do
