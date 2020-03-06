@@ -19,7 +19,8 @@
 defmodule Astarte.TriggerEngine.EventsConsumer do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
-  alias CQEx.Client, as: DatabaseClient
+  alias Astarte.DataAccess.Database
+  alias Astarte.TriggerEngine.Config
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
@@ -222,12 +223,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp retrieve_trigger_configuration(realm_name, trigger_id) do
-    client =
-      DatabaseClient.new!(
-        List.first(Application.get_env(:cqerl, :cassandra_nodes)),
-        keyspace: realm_name
-      )
-
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
@@ -235,12 +230,17 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       )
       |> DatabaseQuery.put(:trigger_id, trigger_id)
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
+    with {:ok, client} <- Database.connect(realm: realm_name),
+         {:ok, result} <- DatabaseQuery.call(client, query),
          [value: trigger_data] <- DatabaseResult.head(result),
          trigger <- Trigger.decode(trigger_data),
          {:ok, action} <- Jason.decode(trigger.action) do
       {:ok, action}
     else
+      {:error, :database_connection_error} ->
+        Logger.warn("Database connection error.")
+        {:error, :database_connection_error}
+
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
         {:error, :trigger_not_found}

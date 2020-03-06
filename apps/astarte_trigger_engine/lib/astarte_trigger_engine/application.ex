@@ -24,6 +24,7 @@ defmodule Astarte.TriggerEngine.Application do
 
   alias Astarte.TriggerEngine.AMQPEventsConsumer
   alias Astarte.TriggerEngine.Config
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
 
   def start(_type, _args) do
     # make amqp supervisors logs less verbose
@@ -34,8 +35,13 @@ defmodule Astarte.TriggerEngine.Application do
 
     Logger.info("Starting application", tag: "trigger_engine_app_start")
 
+    Config.validate!()
+    DataAccessConfig.validate!()
+
+    xandra_nodes = Config.xandra_nodes!()
+
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
+      {Xandra.Cluster, nodes: xandra_nodes, name: :xandra},
       AMQPEventsConsumer,
       Astarte.TriggerEngineWeb.Metrics.Supervisor
     ]

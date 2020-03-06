@@ -29,7 +29,7 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
 
   @connection_backoff 10000
 
-  @consumer Config.events_consumer()
+  @consumer Config.events_consumer!()
 
   # API
 
@@ -111,18 +111,22 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
   end
 
   defp connect() do
-    with {:ok, conn} <- Connection.open(Config.amqp_consumer_options()),
+    with amqp_consumer_options = Config.amqp_consumer_options!(),
+         {:ok, conn} <- Connection.open(amqp_consumer_options),
          {:ok, chan} <- Channel.open(conn),
-         :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true),
-         {:ok, _queue} <- Queue.declare(chan, Config.events_queue_name(), durable: true),
+         events_exchange_name = Config.events_exchange_name!(),
+         events_queue_name = Config.events_queue_name!(),
+         events_routing_key = Config.events_routing_key!(),
+         :ok <- Exchange.declare(chan, events_exchange_name, :direct, durable: true),
+         {:ok, _queue} <- Queue.declare(chan, events_queue_name, durable: true),
          :ok <-
            Queue.bind(
              chan,
-             Config.events_queue_name(),
-             Config.events_exchange_name(),
-             routing_key: Config.events_routing_key()
+             events_queue_name,
+             events_exchange_name,
+             routing_key: events_routing_key
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, Config.events_queue_name()),
+         {:ok, _consumer_tag} <- Basic.consume(chan, events_queue_name),
          # Get notifications when the chan or conn go down
          Process.monitor(chan.pid) do
       {:ok, %{channel: chan}}

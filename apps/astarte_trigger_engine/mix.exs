@@ -23,7 +23,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       app: :astarte_trigger_engine,
       version: "1.0.0-dev",
-      elixir: "~> 1.8",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -73,16 +73,11 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      # TODO: remove this when astarte_data_access is updated to the version
-      # with re2 1.9.4
-      {:re2, "~> 1.9.4", override: true},
       {:amqp, "~> 1.2.1"},
       {:bbmustache, "~> 1.5"},
-      {:conform, "== 2.5.2"},
       {:cyanide, github: "ispirata/cyanide"},
       {:httpoison, "~> 1.1"},
       {:jason, "~> 1.0"},
-      {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
@@ -92,6 +87,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.3"},
       {:xandra, "~> 0.13"},
+      {:skogsra, "~> 2.2"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

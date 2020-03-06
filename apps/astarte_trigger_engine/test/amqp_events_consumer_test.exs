@@ -31,7 +31,10 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumerTest do
   setup_all do
     :ok = wait_for_connection()
 
-    {:ok, conn} = Connection.open(Config.amqp_consumer_options())
+    amqp_consumer_options = Config.amqp_consumer_options!()
+
+    {:ok, conn} = Connection.open(amqp_consumer_options)
+
     {:ok, chan} = Channel.open(conn)
 
     {:ok, chan: chan}
@@ -89,8 +92,8 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumerTest do
   end
 
   defp produce_event(chan, payload, headers) do
-    exchange = Config.events_exchange_name()
-    routing_key = Config.events_routing_key()
+    exchange = Config.events_exchange_name!()
+    routing_key = Config.events_routing_key!()
 
     Basic.publish(chan, exchange, routing_key, payload, headers: headers)
   end
