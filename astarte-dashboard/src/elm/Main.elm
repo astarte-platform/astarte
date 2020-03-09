@@ -150,24 +150,27 @@ init jsParam location key =
 initNewSession : String -> Config -> Session
 initNewSession hostUrl config =
     let
-        ( secure, realUrl, appUrl ) =
+        apiConfig =
             case Config.getParams config of
                 Just params ->
-                    ( params.secureConnection
-                    , params.realmManagementApiUrl
-                    , params.appengineApiUrl
-                    )
+                    { secureConnection = params.secureConnection
+                    , realmManagementUrl = params.realmManagementApiUrl
+                    , appengineUrl = params.appengineApiUrl
+                    , pairingUrl = params.pairingApiUrl
+                    , flowUrl = params.flowApiUrl
+                    , realm = ""
+                    , token = ""
+                    }
 
                 Nothing ->
-                    ( False, "", "" )
-
-        apiConfig =
-            { secureConnection = secure
-            , realmManagementUrl = realUrl
-            , appengineUrl = appUrl
-            , realm = ""
-            , token = ""
-            }
+                    { secureConnection = False
+                    , realmManagementUrl = ""
+                    , appengineUrl = ""
+                    , pairingUrl = ""
+                    , flowUrl = ""
+                    , realm = ""
+                    , token = ""
+                    }
     in
     { hostUrl = hostUrl
     , loginStatus = NotLoggedIn

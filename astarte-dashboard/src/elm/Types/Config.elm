@@ -44,6 +44,8 @@ type alias Params =
     { secureConnection : Bool
     , realmManagementApiUrl : String
     , appengineApiUrl : String
+    , pairingApiUrl : String
+    , flowApiUrl : String
     , defaultRealm : Maybe String
     , defaultAuth : AuthType
     , enabledAuth : List AuthConfig
@@ -119,8 +121,11 @@ configMatch authType authConfig =
 
 
 type alias ParamsChangeset =
-    { realmManagementApiUrl : String
-    , appengineApiUrl : String
+    { astarteApiUrl : Maybe String
+    , appengineApiUrl : Maybe String
+    , realmManagementApiUrl : Maybe String
+    , pairingApiUrl : Maybe String
+    , flowApiUrl : Maybe String
     , defaultRealm : Maybe String
     , defaultAuth : AuthType
     , enabledAuth : List AuthConfig
@@ -129,13 +134,37 @@ type alias ParamsChangeset =
 
 decoder : Decoder Config
 decoder =
-    Decode.map5 ParamsChangeset
-        (Decode.field "realm_management_api_url" decodeHttpUrl)
-        (Decode.field "appengine_api_url" decodeHttpUrl)
+    Decode.map8 ParamsChangeset
+        (Decode.maybe <| Decode.field "astarte_api_url" decodeAstarteUrl)
+        (Decode.maybe <| Decode.field "appengine_api_url" decodeHttpUrl)
+        (Decode.maybe <| Decode.field "realm_management_api_url" decodeHttpUrl)
+        (Decode.maybe <| Decode.field "pairing_api_url" decodeHttpUrl)
+        (Decode.maybe <| Decode.field "flow_api_url" decodeHttpUrl)
         (Decode.maybe <| Decode.field "default_realm" Decode.string)
         (Decode.field "default_auth" authTypeDecoder)
         (Decode.field "auth" <| Decode.list authConfigDecoder)
         |> Decode.andThen validateChangeset
+
+
+decodeAstarteUrl : Decoder String
+decodeAstarteUrl =
+    Decode.oneOf
+        [ decodeHttpUrl
+        , decodeExact "localhost"
+        ]
+
+
+decodeExact : String -> Decoder String
+decodeExact match =
+    Decode.string
+        |> Decode.andThen
+            (\str ->
+                if str == match then
+                    Decode.succeed str
+
+                else
+                    Decode.fail <| "Provided string didn't match " ++ match
+            )
 
 
 decodeHttpUrl : Decoder String
@@ -154,36 +183,72 @@ decodeHttpUrl =
 validateChangeset : ParamsChangeset -> Decoder Config
 validateChangeset params =
     let
-        urls =
-            ( String.split "://" params.appengineApiUrl
-            , String.split "://" params.realmManagementApiUrl
-            )
+        astarteUrls =
+            case params.astarteApiUrl of
+                Just "localhost" ->
+                    { appengineApiUrl =
+                        params.appengineApiUrl
+                            |> Maybe.withDefault "http://localhost:4002"
+                    , realmManagementApiUrl =
+                        params.realmManagementApiUrl
+                            |> Maybe.withDefault "http://localhost:4000"
+                    , pairingApiUrl =
+                        params.pairingApiUrl
+                            |> Maybe.withDefault "http://localhost:4003"
+                    , flowApiUrl =
+                        params.flowApiUrl
+                            |> Maybe.withDefault "http://localhost:4009"
+                    }
+
+                Just baseUrl ->
+                    { appengineApiUrl =
+                        params.appengineApiUrl
+                            |> Maybe.withDefault (baseUrl ++ "/appengine")
+                    , realmManagementApiUrl =
+                        params.realmManagementApiUrl
+                            |> Maybe.withDefault (baseUrl ++ "/realmmanagement")
+                    , pairingApiUrl =
+                        params.pairingApiUrl
+                            |> Maybe.withDefault (baseUrl ++ "/pairing")
+                    , flowApiUrl =
+                        params.flowApiUrl
+                            |> Maybe.withDefault (baseUrl ++ "/flow")
+                    }
+
+                Nothing ->
+                    { appengineApiUrl =
+                        params.appengineApiUrl
+                            |> Maybe.withDefault ""
+                    , realmManagementApiUrl =
+                        params.realmManagementApiUrl
+                            |> Maybe.withDefault ""
+                    , pairingApiUrl =
+                        params.pairingApiUrl
+                            |> Maybe.withDefault ""
+                    , flowApiUrl =
+                        params.flowApiUrl
+                            |> Maybe.withDefault ""
+                    }
     in
-    case urls of
-        ( [ "http", aeUrl ], [ "http", rmUrl ] ) ->
-            Decode.succeed <|
-                Standard
-                    { secureConnection = False
-                    , realmManagementApiUrl = rmUrl
-                    , appengineApiUrl = aeUrl
-                    , defaultRealm = params.defaultRealm
-                    , defaultAuth = params.defaultAuth
-                    , enabledAuth = params.enabledAuth
-                    }
+    Decode.succeed <|
+        Standard
+            { secureConnection = String.startsWith "https://" astarteUrls.appengineApiUrl
+            , appengineApiUrl = removeProtocol astarteUrls.appengineApiUrl
+            , realmManagementApiUrl = removeProtocol astarteUrls.realmManagementApiUrl
+            , pairingApiUrl = removeProtocol astarteUrls.pairingApiUrl
+            , flowApiUrl = removeProtocol astarteUrls.flowApiUrl
+            , defaultRealm = params.defaultRealm
+            , defaultAuth = params.defaultAuth
+            , enabledAuth = params.enabledAuth
+            }
 
-        ( [ "https", aeUrl ], [ "https", rmUrl ] ) ->
-            Decode.succeed <|
-                Standard
-                    { secureConnection = True
-                    , realmManagementApiUrl = rmUrl
-                    , appengineApiUrl = aeUrl
-                    , defaultRealm = params.defaultRealm
-                    , defaultAuth = params.defaultAuth
-                    , enabledAuth = params.enabledAuth
-                    }
 
-        _ ->
-            Decode.fail "Realm Management and AppEngine protocol mismatch"
+removeProtocol : String -> String
+removeProtocol url =
+    String.split "://" url
+        |> List.reverse
+        |> List.head
+        |> Maybe.withDefault ""
 
 
 authTypeDecoder : Decoder AuthType
