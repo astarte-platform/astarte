@@ -842,7 +842,7 @@ defmodule Astarte.AppEngine.API.Device do
 
     cond do
       path == "/" and interface_values == {:error, :path_not_found} ->
-        {:ok, %InterfaceValues{data: []}}
+        {:ok, %InterfaceValues{data: %{}}}
 
       path != "/" and elem(interface_values, 1).data == [] ->
         {:error, :path_not_found}
@@ -991,17 +991,30 @@ defmodule Astarte.AppEngine.API.Device do
       count == 1 ->
         [only_path] = paths
 
-        retrieve_endpoint_values(
-          client,
-          device_id,
-          :object,
-          :datastream,
-          interface_row,
-          endpoint_id,
-          endpoint_row,
-          only_path,
-          opts
-        )
+        with {:ok,
+              %Astarte.AppEngine.API.Device.InterfaceValues{data: values, metadata: metadata}} <-
+               retrieve_endpoint_values(
+                 client,
+                 device_id,
+                 :object,
+                 :datastream,
+                 interface_row,
+                 endpoint_id,
+                 endpoint_row,
+                 only_path,
+                 opts
+               ),
+             {:ok, interface_values} <-
+               get_interface_values_from_path(values, metadata, path, only_path) do
+          {:ok, interface_values}
+        else
+          err ->
+            Logger.warn("An error occurred while retrieving endpoint values: #{inspect(err)}",
+              tag: "retrieve_endpoint_values_error"
+            )
+
+            err
+        end
 
       count > 1 ->
         values_map =
@@ -1151,6 +1164,30 @@ defmodule Astarte.AppEngine.API.Device do
       end)
 
     values
+  end
+
+  defp get_interface_values_from_path([], _metadata, _path, _only_path) do
+    {:ok, %{}}
+  end
+
+  defp get_interface_values_from_path(values, metadata, path, only_path) when is_list(values) do
+    simplified_path = simplify_path(path, only_path)
+
+    case simplified_path do
+      "" ->
+        {:ok, %InterfaceValues{data: values, metadata: metadata}}
+
+      _ ->
+        values_map =
+          %{simplified_path => values}
+          |> MapTree.inflate_tree()
+
+        {:ok, %InterfaceValues{data: values_map, metadata: metadata}}
+    end
+  end
+
+  defp get_interface_values_from_path(values, metadata, _path, _only_path) do
+    {:ok, %InterfaceValues{data: values, metadata: metadata}}
   end
 
   defp maybe_downsample_to(values, _count, _aggregation, %InterfaceValuesOptions{
