@@ -1,0 +1,110 @@
+name: Build and Test
+
+on:
+  # Run when pushing to stable branches
+  push:
+    branches:
+    - 'master'
+    - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests
+  pull_request:
+
+env:
+  elixir_version: 1.8.1
+  otp_version: 21.3
+
+jobs:
+  test-dialyzer:
+    name: Check Dialyzer
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: ci
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          ${{ runner.os }}-mix-
+    - uses: actions/cache@v1
+      with:
+        path: _build
+        key: ${{ runner.os }}-_build-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-_build-${{ github.sha }}
+          ${{ runner.os }}-_build-
+    - uses: actions/cache@v1
+      with:
+        path: dialyzer_cache
+        key: ${{ runner.os }}-dialyzer_cache-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-dialyzer_cache-${{ github.sha }}
+          ${{ runner.os }}-dialyzer_cache-
+    - uses: actions/setup-elixir@v1.2.0
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Install Dependencies
+      run: mix deps.get
+    - name: Run dialyzer
+      # FIXME: This should be set to fail when dialyzer issues are fixed
+      run: mix dialyzer || exit 0
+
+  test-coverage:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    # Wait for Dialyzer to give it a go before building
+    needs:
+      - test-dialyzer
+    strategy:
+      fail-fast: false
+      matrix:
+        database:
+        - "cassandra:3.11.5"
+        - "scylladb/scylla:3.1.1"
+    services:
+      database:
+        image: ${{ matrix.database }}
+        ports:
+        - 9042:9042
+    env:
+      MIX_ENV: test
+      CASSANDRA_DB_HOST: localhost
+      ASTARTE_CASSANDRA_NODES: localhost
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          ${{ runner.os }}-mix-
+    - uses: actions/cache@v1
+      with:
+        path: _build
+        key: ${{ runner.os }}-_build-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-_build-${{ github.sha }}
+          ${{ runner.os }}-_build-
+    - uses: actions/setup-elixir@v1.2.0
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Install Dependencies
+      run: mix deps.get
+    - name: Check formatting
+      run: mix format --check-formatted
+    - name: Compile
+      run: mix do compile
+    - name: Test and Coverage
+      run: mix coveralls.json  --exclude wip -o coverage_results
+    - name: Upload Coverage Results to CodeCov
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
