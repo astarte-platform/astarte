@@ -688,8 +688,8 @@ encodeConfig config =
         [ ( "secure_connection", Encode.bool config.secureConnection )
         , ( "realm_management_url", Encode.string config.realmManagementUrl )
         , ( "appengine_url", Encode.string config.appengineUrl )
-        , ( "pairing_url", Encode.string config.appengineUrl )
-        , ( "flow_url", Encode.string config.appengineUrl )
+        , ( "pairing_url", Encode.string config.pairingUrl )
+        , ( "flow_url", Encode.string config.flowUrl )
         , ( "realm", Encode.string config.realm )
         , ( "token", Encode.string config.token )
         ]
