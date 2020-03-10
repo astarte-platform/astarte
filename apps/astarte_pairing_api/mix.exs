@@ -97,7 +97,8 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_phoenix, "~> 1.3"},
       {:prometheus_plugs, "~> 1.1"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:cors_plug, "~> 1.5"}
     ]
   end
 end
