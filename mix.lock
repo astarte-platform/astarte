@@ -1,7 +1,6 @@
 %{
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "9d99f0f8e3cac9de8853a38882ad36dd3b2d29b6", [branch: "master"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "c332be67aad5be06fbd2cf07e89747a113b8665a", []},
   "certifi": {:hex, :certifi, "2.5.1", "867ce347f7c7d78563450a18a6a28a8090331e77fa02380b4a21962a65d36ee5", [:rebar3], [{:parse_trans, "~>3.3", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm", "805abd97539caf89ec6d4732c91e62ba9da0cda51ac462380bbd28ee697a8c42"},
-  "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm", "2056f5067e5bd4cf9d11ac093ada83c44163ad94555cadc3720fa9defaaf3bac"},
   "cqerl": {:git, "https://github.com/matehat/cqerl.git", "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", [ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9"]},
   "cqex": {:git, "https://github.com/matehat/cqex.git", "a2c45667108f9b1e8a9c73c5250a04020bf72a30", [ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"]},
   "cyanide": {:git, "https://github.com/ispirata/cyanide.git", "b29af008ba93181df3d2cb352261900acd17e3f7", []},

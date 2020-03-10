@@ -19,12 +19,13 @@
 defmodule Astarte.DataAccess.Database do
   require Logger
 
-  @spec connect() :: {:ok, :cqerl.client()} | {:error, atom}
-  def connect() do
-    with {:nodes, nodes} when is_list(nodes) <-
-           {:nodes, Application.get_env(:cqerl, :cassandra_nodes)},
+  @spec connect(realm: String.t(), cassandra_nodes: list) ::
+          {:ok, :cqerl.client()} | {:error, atom}
+  def connect(opts \\ []) when is_list(opts) do
+    with {:nodes, nodes} when is_list(nodes) <- get_nodes(opts),
+         client_opts = get_client_opts(opts),
          {:node, node} when is_tuple(node) <- {:node, Enum.random(nodes)},
-         {:ok, client} <- CQEx.Client.new(node) do
+         {:ok, client} <- CQEx.Client.new(node, client_opts) do
       {:ok, client}
     else
       {:error, :shutdown} ->
@@ -44,28 +45,23 @@ defmodule Astarte.DataAccess.Database do
     end
   end
 
-  @spec connect(String.t()) :: {:ok, :cqerl.client()} | {:error, atom}
-  def connect(realm_name) when is_binary(realm_name) do
-    with {:nodes, nodes} when is_list(nodes) <-
-           {:nodes, Application.get_env(:cqerl, :cassandra_nodes)},
-         {:node, node} when is_tuple(node) <- {:node, Enum.random(nodes)},
-         {:ok, client} <- CQEx.Client.new(node, keyspace: realm_name) do
-      {:ok, client}
-    else
-      {:error, :shutdown} ->
-        {:error, :database_connection_error}
+  defp get_nodes(opts) do
+    case Keyword.fetch(opts, :cassandra_nodes) do
+      {:ok, cassandra_nodes} ->
+        {:nodes, cassandra_nodes}
 
-      {:nodes, nil} ->
-        Logger.error("Database is not configured.")
-        {:error, :database_connection_error}
+      :error ->
+        {:nodes, Application.get_env(:cqerl, :cassandra_nodes)}
+    end
+  end
 
-      {:node, any} ->
-        Logger.error("Database looks misconfigured: #{inspect(any)}.")
-        {:error, :database_connection_error}
+  defp get_client_opts(opts) do
+    case Keyword.fetch(opts, :realm) do
+      {:ok, realm} ->
+        [keyspace: realm]
 
-      any_error ->
-        Logger.warn("Failed connection to realm #{realm_name}. Reason: #{inspect(any_error)}")
-        {:error, :database_connection_error}
+      :error ->
+        []
     end
   end
 end

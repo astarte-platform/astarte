@@ -27,6 +27,6 @@ defmodule Astarte.DataAccess.DatabaseTest do
   end
 
   test "connect to missing realm" do
-    assert Database.connect("missing") == {:error, :database_connection_error}
+    assert Database.connect(realm: "missing") == {:error, :database_connection_error}
   end
 end

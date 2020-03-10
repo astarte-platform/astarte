@@ -134,7 +134,7 @@ defmodule Astarte.DataAccess.MappingsTest do
   end
 
   test "fetch interface mappings" do
-    {:ok, db_client} = Database.connect("autotestrealm")
+    {:ok, db_client} = Database.connect(realm: "autotestrealm")
 
     assert Mappings.fetch_interface_mappings_map(db_client, @simplestreamtest_interface_id) ==
              {:ok, @simplestreamtest_mappings}
