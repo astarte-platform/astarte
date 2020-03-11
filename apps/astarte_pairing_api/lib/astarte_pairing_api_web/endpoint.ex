@@ -62,6 +62,7 @@ defmodule Astarte.Pairing.APIWeb.Endpoint do
     key: "_astarte_pairing_api_key",
     signing_salt: "M/HFhRJn"
 
+  plug CORSPlug
   plug Astarte.Pairing.APIWeb.Router
 
   @doc """
