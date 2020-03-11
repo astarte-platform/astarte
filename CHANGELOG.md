@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - [appengine_api] Always return an object when GETting on object aggregated interfaces.
 
+### Added
+- [appengine_api] Add metadata to device
+
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 

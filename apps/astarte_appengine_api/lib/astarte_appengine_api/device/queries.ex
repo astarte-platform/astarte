@@ -585,6 +585,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , first_credentials_request
     , last_credentials_request_ip
     , last_seen_ip
+    , metadata
     , total_received_msgs
     , total_received_bytes
     , exchanged_msgs_by_interface
@@ -607,6 +608,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       first_credentials_request: first_credentials_request,
       last_credentials_request_ip: last_credentials_request_ip,
       last_seen_ip: last_seen_ip,
+      metadata: metadata,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
       exchanged_msgs_by_interface: exchanged_msgs_by_interface,
@@ -688,6 +690,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       first_credentials_request: millis_or_null_to_datetime!(first_credentials_request),
       last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
       last_seen_ip: ip_or_null_to_string(last_seen_ip),
+      metadata: Enum.into(metadata || [], %{}),
       credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
@@ -843,6 +846,88 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
       not_ok ->
         _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
+  def insert_metadata(client, device_id, metadata_key, metadata_value) do
+    insert_metadata_statement = """
+    UPDATE devices
+    SET metadata[:metadata_key] = :metadata_value
+    WHERE device_id = :device_id
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_metadata_statement)
+      |> DatabaseQuery.put(:metadata_key, metadata_key)
+      |> DatabaseQuery.put(:metadata_value, metadata_value)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    with {:ok, _result} <- DatabaseQuery.call(client, query) do
+      :ok
+    else
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
+  def delete_metadata(client, device_id, metadata_key) do
+    retrieve_metadata_statement = """
+    SELECT metadata FROM devices WHERE device_id = :device_id
+    """
+
+    retrieve_metadata_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(retrieve_metadata_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_metadata_query),
+         [metadata: metadata] <- DatabaseResult.head(result),
+         {^metadata_key, _metadata_value} <-
+           Enum.find(metadata || [], fn m -> match?({^metadata_key, _}, m) end) do
+      delete_metadata_statement = """
+        DELETE metadata[:metadata_key]
+        FROM devices
+        WHERE device_id = :device_id
+      """
+
+      delete_metadata_query =
+        DatabaseQuery.new()
+        |> DatabaseQuery.statement(delete_metadata_statement)
+        |> DatabaseQuery.put(:metadata_key, metadata_key)
+        |> DatabaseQuery.put(:device_id, device_id)
+        |> DatabaseQuery.consistency(:each_quorum)
+
+      case DatabaseQuery.call(client, delete_metadata_query) do
+        {:ok, _result} ->
+          :ok
+
+        %{acc: _, msg: error_message} ->
+          _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+          {:error, :database_error}
+
+        {:error, reason} ->
+          _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+          {:error, :database_error}
+      end
+    else
+      nil ->
+        {:error, :metadata_key_not_found}
+
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end

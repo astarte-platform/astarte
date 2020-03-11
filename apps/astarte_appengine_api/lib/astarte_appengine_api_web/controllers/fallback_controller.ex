@@ -169,6 +169,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"409_alias_already_in_use")
   end
 
+  def call(conn, {:error, :metadata_key_not_found}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"422_metadata_key_not_found")
+  end
+
   def call(conn, {:error, :mapping_not_found}) do
     conn
     |> put_status(:not_found)
