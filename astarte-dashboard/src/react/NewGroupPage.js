@@ -60,7 +60,7 @@ export default class NewGroupPage extends React.Component {
 
     this.astarte = new AstarteClient(astarteConfig);
     this.astarte
-      .getDevices(true)
+      .getDevices({ details: true })
       .then(this.handleDevicesRequest)
       .catch(this.handleDevicesError);
   }
@@ -135,7 +135,10 @@ export default class NewGroupPage extends React.Component {
     const { groupName, selectedDevices } = this.state;
 
     this.astarte
-      .createGroup(groupName, Array.from(selectedDevices))
+      .createGroup({
+        groupName: groupName,
+        deviceList: Array.from(selectedDevices)
+      })
       .then(() => {
         this.props.history.push({ pathname: "/groups" });
       })

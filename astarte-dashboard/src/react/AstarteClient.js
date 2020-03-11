@@ -45,11 +45,10 @@ export default class AstarteClient {
     // prettier-ignore
     let apiConfig = {
       auth:                  astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/config/auth`,
+      devicesStats:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/stats/devices`,
       devices:               astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices`,
-      detailedDevices:       astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices?details=true`,
       groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
       groupDevices:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices`,
-      detailedGroupDevices:  astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices?details=true`,
       deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`
     };
     this.apiConfig = apiConfig;
@@ -59,44 +58,66 @@ export default class AstarteClient {
     return this._get(this.apiConfig["auth"](this.config));
   }
 
-  getDevices(details = false) {
-    let endpointUri;
+  getDevicesStats() {
+    return this._get(this.apiConfig["devicesStats"](this.config));
+  }
+
+  getDevices(params) {
+    let endpointUri = new URL(this.apiConfig["devices"](this.config));
+    let { details, limit, from } = params;
+    let query = {};
+
     if (details) {
-      endpointUri = this.apiConfig["detailedDevices"];
-    } else {
-      endpointUri = this.apiConfig["devices"];
+      query.details = true;
     }
 
-    return this._get(endpointUri(this.config));
+    if (limit) {
+      query.limit = limit;
+    }
+
+    if (from) {
+      query.from_token = from;
+    }
+
+    if (query) {
+      endpointUri.search = new URLSearchParams(query);
+    }
+
+    return this._get(endpointUri);
   }
 
   getGroupList() {
     return this._get(this.apiConfig["groups"](this.config));
   }
 
-  createGroup(groupName, deviceList) {
+  createGroup(params) {
+    const { groupName, deviceList } = params;
     return this._post(this.apiConfig["groups"](this.config), {
       group_name: groupName,
       devices: deviceList
     });
   }
 
-  getDevicesInGroup(groupName, details = false) {
+  getDevicesInGroup(params) {
+    let { groupName, details } = params;
+    let endpointUri = new URL(
+      this.apiConfig["groupDevices"]({ ...this.config, groupName: groupName })
+    );
+
     if (!groupName) {
       throw Error("Invalid group name");
     }
 
-    let endpointUri;
     if (details) {
-      endpointUri = this.apiConfig["detailedGroupDevices"];
-    } else {
-      endpointUri = this.apiConfig["groupDevices"];
+      endpointUri.search = new URLSearchParams({ details: true });
     }
 
-    return this._get(endpointUri({ ...this.config, groupName: groupName }));
+    return this._get(endpointUri);
   }
 
-  removeDeviceFromGroup(groupName, deviceId) {
+  removeDeviceFromGroup(params) {
+    let { groupName, deviceId } = params;
+
     if (!groupName) {
       throw Error("Invalid group name");
     }

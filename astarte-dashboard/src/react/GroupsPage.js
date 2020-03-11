@@ -62,7 +62,10 @@ export default class GroupsPage extends React.Component {
 
     for (let groupName of groupMap.keys()) {
       this.astarte
-        .getDevicesInGroup(groupName, true)
+        .getDevicesInGroup({
+          groupName: groupName,
+          details: true
+        })
         .then(response => this.handleDeviceList(groupName, response))
         .catch(err => this.handleDeviceError(groupName, err));
     }
