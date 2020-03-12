@@ -196,7 +196,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
           {:error, :client_error}
 
-        status_code when status_code > 500 ->
+        status_code when status_code >= 500 ->
           Logger.warn(
             "Error while processing event: #{inspect(response)}. Payload: #{inspect(payload)}, headers: #{
               inspect(headers)

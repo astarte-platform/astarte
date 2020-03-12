@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0-rc.1] - Unreleased
 ### Fixed
 - [data_updater_plant] Discard unexpected object aggregated values on individual interfaces.
+- [trigger_engine] 500 was not included in the range of HTTP server errors, causing a crash.
 
 ## [0.11.0-rc.0] - 2020-02-26
 ### Added
