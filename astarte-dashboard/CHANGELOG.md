@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add pagination to the device list page.
 - Device registration page.
 - Button for device credentials wipe.
+- Error messages when accessing pages with invalid direct URLs.
 
 ### Changed
 - Layout and palette restyle.

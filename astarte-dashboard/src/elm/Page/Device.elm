@@ -60,6 +60,7 @@ import Ui.PieChart as PieChart
 type alias Model =
     { deviceId : String
     , device : Maybe Device
+    , deviceError : Maybe String
     , receivedEvents : List JSEvent
     , portConnected : Bool
     , spinner : Spinner.Model
@@ -75,6 +76,7 @@ init : Session -> String -> ( Model, Cmd Msg )
 init session deviceId =
     ( { deviceId = deviceId
       , device = Nothing
+      , deviceError = Nothing
       , portConnected = False
       , receivedEvents = []
       , spinner = Spinner.init
@@ -146,13 +148,32 @@ update session msg model =
 
         DeviceInfosDone (Err error) ->
             let
-                -- TODO handle error
                 ( message, details ) =
                     AstarteApi.errorToHumanReadable error
+
+                errorMessage =
+                    case error of
+                        AstarteApi.InvalidRequest ->
+                            "Invalid request."
+
+                        AstarteApi.Forbidden ->
+                            "Access denied to " ++ model.deviceId ++ "."
+
+                        AstarteApi.ResourceNotFound ->
+                            model.deviceId ++ " does not exists."
+
+                        AstarteApi.InternalServerError ->
+                            "Internal Server Error."
+
+                        _ ->
+                            message
             in
-            ( { model | showSpinner = False }
+            ( { model
+                | showSpinner = False
+                , deviceError = Just errorMessage
+              }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            , ExternalMsg.Noop
             )
 
         GroupListDone (Ok groups) ->
@@ -434,8 +455,8 @@ type CardWidth
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    (case model.device of
-        Just device ->
+    (case ( model.device, model.deviceError ) of
+        ( Just device, _ ) ->
             [ Grid.row
                 [ Row.attrs [ Spacing.mt2 ] ]
                 [ Grid.col
@@ -458,7 +479,10 @@ view model flashMessages =
                 |> Html.map UpdateGroupModal
             ]
 
-        Nothing ->
+        ( Nothing, Just error ) ->
+            [ deviceErrorCard error ]
+
+        ( Nothing, Nothing ) ->
             [ Html.text "" ]
     )
         |> (::) (renderConfimationModal model.confirmModalVisibility)
@@ -518,6 +542,16 @@ renderCard cardName width innerItems =
                 ]
                 :: innerItems
             )
+        ]
+
+
+deviceErrorCard : String -> Html Msg
+deviceErrorCard error =
+    Grid.row [ Row.attrs [ class "bg-white", Border.rounded, Spacing.p3, Size.h100, Flex.block, Flex.col ] ]
+        [ Grid.col []
+            [ Html.h3 [] [ Html.text "Error While Loading Device Info" ]
+            , Html.p [] [ Html.text error ]
+            ]
         ]
 
 
