@@ -171,8 +171,6 @@ jobs:
     - name: Upload Coverage Results to CodeCov
       # Don't upload more than once per component
       if: matrix.database == 'scylladb/scylla:3.1.1'
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
         sed -i 's/-- the project name --/${{ matrix.app }}/g' codecov.yml
-        bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN -F $(echo ${{ matrix.app }} | sed s/astarte_//g | sed s/_//g)
+        bash <(curl -s https://codecov.io/bash) -F $(echo ${{ matrix.app }} | sed s/astarte_//g | sed s/_//g)
