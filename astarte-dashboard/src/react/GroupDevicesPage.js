@@ -62,7 +62,10 @@ export default class GroupDevicesPage extends React.Component {
     };
 
     this.astarte
-      .getDevicesInGroup(this.props.groupName, true)
+      .getDevicesInGroup({
+        groupName: this.props.groupName,
+        details: true
+      })
       .then(this.handleDeviesRequest)
       .catch(this.handleDevicesError);
   }
@@ -105,7 +108,10 @@ export default class GroupDevicesPage extends React.Component {
     });
 
     this.astarte
-      .removeDeviceFromGroup(this.props.groupName, this.state.selectedDeviceId)
+      .removeDeviceFromGroup({
+        groupName: this.props.groupName,
+        deviceId: this.state.selectedDeviceId
+      })
       .finally(() => {
         if (this.state.devices?.length == 1) {
           this.props.history.push({ pathname: "/groups" });

@@ -1,7 +1,7 @@
 {-
    This file is part of Astarte.
 
-   Copyright 2019 Ispirata Srl
+   Copyright 2020 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,23 +17,22 @@
 -}
 
 
-module Page.GroupList exposing (init, view)
+module Page.ReactInit exposing (init, view)
 
-import AstarteApi
 import Html exposing (Html)
 import Html.Attributes
 import Json.Encode
 import Ports
-import Route
+import Route exposing (Route)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.Session exposing (Session)
 
 
-init : Session -> Cmd ()
-init session =
+init : Session -> String -> Route -> Cmd ()
+init session pageName pageUrl =
     Ports.loadReactPage
-        { name = "groups"
-        , url = Route.toString <| Route.Realm Route.GroupList
+        { name = pageName
+        , url = Route.toString <| pageUrl
         , opts = Json.Encode.null
         }
 

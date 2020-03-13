@@ -29,11 +29,15 @@ import {
 import GroupsPage from "./GroupsPage.js";
 import GroupDevicesPage from "./GroupDevicesPage.js";
 import NewGroupPage from "./NewGroupPage.js";
+import DevicesPage from "./DevicesPage.js";
 
 export function getRouter(reactHistory, fallback) {
   return (
     <Router history={reactHistory}>
       <Switch>
+        <Route exact path="/devices">
+          <DevicesPage history={reactHistory} />
+        </Route>
         <Route exact path="/groups">
           <GroupsPage history={reactHistory} />
         </Route>

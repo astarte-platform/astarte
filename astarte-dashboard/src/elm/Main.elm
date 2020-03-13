@@ -38,13 +38,11 @@ import Json.Encode as Encode
 import ListUtils exposing (addWhen)
 import Page.Device as Device
 import Page.DeviceData as DeviceData
-import Page.DeviceList as DeviceList
-import Page.GroupDevices as GroupDevices
-import Page.GroupList as GroupList
 import Page.Home as Home
 import Page.InterfaceBuilder as InterfaceBuilder
 import Page.Interfaces as Interfaces
 import Page.Login as Login
+import Page.ReactInit as ReactInit
 import Page.RealmSettings as RealmSettings
 import Page.TriggerBuilder as TriggerBuilder
 import Page.Triggers as Triggers
@@ -194,11 +192,14 @@ type RealmPage
     | TriggersPage Triggers.Model
     | TriggerBuilderPage TriggerBuilder.Model
     | RealmSettingsPage RealmSettings.Model
-    | DeviceListPage DeviceList.Model
     | DevicePage Device.Model
     | DeviceDataPage DeviceData.Model
-    | GroupListPage
-    | GroupDevicesPage
+    | ReactInitPage ReactPageCategory
+
+
+type ReactPageCategory
+    = Devices
+    | Groups
 
 
 
@@ -219,7 +220,6 @@ type Msg
     | RealmSettingsMsg RealmSettings.Msg
     | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
-    | DeviceListMsg DeviceList.Msg
     | DeviceMsg Device.Msg
     | DeviceDataMsg DeviceData.Msg
     | NewFlashMessage Severity String (List String) Posix
@@ -399,9 +399,6 @@ updateRealmPage realm realmPage msg model =
                 ( TriggerBuilderMsg subMsg, TriggerBuilderPage subModel ) ->
                     updateRealmPageHelper realm (TriggerBuilder.update model.session subMsg subModel) TriggerBuilderMsg TriggerBuilderPage
 
-                ( DeviceListMsg subMsg, DeviceListPage subModel ) ->
-                    updateRealmPageHelper realm (DeviceList.update model.session subMsg subModel) DeviceListMsg DeviceListPage
-
                 ( DeviceMsg subMsg, DevicePage subModel ) ->
                     updateRealmPageHelper realm (Device.update model.session subMsg subModel) DeviceMsg DevicePage
 
@@ -526,23 +523,32 @@ pageInit realmRoute config session =
         Route.ShowTrigger name ->
             initTriggerBuilderPage (Just name) session session.apiConfig.realm
 
-        Route.DeviceList ->
-            initDeviceListPage session session.apiConfig.realm
-
         Route.ShowDevice deviceId ->
             initDevicePage deviceId session session.apiConfig.realm
 
         Route.ShowDeviceData deviceId interfaceName ->
             initDeviceDataPage deviceId interfaceName session session.apiConfig.realm
 
+        Route.DeviceList ->
+            initReactPage session Devices "devices-list" realmRoute
+
         Route.GroupList ->
-            initGroupListPage session session.apiConfig.realm
+            initReactPage session Groups "group-list" realmRoute
 
         Route.GroupDevices groupName ->
-            ( Realm session.apiConfig.realm GroupDevicesPage
-            , Cmd.map (\a -> Ignore) (GroupDevices.init groupName)
-            , session
-            )
+            initReactPage session Groups "group-devices" realmRoute
+
+
+initReactPage : Session -> ReactPageCategory -> String -> RealmRoute -> ( Page, Cmd Msg, Session )
+initReactPage session category pageName pageRoute =
+    let
+        realm =
+            session.apiConfig.realm
+    in
+    ( Realm realm <| ReactInitPage category
+    , Cmd.map (\a -> Ignore) (ReactInit.init session pageName <| Route.Realm pageRoute)
+    , session
+    )
 
 
 initLoginPage : Config.Params -> Session -> ( Page, Cmd Msg, Session )
@@ -633,18 +639,6 @@ initTriggerBuilderPage maybeTriggerName session realm =
     )
 
 
-initDeviceListPage : Session -> String -> ( Page, Cmd Msg, Session )
-initDeviceListPage session realm =
-    let
-        ( initialModel, initialCommand ) =
-            DeviceList.init session
-    in
-    ( Realm realm (DeviceListPage initialModel)
-    , Cmd.map DeviceListMsg initialCommand
-    , session
-    )
-
-
 initDevicePage : String -> Session -> String -> ( Page, Cmd Msg, Session )
 initDevicePage deviceId session realm =
     let
@@ -665,14 +659,6 @@ initDeviceDataPage deviceId interfaceName session realm =
     in
     ( Realm realm (DeviceDataPage initialModel)
     , Cmd.map DeviceDataMsg initialCommand
-    , session
-    )
-
-
-initGroupListPage : Session -> String -> ( Page, Cmd Msg, Session )
-initGroupListPage session realm =
-    ( Realm realm GroupListPage
-    , Cmd.map (\a -> Ignore) (GroupList.init session)
     , session
     )
 
@@ -1025,6 +1011,8 @@ navbarLinks realm selectedPage appEngineHealth realmManagementHealth =
                 -- General
                 , renderNavbarSeparator
                 , renderStatusRow realm appEngineHealth realmManagementHealth
+
+                -- Common
                 , renderNavbarSeparator
                 , renderNavbarLink
                     "Logout"
@@ -1162,10 +1150,10 @@ isSettingsRelated page =
 isDeviceRelated : Page -> Bool
 isDeviceRelated page =
     case page of
-        Realm _ (DeviceListPage _) ->
+        Realm _ (DevicePage _) ->
             True
 
-        Realm _ (DevicePage _) ->
+        Realm _ (ReactInitPage Devices) ->
             True
 
         _ ->
@@ -1175,10 +1163,7 @@ isDeviceRelated page =
 isGroupRelated : Page -> Bool
 isGroupRelated page =
     case page of
-        Realm _ GroupListPage ->
-            True
-
-        Realm _ GroupDevicesPage ->
+        Realm _ (ReactInitPage Groups) ->
             True
 
         _ ->
@@ -1188,10 +1173,7 @@ isGroupRelated page =
 isReactBased : Page -> Bool
 isReactBased page =
     case page of
-        Realm _ GroupListPage ->
-            True
-
-        Realm _ GroupDevicesPage ->
+        Realm _ (ReactInitPage _) ->
             True
 
         _ ->
@@ -1243,10 +1225,6 @@ renderProtectedPage flashMessages page =
             TriggerBuilder.view submodel flashMessages
                 |> Html.map TriggerBuilderMsg
 
-        DeviceListPage submodel ->
-            DeviceList.view submodel flashMessages
-                |> Html.map DeviceListMsg
-
         DevicePage submodel ->
             Device.view submodel flashMessages
                 |> Html.map DeviceMsg
@@ -1255,12 +1233,8 @@ renderProtectedPage flashMessages page =
             DeviceData.view submodel flashMessages
                 |> Html.map DeviceDataMsg
 
-        GroupListPage ->
-            GroupList.view flashMessages
-                |> Html.map (\a -> Ignore)
-
-        GroupDevicesPage ->
-            GroupDevices.view flashMessages
+        ReactInitPage _ ->
+            ReactInit.view flashMessages
                 |> Html.map (\a -> Ignore)
 
 
@@ -1296,9 +1270,6 @@ pageSubscriptions page =
 
         Realm _ (TriggersPage submodel) ->
             Sub.map TriggersMsg <| Triggers.subscriptions submodel
-
-        Realm _ (DeviceListPage submodel) ->
-            Sub.map DeviceListMsg <| DeviceList.subscriptions submodel
 
         Realm _ (DevicePage submodel) ->
             Sub.map DeviceMsg <| Device.subscriptions submodel
