@@ -25,6 +25,7 @@ import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
+import Bootstrap.Modal as Modal
 import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
@@ -66,6 +67,7 @@ type alias Model =
     , existingGroups : List String
     , newAliasModal : NewAlias.Model
     , selectGroupModal : SelectGroup.Model
+    , confirmModalVisibility : Modal.Visibility
     }
 
 
@@ -80,6 +82,7 @@ init session deviceId =
       , existingGroups = []
       , newAliasModal = NewAlias.init False
       , selectGroupModal = SelectGroup.init False []
+      , confirmModalVisibility = Modal.hidden
       }
     , AstarteApi.deviceInfos session.apiConfig deviceId <| DeviceInfosDone
     )
@@ -95,6 +98,8 @@ type Msg
     | UpdateGroupModal SelectGroup.Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
     | SetCredentialsInhibited Bool
+    | ShowConfirmModal
+    | CloseConfirmModal Bool
       -- spinner
     | SpinnerMsg Spinner.Msg
       -- API
@@ -102,6 +107,7 @@ type Msg
     | GroupListDone (Result AstarteApi.Error (List String))
     | AddGroupToDeviceDone (Result AstarteApi.Error ())
     | SetCredentialsInhibitedDone Bool (Result AstarteApi.Error ())
+    | WipeDeviceCredentialsDone (Result AstarteApi.Error ())
       -- Ports
     | OnDeviceEventReceived (Result Decode.Error JSEvent)
 
@@ -276,6 +282,38 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
+        ShowConfirmModal ->
+            ( { model | confirmModalVisibility = Modal.shown }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        CloseConfirmModal wipe ->
+            ( { model | confirmModalVisibility = Modal.hidden }
+            , if wipe then
+                AstarteApi.wipeDeviceCredentials session.apiConfig model.deviceId WipeDeviceCredentialsDone
+
+              else
+                Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        WipeDeviceCredentialsDone (Ok _) ->
+            ( { model | confirmModalVisibility = Modal.hidden }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        WipeDeviceCredentialsDone (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
         Forward externalMsg ->
             ( model
             , Cmd.none
@@ -396,34 +434,58 @@ type CardWidth
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid []
-        (case model.device of
-            Just device ->
-                [ Grid.row
-                    [ Row.attrs [ Spacing.mt2 ] ]
-                    [ Grid.col
-                        [ Col.sm12 ]
-                        [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
-                    ]
-                , Grid.row []
-                    [ deviceInfoCard device HalfWidth
-                    , deviceEventsCard device HalfWidth
-                    , deviceAliasesCard device HalfWidth
-                    , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) HalfWidth
-                    , deviceIntrospectionCard device HalfWidth
-                    , devicePreviousInterfacesCard device HalfWidth
-                    , deviceStatsCard device FullWidth
-                    , deviceChannelCard model.receivedEvents FullWidth
-                    ]
-                , NewAlias.view model.newAliasModal
-                    |> Html.map UpdateAliasModal
-                , SelectGroup.view model.selectGroupModal
-                    |> Html.map UpdateGroupModal
+    (case model.device of
+        Just device ->
+            [ Grid.row
+                [ Row.attrs [ Spacing.mt2 ] ]
+                [ Grid.col
+                    [ Col.sm12 ]
+                    [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
                 ]
+            , Grid.row []
+                [ deviceInfoCard device HalfWidth
+                , deviceEventsCard device HalfWidth
+                , deviceAliasesCard device HalfWidth
+                , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) HalfWidth
+                , deviceIntrospectionCard device HalfWidth
+                , devicePreviousInterfacesCard device HalfWidth
+                , deviceStatsCard device FullWidth
+                , deviceChannelCard model.receivedEvents FullWidth
+                ]
+            , NewAlias.view model.newAliasModal
+                |> Html.map UpdateAliasModal
+            , SelectGroup.view model.selectGroupModal
+                |> Html.map UpdateGroupModal
+            ]
 
-            Nothing ->
-                [ Html.text "" ]
-        )
+        Nothing ->
+            [ Html.text "" ]
+    )
+        |> (::) (renderConfimationModal model.confirmModalVisibility)
+        |> Grid.containerFluid []
+
+
+renderConfimationModal : Modal.Visibility -> Html Msg
+renderConfimationModal modalVisibility =
+    Modal.config (CloseConfirmModal False)
+        |> Modal.large
+        |> Modal.h5 [] [ Html.text "Warning" ]
+        |> Modal.body []
+            [ Html.p [] [ Html.text "This will remove the current device credential secret from Astarte, forcing the device to register again and store its new credentials secret. Continue?" ]
+            ]
+        |> Modal.footer []
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick <| CloseConfirmModal False
+                ]
+                [ Html.text "Cancel" ]
+            , Button.button
+                [ Button.danger
+                , Button.onClick <| CloseConfirmModal True
+                ]
+                [ Html.text "Wipe credentials secret" ]
+            ]
+        |> Modal.view modalVisibility
 
 
 renderCard : String -> CardWidth -> List (Html Msg) -> Grid.Column Msg
@@ -959,9 +1021,15 @@ buttonsRow deviceCredentialsInhibited =
             [ Col.sm12
             , Col.attrs [ Flex.block, Flex.rowReverse ]
             ]
-            [ if deviceCredentialsInhibited then
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick ShowConfirmModal
+                ]
+                [ Html.text "Wipe credential secret" ]
+            , if deviceCredentialsInhibited then
                 Button.button
                     [ Button.success
+                    , Button.attrs [ Spacing.mr1 ]
                     , Button.onClick (SetCredentialsInhibited False)
                     ]
                     [ Html.text "Enable credentials request" ]

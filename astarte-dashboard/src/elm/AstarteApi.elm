@@ -47,6 +47,7 @@ module AstarteApi exposing
     , updateDeviceAliases
     , updateInterface
     , updateRealmConfig
+    , wipeDeviceCredentials
     )
 
 import Dict exposing (Dict)
@@ -309,6 +310,27 @@ deviceStatsDecoder =
     Decode.map2 DeviceStats
         (Decode.field "connected_devices" Decode.int)
         (Decode.field "total_devices" Decode.int)
+
+
+
+-- Pairing
+
+
+wipeDeviceCredentials : Config -> String -> (Result Error () -> msg) -> Cmd msg
+wipeDeviceCredentials apiConfig deviceId resultMsg =
+    Http.request
+        { method = "DELETE"
+        , headers = buildHeaders apiConfig.token
+        , url =
+            buildUrl apiConfig.secureConnection
+                apiConfig.pairingUrl
+                [ "v1", apiConfig.realm, "agent", "devices", deviceId ]
+                []
+        , body = Http.emptyBody
+        , expect = expectWhateverAstarteReply resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 
