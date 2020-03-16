@@ -17,10 +17,15 @@
 */
 
 import React from "react";
+import { v4 as uuidv4 } from "uuid";
 import { Button, Col, Form, Modal, Spinner } from "react-bootstrap";
 
 import AstarteClient from "./AstarteClient.js";
 import SingleCardPage from "./ui/SingleCardPage.js";
+import {
+  byteArrayToUrlSafeBase64,
+  urlSafeBase64ToByteArray
+} from "./Base64.js";
 
 export default class RegisterDevicePage extends React.Component {
   constructor(props) {
@@ -44,19 +49,6 @@ export default class RegisterDevicePage extends React.Component {
     this.handleModalCancel = this.handleModalCancel.bind(this);
     this.handleRegistrationSuccess = this.handleRegistrationSuccess.bind(this);
     this.handleRegistrationError = this.handleRegistrationError.bind(this);
-
-    this.validCharset = ["-", "_"];
-    for (let i = 0; i < 10; i++) {
-      this.validCharset.push(i.toString());
-    }
-
-    for (let i = 0; i < 26; i++) {
-      this.validCharset.push(String.fromCharCode(i + 65));
-    }
-
-    for (let i = 0; i < 26; i++) {
-      this.validCharset.push(String.fromCharCode(i + 97));
-    }
 
     this.state = {
       showModal: false,
@@ -189,7 +181,8 @@ export default class RegisterDevicePage extends React.Component {
   }
 
   setNewDeviceId(deviceId) {
-    const isValid = deviceId.length == 22;
+    const byteArray = urlSafeBase64ToByteArray(deviceId);
+    const isValid = byteArray.length == 16;
 
     this.setState({
       deviceId: deviceId,
@@ -203,12 +196,9 @@ export default class RegisterDevicePage extends React.Component {
   }
 
   generateRandomUUID() {
-    let newDeviceID = "";
-    let rand64;
-    for (let i = 0; i < 22; i++) {
-      rand64 = Math.floor(Math.random() * 64);
-      newDeviceID += this.validCharset[rand64];
-    }
+    const newUUID = uuidv4().replace(/-/g, "");
+    const bytes = newUUID.match(/.{2}/g).map(b => parseInt(b, 16));
+    const newDeviceID = byteArrayToUrlSafeBase64(bytes);
 
     this.setNewDeviceId(newDeviceID);
   }
