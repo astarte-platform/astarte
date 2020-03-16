@@ -30,6 +30,7 @@ import GroupsPage from "./GroupsPage.js";
 import GroupDevicesPage from "./GroupDevicesPage.js";
 import NewGroupPage from "./NewGroupPage.js";
 import DevicesPage from "./DevicesPage.js";
+import RegisterDevicePage from "./RegisterDevicePage.js";
 
 export function getRouter(reactHistory, fallback) {
   return (
@@ -37,6 +38,9 @@ export function getRouter(reactHistory, fallback) {
       <Switch>
         <Route exact path="/devices">
           <DevicesPage history={reactHistory} />
+        </Route>
+        <Route exact path="/devices/register">
+          <RegisterDevicePage history={reactHistory} />
         </Route>
         <Route exact path="/groups">
           <GroupsPage history={reactHistory} />

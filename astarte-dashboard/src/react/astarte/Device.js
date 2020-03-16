@@ -93,27 +93,27 @@ export default class Device {
       device.totalReceivedBytes = obj.total_received_msgs;
     }
 
-    if ("first_registration" in obj) {
+    if (obj.first_registration) {
       device.firstRegistration = new Date(obj.first_registration);
     }
 
-    if ("first_credentials_request" in obj) {
+    if (obj.first_credentials_request) {
       device.firstCredentialsRequest = new Date(obj.first_credentials_request);
     }
 
-    if ("last_disconnection" in obj) {
+    if (obj.last_disconnection) {
       device.lastDisconnection = new Date(obj.last_disconnection);
     }
 
-    if ("last_connection" in obj) {
+    if (obj.last_connection) {
       device.lastConnection = new Date(obj.last_connection);
     }
 
-    if ("last_seen_ip" in obj) {
+    if (obj.last_seen_ip) {
       device.lastSeenIp = obj.last_seen_ip;
     }
 
-    if ("last_credentials_request_ip" in obj) {
+    if (obj.last_credentials_request_ip) {
       device.lastCredentialsRequestIp = obj.last_credentials_request_ip;
     }
 

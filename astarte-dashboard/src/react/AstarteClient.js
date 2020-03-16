@@ -36,6 +36,10 @@ export default class AstarteClient {
       internalConfig.appengineUrl = new URL(config.appengineUrl);
     }
 
+    if (config.pairingUrl) {
+      internalConfig.pairingUrl = new URL(config.pairingUrl);
+    }
+
     this.config = internalConfig;
 
     if (config.token) {
@@ -49,7 +53,8 @@ export default class AstarteClient {
       devices:               astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices`,
       groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
       groupDevices:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices`,
-      deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`
+      deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`,
+      registerDevice:        astarteAPIurl`${"pairingUrl"}/v1/${"realm"}/agent/devices`,
     };
     this.apiConfig = apiConfig;
   }
@@ -133,6 +138,13 @@ export default class AstarteClient {
         deviceId: deviceId
       })
     );
+  }
+
+  registerDevice(params) {
+    const { deviceId } = params;
+    return this._post(this.apiConfig["registerDevice"](this.config), {
+      hw_id: deviceId
+    });
   }
 
   _get(url) {
