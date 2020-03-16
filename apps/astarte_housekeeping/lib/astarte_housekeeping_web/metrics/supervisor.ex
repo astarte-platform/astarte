@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.HousekeepingWeb.Metrics.Supervisor do
+  alias Astarte.Housekeeping.Config
   use Supervisor
 
   def start_link(init_arg) do
@@ -27,9 +28,9 @@ defmodule Astarte.HousekeepingWeb.Metrics.Supervisor do
   def init(_init_arg) do
     Astarte.HousekeepingWeb.Metrics.setup()
 
-    # TODO: make the port configurable when we switch to Elixir native releases
     children = [
-      {Plug.Cowboy, scheme: :http, plug: Astarte.HousekeepingWeb.Router, options: [port: 4000]}
+      {Plug.Cowboy,
+       scheme: :http, plug: Astarte.HousekeepingWeb.Router, options: [port: Config.port!()]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

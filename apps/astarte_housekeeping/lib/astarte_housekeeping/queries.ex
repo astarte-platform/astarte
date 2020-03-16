@@ -587,7 +587,7 @@ defmodule Astarte.Housekeeping.Queries do
   defp create_astarte_keyspace(conn) do
     # TODO: add support for creating the astarte keyspace with NetworkTopologyStrategy,
     # right now the replication factor is an integer so SimpleStrategy is always used
-    astarte_keyspace_replication = Config.astarte_keyspace_replication_factor()
+    astarte_keyspace_replication = Config.astarte_keyspace_replication_factor!()
 
     with {:ok, replication_map_str} <- build_replication_map_str(astarte_keyspace_replication),
          query = """
