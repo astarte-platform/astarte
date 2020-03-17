@@ -45,25 +45,25 @@ jobs:
     - uses: actions/cache@v1
       with:
         path: apps/${{ matrix.app }}/deps
-        key: ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+        key: ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
         restore-keys: |
-          ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
-          ${{ runner.os }}-mix-${{ matrix.app }}-
-          ${{ runner.os }}-mix-
+          ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+          ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+          ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-
     - uses: actions/cache@v1
       with:
         path: apps/${{ matrix.app }}/_build
-        key: ${{ runner.os }}-_build-${{ matrix.app }}-${{ github.sha }}
+        key: ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-_build-${{ matrix.app }}-
-          ${{ runner.os }}-_build-
+          ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+          ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-
     - uses: actions/cache@v1
       with:
         path: apps/${{ matrix.app }}/dialyzer_cache
-        key: ${{ runner.os }}-dialyzer_cache-${{ matrix.app }}-${{ github.sha }}
+        key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-dialyzer_cache-${{ matrix.app }}-
-          ${{ runner.os }}-dialyzer_cache-
+          ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+          ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-
     - uses: actions/setup-elixir@v1.2.0
       with:
         otp-version: ${{ env.otp_version }}
@@ -124,18 +124,18 @@ jobs:
     - uses: actions/cache@v1
       with:
         path: apps/${{ matrix.app }}/deps
-        key: ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+        key: ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
         restore-keys: |
-          ${{ runner.os }}-mix-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
-          ${{ runner.os }}-mix-${{ matrix.app }}-
-          ${{ runner.os }}-mix-
+          ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
+          ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+          ${{ runner.os }}-mix-${{ env.otp_version }}-${{ env.elixir_version }}-
     - uses: actions/cache@v1
       with:
         path: apps/${{ matrix.app }}/_build
-        key: ${{ runner.os }}-_build-${{ matrix.app }}-${{ github.sha }}
+        key: ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-_build-${{ matrix.app }}-
-          ${{ runner.os }}-_build-
+          ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+          ${{ runner.os }}-_build-${{ env.otp_version }}-${{ env.elixir_version }}-
     - uses: actions/setup-elixir@v1.2.0
       with:
         otp-version: ${{ env.otp_version }}
