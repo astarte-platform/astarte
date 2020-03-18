@@ -28,8 +28,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.Supervisor do
 
   @impl true
   def init(_init_arg) do
-    queue_range_start = Config.data_queue_range_start()
-    queue_range_end = Config.data_queue_range_end()
+    queue_range_start = Config.data_queue_range_start!()
+    queue_range_end = Config.data_queue_range_end!()
 
     children = amqp_data_consumers_childspecs(queue_range_start, queue_range_end)
 
@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.Supervisor do
   end
 
   defp amqp_data_consumers_childspecs(queue_range_start, queue_range_end) do
-    queue_prefix = Config.data_queue_prefix()
+    queue_prefix = Config.data_queue_prefix!()
 
     for queue_index <- queue_range_start..queue_range_end do
       queue_name = "#{queue_prefix}#{queue_index}"

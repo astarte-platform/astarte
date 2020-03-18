@@ -51,7 +51,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   def handle_call({:publish, payload, routing_key, headers}, _from, chan) do
     reply =
-      Basic.publish(chan, Config.events_exchange_name(), routing_key, payload, headers: headers)
+      Basic.publish(chan, Config.events_exchange_name!(), routing_key, payload, headers: headers)
 
     {:reply, reply, chan}
   end
@@ -71,11 +71,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   defp rabbitmq_connect(retry \\ true) do
-    with {:ok, conn} <- Connection.open(Config.amqp_producer_options()),
+    with {:ok, conn} <- Connection.open(Config.amqp_producer_options!()),
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
-         :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true) do
+         :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true) do
       {:ok, chan}
     else
       {:error, reason} ->

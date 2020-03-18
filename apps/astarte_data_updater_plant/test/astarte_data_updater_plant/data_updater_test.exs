@@ -67,7 +67,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id, insert_opts)
 
-    {:ok, db_client} = Database.connect(realm)
+    {:ok, db_client} = Database.connect(realm: realm)
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -932,7 +932,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id)
 
-    {:ok, db_client} = Database.connect(realm)
+    {:ok, db_client} = Database.connect(realm: realm)
 
     DataUpdater.handle_connection(
       realm,
@@ -992,7 +992,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
     DatabaseTestHelper.insert_device(device_id)
-    {:ok, db_client} = Database.connect(realm)
+    {:ok, db_client} = Database.connect(realm: realm)
 
     DataUpdater.handle_connection(
       realm,
