@@ -14,8 +14,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 
+## [0.11.0-rc.1] - Unreleased
+### Fixed
+- [data_updater_plant] Discard unexpected object aggregated values on individual interfaces.
+- [trigger_engine] 500 was not included in the range of HTTP server errors, causing a crash.
+
 ## [0.11.0-rc.0] - 2020-02-26
-- [realm_management] Correctly handle parametric endpoints regardless of the ordering, so that overlapping endpoints are always refused.
+### Added
 - [pairing_api] Add health endpoint.
 - [realm_management_api] Add health endpoint.
 - [housekeeping] Add Prometheus instrumenters and exporters.
@@ -27,6 +32,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [data_updater_plant] Export specific metrics with telemetry.
 - [trigger_engine] Export specific metrics with telemetry.
 - [appengine_api] Export specific metrics with telemetry.
+
+### Changed
+- [realm_management] Correctly handle parametric endpoints regardless of the ordering, so that overlapping endpoints are always refused.
 - [all] Make Elixir logger handle OTP requests: print stack traces only when needed.
 - [appengine_api] Handle aggregated server owned interfaces.
 - [appengine-api] Handle TTL for server owned interfaces.
