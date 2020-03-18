@@ -92,6 +92,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cqerl,
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
+      # TODO: remove this when cqex is removed
+      {:re2, "~> 1.9.4", override: true},
       {:cors_plug, "~> 1.5"},
       {:ex_lttb, "~> 0.3"},
       {:cyanide, github: "ispirata/cyanide"},
