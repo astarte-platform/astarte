@@ -37,7 +37,7 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
 
-  @rpc_client Config.rpc_client()
+  @rpc_client Config.rpc_client!()
   @destination Protocol.amqp_queue()
 
   def install_volatile_trigger(realm_name, device_id, %VolatileTrigger{} = volatile_trigger) do

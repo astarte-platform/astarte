@@ -36,7 +36,7 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
 
   require Logger
 
-  @rpc_client Config.rpc_client()
+  @rpc_client Config.rpc_client!()
   @destination Protocol.amqp_queue()
 
   def publish(topic, payload, qos)

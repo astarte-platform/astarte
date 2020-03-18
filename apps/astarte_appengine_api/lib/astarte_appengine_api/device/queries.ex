@@ -175,7 +175,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {"", nil}
       end
 
-    query_limit = min(opts.limit, Config.max_results_limit())
+    query_limit = min(opts.limit, Config.max_results_limit!())
 
     {limit_statement, limit_value} =
       cond do
@@ -1150,7 +1150,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {"", nil}
       end
 
-    query_limit = min(opts.limit, Config.max_results_limit())
+    query_limit = min(opts.limit, Config.max_results_limit!())
 
     {limit_statement, limit_value} =
       cond do

@@ -25,6 +25,8 @@ defmodule Astarte.AppEngine.API.Application do
   # for more information on OTP Applications
   def start(_type, _args) do
     alias Astarte.AppEngine.API.Config
+    alias Astarte.DataAccess.Config, as: DataAccessConfig
+    alias Astarte.RPC.Config, as: RPCConfig
 
     import Supervisor.Spec
 
@@ -35,6 +37,10 @@ defmodule Astarte.AppEngine.API.Application do
     )
 
     Logger.info("Starting application.", tag: "appengine_api_start")
+
+    DataAccessConfig.validate!()
+    RPCConfig.validate!()
+    Config.validate!()
 
     Metrics.HealthStatus.setup()
     Metrics.PhoenixInstrumenter.setup()
@@ -48,7 +54,7 @@ defmodule Astarte.AppEngine.API.Application do
       supervisor(Astarte.AppEngine.API.Rooms.MasterSupervisor, []),
       supervisor(Astarte.AppEngine.API.Rooms.AMQPClient, []),
       supervisor(Astarte.AppEngine.APIWeb.Endpoint, []),
-      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra}
+      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

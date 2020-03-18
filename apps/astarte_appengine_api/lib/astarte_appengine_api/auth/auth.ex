@@ -23,7 +23,7 @@ defmodule Astarte.AppEngine.API.Auth do
   require Logger
 
   def fetch_public_key(realm) do
-    with {:ok, client} <- Database.connect(realm),
+    with {:ok, client} <- Database.connect(realm: realm),
          {:ok, public_key} <- Queries.fetch_public_key(client) do
       {:ok, public_key}
     else

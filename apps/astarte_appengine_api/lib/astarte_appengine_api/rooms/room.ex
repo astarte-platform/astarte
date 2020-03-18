@@ -391,7 +391,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     amqp_trigger_target = %AMQPTriggerTarget{
       simple_trigger_id: trigger_id,
       parent_trigger_id: room_uuid,
-      routing_key: Config.rooms_events_routing_key()
+      routing_key: Config.rooms_events_routing_key!()
     }
 
     trigger_target_container = %TriggerTargetContainer{
