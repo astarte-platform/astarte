@@ -23,7 +23,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
     [
       app: :astarte_housekeeping_api,
       version: "1.0.0-dev",
-      elixir: "~> 1.8",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -78,7 +78,6 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:conform, "== 2.5.2"},
       {:jason, "~> 1.0"},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_ecto, "~> 4.0"},
@@ -86,12 +85,12 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:cors_plug, "~> 1.5"},
       {:plug_cowboy, "~> 2.0"},
       {:guardian, "~> 1.2"},
-      {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_phoenix, "~> 1.3"},
       {:prometheus_plugs, "~> 1.1"},
       {:pretty_log, "~> 0.1"},
+      {:skogsra, "~> 2.2"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

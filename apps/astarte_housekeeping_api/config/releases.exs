@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,8 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.API.Auth do
-  alias Astarte.Housekeeping.API.Config
+import Config
 
-  def fetch_public_key do
-    case Config.jwt_public_key_pem() do
-      {:ok, nil} ->
-        {:error, :no_jwt_public_key_pem_configured}
+port = System.get_env("HOUSEKEEPING_API_PORT", "4001") |> String.to_integer()
 
-      {:ok, pem} ->
-        {:ok, pem}
-    end
-  end
-end
+config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.Endpoint, http: [port: port]

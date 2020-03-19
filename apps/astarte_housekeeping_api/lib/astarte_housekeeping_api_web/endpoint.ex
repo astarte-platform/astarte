@@ -20,6 +20,7 @@ defmodule Astarte.Housekeeping.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_housekeeping_api
 
   alias Astarte.Housekeeping.APIWeb.Metrics
+  alias Astarte.Housekeeping.API.Config
 
   plug Metrics.PrometheusExporter
   plug Metrics.PipelineInstrumenter
@@ -72,7 +73,6 @@ defmodule Astarte.Housekeeping.APIWeb.Endpoint do
   and must return the updated configuration.
   """
   def load_from_system_env(config) do
-    port = System.get_env("PORT") || raise "expected the PORT environment variable to be set"
-    {:ok, Keyword.put(config, :http, [:inet6, port: port])}
+    {:ok, Keyword.put(config, :http, [:inet6, port: Config.port!()])}
   end
 end
