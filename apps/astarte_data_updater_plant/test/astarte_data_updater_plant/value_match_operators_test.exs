@@ -123,6 +123,7 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     assert ValueMatchOperators.value_matches?(5, :EQUAL_TO, nil) == false
     assert ValueMatchOperators.value_matches?(nil, :EQUAL_TO, 5) == false
     assert ValueMatchOperators.value_matches?(6.0, :EQUAL_TO, 6) == true
+
     # known_value nil doesn't matter for any operator different than any
 
     assert ValueMatchOperators.value_matches?("test", :EQUAL_TO, "test") == true
@@ -142,6 +143,7 @@ defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
     # Beware, value_matches? returns if the value matches,
     # so false is a valid answer for "does nil NOT_EQUAL_TO 5 matches 5"
     assert ValueMatchOperators.value_matches?(nil, :NOT_EQUAL_TO, 5) == false
+
     # known_value nil doesn't matter for any operator different than any
 
     assert ValueMatchOperators.value_matches?("test", :NOT_EQUAL_TO, "test") == false
