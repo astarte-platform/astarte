@@ -103,8 +103,5 @@ jobs:
       run: mix do compile
     - name: Test and Coverage
       run: mix coveralls.json  --exclude wip -o coverage_results
-    - name: Upload Coverage Results to CodeCov
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      run: |
-        bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v1
