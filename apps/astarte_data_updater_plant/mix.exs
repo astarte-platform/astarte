@@ -71,6 +71,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
+      # TODO: remove this when astarte_data_access is updated to the version
+      # with re2 1.9.4
+      {:re2, "~> 1.9.4", override: true},
       {:amqp, "~> 1.2"},
       {:cyanide, github: "ispirata/cyanide"},
       {:conform, "== 2.5.2"},

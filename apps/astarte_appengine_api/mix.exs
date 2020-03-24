@@ -81,6 +81,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      # TODO: remove this when astarte_data_access is updated to the version
+      # with re2 1.9.4
+      {:re2, "~> 1.9.4", override: true},
       {:phoenix, "~> 1.4"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 4.0"},
