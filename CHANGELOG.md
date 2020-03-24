@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Handle env variables with Skogsra.
 - Change env variable ASTARTE_CASSANDRA_NODES into CASSANDRA_NODES
 
+## [0.11.0-rc.1] - Unreleased
+### Fixed
+- Update re2, fixing a compilation problem that prevented applications depending
+  from CQEx from starting.
+
 ## [0.11.0-rc.0] - 2020-02-26
 
 ## [0.11.0-beta.2] - 2020-01-24
