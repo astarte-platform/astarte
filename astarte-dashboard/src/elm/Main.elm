@@ -893,6 +893,7 @@ renderNavbar model =
 editorNavBar : Model -> Html Msg
 editorNavBar model =
     Navbar.config NavbarMsg
+        |> Navbar.darkCustomClass "customDarkColor"
         |> Navbar.withAnimation
         |> Navbar.attrs
             [ class "navbar-vertical fixed-left" ]
@@ -911,7 +912,7 @@ standardNavBar model =
 
         Realm realmName _ ->
             Navbar.config NavbarMsg
-                |> Navbar.darkCustomClass "my-navbar-color"
+                |> Navbar.darkCustomClass "customDarkColor"
                 |> Navbar.withAnimation
                 |> Navbar.attrs
                     [ class "navbar-vertical fixed-left" ]
@@ -937,26 +938,20 @@ dashboardBrand prevConfig =
 
 editorNavbarLinks : Page -> Navbar.CustomItem Msg
 editorNavbarLinks selectedPage =
-    let
-        isTriggerEditor =
-            case selectedPage of
-                Realm _ (TriggerBuilderPage _) ->
-                    True
-
-                _ ->
-                    False
-    in
     Navbar.customItem <|
         Grid.container
-            [ Flex.col ]
+            [ Flex.col
+            , Spacing.p0
+            ]
             [ ul
                 [ class "navbar-nav"
                 , Size.w100
+                , Spacing.mt2
                 ]
                 [ renderNavbarLink
                     "Interface Editor"
                     Icons.Interface
-                    (not isTriggerEditor)
+                    False
                     Route.InterfaceEditor
                 ]
             ]
