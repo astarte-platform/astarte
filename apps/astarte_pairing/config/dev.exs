@@ -22,11 +22,6 @@ config :astarte_pairing, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
 
 config :astarte_pairing, :cfssl_url, "http://localhost:8888"
 
-config :cqerl, :cassandra_nodes, [
-  {System.get_env("CASSANDRA_DB_HOST") || "localhost",
-   System.get_env("CASSANDRA_DB_PORT") || 9042}
-]
-
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [:function]

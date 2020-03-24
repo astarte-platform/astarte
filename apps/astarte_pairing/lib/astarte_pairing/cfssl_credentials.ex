@@ -81,7 +81,7 @@ defmodule Astarte.Pairing.CFSSLCredentials do
   end
 
   defp client do
-    Config.cfssl_url()
+    Config.cfssl_url!()
     |> Client.new()
   end
 end

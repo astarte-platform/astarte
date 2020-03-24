@@ -25,6 +25,7 @@ defmodule Astarte.Pairing do
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.RPC.Handler
 
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.RPC.Protocol.Pairing, as: Protocol
 
   def start(_type, _args) do
@@ -35,10 +36,13 @@ defmodule Astarte.Pairing do
     )
 
     Logger.info("Starting application", tag: "pairing_app_start")
+
+    DataAccessConfig.validate!()
+    Config.validate!()
     Config.init!()
 
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
+      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.PairingWeb.Metrics.Supervisor,
       {Astarte.Pairing.CredentialsSecret.Cache, []}

@@ -21,56 +21,52 @@ defmodule Astarte.Pairing.Config do
   This module helps the access to the runtime configuration of Astarte Pairing
   """
 
+  use Skogsra
+
   alias Astarte.Pairing.CFSSLCredentials
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+
+  @envdoc "The external broker URL which should be used by devices."
+  app_env :broker_url, :astarte_pairing, :broker_url,
+    os_env: "PAIRING_BROKER_URL",
+    type: :binary,
+    required: true
+
+  @envdoc "URL to the running CFSSL instance for device certificate generation."
+  app_env :cfssl_url, :astarte_pairing, :cfssl_url,
+    os_env: "PAIRING_CFSSL_URL",
+    type: :binary,
+    default: "http://localhost:8888"
+
+  @envdoc "The CA certificate."
+  app_env :ca_cert, :astarte_pairing, :ca_cert,
+    os_env: "PAIRING_CA_CERT",
+    type: :binary
 
   def init! do
-    if Application.fetch_env(:astarte_pairing, :ca_cert) == :error do
+    if {:ok, nil} = ca_cert() do
       case CFSSLCredentials.ca_cert() do
         {:ok, cert} ->
-          Application.put_env(:astarte_pairing, :ca_cert, cert)
+          put_ca_cert(cert)
 
         {:error, _reason} ->
-          raise "no CA certificate available"
+          raise "No CA certificate available."
       end
     end
   end
 
   @doc """
-  Returns the broker_url contained in the config.
-
-  Raises if it doesn't exist since it's required.
-  """
-  def broker_url! do
-    Application.fetch_env!(:astarte_pairing, :broker_url)
-  end
-
-  @doc """
   Returns the cassandra node configuration
   """
-  def cassandra_node do
-    Application.get_env(:cqerl, :cassandra_nodes)
-    |> List.first()
-  end
+  @spec cassandra_node!() :: {String.t(), integer()}
+  def cassandra_node!, do: List.first(cqex_nodes!())
 
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """
-  def xandra_nodes do
-    Application.get_env(:astarte_data_access, :cassandra_nodes, "localhost")
-    |> String.split(",")
-  end
+  defdelegate xandra_nodes, to: DataAccessConfig
+  defdelegate xandra_nodes!, to: DataAccessConfig
 
-  @doc """
-  Returns the CFSSL base_url
-  """
-  def cfssl_url do
-    Application.fetch_env!(:astarte_pairing, :cfssl_url)
-  end
-
-  @doc """
-  Returns the PEM encoded CFSSL CA certificate
-  """
-  def ca_cert do
-    Application.fetch_env!(:astarte_pairing, :ca_cert)
-  end
+  defdelegate cqex_nodes, to: DataAccessConfig
+  defdelegate cqex_nodes!, to: DataAccessConfig
 end

@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.Mixfile do
     [
       app: :astarte_pairing,
       version: "1.0.0-dev",
-      elixir: "~> 1.8",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -76,20 +76,16 @@ defmodule Astarte.Pairing.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # TODO: remove this when astarte_data_access is updated to the version
-      # with re2 1.9.4
-      {:re2, "~> 1.9.4", override: true},
       {:cfxxl, "~> 0.3"},
-      {:conform, "== 2.5.2"},
       {:bcrypt_elixir, "~> 1.0"},
       {:excoveralls, "~> 0.11", only: :test},
-      {:distillery, "~> 1.5", runtime: false},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
       {:xandra, "~> 0.13"},
       {:pretty_log, "~> 0.1"},
+      {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.3"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]

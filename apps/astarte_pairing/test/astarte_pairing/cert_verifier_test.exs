@@ -27,7 +27,7 @@ defmodule Astarte.Pairing.CertVerifierTest do
 
   setup_all do
     cfxxl_client =
-      Config.cfssl_url()
+      Config.cfssl_url!()
       |> Client.new()
 
     {:ok, %{"certificate" => ca_crt}} = CFXXL.info(cfxxl_client, "")
