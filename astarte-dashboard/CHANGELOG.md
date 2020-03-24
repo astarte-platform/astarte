@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Button for device credentials wipe.
 - Error messages when accessing pages with invalid direct URLs.
 - Pairing API health check.
+- Device metadata view and editing.
 
 ### Changed
 - Layout and palette restyle.

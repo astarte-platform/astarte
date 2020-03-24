@@ -17,11 +17,18 @@
 -}
 
 
-module Types.Device exposing (Device, IntrospectionValue(..), decoder, encodeAliases, encodeCredentialsInhibited)
+module Types.Device exposing
+    ( Device
+    , IntrospectionValue(..)
+    , decoder
+    , encodeAliases
+    , encodeCredentialsInhibited
+    , encodeMetadata
+    )
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode exposing (Value)
 
 
@@ -41,6 +48,7 @@ type alias Device =
     , credentialsinhibited : Bool
     , groups : List String
     , previousInterfaces : List IntrospectionValue
+    , metadata : Dict String String
     }
 
 
@@ -70,6 +78,7 @@ decoder =
         |> required "credentials_inhibited" Decode.bool
         |> required "groups" (Decode.list Decode.string)
         |> required "previous_interfaces" previousInterfacesDecoder
+        |> required "metadata" (Decode.dict Decode.string)
 
 
 introspectionsDecoder : Decoder (List IntrospectionValue)
@@ -149,3 +158,8 @@ encodeAliases aliases =
 encodeCredentialsInhibited : Bool -> Value
 encodeCredentialsInhibited enabled =
     Encode.object [ ( "credentials_inhibited", Encode.bool enabled ) ]
+
+
+encodeMetadata : Dict String String -> Value
+encodeMetadata aliases =
+    Encode.object [ ( "metadata", Encode.dict identity Encode.string aliases ) ]

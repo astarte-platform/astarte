@@ -41,6 +41,7 @@ import Icons
 import Json.Decode as Decode exposing (Decoder)
 import ListUtils exposing (addWhen)
 import Modal.NewAlias as NewAlias
+import Modal.NewMetadata as NewMetadata
 import Modal.SelectGroup as SelectGroup
 import Ports
 import Route
@@ -67,6 +68,7 @@ type alias Model =
     , showSpinner : Bool
     , existingGroups : List String
     , newAliasModal : NewAlias.Model
+    , newMetadataModal : NewMetadata.Model
     , selectGroupModal : SelectGroup.Model
     , confirmModalVisibility : Modal.Visibility
     }
@@ -83,6 +85,7 @@ init session deviceId =
       , showSpinner = True
       , existingGroups = []
       , newAliasModal = NewAlias.init False
+      , newMetadataModal = NewMetadata.init False
       , selectGroupModal = SelectGroup.init False []
       , confirmModalVisibility = Modal.hidden
       }
@@ -95,10 +98,13 @@ type Msg
     | UpdateDeviceInfo Time.Posix
     | Forward ExternalMsg
     | OpenNewAliasPopup
+    | OpenNewMetadataPopup
     | OpenGroupsPopup
     | UpdateAliasModal NewAlias.Msg
+    | UpdateMetadataModal NewMetadata.Msg
     | UpdateGroupModal SelectGroup.Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
+    | DeviceMetadataUpdated (Dict String String) (Result AstarteApi.Error ())
     | SetCredentialsInhibited Bool
     | ShowConfirmModal
     | CloseConfirmModal Bool
@@ -222,6 +228,12 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
+        OpenNewMetadataPopup ->
+            ( { model | newMetadataModal = NewMetadata.init True }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
         OpenGroupsPopup ->
             ( { model | selectGroupModal = SelectGroup.init True model.existingGroups }
             , Cmd.none
@@ -235,6 +247,16 @@ update session msg model =
             in
             ( { model | newAliasModal = newStatus }
             , handleAliasModalCommand session model extenalCommand
+            , ExternalMsg.Noop
+            )
+
+        UpdateMetadataModal modalMsg ->
+            let
+                ( newStatus, extenalCommand ) =
+                    NewMetadata.update modalMsg model.newMetadataModal
+            in
+            ( { model | newMetadataModal = newStatus }
+            , handleMetadataModalCommand session model extenalCommand
             , ExternalMsg.Noop
             )
 
@@ -267,6 +289,34 @@ update session msg model =
                     )
 
         DeviceAliasesUpdated _ (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
+        DeviceMetadataUpdated newMetadata (Ok _) ->
+            case model.device of
+                Nothing ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Just device ->
+                    let
+                        updatedDevice =
+                            { device | metadata = newMetadata }
+                    in
+                    ( { model | device = Just updatedDevice }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        DeviceMetadataUpdated _ (Err error) ->
             let
                 ( message, details ) =
                     AstarteApi.errorToHumanReadable error
@@ -383,6 +433,25 @@ handleAliasModalCommand session model cmd =
             Cmd.none
 
 
+handleMetadataModalCommand : Session -> Model -> NewMetadata.ExternalMsg -> Cmd Msg
+handleMetadataModalCommand session model cmd =
+    case ( model.device, cmd ) of
+        ( Just device, NewMetadata.SetMetadataField metadataField metadataValue ) ->
+            let
+                newMetadata =
+                    device.metadata
+                        |> Dict.insert metadataField metadataValue
+            in
+            DeviceMetadataUpdated newMetadata
+                |> AstarteApi.updateDeviceMetadata session.apiConfig model.deviceId (Dict.fromList [ ( metadataField, metadataValue ) ])
+
+        ( Nothing, _ ) ->
+            Cmd.none
+
+        ( _, NewMetadata.Noop ) ->
+            Cmd.none
+
+
 handleGroupModalCommand : Session -> Model -> SelectGroup.ExternalMsg -> Cmd Msg
 handleGroupModalCommand session model cmd =
     case ( model.device, cmd ) of
@@ -465,16 +534,19 @@ view model flashMessages =
                 ]
             , Grid.row []
                 [ deviceInfoCard device HalfWidth
-                , deviceEventsCard device HalfWidth
                 , deviceAliasesCard device HalfWidth
+                , deviceMetadataCard device HalfWidth
                 , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) HalfWidth
                 , deviceIntrospectionCard device HalfWidth
                 , devicePreviousInterfacesCard device HalfWidth
                 , deviceStatsCard device FullWidth
+                , deviceEventsCard device FullWidth
                 , deviceChannelCard model.receivedEvents FullWidth
                 ]
             , NewAlias.view model.newAliasModal
                 |> Html.map UpdateAliasModal
+            , NewMetadata.view model.newMetadataModal
+                |> Html.map UpdateMetadataModal
             , SelectGroup.view model.selectGroupModal
                 |> Html.map UpdateGroupModal
             ]
@@ -824,6 +896,36 @@ deviceAliasesCard device width =
         ]
 
 
+deviceMetadataCard : Device -> CardWidth -> Grid.Column Msg
+deviceMetadataCard device width =
+    renderCard "Metadata"
+        width
+        [ Grid.row
+            [ Row.attrs [ Spacing.mt3 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ renderMetadata device.metadata ]
+            ]
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ Html.a
+                    [ { message = OpenNewMetadataPopup
+                      , preventDefault = True
+                      , stopPropagation = False
+                      }
+                        |> Decode.succeed
+                        |> Html.Events.custom "click"
+                    , href "#"
+                    , Html.Attributes.target "_self"
+                    ]
+                    [ Icons.render Icons.Add [ Spacing.mr1 ]
+                    , Html.text "Add new metadata..."
+                    ]
+                ]
+            ]
+        ]
+
+
 deviceGroupsCard : Device -> Bool -> CardWidth -> Grid.Column Msg
 deviceGroupsCard device showAddToGroup width =
     renderCard "Groups"
@@ -1110,13 +1212,32 @@ renderAliases aliases =
             , Table.tbody []
                 (aliases
                     |> Dict.toList
-                    |> List.map renderAlias
+                    |> List.map pairToTableRow
                 )
             )
 
 
-renderAlias : ( String, String ) -> Table.Row Msg
-renderAlias ( key, value ) =
+renderMetadata : Dict String String -> Html Msg
+renderMetadata metadata =
+    if Dict.isEmpty metadata then
+        Html.text "Device has no metadata"
+
+    else
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th [] [ Html.text "Field" ]
+                , Table.th [] [ Html.text "Value" ]
+                ]
+            , Table.tbody []
+                (metadata
+                    |> Dict.toList
+                    |> List.map pairToTableRow
+                )
+            )
+
+
+pairToTableRow : ( String, String ) -> Table.Row Msg
+pairToTableRow ( key, value ) =
     Table.tr []
         [ Table.td []
             [ Html.text key ]
