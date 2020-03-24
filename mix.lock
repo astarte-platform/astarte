@@ -25,7 +25,7 @@
   "poolboy": {:hex, :poolboy, "1.5.2", "392b007a1693a64540cead79830443abf5762f5d30cf50bc95cb2c1aaafa006b", [:rebar3], [], "hexpm"},
   "pooler": {:hex, :pooler, "1.5.3", "898cd1fa301fc42d4a8ed598ce139b71ca85b54c16ab161152b5cc5fbdcfa1a8", [:rebar3], [], "hexpm", "058d85c5081289b90e97e4dddbc3bb5a3b4a19a728ab3bc88c689efcc36a07c7"},
   "quickrand": {:hex, :quickrand, "1.7.5", "e3086a153eb13a057fc19192d05e2d4c6bb2bdbb55746a699beae9847ac17ca8", [:rebar3], [], "hexpm", "6a1da81fe098c0dfcfb55c5e35c20be430128e88bbfa03d18fcf9e0ee8e342d7"},
-  "re2": {:git, "https://github.com/tuncer/re2.git", "2471e06ed7e548ca1af522e95b16867135afdfdc", [tag: "v1.7.5"]},
+  "re2": {:hex, :re2, "1.9.4", "f6a47b915aac354f5dc9105182eeb740b9ded9e7f56948885b9795479831f9f2", [:rebar3], [], "hexpm", "95ea70b3ff30844ccacf695445052891c3629f516dcd275c7023243717687287"},
   "semver": {:git, "https://github.com/nebularis/semver.git", "c7d509f38298ec6594be4efdcd8a8f2322760039", [ref: "c7d509"]},
   "snappy": {:git, "https://github.com/fdmanana/snappy-erlang-nif.git", "4e3b8611b6a1ff85a417b0f2fad8886c9485810e", [ref: "4e3b861"]},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.5", "6eaf7ad16cb568bb01753dbbd7a95ff8b91c7979482b95f38443fe2c8852a79b", [:make, :mix, :rebar3], [], "hexpm", "13104d7897e38ed7f044c4de953a6c28597d1c952075eb2e328bc6d6f2bfc496"},
