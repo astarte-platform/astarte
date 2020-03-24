@@ -1,4 +1,4 @@
-FROM elixir:1.8.1 as builder
+FROM elixir:1.10.1 as builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ ADD . .
 RUN mix do compile, release
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:stretch-slim
+FROM debian:buster-slim
 
 WORKDIR /app
 
@@ -40,4 +40,4 @@ ARG BUILD_ENV=prod
 
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_pairing_api .
 
-CMD ["./bin/astarte_pairing_api", "foreground"]
+CMD ["./bin/astarte_pairing_api", "start"]

@@ -21,18 +21,32 @@ defmodule Astarte.Pairing.API.Config do
   This module contains functions to access the configuration
   """
 
+  use Skogsra
+
+  @envdoc "The port used from the Phoenix server."
+  app_env :port, :astarte_pairing_api, :port,
+    os_env: "PAIRING_API_PORT",
+    type: :integer,
+    default: 4003
+
+  @envdoc """
+  Disables JWT authentication for agent's endpoints. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
+  """
+  app_env :disable_authentication, :astarte_pairing_api, :disable_authentication,
+    os_env: "PAIRING_API_DISABLE_AUTHENTICATION",
+    type: :binary,
+    default: false
+
+  @envdoc "The RPC Client."
+  app_env :rpc_client, :astarte_pairing_api, :rpc_client,
+    os_env: "PAIRING_API_RPC_CLIENT",
+    type: :module,
+    binding_skip: [:system],
+    default: Astarte.RPC.AMQP.Client
+
   @doc """
   Returns true if the authentication for the agent is disabled.
   Credential requests made by devices are always authenticated, even it this is true.
   """
-  def authentication_disabled? do
-    Application.get_env(:astarte_pairing_api, :disable_authentication, false)
-  end
-
-  @doc """
-  Returns the RPC Client
-  """
-  def rpc_client do
-    Application.get_env(:astarte_pairing_api, :rpc_client, Astarte.RPC.AMQP.Client)
-  end
+  def authentication_disabled?, do: disable_authentication!()
 end
