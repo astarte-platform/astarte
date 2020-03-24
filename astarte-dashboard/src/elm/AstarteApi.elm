@@ -41,6 +41,7 @@ module AstarteApi exposing
     , listInterfaceMajors
     , listInterfaces
     , listTriggers
+    , pairingApiHealth
     , realmConfig
     , realmManagementApiHealth
     , setCredentialInhibited
@@ -688,6 +689,19 @@ appEngineApiHealth apiConfig resultMsg =
         { method = "GET"
         , headers = buildHeaders apiConfig.token
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "health" ] []
+        , body = Http.emptyBody
+        , expect = expectHealthCheck resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+pairingApiHealth : Config -> (Result Error Bool -> msg) -> Cmd msg
+pairingApiHealth apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.pairingUrl [ "health" ] []
         , body = Http.emptyBody
         , expect = expectHealthCheck resultMsg
         , timeout = Nothing

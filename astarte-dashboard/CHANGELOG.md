@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Device registration page.
 - Button for device credentials wipe.
 - Error messages when accessing pages with invalid direct URLs.
+- Pairing API health check.
 
 ### Changed
 - Layout and palette restyle.
