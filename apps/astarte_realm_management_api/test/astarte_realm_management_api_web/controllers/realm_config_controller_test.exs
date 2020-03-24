@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
+  alias Astarte.RealmManagement.API.Config
   alias Astarte.RealmManagement.API.JWTTestHelper
   alias Astarte.RealmManagement.Mock.DB
 
@@ -48,11 +49,11 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
 
   setup_all do
     # Disable the auth since we will mess with the public key
-    Application.put_env(:astarte_realm_management_api, :disable_authentication, true)
+    Config.put_disable_authentication(true)
 
     on_exit(fn ->
       # Restore auth on exit
-      Application.put_env(:astarte_realm_management_api, :disable_authentication, false)
+      Config.reload_disable_authentication()
     end)
   end
 
