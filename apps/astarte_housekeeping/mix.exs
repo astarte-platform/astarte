@@ -79,6 +79,9 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp deps do
     [
+      # TODO: remove this when astarte_data_access is updated to the version
+      # with re2 1.9.4
+      {:re2, "~> 1.9.4", override: true},
       {:xandra, "~> 0.13"},
       {:conform, "== 2.5.2"},
       {:distillery, "~> 1.5", runtime: false},
