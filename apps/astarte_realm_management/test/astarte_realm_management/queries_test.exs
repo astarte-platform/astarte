@@ -24,6 +24,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Queries
+  alias Astarte.RealmManagement.Config
 
   @object_datastream_interface_json """
   {
@@ -206,7 +207,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
   end
 
   def connect_to_test_realm(realm) do
-    CQEx.Client.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)), keyspace: realm)
+    CQEx.Client.new!(List.first(Config.cqex_nodes!()), keyspace: realm)
   end
 
   def retrieve_endpoint_id(client, interface_name, interface_major, path) do

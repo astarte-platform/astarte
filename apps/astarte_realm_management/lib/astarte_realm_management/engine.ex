@@ -34,6 +34,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.DataAccess.Mappings
   alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Queries
+  alias Astarte.RealmManagement.Config
   alias CQEx.Client, as: DatabaseClient
 
   def get_health() do
@@ -63,7 +64,7 @@ defmodule Astarte.RealmManagement.Engine do
   def install_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to install a new interface.", tag: "install_interface")
 
-    with {:ok, client} <- Database.connect(realm_name),
+    with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
@@ -125,7 +126,7 @@ defmodule Astarte.RealmManagement.Engine do
   def update_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to perform interface update.", tag: "update_interface")
 
-    with {:ok, client} <- Database.connect(realm_name),
+    with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
@@ -321,7 +322,7 @@ defmodule Astarte.RealmManagement.Engine do
       )
 
     with {:major, 0} <- {:major, major},
-         {:ok, client} <- Database.connect(realm_name),
+         {:ok, client} <- Database.connect(realm: realm_name),
          {:major_is_avail, {:ok, true}} <-
            {:major_is_avail, Queries.is_interface_major_available?(client, name, 0)},
          {:devices, {:ok, false}} <-
@@ -381,7 +382,7 @@ defmodule Astarte.RealmManagement.Engine do
         interface_major: major_version
       )
 
-    with {:ok, client} <- Database.connect(realm_name),
+    with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
       Jason.encode(interface)
     end
@@ -390,7 +391,7 @@ defmodule Astarte.RealmManagement.Engine do
   def list_interface_versions(realm_name, interface_name) do
     _ = Logger.debug("List interface versions.", interface: interface_name)
 
-    with {:ok, client} <- Database.connect(realm_name) do
+    with {:ok, client} <- Database.connect(realm: realm_name) do
       Queries.interface_available_versions(client, interface_name)
     else
       {:error, :database_connection_error} ->
@@ -404,7 +405,7 @@ defmodule Astarte.RealmManagement.Engine do
   def get_interfaces_list(realm_name) do
     _ = Logger.debug("Get interfaces list.")
 
-    with {:ok, client} <- Database.connect(realm_name) do
+    with {:ok, client} <- Database.connect(realm: realm_name) do
       Queries.get_interfaces_list(client)
     else
       {:error, :database_connection_error} ->
@@ -420,7 +421,7 @@ defmodule Astarte.RealmManagement.Engine do
 
     with {:ok, client} <-
            DatabaseClient.new(
-             List.first(Application.get_env(:cqerl, :cassandra_nodes)),
+             List.first(Config.cqex_nodes!()),
              keyspace: realm_name
            ) do
       Queries.get_jwt_public_key_pem(client)
@@ -433,7 +434,7 @@ defmodule Astarte.RealmManagement.Engine do
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
     with {:ok, client} <-
            DatabaseClient.new(
-             List.first(Application.get_env(:cqerl, :cassandra_nodes)),
+             List.first(Config.cqex_nodes!()),
              keyspace: realm_name
            ) do
       _ = Logger.info("Updating JWT public key PEM.", tag: "updating_jwt_pub_key")
@@ -670,7 +671,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   defp get_database_client(realm_name) do
     DatabaseClient.new(
-      List.first(Application.get_env(:cqerl, :cassandra_nodes)),
+      List.first(Config.cqex_nodes!()),
       keyspace: realm_name
     )
   end

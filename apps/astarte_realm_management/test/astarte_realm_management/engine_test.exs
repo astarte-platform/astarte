@@ -483,7 +483,8 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
 
-    {:ok, client} = Database.connect("autotestrealm")
+    {:ok, client} = Database.connect(realm: "autotestrealm")
+
     d = :crypto.strong_rand_bytes(16)
 
     e1 =
@@ -566,7 +567,8 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 10]]}
 
-    {:ok, client} = Database.connect("autotestrealm")
+    {:ok, client} = Database.connect(realm: "autotestrealm")
+
     d = :crypto.strong_rand_bytes(16)
     e1 = CQLUtils.endpoint_id("com.ispirata.TestDatastream", 0, "/%{sensorId}/realValues")
     p1 = "/0/realValues"

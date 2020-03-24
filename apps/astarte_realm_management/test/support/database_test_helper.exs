@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Result, as: DatabaseResult
+  alias Astarte.RealmManagement.Config
   require Logger
 
   @jwt_public_key_pem """
@@ -298,7 +299,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   end
 
   def connect_to_test_database do
-    DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    DatabaseClient.new(List.first(Config.cqex_nodes!()))
   end
 
   def jwt_public_key_pem_fixture do
