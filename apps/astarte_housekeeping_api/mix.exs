@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.11"}
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.0-rc.1"}
     ]
   end
 
@@ -79,20 +79,23 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   defp deps do
     [
       {:conform, "== 2.5.2"},
-      {:jason, "~> 1.0"},
-      {:phoenix, "~> 1.4.0"},
-      {:phoenix_ecto, "~> 4.0"},
-      {:gettext, "~> 0.11"},
-      {:cors_plug, "~> 1.5"},
-      {:plug_cowboy, "~> 2.0"},
-      {:guardian, "~> 1.2"},
-      {:distillery, "~> 1.5", runtime: false},
-      {:excoveralls, "~> 0.11", only: :test},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_phoenix, "~> 1.3"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:pretty_log, "~> 0.1"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:jason, "== 1.1.2"},
+      {:phoenix, "== 1.4.9"},
+      {:phoenix_ecto, "== 4.0.0"},
+      {:gettext, "== 0.16.1"},
+      {:cors_plug, "== 1.5.2"},
+      {:plug_cowboy, "== 2.1.0"},
+      {:guardian, "== 1.2.1"},
+      {:distillery, "== 1.5.5", runtime: false},
+      {:excoveralls, "== 0.11.1", only: :test},
+      {:prometheus_process_collector, "== 1.4.5"},
+      {:prometheus_phoenix, "== 1.3.0"},
+      {:prometheus_plugs, "== 1.1.5"},
+      {:pretty_log, "== 0.1.0"},
+      {:dialyzex,
+       github: "Comcast/dialyzex",
+       ref: "cdc7cf71fe6df0ce4cf59e3f497579697a05c989",
+       only: [:dev, :ci]}
     ]
   end
 end

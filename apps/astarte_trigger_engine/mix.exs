@@ -59,9 +59,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-0.11"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.0-rc.1"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.0-rc.1"}
     ]
   end
 
@@ -74,23 +73,26 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.2.1"},
-      {:bbmustache, "~> 1.5"},
+      {:amqp, "== 1.2.1"},
+      {:bbmustache, "== 1.8.0"},
       {:conform, "== 2.5.2"},
-      {:cyanide, github: "ispirata/cyanide"},
-      {:httpoison, "~> 1.1"},
-      {:jason, "~> 1.0"},
-      {:distillery, "~> 1.5", runtime: false},
-      {:excoveralls, "~> 0.11", only: :test},
-      {:plug_cowboy, "~> 2.1"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:prometheus_ex, "~> 3.0"},
-      {:mox, "~> 0.3", only: :test},
-      {:pretty_log, "~> 0.1"},
-      {:telemetry, "~> 0.3"},
-      {:xandra, "~> 0.13"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:cyanide, "== 1.0.0"},
+      {:httpoison, "== 1.5.1"},
+      {:jason, "== 1.1.2"},
+      {:distillery, "== 1.5.5", runtime: false},
+      {:excoveralls, "== 0.11.1", only: :test},
+      {:plug_cowboy, "== 2.1.0"},
+      {:prometheus_process_collector, "== 1.4.5"},
+      {:prometheus_plugs, "== 1.1.5"},
+      {:prometheus_ex, "== 3.0.5"},
+      {:mox, "== 0.5.1", only: :test},
+      {:pretty_log, "== 0.1.0"},
+      {:telemetry, "== 0.4.1"},
+      {:xandra, "== 0.13.1"},
+      {:dialyzex,
+       github: "Comcast/dialyzex",
+       ref: "cdc7cf71fe6df0ce4cf59e3f497579697a05c989",
+       only: [:dev, :ci]}
     ]
   end
 end

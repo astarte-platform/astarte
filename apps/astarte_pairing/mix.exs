@@ -67,29 +67,31 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-0.11"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.11"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.0-rc.1"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.0-rc.1"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.0-rc.1"}
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:cfxxl, "~> 0.3"},
+      {:cfxxl, "== 0.3.0"},
       {:conform, "== 2.5.2"},
-      {:bcrypt_elixir, "~> 1.0"},
-      {:excoveralls, "~> 0.11", only: :test},
-      {:distillery, "~> 1.5", runtime: false},
-      {:plug_cowboy, "~> 2.1"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:prometheus_ex, "~> 3.0"},
-      {:xandra, "~> 0.13"},
-      {:pretty_log, "~> 0.1"},
-      {:telemetry, "~> 0.3"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:bcrypt_elixir, "== 1.1.1"},
+      {:excoveralls, "== 0.11.1", only: :test},
+      {:distillery, "== 1.5.5", runtime: false},
+      {:plug_cowboy, "== 2.1.0"},
+      {:prometheus_process_collector, "== 1.4.5"},
+      {:prometheus_plugs, "== 1.1.5"},
+      {:prometheus_ex, "== 3.0.5"},
+      {:xandra, "== 0.13.1"},
+      {:pretty_log, "== 0.1.0"},
+      {:telemetry, "== 0.4.1"},
+      {:dialyzex,
+       github: "Comcast/dialyzex",
+       ref: "cdc7cf71fe6df0ce4cf59e3f497579697a05c989",
+       only: [:dev, :ci]}
     ]
   end
 end
