@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.11.0-rc.1] - Unreleased
+## [0.11.0-rc.1] - 2020-03-25
 ### Fixed
 - Update re2, fixing a compilation problem that prevented applications depending
   from CQEx from starting.
