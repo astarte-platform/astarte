@@ -70,8 +70,8 @@ defmodule Astarte.Pairing.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.11"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.0-rc.1"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.0-rc.1"}
     ]
   end
 
@@ -80,25 +80,28 @@ defmodule Astarte.Pairing.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.4"},
-      {:phoenix_pubsub, "~> 1.1"},
-      {:gettext, "~> 0.11"},
-      {:plug_cowboy, "~> 2.0"},
-      {:phoenix_ecto, "~> 4.0"},
-      {:jason, "~> 1.0"},
-      {:guardian, "~> 1.2"},
-      {:remote_ip, "~> 0.1"},
+      {:phoenix, "== 1.4.9"},
+      {:phoenix_pubsub, "== 1.1.2"},
+      {:gettext, "== 0.16.1"},
+      {:plug_cowboy, "== 2.1.0"},
+      {:phoenix_ecto, "== 4.0.0"},
+      {:jason, "== 1.1.2"},
+      {:guardian, "== 1.2.1"},
+      {:remote_ip, "== 0.1.4"},
       {:conform, "== 2.5.2"},
-      {:distillery, "~> 1.5", runtime: false},
-      {:excoveralls, "~> 0.11", only: :test},
-      {:mox, "~> 0.3", only: :test},
-      {:pretty_log, "~> 0.1"},
-      {:plug_logger_with_meta, "~> 0.1"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_phoenix, "~> 1.3"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
-      {:cors_plug, "~> 1.5"}
+      {:distillery, "== 1.5.5", runtime: false},
+      {:excoveralls, "== 0.11.1", only: :test},
+      {:mox, "== 0.5.1", only: :test},
+      {:pretty_log, "== 0.1.0"},
+      {:plug_logger_with_meta, "== 0.1.0"},
+      {:prometheus_process_collector, "== 1.4.5"},
+      {:prometheus_phoenix, "== 1.3.0"},
+      {:prometheus_plugs, "== 1.1.5"},
+      {:dialyzex,
+       github: "Comcast/dialyzex",
+       ref: "cdc7cf71fe6df0ce4cf59e3f497579697a05c989",
+       only: [:dev, :ci]},
+      {:cors_plug, "== 1.5.2"}
     ]
   end
 end
