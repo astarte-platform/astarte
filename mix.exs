@@ -22,7 +22,7 @@ defmodule Astarte.DataAccess.Mixfile do
   def project do
     [
       app: :astarte_data_access,
-      version: "0.11.0-rc.0",
+      version: "0.11.0-rc.1",
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -64,7 +64,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.0-rc.1"}
     ]
   end
 
@@ -75,10 +75,13 @@ defmodule Astarte.DataAccess.Mixfile do
        github: "matehat/cqerl", ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", override: true},
       {:cqex, github: "matehat/cqex", ref: "a2c45667108f9b1e8a9c73c5250a04020bf72a30"},
       # TODO: remove this when cqex is removed
-      {:re2, "~> 1.9.4", override: true},
+      {:re2, "== 1.9.4", override: true},
       {:conform, "== 2.5.2"},
-      {:excoveralls, "~> 0.10", only: :test},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:excoveralls, "== 0.11.1", only: :test},
+      {:dialyzex,
+       github: "Comcast/dialyzex",
+       ref: "cdc7cf71fe6df0ce4cf59e3f497579697a05c989",
+       only: [:dev, :ci]}
     ]
   end
 
