@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - [appengine_api] Always return an object when GETting on object aggregated interfaces.
+- Replace Conform and Distillery with Elixir native releases.
+- Remove the `ASTARTE_` prefix from all env variables.
 
 ### Added
 - [appengine_api] Add metadata to device
