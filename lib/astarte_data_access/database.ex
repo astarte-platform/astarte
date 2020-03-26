@@ -19,6 +19,8 @@
 defmodule Astarte.DataAccess.Database do
   require Logger
 
+  alias Astarte.DataAccess.Config
+
   @spec connect(realm: String.t(), cassandra_nodes: list) ::
           {:ok, :cqerl.client()} | {:error, atom}
   def connect(opts \\ []) when is_list(opts) do
@@ -51,7 +53,7 @@ defmodule Astarte.DataAccess.Database do
         {:nodes, cassandra_nodes}
 
       :error ->
-        {:nodes, Application.get_env(:cqerl, :cassandra_nodes)}
+        {:nodes, Config.cqex_nodes!()}
     end
   end
 
