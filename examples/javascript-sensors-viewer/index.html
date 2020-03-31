@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sensor List</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container-fluid">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="my-5 text-center">Sensors List</h2>
+            </div>
+            <div class="col-12 bg-white p-5 shadow-sm ">
+                <div class="row" id="sensors">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="astarte.js" type="text/javascript"></script>
+<script>
+    const configuration = {
+        endpoint: "",
+        realm: "",
+        token: "",
+        device: ""
+    };
+    let availableSensors = {};
+    let valueSensors = {};
+    let samplingSensors = {};
+    const sensorSelector = document.getElementById('sensors');
+    const astarte = new Astarte(configuration);
+    if(configuration.endpoint) {
+        astarte.getDevice(DeviceData);
+    } else {
+        window.confirm("Invalid Configuration, Update configuration in index.html file")
+    }
+    function DeviceData(response) {
+        const mapObject = new Map(Object.entries(response.data.introspection));
+        for (const [interfaceName] of mapObject) {
+            if (interfaceName.search('AvailableSensors') > 1)
+                astarte.getInterface(interfaceName, availableInterfaceData);
+            else if (interfaceName.search('SamplingRate') > 1)
+                astarte.getInterface(interfaceName, samplingInterfaceData);
+            else if (interfaceName.search("Values") > 1)
+                astarte.getInterface(interfaceName, valueInterfaceData);
+        }
+    }
+
+    function availableInterfaceData(response) {
+        availableSensors = response.data
+    }
+
+    function samplingInterfaceData(response) {
+        samplingSensors = response.data
+    }
+
+    function valueInterfaceData(response) {
+        valueSensors = response.data;
+        Object.keys(valueSensors).map((item, index) => {
+            const available = availableSensors[item];
+            const sampling = samplingSensors[item];
+            const value = valueSensors[item];
+            const sensorCard = renderSensorCard(available, sampling, value, item);
+            sensorSelector.insertAdjacentHTML('beforeend', sensorCard)
+        })
+    }
+
+    function renderSensorCard(available, sampling, value, item) {
+        const options = {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'};
+        let last_update = new Date(value.value.timestamp);
+        last_update = last_update.toLocaleDateString(window.navigator.language, options);
+
+        return `<div class="col-sm-4 col-12 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-header px-3">
+                            <h5 class="m-0">${available ? available.name : item}</h5>
+                        </div>
+                        <div class="card-body p-3">
+                            <h6 class="mb-3">Sensor ID: ${item}</h6>
+                            <h6 class="mb-3">Sampling Period: ${sampling && sampling.samplingPeriod ? sampling.samplingPeriod : 'N/A'}</h6>
+                            <h6 class="mb-3">Value: ${value.value.value} ${available ? available.unit : ""}</h6>
+                            <h6>Last Update: ${last_update}</h6>
+                        </div>
+                    </div>
+                </div>`
+    }
+
+</script>
+</body>
+</html>
