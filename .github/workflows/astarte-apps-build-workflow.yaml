@@ -95,7 +95,7 @@ jobs:
         - "cassandra:3.11.5"
         - "scylladb/scylla:3.1.1"
         rabbitmq:
-        - "rabbitmq:3.7.21-management"
+        - "rabbitmq:3.8-management"
     services:
       rabbitmq:
         image: ${{ matrix.rabbitmq }}
