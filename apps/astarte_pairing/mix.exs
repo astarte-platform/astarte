@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.Mixfile do
   def project do
     [
       app: :astarte_pairing,
-      version: "0.11.0-rc.1",
+      version: "0.11.0",
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -67,9 +67,9 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.0-rc.1"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.0-rc.1"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.0-rc.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.0"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.0"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.0"}
     ]
   end
 
