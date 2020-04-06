@@ -21,8 +21,10 @@ defmodule Astarte.Housekeeping.QueriesTest do
   doctest Astarte.Housekeeping.Queries
 
   alias Astarte.Housekeeping.DatabaseTestHelper
+  alias Astarte.Housekeeping.Queries
 
-  @realm "test"
+  @realm1 "test1"
+  @realm2 "test2"
 
   setup_all do
     DatabaseTestHelper.wait_and_initialize()
@@ -35,12 +37,28 @@ defmodule Astarte.Housekeeping.QueriesTest do
   setup [:realm_cleanup]
 
   test "realm creation" do
-    assert Astarte.Housekeeping.Queries.create_realm(@realm, "testpublickey", 1, []) == :ok
+    assert Queries.create_realm(@realm1, "test1publickey", 1, []) == :ok
+    assert Queries.create_realm(@realm2, "test2publickey", 1, []) == :ok
+
+    assert %{
+             realm_name: @realm1,
+             jwt_public_key_pem: "test1publickey",
+             replication_class: "SimpleStrategy",
+             replication_factor: 1
+           } = Queries.get_realm(@realm1)
+
+    assert %{
+             realm_name: @realm2,
+             jwt_public_key_pem: "test2publickey",
+             replication_class: "SimpleStrategy",
+             replication_factor: 1
+           } = Queries.get_realm(@realm2)
   end
 
   defp realm_cleanup(_context) do
     on_exit(fn ->
-      DatabaseTestHelper.realm_cleanup(@realm)
+      DatabaseTestHelper.realm_cleanup(@realm1)
+      DatabaseTestHelper.realm_cleanup(@realm2)
     end)
 
     :ok

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0] - Unreleased
 ### Fixed
 - [appengine_api] Handle server owned datetime values correctly
+- [housekeeping] Fix a bug preventing the public key of newly created realms to be correctly
+  inserted to the realm (see #294).
 - [data_updater_plant] Fix a bug that was preventing volatile triggers (specifically, the ones
   targeting the `*` interface) to be loaded immediately.
 
