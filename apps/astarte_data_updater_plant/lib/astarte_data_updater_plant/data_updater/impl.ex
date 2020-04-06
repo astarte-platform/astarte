@@ -1198,7 +1198,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           with {:ok, db_client} <- Database.connect(state.realm),
                {:ok, %InterfaceDescriptor{aggregation: :individual}} <-
                  InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major) do
-            {:ok, load_trigger(new_state, trigger, target)}
+            {:ok, new_state}
           else
             {:ok, %InterfaceDescriptor{aggregation: :object}} ->
               {{:error, :unsupported_interface_aggregation}, state}
@@ -1218,7 +1218,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                {:ok, %InterfaceDescriptor{automaton: automaton, aggregation: :individual}} <-
                  InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
-            {:ok, load_trigger(new_state, trigger, target)}
+            {:ok, new_state}
           else
             {:error, :not_found} ->
               # State rollback here
@@ -1237,7 +1237,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           end
 
         {:introspection_trigger, _} ->
-          {:ok, load_trigger(new_state, trigger, target)}
+          {:ok, new_state}
 
         {:device_trigger, _} ->
           {:ok, load_trigger(new_state, trigger, target)}
