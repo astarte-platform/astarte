@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.0] - Unreleased
 ### Fixed
 - [appengine_api] Handle server owned datetime values correctly
+- [data_updater_plant] Fix a bug that was preventing volatile triggers (specifically, the ones
+  targeting the `*` interface) to be loaded immediately.
 
 ## [0.11.0-rc.1] - 2020-03-26
 ### Fixed
