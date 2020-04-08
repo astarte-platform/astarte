@@ -228,3 +228,62 @@ Devices table stores the list of all the devices for a certain realm and all the
 | `last_credentials_request_ip` | `inet`                                | Device IP address used during the last credential request.                                                                                                                                         |
 | `last_seen_ip`                | `inet`                                | Most recent device IP address.                                                                                                                                                                     |
 | `groups`                      | `map<text, timeuuid>`                 | Groups which the device belongs to, the key is the group name, and the value is its insertion timeuuid, which is used as part of the key on grouped_devices table.                                                                                                                                                                               |
+
+## Schema changes
+
+This section describes the schema changes happening between different Astarte Versions.
+
+They are divided between Astarte Keyspace (changes that affect the Astarte Keyspace), and Realm
+Keyspaces (changes that affect all realm keyspaces).
+
+Every change is followed by the CQL statement that produces the change.
+
+### From v0.10 to v0.11
+
+#### Astarte Keyspace
+
+- Remove `astarte_schema` table
+
+```
+DROP TABLE astarte_schema;
+```
+
+- Remove `replication_factor` column from the `realms` table
+
+```
+ALTER TABLE realms
+DROP replication_factor;
+```
+
+#### Realm Keyspaces
+
+- Add `grouped_devices` table
+
+```
+CREATE TABLE <realm_name>.grouped_devices (
+   group_name varchar,
+   insertion_uuid timeuuid,
+   device_id uuid,
+   PRIMARY KEY ((group_name), insertion_uuid, device_id)
+);
+```
+
+- Add `groups`, `exchanged_bytes_by_interface` and `exchanged_msgs_by_interface` columns to the
+  `devices` table
+
+```
+ALTER TABLE <realm_name>.devices
+ADD (groups map<text, timeuuid>,
+    exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
+    exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>);
+```
+
+- Add `database_retention_ttl` and `database_retention_policy` columns to the `endpoints` table
+
+```
+ALTER TABLE <realm_name>.endpoints
+ADD (
+  database_retention_ttl int,
+  database_retention_policy int
+);
+```
