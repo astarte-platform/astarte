@@ -61,8 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         database:
-        - "cassandra:3.11.5"
-        - "scylladb/scylla:3.1.1"
+        - "cassandra:3.11.6"
+        - "scylladb/scylla:3.3.0"
     services:
       database:
         image: ${{ matrix.database }}
