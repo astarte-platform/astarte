@@ -18,7 +18,7 @@ env:
 jobs:
   test-dialyzer:
     name: Check Dialyzer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env:
       MIX_ENV: ci
     steps:
@@ -53,7 +53,7 @@ jobs:
 
   test-coverage:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     # Wait for Dialyzer to give it a go before building
     needs:
       - test-dialyzer
