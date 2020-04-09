@@ -227,8 +227,8 @@ the default for each mapping, or at mapping level, overriding any interface-wide
 * `expiry`: Meaningful only when `retention` is `stored`. Defines how many seconds a specific data
   entry should be kept before giving up and erasing it from the persistent cache. A value <= 0 means
   the persistent cache never expires, and is the default.
-* `database_retention_policy`: Useful only with datastream. Defines whether data is expired from
-  the database after a given time to live interval.
+* `database_retention_policy`: Useful only with datastream. Defines whether data should expire
+   from the database after a given interval. Valid values are: no_ttl and use_ttl.
 * `database_retention_ttl`: Useful when database_retention_policy is `"use_ttl"`. Defines how many
   seconds a specific data entry should be kept before erasing it from the database.
 
