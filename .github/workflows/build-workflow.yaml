@@ -12,8 +12,8 @@ on:
   pull_request:
 
 env:
-  elixir_version: 1.10.1
-  otp_version: 22.2
+  elixir_version: 1.10.2
+  otp_version: 22.3
 
 jobs:
   test-dialyzer:
@@ -61,8 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         database:
-        - "cassandra:3.11.5"
-        - "scylladb/scylla:3.1.1"
+        - "cassandra:3.11.6"
+        - "scylladb/scylla:3.3.0"
     services:
       database:
         image: ${{ matrix.database }}

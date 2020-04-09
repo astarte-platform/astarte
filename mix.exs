@@ -77,7 +77,7 @@ defmodule Astarte.DataAccess.Mixfile do
       # TODO: remove this when cqex is removed
       {:re2, "~> 1.9.4", override: true},
       {:skogsra, "~> 2.2"},
-      {:excoveralls, "~> 0.10", only: :test},
+      {:excoveralls, "~> 0.12", only: :test},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
