@@ -4,17 +4,6 @@
 
 It is assumed that you have read the [Interface design guide](029-interface_design_guide.html) before, to avoid bad surprises once your fleet starts rolling.
 
-## Tools
-
-You have three main options to query Realm Management:
-
-* [astartectl](https://github.com/astarte-platform/astartectl): `astartectl` is the main command-line tool to interact with Astarte clusters, which packs
-  in an `astartectl realm-management` command which can be used for carrying over all operations.
-* Astarte Dashboard: You can use Astarte Dashboard to have a UI for managing Interfaces (and more). If your cluster has the dashboard enabled, it can
-  be usually found at `dashboard.<base Astarte URL>`.
-* Astarte Realm Management APIs: The base APIs are the lower level interaction layer. You usually want to resort to direct API invocation (directly or
-  through a Client, such as [astarte-go](https://github.com/astarte-platform/astarte-go)) when integrating Astarte into your own application.
-
 ## Querying Interfaces
 
 ### Listing Interfaces
