@@ -141,8 +141,8 @@ In this example, `/0/value`, `/1/value` or `/test/value` all map to a valid endp
 
 The following types are supported:
 
-* `double`: A double-precision floating-point format as specified by binary64, by the IEEE 754
-  standard
+* `double`: A double-precision floating-point number as specified by binary64, by the IEEE 754
+  standard (NaNs and other non numerical values are not supported).
 * `integer`: A signed 32 bit integer.
 * `boolean`: Either `true` or `false`, adhering to JSON boolean type.
 * `longinteger`: A signed 64 bit integer (please note that `longinteger` is represented as a string
