@@ -35,7 +35,7 @@ Astarte CRD contains
 on the available fields in OpenAPIv3 format. Just create your Astarte Custom Resource, which will look something
 like this:
 
-```
+```yaml
 apiVersion: api.astarte-platform.org/v1alpha1
 kind: Astarte
 metadata:

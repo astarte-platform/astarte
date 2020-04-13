@@ -18,13 +18,13 @@ Astarte needs an `astarte` keyspace to store its own data.
 
 `astarte` keyspace and tables are created with following [CQL](https://docs.datastax.com/en/cql/3.3/index.html) statements:
 
-```
+```sql
 CREATE KEYSPACE astarte
   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': <replication factor>}  AND
     durable_writes = true;
 ```
 
-```
+```sql
 CREATE TABLE astarte.realms (
   realm_name varchar,
 
@@ -46,13 +46,13 @@ Realm tables can be grouped in the following functionalities:
 
 Some data storage tables might be created when required, whereas all other tables are created when a keyspace is created, using the following statements:
 
-```
+```sql
 CREATE KEYSPACE <realm name>
   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
     durable_writes = true;
 ```
 
-```
+```sql
 CREATE TABLE <realm name>.kv_store (
   group varchar,
   key varchar,
@@ -62,7 +62,7 @@ CREATE TABLE <realm name>.kv_store (
 );
 ```
 
-```
+```sql
 CREATE TABLE <realm name>.names (
   object_name varchar,
   object_type int,
@@ -72,7 +72,7 @@ CREATE TABLE <realm name>.names (
 );
 ```
 
-```
+```sql
 CREATE TABLE <realm_name>.devices (
   device_id uuid,
   aliases map<ascii, varchar>,
@@ -103,7 +103,7 @@ CREATE TABLE <realm_name>.devices (
 );
 ```
 
-```
+```sql
 CREATE TABLE <realm name>.grouped_devices (
   group_name varchar,
   insertion_uuid timeuuid,
@@ -112,7 +112,7 @@ CREATE TABLE <realm name>.grouped_devices (
 );
 ```
 
-```
+```sql
 CREATE TABLE <realm name>.endpoints (
   interface_id uuid,
   endpoint_id uuid,
@@ -136,7 +136,7 @@ CREATE TABLE <realm name>.endpoints (
 );
 ```
 
-```
+```sql
 CREATE TABLE <realm name>.interfaces (
   name ascii,
   major_version int,
@@ -156,7 +156,7 @@ CREATE TABLE <realm name>.interfaces (
 );
 ```
 
-```
+```sql
 CREATE TABLE <realm name>.individual_properties (
   device_id uuid,
   interface_id uuid,
@@ -184,7 +184,7 @@ CREATE TABLE <realm name>.individual_properties (
 );
 ```
 
-```
+```sql
 CREATE TABLE <realm name>.simple_triggers (
   object_id uuid,
   object_type int,
@@ -240,26 +240,26 @@ Every change is followed by the CQL statement that produces the change.
 
 ### From v0.10 to v0.11
 
-#### Astarte Keyspace
+#### Astarte Keyspace v0.11 Changes
 
-- Remove `astarte_schema` table
+* Remove `astarte_schema` table
 
-```
+```sql
 DROP TABLE astarte_schema;
 ```
 
-- Remove `replication_factor` column from the `realms` table
+* Remove `replication_factor` column from the `realms` table
 
-```
+```sql
 ALTER TABLE realms
 DROP replication_factor;
 ```
 
-#### Realm Keyspaces
+#### Realm Keyspaces v0.11 Changes
 
-- Add `grouped_devices` table
+* Add `grouped_devices` table
 
-```
+```sql
 CREATE TABLE <realm_name>.grouped_devices (
    group_name varchar,
    insertion_uuid timeuuid,
@@ -268,19 +268,19 @@ CREATE TABLE <realm_name>.grouped_devices (
 );
 ```
 
-- Add `groups`, `exchanged_bytes_by_interface` and `exchanged_msgs_by_interface` columns to the
+* Add `groups`, `exchanged_bytes_by_interface` and `exchanged_msgs_by_interface` columns to the
   `devices` table
 
-```
+```sql
 ALTER TABLE <realm_name>.devices
 ADD (groups map<text, timeuuid>,
     exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
     exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>);
 ```
 
-- Add `database_retention_ttl` and `database_retention_policy` columns to the `endpoints` table
+* Add `database_retention_ttl` and `database_retention_policy` columns to the `endpoints` table
 
-```
+```sql
 ALTER TABLE <realm_name>.endpoints
 ADD (
   database_retention_ttl int,

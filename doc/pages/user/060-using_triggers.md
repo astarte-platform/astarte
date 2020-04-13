@@ -36,7 +36,7 @@ This is the JSON representation of the trigger
 Assuming the above JSON is contained in `my_connection_trigger.json`, you can install the trigger
 using astartectl:
 
-```
+```bash
 astartectl realm-management triggers install my_connection_trigger.json \
   -k <realm-key> -r <realm_name> -u <astarte-api-url>
 ```
@@ -60,6 +60,7 @@ This trigger will send a `POST` request to `<post-url>` every time a device send
 `org.astarte-platform.genericsensors.Values` major version `0` interface on the `/streamTest/value` path.
 
 This is the JSON representation of the trigger
+
 ```json
 {
     "name": "my_data_trigger",
@@ -82,7 +83,7 @@ This is the JSON representation of the trigger
 Assuming the above JSON is contained in `my_data_trigger.json`, you can install the trigger
 using astartectl:
 
-```
+```bash
 astartectl realm-management triggers install my_data_trigger.json \
   -k <realm-key> -r <realm_name> -u <astarte-api-url>
 ```
