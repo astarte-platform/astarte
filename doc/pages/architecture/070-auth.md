@@ -4,7 +4,7 @@ Authentication and authorization are crucial, as Astarte likely holds sensitive 
 
 First of all: when talking about auth in Astarte, we are talking about anything which isn't a Device - those are Authenticated through [Pairing](050-pairing_mechanism.html) and Authorized by their Transport (which uses Pairing for the Authentication policies).
 
-Astarte's authentication/authorization stage identifies the principal through a token (with JWT as the first class citizen), which is the only currency the platform supports.
+Astarte's authentication/authorization stage identifies the principal through a token (with [JWT](https://en.wikipedia.org/wiki/JSON_Web_Token) as the first class citizen), which is the only currency the platform supports.
 
 ## Authentication Realms
 
@@ -78,7 +78,7 @@ The client by default has no permission to do anything: as such, if a token is m
 
 ### Natively supported tokens
 
-Astarte supports only JWT natively, which has to be signed using one of the following algorithms:
+Astarte supports only [JWT](https://tools.ietf.org/html/rfc7519) natively, which has to be signed using one of the following algorithms:
 
  * ES256
  * ES384
