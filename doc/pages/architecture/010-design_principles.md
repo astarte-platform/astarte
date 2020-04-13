@@ -16,6 +16,10 @@ Astarte services use a Protobuf-based API to exchange data over AMQP in a [gRPC]
 
 Astarte identifies each device with a 128 bit Device ID which has to be unique within its Realm. As a best practice, it is advised to generate such an ID from hardware unique IDs or using dedicated hardware modules, to make it consistent across device reflashes. It is advised to use a cryptographic hash function (such as sha256) when generating it using a software module. Astarte will use URL encoded base64 (without padding) strings like `V_zv6ThCCtXWveQ8mPjsKg` in its representation.
 
+Although not required, it is strongly advised to use [UUIDs](https://en.wikipedia.org/wiki/Universally_unique_identifier) as Astarte Device IDs. In fact, Astarte Device ID's specification is 100% compatible with UUIDs Base64 encoded adhering to RFC 7515. In the same fashion, UUIDv5 can be used to generate a deterministic Device ID from any kind of input data.
+
+Astarte Clients which generate Astarte Device IDs (such as `astartectl` or Astarte Dashboard) will always generate a Device ID out of UUIDv4 (random ID) or UUIDv5 (deterministic ID).
+
 This detail is relevant not only for identifying and querying the device, but also for the [Pairing mechanism](050-pairing_mechanism.html), as a device's credentials are associated to its Device ID.
 
 *Note: currently, Astarte accepts Device IDs longer than 128 bit, which are then truncated to 128 bit internally. This behaviour exists for compatibility reasons but it's not supported and will likely change in future releases - hence, refrain from using anything which is not a 128-bit Device ID.*
