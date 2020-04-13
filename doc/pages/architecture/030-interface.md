@@ -225,6 +225,46 @@ Aggregation is a powerful mechanism that can be used to map interfaces to real w
 Moreover, aggregated interfaces can also be parametrized, although with [some
 limitations](#limitations).
 
+### Endpoints and aggregation
+
+Since Astarte 0.11, Aggregations cannot have endpoints with depth 1. This was an erroneously allowed
+behavior in Astarte 0.10 which is kept for retrocompatibility - however, new interfaces should ensure
+each endpoint in an aggreate has at least depth 2, as support for depth 1 will be removed in a future
+release. This change has been done to be consistent with AppEngine API design, and to ensure that
+path `/` is not ambiguous.
+
+This is the correct way to set up a valid endpoint structure for an aggregate:
+
+```json
+    [...]
+    "mappings": [
+        {
+            "endpoint": "/objects/value",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/objects/otherValue",
+            "type": "string"
+        },
+    [...]
+```
+
+The following structure, instead, is deprecated:
+
+```json
+    [...]
+    "mappings": [
+        {
+            "endpoint": "/value",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/otherValue",
+            "type": "string"
+        },
+    [...]
+```
+
 ## Datastream-specific features
 `datastream` interfaces are highly tunable, depending on the kind of
 data they are representing: it is possible to fine tune several aspects of how data is stored,
