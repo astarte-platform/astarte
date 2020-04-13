@@ -14,8 +14,7 @@ with the `~` and `@` characters.
 You can create a group with astartectl with this command
 
 ```bash
-astartectl appengine groups create mygroup <device_identifier>,<device_identifier> \
-  -k <appengine-key> -r <realm-name> -u <astarte-api-url>
+astartectl appengine groups create mygroup <device_identifier>,<device_identifier>
 ```
 
 `device_identifier` can be a Device ID or an Alias, and you can put multiple devices by separating
@@ -24,7 +23,7 @@ them with a comma.
 You can check the group was created by listing groups in your realm
 
 ```bash
-astartectl appengine groups list -k <appengine-key> -r <realm-name> -u <astarte-api-url>
+astartectl appengine groups list
 ```
 
 ## Adding or removing a device to/from a group
@@ -34,15 +33,13 @@ Once you created a group, you can add or remove devices from it.
 To add a device, use:
 
 ```bash
-astartectl appengine groups devices add <device_identifier> \
-  -k <appengine-key> -r <realm-name> -u <astarte-api-url>
+astartectl appengine groups devices add <device_identifier>
 ```
 
 To remove a device, use:
 
 ```bash
-astartectl appengine groups devices remove <device_identifier> \
-  -k <appengine-key> -r <realm-name> -u <astarte-api-url>
+astartectl appengine groups devices remove <device_identifier>
 ```
 
 Keep in mind that a group exists as long as it has at least one device in it, so if you remove the
@@ -51,7 +48,7 @@ last device from a group, the group will cease to exist.
 You can always check which devices are in a group with:
 
 ```bash
-astartectl appengine groups devices list -k <appengine-key> -r <realm-name> -u <astarte-api-url>
+astartectl appengine groups devices list
 ```
 
 ## Accessing Devices in a group with Astarte AppEngine API
