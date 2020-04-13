@@ -78,7 +78,7 @@ config :prometheus, Astarte.Pairing.APIWeb.Metrics.PhoenixInstrumenter,
   duration_unit: :microseconds
 
 config :prometheus, Astarte.Pairing.APIWeb.Metrics.PipelineInstrumenter,
-  labels: [:status_class, :method, :host, :scheme, :request_path],
+  labels: [:status_class, :method, :host, :scheme],
   duration_buckets: [
     10,
     100,
