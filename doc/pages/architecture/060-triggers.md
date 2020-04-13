@@ -9,9 +9,19 @@ Given this kind of flexibility, triggers are the most powerful way to push data 
 service, potentially without any additional customization.
 
 Triggers can be managed from [Realm Management
-API](api/index.html?urls.primaryName=Realm%20Management%20API#/trigger).
+API](api/index.html?urls.primaryName=Realm%20Management%20API#/trigger), `astartectl` with the
+`astartectl realm-management triggers` subcommand, or Astarte Dashboard in the `Triggers` page.
 
-## Format
+## Building Triggers
+
+Triggers can be either built manually or using Astarte Dashboard's Trigger Editor. Trigger Editor
+dynamically loads installed Interfaces in the Realm and eases trigger creation by providing not
+only linting and validation, but also dynamic resolution of Interface names.
+
+Trigger Editor works in a very similar fashion to Interfaces Editor, and shares the same User
+Interface.
+
+### Format
 
 A trigger is described using a JSON document. Each trigger is defined by two main parts: `condition`
 and `action`.
