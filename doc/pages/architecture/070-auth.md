@@ -2,7 +2,7 @@
 
 Authentication and authorization are crucial, as Astarte likely holds sensitive resources and is capable to send mass commands to a device fleet.
 
-First of all: when talking about auth in Astarte, we are talking about anything which isn't a Device - those are Authenticated through [Pairing](030-pairing_mechanism.html) and Authorized by their Transport (which uses Pairing for the Authentication policies).
+First of all: when talking about auth in Astarte, we are talking about anything which isn't a Device - those are Authenticated through [Pairing](050-pairing_mechanism.html) and Authorized by their Transport (which uses Pairing for the Authentication policies).
 
 Astarte's authentication/authorization stage identifies the principal through a token (with JWT as the first class citizen), which is the only currency the platform supports.
 
