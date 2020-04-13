@@ -79,9 +79,9 @@ SSL endpoint.*
 Pairing is designed to interact with an abstract certificate authority, given this authority is
 capable of:
 
- * Emitting SSL Certificates with a custom CN (this is important in the Transport authentication
+* Emitting SSL Certificates with a custom CN (this is important in the Transport authentication
    flow)
- * Revoking emitted certificates and exposing CRL/OCSP revocation information
+* Revoking emitted certificates and exposing CRL/OCSP revocation information
 
 and is accessible from a 3rd party (e.g. from a REST API). By default, Astarte supports
 [Cloudflare's CFSSL](https://github.com/cloudflare/cfssl), and also provides a minimal installation

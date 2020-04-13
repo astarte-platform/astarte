@@ -9,7 +9,7 @@ in the Cluster.
 
 Installing the Operator is as simple as
 
-```
+```bash
 astartectl cluster install-operator
 ```
 
@@ -21,7 +21,7 @@ version to install - when not specified, the latest version will be installed in
 
 To upgrade the Operator, use the dedicated `upgrade-operator` command.
 
-```
+```bash
 astartectl cluster upgrade-operator
 ```
 
@@ -32,7 +32,7 @@ when not specified, the latest version will be fetched and used.
 
 To uninstall the Operator, use the dedicated `uninstall-operator` command.
 
-```
+```bash
 astartectl cluster uninstall-operator
 ```
 

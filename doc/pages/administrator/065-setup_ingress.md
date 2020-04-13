@@ -13,7 +13,7 @@ Most information needed for exposing your Ingress have already been given in you
 resource. If your Kubernetes installation supports LoadBalancer ingresses (most managed ones do),
 you should be able to get away with the most standard CR:
 
-```
+```yaml
 apiVersion: api.astarte-platform.org/v1alpha1
 kind: AstarteVoyagerIngress
 metadata:

@@ -18,11 +18,11 @@ Everytime a Condition of an installed Trigger is triggered, an event is sent to 
 
 ```json
 {
-	"device_id": "f0VMRgIBAQAAAAAAAAAAAA",
-	"event": {
-		"type": "device_connected",
-		"device_ip_address": "1.2.3.4"
-	}
+    "device_id": "f0VMRgIBAQAAAAAAAAAAAA",
+    "event": {
+        "type": "device_connected",
+        "device_ip_address": "1.2.3.4"
+    }
 }
 ```
 

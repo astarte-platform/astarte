@@ -15,7 +15,7 @@ process is smooth enough.
 
 To upgrade, run
 
-```
+```bash
 astartectl cluster instances upgrade <instance name>
 ```
 

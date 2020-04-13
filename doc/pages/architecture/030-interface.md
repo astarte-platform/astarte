@@ -14,6 +14,7 @@ If you are already familiar with interface's basic concepts, you might want to j
 [Interface Schema](040-interface_schema.html).
 
 ## Versioning
+
 Interfaces are versioned, each interface having both a major version and a minor
 version number. The concept behind these two version numbers mimics [Semantic
 Versioning](http://semver.org/): arbitrary changes can happen exclusively between different major
@@ -26,6 +27,7 @@ can be updated over time). Interfaces, internally, are univocally identified by 
 major version.
 
 ## Format
+
 Interfaces are described using a JSON document. Each interface is identified by an unique
 interface name of maximum 128 characters, which must be a [Reverse Domain
 Name](https://en.wikipedia.org/wiki/Reverse_domain_name_notation). As a convention, the interface
@@ -33,7 +35,7 @@ name usually contains its author's URI Reverse Internet Domain Name.
 
 An example skeleton looks like this:
 
-```
+```json
 {
     "interface_name": "com.test.MyInterfaceName",
     "version_major": 1,
@@ -91,6 +93,7 @@ Due to their nature, `datastream` interfaces have a number of [additional
 properties](#datastream-specific features) which fine tune their behavior.
 
 ### Properties
+
 `properties` represent a persistent, stateful, synchronized state with no concept of
 history or timestamping. `properties` are useful, for example, when dealing with settings, states or
 policies/rules. `properties` are stored in a key-value fashion, and grouped according to their
@@ -103,12 +106,14 @@ such a thing, the interface must have its `allow_unset` property set to `true`. 
 JSON Schema](040-interface_schema.html) for further details.
 
 ## Ownership
+
 Astarte's design mandates that each interface has an owner. The owner of an interface
 has a write-only access to it, whereas other actors have read-only access. Interface **ownership**
 can be either `device` or `server`: the owner is the actor producing the data, whereas the other
 actor consumes data.
 
 ## Mappings
+
 Every interface must have an array of mappings. Mappings are designed around REST
 controller semantics: each mapping describes an endpoint which is resolved to a path, it is strongly
 typed, and can have additional options. Just like in REST controllers, Endpoints can be parametrized
@@ -117,7 +122,7 @@ endpoint supporting any number of parameters (see [Limitations](#limitations)).
 
 This is how a parametrized mapping looks like:
 
-```
+```json
     [...]
     "mappings": [
         {
@@ -128,11 +133,14 @@ This is how a parametrized mapping looks like:
         },
     [...]
 ```
+
 In this example, `/0/value`, `/1/value` or `/test/value` all map to a valid endpoint, while
 `/te/st/value` can't be resolved by any endpoint.
 
 ### Supported data types
+
 The following types are supported:
+
 * `double`: A double-precision floating-point format as specified by binary64, by the IEEE 754
   standard
 * `integer`: A signed 32 bit integer.
@@ -156,7 +164,7 @@ an error in the interface installation process.
 
 A valid interface must resolve a path univocally to a single endpoint. Take the following example:
 
-```
+```json
     [...]
     "mappings": [
         {
@@ -169,13 +177,15 @@ A valid interface must resolve a path univocally to a single endpoint. Take the 
         },
     [...]
 ```
+
 In such a case, the interface isn't valid and is
 rejected, due to the fact that path `/myPath/value` is ambiguous and could be resolved to two
 different endpoints.
 
 Any endpoint configuration must not generate paths that are prefix of other paths, for this reason
 the following example is also invalid:
-```
+
+```json
     [...]
     "mappings": [
         {
@@ -195,7 +205,7 @@ same interface must all have the same depth, and the same number of parameters. 
 parametrized, every endpoint must have the same parameter name at the same level. This is an example
 of a valid aggregated interface mapping:
 
-```
+```json
     [...]
     "mappings": [
         {
@@ -210,6 +220,7 @@ of a valid aggregated interface mapping:
 ```
 
 ## Aggregation
+
 In a real world scenario, such as an array of sensors, there are usually two main
 cases. A sensor might have one or more independent values which are sampled individually and sent
 whenever they become available independently. Or a sensor might sample at the same time a number of
@@ -266,6 +277,7 @@ The following structure, instead, is deprecated:
 ```
 
 ## Datastream-specific features
+
 `datastream` interfaces are highly tunable, depending on the kind of
 data they are representing: it is possible to fine tune several aspects of how data is stored,
 transferred and indexed. The following properties can be set either at interface level, making them

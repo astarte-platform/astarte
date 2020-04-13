@@ -40,8 +40,8 @@ Device SDKs can take advantage of the interface design to dynamically generate c
 
 However, there are some limitations and requirements:
 
- * The SDK requires SSL support - Astarte does not allow exchanging data over unencrypted channels and its design builds on the assumption that everything runs on top of SSL. If your device isn't capable of SSL, you are probably looking for Gateway support in Astarte.
- * As much as the SDK can implement virtually any transport protocol, it is required that the SDK supports at least HTTP(s) for Pairing.
+* The SDK requires SSL support - Astarte does not allow exchanging data over unencrypted channels and its design builds on the assumption that everything runs on top of SSL. If your device isn't capable of SSL, you are probably looking for Gateway support in Astarte.
+* As much as the SDK can implement virtually any transport protocol, it is required that the SDK supports at least HTTP(s) for Pairing.
 
 ## Realms and multitenancy
 
@@ -64,5 +64,3 @@ In Astarte, transports are given the task to deliver messages in a well-known AM
 Triggers are rules which are "triggered" whenever one or more conditions are satisfied. Every satisfied condition generates an ordered event for the [Trigger Engine](020-components.html#trigger-engine) to be processed. They are one of the core concepts in Astarte and are the preferred way to handle push interactions between Astarte and connected applications.
 
 More details about triggers can be found in the [dedicated section](060-triggers.html).
-
-

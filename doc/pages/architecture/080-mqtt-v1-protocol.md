@@ -29,6 +29,7 @@ BSON allows saving precious bytes compared to JSON, while offering the advantage
 Consider, for example, a simple value and timestamp payload. The encoded JSON version, `{"v":25.367812,"t":1537346756844}` counts 33 bytes.
 
 The hexdump of the same message encoded with BSON is:
+
 ```
 0000000 1b 00 00 00 09 74 00 ec e0 01 f1 65 01 00 00 01
 0000020 76 00 8c 13 5f ed 28 5e 39 40 00
@@ -98,6 +99,7 @@ com.example.MyInterface:1:0;org.example.DraftInterface:0:3
 ```
 
 ## Empty Cache
+
 Astarte MQTT v1 strives to save bandwidth upon reconnections, to make sure even frequent reconnections don't affect bandwidth consumption. As such, upon connecting and if MQTT advertises a session present, both sides assume that data flow is ordered and consistent. However, there might be cases where this guarantee isn't respected by the device for a number of reasons (e.g.: new device, factory reset, cache lost...). In this case, a device might declare that it has no confidence about its status and its known properties, and can request to resynchronise entirely with Astarte.
 In Astarte jargon this message is called *empty cache* and it is performed by publising "1" on the device `/control/emptyCache` topic.
 
@@ -119,6 +121,7 @@ Purge Properties payload is a zlib deflated plain text, with an additional 4 byt
 The additional 4 bytes header is the size of the uncompressed payload, encoded as big endian uint32.
 
 The following example is a payload compressed using zlib default compression, with the additional 4 bytes header:
+
 ```
 0000000 00 00 00 46 78 9c 4b ce cf d5 4b ad 48 cc 2d c8
 0000020 49 d5 f3 ad f4 cc 2b 49 2d 4a 4b 4c 4e d5 2f ce
@@ -265,16 +268,18 @@ _session present_ might be also set to false to ensure a clean and consistent st
 Malformed or unexpected messages are discarded and further actions might be taken.
 
 ## Authentication
+
 In Astarte, every Transport orchestrates its credentials through Pairing. Astarte/VerneMQ authenticates devices using Mutual SSL Autentication - as such, devices use SSL certificates emitted through [Pairing API](050-pairing_mechanism.html) to authenticate against the broker. To achieve this, the device must ensure it is capable of performing http(s) calls to Pairing API to obtain its certificates, performing SSL/X509 operations and connecting to the MQTT Broker through the use of SSL certificates.
 
 ## Authorization
+
 Device can only publish and subscribe to its device topic (`<realm name>/<device id>`) and its subtopics. The broker will deny any publish or subscribe outside that hierarchy.
 
 ## Connecting to the Broker
 
 In the same fashion as Authentication, Pairing provides the client with information about how to connect to the MQTT broker. When invoking relevant Pairing API's method to gather information about available transports for a device, if Astarte advertises Astarte MQTT v1, a similar reply will be returned:
 
-```
+```json
 {
   "data": {
     "version": "<version string>",
