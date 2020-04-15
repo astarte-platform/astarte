@@ -6,9 +6,35 @@ This tutorial will guide you through bringing up your Astarte instance, creating
 
 First of all, please keep in mind that **this setup is not meant to be used in production**: by default, no persistence is involved, the installation does not have any recovery mechanism, and you will have to restart services manually in case something goes awry. This guide is great if you want to take Astarte for a spin, or if you want to use an isolated instance for development.
 
-You will need a machine with at least 4GB of RAM, with [Docker](https://www.docker.com/) and [astartectl](https://github.com/astarte-platform/astartectl) installed. If you don't have `astartectl` installed on your machine yet, you should install it by following the instructions in [astartectl's README](https://github.com/astarte-platform/astartectl#installation)
+You will need a machine with at least 4GB of RAM, a recent 64-bit operating system with [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/install/) and [astartectl](https://github.com/astarte-platform/astartectl) installed. If you don't have `astartectl` installed on your machine yet, you should install it by following the instructions in [astartectl's README](https://github.com/astarte-platform/astartectl#installation)
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
+
+## Checking prerequistes
+
+Docker version >= 19 is recommended:
+
+```sh
+$ docker -v
+Docker version 19.03.8
+```
+
+Docker compose version >= 1.17 is recommended:
+
+```sh
+$ docker-compose -v
+docker compose version 1.17.1, build unknown
+```
+
+astartectl 0.11.x is recommended:
+
+```sh
+$ astartectl version
+astartectl 0.11.0
+```
+
+This procedure has been tested on several systems, and is validated and maintained against
+Ubuntu 18.04 and macOS 10.15 Catalina, but any other modern operating system should work.
 
 ## Install Astarte
 
