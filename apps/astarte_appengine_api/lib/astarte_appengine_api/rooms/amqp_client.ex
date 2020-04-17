@@ -123,7 +123,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   end
 
   defp connect do
-    with {:ok, conn} <- Connection.open(Config.rooms_amqp_options()),
+    with {:ok, conn} <- Connection.open(Config.rooms_amqp_options!()),
          {:ok, chan} <- setup_channel(conn) do
       {:ok, chan}
     else
@@ -146,16 +146,17 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   defp setup_channel(%Connection{} = conn) do
     with {:ok, chan} <- Channel.open(conn),
          :ok <- Basic.qos(chan, prefetch_count: @prefetch_count),
-         :ok <- Exchange.declare(chan, Config.rooms_events_routing_key(), :direct, durable: true),
-         {:ok, _queue} <- Queue.declare(chan, Config.rooms_events_queue_name(), durable: true),
+         :ok <-
+           Exchange.declare(chan, Config.rooms_events_routing_key!(), :direct, durable: true),
+         {:ok, _queue} <- Queue.declare(chan, Config.rooms_events_queue_name!(), durable: true),
          :ok <-
            Queue.bind(
              chan,
-             Config.rooms_events_queue_name(),
-             Config.events_exchange_name(),
-             routing_key: Config.rooms_events_routing_key()
+             Config.rooms_events_queue_name!(),
+             Config.events_exchange_name!(),
+             routing_key: Config.rooms_events_routing_key!()
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name()),
+         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name!()),
          # Get notifications when the chan or the connection go down
          Process.monitor(chan.pid) do
       {:ok, chan}

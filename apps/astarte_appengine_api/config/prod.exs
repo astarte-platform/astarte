@@ -43,6 +43,3 @@ config :logger, :console,
 
 # TODO: handle secret configuration with Conform
 # import_config "prod.secret.exs"
-
-config :cqerl,
-  cassandra_nodes: [{System.get_env("CASSANDRA_DB_HOST"), System.get_env("CASSANDRA_DB_PORT")}]

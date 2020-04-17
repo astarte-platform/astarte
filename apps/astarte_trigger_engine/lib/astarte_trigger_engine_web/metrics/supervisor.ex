@@ -18,6 +18,7 @@
 
 defmodule Astarte.TriggerEngineWeb.Metrics.Supervisor do
   use Supervisor
+  alias Astarte.TriggerEngine.Config
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -27,9 +28,10 @@ defmodule Astarte.TriggerEngineWeb.Metrics.Supervisor do
   def init(_init_arg) do
     Astarte.TriggerEngineWeb.Metrics.setup()
 
-    # TODO: make the port configurable when we switch to Elixir native releases
+    port = Config.port!()
+
     children = [
-      {Plug.Cowboy, scheme: :http, plug: Astarte.TriggerEngineWeb.Router, options: [port: 4000]}
+      {Plug.Cowboy, scheme: :http, plug: Astarte.TriggerEngineWeb.Router, options: [port: port]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

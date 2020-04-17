@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
 
   alias Astarte.Pairing.API.Config
 
-  @rpc_client Config.rpc_client()
+  @rpc_client Config.rpc_client!()
   @destination Astarte.RPC.Protocol.Pairing.amqp_queue()
 
   alias Astarte.RPC.Protocol.Pairing.{

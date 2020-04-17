@@ -23,6 +23,8 @@ defmodule Astarte.RealmManagement do
   alias Astarte.RPC.Protocol.RealmManagement, as: Protocol
   alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagement.RPC.Handler
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.RPC.Config, as: RPCConfig
 
   def start(_type, _args) do
     # make amqp supervisors logs less verbose
@@ -33,8 +35,12 @@ defmodule Astarte.RealmManagement do
 
     _ = Logger.info("Starting application.", tag: "realm_management_app_start")
 
+    Config.validate!()
+    DataAccessConfig.validate!()
+    RPCConfig.validate!()
+
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
+      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.RealmManagementWeb.Metrics.Supervisor
     ]

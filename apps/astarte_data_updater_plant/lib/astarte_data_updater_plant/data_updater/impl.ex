@@ -75,7 +75,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.metadata(realm: realm, device_id: encoded_device_id)
     Logger.info("Created device process.", tag: "device_process_created")
 
-    {:ok, db_client} = Database.connect(new_state.realm)
+    {:ok, db_client} = Database.connect(realm: new_state.realm)
 
     stats_and_introspection =
       Queries.retrieve_device_stats_and_introspection!(db_client, device_id)
@@ -87,7 +87,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -137,7 +137,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_disconnection(state, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -323,7 +323,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -850,7 +850,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -1036,7 +1036,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -1060,7 +1060,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -1098,7 +1098,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> send_control_consumer_properties()
       |> resend_all_properties()
 
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
     :ok = Queries.set_pending_empty_cache(db_client, state.device_id, false)
 
     MessageTracker.ack_delivery(state.message_tracker, message_id)
@@ -1195,7 +1195,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: "/*"
          }} ->
-          with {:ok, db_client} <- Database.connect(state.realm),
+          with {:ok, db_client} <-
+                 Database.connect(realm: state.realm),
                {:ok, %InterfaceDescriptor{aggregation: :individual}} <-
                  InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major) do
             {:ok, new_state}
@@ -1214,7 +1215,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: match_path
          }} ->
-          with {:ok, db_client} <- Database.connect(state.realm),
+          with {:ok, db_client} <-
+                 Database.connect(realm: state.realm),
                {:ok, %InterfaceDescriptor{automaton: automaton, aggregation: :individual}} <-
                  InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
@@ -1541,7 +1543,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     Enum.each(state.introspection, fn {interface, _} ->
       # TODO: check result here
@@ -1621,7 +1623,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     encoded_device_id = Device.encode_device_id(device_id)
 
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     with :ok <- Queries.set_pending_empty_cache(db_client, device_id, true),
          :ok <- VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
@@ -1940,7 +1942,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp send_control_consumer_properties(state) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     Logger.debug("Device introspection: #{inspect(state.introspection)}.")
 
@@ -1981,7 +1983,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp resend_all_properties(state) do
-    {:ok, db_client} = Database.connect(state.realm)
+    {:ok, db_client} = Database.connect(realm: state.realm)
 
     Logger.debug("Device introspection: #{inspect(state.introspection)}")
 

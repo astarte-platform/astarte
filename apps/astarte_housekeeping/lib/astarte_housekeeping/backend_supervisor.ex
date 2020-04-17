@@ -33,7 +33,7 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
     Logger.info("BackendSupervisor init", tag: "housekeeping_backend_sup_init")
 
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
+      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
     ]
 

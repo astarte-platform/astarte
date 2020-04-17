@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       app: :astarte_data_updater_plant,
       version: "1.0.0-dev",
-      elixir: "~> 1.8",
+      elixir: "~> 1.10",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -71,13 +71,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      # TODO: remove this when astarte_data_access is updated to the version
-      # with re2 1.9.4
-      {:re2, "~> 1.9.4", override: true},
       {:amqp, "~> 1.2"},
       {:cyanide, github: "ispirata/cyanide"},
-      {:conform, "== 2.5.2"},
-      {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
@@ -85,6 +80,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:prometheus_plugs, "~> 1.1"},
       {:xandra, "~> 0.13"},
       {:prometheus_ex, "~> 3.0"},
+      {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.3"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]

@@ -150,7 +150,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     with {:ok, chan} <- Channel.open(rabbitmq_connection),
          # Get a message if the channel goes down
          Process.monitor(chan.pid),
-         :ok <- Basic.qos(chan, prefetch_count: Config.amqp_consumer_prefetch_count()),
+         :ok <- Basic.qos(chan, prefetch_count: Config.consumer_prefetch_count!()),
          {:ok, _queue} <- Queue.declare(chan, queue_name, durable: true),
          {:ok, _consumer_tag} <- Basic.consume(chan, queue_name) do
       {:ok, chan}

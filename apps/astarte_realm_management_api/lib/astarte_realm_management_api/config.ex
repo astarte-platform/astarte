@@ -21,17 +21,31 @@ defmodule Astarte.RealmManagement.API.Config do
   This module contains functions to access the configuration
   """
 
-  @doc """
-  Returns true if the authentication is disabled
+  use Skogsra
+
+  @envdoc "The port used by the Phoenix server."
+  app_env :port, :astarte_realm_management_api, :port,
+    os_env: "REALM_MANAGEMENT_API_PORT",
+    type: :integer,
+    default: 4000
+
+  @envdoc """
+  "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
   """
-  def authentication_disabled? do
-    Application.get_env(:astarte_realm_management_api, :disable_authentication, false)
-  end
+  app_env :disable_authentication, :astarte_realm_management_api, :disable_authentication,
+    os_env: "REALM_MANAGEMENT_API_DISABLE_AUTHENTICATION",
+    type: :boolean,
+    default: false
+
+  @envdoc "The RPC client."
+  app_env :rpc_client, :astarte_realm_management_api, :rpc_client,
+    os_env: "REALM_MANAGEMENT_API_RPC_CLIENT",
+    type: :module,
+    binding_skip: [:system],
+    default: Astarte.RPC.AMQP.Client
 
   @doc """
-  Returns the RPC Client
+  Returns true if the authentication is disabled.
   """
-  def rpc_client do
-    Application.get_env(:astarte_realm_management_api, :rpc_client, Astarte.RPC.AMQP.Client)
-  end
+  def authentication_disabled?, do: disable_authentication!()
 end

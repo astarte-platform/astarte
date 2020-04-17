@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
   require Logger
 
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
 
   def start(_type, _args) do
     # make amqp supervisors logs less verbose
@@ -35,8 +36,11 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
     Logger.info("Starting application.", tag: "data_updater_plant_app_start")
 
+    Config.validate!()
+    DataAccessConfig.validate!()
+
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes(), name: :xandra},
+      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra},
       Astarte.DataUpdaterPlant.DataPipelineSupervisor,
       Astarte.DataUpdaterPlantWeb.Metrics.Supervisor
     ]

@@ -51,7 +51,7 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   require Logger
 
-  @rpc_client Config.rpc_client()
+  @rpc_client Config.rpc_client!()
   @destination Astarte.RPC.Protocol.RealmManagement.amqp_queue()
 
   def get_interface_versions_list(realm_name, interface_name) do

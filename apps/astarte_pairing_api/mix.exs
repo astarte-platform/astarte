@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.API.Mixfile do
     [
       app: :astarte_pairing_api,
       version: "1.0.0-dev",
-      elixir: "~> 1.8",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -88,8 +88,6 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:jason, "~> 1.0"},
       {:guardian, "~> 1.2"},
       {:remote_ip, "~> 0.1"},
-      {:conform, "== 2.5.2"},
-      {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:pretty_log, "~> 0.1"},
@@ -98,6 +96,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:prometheus_phoenix, "~> 1.3"},
       {:prometheus_plugs, "~> 1.1"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:skogsra, "~> 2.2"},
       {:cors_plug, "~> 1.5"}
     ]
   end

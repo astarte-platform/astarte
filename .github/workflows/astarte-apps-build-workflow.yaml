@@ -18,8 +18,8 @@ on:
     - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
-  elixir_version: 1.8.1
-  otp_version: 21.3
+  elixir_version: 1.10.1
+  otp_version: 22.2
 
 jobs:
   test-dialyzer:
@@ -112,8 +112,7 @@ jobs:
         - 8080/tcp
     env:
       MIX_ENV: test
-      CASSANDRA_DB_HOST: localhost
-      ASTARTE_CASSANDRA_NODES: localhost
+      CASSANDRA_NODES: localhost
       RABBITMQ_HOST: localhost
     steps:
     - uses: actions/checkout@v2
@@ -155,7 +154,7 @@ jobs:
     - name: Wait for Cassandra
       run: |
         npm install -g wait-for-cassandra
-        wait-for-cassandra -T 120000 -h $CASSANDRA_DB_HOST
+        wait-for-cassandra -T 120000 -h $CASSANDRA_NODES
     - name: Test and Coverage
       working-directory: ./apps/${{ matrix.app }}
       run: mix coveralls.json  --exclude wip -o coverage_results

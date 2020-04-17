@@ -951,7 +951,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     test = "autotestrealm"
     device_id = "f0VMRgIBAQAAAAAAAAAAAA"
 
-    {:ok, client} = Database.connect(test)
+    {:ok, client} = Database.connect(realm: test)
     DatabaseQuery.call!(client, "TRUNCATE com_example_testobject_v1")
     DatabaseQuery.call!(client, "TRUNCATE individual_properties")
 

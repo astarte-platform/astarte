@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
+  alias Astarte.DataUpdaterPlant.Config
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Result, as: DatabaseResult
@@ -351,7 +352,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   def create_test_keyspace do
-    {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    {:ok, client} = DatabaseClient.new(List.first(Config.cqex_nodes!()))
 
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
@@ -562,13 +563,13 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   end
 
   def destroy_local_test_keyspace do
-    {:ok, client} = DatabaseClient.new(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    {:ok, client} = DatabaseClient.new(List.first(Config.cqex_nodes!()))
     DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
     :ok
   end
 
   def insert_device(device_id, opts \\ []) do
-    client = DatabaseClient.new!(List.first(Application.get_env(:cqerl, :cassandra_nodes)))
+    client = DatabaseClient.new!(List.first(Config.cqex_nodes!()))
     last_connection = Keyword.get(opts, :last_connection)
     last_disconnection = Keyword.get(opts, :last_disconnection)
 

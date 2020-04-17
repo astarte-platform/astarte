@@ -36,7 +36,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Realms.Realm
 
-  @rpc_client Config.rpc_client()
+  @rpc_client Config.rpc_client!()
   @destination Astarte.RPC.Protocol.Housekeeping.amqp_queue()
 
   def create_realm(%Realm{

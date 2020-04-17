@@ -21,6 +21,8 @@ defmodule Astarte.Pairing.API.Application do
 
   require Logger
   alias Astarte.Pairing.APIWeb.Metrics
+  alias Astarte.Pairing.API.Config
+  alias Astarte.RPC.Config, as: RPCConfig
 
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
@@ -36,6 +38,10 @@ defmodule Astarte.Pairing.API.Application do
     )
 
     Logger.info("Starting application.", tag: "pairing_api_start")
+
+    Config.validate!()
+    RPCConfig.validate()
+
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.Pairing.APIWeb.Endpoint,

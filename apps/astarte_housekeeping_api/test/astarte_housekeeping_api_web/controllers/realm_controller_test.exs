@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
 
   alias Astarte.Housekeeping.API.Realms
   alias Astarte.Housekeeping.API.Realms.Realm
+  alias Astarte.Housekeeping.API.Config
 
   @pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -80,10 +81,10 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   end
 
   setup_all do
-    Application.put_env(:astarte_housekeeping_api, :disable_authentication, true)
+    Config.put_disable_authentication(true)
 
     on_exit(fn ->
-      Application.put_env(:astarte_housekeeping_api, :disable_authentication, false)
+      Config.reload_disable_authentication()
     end)
   end
 

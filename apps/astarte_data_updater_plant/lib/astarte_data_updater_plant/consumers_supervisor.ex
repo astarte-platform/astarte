@@ -32,7 +32,7 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
     Logger.info("AMQPDataConsumer supervisor init.", tag: "data_consumer_sup_init")
 
     children = [
-      {AMQPDataConsumer.ConnectionManager, amqp_opts: Config.amqp_consumer_options()},
+      {AMQPDataConsumer.ConnectionManager, amqp_opts: Config.amqp_consumer_options!()},
       AMQPDataConsumer.Supervisor
     ]
 

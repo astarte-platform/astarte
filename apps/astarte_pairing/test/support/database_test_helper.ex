@@ -140,7 +140,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def create_db do
     client =
-      Config.cassandra_node()
+      Config.cassandra_node!()
       |> Client.new!()
 
     with {:ok, _} <- Query.call(client, @create_autotestrealm),
@@ -158,7 +158,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def seed_devices do
     client =
-      Config.cassandra_node()
+      Config.cassandra_node!()
       |> Client.new!(keyspace: @test_realm)
 
     {:ok, registered_not_confirmed_device_id} =
@@ -248,7 +248,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def get_first_registration(hardware_id) do
     client =
-      Config.cassandra_node()
+      Config.cassandra_node!()
       |> Client.new!(keyspace: @test_realm)
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
@@ -275,7 +275,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def get_introspection(hardware_id) do
     client =
-      Config.cassandra_node()
+      Config.cassandra_node!()
       |> Client.new!(keyspace: @test_realm)
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
@@ -299,7 +299,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def get_introspection_minor(hardware_id) do
     client =
-      Config.cassandra_node()
+      Config.cassandra_node!()
       |> Client.new!(keyspace: @test_realm)
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
@@ -323,7 +323,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def clean_devices do
     client =
-      Config.cassandra_node()
+      Config.cassandra_node!()
       |> Client.new!(keyspace: @test_realm)
 
     Query.call!(client, "TRUNCATE devices")
@@ -335,7 +335,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def drop_db do
     client =
-      Config.cassandra_node()
+      Config.cassandra_node!()
       |> Client.new!()
 
     Query.call(client, @drop_autotestrealm)

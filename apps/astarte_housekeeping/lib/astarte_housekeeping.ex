@@ -17,9 +17,17 @@
 #
 
 defmodule Astarte.Housekeeping do
+  alias Astarte.Housekeeping.Config
+  alias Astarte.RPC.Config, as: RPCConfig
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+
   use Application
 
   def start(_type, _args) do
+    Config.validate!()
+    RPCConfig.validate!()
+    DataAccessConfig.validate!()
+
     children = [
       Astarte.Housekeeping.BackendSupervisor,
       Astarte.HousekeepingWeb.Metrics.Supervisor

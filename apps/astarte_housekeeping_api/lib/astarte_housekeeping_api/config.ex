@@ -17,28 +17,64 @@
 #
 
 defmodule Astarte.Housekeeping.API.Config do
-  @moduledoc """
-  This module contains functions to access the configuration
+  alias Astarte.Housekeeping.API.Config.JWTPublicKeyPEMType
+
+  use Skogsra
+
+  @envdoc "The port used from the Phoenix server."
+  app_env :port, :astarte_housekeeping_api, :port,
+    os_env: "HOUSEKEEPING_API_PORT",
+    type: :integer,
+    default: 4001
+
+  @envdoc "The bind address for the Phoenix server."
+  app_env :bind_address, :astarte_housekeeping_api, :bind_address,
+    os_env: "HOUSEKEEPING_API_BIND_ADDRESS",
+    type: :binary,
+    default: "0.0.0.0"
+
+  @envdoc """
+  Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
   """
+  app_env :disable_authentication, :astarte_housekeeping_api, :disable_authentication,
+    os_env: "HOUSEKEEPING_API_DISABLE_AUTHENTICATION",
+    type: :binary,
+    default: false
+
+  @envdoc "The JWT public key."
+  app_env :jwt_public_key_pem, :astarte_housekeeping_api, :jwt_public_key_pem,
+    os_env: "HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH",
+    type: JWTPublicKeyPEMType
+
+  @doc "The RPC client module."
+  app_env :rpc_client, :astarte_housekeeping_api, :rpc_client,
+    os_env: "HOUSEKEEPING_API_RPC_CLIENT",
+    binding_skip: [:system],
+    type: :unsafe_module,
+    default: Astarte.RPC.AMQP.Client
 
   @doc """
-  Returns true if the authentication is disabled
+  Returns true if the authentication is disabled.
   """
-  def jwt_public_key_pem do
-    Application.get_env(:astarte_housekeeping_api, :jwt_public_key_pem)
-  end
-
-  @doc """
-  Returns true if the authentication is disabled
-  """
+  @spec authentication_disabled?() :: boolean()
   def authentication_disabled? do
-    Application.get_env(:astarte_housekeeping_api, :disable_authentication, false)
+    disable_authentication!()
   end
 
   @doc """
-  Returns the RPC client module
+  Returns :ok if the JWT key is valid, otherwise raise an exception.
   """
-  def rpc_client do
-    Application.get_env(:astarte_housekeeping_api, :rpc_client, Astarte.RPC.AMQP.Client)
+  def validate_jwt_public_key_pem!() do
+    if authentication_disabled?() do
+      :ok
+    else
+      case jwt_public_key_pem() do
+        {:ok, nil} ->
+          raise "JWT public key not found, HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH must be set when authentication is enabled."
+
+        {:ok, _key} ->
+          :ok
+      end
+    end
   end
 end

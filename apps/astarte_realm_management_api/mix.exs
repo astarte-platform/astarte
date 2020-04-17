@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.8",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -88,15 +88,14 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:phoenix_ecto, "~> 4.0"},
       {:cors_plug, "~> 1.5"},
       {:jason, "~> 1.0"},
-      {:conform, "== 2.5.2"},
       {:guardian, "~> 1.2"},
-      {:distillery, "~> 1.5", runtime: false},
       {:excoveralls, "~> 0.11", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_phoenix, "~> 1.3"},
       {:prometheus_plugs, "~> 1.1"},
+      {:skogsra, "~> 2.2"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

@@ -21,6 +21,8 @@ defmodule Astarte.Housekeeping.API.Application do
   require Logger
 
   alias Astarte.Housekeeping.APIWeb.Metrics
+  alias Astarte.Housekeeping.API.Config
+  alias Astarte.RPC.Config, as: RPCConfig
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
@@ -34,6 +36,10 @@ defmodule Astarte.Housekeeping.API.Application do
     )
 
     Logger.info("Starting application.", tag: "housekeeping_api_start")
+
+    Config.validate!()
+    RPCConfig.validate!()
+    Config.validate_jwt_public_key_pem!()
 
     Metrics.PhoenixInstrumenter.setup()
     Metrics.PipelineInstrumenter.setup()

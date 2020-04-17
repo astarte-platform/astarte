@@ -6,12 +6,6 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   http: [port: 4001],
   server: false
 
-config :cqerl,
-  cassandra_nodes: [
-    {System.get_env("CASSANDRA_DB_HOST") || "cassandra",
-     System.get_env("CASSANDRA_DB_PORT") || 9042}
-  ]
-
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
   metadata: [

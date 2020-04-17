@@ -20,11 +20,19 @@ defmodule Astarte.RealmManagement.Config do
   @moduledoc """
   This module helps the access to the runtime configuration of Astarte RealmManagement
   """
+
+  use Skogsra
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """
-  def xandra_nodes do
-    Application.get_env(:astarte_data_access, :cassandra_nodes, "localhost")
-    |> String.split(",")
-  end
+  defdelegate xandra_nodes, to: DataAccessConfig
+  defdelegate xandra_nodes!, to: DataAccessConfig
+
+  @doc """
+  Returns Cassandra nodes formatted in the CQEx format.
+  """
+  defdelegate cqex_nodes, to: DataAccessConfig
+  defdelegate cqex_nodes!, to: DataAccessConfig
 end

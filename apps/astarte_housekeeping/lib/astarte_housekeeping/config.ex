@@ -17,18 +17,45 @@
 #
 
 defmodule Astarte.Housekeeping.Config do
-  @doc """
-  Returns the replication factor for the astarte keyspace, defaults to 1
-  """
-  def astarte_keyspace_replication_factor do
-    Application.get_env(:astarte_housekeeping, :astarte_keyspace_replication_factor, 1)
-  end
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.RPC.Config, as: RPCConfig
+  use Skogsra
 
-  @doc """
-  Returns Cassandra nodes formatted in the Xandra format.
-  """
-  def xandra_nodes do
-    Application.get_env(:astarte_data_access, :cassandra_nodes, "localhost")
-    |> String.split(",")
-  end
+  @envdoc "Replication factor for the astarte keyspace, defaults to 1"
+  app_env :astarte_keyspace_replication_factor,
+          :astarte_housekeeping,
+          :astarte_keyspace_replication_factor,
+          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
+          type: :integer,
+          default: 1
+
+  @envdoc "The port where the housekeeping metrics endpoint will be exposed."
+  app_env :port, :astarte_housekeeping, :port,
+    os_env: "PORT",
+    type: :integer,
+    default: 4008
+
+  defdelegate xandra_nodes, to: DataAccessConfig
+  defdelegate xandra_nodes!, to: DataAccessConfig
+
+  defdelegate amqp_connection_username, to: RPCConfig
+  defdelegate amqp_connection_username!, to: RPCConfig
+
+  defdelegate amqp_connection_password, to: RPCConfig
+  defdelegate amqp_connection_password!, to: RPCConfig
+
+  defdelegate amqp_connection_host, to: RPCConfig
+  defdelegate amqp_connection_host!, to: RPCConfig
+
+  defdelegate amqp_connection_virtual_host, to: RPCConfig
+  defdelegate amqp_connection_virtual_host!, to: RPCConfig
+
+  defdelegate amqp_connection_port, to: RPCConfig
+  defdelegate amqp_connection_port!, to: RPCConfig
+
+  defdelegate amqp_prefetch_count, to: RPCConfig
+  defdelegate amqp_prefetch_count!, to: RPCConfig
+
+  defdelegate amqp_queue_max_length, to: RPCConfig
+  defdelegate amqp_queue_max_length!, to: RPCConfig
 end

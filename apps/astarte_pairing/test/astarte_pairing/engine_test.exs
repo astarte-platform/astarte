@@ -360,7 +360,7 @@ defmodule Astarte.Pairing.EngineTest do
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
       db_client =
-        Config.cassandra_node()
+        Config.cassandra_node!()
         |> CQEx.Client.new!(keyspace: @test_realm)
 
       {:ok, device} = Queries.select_device_for_credentials_request(db_client, device_id)
@@ -376,7 +376,7 @@ defmodule Astarte.Pairing.EngineTest do
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
       db_client =
-        Config.cassandra_node()
+        Config.cassandra_node!()
         |> CQEx.Client.new!(keyspace: @test_realm)
 
       {:ok, no_credentials_requested_device} =

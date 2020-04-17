@@ -402,7 +402,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   """
 
   def connect_to_test_keyspace() do
-    Database.connect("autotestrealm")
+    Database.connect(realm: "autotestrealm")
   end
 
   def insert_empty_device(client, device_id) do
@@ -456,7 +456,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_public_key_only_keyspace do
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     DatabaseQuery.call!(client, @create_autotestrealm)
 
@@ -471,7 +471,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def seed_data do
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     Enum.each(
       [
@@ -627,7 +627,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_datastream_receiving_device do
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     insert_datastream_receiving_device(client)
     insert_datastream_receiving_device_endpoints(client)
@@ -705,7 +705,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def remove_datastream_receiving_device do
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
 
@@ -729,7 +729,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_object_receiving_device do
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     insert_object_receiving_device(client)
     create_server_owned_aggregated_object_table(client)
@@ -831,7 +831,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def remove_object_receiving_device do
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
 
@@ -864,7 +864,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:ttl_s))
     """
 
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     query =
       DatabaseQuery.new()
@@ -879,7 +879,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       DELETE FROM autotestrealm.kv_store WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
     """
 
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
 
     query =
       DatabaseQuery.new()
@@ -893,7 +893,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def destroy_local_test_keyspace do
-    {:ok, client} = Database.connect()
+    {:ok, client} = Database.connect(realm: "autotestrealm")
+
     DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
     :ok
   end

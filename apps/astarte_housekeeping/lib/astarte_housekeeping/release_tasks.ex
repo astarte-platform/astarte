@@ -111,8 +111,8 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     # Load astarte_data_access, without starting it. This makes the application env accessible.
     :ok = Application.load(:astarte_data_access)
 
-    _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes())}")
-    {:ok, _pid} = Xandra.Cluster.start_link(nodes: Config.xandra_nodes(), name: :xandra)
+    _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
+    {:ok, _pid} = Xandra.Cluster.start_link(nodes: Config.xandra_nodes!(), name: :xandra)
 
     :ok
   end
