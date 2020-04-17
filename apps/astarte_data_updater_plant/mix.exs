@@ -71,9 +71,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.2"},
-      {:cyanide, github: "ispirata/cyanide"},
-      {:excoveralls, "~> 0.11", only: :test},
+      {:amqp, "~> 1.4"},
+      {:cyanide, "~> 1.0"},
+      {:excoveralls, "~> 0.12", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
@@ -81,7 +81,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:xandra, "~> 0.13"},
       {:prometheus_ex, "~> 3.0"},
       {:skogsra, "~> 2.2"},
-      {:telemetry, "~> 0.3"},
+      {:telemetry, "~> 0.4"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

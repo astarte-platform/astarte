@@ -73,19 +73,19 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.2.1"},
-      {:bbmustache, "~> 1.5"},
-      {:cyanide, github: "ispirata/cyanide"},
-      {:httpoison, "~> 1.1"},
-      {:jason, "~> 1.0"},
-      {:excoveralls, "~> 0.11", only: :test},
+      {:amqp, "~> 1.4"},
+      {:bbmustache, "~> 1.9"},
+      {:cyanide, "~> 1.0"},
+      {:httpoison, "~> 1.6"},
+      {:jason, "~> 1.2"},
+      {:excoveralls, "~> 0.12", only: :test},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
-      {:mox, "~> 0.3", only: :test},
+      {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
-      {:telemetry, "~> 0.3"},
+      {:telemetry, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:skogsra, "~> 2.2"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}

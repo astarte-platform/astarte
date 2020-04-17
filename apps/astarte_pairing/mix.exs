@@ -76,9 +76,9 @@ defmodule Astarte.Pairing.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:cfxxl, "~> 0.3"},
-      {:bcrypt_elixir, "~> 1.0"},
-      {:excoveralls, "~> 0.11", only: :test},
+      {:cfxxl, github: "ispirata/cfxxl"},
+      {:bcrypt_elixir, "~> 2.2"},
+      {:excoveralls, "~> 0.12", only: :test},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},
@@ -86,7 +86,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:xandra, "~> 0.13"},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
-      {:telemetry, "~> 0.3"},
+      {:telemetry, "~> 0.4"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

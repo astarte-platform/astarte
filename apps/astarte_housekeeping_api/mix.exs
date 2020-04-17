@@ -78,14 +78,14 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:jason, "~> 1.0"},
-      {:phoenix, "~> 1.4.0"},
+      {:jason, "~> 1.2"},
+      {:phoenix, "~> 1.4.16"},
       {:phoenix_ecto, "~> 4.0"},
       {:gettext, "~> 0.11"},
-      {:cors_plug, "~> 1.5"},
+      {:cors_plug, "~> 2.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:guardian, "~> 1.2"},
-      {:excoveralls, "~> 0.11", only: :test},
+      {:guardian, "~> 2.1"},
+      {:excoveralls, "~> 0.12", only: :test},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_phoenix, "~> 1.3"},
       {:prometheus_plugs, "~> 1.1"},
