@@ -3,9 +3,14 @@ name: Docs generation for Github Pages
 on:
   push:
     paths:
+    # Documentation pages
     - 'doc/**'
+    # Swagger files
+    - 'apps/*/priv/static/*.yaml'
+    # The action itself
     - '.github/workflows/docs-workflow.yaml'
     branches:
+    # Create the snapshot only when it matters
     - 'master'
     - 'release-*'
 
@@ -32,22 +37,31 @@ jobs:
     - name: Build Docs
       working-directory: ./astarte/doc
       run: mix docs
-    - name: Copy Docs (preserving API)
-      # Note: git checkout might fail
+    - name: Copy Docs
       run: |
         export DOCS_DIRNAME="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
         rm -rf docs/$DOCS_DIRNAME
         mkdir docs/$DOCS_DIRNAME
         cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
-        cd docs
-        git checkout $DOCS_DIRNAME/api || echo "APIs probably aren't committed yet. Ensure an action is taken"
-        git add .
-        cd -
+    - name: Checkout Swagger UI
+      uses: actions/checkout@v2
+      with:
+        repository: swagger-api/swagger-ui
+        path: swagger-ui
+        ref: 'v3.25.0'
+    - name: Copy all Swagger UI files
+      run: |
+        export DOCS_DIRNAME="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+        mkdir docs/$DOCS_DIRNAME/api
+        cp swagger-ui/dist/* docs/$DOCS_DIRNAME/api
+        rm docs/$DOCS_DIRNAME/api/index.html
+        cp astarte/doc/swagger-ui-index.html docs/$DOCS_DIRNAME/api/index.html
     - name: Commit files
       working-directory: ./docs
       run: |
         git config --local user.email "astarte-machine@ispirata.com"
         git config --local user.name "Astarte Bot"
+        git add .
         git commit -m "Update Documentation"
     - name: Push changes
       working-directory: ./docs

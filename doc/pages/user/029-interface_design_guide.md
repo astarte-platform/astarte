@@ -6,6 +6,10 @@ Before we begin, let's get this straight:
 
 This is because interfaces define not only the way data is exchanged between Astarte and Devices/Applications, but also **how it will be stored, managed and queried**. As such, it is fundamental to spend enough time on finding the most correct Interface design for your use case, keeping in mind how your users will consume your data, what might change in the future, what is fundamental and what is optional, and more.
 
+## Use the right tools
+
+Before you begin, you might want to take a look at [Astarte Interfaces Editor](https://interfaces-editor.astarte-platform.org), which is also available in any Astarte Dashboard installation. Astarte Interfaces Editor gives you automated validation and linting for Astarte Interfaces, and also gives you a declarative editor with automatic JSON generation. It is well maintained and used as a reference for Interface design. Consider using it for building your interfaces.
+
 ## Rationale
 
 Without going into deeper details on what concerns Astarte's DB internals, there are some considerations one should always keep in mind when designing interfaces.

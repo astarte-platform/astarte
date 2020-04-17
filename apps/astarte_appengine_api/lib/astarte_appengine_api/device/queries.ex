@@ -570,6 +570,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
+  defp to_db_friendly_type(%DateTime{} = datetime) do
+    DateTime.to_unix(datetime, :millisecond)
+  end
+
   defp to_db_friendly_type(value) do
     value
   end

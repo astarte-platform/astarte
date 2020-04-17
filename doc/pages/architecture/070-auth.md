@@ -2,9 +2,9 @@
 
 Authentication and authorization are crucial, as Astarte likely holds sensitive resources and is capable to send mass commands to a device fleet.
 
-First of all: when talking about auth in Astarte, we are talking about anything which isn't a Device - those are Authenticated through [Pairing](030-pairing_mechanism.html) and Authorized by their Transport (which uses Pairing for the Authentication policies).
+First of all: when talking about auth in Astarte, we are talking about anything which isn't a Device - those are Authenticated through [Pairing](050-pairing_mechanism.html) and Authorized by their Transport (which uses Pairing for the Authentication policies).
 
-Astarte's authentication/authorization stage identifies the principal through a token (with JWT as the first class citizen), which is the only currency the platform supports.
+Astarte's authentication/authorization stage identifies the principal through a token (with [JWT](https://en.wikipedia.org/wiki/JSON_Web_Token) as the first class citizen), which is the only currency the platform supports.
 
 ## Authentication Realms
 
@@ -30,20 +30,20 @@ Paths are given in form of a set of [Perl-like Regular Expressions](https://perl
 
 Examples of valid regular expressions on AppEngine API are:
 
- * `POST::devices/.*/interfaces/com\\.my\\.interface/.*`: Allows to set individual values on the `com.my.interface` interface on any individual device in the realm.
- * `.*::.*/interfaces/com\\.my\\.monitoring\\.interface.*`: Allows to get/set/delete either the aggregate or the individual values of the `com.my.monitoring.interface` interface on any device or device aggregation in the realm.
- * `.*::devices/j0zbvbQp9ZNnanwvh4uOCw.*`: Allows every operation on device `j0zbvbQp9ZNnanwvh4uOCw`
- * `GET::devices/[a-zA-Z0-9-_]*`: Allows to get every individual device's status, but denies access to any additional information/operation on them.
+* `POST::devices/.*/interfaces/com\\.my\\.interface/.*`: Allows to set individual values on the `com.my.interface` interface on any individual device in the realm.
+* `.*::.*/interfaces/com\\.my\\.monitoring\\.interface.*`: Allows to get/set/delete either the aggregate or the individual values of the `com.my.monitoring.interface` interface on any device or device aggregation in the realm.
+* `.*::devices/j0zbvbQp9ZNnanwvh4uOCw.*`: Allows every operation on device `j0zbvbQp9ZNnanwvh4uOCw`
+* `GET::devices/[a-zA-Z0-9-_]*`: Allows to get every individual device's status, but denies access to any additional information/operation on them.
 
 Examples of valid regular expressions on Realm Management API are:
 
- * `POST::interfaces\/.*`: Allows installing new interfaces in the realm.
- * `GET::interfaces\/.*`: Allows inspecting every interface in the realm.
- * `PUT::interfaces\/.*\/0`: Allows updating all draft interfaces in the realm.
+* `POST::interfaces\/.*`: Allows installing new interfaces in the realm.
+* `GET::interfaces\/.*`: Allows inspecting every interface in the realm.
+* `PUT::interfaces\/.*\/0`: Allows updating all draft interfaces in the realm.
 
 Other valid examples are:
 
- * `.*::.*`: Allows any operation on the given API.
+* `.*::.*`: Allows any operation on the given API.
 
 Both verb and path regular expressions are implicitly delimited by adding `^` before and `$` after the regular expression string. For example, if you use `GET::interfaces` as regular expression in Realm Management API, the path will be matched against `^GET$` and the path will be matched against `^interfaces$`. This way the only operation allowed will be listing all the interfaces, while all operation on `interfaces/` subpaths will be denied.
 
@@ -53,11 +53,11 @@ Authorization regular expressions have to be contained in the token's claims. On
 
 Supported token claims are:
 
- * `a_aea`: Defines the regular expressions for AppEngine API
- * `a_rma`: Defines the regular expressions for Realm Management API
- * `a_hka`: Defines the regular expressions for Housekeeping API
- * `a_pa`: Defines the regular expressions for Pairing API
- * `a_ch`: Defines the regular expressions for Channels
+* `a_aea`: Defines the regular expressions for AppEngine API
+* `a_rma`: Defines the regular expressions for Realm Management API
+* `a_hka`: Defines the regular expressions for Housekeeping API
+* `a_pa`: Defines the regular expressions for Pairing API
+* `a_ch`: Defines the regular expressions for Channels
 
 Of course, claims are considered only after a successful token verification. This means that the claim will be processed only if the caller is authenticated against the correct authentication realm  - this is especially the case for what concerns Housekeeping, which has a dedicated Authentication realm not tied to any Astarte realms.
 
@@ -65,10 +65,10 @@ An example of a valid token claim is:
 
 ```json
 {
-	"a_aea": ["GET::devices/[a-zA-Z0-9-_]*",
-	         ".*::.*/interfaces/com\\.my\\.monitoring\\.interface.*",
-	         ".*::devices/j0zbvbQp9ZNnanwvh4uOCw.*"],
-	"a_rma": ["GET::.*"]
+  "a_aea": ["GET::devices/[a-zA-Z0-9-_]*",
+      ".*::.*/interfaces/com\\.my\\.monitoring\\.interface.*",
+      ".*::devices/j0zbvbQp9ZNnanwvh4uOCw.*"],
+  "a_rma": ["GET::.*"]
 }
 ```
 
@@ -78,17 +78,17 @@ The client by default has no permission to do anything: as such, if a token is m
 
 ### Natively supported tokens
 
-Astarte supports only JWT natively, which has to be signed using one of the following algorithms:
+Astarte supports only [JWT](https://tools.ietf.org/html/rfc7519) natively, which has to be signed using one of the following algorithms:
 
- * ES256
- * ES384
- * ES512
- * PS256
- * PS384
- * PS512
- * RS256
- * RS384
- * RS512
+* ES256
+* ES384
+* ES512
+* PS256
+* PS384
+* PS512
+* RS256
+* RS384
+* RS512
 
 ## Authorization for REST APIs
 

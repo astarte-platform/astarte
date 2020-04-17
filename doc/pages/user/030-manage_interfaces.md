@@ -6,41 +6,100 @@ It is assumed that you have read the [Interface design guide](029-interface_desi
 
 ## Querying Interfaces
 
-To find out which interfaces are installed in a Realm, call /interfaces on your chosen realm in Realm Management API:
+### Listing Interfaces
 
-_Sample Request_
-```
-GET realm.api.<your astarte domain>/v1/test/interfaces
+You can list all installed interfaces in a given Realm. This will return all the valid installed Interface names, without any versioning.
+
+#### List Interfaces using astartectl
+
+```bash
+$ astartectl realm-management interfaces list
+[com.my.Interface1 com.my.Interface2 com.my.Interface3]
 ```
 
-_Sample Response_
+#### List Interfaces using Astarte Dashboard
+
+From your Dashboard, after logging in, click on "Interfaces" in the left menu.
+
+#### List Interfaces using Realm Management API
+
+`GET <astarte base API URL>/realmmanagement/v1/test/interfaces`
+
 ```json
-["com.my.Interface1","com.my.Interface2","com.my.Interface3"]
+{"data": ["com.my.Interface1","com.my.Interface2","com.my.Interface3"]}
 ```
 
-This returns a list of installed interfaces inside the Realm. To retrieve a list of available major versions of a specific interface, go further in the REST tree:
+### Listing Major Versions for an Interface
 
-_Sample Request_
-```
-GET realm.api.<your astarte domain>/v1/test/interfaces/com.my.Interface1
+For each installed Interface, there can be any number of Major versions installed. This information can be retrieved by listing the available Major versions for a specific interface.
+
+In a realm, only the latest minor version of each major version of an Interface is kept. This can be done due to the fact that Semantic Versioning implies a new minor version doesn't introduce any breaking change (e.g.: deleting or renaming a mapping), and as such querying an older version of an interface using a newer one as a model is always compatible - some mappings might be empty, as expected, and will be disregarded. Astarte ensures upon Interface installation for this constraint, and as such you can always query the latest minor version of an Interface safely.
+
+#### List Versions using astartectl
+
+```bash
+$ astartectl realm-management interfaces versions com.my.Interface1
+[0 1 2]
 ```
 
-_Sample Response_
+#### List Versions using Astarte Dashboard
+
+In the Dashboard's Interface page, click on any Interface name. A drop-down will appear, showing installed major versions for that Interface name.
+
+#### List Versions using Realm Management API
+
+`GET <astarte base API URL>/realmmanagement/v1/test/interfaces/com.my.Interface1`
+
 ```json
-[0,1,2]
+{"data": [0,1,2]}
 ```
 
-In a realm, only the latest minor version of each major version of an interface is returned as a reference. This can be done due to the fact that Semantic Versioning implies a new minor doesn't introduce any breaking change (e.g.: deleting or renaming a mapping), and as such querying an older version of an interface using a newer one as a model is compatible - some mappings might be empty, as expected, and will be disregarded.
+#### Getting an Interface Definition
 
-To inspect the installed interface, you can query one of its major versions:
+Astarte allows you to retrieve the Interface Definition for a given Name and Major Version pair. The definition is in the standard Interface JSON format.
 
-_Sample Request_
-```
-GET realm.api.<your astarte domain>/v1/test/interfaces/com.my.Interface1/0
+### Get Interface Definition using astartectl
+
+```bash
+$ astartectl realm-management interfaces show com.my.Interface1 0
+{
+  "data": {
+    "version_minor": 2,
+    "version_major": 0,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+      {
+        "type": "integer",
+        "path": "/myValue",
+        "description": "This is quite an important value."
+      },
+      {
+        "type": "integer",
+        "path": "/myBetterValue",
+        "description": "A better revision, introduced in minor 2, supported only by some devices"
+      },
+      {
+        "type": "boolean",
+        "path": "/awesome",
+        "allow_unset": true,
+        "description": "Introduced in minor 1, tells you if the device is awesome. Optional."
+      }
+    ],
+    "interface_name": "com.my.Interface1"
+  }
+}
 ```
 
-_Sample Response_
-```
+### Get Interface Definition using Astarte Dashboard
+
+From the Interfaces page, click on an Interface name, and click on the Major version for which you'd like to see the definition. The Interfaces Editor window will open, with the Interface definition in the text box on the right. From the Editor page, it is also possible to add new mappings to the Interface and bump it to a new Minor.
+
+### Get Interface Definition using Realm Management API
+
+`GET <astarte base API URL>/realmmanagement/v1/test/interfaces/com.my.Interface1/0`
+
+```json
 {
   "data": {
     "version_minor": 2,
@@ -72,52 +131,108 @@ _Sample Response_
 
 ## Installing/Updating an interface
 
-Interfaces are supposed to change over time, and are dynamic. As such, they can be installed and updated. Interface installation means adding either a whole new interface (as in: an interface with a new name), or a new major version of an already known interface. Interface update means updating a specific, existing interface name/major version with a new minor version.
+Interfaces are supposed to change over time, and are dynamic. As such, they can be installed and updated. Interface installation means adding either a whole new Interface (as in: an Interface with a new name), or a new major version of an already known Interface. Interface update means updating a specific, existing interface name/major version with a new minor version.
 
-### Installation
+When designing interfaces, it is strongly advised to use Astarte Interface Editor. The Editor is embedded into any Astarte Dashboard installation but, in case your Astarte installation does not provide you with a Dashboard, you can use [Astarte Interface Editor public online instance](https://interfaces-editor.astarte-platform.org). Use it to write and validate your definitions, and install the resulting JSON file through either `astartectl` or Realm Management APIs.
 
-To install a new interface, `POST` its JSON body to the `/interfaces` endpoint of the Realm encapsulated in a `data` object, like in the following example:
+### Synchronizing interfaces using astartectl
 
+`astartectl` provides a handy `sync` command that, given a list of Interface files, will synchronize the state of the Astarte Realm with your local interfaces. It is handy in those cases where your Realm has several interfaces, and you're storing Interfaces in a common place, such as a Git Repository - this is the average case for Astarte-based applications/clouds.
+
+Assuming you have a set of Interface files in your folder all with the `.json` extension, invoking `astartectl realm-management interfaces sync` will result in something like this:
+
+```bash
+$ astartectl realm-management interfaces sync *.json
+Will install interface com.my.Interface1 version 0.2
+Will install interface com.my.Interface2 version 1.1
+Will update interface com.my.Interface3 to version 1.4
+
+Do you want to continue? [y/n] y
+Interface com.my.Interface1 installed successfully
+Interface com.my.Interface2 installed successfully
+Interface com.my.Interface3 updated successfully to version 1.4
 ```
+
+After invocation, your Astarte Realm will be up to date with all Interfaces in your local directory.
+
+*Note: `astartectl realm-management interfaces sync` currently synchronizes Interfaces only from your local machine to the Realm, and not the other way round. In case the Realm has a more recent version of an interface compared to your local files, or it has some interfaces which are not referenced by your local files, no action will be taken.*
+
+### Install an Interface using Astarte Dashboard
+
+Access the Editor by going to the Interfaces page, and clicking on "Install a New Interface..." in the top-right corner. The Editor will open. From there, you can either paste in an existing JSON definition, which will be validated and will update the left-screen declarative Editor, or you can build a whole new Interface from scratch.
+
+Once you're done, hit the "Install Interface" button at the bottom of the declarative Editor (left side) to install the Interface in the Realm.
+
+### Install an Interface using astartectl
+
+First of all, ensure that you have the Interface you'd like to install saved in a file on your local machine. We will assume the interface is available as `interface1.json`.
+
+```bash
+$ astartectl realm-management interfaces install interface1.json
+ok
+```
+
+### Install an Interface using Realm Management API
+
+Realm Management currently implements a completely asynchronous API for Interface installation - as such, the only feedback received by the API is that the Interface is valid and the request was accepted by the backend. However, this is no guarantee that the Interface will be installed successfully. As a best practice, it is advised to either wait a few seconds in between Realm Management API invocations, or verify through a `GET` operation whether the Interface has been installed or not.
+
+`POST <astarte base API URL>/realmmanagement/v1/test/interfaces`
+
+The POST request must have the following request body, with content type `application/json`
+
+```json
 {
-	"data": {
-	  "version_minor": 2,
-	  "version_major": 0,
-	  "type": "properties",
-	  "ownership": "device",
-	  "mappings": [
-	    {
-	      "type": "integer",
-	      "path": "/myValue",
-	      "description": "This is quite an important value."
-	    },
-	    {
-	      "type": "integer",
-	      "path": "/myBetterValue",
-	      "description": "A better revision, introduced in minor 2, supported only by some devices"
-	    },
-	    {
-	      "type": "boolean",
-	      "path": "/awesome",
-	      "allow_unset": true,
-	      "description": "Introduced in minor 1, tells you if the device is awesome. Optional."
-	    }
-	  ],
-	  "interface_name": "com.my.Interface1"
-	}
+  "data": {
+    "version_minor": 2,
+    "version_major": 0,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+      {
+        "type": "integer",
+        "path": "/myValue",
+        "description": "This is quite an important value."
+      },
+      {
+        "type": "integer",
+        "path": "/myBetterValue",
+        "description": "A better revision, introduced in minor 2, supported only by some devices"
+      },
+      {
+        "type": "boolean",
+        "path": "/awesome",
+        "allow_unset": true,
+        "description": "Introduced in minor 1, tells you if the device is awesome. Optional."
+      }
+    ],
+    "interface_name": "com.my.Interface1"
+  }
 }
 ```
 
 The call will return either `201 Created` or an error. Most common failure cases are:
 
- * The interface/major combination already exists in the Realm
- * The interface schema fails validation
+* The interface/major combination already exists in the Realm
+* The interface schema fails validation
 
 In any case, the API returns details on what caused the error and how to solve it through Astarte's standard error reply schema.
 
-It is also worth noting that interface creation is asynchronous: as such, it might be possible that `201 Created` will be returned before the interface is generally available in the Realm.
+### Update an Interface using astartectl
 
-### Update
+First of all, ensure that you have the Interface you'd like to update saved in a file on your local machine. We will assume the interface is available as `interface1_3.json`.
+
+```bash
+$ astartectl realm-management interfaces update interface1_3.json
+ok
+```
+
+### Update an Interface using Astarte Dashboard
+
+Go to the Interfaces page, click on the Interface Name you'd like to update, and click on the Major version which is referred by your upgrade (e.g.: if you're updating from 1.2 to 1.3, you want to click on Major Version 1). The Editor will appear, populated with the currently installed Interface definition. Paste in your updated JSON file, or use the declarative editor to make your changes. The editor will be limited to Semantic Version-compatible operations (as in - adding new mappings).
+
+Once you're done, hit the "Apply Changes" button at the bottom of the declarative Editor (left side) to update the Interface in the Realm.
+
+### Update an Interface using Realm Management API
 
 To update an existing interface, issue a `PUT` `/interfaces/<name>/<major>` endpoint of the realm with the very same semantics as the Installation procedure. The call will return either `201 Created` or an error. Apart from the very same errors that could be triggered upon installation, Update will also fail if the interface doesn't provide a compatible upgrade path from the previously installed minor.
 

@@ -2,16 +2,42 @@
 
 Once you have your devices connected, up and running in Astarte, you can start interacting with them.
 
-## Using AppEngine API
+## Device status
 
-First things first, you can check if your device is correctly registered in Astarte, and its current status. Let's assume our Device has `f0VMRgIBAQAAAAAAAAAAAA` as its id.
+First things first, you can check if your device is correctly registered in Astarte, and its current status.
+Let's assume our Device has `f0VMRgIBAQAAAAAAAAAAAA` as its id.
+A Device's status includes a number of useful information, among which whether it is connected or not to its Transport,
+its introspection, the amount of exchanged data and more.
 
-_Sample Request_
+### Query Device status using astartectl
+
+```bash
+$ astartectl appengine devices show f0VMRgIBAQAAAAAAAAAAAA
+Device ID:                      f0VMRgIBAQAAAAAAAAAAAA
+Connected:                      false
+Last Connection:                2018-02-07 18:38:57.266 +0000 UTC
+Last Disconnection:             2018-02-08 09:49:26.566 +0000 UTC
+Introspection:                  com.example.ExampleInterface v1.0 exchanged messages: 20 exchanged bytes: 200B
+                                org.example.TestInterface v0.2 exchanged messages: 8 exchanged bytes: 147B
+Received Messages:              221
+Data Received:                  11.7K
+Last Seen IP:                   203.0.113.89
+Last Credentials Request IP:    203.0.113.201
+First Registration:             2018-01-31 17:10:59.270 +0000 UTC
+First Credentials Request:      2018-01-31 17:10:59.270 +0000 UTC
 ```
-GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA
-```
 
-_Sample Response_
+### Query Device status using Astarte Dashboard
+
+After logging in to Astarte dashboard, go to the "Devices" page clicking on the menu on your left. A list of
+available Device IDs will appear. If you do not see your device at a glance, use the search bar on the top right
+to find it.
+Clicking on the Device ID will take you to its details page.
+
+### Query Device status using AppEngine API
+
+`GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA`
+
 ```json
 {
     "data": {
@@ -53,21 +79,17 @@ _Sample Response_
                 "major" : 0,
                 "minor" : 2,
                 "exchanged_msgs": 3,
-                "exchanged_bytes": 120 
+                "exchanged_bytes": 120
             }
         ]
     }
 }
 ```
 
-A Device's status includes a number of useful information, among which whether it is connected or not to its Transport. From there on, we can check on its Introspection.
+Through the API, it is also possible to get the Introspection of the device only:
 
-_Sample Request_
-```
-GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces
-```
+`GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces`
 
-_Sample Response_
 ```json
 {
     "data": [
@@ -81,27 +103,36 @@ This returns the Interfaces which the device reported in its Introspection *and*
 
 Arbitrary information can be added to the device by means of `metadata`: they allow to store any number of string values associated to a corresponding string key.
 To set, modify and delete `metadata`, a `PATCH` on the device endpoint is required:
+
 ```
 PATCH api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA
 ```
+
 In the request body, the `data` JSON object should have a `metadata` key which bears a dictionary of strings. A valid request body which changes only device metadata, for example, is `{"data":{"metadata": {"<key>": "<value>"}}}`. To delete a metadata entry, set the value of the corresponding key to `null`. For example, POSTing `{"data":{"metadata": {"my_key": null}}}` will remove the `my_key` metadata entry from the device.
 
-Depending on the aggregation and ownership of the Interface, you can `GET`/`PUT`/`POST` on the interface itself or one of its mappings. Some examples are:
+Depending on the aggregation and ownership of the Interface, you can `GET`/`PUT`/`POST` on the interface itself or one of its mappings,
+or use `astartectl` to perform the same operation on the command line. Some examples are:
 
-Get data from an `aggregate` `device` `properties` interface:
-```
-GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.ExampleInterface
-```
+### Get data from an `aggregate` `device` `properties` interface
 
-Get last sent value from an `individual` `device` `datastream` interface:
-```
-GET appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestInterface/myValue?limit=1
-```
+`astartectl` invocation: `astartectl appengine devices data-snapshot f0VMRgIBAQAAAAAAAAAAAA com.example.ExampleInterface`
 
-Set values in an `individual` `server` `datastream` interface:
-```
-POST appengine.api.<your astarte domain>/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.OtherTestInterface/myOtherValue
-```
+AppEngine API invocation: `GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.ExampleInterface`
+
+### Get last sent value from an `individual` `device` `datastream` interface
+
+`astartectl` invocation: `astartectl appengine devices data-snapshot f0VMRgIBAQAAAAAAAAAAAA com.example.TestInterface`
+
+AppEngine API invocation: `GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestInterface/myValue?limit=1`
+
+### Set values in an `individual` `server` `datastream` interface
+
+`astartectl` invocation: `astartectl appengine devices send-data f0VMRgIBAQAAAAAAAAAAAA com.example.OtherTestInterface /myOtherValue <value>`
+
+AppEngine API invocation: `POST api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.OtherTestInterface/myOtherValue`
+Request body: `{"data": <value>}`
+
+### API Query semantics
 
 In general, to query AppEngine, the following things must be kept in mind
 
@@ -109,7 +140,7 @@ In general, to query AppEngine, the following things must be kept in mind
 * When `GET`ting, if you are querying an `aggregate` interface, make sure to query the interface itself rather than its mappings.
 * When `GET`ting `datastream`, keep in mind that AppEngine's default behavior is to return a large as possible timeseries.
 
-## Navigating and retrieving Datastream results
+## Navigating and retrieving Datastream results through APIs
 
 The Datastream case is significant, as it might be common to have *a lot* of values for each endpoint/interface. As such, returning all of them in a single API call is most of the times not desirable nor recommended.
 
@@ -150,3 +181,19 @@ Also, the hard cap has a very different meaning in downsampling. In this case, t
 Astarte is also capable of downsampling aggregated interfaces, as long as a `downsample_key` is specified, which has to match the last token of an `endpoint` of the queried `interface` (i.e. in case the interface has a `/%{id}/myValue` mapping which should be used as the `downsample_key`, you should specify `downsample_key=myValue` in the query). When doing so, the aggregate will be downsampled using the chosen `endpoint` value as the `y` axis value, whereas its other `endpoints` will be disregarded when applying the algorithm. Please note that, no matter what `downsample_key` is used, a sample will be composed by the whole aggregation.
 
 If there is no way an interface can be downsampled (this is true, for example, if no `downsample_key` has been specified for `aggregations`, or for types such as `strings`), AppEngine API will return a `4xx` error. In general, downsampling is a powerful mechanism with a lot of limitations which really shines when plotting. Once again, this is a fundamental factor to consider when [designing your interfaces](029-interface_design_guide.html).
+
+## astartectl-specific features
+
+`astartectl` implements some convenience methods that make navigation easier. In particular, `astartectl` allows for any of the AppEngine API query parameters/mechanisms, but also implements automated pagination, snapshots and more.
+
+### Data Snapshot
+
+`astartectl` has a unique feature that allows to retrieve a "Data Snapshot" of a device, namely the last known value for every interface available in the Device's introspection. This is extremely useful to have an at-a-glance view of the Device status with regards to data. Simply invoke `astartectl appengine devices data-snapshot <device ID>`, or `astartectl appengine devices data-snapshot <device ID> <interface name>` to get a snapshot for a single interface.
+
+### Advanced querying
+
+`astartectl appengine devices get-samples` is `astartectl`'s frontend to advanced query. Refer to the command line documentation to learn about all available parameters, which match all of the parameters found in AppEngine API. The main difference is that, in case a query would break the boundaries of the page limit, `astartectl` will automatically paginate the request, and return all of the samples.
+
+### Exporting Devices Data with astartectl
+
+The previous feature makes `astartectl` extremely useful when it comes to export or dump data. Moreover, `get-samples` features a `--output` option, which allows to print the results in different formats, such as `json` or `CSV`. This way, exporting values becomes extremely easy, as `get-samples` can easily tap into an Interface's entire data set and print it into a CSV file.

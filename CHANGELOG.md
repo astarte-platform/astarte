@@ -16,7 +16,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 
-## [0.11.0-rc.1] - Unreleased
+## [0.11.0] - 2020-04-13
+### Fixed
+- [appengine_api] Handle server owned datetime values correctly
+- [housekeeping] Fix a bug preventing the public key of newly created realms to be correctly
+  inserted to the realm (see #294).
+- [data_updater_plant] Fix a bug that was preventing volatile triggers (specifically, the ones
+  targeting the `*` interface) to be loaded immediately.
+
+## [0.11.0-rc.1] - 2020-03-26
 ### Fixed
 - [data_updater_plant] Discard unexpected object aggregated values on individual interfaces.
 - [trigger_engine] 500 was not included in the range of HTTP server errors, causing a crash.

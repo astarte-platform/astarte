@@ -31,7 +31,7 @@ The ability to request Credentials of a Device can be inhibited with [AppEngine
 API](/api/#/device/updateDeviceStatus) or using
 [`astartectl`](https://github.com/astarte-platform/astartectl) with this command:
 
-```
+```bash
 astartectl appengine devices credentials inhibit <device_id_or_alias> true \
   -k <appengine-key> -r <realm-name> -u <astarte-api-url>
 ```
@@ -89,9 +89,9 @@ of updating a Device's Introspection if its interfaces change.
 When a Device connects successfully, it **must** then subscribe to its `server` Interfaces. The SDK
 takes care of this detail and exposes a higher level interface. For example, using the Qt5 SDK:
 
-```
+```c++
 {
-	m_sdk = new AstarteDeviceSDK(QStringLiteral("/path/to/transport-astarte.conf"), QStringLiteral("/path/to/interfaces"), deviceId);
+    m_sdk = new AstarteDeviceSDK(QStringLiteral("/path/to/transport-astarte.conf"), QStringLiteral("/path/to/interfaces"), deviceId);
     connect(m_sdk->init(), &Hemera::Operation::finished, this, &AstarteStreamQt5Test::checkInitResult);
     connect(m_sdk, &AstarteDeviceSDK::dataReceived, this, &AstarteStreamQt5Test::handleIncomingData);
 }
@@ -105,7 +105,7 @@ void AstarteStreamQt5Test::handleIncomingData(const QByteArray &interface, const
 Applications can simply connect to the `handleIncomingData` signal and have data correctly formatted
 and delivered as it runs through the transport. On the other hand, for sending data:
 
-```
+```c++
 m_sdk->sendData(interface, path, value);
 ```
 

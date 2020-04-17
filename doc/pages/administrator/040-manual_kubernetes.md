@@ -14,8 +14,8 @@ First of all, you will need to clone the Operator repository, as this is where s
 for the Operator are. Ensure you're cloning the right branch for the Operator Version you'd like to install.
 For example, if you want to Deploy an Operator in the 0.11 series, you would
 
-```
-git clone -b release-0.11 https://github.com/astarte-platform/astarte-kubernetes-operator.git
+```bash
+git clone -b v0.11.0 https://github.com/astarte-platform/astarte-kubernetes-operator.git
 ```
 
 ## Install RBACs and CRDs
@@ -24,21 +24,21 @@ The Operator requires a number of RBAC roles to run, and will also require Astar
 
 Navigate into the `deploy` directory of your local clone, and install the service account:
 
-```
+```bash
 kubectl apply -f service_account.yaml
 kubectl get ServiceAccount -n kube-system astarte-operator
 ```
 
 Then, install the Cluster Role
 
-```
+```bash
 kubectl apply -f role.yaml
 kubectl get ClusterRole astarte-operator
 ```
 
 Last but not least, install the Cluster Role Binding:
 
-```
+```bash
 kubectl apply -f role_binding.yaml
 kubectl get ClusterRoleBinding astarte-operator
 ```
@@ -46,7 +46,7 @@ kubectl get ClusterRoleBinding astarte-operator
 Once done, navigate into the `deploy/crds` directory of your local clone, and install all Astarte Custom
 Resource Definitions:
 
-```
+```bash
 kubectl create -f api.astarte-platform.org_astartes_crd.yaml
 kubectl create -f api.astarte-platform.org_astartevoyageringresses_crd.yaml
 kubectl get CustomResourceDefinition
@@ -84,7 +84,7 @@ of the `operator-sdk` module in the Operator's `go.mod` file.
 
 Navigate to the root directory of your clone, and run
 
-```
+```bash
 operator-sdk run --local
 ```
 

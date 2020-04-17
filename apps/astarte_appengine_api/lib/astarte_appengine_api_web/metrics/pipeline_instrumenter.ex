@@ -19,7 +19,10 @@
 defmodule Astarte.AppEngine.APIWeb.Metrics.PipelineInstrumenter do
   use Prometheus.PlugPipelineInstrumenter
 
-  def label_value(:request_path, conn) do
-    conn.request_path
-  end
+  # TODO enable label value. Currently it was suppressed as to limit the number
+  # of the different metrics which are generated.
+  # see issue #339
+  # def label_value(:request_path, conn) do
+  #   conn.request_path
+  # end
 end

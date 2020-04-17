@@ -90,18 +90,18 @@ defmodule Astarte.Housekeeping.Queries do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- validate_realm_name(realm_name),
            :ok <- create_realm_keyspace(conn, realm_name, replication_map_str),
-           :ok <- use_realm(conn, realm_name),
-           :ok <- create_realm_kv_store(conn),
-           :ok <- create_names_table(conn),
-           :ok <- create_devices_table(conn),
-           :ok <- create_endpoints_table(conn),
-           :ok <- create_interfaces_table(conn),
-           :ok <- create_individual_properties_table(conn),
-           :ok <- create_simple_triggers_table(conn),
-           :ok <- create_grouped_devices_table(conn),
-           :ok <- insert_realm_public_key(conn, public_key_pem),
-           :ok <- insert_realm_astarte_schema_version(conn),
-           :ok <- insert_realm(conn, realm_name) do
+           {:ok, realm_conn} <- build_realm_conn(conn, realm_name),
+           :ok <- create_realm_kv_store(realm_conn),
+           :ok <- create_names_table(realm_conn),
+           :ok <- create_devices_table(realm_conn),
+           :ok <- create_endpoints_table(realm_conn),
+           :ok <- create_interfaces_table(realm_conn),
+           :ok <- create_individual_properties_table(realm_conn),
+           :ok <- create_simple_triggers_table(realm_conn),
+           :ok <- create_grouped_devices_table(realm_conn),
+           :ok <- insert_realm_public_key(realm_conn, public_key_pem),
+           :ok <- insert_realm_astarte_schema_version(realm_conn),
+           :ok <- insert_realm(realm_conn) do
         :ok
       else
         {:error, reason} ->
@@ -116,27 +116,15 @@ defmodule Astarte.Housekeeping.Queries do
     end)
   end
 
-  defp use_realm(conn, realm_name) do
-    with :ok <- validate_realm_name(realm_name),
-         {:ok, %Xandra.SetKeyspace{}} <- Xandra.execute(conn, "USE #{realm_name}") do
-      :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+  defp build_realm_conn(conn, realm_name) do
+    case validate_realm_name(realm_name) do
+      :ok ->
+        {:ok, {conn, realm_name}}
 
       {:error, reason} ->
         _ =
-          Logger.warn("Cannot USE realm: #{inspect(reason)}.",
-            tag: "use_realm_error",
+          Logger.warn("Cannot build realm conn: #{inspect(reason)}.",
+            tag: "build_realm_conn_error",
             realm: realm_name
           )
 
@@ -169,9 +157,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_realm_kv_store(realm_conn) do
+  defp create_realm_kv_store({conn, realm}) do
     query = """
-    CREATE TABLE kv_store (
+    CREATE TABLE #{realm}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -181,7 +169,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -198,9 +186,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_names_table(realm_conn) do
+  defp create_names_table({conn, realm}) do
     query = """
-    CREATE TABLE names (
+    CREATE TABLE #{realm}.names (
       object_name varchar,
       object_type int,
       object_uuid uuid,
@@ -209,7 +197,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -226,9 +214,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_devices_table(realm_conn) do
+  defp create_devices_table({conn, realm}) do
     query = """
-    CREATE TABLE devices (
+    CREATE TABLE #{realm}.devices (
       device_id uuid,
       aliases map<ascii, varchar>,
       introspection map<ascii, int>,
@@ -260,7 +248,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -277,9 +265,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_endpoints_table(realm_conn) do
+  defp create_endpoints_table({conn, realm}) do
     query = """
-    CREATE TABLE endpoints (
+    CREATE TABLE #{realm}.endpoints (
       interface_id uuid,
       endpoint_id uuid,
       interface_name ascii,
@@ -303,7 +291,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -320,9 +308,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_interfaces_table(realm_conn) do
+  defp create_interfaces_table({conn, realm}) do
     query = """
-    CREATE TABLE interfaces (
+    CREATE TABLE #{realm}.interfaces (
       name ascii,
       major_version int,
       minor_version int,
@@ -342,7 +330,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -359,9 +347,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_individual_properties_table(realm_conn) do
+  defp create_individual_properties_table({conn, realm}) do
     query = """
-    CREATE TABLE individual_properties (
+    CREATE TABLE #{realm}.individual_properties (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
@@ -389,7 +377,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -406,9 +394,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_simple_triggers_table(realm_conn) do
+  defp create_simple_triggers_table({conn, realm}) do
     query = """
-    CREATE TABLE simple_triggers (
+    CREATE TABLE #{realm}.simple_triggers (
       object_id uuid,
       object_type int,
       parent_trigger_id uuid,
@@ -421,7 +409,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -438,9 +426,9 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp create_grouped_devices_table(realm_conn) do
+  defp create_grouped_devices_table({conn, realm}) do
     query = """
-    CREATE TABLE grouped_devices (
+    CREATE TABLE #{realm}.grouped_devices (
       group_name varchar,
       insertion_uuid timeuuid,
       device_id uuid,
@@ -450,7 +438,7 @@ defmodule Astarte.Housekeeping.Queries do
     """
 
     with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -467,17 +455,17 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp insert_realm_public_key(realm_conn, public_key_pem) do
+  defp insert_realm_public_key({conn, realm}, public_key_pem) do
     query = """
-    INSERT INTO kv_store (group, key, value)
+    INSERT INTO #{realm}.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:public_key_pem));
     """
 
     params = %{"public_key_pem" => public_key_pem}
 
-    with {:ok, prepared} <- Xandra.prepare(realm_conn, query),
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
          {:ok, %Xandra.Void{}} <-
-           Xandra.execute(realm_conn, prepared, params, consistency: :each_quorum) do
+           Xandra.execute(conn, prepared, params, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -494,15 +482,15 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp insert_realm_astarte_schema_version(realm_conn) do
+  defp insert_realm_astarte_schema_version({conn, realm}) do
     query = """
-    INSERT INTO kv_store
+    INSERT INTO #{realm}.kv_store
     (group, key, value)
     VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_realm_schema_version()}));
     """
 
     with {:ok, %Xandra.Void{}} <-
-           Xandra.execute(realm_conn, query, %{}, consistency: :each_quorum) do
+           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -519,7 +507,7 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp insert_realm(conn, realm_name) do
+  defp insert_realm({conn, realm_name}) do
     query = """
     INSERT INTO astarte.realms (realm_name)
     VALUES (:realm_name);

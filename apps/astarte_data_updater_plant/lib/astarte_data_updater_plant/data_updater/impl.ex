@@ -1187,7 +1187,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     else
       case trigger do
         {:data_trigger, %ProtobufDataTrigger{interface_name: "*"}} ->
-          {:ok, new_state}
+          {:ok, load_trigger(new_state, trigger, target)}
 
         {:data_trigger,
          %ProtobufDataTrigger{

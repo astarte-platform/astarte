@@ -9,15 +9,26 @@ Given this kind of flexibility, triggers are the most powerful way to push data 
 service, potentially without any additional customization.
 
 Triggers can be managed from [Realm Management
-API](api/index.html?urls.primaryName=Realm%20Management%20API#/trigger).
+API](api/index.html?urls.primaryName=Realm%20Management%20API#/trigger), `astartectl` with the
+`astartectl realm-management triggers` subcommand, or Astarte Dashboard in the `Triggers` page.
 
-## Format
+## Building Triggers
+
+Triggers can be either built manually or using Astarte Dashboard's Trigger Editor. Trigger Editor
+dynamically loads installed Interfaces in the Realm and eases trigger creation by providing not
+only linting and validation, but also dynamic resolution of Interface names.
+
+Trigger Editor works in a very similar fashion to Interfaces Editor, and shares the same User
+Interface.
+
+### Format
 
 A trigger is described using a JSON document. Each trigger is defined by two main parts: `condition`
 and `action`.
 
 This is a JSON representation of an example trigger:
-``` json
+
+```json
 {
   "name": "example_trigger",
   "action": {
@@ -90,6 +101,7 @@ This is the generic representation of a Data Trigger:
 #### Parameters
 
 `device_trigger_type` can be one of the following:
+
 - `device_connected`: triggered when a device connects to its transport.
 - `device_disconnected`: triggered when a device disconnects from its transport.
 
@@ -116,9 +128,10 @@ This is the generic representation of a Device Trigger:
 
 Data triggers are installed for all devices in a Realm.
 
-#### Parameters
+#### Data Triggers Parameters
 
 `data_trigger_type` can be one of the following:
+
 - `incoming_data`: verifies the condition whenever new data arrives.
 - `value_stored`: verifies the condition whenever new data arrives, after it is saved to the
   database.
@@ -166,6 +179,7 @@ to produce `text/plain` payloads, not valid JSON.
 ### Default action
 
 This is the configuration object representing the default action:
+
 ```json
 {
   "http_post_url": "<http_post_url>"
@@ -175,6 +189,7 @@ This is the configuration object representing the default action:
 The default action sends an HTTP `POST` request to the specified `http_post_url`.
 
 The payload of the request is JSON document with this format:
+
 ```json
 {
   "timestamp": "<timestamp>",
@@ -196,7 +211,8 @@ Additionally, the realm that originated the trigger is available in the request 
 
 #### Event objects
 
-- `DeviceConnectedEvent`
+##### DeviceConnectedEvent
+
 ```json
 {
   "type": "device_connected",
@@ -206,14 +222,16 @@ Additionally, the realm that originated the trigger is available in the request 
 
 `device_ip_address` is the IP address of the device.
 
-- `DeviceDisconnectedEvent`
+##### DeviceDisconnectedEvent
+
 ```json
 {
   "type": "device_disconnected"
 }
 ```
 
-- `IncomingDataEvent`
+##### IncomingDataEvent
+
 ```json
 {
   "type": "incoming_data",
@@ -230,7 +248,8 @@ Additionally, the realm that originated the trigger is available in the request 
 `value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-- `ValueStoredEvent`
+##### ValueStoredEvent
+
 ```json
 {
   "type": "value_stored",
@@ -247,7 +266,8 @@ Additionally, the realm that originated the trigger is available in the request 
 `value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-- `ValueChangeEvent`
+##### ValueChangeEvent
+
 ```json
 {
   "type": "value_change",
@@ -268,7 +288,8 @@ Additionally, the realm that originated the trigger is available in the request 
 `new_value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-- `ValueChangeAppliedEvent`
+##### ValueChangeAppliedEvent
+
 ```json
 {
   "type": "value_change_applied",
@@ -289,7 +310,8 @@ Additionally, the realm that originated the trigger is available in the request 
 `new_value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-- `PathCreatedEvent`
+##### PathCreatedEvent
+
 ```json
 {
   "type": "path_created",
@@ -306,7 +328,8 @@ Additionally, the realm that originated the trigger is available in the request 
 `value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-- `PathRemovedEvent`
+##### PathRemovedEvent
+
 ```json
 {
   "type": "path_removed",
@@ -322,6 +345,7 @@ Additionally, the realm that originated the trigger is available in the request 
 ### Mustache action
 
 This is the configuration object representing a Mustache action:
+
 ```json
 {
   "http_post_url": "<http_post_url>",
@@ -336,6 +360,7 @@ template contains a key inside a double curly bracket (like so: `{{ key }}`), it
 with the actual value of that key in the event.
 
 The basic keys that can be use to populate the template are:
+
 - `{{ realm }}`: the realm the trigger belongs to.
 - `{{ device_id }}`: the device that originated the trigger.
 - `{{ event_type }}`: the type of the received event.
@@ -348,6 +373,7 @@ The realm is also sent in the `Astarte-Realm` header.
 #### Example
 
 This is an example of a trigger that uses Mustache action.
+
 ```json
 {
   "name": "example_mustache_trigger",
@@ -368,7 +394,8 @@ This is an example of a trigger that uses Mustache action.
 
 When a device is connected, the following request will be received by
 `https://example.com/my_mustache_hook`:
-```
+
+```http
 POST /my_mustache_hook HTTP/1.1
 Astarte-Realm: test
 Content-Length: 63
