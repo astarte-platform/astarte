@@ -81,15 +81,15 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp deps do
     [
-      {:phoenix, "~> 1.4.0"},
+      {:phoenix, "~> 1.4.16"},
       {:plug_cowboy, "~> 2.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:gettext, "~> 0.11"},
       {:phoenix_ecto, "~> 4.0"},
-      {:cors_plug, "~> 1.5"},
-      {:jason, "~> 1.0"},
-      {:guardian, "~> 1.2"},
-      {:excoveralls, "~> 0.11", only: :test},
+      {:cors_plug, "~> 2.0"},
+      {:jason, "~> 1.2"},
+      {:guardian, "~> 2.1"},
+      {:excoveralls, "~> 0.12", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:prometheus_process_collector, "~> 1.4"},

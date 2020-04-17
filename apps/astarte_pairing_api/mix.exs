@@ -80,16 +80,16 @@ defmodule Astarte.Pairing.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.4"},
+      {:phoenix, "~> 1.4.16"},
       {:phoenix_pubsub, "~> 1.1"},
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 2.0"},
       {:phoenix_ecto, "~> 4.0"},
-      {:jason, "~> 1.0"},
-      {:guardian, "~> 1.2"},
-      {:remote_ip, "~> 0.1"},
-      {:excoveralls, "~> 0.11", only: :test},
-      {:mox, "~> 0.3", only: :test},
+      {:jason, "~> 1.2"},
+      {:guardian, "~> 2.1"},
+      {:remote_ip, "~> 0.2"},
+      {:excoveralls, "~> 0.12", only: :test},
+      {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:prometheus_process_collector, "~> 1.4"},
@@ -97,7 +97,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:prometheus_plugs, "~> 1.1"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
       {:skogsra, "~> 2.2"},
-      {:cors_plug, "~> 1.5"}
+      {:cors_plug, "~> 2.0"}
     ]
   end
 end

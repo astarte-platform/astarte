@@ -71,7 +71,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp deps do
     [
-      {:excoveralls, "~> 0.11", only: :test},
+      {:excoveralls, "~> 0.12", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},

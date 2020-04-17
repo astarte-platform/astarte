@@ -5,7 +5,7 @@ defmodule Astarte.Import.MixProject do
     [
       app: :astarte_import,
       version: "1.0.0-dev",
-      elixir: "~> 1.8",
+      elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -21,7 +21,7 @@ defmodule Astarte.Import.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:xandra, "~> 0.10"},
+      {:xandra, "~> 0.13"},
       {:logfmt, "~> 3.3"},
       {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_data_access, github: "astarte-platform/astarte_data_access"},

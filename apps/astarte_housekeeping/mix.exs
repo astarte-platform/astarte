@@ -80,7 +80,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   defp deps do
     [
       {:xandra, "~> 0.13"},
-      {:excoveralls, "~> 0.10", only: :test},
+      {:excoveralls, "~> 0.12", only: :test},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
       {:plug_cowboy, "~> 2.1"},
       {:prometheus_process_collector, "~> 1.4"},
