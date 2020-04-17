@@ -30,7 +30,7 @@ astartectl 0.11.x is recommended:
 
 ```sh
 $ astartectl version
-astartectl 0.11.0
+astartectl 1.0.0-dev
 ```
 
 This procedure has been tested on several systems, and is validated and maintained against
@@ -162,7 +162,7 @@ $ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-ra
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
 
-Refer to `stream-qt5-test` [README](https://github.com/astarte-platform/stream-qt5-test/blob/v0.11.0/README.md) for more details on which variables can be passed to the container.
+Refer to `stream-qt5-test` [README](https://github.com/astarte-platform/stream-qt5-test/blob/master/README.md) for more details on which variables can be passed to the container.
 
 Also, please note that the `--net="host"` parameter is required to make `localhost` work. If this is not desirable, you can change `PAIRING_HOST` to an host reachable from within the container network. Obviously, that parameter isn't required if you're running the container on a different machine and `PAIRING_HOST` is pointing to a different URL.
 
@@ -191,7 +191,7 @@ $ qmake .
 $ make
 ```
 
-You can now run `stream-qt5-test` from your last build directory. Refer to its [README](https://github.com/astarte-platform/stream-qt5-test/blob/v0.11.0/README.md) (or to its sources) to learn about how to use it and which options are available.
+You can now run `stream-qt5-test` from your last build directory. Refer to its [README](https://github.com/astarte-platform/stream-qt5-test/blob/master/README.md) (or to its sources) to learn about how to use it and which options are available.
 
 ## Grab your tea
 
