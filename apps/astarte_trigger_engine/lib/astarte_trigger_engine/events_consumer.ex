@@ -180,7 +180,9 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   defp execute_action(payload, headers, action) do
     with {:ok, method, url} <- fetch_method_and_url(action),
-         {:ok, response} <- HTTPoison.request(method, url, payload, headers) do
+         {:ok, custom_headers_map} <- Map.get("http_custom_headers", %{}),
+         custom_headers = Map.to_list(custom_headers_map),
+         {:ok, response} <- HTTPoison.request(method, url, payload, custom_headers ++ headers) do
       %HTTPoison.Response{status_code: status_code} = response
 
       case status_code do
