@@ -179,8 +179,8 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp execute_action(payload, headers, action) do
-    with {:ok, url} <- Map.fetch(action, "http_post_url"),
-         {:ok, response} <- HTTPoison.post(url, payload, headers) do
+    with {:ok, method, url} <- fetch_method_and_url(action),
+         {:ok, response} <- HTTPoison.request(method, url, payload, headers) do
       %HTTPoison.Response{status_code: status_code} = response
 
       case status_code do
@@ -219,6 +219,33 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
         error
+    end
+  end
+
+  defp fetch_method_and_url(%{"http_post_url" => url} = _action) do
+    {:ok, :post, url}
+  end
+
+  defp fetch_method_and_url(%{"http_url" => url, "http_method" => method_string} = _action) do
+    with {:ok, method} <- method_string_to_atom(method_string) do
+      {:ok, method, url}
+    end
+  end
+
+  defp fetch_method_and_url(_action) do
+    {:error, :invalid_http_action}
+  end
+
+  defp method_string_to_atom(method) do
+    case method do
+      "delete" -> {:ok, :delete}
+      "get" -> {:ok, :get}
+      "head" -> {:ok, :head}
+      "options" -> {:ok, :options}
+      "patch" -> {:ok, :patch}
+      "post" -> {:ok, :post}
+      "put" -> {:ok, :put}
+      _ -> {:error, :unsupported_method}
     end
   end
 
