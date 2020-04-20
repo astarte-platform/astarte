@@ -24,6 +24,12 @@ defmodule Astarte.RealmManagement.Config do
   use Skogsra
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 
+  @envdoc "The port where Realm Management metrics will be exposed."
+  app_env :port, :astarte_realm_management, :port,
+    os_env: "REALM_MANAGEMENT_PORT",
+    type: :integer,
+    default: 4006
+
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """
