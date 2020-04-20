@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Make sure devices are eventually marked as disconnected even if they disconnect while VerneMQ is
+  temporarily down (see [#305](https://github.com/astarte-platform/astarte/issues/305)).
+
 ### Changed
 - [appengine_api] Always return an object when GETting on object aggregated interfaces.
 - Replace Conform and Distillery with Elixir native releases.
@@ -16,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   (see [#128](https://github.com/astarte-platform/astarte/issues/128)).
 - [trigger_egnine] Add optional support to custom http headers, such as
   `Authorization: Bearer ...` (see [#129](https://github.com/astarte-platform/astarte/issues/129)).
+- [data_updater_plant] Handle device hearbeat sent by VerneMQ plugin.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.

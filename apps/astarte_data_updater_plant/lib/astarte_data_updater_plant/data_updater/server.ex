@@ -48,6 +48,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     end
   end
 
+  def handle_cast({:handle_heartbeat, message_id, timestamp}, state) do
+    if MessageTracker.can_process_message(state.message_tracker, message_id) do
+      new_state = Impl.handle_heartbeat(state, message_id, timestamp)
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
+  end
+
   def handle_cast({:handle_data, interface, path, payload, message_id, timestamp}, state) do
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
       new_state = Impl.handle_data(state, interface, path, payload, message_id, timestamp)

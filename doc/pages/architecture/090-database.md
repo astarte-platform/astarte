@@ -287,3 +287,11 @@ ADD (
   database_retention_policy int
 );
 ```
+
+### From v0.11 to 1.0
+
+#### Realm Keyspace v0.11 Changes
+
+* The `connected` field of the `devices` table is now saved with a TTL, so it automatically expires
+  if it doesn't gets refreshed by the hearbeat sent by the broker. This behaviour was added to
+  avoid stale connected devices if they disconnect while the broker is down.
