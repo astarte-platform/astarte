@@ -23,12 +23,6 @@ defmodule Astarte.Pairing.API.Config do
 
   use Skogsra
 
-  @envdoc "The port used from the Phoenix server."
-  app_env :port, :astarte_pairing_api, :port,
-    os_env: "PAIRING_API_PORT",
-    type: :integer,
-    default: 4003
-
   @envdoc """
   Disables JWT authentication for agent's endpoints. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
   """

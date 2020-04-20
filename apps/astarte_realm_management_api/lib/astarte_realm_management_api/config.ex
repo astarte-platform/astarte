@@ -23,12 +23,6 @@ defmodule Astarte.RealmManagement.API.Config do
 
   use Skogsra
 
-  @envdoc "The port used by the Phoenix server."
-  app_env :port, :astarte_realm_management_api, :port,
-    os_env: "REALM_MANAGEMENT_API_PORT",
-    type: :integer,
-    default: 4000
-
   @envdoc """
   "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
   """

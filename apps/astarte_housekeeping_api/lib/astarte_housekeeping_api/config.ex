@@ -21,12 +21,6 @@ defmodule Astarte.Housekeeping.API.Config do
 
   use Skogsra
 
-  @envdoc "The port used from the Phoenix server."
-  app_env :port, :astarte_housekeeping_api, :port,
-    os_env: "HOUSEKEEPING_API_PORT",
-    type: :integer,
-    default: 4001
-
   @envdoc "The bind address for the Phoenix server."
   app_env :bind_address, :astarte_housekeeping_api, :bind_address,
     os_env: "HOUSEKEEPING_API_BIND_ADDRESS",

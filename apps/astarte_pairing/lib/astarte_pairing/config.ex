@@ -26,6 +26,12 @@ defmodule Astarte.Pairing.Config do
   alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 
+  @envdoc "The port where Pairing metrics will be exposed."
+  app_env :port, :astarte_pairing, :port,
+    os_env: "PAIRING_PORT",
+    type: :integer,
+    default: 4005
+
   @envdoc "The external broker URL which should be used by devices."
   app_env :broker_url, :astarte_pairing, :broker_url,
     os_env: "PAIRING_BROKER_URL",

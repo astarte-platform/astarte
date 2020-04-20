@@ -64,15 +64,4 @@ defmodule Astarte.Housekeeping.APIWeb.Endpoint do
 
   plug CORSPlug
   plug Astarte.Housekeeping.APIWeb.Router
-
-  @doc """
-  Dynamically loads configuration from the system environment
-  on startup.
-
-  It receives the endpoint configuration from the config files
-  and must return the updated configuration.
-  """
-  def load_from_system_env(config) do
-    {:ok, Keyword.put(config, :http, [:inet6, port: Config.port!()])}
-  end
 end
