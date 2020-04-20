@@ -75,7 +75,7 @@ defmodule Astarte.TriggerEngine.Config do
 
   @envdoc "The port where Trigger Engine metrics will be exposed."
   app_env :port, :astarte_trigger_engine, :port,
-    os_env: "PORT",
+    os_env: "TRIGGER_ENGINE_PORT",
     type: :integer,
     default: 4007
 
