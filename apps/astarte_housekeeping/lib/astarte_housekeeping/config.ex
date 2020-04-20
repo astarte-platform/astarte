@@ -31,7 +31,7 @@ defmodule Astarte.Housekeeping.Config do
 
   @envdoc "The port where the housekeeping metrics endpoint will be exposed."
   app_env :port, :astarte_housekeeping, :port,
-    os_env: "PORT",
+    os_env: "HOUSEKEEPING_PORT",
     type: :integer,
     default: 4008
 
