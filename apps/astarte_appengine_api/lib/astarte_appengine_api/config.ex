@@ -33,12 +33,6 @@ defmodule Astarte.AppEngine.API.Config do
     type: NonNegativeInteger,
     default: 10000
 
-  @envdoc "If true, HTTP compression will be enabled."
-  app_env :enable_compression, :astarte_appengine_api, :enable_compression,
-    os_env: "APPENGINE_API_ENABLE_COMPRESSION",
-    type: :boolean,
-    default: false
-
   @envdoc "The host for the AMQP consumer connection."
   app_env :rooms_amqp_client_host, :astarte_appengine_api, :rooms_amqp_client_host,
     os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_HOST",
