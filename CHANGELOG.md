@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - [appengine_api] Add metadata to device
+- [trigger_engine] Allow configuring preferred http method (such as `PUT` or `GET`)
+  (see [#128](https://github.com/astarte-platform/astarte/issues/128)).
+- [trigger_egnine] Add optional support to custom http headers, such as
+  `Authorization: Bearer ...` (see [#129](https://github.com/astarte-platform/astarte/issues/129)).
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
