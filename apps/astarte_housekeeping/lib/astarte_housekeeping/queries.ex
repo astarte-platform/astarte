@@ -139,7 +139,7 @@ defmodule Astarte.Housekeeping.Queries do
     AND durable_writes = true;
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -167,7 +167,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -194,7 +194,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -243,7 +243,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -285,7 +285,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -323,7 +323,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -369,7 +369,7 @@ defmodule Astarte.Housekeeping.Queries do
     )
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -400,7 +400,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -428,7 +428,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- execute_schema_change(conn, query) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -1074,24 +1074,6 @@ defmodule Astarte.Housekeeping.Queries do
           )
 
         {:error, :database_connection_error}
-    end
-  end
-
-  defp execute_schema_change(conn, query) do
-    result =
-      CSystem.run_with_schema_agreement(conn, fn ->
-        Xandra.execute(conn, query, %{}, consistency: :each_quorum)
-      end)
-
-    case result do
-      {:error, :timeout} ->
-        Xandra.Error.new(:agreement_timeout, "Schema agreement wait timeout.")
-
-      {:error, :no_schema_change} ->
-        Xandra.Error.new(:no_schema_change, "Statement did not change the schema_version.")
-
-      any ->
-        any
     end
   end
 end
