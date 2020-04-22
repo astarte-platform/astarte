@@ -88,22 +88,4 @@ defmodule CSystem do
       {:ok, schema_version}
     end
   end
-
-  def execute_schema_change(conn, query) do
-    result =
-      CSystem.run_with_schema_agreement(conn, fn ->
-        Xandra.execute(conn, query, %{}, consistency: :each_quorum, timeout: 60_000)
-      end)
-
-    case result do
-      {:error, :timeout} ->
-        Xandra.Error.new(:agreement_timeout, "Schema agreement wait timeout.")
-
-      {:error, :no_schema_change} ->
-        Xandra.Error.new(:no_schema_change, "Statement did not change the schema_version.")
-
-      any ->
-        any
-    end
-  end
 end
