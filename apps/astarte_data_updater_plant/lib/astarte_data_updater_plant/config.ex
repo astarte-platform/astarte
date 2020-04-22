@@ -24,12 +24,19 @@ defmodule Astarte.DataUpdaterPlant.Config do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   use Skogsra
 
+  @type ssl_option ::
+          {:cacertfile, String.t()}
+          | {:verify, :verify_peer}
+          | {:server_name_indication, charlist() | :disable}
+  @type ssl_options :: :none | [ssl_option]
+
   @type amqp_options ::
           {:username, String.t()}
           | {:password, String.t()}
           | {:virtual_host, String.t()}
           | {:host, String.t()}
           | {:port, integer()}
+          | {:ssl_options, ssl_options}
 
   @envdoc "The host for the AMQP consumer connection."
   app_env :amqp_consumer_host, :astarte_data_updater_plant, :amqp_consumer_host,
@@ -60,6 +67,34 @@ defmodule Astarte.DataUpdaterPlant.Config do
     os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_PORT",
     type: :integer,
     default: 5672
+
+  @envdoc "Enable SSL for the AMQP consumer connection. If not specified, SSL is disabled."
+  app_env :amqp_consumer_ssl_enabled, :astarte_data_updater_plant, :amqp_consumer_ssl_enabled,
+    os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_SSL_ENABLED",
+    type: :boolean,
+    default: false
+
+  @envdoc """
+  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP consumer connection. When not specified, the bundled cURL certificate bundle will be used.
+  """
+  app_env :amqp_consumer_ssl_ca_file, :astarte_data_updater_plant, :amqp_consumer_ssl_ca_file,
+    os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_SSL_CA_FILE",
+    type: :binary
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :amqp_consumer_ssl_disable_sni,
+          :astarte_data_updater_plant,
+          :amqp_consumer_ssl_disable_sni,
+          os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :amqp_consumer_ssl_custom_sni,
+          :astarte_data_updater_plant,
+          :amqp_consumer_ssl_custom_sni,
+          os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_SSL_CUSTOM_SNI",
+          type: :binary
 
   @envdoc """
   The host for the AMQP producer connection. If no AMQP producer options are set, the AMQP consumer options will be used.
@@ -101,6 +136,33 @@ defmodule Astarte.DataUpdaterPlant.Config do
     os_env: "DATA_UPDATER_PLANT_AMQP_EVENTS_EXCHANGE_NAME",
     type: :binary,
     default: "astarte_events"
+
+  @envdoc "Enable SSL for the AMQP producer connection. If not specified, the consumer's setting will be used."
+  app_env :amqp_producer_ssl_enabled, :astarte_data_updater_plant, :amqp_producer_ssl_enabled,
+    os_env: "DATA_UPDATER_PLANT_AMQP_PRODUCER_SSL_ENABLED",
+    type: :boolean
+
+  @envdoc """
+  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP producer connection. When not specified, either the consumer's ca_cert is used (if set), or the bundled cURL certificate bundle will be used.
+  """
+  app_env :amqp_producer_ssl_ca_file, :astarte_data_updater_plant, :amqp_producer_ssl_ca_file,
+    os_env: "DATA_UPDATER_PLANT_AMQP_PRODUCER_SSL_CA_FILE",
+    type: :binary
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :amqp_producer_ssl_disable_sni,
+          :astarte_data_updater_plant,
+          :amqp_producer_ssl_disable_sni,
+          os_env: "DATA_UPDATER_PLANT_AMQP_PRODUCER_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :amqp_producer_ssl_custom_sni,
+          :astarte_data_updater_plant,
+          :amqp_producer_ssl_custom_sni,
+          os_env: "DATA_UPDATER_PLANT_AMQP_PRODUCER_SSL_CUSTOM_SNI",
+          type: :binary
 
   @envdoc "The prefix used to contruct data queue names, together with queue indexes."
   app_env :data_queue_prefix, :astarte_data_updater_plant, :amqp_data_queue_prefix,
@@ -163,6 +225,33 @@ defmodule Astarte.DataUpdaterPlant.Config do
       virtual_host: amqp_consumer_virtual_host!(),
       port: amqp_consumer_port!()
     ]
+    |> populate_consumer_ssl_options()
+  end
+
+  defp populate_consumer_ssl_options(options) do
+    if amqp_consumer_ssl_enabled!() do
+      ssl_options = build_consumer_ssl_options()
+      Keyword.put(options, :ssl_options, ssl_options)
+    else
+      options
+    end
+  end
+
+  defp build_consumer_ssl_options() do
+    [
+      cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
+      verify: :verify_peer
+    ]
+    |> populate_consumer_sni()
+  end
+
+  defp populate_consumer_sni(ssl_options) do
+    if amqp_consumer_ssl_disable_sni!() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name = amqp_consumer_ssl_custom_sni!() || amqp_consumer_host!()
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
   end
 
   @doc """
@@ -223,6 +312,56 @@ defmodule Astarte.DataUpdaterPlant.Config do
       virtual_host: amqp_producer_virtual_host,
       port: amqp_producer_port
     ]
+    |> populate_producer_ssl_options()
+  end
+
+  def amqp_producer_ssl_enabled? do
+    case amqp_producer_ssl_enabled() do
+      {:ok, nil} ->
+        amqp_consumer_ssl_enabled!()
+
+      {:ok, ssl_enabled} ->
+        ssl_enabled
+    end
+  end
+
+  defp populate_producer_ssl_options(options) do
+    if amqp_producer_ssl_enabled?() do
+      ssl_options = build_producer_ssl_options()
+      Keyword.put(options, :ssl_options, ssl_options)
+    else
+      options
+    end
+  end
+
+  defp producer_ssl_sni_disabled? do
+    case amqp_producer_ssl_disable_sni() do
+      {:ok, nil} ->
+        amqp_consumer_ssl_disable_sni!()
+
+      {:ok, value} ->
+        value
+    end
+  end
+
+  defp build_producer_ssl_options do
+    [
+      cacertfile:
+        amqp_producer_ssl_ca_file!() || amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
+      verify: :verify_peer
+    ]
+    |> populate_producer_sni()
+  end
+
+  defp populate_producer_sni(ssl_options) do
+    if producer_ssl_sni_disabled?() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name =
+        amqp_producer_ssl_custom_sni!() || amqp_producer_host!() || amqp_consumer_host!()
+
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
   end
 
   def data_updater_deactivation_interval_ms! do
