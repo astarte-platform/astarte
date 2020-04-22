@@ -270,8 +270,14 @@ defmodule Astarte.RealmManagement.Queries do
 
     {:ok, _} =
       if create_table_statement != "" do
-        _ = Logger.debug("Creating new table.")
-        DatabaseQuery.call(client, create_table_statement)
+        _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
+
+        {:ok, _res} =
+          Xandra.Cluster.run(:xandra, fn conn ->
+            CSystem.run_with_schema_agreement(conn, fn ->
+              DatabaseQuery.call(client, create_table_statement)
+            end)
+          end)
       else
         {:ok, nil}
       end
