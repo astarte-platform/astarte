@@ -103,6 +103,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:plug_logger_with_meta, "~> 0.1"},
       {:telemetry, "~> 0.4"},
       {:skogsra, "~> 2.2"},
+      {:castore, "~> 0.1.0"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

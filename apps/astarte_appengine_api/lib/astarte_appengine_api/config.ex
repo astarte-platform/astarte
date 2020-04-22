@@ -91,6 +91,36 @@ defmodule Astarte.AppEngine.API.Config do
     type: :binary,
     default: "astarte_rooms_events"
 
+  @envdoc "Enable SSL. If not specified SSL is disabled."
+  app_env :rooms_amqp_client_ssl_enabled,
+          :astarte_appengine_api,
+          :rooms_amqp_client_ssl_enabled,
+          os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_ENABLED",
+          type: :boolean,
+          default: false
+
+  @envdoc "Specifies the certificates of the root Certificate Authorities to be trusted. When not specified, the bundled cURL certificate bundle will be used."
+  app_env :rooms_amqp_client_ssl_ca_file,
+          :astarte_appengine_api,
+          :rooms_amqp_client_ssl_ca_file,
+          os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_CA_FILE",
+          type: :binary
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :rooms_amqp_client_ssl_disable_sni,
+          :astarte_appengine_api,
+          :rooms_amqp_client_ssl_disable_sni,
+          os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :rooms_amqp_client_ssl_custom_sni,
+          :astarte_appengine_api,
+          :rooms_amqp_client_ssl_custom_sni,
+          os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_CUSTOM_SNI",
+          type: :binary
+
   @envdoc "Returns the RPC client, defaulting to AMQP.Client. Used for Mox during testing."
   app_env :rpc_client, :astarte_appengine_api, :rpc_client,
     os_env: "APPENGINE_API_RPC_CLIENT",
@@ -116,12 +146,20 @@ defmodule Astarte.AppEngine.API.Config do
   Returns the AMQP connection options for AMQP client consuming events for rooms.
   Defaults to []
   """
+  @type ssl_option ::
+          {:cacertfile, String.t()}
+          | {:verify, :verify_peer}
+          | {:server_name_indication, :disable | charlist()}
+  @type ssl_options :: :none | [ssl_option]
+
   @type options ::
           {:username, String.t()}
           | {:password, String.t()}
           | {:virtual_host, String.t()}
           | {:host, String.t()}
           | {:port, integer()}
+          | {:ssl_options, ssl_options}
+
   @spec rooms_amqp_options!() :: [options]
   def rooms_amqp_options! do
     [
@@ -131,6 +169,33 @@ defmodule Astarte.AppEngine.API.Config do
       virtual_host: rooms_amqp_client_virtual_host!(),
       port: rooms_amqp_client_port!()
     ]
+    |> populate_ssl_options()
+  end
+
+  defp populate_ssl_options(options) do
+    if rooms_amqp_client_ssl_enabled!() do
+      ssl_options = build_ssl_options()
+      Keyword.put(options, :ssl_options, ssl_options)
+    else
+      options
+    end
+  end
+
+  defp build_ssl_options() do
+    [
+      cacertfile: rooms_amqp_client_ssl_ca_file!() || CAStore.file_path(),
+      verify: :verify_peer
+    ]
+    |> populate_sni()
+  end
+
+  defp populate_sni(ssl_options) do
+    if rooms_amqp_client_ssl_disable_sni!() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name = rooms_amqp_client_ssl_custom_sni!() || rooms_amqp_client_host!()
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
   end
 
   @doc """
