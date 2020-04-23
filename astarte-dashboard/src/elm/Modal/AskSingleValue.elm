@@ -1,7 +1,7 @@
 {-
    This file is part of Astarte.
 
-   Copyright 2019 Ispirata Srl
+   Copyright 2020 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,15 @@
 -}
 
 
-module Modal.NewMetadata exposing (ExternalMsg(..), Model, Msg(..), init, update, view)
+module Modal.AskSingleValue exposing
+    ( ExternalMsg(..)
+    , Model
+    , Msg(..)
+    , ValueValidation(..)
+    , init
+    , update
+    , view
+    )
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
@@ -29,16 +37,20 @@ import Html.Attributes exposing (for, value)
 
 
 type alias Model =
-    { metadataField : String
-    , metadataValue : String
+    { title : String
+    , valueLabel : String
+    , value : String
+    , valueValidation : ValueValidation
     , visibility : Modal.Visibility
     }
 
 
-init : Bool -> Model
-init shown =
-    { metadataField = ""
-    , metadataValue = ""
+init : String -> String -> ValueValidation -> Bool -> Model
+init modalTitle valueLabel valueValidation shown =
+    { title = modalTitle
+    , valueLabel = valueLabel
+    , value = ""
+    , valueValidation = valueValidation
     , visibility =
         if shown then
             Modal.shown
@@ -48,6 +60,11 @@ init shown =
     }
 
 
+type ValueValidation
+    = AnyValue
+    | Trimmed
+
+
 type ModalResult
     = ModalCancel
     | ModalOk
@@ -55,13 +72,13 @@ type ModalResult
 
 type Msg
     = Close ModalResult
-    | UpdateMetadataField String
-    | UpdateMetadataValue String
+    | UpdateValue String
 
 
 type ExternalMsg
     = Noop
-    | SetMetadataField String String
+    | Cancel
+    | Confirm String
 
 
 update : Msg -> Model -> ( Model, ExternalMsg )
@@ -69,32 +86,47 @@ update message model =
     case message of
         Close ModalCancel ->
             ( { model | visibility = Modal.hidden }
-            , Noop
+            , Cancel
             )
 
         Close ModalOk ->
             ( { model | visibility = Modal.hidden }
-            , SetMetadataField model.metadataField model.metadataValue
+            , Confirm (adaptValue model.value model.valueValidation)
             )
 
-        UpdateMetadataField newTag ->
-            ( { model | metadataField = newTag }
+        UpdateValue newValue ->
+            ( { model | value = newValue }
             , Noop
             )
 
-        UpdateMetadataValue newValue ->
-            ( { model | metadataValue = newValue }
-            , Noop
-            )
+
+adaptValue : String -> ValueValidation -> String
+adaptValue value validation =
+    case validation of
+        AnyValue ->
+            value
+
+        Trimmed ->
+            String.trim value
+
+
+invalidForm : String -> ValueValidation -> Bool
+invalidForm value valueValidation =
+    case valueValidation of
+        AnyValue ->
+            False
+
+        Trimmed ->
+            String.isEmpty <| String.trim value
 
 
 view : Model -> Html Msg
 view model =
     Modal.config (Close ModalCancel)
         |> Modal.large
-        |> Modal.h5 [] [ Html.text "Set Metadata field" ]
+        |> Modal.h5 [] [ Html.text model.title ]
         |> Modal.body []
-            [ renderBody model.metadataField model.metadataValue ]
+            [ renderBody model.valueLabel model.value ]
         |> Modal.footer []
             [ Button.button
                 [ Button.secondary
@@ -103,7 +135,7 @@ view model =
                 [ Html.text "Cancel" ]
             , Button.button
                 [ Button.primary
-                , Button.disabled <| String.isEmpty model.metadataField || String.isEmpty model.metadataValue
+                , Button.disabled <| invalidForm model.value model.valueValidation
                 , Button.onClick <| Close ModalOk
                 ]
                 [ Html.text "Confirm" ]
@@ -112,28 +144,16 @@ view model =
 
 
 renderBody : String -> String -> Html Msg
-renderBody metadataField metadataValue =
+renderBody valueLabel value =
     Form.form []
         [ Form.row []
             [ Form.col [ Col.sm12 ]
                 [ Form.group []
-                    [ Form.label [ for "metadataField" ] [ Html.text "Field" ]
+                    [ Form.label [ for "value" ] [ Html.text valueLabel ]
                     , Input.text
-                        [ Input.id "metadataField"
-                        , Input.value metadataField
-                        , Input.onInput UpdateMetadataField
-                        ]
-                    ]
-                ]
-            ]
-        , Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "metadataValue" ] [ Html.text "Value" ]
-                    , Input.text
-                        [ Input.id "metadataValue"
-                        , Input.value metadataValue
-                        , Input.onInput UpdateMetadataValue
+                        [ Input.id "value"
+                        , Input.value value
+                        , Input.onInput UpdateValue
                         ]
                     ]
                 ]

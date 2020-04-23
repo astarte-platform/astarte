@@ -44,6 +44,8 @@ module AstarteApi exposing
     , pairingApiHealth
     , realmConfig
     , realmManagementApiHealth
+    , removeDeviceAlias
+    , removeDeviceMetadataField
     , setCredentialInhibited
     , updateDeviceAliases
     , updateDeviceMetadata
@@ -591,6 +593,23 @@ updateDeviceAliases apiConfig deviceId aliases resultMsg =
         }
 
 
+removeDeviceAlias : Config -> String -> String -> (Result Error () -> msg) -> Cmd msg
+removeDeviceAlias apiConfig deviceId aliasTag resultMsg =
+    let
+        emptyAlias =
+            Encode.object [ ( "aliases", Encode.object [ ( aliasTag, Encode.null ) ] ) ]
+    in
+    Http.request
+        { method = "PATCH"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
+        , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", emptyAlias ) ]
+        , expect = expectWhateverAstarteReply resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
 updateDeviceMetadata : Config -> String -> Dict String String -> (Result Error () -> msg) -> Cmd msg
 updateDeviceMetadata apiConfig deviceId metadata resultMsg =
     Http.request
@@ -598,6 +617,23 @@ updateDeviceMetadata apiConfig deviceId metadata resultMsg =
         , headers = buildHeaders apiConfig.token
         , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
         , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", Device.encodeMetadata metadata ) ]
+        , expect = expectWhateverAstarteReply resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+removeDeviceMetadataField : Config -> String -> String -> (Result Error () -> msg) -> Cmd msg
+removeDeviceMetadataField apiConfig deviceId metadataField resultMsg =
+    let
+        emptyMetadata =
+            Encode.object [ ( "metadata", Encode.object [ ( metadataField, Encode.null ) ] ) ]
+    in
+    Http.request
+        { method = "PATCH"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
+        , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", emptyMetadata ) ]
         , expect = expectWhateverAstarteReply resultMsg
         , timeout = Nothing
         , tracker = Nothing
