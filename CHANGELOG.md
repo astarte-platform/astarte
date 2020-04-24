@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Wait for schema_version agreement before applying any schema change (such as creating tables or a
   new realm). (see [#312](https://github.com/astarte-platform/astarte/issues/312).
+- [appengine_api] Fix the metric counting discarded channel events, it was not correctly increased.
 
 ## [0.11.0] - 2020-04-13
 ### Fixed
