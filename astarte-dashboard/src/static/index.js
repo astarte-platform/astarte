@@ -93,8 +93,6 @@ function openSocket(params) {
   }
 
   let socketUrl = `${protocol}://${params.appengineUrl}/socket`;
-  socketUrl = socketUrl.replace("/v1", ""); // TODO workaraound! remove when fixed in 0.11
-
   let socketParams = { params: { realm: params.realm, token: params.token } };
   phoenixSocket = new Socket(socketUrl, socketParams);
   phoenixSocket.onError(socketErrorHandler);
