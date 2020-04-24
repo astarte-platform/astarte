@@ -115,6 +115,6 @@ defmodule Astarte.AppEngine.APIWeb.Metrics.AppEngineInstrumenter do
         %{realm: realm} = _metadata,
         _config
       ) do
-    Gauge.inc(name: :discarded_events_total, labels: [realm])
+    Counter.inc(name: :discarded_events_total, labels: [realm])
   end
 end
