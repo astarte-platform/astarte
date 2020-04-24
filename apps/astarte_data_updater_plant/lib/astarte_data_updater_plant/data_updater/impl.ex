@@ -86,6 +86,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> Map.put(:datastream_maximum_storage_retention, ttl)
   end
 
+  def handle_deactivation(_state) do
+    Logger.info("Deactivated device process.", tag: "device_process_deactivated")
+
+    :ok
+  end
+
   def handle_connection(state, ip_address_string, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 

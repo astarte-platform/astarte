@@ -43,4 +43,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker do
   def discard(message_tracker, message_id) do
     GenServer.call(message_tracker, {:discard, message_id})
   end
+
+  def deactivate(message_tracker) do
+    GenServer.call(message_tracker, :deactivate, :infinity)
+  end
 end

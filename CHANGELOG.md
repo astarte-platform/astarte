@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [trigger_egnine] Add optional support to custom http headers, such as
   `Authorization: Bearer ...` (see [#129](https://github.com/astarte-platform/astarte/issues/129)).
 - [data_updater_plant] Handle device hearbeat sent by VerneMQ plugin.
+- [data_updater_plant] Deactivate Data Updaters when they don't receive messages for some time,
+  freeing up resources.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.

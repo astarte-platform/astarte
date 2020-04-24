@@ -225,6 +225,10 @@ defmodule Astarte.DataUpdaterPlant.Config do
     ]
   end
 
+  def data_updater_deactivation_interval_ms! do
+    device_heartbeat_interval_ms!() * 3
+  end
+
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """

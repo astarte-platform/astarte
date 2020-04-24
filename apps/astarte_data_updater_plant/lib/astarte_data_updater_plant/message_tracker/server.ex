@@ -87,6 +87,38 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:reply, :ok, {:accepting, new_queue, new_ids, acknowledger}}
   end
 
+  def handle_call(:deactivate, _from, {state, queue, ids, _acknowledger} = s) do
+    cond do
+      not :queue.is_empty(queue) ->
+        # We are in a dirty state, so we will not deactivate and we return an error
+        Logger.warn("Refusing to deactivate MessageTracker with non-empty queue.",
+          tag: "message_tracker_deactivate_failed"
+        )
+
+        {:reply, {:error, :deactivate_failed}, s}
+
+      ids != %{} ->
+        # We are in a dirty state, so we will not deactivate and we return an error
+        Logger.warn("Refusing to deactivate MessageTracker with non-empty ids.",
+          tag: "message_tracker_deactivate_failed"
+        )
+
+        {:reply, {:error, :deactivate_failed}, s}
+
+      state != :accepting ->
+        # We are in a dirty state, so we will not deactivate and we return an error
+        Logger.warn("Refusing to deactivate MessageTracker not in :accepting state.",
+          tag: "message_tracker_deactivate_failed"
+        )
+
+        {:reply, {:error, :deactivate_failed}, s}
+
+      true ->
+        # Everything is clean, we can deactivate
+        {:stop, :normal, :ok, s}
+    end
+  end
+
   def handle_cast(
         {:track_delivery, message_id, delivery_tag},
         {{:waiting_delivery, waiting_process}, queue, ids, acknowledger}

@@ -134,6 +134,15 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     {:noreply, chan}
   end
 
+  def handle_info(
+        {:DOWN, _, :process, pid, :normal},
+        %Channel{pid: chan_pid, conn: %Connection{pid: conn_pid}} = chan
+      )
+      when pid != chan_pid and pid != conn_pid do
+    # This is a Message Tracker deactivating itself normally, do nothing
+    {:noreply, chan}
+  end
+
   # Make sure to handle monitored message trackers exit messages
   # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
   def handle_info({:DOWN, _, :process, _pid, reason}, state) do
