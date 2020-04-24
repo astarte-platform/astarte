@@ -291,8 +291,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
     with {:ok, query} <- File.read(file),
          _ = Logger.info("Migration query:\n#{query}"),
-         {:ok, _result} <-
-           Xandra.execute(keyspace_conn, query, %{}, consistency: :each_quorum, timeout: 60_000),
+         {:ok, _result} <- CSystem.execute_schema_change(keyspace_conn, query),
          :ok <- set_schema_version(keyspace_conn, version) do
       execute_migrations(keyspace_conn, tail)
     else

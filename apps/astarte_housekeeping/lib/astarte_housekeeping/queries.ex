@@ -139,8 +139,7 @@ defmodule Astarte.Housekeeping.Queries do
     AND durable_writes = true;
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -168,8 +167,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -196,8 +194,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -247,8 +244,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -290,8 +286,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -329,8 +324,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -376,8 +370,7 @@ defmodule Astarte.Housekeeping.Queries do
     )
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -408,8 +401,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -437,8 +429,7 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
