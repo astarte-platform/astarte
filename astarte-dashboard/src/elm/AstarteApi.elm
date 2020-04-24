@@ -20,7 +20,7 @@
 module AstarteApi exposing
     ( Config
     , DeviceStats
-    , Error
+    , Error(..)
     , addDeviceToGroup
     , addNewInterface
     , addNewTrigger
@@ -83,6 +83,7 @@ type Error
     | Conflict String
     | InvalidEntity (List String)
     | InternalServerError
+    | InvalidRequest
 
 
 type alias Config =
@@ -185,6 +186,9 @@ checkHealth response =
 parseBadStatus : Http.Metadata -> String -> Error
 parseBadStatus metadata body =
     case metadata.statusCode of
+        400 ->
+            InvalidRequest
+
         401 ->
             NeedsLogin
 
@@ -769,3 +773,6 @@ errorToHumanReadable error =
 
         InternalServerError ->
             ( "Internal server error", [] )
+
+        InvalidRequest ->
+            ( "Invalid request", [] )
