@@ -710,6 +710,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
         {:ok, @encoded_generic_ok_reply}
       end)
+      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
+        {:ok, @encoded_generic_ok_reply}
+      end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -746,6 +749,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
                "value" => @event_value
              }
              |> Jason.encode() == Jason.encode(event)
+
+      watch_cleanup(socket, @name)
     end
 
     test "work also with nil timestamp", %{
@@ -828,11 +833,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   defp join_socket_and_authorize_watch(_context) do
-    MockRPCClient
-    |> stub(:rpc_call, fn _, @dup_rpc_destination ->
-      {:ok, @encoded_generic_ok_reply}
-    end)
-
     token =
       JWTTestHelper.gen_channels_jwt_token([
         "JOIN::#{@authorized_room_name}",
