@@ -136,6 +136,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
+  def handle_heartbeat(state, message_id, timestamp) do
+    {:ok, db_client} = Database.connect(realm: state.realm)
+
+    new_state = execute_time_based_actions(state, timestamp, db_client)
+
+    Queries.maybe_refresh_device_connected!(db_client, new_state.device_id)
+
+    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+    Logger.info("Device heartbeat.", tag: "device_heartbeat")
+
+    %{new_state | connected: true, last_seen_message: timestamp}
+  end
+
   def handle_disconnection(state, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 

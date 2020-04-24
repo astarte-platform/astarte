@@ -21,6 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.DataUpdaterPlant.Config
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
@@ -458,9 +459,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def set_device_connected!(db_client, device_id, timestamp_ms, ip_address) do
+    set_connection_info!(db_client, device_id, timestamp_ms, ip_address)
+
+    ttl = heartbeat_interval_seconds() * 8
+    refresh_device_connected!(db_client, device_id, ttl)
+  end
+
+  def maybe_refresh_device_connected!(db_client, device_id) do
+    with {:ok, remaining_ttl} <- get_connected_remaining_ttl(db_client, device_id) do
+      if remaining_ttl < heartbeat_interval_seconds() * 2 do
+        Logger.debug("Refreshing connected status", tag: "refresh_device_connected")
+        write_ttl = heartbeat_interval_seconds() * 8
+        refresh_device_connected!(db_client, device_id, write_ttl)
+      else
+        :ok
+      end
+    end
+  end
+
+  defp heartbeat_interval_seconds do
+    Config.device_heartbeat_interval_ms!() |> div(1000)
+  end
+
+  defp set_connection_info!(db_client, device_id, timestamp_ms, ip_address) do
     device_update_statement = """
     UPDATE devices
-    SET connected=true, last_connection=:last_connection, last_seen_ip=:last_seen_ip
+    SET last_connection=:last_connection, last_seen_ip=:last_seen_ip
     WHERE device_id=:device_id
     """
 
@@ -473,6 +497,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.consistency(:local_quorum)
 
     DatabaseQuery.call!(db_client, device_update_query)
+  end
+
+  defp refresh_device_connected!(db_client, device_id, ttl) do
+    refresh_connected_statement = """
+    UPDATE devices
+    USING TTL #{ttl}
+    SET connected=true
+    WHERE device_id=:device_id
+    """
+
+    refresh_connected_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(refresh_connected_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:local_quorum)
+
+    DatabaseQuery.call!(db_client, refresh_connected_query)
+  end
+
+  defp get_connected_remaining_ttl(db_client, device_id) do
+    fetch_connected_ttl_statement = """
+    SELECT TTL(connected)
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    fetch_connected_ttl_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(fetch_connected_ttl_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(db_client, fetch_connected_ttl_query),
+         ["ttl(connected)": ttl] when is_integer(ttl) <- DatabaseResult.head(result) do
+      {:ok, ttl}
+    else
+      :empty_dataset ->
+        {:error, :device_not_found}
+
+      ["ttl(connected)": nil] ->
+        {:ok, 0}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("Database error: #{error_message}.")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Database error while retrieving property: #{inspect(reason)}.")
+        {:error, :database_error}
+    end
   end
 
   def set_device_disconnected!(

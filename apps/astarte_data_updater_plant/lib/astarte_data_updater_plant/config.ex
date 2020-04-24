@@ -143,6 +143,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
     type: :module,
     default: Astarte.RPC.AMQP.Client
 
+  @envdoc "The interval between two heartbeats sent from the VernqMQ device process."
+  app_env :device_heartbeat_interval_ms,
+          :astarte_data_updater_plant,
+          :device_heartbeat_interval_ms,
+          os_env: "DATA_UPDATER_PLANT_DEVICE_HEARTBEAT_INTERVAL_MS",
+          type: :integer,
+          default: 60 * 60 * 1_000
+
   @doc """
   Returns the AMQP data consumer connection options
   """
