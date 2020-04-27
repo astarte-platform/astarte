@@ -1,7 +1,7 @@
 {-
    This file is part of Astarte.
 
-   Copyright 2019 Ispirata Srl
+   Copyright 2020 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 -}
 
 
-module Modal.NewAlias exposing (ExternalMsg(..), Model, Msg(..), init, update, view)
+module Modal.ConfirmModal exposing (ExternalMsg(..), ModalType(..), Model, Msg(..), init, update, view)
 
 import Bootstrap.Button as Button
 import Bootstrap.Form as Form
@@ -29,16 +29,25 @@ import Html.Attributes exposing (for, value)
 
 
 type alias Model =
-    { aliasTag : String
-    , aliasValue : String
+    { title : String
+    , body : String
+    , action : String
+    , modalType : ModalType
     , visibility : Modal.Visibility
     }
 
 
-init : Bool -> Model
-init shown =
-    { aliasTag = ""
-    , aliasValue = ""
+type ModalType
+    = Normal
+    | Danger
+
+
+init : String -> String -> Maybe String -> Maybe ModalType -> Bool -> Model
+init modalTitle body action modalType shown =
+    { title = modalTitle
+    , body = body
+    , action = action |> Maybe.withDefault "Confirm"
+    , modalType = modalType |> Maybe.withDefault Normal
     , visibility =
         if shown then
             Modal.shown
@@ -55,13 +64,12 @@ type ModalResult
 
 type Msg
     = Close ModalResult
-    | UpdateAliasTag String
-    | UpdateAliasValue String
 
 
 type ExternalMsg
     = Noop
-    | AddAlias String String
+    | Cancel
+    | Confirm
 
 
 update : Msg -> Model -> ( Model, ExternalMsg )
@@ -69,22 +77,12 @@ update message model =
     case message of
         Close ModalCancel ->
             ( { model | visibility = Modal.hidden }
-            , Noop
+            , Cancel
             )
 
         Close ModalOk ->
             ( { model | visibility = Modal.hidden }
-            , AddAlias model.aliasTag model.aliasValue
-            )
-
-        UpdateAliasTag newTag ->
-            ( { model | aliasTag = newTag }
-            , Noop
-            )
-
-        UpdateAliasValue newValue ->
-            ( { model | aliasValue = newValue }
-            , Noop
+            , Confirm
             )
 
 
@@ -92,9 +90,10 @@ view : Model -> Html Msg
 view model =
     Modal.config (Close ModalCancel)
         |> Modal.large
-        |> Modal.h5 [] [ Html.text "Add New Alias" ]
+        |> Modal.h5 [] [ Html.text model.title ]
         |> Modal.body []
-            [ renderBody model.aliasTag model.aliasValue ]
+            [ Html.p [] [ Html.text model.body ]
+            ]
         |> Modal.footer []
             [ Button.button
                 [ Button.secondary
@@ -102,40 +101,19 @@ view model =
                 ]
                 [ Html.text "Cancel" ]
             , Button.button
-                [ Button.primary
-                , Button.disabled <| String.isEmpty model.aliasTag || String.isEmpty model.aliasValue
+                [ buttonStyle model.modalType
                 , Button.onClick <| Close ModalOk
                 ]
-                [ Html.text "Confirm" ]
+                [ Html.text model.action ]
             ]
         |> Modal.view model.visibility
 
 
-renderBody : String -> String -> Html Msg
-renderBody aliasTag aliasValue =
-    Form.form []
-        [ Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "aliasTag" ] [ Html.text "Tag" ]
-                    , Input.text
-                        [ Input.id "aliasTag"
-                        , Input.value aliasTag
-                        , Input.onInput UpdateAliasTag
-                        ]
-                    ]
-                ]
-            ]
-        , Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "aliasValue" ] [ Html.text "Alias" ]
-                    , Input.text
-                        [ Input.id "aliasValue"
-                        , Input.value aliasValue
-                        , Input.onInput UpdateAliasValue
-                        ]
-                    ]
-                ]
-            ]
-        ]
+buttonStyle : ModalType -> Button.Option Msg
+buttonStyle modalType =
+    case modalType of
+        Normal ->
+            Button.primary
+
+        Danger ->
+            Button.danger

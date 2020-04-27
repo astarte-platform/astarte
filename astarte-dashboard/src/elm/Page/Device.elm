@@ -40,7 +40,9 @@ import Html.Events
 import Icons
 import Json.Decode as Decode exposing (Decoder)
 import ListUtils exposing (addWhen)
-import Modal.NewAlias as NewAlias
+import Modal.AskKeyValue as AskKeyValue
+import Modal.AskSingleValue as AskSingleValue
+import Modal.ConfirmModal as ConfirmModal
 import Modal.SelectGroup as SelectGroup
 import Ports
 import Route
@@ -66,10 +68,19 @@ type alias Model =
     , spinner : Spinner.Model
     , showSpinner : Bool
     , existingGroups : List String
-    , newAliasModal : NewAlias.Model
     , selectGroupModal : SelectGroup.Model
-    , confirmModalVisibility : Modal.Visibility
+    , currentModal : Maybe PageModals
     }
+
+
+type PageModals
+    = NewAlias AskKeyValue.Model (AskKeyValue.Msg -> Msg)
+    | NewMetadata AskKeyValue.Model (AskKeyValue.Msg -> Msg)
+    | EditAliasValue AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
+    | EditMetadataValue AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
+    | ConfirmCredentialsWipe ConfirmModal.Model (ConfirmModal.Msg -> Msg)
+    | ConfirmAliasDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
+    | ConfirmMetadataDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
 
 
 init : Session -> String -> ( Model, Cmd Msg )
@@ -82,9 +93,8 @@ init session deviceId =
       , spinner = Spinner.init
       , showSpinner = True
       , existingGroups = []
-      , newAliasModal = NewAlias.init False
       , selectGroupModal = SelectGroup.init False []
-      , confirmModalVisibility = Modal.hidden
+      , currentModal = Nothing
       }
     , AstarteApi.deviceInfos session.apiConfig deviceId <| DeviceInfosDone
     )
@@ -95,13 +105,20 @@ type Msg
     | UpdateDeviceInfo Time.Posix
     | Forward ExternalMsg
     | OpenNewAliasPopup
+    | OpenNewMetadataPopup
     | OpenGroupsPopup
-    | UpdateAliasModal NewAlias.Msg
+    | UpdateKeyValueModal AskKeyValue.Msg
+    | UpdateSingleValueModal AskSingleValue.Msg
+    | UpdateConfirmModal ConfirmModal.Msg
     | UpdateGroupModal SelectGroup.Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
+    | DeviceMetadataUpdated (Dict String String) (Result AstarteApi.Error ())
+    | EditAlias String
+    | DeleteAlias String
+    | EditMetadata String
+    | RemoveMetadata String
     | SetCredentialsInhibited Bool
     | ShowConfirmModal
-    | CloseConfirmModal Bool
       -- spinner
     | SpinnerMsg Spinner.Msg
       -- API
@@ -217,7 +234,21 @@ update session msg model =
             )
 
         OpenNewAliasPopup ->
-            ( { model | newAliasModal = NewAlias.init True }
+            let
+                modal =
+                    NewAlias (AskKeyValue.init "Add New Alias" "Tag" "Alias" AskKeyValue.Trimmed True) UpdateKeyValueModal
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        OpenNewMetadataPopup ->
+            let
+                modal =
+                    NewMetadata (AskKeyValue.init "Add New Item" "Key" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+            in
+            ( { model | currentModal = Just modal }
             , Cmd.none
             , ExternalMsg.Noop
             )
@@ -228,15 +259,99 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        UpdateAliasModal modalMsg ->
-            let
-                ( newStatus, extenalCommand ) =
-                    NewAlias.update modalMsg model.newAliasModal
-            in
-            ( { model | newAliasModal = newStatus }
-            , handleAliasModalCommand session model extenalCommand
-            , ExternalMsg.Noop
-            )
+        UpdateKeyValueModal modalMsg ->
+            case model.currentModal of
+                Just (NewAlias modalModel msgTag) ->
+                    let
+                        ( newStatus, extenalCommand ) =
+                            AskKeyValue.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (NewAlias newStatus msgTag) }
+                    , handleKeyValueCommand session model extenalCommand
+                    , ExternalMsg.Noop
+                    )
+
+                Just (NewMetadata modalModel msgTag) ->
+                    let
+                        ( newStatus, extenalCommand ) =
+                            AskKeyValue.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (NewMetadata newStatus msgTag) }
+                    , handleKeyValueCommand session model extenalCommand
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateSingleValueModal modalMsg ->
+            case model.currentModal of
+                Just (EditAliasValue modalModel msgTag aliasTag) ->
+                    let
+                        ( newStatus, extenalCommand ) =
+                            AskSingleValue.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (EditAliasValue newStatus msgTag aliasTag) }
+                    , handleSingleValueCommand session model extenalCommand
+                    , ExternalMsg.Noop
+                    )
+
+                Just (EditMetadataValue modalModel msgTag itemKey) ->
+                    let
+                        ( newStatus, extenalCommand ) =
+                            AskSingleValue.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (EditMetadataValue newStatus msgTag itemKey) }
+                    , handleSingleValueCommand session model extenalCommand
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateConfirmModal modalMsg ->
+            case model.currentModal of
+                Just (ConfirmCredentialsWipe modalModel msgTag) ->
+                    let
+                        ( newStatus, externalCommand ) =
+                            ConfirmModal.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (ConfirmCredentialsWipe newStatus msgTag) }
+                    , handleConfirmModalCommand session model externalCommand
+                    , ExternalMsg.Noop
+                    )
+
+                Just (ConfirmAliasDeletion modalModel msgTag aliasTag) ->
+                    let
+                        ( newStatus, externalCommand ) =
+                            ConfirmModal.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (ConfirmAliasDeletion newStatus msgTag aliasTag) }
+                    , handleConfirmModalCommand session model externalCommand
+                    , ExternalMsg.Noop
+                    )
+
+                Just (ConfirmMetadataDeletion modalModel msgTag metadataField) ->
+                    let
+                        ( newStatus, externalCommand ) =
+                            ConfirmModal.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (ConfirmMetadataDeletion newStatus msgTag metadataField) }
+                    , handleConfirmModalCommand session model externalCommand
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
         UpdateGroupModal modalMsg ->
             let
@@ -276,6 +391,104 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
+        DeviceMetadataUpdated newMetadata (Ok _) ->
+            case model.device of
+                Nothing ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Just device ->
+                    let
+                        updatedDevice =
+                            { device | metadata = newMetadata }
+                    in
+                    ( { model | device = Just updatedDevice }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        DeviceMetadataUpdated _ (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( model
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
+        DeleteAlias aliasTag ->
+            let
+                title =
+                    "Delete Alias"
+
+                body =
+                    "Delete alias \"" ++ aliasTag ++ "\"?"
+
+                action =
+                    Just "Delete"
+
+                style =
+                    Just ConfirmModal.Danger
+
+                modal =
+                    ConfirmAliasDeletion (ConfirmModal.init title body action style True) UpdateConfirmModal aliasTag
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        EditAlias key ->
+            let
+                title =
+                    "Edit \"" ++ key ++ "\""
+
+                modal =
+                    EditAliasValue (AskSingleValue.init title "Alias" AskSingleValue.Trimmed True) UpdateSingleValueModal key
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        EditMetadata key ->
+            let
+                title =
+                    "Edit \"" ++ key ++ "\""
+
+                modal =
+                    EditMetadataValue (AskSingleValue.init title "Value" AskSingleValue.AnyValue True) UpdateSingleValueModal key
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        RemoveMetadata key ->
+            let
+                title =
+                    "Delete Item"
+
+                body =
+                    "Do you want to delete " ++ key ++ " from metadata?"
+
+                action =
+                    Just "Delete"
+
+                style =
+                    Just ConfirmModal.Danger
+
+                modal =
+                    ConfirmMetadataDeletion (ConfirmModal.init title body action style True) UpdateConfirmModal key
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
         SetCredentialsInhibited enabled ->
             ( model
             , AstarteApi.setCredentialInhibited session.apiConfig model.deviceId enabled (SetCredentialsInhibitedDone enabled)
@@ -304,25 +517,31 @@ update session msg model =
             )
 
         ShowConfirmModal ->
-            ( { model | confirmModalVisibility = Modal.shown }
+            let
+                title =
+                    "Warning"
+
+                body =
+                    "This will remove the current device credential secret from Astarte, forcing the device to register again and store its new credentials secret. Continue?"
+
+                action =
+                    Just "Wipe credentials secret"
+
+                style =
+                    Just ConfirmModal.Danger
+
+                modal =
+                    ConfirmCredentialsWipe (ConfirmModal.init title body action style True) UpdateConfirmModal
+            in
+            ( { model | currentModal = Just modal }
             , Cmd.none
-            , ExternalMsg.Noop
-            )
-
-        CloseConfirmModal wipe ->
-            ( { model | confirmModalVisibility = Modal.hidden }
-            , if wipe then
-                AstarteApi.wipeDeviceCredentials session.apiConfig model.deviceId WipeDeviceCredentialsDone
-
-              else
-                Cmd.none
             , ExternalMsg.Noop
             )
 
         WipeDeviceCredentialsDone (Ok _) ->
-            ( { model | confirmModalVisibility = Modal.hidden }
+            ( model
             , Cmd.none
-            , ExternalMsg.Noop
+            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Credentials wiped" []
             )
 
         WipeDeviceCredentialsDone (Err error) ->
@@ -364,22 +583,99 @@ update session msg model =
             )
 
 
-handleAliasModalCommand : Session -> Model -> NewAlias.ExternalMsg -> Cmd Msg
-handleAliasModalCommand session model cmd =
-    case ( model.device, cmd ) of
-        ( Just device, NewAlias.AddAlias aliasTag aliasValue ) ->
+handleKeyValueCommand : Session -> Model -> AskKeyValue.ExternalMsg -> Cmd Msg
+handleKeyValueCommand session model cmd =
+    case ( model.device, model.currentModal, cmd ) of
+        ( Just device, Just (NewAlias _ _), AskKeyValue.Confirm key value ) ->
             let
                 newAliases =
                     device.aliases
-                        |> Dict.insert aliasTag aliasValue
+                        |> Dict.insert key value
             in
             DeviceAliasesUpdated newAliases
-                |> AstarteApi.updateDeviceAliases session.apiConfig model.deviceId (Dict.fromList [ ( aliasTag, aliasValue ) ])
+                |> AstarteApi.updateDeviceAliases session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
 
-        ( Nothing, _ ) ->
+        ( Just device, Just (NewMetadata _ _), AskKeyValue.Confirm key value ) ->
+            let
+                newMetadata =
+                    device.metadata
+                        |> Dict.insert key value
+            in
+            DeviceMetadataUpdated newMetadata
+                |> AstarteApi.updateDeviceMetadata session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
+
+        ( _, _, AskKeyValue.Cancel ) ->
             Cmd.none
 
-        ( _, NewAlias.Noop ) ->
+        ( _, _, AskKeyValue.Noop ) ->
+            Cmd.none
+
+        ( _, _, _ ) ->
+            Cmd.none
+
+
+handleSingleValueCommand : Session -> Model -> AskSingleValue.ExternalMsg -> Cmd Msg
+handleSingleValueCommand session model cmd =
+    case ( model.device, model.currentModal, cmd ) of
+        ( Just device, Just (EditAliasValue _ _ key), AskSingleValue.Confirm value ) ->
+            let
+                newAliases =
+                    device.aliases
+                        |> Dict.insert key value
+            in
+            DeviceAliasesUpdated newAliases
+                |> AstarteApi.updateDeviceAliases session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
+
+        ( Just device, Just (EditMetadataValue _ _ key), AskSingleValue.Confirm value ) ->
+            let
+                newMetadata =
+                    device.metadata
+                        |> Dict.insert key value
+            in
+            DeviceMetadataUpdated newMetadata
+                |> AstarteApi.updateDeviceMetadata session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
+
+        ( _, _, AskSingleValue.Cancel ) ->
+            Cmd.none
+
+        ( _, _, AskSingleValue.Noop ) ->
+            Cmd.none
+
+        ( _, _, _ ) ->
+            Cmd.none
+
+
+handleConfirmModalCommand : Session -> Model -> ConfirmModal.ExternalMsg -> Cmd Msg
+handleConfirmModalCommand session model cmd =
+    case ( model.device, model.currentModal, cmd ) of
+        ( Just device, Just (ConfirmCredentialsWipe _ _), ConfirmModal.Confirm ) ->
+            AstarteApi.wipeDeviceCredentials session.apiConfig model.deviceId WipeDeviceCredentialsDone
+
+        ( Just device, Just (ConfirmAliasDeletion _ _ aliasTag), ConfirmModal.Confirm ) ->
+            let
+                newAliases =
+                    device.aliases
+                        |> Dict.remove aliasTag
+            in
+            DeviceAliasesUpdated newAliases
+                |> AstarteApi.removeDeviceAlias session.apiConfig model.deviceId aliasTag
+
+        ( Just device, Just (ConfirmMetadataDeletion _ _ metadataField), ConfirmModal.Confirm ) ->
+            let
+                newMetadatas =
+                    device.metadata
+                        |> Dict.remove metadataField
+            in
+            DeviceMetadataUpdated newMetadatas
+                |> AstarteApi.removeDeviceMetadataField session.apiConfig model.deviceId metadataField
+
+        ( _, _, ConfirmModal.Cancel ) ->
+            Cmd.none
+
+        ( _, _, ConfirmModal.Noop ) ->
+            Cmd.none
+
+        ( _, _, _ ) ->
             Cmd.none
 
 
@@ -455,61 +751,71 @@ type CardWidth
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    (case ( model.device, model.deviceError ) of
-        ( Just device, _ ) ->
-            [ Grid.row
-                [ Row.attrs [ Spacing.mt2 ] ]
-                [ Grid.col
-                    [ Col.sm12 ]
-                    [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
+    Grid.containerFluid []
+        (case ( model.device, model.deviceError ) of
+            ( Just device, _ ) ->
+                [ Grid.row
+                    [ Row.attrs [ Spacing.mt2 ] ]
+                    [ Grid.col
+                        [ Col.sm12 ]
+                        [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
+                    ]
+                , Grid.row []
+                    [ deviceInfoCard device HalfWidth
+                    , deviceAliasesCard device HalfWidth
+                    , deviceMetadataCard device HalfWidth
+                    , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) HalfWidth
+                    , deviceIntrospectionCard device HalfWidth
+                    , devicePreviousInterfacesCard device HalfWidth
+                    , deviceStatsCard device FullWidth
+                    , deviceEventsCard device FullWidth
+                    , deviceChannelCard model.receivedEvents FullWidth
+                    ]
+                , model.currentModal
+                    |> Maybe.map renderModals
+                    |> Maybe.withDefault (Html.text "")
+                , SelectGroup.view model.selectGroupModal
+                    |> Html.map UpdateGroupModal
                 ]
-            , Grid.row []
-                [ deviceInfoCard device HalfWidth
-                , deviceEventsCard device HalfWidth
-                , deviceAliasesCard device HalfWidth
-                , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) HalfWidth
-                , deviceIntrospectionCard device HalfWidth
-                , devicePreviousInterfacesCard device HalfWidth
-                , deviceStatsCard device FullWidth
-                , deviceChannelCard model.receivedEvents FullWidth
-                ]
-            , NewAlias.view model.newAliasModal
-                |> Html.map UpdateAliasModal
-            , SelectGroup.view model.selectGroupModal
-                |> Html.map UpdateGroupModal
-            ]
 
-        ( Nothing, Just error ) ->
-            [ deviceErrorCard error ]
+            ( Nothing, Just error ) ->
+                [ deviceErrorCard error ]
 
-        ( Nothing, Nothing ) ->
-            [ Html.text "" ]
-    )
-        |> (::) (renderConfimationModal model.confirmModalVisibility)
-        |> Grid.containerFluid []
+            ( Nothing, Nothing ) ->
+                [ Html.text "" ]
+        )
 
 
-renderConfimationModal : Modal.Visibility -> Html Msg
-renderConfimationModal modalVisibility =
-    Modal.config (CloseConfirmModal False)
-        |> Modal.large
-        |> Modal.h5 [] [ Html.text "Warning" ]
-        |> Modal.body []
-            [ Html.p [] [ Html.text "This will remove the current device credential secret from Astarte, forcing the device to register again and store its new credentials secret. Continue?" ]
-            ]
-        |> Modal.footer []
-            [ Button.button
-                [ Button.secondary
-                , Button.onClick <| CloseConfirmModal False
-                ]
-                [ Html.text "Cancel" ]
-            , Button.button
-                [ Button.danger
-                , Button.onClick <| CloseConfirmModal True
-                ]
-                [ Html.text "Wipe credentials secret" ]
-            ]
-        |> Modal.view modalVisibility
+renderModals : PageModals -> Html Msg
+renderModals modal =
+    case modal of
+        NewAlias model msgHandler ->
+            AskKeyValue.view model
+                |> Html.map msgHandler
+
+        NewMetadata model msgHanlder ->
+            AskKeyValue.view model
+                |> Html.map msgHanlder
+
+        EditAliasValue model msgHanlder _ ->
+            AskSingleValue.view model
+                |> Html.map msgHanlder
+
+        EditMetadataValue model msgHanlder _ ->
+            AskSingleValue.view model
+                |> Html.map msgHanlder
+
+        ConfirmCredentialsWipe model msgHanlder ->
+            ConfirmModal.view model
+                |> Html.map msgHanlder
+
+        ConfirmAliasDeletion model msgHanlder _ ->
+            ConfirmModal.view model
+                |> Html.map msgHanlder
+
+        ConfirmMetadataDeletion model msgHanlder _ ->
+            ConfirmModal.view model
+                |> Html.map msgHanlder
 
 
 renderCard : String -> CardWidth -> List (Html Msg) -> Grid.Column Msg
@@ -824,6 +1130,36 @@ deviceAliasesCard device width =
         ]
 
 
+deviceMetadataCard : Device -> CardWidth -> Grid.Column Msg
+deviceMetadataCard device width =
+    renderCard "Metadata"
+        width
+        [ Grid.row
+            [ Row.attrs [ Spacing.mt3 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ renderMetadata device.metadata ]
+            ]
+        , Grid.row
+            [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col [ Col.sm12 ]
+                [ Html.a
+                    [ { message = OpenNewMetadataPopup
+                      , preventDefault = True
+                      , stopPropagation = False
+                      }
+                        |> Decode.succeed
+                        |> Html.Events.custom "click"
+                    , href "#"
+                    , Html.Attributes.target "_self"
+                    ]
+                    [ Icons.render Icons.Add [ Spacing.mr1 ]
+                    , Html.text "Add new item..."
+                    ]
+                ]
+            ]
+        ]
+
+
 deviceGroupsCard : Device -> Bool -> CardWidth -> Grid.Column Msg
 deviceGroupsCard device showAddToGroup width =
     renderCard "Groups"
@@ -1104,24 +1440,62 @@ renderAliases aliases =
     else
         Table.simpleTable
             ( Table.simpleThead
-                [ Table.th [] [ Html.text "Alias tag" ]
-                , Table.th [] [ Html.text "Alias" ]
+                [ Table.th []
+                    [ Html.text "Tag" ]
+                , Table.th []
+                    [ Html.text "Alias" ]
+                , Table.th [ Table.cellAttr <| class "action-column" ]
+                    [ Html.text "Actions" ]
                 ]
             , Table.tbody []
                 (aliases
                     |> Dict.toList
-                    |> List.map renderAlias
+                    |> List.map (fieldValueTableRow EditAlias DeleteAlias)
                 )
             )
 
 
-renderAlias : ( String, String ) -> Table.Row Msg
-renderAlias ( key, value ) =
+renderMetadata : Dict String String -> Html Msg
+renderMetadata metadata =
+    if Dict.isEmpty metadata then
+        Html.text "Device has no metadata"
+
+    else
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th []
+                    [ Html.text "Field" ]
+                , Table.th []
+                    [ Html.text "Value" ]
+                , Table.th [ Table.cellAttr <| class "action-column" ]
+                    [ Html.text "Actions" ]
+                ]
+            , Table.tbody []
+                (metadata
+                    |> Dict.toList
+                    |> List.map (fieldValueTableRow EditMetadata RemoveMetadata)
+                )
+            )
+
+
+fieldValueTableRow : (String -> Msg) -> (String -> Msg) -> ( String, String ) -> Table.Row Msg
+fieldValueTableRow editMessage deleteMessage ( key, value ) =
     Table.tr []
         [ Table.td []
             [ Html.text key ]
         , Table.td []
             [ Html.text value ]
+        , Table.td [ Table.cellAttr <| class "text-center" ]
+            [ Icons.render Icons.Edit
+                [ class "color-grey action-icon"
+                , Spacing.mr2
+                , Html.Events.onClick (editMessage key)
+                ]
+            , Icons.render Icons.Erase
+                [ class "color-red action-icon"
+                , Html.Events.onClick (deleteMessage key)
+                ]
+            ]
         ]
 
 

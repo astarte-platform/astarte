@@ -33,6 +33,8 @@ type Icon
     | Close
     | Delete
     | Device
+    | Edit
+    | Erase
     | ExclamationMark
     | EmptyCircle
     | FullCircle
@@ -88,6 +90,12 @@ className icon =
 
         Device ->
             "fa-cube"
+
+        Edit ->
+            "fa-pencil-alt"
+
+        Erase ->
+            "fa-eraser"
 
         ExclamationMark ->
             "fa-exclamation-circle"

@@ -26,6 +26,7 @@ $small-font-size:       70%;
 $green:                 #5bcc6c;
 $red:                   #cc5b6d;
 $dark-blue:             #27303d;
+$grey:                  #7f7f7e;
 
 $primary:               #487fc7;
 $inactive:              #676e6e;
@@ -58,6 +59,10 @@ $never-connected-color: #101010;
 
 .color-green {
     color: $green;
+}
+
+.color-grey {
+    color: $grey;
 }
 
 .color-red {
@@ -224,4 +229,12 @@ $never-connected-color: #101010;
     height: 50em;
     overflow-y: scroll;
     background-color: #fbfbfb;
+}
+
+.action-column {
+    width: 4em;
+}
+
+.action-icon {
+    cursor: pointer;
 }
