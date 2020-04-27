@@ -19,6 +19,7 @@
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   use Bitwise, only_operators: true
   require Logger
+  alias Astarte.DataUpdaterPlant.Config
 
   @moduledoc """
   This module handles the triggers by generating the events requested
@@ -420,12 +421,12 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         retry
       end
 
-    AMQPEventsProducer.publish(payload, routing_key, headers)
+    AMQPEventsProducer.publish(payload, Config.events_exchange_name!(), routing_key, headers)
     |> wait_backoff_and_publish(next_retry, payload, routing_key, headers)
   end
 
   defp wait_ok_publish(payload, routing_key, headers) do
-    AMQPEventsProducer.publish(payload, routing_key, headers)
+    AMQPEventsProducer.publish(payload, Config.events_exchange_name!(), routing_key, headers)
     |> wait_backoff_and_publish(1, payload, routing_key, headers)
   end
 
