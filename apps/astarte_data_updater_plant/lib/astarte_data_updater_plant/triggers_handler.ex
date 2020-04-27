@@ -402,11 +402,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end
   end
 
-  defp wait_backoff_and_publish(:ok, _retry, _payload, _routing_key, _headers) do
+  defp wait_backoff_and_publish(:ok, _retry, _payload, _exchange, _routing_key, _headers) do
     :ok
   end
 
-  defp wait_backoff_and_publish({:error, reason}, retry, payload, routing_key, headers) do
+  defp wait_backoff_and_publish({:error, reason}, retry, payload, exchange, routing_key, headers) do
     Logger.warn(
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
@@ -421,20 +421,23 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         retry
       end
 
-    AMQPEventsProducer.publish(payload, Config.events_exchange_name!(), routing_key, headers)
-    |> wait_backoff_and_publish(next_retry, payload, routing_key, headers)
+    AMQPEventsProducer.publish(payload, exchange, routing_key, headers)
+    |> wait_backoff_and_publish(next_retry, payload, exchange, routing_key, headers)
   end
 
-  defp wait_ok_publish(payload, routing_key, headers) do
-    AMQPEventsProducer.publish(payload, Config.events_exchange_name!(), routing_key, headers)
-    |> wait_backoff_and_publish(1, payload, routing_key, headers)
+  defp wait_ok_publish(payload, exchange, routing_key, headers) do
+    AMQPEventsProducer.publish(payload, exchange, routing_key, headers)
+    |> wait_backoff_and_publish(1, payload, exchange, routing_key, headers)
   end
 
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
+         exchange: target_exchange,
          routing_key: routing_key,
          static_headers: static_headers
        }) do
     {event_type, _event_struct} = simple_event.event
+
+    exchange = target_exchange || Config.events_exchange_name!()
 
     simple_trigger_id_str =
       simple_event.simple_trigger_id
@@ -457,7 +460,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
     result =
       SimpleEvent.encode(simple_event)
-      |> wait_ok_publish(routing_key, headers)
+      |> wait_ok_publish(exchange, routing_key, headers)
 
     :telemetry.execute(
       [:astarte, :data_updater_plant, :triggers_handler, :published_event],
