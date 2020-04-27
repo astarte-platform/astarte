@@ -458,7 +458,8 @@ defmodule Astarte.RealmManagement.Engine do
          simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
          trigger = build_trigger(trigger_name, simple_trigger_maps, action),
          %Trigger{trigger_uuid: trigger_uuid} = trigger,
-         target = build_trigger_target_container("trigger_engine", trigger_uuid),
+         {exchange, routing_key} = target_from_action(action),
+         target = build_trigger_target_container(exchange, routing_key, trigger_uuid),
          :ok <- validate_simple_triggers(client, simple_trigger_maps),
          # TODO: these should be batched together
          :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, target) do
@@ -476,6 +477,14 @@ defmodule Astarte.RealmManagement.Engine do
       any ->
         any
     end
+  end
+
+  defp target_from_action(%{"amqp_exchange" => exchange, "amqp_routing_key" => routing_key}) do
+    {exchange, routing_key}
+  end
+
+  defp target_from_action(_) do
+    {nil, "trigger_engine"}
   end
 
   defp build_simple_trigger_maps(serialized_tagged_simple_triggers) do
@@ -509,11 +518,12 @@ defmodule Astarte.RealmManagement.Engine do
     }
   end
 
-  defp build_trigger_target_container(routing_key, trigger_uuid) do
+  defp build_trigger_target_container(exchange, routing_key, trigger_uuid) do
     %TriggerTargetContainer{
       trigger_target: {
         :amqp_trigger_target,
         %AMQPTriggerTarget{
+          exchange: exchange,
           routing_key: routing_key,
           parent_trigger_id: trigger_uuid
         }
