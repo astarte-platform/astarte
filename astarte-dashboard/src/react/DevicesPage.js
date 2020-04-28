@@ -195,9 +195,6 @@ export default class DevicesPage extends React.Component {
 
           innerHTML = (
             <>
-              <Link className="float-right mb-2" to={`/devices/register`}>
-                Register a new device
-              </Link>
               <DeviceTable deviceList={devices} />
               <Container fluid>
                 <Row>
@@ -228,7 +225,14 @@ export default class DevicesPage extends React.Component {
         break;
     }
 
-    return <SingleCardPage title="Device Lists">{innerHTML}</SingleCardPage>;
+    return (
+      <SingleCardPage title="Device Lists">
+        <Link className="float-right mb-2" to={`/devices/register`}>
+          Register a new device
+        </Link>
+        {innerHTML}
+      </SingleCardPage>
+    );
   }
 }
 
