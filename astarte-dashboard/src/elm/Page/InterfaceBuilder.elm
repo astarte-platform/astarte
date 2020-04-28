@@ -1015,6 +1015,7 @@ view model flashMessages =
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
+        , renderCardTitleRow model.builderMode model.interface
         , Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
@@ -1039,6 +1040,11 @@ view model flashMessages =
                 ]
                 [ renderInterfaceSource model.sourceBuffer model.sourceBufferStatus ]
             ]
+        , if model.editorOnly then
+            Html.text ""
+
+          else
+            renderButtonRow model.interfaceEditMode (model.interface.major == 0) model.showSource
         , Grid.row []
             [ Grid.col
                 [ Col.sm12 ]
@@ -1060,43 +1066,6 @@ renderContent model interface interfaceEditMode accordionState =
     Grid.containerFluid []
         [ Form.form []
             [ Form.row []
-                [ Form.col []
-                    [ Html.h3
-                        [ class "text-truncate" ]
-                        [ text
-                            (case model.builderMode of
-                                EditorOnly ->
-                                    "Interface Editor"
-
-                                New ->
-                                    "Install a New Interface"
-
-                                Edit _ ->
-                                    interface.name
-                            )
-                        , if interfaceEditMode && interface.major == 0 then
-                            Button.button
-                                [ Button.warning
-                                , Button.attrs [ Spacing.ml2, class "text-secondary" ]
-                                , Button.onClick ShowDeleteModal
-                                ]
-                                [ Icons.render Icons.Delete [ Spacing.mr2 ]
-                                , text "Delete..."
-                                ]
-
-                          else
-                            text ""
-                        ]
-                    ]
-                , Form.col [ Col.smAuto ]
-                    [ Button.button
-                        [ Button.secondary
-                        , Button.onClick ToggleSource
-                        ]
-                        [ Icons.render Icons.ToggleSidebar [] ]
-                    ]
-                ]
-            , Form.row []
                 [ Form.col [ Col.sm6 ]
                     [ renderInterfaceNameInput interface.name interfaceEditMode model.interfaceNameSuggestionPopup ]
                 , Form.col [ Col.sm3 ]
@@ -1230,30 +1199,14 @@ renderContent model interface interfaceEditMode accordionState =
                 ]
             , Form.row []
                 [ Form.col [ Col.sm12 ]
-                    [ h5
-                        [ Display.inline
-                        , class "font-weight-normal"
-                        , class "align-middle"
-                        ]
-                        [ if Dict.isEmpty interface.mappings then
-                            text "No mappings added"
-
-                          else
-                            text "Mappings"
-                        ]
-                    , Button.button
-                        [ Button.outlinePrimary
-                        , Button.attrs [ class "float-right", Spacing.ml2 ]
+                    [ Button.button
+                        [ Button.attrs [ class "accordion-button", Size.w100, Spacing.mb2 ]
                         , Button.onClick ShowAddMappingModal
                         ]
                         [ Icons.render Icons.Add [ Spacing.mr2 ]
-                        , text "Add new Mapping ..."
+                        , text "Add new mapping..."
                         ]
-                    ]
-                ]
-            , Form.row []
-                [ Form.col [ Col.sm12 ]
-                    [ Accordion.config AccordionMsg
+                    , Accordion.config AccordionMsg
                         |> Accordion.withAnimation
                         |> Accordion.cards
                             (interface.mappings
@@ -1263,15 +1216,29 @@ renderContent model interface interfaceEditMode accordionState =
                         |> Accordion.view accordionState
                     ]
                 ]
-            , Form.row [ Row.rightSm ]
-                (if model.editorOnly then
-                    []
+            ]
+        ]
 
-                 else
-                    [ Form.col [ Col.sm4 ]
-                        [ renderConfirmButton interfaceEditMode ]
-                    ]
-                )
+
+renderCardTitleRow : BuilderMode -> Interface -> Html Msg
+renderCardTitleRow builderMode interface =
+    let
+        title =
+            case builderMode of
+                EditorOnly ->
+                    "Interface Editor"
+
+                New ->
+                    "Install a New Interface"
+
+                Edit _ ->
+                    interface.name
+    in
+    Grid.row [ Row.attrs [ Spacing.mt2 ] ]
+        [ Grid.col []
+            [ Html.h3
+                [ class "text-truncate" ]
+                [ Html.text title ]
             ]
         ]
 
@@ -1469,18 +1436,56 @@ renderCommonMappingSettings model =
         ]
 
 
-renderConfirmButton : Bool -> Html Msg
-renderConfirmButton editMode =
-    Button.button
-        [ Button.primary
-        , Button.attrs [ class "float-right", Spacing.ml2 ]
-        , Button.onClick ShowConfirmModal
+renderButtonRow : Bool -> Bool -> Bool -> Html Msg
+renderButtonRow isEdit isDraft isSourceVisible =
+    let
+        colAttrs =
+            [ Col.smAuto
+            , Col.attrs [ Spacing.px1 ]
+            ]
+    in
+    Grid.row
+        [ Row.rightSm
+        , Row.attrs [ Spacing.pt3, Spacing.px2 ]
         ]
-        [ if editMode then
-            text "Apply Changes"
+        [ Grid.col colAttrs
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick ToggleSource
+                ]
+                [ if isSourceVisible then
+                    Html.text "Hide source"
 
-          else
-            text "Install Interface"
+                  else
+                    Html.text "Show source"
+                ]
+            ]
+        , Grid.col
+            (if isEdit && isDraft then
+                colAttrs
+
+             else
+                [ Col.attrs [ Display.none ] ]
+            )
+            [ Button.button
+                [ Button.warning
+                , Button.onClick ShowDeleteModal
+                ]
+                [ Html.text "Delete interface..."
+                ]
+            ]
+        , Grid.col colAttrs
+            [ Button.button
+                [ Button.primary
+                , Button.onClick ShowConfirmModal
+                ]
+                [ if isEdit then
+                    Html.text "Apply changes"
+
+                  else
+                    Html.text "Install interface"
+                ]
+            ]
         ]
 
 
@@ -1488,7 +1493,6 @@ renderInterfaceSource : String -> BufferStatus -> Html Msg
 renderInterfaceSource sourceBuffer status =
     Textarea.textarea
         [ Textarea.id "interfaceSource"
-        , Textarea.rows 30
         , Textarea.value sourceBuffer
         , case status of
             Valid ->
@@ -1511,7 +1515,10 @@ renderMapping mapping =
         , options = [ Card.attrs [ Spacing.mb2 ] ]
         , header = renderMappingHeader mapping
         , blocks =
-            [ ( textBlock "Description" mapping.description
+            [ ( textBlock "Allow Unset" ""
+              , not mapping.allowUnset
+              )
+            , ( textBlock "Description" mapping.description
               , String.isEmpty mapping.description
               )
             , ( textBlock "Reliability" <| reliabilityToEnglishString mapping.reliability
@@ -1523,11 +1530,8 @@ renderMapping mapping =
             , ( textBlock "Expiry" <| String.fromInt mapping.expiry
               , mapping.retention == InterfaceMapping.Discard || mapping.expiry == 0
               )
-            , ( textBlock "Explicit timestamp" <| boolToString mapping.explicitTimestamp
+            , ( textBlock "Explicit Timestamp" <| boolToString mapping.explicitTimestamp
               , not mapping.explicitTimestamp
-              )
-            , ( textBlock "Allow unset" <| boolToString mapping.allowUnset
-              , not mapping.allowUnset
               )
             , ( textBlock "Doc" mapping.doc
               , String.isEmpty mapping.doc
@@ -1547,14 +1551,8 @@ renderMapping mapping =
 textBlock : String -> String -> Accordion.CardBlock Msg
 textBlock title content =
     Accordion.block []
-        [ Block.titleH5
-            [ Display.inline
-            , Spacing.mr2
-            ]
-            [ text title ]
-        , Block.text
-            [ Display.inline ]
-            [ text content ]
+        [ Block.titleH5 [ Spacing.mr2 ] [ Html.text title ]
+        , Block.custom (Html.span [] [ Html.text content ])
         ]
 
 
