@@ -166,8 +166,7 @@ export default class RegisterDevicePage extends React.Component {
                 isInvalid={this.state.isInvalidDeviceId}
               />
               <Form.Control.Feedback type="invalid">
-                The device ID must be 22 characters long and only contain
-                letters, numbers and the following characters _ -
+                Device ID must be a unique 128 bit URL-encoded base64 (without padding) string.
               </Form.Control.Feedback>
             </Form.Group>
           </Form.Row>
@@ -258,7 +257,7 @@ export default class RegisterDevicePage extends React.Component {
 
   setNewDeviceId(deviceId) {
     const byteArray = urlSafeBase64ToByteArray(deviceId);
-    const isValid = byteArray.length == 16;
+    const isValid = byteArray.length == 17 && byteArray[16] === 0;
 
     this.setState({
       deviceId: deviceId,
