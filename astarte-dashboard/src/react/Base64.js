@@ -45,7 +45,7 @@ const charset = (() => {
 export function byteArrayToUrlSafeBase64(bytes) {
   let binaryArray = bytes.map(b => b.toString(2));
 
-  const padding = "0".padEnd(6 - ((bytes.length * 8) % 6));
+  const padding = "0".padEnd(6 - ((bytes.length * 8) % 6), "0");
   const binaryString =
     binaryArray.map(b => b.padStart(8, "0")).join("") + padding;
 
@@ -64,5 +64,10 @@ export function urlSafeBase64ToByteArray(base64string) {
       .padStart(6, "0");
   }
 
-  return binaryString.match(/.{1,8}/g).map(b => parseInt(b, 2));
+  const octects = binaryString.match(/.{1,8}/g);
+  if (octects) {
+    return octects.map(b => parseInt(b, 2));
+  } else {
+    return [];
+  }
 }
