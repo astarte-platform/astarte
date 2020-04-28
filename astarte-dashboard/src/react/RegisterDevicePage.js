@@ -17,7 +17,7 @@
 */
 
 import React from "react";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
 import { Button, Col, Form, Modal, Spinner } from "react-bootstrap";
 
 import AstarteClient from "./AstarteClient.js";
@@ -46,22 +46,34 @@ export default class RegisterDevicePage extends React.Component {
     this.generateRandomUUID = this.generateRandomUUID.bind(this);
     this.setNewDeviceId = this.setNewDeviceId.bind(this);
     this.registerDevice = this.registerDevice.bind(this);
-    this.handleModalCancel = this.handleModalCancel.bind(this);
     this.handleRegistrationSuccess = this.handleRegistrationSuccess.bind(this);
     this.handleRegistrationError = this.handleRegistrationError.bind(this);
+    this.credentialModalCancel = this.credentialModalCancel.bind(this);
+    this.namespaceModalCancel = this.namespaceModalCancel.bind(this);
+    this.showNamespaceModal = this.showNamespaceModal.bind(this);
+    this.onNamespaceChange = this.onNamespaceChange.bind(this);
+    this.onCustromStringChange = this.onCustromStringChange.bind(this);
+    this.maybeGenerateDeviceId = this.maybeGenerateDeviceId.bind(this);
+    this.confirmNamespacedId = this.confirmNamespacedId.bind(this);
 
     this.state = {
-      showModal: false,
-      deviceId: ""
+      showCredentialSecretModal: false,
+      showNamespaceModal: false,
+      deviceId: "",
+      namespace: "",
+      customString: "",
+      namespacedID: ""
     };
   }
 
-  renderModal() {
+  renderCredentialSecretModal() {
+    const { showCredentialSecretModal } = this.state;
+
     return (
       <Modal
         size="lg"
-        show={this.state.showModal}
-        onHide={this.handleModalCancel}
+        show={showCredentialSecretModal}
+        onHide={this.credentialModalCancel}
       >
         <Modal.Header closeButton>
           <Modal.Title>{this.state.modalTitle}</Modal.Title>
@@ -70,10 +82,66 @@ export default class RegisterDevicePage extends React.Component {
         <Modal.Footer>
           <Button
             variant="primary"
-            onClick={this.handleModalCancel}
+            onClick={this.credentialModalCancel}
             style={{ width: "8em" }}
           >
             Ok
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+
+  renderNamespaceModal() {
+    const { showNamespaceModal, namespace, customString } = this.state;
+
+    return (
+      <Modal
+        size="lg"
+        show={showNamespaceModal}
+        onHide={this.namespaceModalCancel}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Generate from name</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group controlId="userNamespace">
+              <Form.Label>Namespace UUID in canonical text format</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="e.g.: 753ffc99-dd9d-4a08-a07e-9b0d6ce0bc82"
+                value={namespace}
+                onChange={this.onNamespaceChange}
+                isValid={namespace !== "" && this.state.namespacedID !== ""}
+                isInvalid={namespace !== "" && this.state.namespacedID === ""}
+                required
+              />
+              <Form.Control.Feedback type="invalid">
+                The namespace must be a valid UUID
+              </Form.Control.Feedback>
+            </Form.Group>
+            <Form.Group controlId="userString">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="e.g.: my device"
+                value={customString}
+                onChange={this.onCustromStringChange}
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={this.namespaceModalCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={this.confirmNamespacedId}
+            disabled={this.state.namespacedID === ""}
+          >
+            Generate ID
           </Button>
         </Modal.Footer>
       </Modal>
@@ -114,13 +182,21 @@ export default class RegisterDevicePage extends React.Component {
             <Button
               variant="secondary"
               className="mx-1"
+              onClick={this.showNamespaceModal}
+            >
+              Generate from name...
+            </Button>
+            <Button
+              variant="secondary"
+              className="mx-1"
               onClick={this.generateRandomUUID}
             >
               Generate random ID
             </Button>
           </Form.Row>
         </Form>
-        {this.renderModal()}
+        {this.renderCredentialSecretModal()}
+        {this.renderNamespaceModal()}
       </SingleCardPage>
     );
   }
@@ -138,7 +214,7 @@ export default class RegisterDevicePage extends React.Component {
     let secret = response.data["credentials_secret"];
 
     this.setState({
-      showModal: true,
+      showCredentialSecretModal: true,
       modalTitle: "Device Registered!",
       modalBody: (
         <>
@@ -174,7 +250,7 @@ export default class RegisterDevicePage extends React.Component {
     const { name, message } = err;
 
     this.setState({
-      showModal: true,
+      showCredentialSecretModal: true,
       modalTitle: name,
       modalBody: <p>{message}</p>
     });
@@ -203,9 +279,65 @@ export default class RegisterDevicePage extends React.Component {
     this.setNewDeviceId(newDeviceID);
   }
 
-  handleModalCancel() {
+  credentialModalCancel() {
     this.setState({
-      showModal: false
+      showCredentialSecretModal: false
+    });
+  }
+
+  onNamespaceChange(e) {
+    const namespace = e.target.value;
+
+    this.setState({
+      namespace: namespace
+    });
+    this.maybeGenerateDeviceId(namespace, this.state.customString);
+  }
+
+  onCustromStringChange(e) {
+    const customString = e.target.value;
+
+    this.setState({
+      customString: customString
+    });
+    this.maybeGenerateDeviceId(this.state.namespace, customString);
+  }
+
+  showNamespaceModal() {
+    this.setState({
+      showNamespaceModal: true
+    });
+  }
+
+  namespaceModalCancel() {
+    this.setState({
+      showNamespaceModal: false
+    });
+  }
+
+  maybeGenerateDeviceId(namespace, customString) {
+    let newDeviceID;
+
+    try {
+      const newUUID = uuidv5(customString, namespace).replace(/-/g, "");
+      const bytes = newUUID.match(/.{2}/g).map(b => parseInt(b, 16));
+      newDeviceID = byteArrayToUrlSafeBase64(bytes);
+    } catch (e) {
+      // namespace is not a UUID
+      newDeviceID = "";
+    }
+
+    this.setState({
+      namespacedID: newDeviceID
+    });
+  }
+
+  confirmNamespacedId() {
+    const { namespacedID } = this.state;
+    this.setNewDeviceId(namespacedID);
+
+    this.setState({
+      showNamespaceModal: false
     });
   }
 }
