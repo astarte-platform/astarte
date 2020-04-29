@@ -18,7 +18,9 @@
 
 
 module Types.Trigger exposing
-    ( SimpleTrigger(..)
+    ( Action
+    , HttpMethod(..)
+    , SimpleTrigger(..)
     , Template(..)
     , Trigger
     , decoder
@@ -32,8 +34,9 @@ module Types.Trigger exposing
     , toPrettySource
     )
 
+import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder, Value, andThen, decodeString, field, index, map, nullable, string)
-import Json.Decode.Pipeline exposing (optionalAt, required, requiredAt, resolve)
+import Json.Decode.Pipeline exposing (hardcoded, optional, required, resolve)
 import Json.Encode as Encode
 import Types.DataTrigger as DataTrigger exposing (DataTrigger)
 import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger)
@@ -41,28 +44,49 @@ import Types.DeviceTrigger as DeviceTrigger exposing (DeviceTrigger)
 
 type alias Trigger =
     { name : String
-
-    -- action
-    , url : String
-    , template : Template
-
-    -- Simple triggers
+    , action : Action
     , simpleTrigger : SimpleTrigger
+    }
+
+
+type alias Action =
+    { url : String
+    , httpMethod : HttpMethod
+    , customHeaders : Dict String String
+    , template : Template
     }
 
 
 empty : Trigger
 empty =
     { name = ""
-    , url = ""
-    , template = NoTemplate
+    , action = emptyAction
     , simpleTrigger = Data DataTrigger.empty
+    }
+
+
+emptyAction : Action
+emptyAction =
+    { url = ""
+    , httpMethod = Post
+    , customHeaders = Dict.empty
+    , template = NoTemplate
     }
 
 
 type Template
     = NoTemplate
     | Mustache String
+
+
+type HttpMethod
+    = Delete
+    | Get
+    | Head
+    | Options
+    | Patch
+    | Post
+    | Put
 
 
 type SimpleTrigger
@@ -81,12 +105,26 @@ setName name trigger =
 
 setUrl : String -> Trigger -> Trigger
 setUrl url trigger =
-    { trigger | url = url }
+    let
+        action =
+            trigger.action
+
+        newAction =
+            { action | url = url }
+    in
+    { trigger | action = newAction }
 
 
 setTemplate : Template -> Trigger -> Trigger
 setTemplate template trigger =
-    { trigger | template = template }
+    let
+        action =
+            trigger.action
+
+        newAction =
+            { action | template = template }
+    in
+    { trigger | action = newAction }
 
 
 setSimpleTrigger : SimpleTrigger -> Trigger -> Trigger
@@ -102,12 +140,20 @@ encode : Trigger -> Value
 encode t =
     Encode.object
         [ ( "name", Encode.string t.name )
-        , ( "action"
-          , Encode.object
-                (( "http_post_url", Encode.string t.url ) :: templateEncoder t.template)
-          )
+        , ( "action", encodeAction t.action )
         , ( "simple_triggers", Encode.list simpleTriggerEncoder [ t.simpleTrigger ] )
         ]
+
+
+encodeAction : Action -> Value
+encodeAction action =
+    Encode.object
+        ([ ( "http_url", Encode.string action.url )
+         , ( "http_method", encodeMethod action.httpMethod )
+         , ( "http_custom_headers", Encode.dict identity Encode.string action.customHeaders )
+         ]
+            ++ templateEncoder action.template
+        )
 
 
 templateEncoder : Template -> List ( String, Value )
@@ -120,6 +166,31 @@ templateEncoder template =
             [ ( "template_type", Encode.string "mustache" )
             , ( "template", Encode.string mustacheTemplate )
             ]
+
+
+encodeMethod : HttpMethod -> Value
+encodeMethod method =
+    case method of
+        Delete ->
+            Encode.string "delete"
+
+        Get ->
+            Encode.string "get"
+
+        Head ->
+            Encode.string "head"
+
+        Options ->
+            Encode.string "options"
+
+        Patch ->
+            Encode.string "patch"
+
+        Post ->
+            Encode.string "post"
+
+        Put ->
+            Encode.string "put"
 
 
 simpleTriggerEncoder : SimpleTrigger -> Value
@@ -138,20 +209,48 @@ simpleTriggerEncoder simpleTrigger =
 
 decoder : Decoder Trigger
 decoder =
-    Decode.succeed buildTrigger
+    Decode.succeed Trigger
         |> required "name" string
-        |> requiredAt [ "action", "http_post_url" ] string
-        |> optionalAt [ "action", "template_type" ] (nullable string) Nothing
-        |> optionalAt [ "action", "template" ] (nullable string) Nothing
+        |> required "action" actionDecoder
         |> required "simple_triggers" (index 0 simpleTriggerDecoder)
+
+
+actionDecoder : Decoder Action
+actionDecoder =
+    Decode.oneOf [ decodePostAction, decodeStandardAction ]
+
+
+decodePostAction : Decoder Action
+decodePostAction =
+    Decode.succeed buildAction
+        |> required "http_post_url" Decode.string
+        |> hardcoded Post
+        |> optional "http_custom_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
+        |> optional "template_type" (Decode.nullable Decode.string) Nothing
+        |> optional "template" (Decode.nullable Decode.string) Nothing
         |> resolve
 
 
-buildTrigger : String -> String -> Maybe String -> Maybe String -> SimpleTrigger -> Decoder Trigger
-buildTrigger name url maybeTemplateType maybeTemplate simpleTrigger =
+decodeStandardAction : Decoder Action
+decodeStandardAction =
+    Decode.succeed buildAction
+        |> required "http_url" Decode.string
+        |> required "http_method" methodDecoder
+        |> optional "http_custom_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
+        |> optional "template_type" (Decode.nullable Decode.string) Nothing
+        |> optional "template" (Decode.nullable Decode.string) Nothing
+        |> resolve
+
+
+buildAction : String -> HttpMethod -> Maybe (Dict String String) -> Maybe String -> Maybe String -> Decoder Action
+buildAction url method maybeHeaders maybeTemplateType maybeTemplate =
+    let
+        headers =
+            Maybe.withDefault Dict.empty maybeHeaders
+    in
     case stringsToTemplate maybeTemplateType maybeTemplate of
         Ok template ->
-            Decode.succeed <| Trigger name url template simpleTrigger
+            Decode.succeed <| Action url method headers template
 
         Err err ->
             Decode.fail err
@@ -171,6 +270,38 @@ stringsToTemplate maybeTemplateType maybeTemplate =
 
         ( Just templateType, _ ) ->
             Err <| "Uknown template type: " ++ templateType
+
+
+methodDecoder : Decoder HttpMethod
+methodDecoder =
+    Decode.string
+        |> andThen
+            (\str ->
+                case str of
+                    "delete" ->
+                        Decode.succeed Delete
+
+                    "get" ->
+                        Decode.succeed Get
+
+                    "head" ->
+                        Decode.succeed Head
+
+                    "options" ->
+                        Decode.succeed Options
+
+                    "patch" ->
+                        Decode.succeed Patch
+
+                    "post" ->
+                        Decode.succeed Post
+
+                    "put" ->
+                        Decode.succeed Put
+
+                    _ ->
+                        Decode.fail "Unsupported HTTP method"
+            )
 
 
 simpleTriggerDecoder : Decoder SimpleTrigger

@@ -477,7 +477,7 @@ update session msg model =
             )
 
         UpdateMustachePayload payload ->
-            case model.trigger.template of
+            case model.trigger.action.template of
                 Trigger.Mustache _ ->
                     let
                         newTrigger =
@@ -1033,14 +1033,14 @@ renderTriggerAction model =
                 , Input.text
                     [ Input.id "triggerUrl"
                     , Input.readonly model.editMode
-                    , Input.value model.trigger.url
+                    , Input.value model.trigger.action.url
                     , Input.onInput UpdateTriggerUrl
                     ]
                 ]
             ]
         ]
     , Form.row []
-        (renderTriggerTemplate model.trigger.template model.editMode)
+        (renderTriggerTemplate model.trigger.action.template model.editMode)
     ]
 
 
