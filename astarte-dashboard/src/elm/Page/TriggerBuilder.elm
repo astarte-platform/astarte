@@ -128,7 +128,8 @@ type ModalResult
 
 
 type Msg
-    = GetTriggerDone Trigger
+    = Noop
+    | GetTriggerDone Trigger
     | AddTrigger
     | AddTriggerDone
     | GetInterfaceListDone (List String)
@@ -148,6 +149,7 @@ type Msg
     | UpdateTriggerTemplate String
     | UpdateMustachePayload String
     | UpdateSimpleTriggerType String
+    | UpdateActionMethod Trigger.HttpMethod
       -- Data Trigger
     | UpdateDataTriggerInterfaceName String
     | UpdateDataTriggerInterfaceMajor String
@@ -169,6 +171,12 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
+        Noop ->
+            ( model
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
         GetTriggerDone trigger ->
             case trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
@@ -537,6 +545,28 @@ update session msg model =
                     , Cmd.none
                     , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Unknown simple trigger type" []
                     )
+
+        UpdateActionMethod method ->
+            let
+                trigger =
+                    model.trigger
+
+                action =
+                    trigger.action
+
+                newAction =
+                    { action | httpMethod = method }
+
+                newTrigger =
+                    { trigger | action = newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateDataTriggerInterfaceName interfaceName ->
             case model.trigger.simpleTrigger of
@@ -988,7 +1018,7 @@ renderContent model =
             ]
          ]
             ++ renderSimpleTrigger model
-            ++ renderTriggerAction model
+            ++ renderTriggerAction model.trigger.action model.editMode
             ++ [ Form.row
                     [ if model.editMode then
                         Row.attrs [ Display.none ]
@@ -1009,39 +1039,100 @@ renderContent model =
         )
 
 
-renderTriggerAction : Model -> List (Html Msg)
-renderTriggerAction model =
+renderTriggerAction : Trigger.Action -> Bool -> List (Html Msg)
+renderTriggerAction action editMode =
     [ Form.row []
         [ Form.col [ Col.sm12 ]
             [ Form.group []
                 [ Form.label [ for "triggerActionType" ] [ text "Action type" ]
                 , Select.select
                     [ Select.id "triggerActionType"
-                    , Select.disabled model.editMode
+                    , Select.disabled editMode
                     ]
                     [ Select.item
                         [ value "http" ]
-                        [ text "Post a payload using http" ]
+                        [ text "HTTP request" ]
                     ]
                 ]
             ]
         ]
     , Form.row []
-        [ Form.col [ Col.sm12 ]
+        [ Form.col [ Col.sm4 ]
             [ Form.group []
-                [ Form.label [ for "triggerUrl" ] [ text "POST URL" ]
+                [ Form.label [ for "triggerMethod" ] [ text "HTTP method" ]
+                , Select.select
+                    [ Select.id "triggerMethod"
+                    , Select.disabled editMode
+                    , Select.onChange actionMethodMessage
+                    ]
+                    (actionHttpMethodOptions action.httpMethod)
+                ]
+            ]
+        , Form.col [ Col.sm8 ]
+            [ Form.group []
+                [ Form.label [ for "triggerUrl" ] [ text "Action URL" ]
                 , Input.text
                     [ Input.id "triggerUrl"
-                    , Input.readonly model.editMode
-                    , Input.value model.trigger.action.url
+                    , Input.readonly editMode
+                    , Input.value action.url
                     , Input.onInput UpdateTriggerUrl
                     ]
                 ]
             ]
         ]
     , Form.row []
-        (renderTriggerTemplate model.trigger.action.template model.editMode)
+        (renderTriggerTemplate action.template editMode)
     ]
+
+
+actionHttpMethodOptions : Trigger.HttpMethod -> List (Select.Item Msg)
+actionHttpMethodOptions selectedMethod =
+    [ ( "DELETE", selectedMethod == Trigger.Delete )
+    , ( "GET", selectedMethod == Trigger.Get )
+    , ( "HEAD", selectedMethod == Trigger.Head )
+    , ( "OPTIONS", selectedMethod == Trigger.Options )
+    , ( "PATCH", selectedMethod == Trigger.Patch )
+    , ( "POST", selectedMethod == Trigger.Post )
+    , ( "PUT", selectedMethod == Trigger.Put )
+    ]
+        |> List.map simpleSelectOption
+
+
+simpleSelectOption : ( String, Bool ) -> Select.Item Msg
+simpleSelectOption ( selectValue, isSelected ) =
+    Select.item
+        [ value selectValue
+        , selected isSelected
+        ]
+        [ Html.text selectValue ]
+
+
+actionMethodMessage : String -> Msg
+actionMethodMessage str =
+    case str of
+        "DELETE" ->
+            UpdateActionMethod Trigger.Delete
+
+        "GET" ->
+            UpdateActionMethod Trigger.Get
+
+        "HEAD" ->
+            UpdateActionMethod Trigger.Head
+
+        "OPTIONS" ->
+            UpdateActionMethod Trigger.Options
+
+        "PATCH" ->
+            UpdateActionMethod Trigger.Patch
+
+        "POST" ->
+            UpdateActionMethod Trigger.Post
+
+        "PUT" ->
+            UpdateActionMethod Trigger.Put
+
+        _ ->
+            Noop
 
 
 renderTriggerTemplate : Trigger.Template -> Bool -> List (Form.Col Msg)
