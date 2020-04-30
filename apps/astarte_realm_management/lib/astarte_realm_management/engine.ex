@@ -458,8 +458,8 @@ defmodule Astarte.RealmManagement.Engine do
          simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
          trigger = build_trigger(trigger_name, simple_trigger_maps, action),
          %Trigger{trigger_uuid: trigger_uuid} = trigger,
-         {exchange, routing_key} = target_from_action(action),
-         target = build_trigger_target_container(exchange, routing_key, trigger_uuid),
+         {exchange, routing_key, opts} = target_from_action(action),
+         target = build_trigger_target_container(exchange, routing_key, trigger_uuid, opts),
          :ok <- validate_simple_triggers(client, simple_trigger_maps),
          # TODO: these should be batched together
          :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, target) do
@@ -479,12 +479,18 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp target_from_action(%{"amqp_exchange" => exchange, "amqp_routing_key" => routing_key}) do
-    {exchange, routing_key}
+  defp target_from_action(%{"amqp_exchange" => exchange, "amqp_routing_key" => key} = action) do
+    opts = [
+      message_expiration_ms: Map.get(action, "amqp_message_expiration_ms"),
+      message_priority: Map.get(action, "amqp_message_priority"),
+      message_persistent: Map.get(action, "amqp_message_persistent")
+    ]
+
+    {exchange, key, opts}
   end
 
   defp target_from_action(_) do
-    {nil, "trigger_engine"}
+    {nil, "trigger_engine", []}
   end
 
   defp build_simple_trigger_maps(serialized_tagged_simple_triggers) do
@@ -518,14 +524,17 @@ defmodule Astarte.RealmManagement.Engine do
     }
   end
 
-  defp build_trigger_target_container(exchange, routing_key, trigger_uuid) do
+  defp build_trigger_target_container(exchange, routing_key, trigger_uuid, opts) do
     %TriggerTargetContainer{
       trigger_target: {
         :amqp_trigger_target,
         %AMQPTriggerTarget{
           exchange: exchange,
           routing_key: routing_key,
-          parent_trigger_id: trigger_uuid
+          parent_trigger_id: trigger_uuid,
+          message_expiration_ms: Keyword.get(opts, :amqp_message_expiration_ms),
+          message_priority: Keyword.get(opts, :amqp_message_priority),
+          message_persistent: Keyword.get(opts, :amqp_message_persistent)
         }
       }
     }
