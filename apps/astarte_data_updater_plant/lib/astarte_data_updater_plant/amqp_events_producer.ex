@@ -34,8 +34,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def publish(payload, exchange, routing_key, headers) do
-    GenServer.call(__MODULE__, {:publish, payload, exchange, routing_key, headers})
+  def publish(payload, exchange, routing_key, headers, opts) do
+    GenServer.call(__MODULE__, {:publish, payload, exchange, routing_key, headers, opts})
   end
 
   # Server callbacks
@@ -49,8 +49,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     Connection.close(conn)
   end
 
-  def handle_call({:publish, payload, exchange, routing_key, headers}, _from, chan) do
-    reply = Basic.publish(chan, exchange, routing_key, payload, headers: headers)
+  def handle_call({:publish, payload, exchange, routing_key, headers, opts}, _from, chan) do
+    reply = Basic.publish(chan, exchange, routing_key, payload, [{:headers, headers} | opts])
 
     {:reply, reply, chan}
   end

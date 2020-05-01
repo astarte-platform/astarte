@@ -402,11 +402,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end
   end
 
-  defp wait_backoff_and_publish(:ok, _retry, _payload, _exchange, _routing_key, _headers) do
+  defp wait_backoff_and_publish(:ok, _retry, _payload, _exchange, _routing_key, _headers, _opts) do
     :ok
   end
 
-  defp wait_backoff_and_publish({:error, reason}, retry, payload, exchange, routing_key, headers) do
+  defp wait_backoff_and_publish(
+         {:error, reason},
+         retry,
+         payload,
+         exchange,
+         routing_key,
+         headers,
+         opts
+       ) do
     Logger.warn(
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
@@ -421,19 +429,22 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         retry
       end
 
-    AMQPEventsProducer.publish(payload, exchange, routing_key, headers)
-    |> wait_backoff_and_publish(next_retry, payload, exchange, routing_key, headers)
+    AMQPEventsProducer.publish(payload, exchange, routing_key, headers, opts)
+    |> wait_backoff_and_publish(next_retry, payload, exchange, routing_key, headers, opts)
   end
 
-  defp wait_ok_publish(payload, exchange, routing_key, headers) do
-    AMQPEventsProducer.publish(payload, exchange, routing_key, headers)
-    |> wait_backoff_and_publish(1, payload, exchange, routing_key, headers)
+  defp wait_ok_publish(payload, exchange, routing_key, headers, opts) do
+    AMQPEventsProducer.publish(payload, exchange, routing_key, headers, opts)
+    |> wait_backoff_and_publish(1, payload, exchange, routing_key, headers, opts)
   end
 
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
          exchange: target_exchange,
          routing_key: routing_key,
-         static_headers: static_headers
+         static_headers: static_headers,
+         message_expiration_ms: message_expiration_ms,
+         message_priority: message_priority,
+         message_persistent: message_persistent
        }) do
     {event_type, _event_struct} = simple_event.event
 
@@ -458,9 +469,17 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       | static_headers
     ]
 
+    opts_with_nil = [
+      expiration: message_expiration_ms,
+      priority: message_priority,
+      persistent: message_persistent
+    ]
+
+    opts = Enum.filter(opts_with_nil, fn {_k, v} -> v != nil end)
+
     result =
       SimpleEvent.encode(simple_event)
-      |> wait_ok_publish(exchange, routing_key, headers)
+      |> wait_ok_publish(exchange, routing_key, headers, opts)
 
     :telemetry.execute(
       [:astarte, :data_updater_plant, :triggers_handler, :published_event],
