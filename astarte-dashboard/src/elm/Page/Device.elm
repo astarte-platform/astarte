@@ -1367,7 +1367,7 @@ renderConnectionStatus device =
     case ( device.lastConnection, device.connected ) of
         ( Nothing, _ ) ->
             Html.span []
-                [ Icons.render Icons.FullCircle [ Spacing.mr1 ]
+                [ Icons.render Icons.FullCircle [ class "icon-never-connected", Spacing.mr1 ]
                 , Html.text "Never connected"
                 ]
 
