@@ -402,19 +402,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end
   end
 
-  defp wait_backoff_and_publish(:ok, _retry, _payload, _exchange, _routing_key, _headers, _opts) do
+  defp wait_backoff_and_publish(:ok, _retry, _exchange, _routing_key, _payload, _opts) do
     :ok
   end
 
-  defp wait_backoff_and_publish(
-         {:error, reason},
-         retry,
-         payload,
-         exchange,
-         routing_key,
-         headers,
-         opts
-       ) do
+  defp wait_backoff_and_publish({:error, reason}, retry, exchange, routing_key, payload, opts) do
     Logger.warn(
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
@@ -429,13 +421,13 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         retry
       end
 
-    AMQPEventsProducer.publish(payload, exchange, routing_key, headers, opts)
-    |> wait_backoff_and_publish(next_retry, payload, exchange, routing_key, headers, opts)
+    AMQPEventsProducer.publish(exchange, routing_key, payload, opts)
+    |> wait_backoff_and_publish(next_retry, exchange, routing_key, payload, opts)
   end
 
-  defp wait_ok_publish(payload, exchange, routing_key, headers, opts) do
-    AMQPEventsProducer.publish(payload, exchange, routing_key, headers, opts)
-    |> wait_backoff_and_publish(1, payload, exchange, routing_key, headers, opts)
+  defp wait_ok_publish(exchange, routing_key, payload, opts) do
+    AMQPEventsProducer.publish(exchange, routing_key, payload, opts)
+    |> wait_backoff_and_publish(1, exchange, routing_key, payload, opts)
   end
 
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
@@ -477,9 +469,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
     opts = Enum.filter(opts_with_nil, fn {_k, v} -> v != nil end)
 
-    result =
-      SimpleEvent.encode(simple_event)
-      |> wait_ok_publish(exchange, routing_key, headers, opts)
+    payload = SimpleEvent.encode(simple_event)
+
+    result = wait_ok_publish(exchange, routing_key, payload, [{:headers, headers} | opts])
 
     :telemetry.execute(
       [:astarte, :data_updater_plant, :triggers_handler, :published_event],
