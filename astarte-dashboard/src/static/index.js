@@ -92,7 +92,7 @@ function openSocket(params) {
     protocol = "ws";
   }
 
-  let socketUrl = `${protocol}://${params.appengineUrl}/socket`;
+  let socketUrl = `${protocol}://${params.appengineUrl}/v1/socket`;
   let socketParams = { params: { realm: params.realm, token: params.token } };
   phoenixSocket = new Socket(socketUrl, socketParams);
   phoenixSocket.onError(socketErrorHandler);
