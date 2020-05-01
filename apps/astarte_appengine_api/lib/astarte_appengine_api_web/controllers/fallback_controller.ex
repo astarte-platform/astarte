@@ -183,6 +183,20 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"404_mapping_not_found")
   end
 
+  def call(conn, {:error, :invalid_alias}) do
+    conn
+    |> put_status(:bad_request)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"422_invalid_alias")
+  end
+
+  def call(conn, {:error, :invalid_metadata}) do
+    conn
+    |> put_status(:bad_request)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"422_invalid_metadata")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, reason}, _opts) do
     _ =
