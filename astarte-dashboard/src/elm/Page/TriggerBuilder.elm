@@ -29,15 +29,21 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
+import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
+import Dict exposing (Dict)
 import Html exposing (Html, b, h5, text)
-import Html.Attributes exposing (class, for, readonly, selected, value)
+import Html.Attributes exposing (class, for, href, readonly, selected, value)
 import Html.Events exposing (onSubmit)
 import Icons
+import Json.Decode as Decode
+import Modal.AskKeyValue as AskKeyValue
+import Modal.AskSingleValue as AskSingleValue
+import Modal.ConfirmModal as ConfirmModal
 import Regex exposing (Regex)
 import Route
 import Spinner
@@ -60,19 +66,25 @@ type alias Model =
     , interfaces : List String
     , majors : List Int
     , mappingType : Maybe InterfaceMapping.MappingType
-    , deleteModalVisibility : Modal.Visibility
-    , confirmTriggerName : String
     , showSource : Bool
     , sourceBuffer : String
     , sourceBufferStatus : BufferStatus
     , sourceDebouncer : Debouncer Msg Msg
     , spinner : Spinner.Model
     , showSpinner : Bool
+    , currentModal : Maybe PageModals
 
     -- decoupled types
     , selectedInterfaceName : String
     , selectedInterfaceMajor : Maybe Int
     }
+
+
+type PageModals
+    = NewCustomHeader AskKeyValue.Model (AskKeyValue.Msg -> Msg)
+    | EditCustomHeader AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
+    | ConfirmCustomHeaderDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
+    | ConfirmTriggerDeletion String String
 
 
 type BufferStatus
@@ -97,14 +109,13 @@ init maybeTriggerName session =
       , mappingType = Nothing
       , selectedInterfaceName = ""
       , selectedInterfaceMajor = Nothing
-      , confirmTriggerName = ""
       , showSource = True
       , sourceBuffer = Trigger.toPrettySource Trigger.empty
       , sourceBufferStatus = Valid
       , sourceDebouncer = debouncer
-      , deleteModalVisibility = Modal.hidden
       , spinner = Spinner.init
       , showSpinner = True
+      , currentModal = Nothing
       }
     , case maybeTriggerName of
         Just name ->
@@ -128,7 +139,8 @@ type ModalResult
 
 
 type Msg
-    = GetTriggerDone Trigger
+    = Noop
+    | GetTriggerDone Trigger
     | AddTrigger
     | AddTriggerDone
     | GetInterfaceListDone (List String)
@@ -148,6 +160,7 @@ type Msg
     | UpdateTriggerTemplate String
     | UpdateMustachePayload String
     | UpdateSimpleTriggerType String
+    | UpdateActionMethod Trigger.HttpMethod
       -- Data Trigger
     | UpdateDataTriggerInterfaceName String
     | UpdateDataTriggerInterfaceMajor String
@@ -162,6 +175,12 @@ type Msg
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
     | UpdateConfirmTriggerName String
+    | OpenNewHeaderPopup
+    | OpenEditHeaderPopup String
+    | OpenDeleteHeaderPopup String
+    | UpdateKeyValueModal AskKeyValue.Msg
+    | UpdateSingleValueModal AskSingleValue.Msg
+    | UpdateConfirmModal ConfirmModal.Msg
       -- spinner
     | SpinnerMsg Spinner.Msg
 
@@ -169,6 +188,12 @@ type Msg
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
 update session msg model =
     case msg of
+        Noop ->
+            ( model
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
         GetTriggerDone trigger ->
             case trigger.simpleTrigger of
                 Trigger.Data dataTrigger ->
@@ -477,7 +502,7 @@ update session msg model =
             )
 
         UpdateMustachePayload payload ->
-            case model.trigger.template of
+            case model.trigger.action.template of
                 Trigger.Mustache _ ->
                     let
                         newTrigger =
@@ -537,6 +562,28 @@ update session msg model =
                     , Cmd.none
                     , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Unknown simple trigger type" []
                     )
+
+        UpdateActionMethod method ->
+            let
+                trigger =
+                    model.trigger
+
+                action =
+                    trigger.action
+
+                newAction =
+                    { action | httpMethod = method }
+
+                newTrigger =
+                    { trigger | action = newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateDataTriggerInterfaceName interfaceName ->
             case model.trigger.simpleTrigger of
@@ -793,19 +840,16 @@ update session msg model =
                     )
 
         ShowDeleteModal ->
-            ( { model
-                | deleteModalVisibility = Modal.shown
-                , confirmTriggerName = ""
-              }
+            ( { model | currentModal = Just (ConfirmTriggerDeletion model.trigger.name "") }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
         CloseDeleteModal result ->
-            case result of
-                ModalOk ->
-                    if model.trigger.name == model.confirmTriggerName then
-                        ( { model | deleteModalVisibility = Modal.hidden }
+            case ( model.currentModal, result ) of
+                ( Just (ConfirmTriggerDeletion _ confirmTriggerName), ModalOk ) ->
+                    if model.trigger.name == confirmTriggerName then
+                        ( { model | currentModal = Nothing }
                         , AstarteApi.deleteTrigger session.apiConfig
                             model.trigger.name
                             DeleteTriggerDone
@@ -820,22 +864,231 @@ update session msg model =
                         , ExternalMsg.Noop
                         )
 
-                ModalCancel ->
-                    ( { model | deleteModalVisibility = Modal.hidden }
+                _ ->
+                    ( { model | currentModal = Nothing }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
 
-        UpdateConfirmTriggerName newTriggerName ->
-            ( { model | confirmTriggerName = newTriggerName }
+        UpdateConfirmTriggerName newConfirmTriggerName ->
+            case model.currentModal of
+                Just (ConfirmTriggerDeletion triggerName _) ->
+                    ( { model | currentModal = Just (ConfirmTriggerDeletion triggerName newConfirmTriggerName) }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        OpenNewHeaderPopup ->
+            let
+                modal =
+                    NewCustomHeader (AskKeyValue.init "Add New Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+            in
+            ( { model | currentModal = Just modal }
             , Cmd.none
             , ExternalMsg.Noop
             )
+
+        OpenEditHeaderPopup header ->
+            let
+                modalModel =
+                    AskSingleValue.init
+                        ("Edit Value for Header \"" ++ header ++ "\"")
+                        "Value"
+                        AskSingleValue.AnyValue
+                        True
+
+                modal =
+                    EditCustomHeader modalModel UpdateSingleValueModal header
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        OpenDeleteHeaderPopup header ->
+            let
+                modalModel =
+                    ConfirmModal.init
+                        "Warning"
+                        ("Remove custom header \"" ++ header ++ "\"?")
+                        (Just "Remove header")
+                        (Just ConfirmModal.Danger)
+                        True
+
+                modal =
+                    ConfirmCustomHeaderDeletion modalModel UpdateConfirmModal header
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        UpdateKeyValueModal modalMsg ->
+            case model.currentModal of
+                Just (NewCustomHeader modalModel msgTag) ->
+                    let
+                        ( newModalModel, externalCommand ) =
+                            AskKeyValue.update modalMsg modalModel
+
+                        ( updatedModel, cmd ) =
+                            { model | currentModal = Just (NewCustomHeader newModalModel msgTag) }
+                                |> handleKeyValueModalCommand session externalCommand
+                    in
+                    ( updatedModel
+                    , cmd
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateSingleValueModal modalMsg ->
+            case model.currentModal of
+                Just (EditCustomHeader modalModel msgTag header) ->
+                    let
+                        ( newModalModel, externalCommand ) =
+                            AskSingleValue.update modalMsg modalModel
+
+                        ( updatedModel, cmd ) =
+                            { model | currentModal = Just (EditCustomHeader newModalModel msgTag header) }
+                                |> handleSingleValueModalCommand session externalCommand header
+                    in
+                    ( updatedModel
+                    , cmd
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateConfirmModal modalMsg ->
+            case model.currentModal of
+                Just (ConfirmCustomHeaderDeletion modalModel msgTag header) ->
+                    let
+                        ( newModalModel, externalCommand ) =
+                            ConfirmModal.update modalMsg modalModel
+
+                        ( updatedModel, cmd ) =
+                            { model | currentModal = Just (ConfirmCustomHeaderDeletion newModalModel msgTag header) }
+                                |> handleConfirmModalCommand session externalCommand header
+                    in
+                    ( updatedModel
+                    , cmd
+                    , ExternalMsg.Noop
+                    )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
         SpinnerMsg spinnerMsg ->
             ( { model | spinner = Spinner.update spinnerMsg model.spinner }
             , Cmd.none
             , ExternalMsg.Noop
+            )
+
+
+handleKeyValueModalCommand : Session -> AskKeyValue.ExternalMsg -> Model -> ( Model, Cmd Msg )
+handleKeyValueModalCommand session msg model =
+    case msg of
+        AskKeyValue.Confirm header value ->
+            let
+                trigger =
+                    model.trigger
+
+                action =
+                    trigger.action
+
+                newAction =
+                    { action | customHeaders = Dict.insert header value action.customHeaders }
+
+                newTrigger =
+                    { trigger | action = newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            )
+
+        _ ->
+            ( model
+            , Cmd.none
+            )
+
+
+handleSingleValueModalCommand : Session -> AskSingleValue.ExternalMsg -> String -> Model -> ( Model, Cmd Msg )
+handleSingleValueModalCommand session msg header model =
+    case msg of
+        AskSingleValue.Confirm value ->
+            let
+                trigger =
+                    model.trigger
+
+                action =
+                    trigger.action
+
+                newAction =
+                    { action | customHeaders = Dict.insert header value action.customHeaders }
+
+                newTrigger =
+                    { trigger | action = newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            )
+
+        _ ->
+            ( model
+            , Cmd.none
+            )
+
+
+handleConfirmModalCommand : Session -> ConfirmModal.ExternalMsg -> String -> Model -> ( Model, Cmd Msg )
+handleConfirmModalCommand session msg header model =
+    case msg of
+        ConfirmModal.Confirm ->
+            let
+                trigger =
+                    model.trigger
+
+                action =
+                    trigger.action
+
+                newAction =
+                    { action | customHeaders = Dict.remove header action.customHeaders }
+
+                newTrigger =
+                    { trigger | action = newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            )
+
+        _ ->
+            ( model
+            , Cmd.none
             )
 
 
@@ -930,10 +1183,7 @@ view model flashMessages =
 
           else
             text ""
-        , Grid.row []
-            [ Grid.col [ Col.sm12 ]
-                [ renderDeleteTriggerModal model ]
-            ]
+        , renderModals model.currentModal
         ]
 
 
@@ -988,7 +1238,7 @@ renderContent model =
             ]
          ]
             ++ renderSimpleTrigger model
-            ++ renderTriggerAction model
+            ++ renderTriggerAction model.trigger.action model.editMode
             ++ [ Form.row
                     [ if model.editMode then
                         Row.attrs [ Display.none ]
@@ -1009,39 +1259,205 @@ renderContent model =
         )
 
 
-renderTriggerAction : Model -> List (Html Msg)
-renderTriggerAction model =
+renderTriggerAction : Trigger.Action -> Bool -> List (Html Msg)
+renderTriggerAction action editMode =
     [ Form.row []
         [ Form.col [ Col.sm12 ]
             [ Form.group []
                 [ Form.label [ for "triggerActionType" ] [ text "Action type" ]
                 , Select.select
                     [ Select.id "triggerActionType"
-                    , Select.disabled model.editMode
+                    , Select.disabled editMode
                     ]
                     [ Select.item
                         [ value "http" ]
-                        [ text "Post a payload using http" ]
+                        [ text "HTTP request" ]
                     ]
                 ]
             ]
         ]
     , Form.row []
-        [ Form.col [ Col.sm12 ]
+        [ Form.col [ Col.sm4 ]
             [ Form.group []
-                [ Form.label [ for "triggerUrl" ] [ text "POST URL" ]
+                [ Form.label [ for "triggerMethod" ] [ text "HTTP method" ]
+                , Select.select
+                    [ Select.id "triggerMethod"
+                    , Select.disabled editMode
+                    , Select.onChange actionMethodMessage
+                    ]
+                    (actionHttpMethodOptions action.httpMethod)
+                ]
+            ]
+        , Form.col [ Col.sm8 ]
+            [ Form.group []
+                [ Form.label [ for "triggerUrl" ] [ text "Action URL" ]
                 , Input.text
                     [ Input.id "triggerUrl"
-                    , Input.readonly model.editMode
-                    , Input.value model.trigger.url
+                    , Input.readonly editMode
+                    , Input.value action.url
                     , Input.onInput UpdateTriggerUrl
                     ]
                 ]
             ]
         ]
     , Form.row []
-        (renderTriggerTemplate model.trigger.template model.editMode)
+        (renderTriggerTemplate action.template editMode)
+    , Form.row []
+        [ Form.col
+            [ Col.sm12
+            , Col.attrs [ Spacing.pb1 ]
+            ]
+            (renderCustomHeaders action.customHeaders editMode)
+        ]
     ]
+
+
+actionHttpMethodOptions : Trigger.HttpMethod -> List (Select.Item Msg)
+actionHttpMethodOptions selectedMethod =
+    [ ( "DELETE", selectedMethod == Trigger.Delete )
+    , ( "GET", selectedMethod == Trigger.Get )
+    , ( "HEAD", selectedMethod == Trigger.Head )
+    , ( "OPTIONS", selectedMethod == Trigger.Options )
+    , ( "PATCH", selectedMethod == Trigger.Patch )
+    , ( "POST", selectedMethod == Trigger.Post )
+    , ( "PUT", selectedMethod == Trigger.Put )
+    ]
+        |> List.map simpleSelectOption
+
+
+simpleSelectOption : ( String, Bool ) -> Select.Item Msg
+simpleSelectOption ( selectValue, isSelected ) =
+    Select.item
+        [ value selectValue
+        , selected isSelected
+        ]
+        [ Html.text selectValue ]
+
+
+actionMethodMessage : String -> Msg
+actionMethodMessage str =
+    case str of
+        "DELETE" ->
+            UpdateActionMethod Trigger.Delete
+
+        "GET" ->
+            UpdateActionMethod Trigger.Get
+
+        "HEAD" ->
+            UpdateActionMethod Trigger.Head
+
+        "OPTIONS" ->
+            UpdateActionMethod Trigger.Options
+
+        "PATCH" ->
+            UpdateActionMethod Trigger.Patch
+
+        "POST" ->
+            UpdateActionMethod Trigger.Post
+
+        "PUT" ->
+            UpdateActionMethod Trigger.Put
+
+        _ ->
+            Noop
+
+
+renderCustomHeaders : Dict String String -> Bool -> List (Html Msg)
+renderCustomHeaders customHeaders editMode =
+    if editMode then
+        [ renderHeadersTable customHeaders ]
+
+    else
+        [ renderEditableHeadersTable customHeaders
+        , Html.a
+            [ { message = OpenNewHeaderPopup
+              , preventDefault = True
+              , stopPropagation = False
+              }
+                |> Decode.succeed
+                |> Html.Events.custom "click"
+            , href "#"
+            , Html.Attributes.target "_self"
+            ]
+            [ Icons.render Icons.Add [ Spacing.mr1 ]
+            , Html.text "Add custom request headers..."
+            ]
+        ]
+
+
+renderHeadersTable : Dict String String -> Html Msg
+renderHeadersTable customHeaders =
+    if Dict.isEmpty customHeaders then
+        Html.text ""
+
+    else
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th []
+                    [ Html.text "Header" ]
+                , Table.th []
+                    [ Html.text "Value" ]
+                ]
+            , Table.tbody []
+                (customHeaders
+                    |> Dict.toList
+                    |> List.map httpHeaderTableRow
+                )
+            )
+
+
+renderEditableHeadersTable : Dict String String -> Html Msg
+renderEditableHeadersTable customHeaders =
+    if Dict.isEmpty customHeaders then
+        Html.text ""
+
+    else
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th []
+                    [ Html.text "Header" ]
+                , Table.th []
+                    [ Html.text "Value" ]
+                , Table.th [ Table.cellAttr <| class "action-column" ]
+                    [ Html.text "Actions" ]
+                ]
+            , Table.tbody []
+                (customHeaders
+                    |> Dict.toList
+                    |> List.map (httpHeaderTableRowWithControls OpenEditHeaderPopup OpenDeleteHeaderPopup)
+                )
+            )
+
+
+httpHeaderTableRow : ( String, String ) -> Table.Row Msg
+httpHeaderTableRow ( header, value ) =
+    Table.tr []
+        [ Table.td []
+            [ Html.text header ]
+        , Table.td []
+            [ Html.text value ]
+        ]
+
+
+httpHeaderTableRowWithControls : (String -> Msg) -> (String -> Msg) -> ( String, String ) -> Table.Row Msg
+httpHeaderTableRowWithControls editMsg deleteMsg ( header, value ) =
+    Table.tr []
+        [ Table.td []
+            [ Html.text header ]
+        , Table.td []
+            [ Html.text value ]
+        , Table.td [ Table.cellAttr <| class "text-center" ]
+            [ Icons.render Icons.Edit
+                [ class "color-grey action-icon"
+                , Spacing.mr2
+                , Html.Events.onClick (editMsg header)
+                ]
+            , Icons.render Icons.Erase
+                [ class "color-red action-icon"
+                , Html.Events.onClick (deleteMsg header)
+                ]
+            ]
+        ]
 
 
 renderTriggerTemplate : Trigger.Template -> Bool -> List (Form.Col Msg)
@@ -1378,8 +1794,8 @@ renderTriggerSource sourceBuffer status editMode =
         ]
 
 
-renderDeleteTriggerModal : Model -> Html Msg
-renderDeleteTriggerModal model =
+renderDeleteTriggerModal : String -> String -> Html Msg
+renderDeleteTriggerModal triggerName confirmTriggerName =
     Modal.config (CloseDeleteModal ModalCancel)
         |> Modal.large
         |> Modal.h5 [] [ text "Confirmation Required" ]
@@ -1388,14 +1804,14 @@ renderDeleteTriggerModal model =
                 [ Form.row []
                     [ Form.col [ Col.sm12 ]
                         [ text "You are going to remove "
-                        , b [] [ text <| model.trigger.name ++ ". " ]
+                        , b [] [ text <| triggerName ++ ". " ]
                         , text "This might cause data loss, removed triggers cannot be restored. Are you sure?"
                         ]
                     ]
                 , Form.row []
                     [ Form.col [ Col.sm12 ]
                         [ text "Please type "
-                        , b [] [ text model.trigger.name ]
+                        , b [] [ text triggerName ]
                         , text " to proceed."
                         ]
                     ]
@@ -1404,7 +1820,7 @@ renderDeleteTriggerModal model =
                         [ Input.text
                             [ Input.id "confirmTriggerName"
                             , Input.placeholder "Trigger Name"
-                            , Input.value model.confirmTriggerName
+                            , Input.value confirmTriggerName
                             , Input.onInput UpdateConfirmTriggerName
                             ]
                         ]
@@ -1419,12 +1835,34 @@ renderDeleteTriggerModal model =
                 [ text "Cancel" ]
             , Button.button
                 [ Button.primary
-                , Button.disabled <| model.trigger.name /= model.confirmTriggerName
+                , Button.disabled <| triggerName /= confirmTriggerName
                 , Button.onClick <| CloseDeleteModal ModalOk
                 ]
                 [ text "Confirm" ]
             ]
-        |> Modal.view model.deleteModalVisibility
+        |> Modal.view Modal.shown
+
+
+renderModals : Maybe PageModals -> Html Msg
+renderModals currentModal =
+    case currentModal of
+        Nothing ->
+            Html.text ""
+
+        Just (NewCustomHeader model messageHandler) ->
+            AskKeyValue.view model
+                |> Html.map messageHandler
+
+        Just (EditCustomHeader model messageHandler _) ->
+            AskSingleValue.view model
+                |> Html.map messageHandler
+
+        Just (ConfirmCustomHeaderDeletion model messageHandler _) ->
+            ConfirmModal.view model
+                |> Html.map messageHandler
+
+        Just (ConfirmTriggerDeletion triggerName confirmTriggerName) ->
+            renderDeleteTriggerModal triggerName confirmTriggerName
 
 
 availableInterfaces : List String -> List ( String, String )
