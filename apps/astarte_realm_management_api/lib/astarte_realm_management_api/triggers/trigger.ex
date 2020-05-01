@@ -20,13 +20,13 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.API.Triggers.{Action, Trigger}
 
   @derive {Phoenix.Param, key: :name}
   @primary_key false
   embedded_schema do
     field :name, :string
-    field :action, :map
+    field :action, Action
     embeds_many :simple_triggers, SimpleTriggerConfig
   end
 

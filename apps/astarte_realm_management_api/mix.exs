@@ -87,6 +87,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:gettext, "~> 0.11"},
       {:phoenix_ecto, "~> 4.0"},
       {:cors_plug, "~> 2.0"},
+      {:ecto_morph, "~> 0.1"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},
       {:excoveralls, "~> 0.12", only: :test},
