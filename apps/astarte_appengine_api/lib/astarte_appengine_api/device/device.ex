@@ -71,7 +71,7 @@ defmodule Astarte.AppEngine.API.Device do
          credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),
          :ok <- change_credentials_inhibited(client, device_id, credentials_inhibited_change),
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
-         metadata_change <- Map.get(changeset.changes, :metadata, %{}),
+         metadata_change = Map.get(changeset.changes, :metadata, %{}),
          :ok <- update_aliases(client, device_id, aliases_change),
          :ok <- update_metadata(client, device_id, metadata_change) do
       # Manually merge aliases since changesets don't perform maps deep merge
@@ -89,6 +89,10 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp update_metadata(client, device_id, metadata) do
     Enum.reduce_while(metadata, :ok, fn
+      {"", _metadata_value}, _acc ->
+        Logger.warn("Metadata key cannot be an empty string.", tag: :invalid_metadata_empty_key)
+        {:halt, {:error, :invalid_metadata}}
+
       {metadata_key, nil}, _acc ->
         case Queries.delete_metadata(client, device_id, metadata_key) do
           :ok ->
@@ -111,6 +115,14 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp update_aliases(client, device_id, aliases) do
     Enum.reduce_while(aliases, :ok, fn
+      {_alias_key, ""}, _acc ->
+        Logger.warn("Alias value cannot be an empty string.", tag: :invalid_alias_empty_value)
+        {:halt, {:error, :invalid_alias}}
+
+      {"", _alias_value}, _acc ->
+        Logger.warn("Alias key cannot be an empty string.", tag: :invalid_alias_empty_key)
+        {:halt, {:error, :invalid_alias}}
+
       {alias_key, nil}, _acc ->
         case Queries.delete_alias(client, device_id, alias_key) do
           :ok -> {:cont, :ok}

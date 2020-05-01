@@ -82,6 +82,14 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Alias already in use"}}
   end
 
+  def render("422_invalid_alias.json", _assigns) do
+    %{errors: %{detail: "Invalid alias"}}
+  end
+
+  def render("422_invalid_metadata.json", _assigns) do
+    %{errors: %{detail: "Invalid metadata"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end

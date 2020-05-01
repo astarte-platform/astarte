@@ -1601,6 +1601,46 @@ defmodule Astarte.AppEngine.API.DeviceTest do
               Map.put(@expected_device_status, :metadata, %{"metadata_key" => "new_metadata"})}
   end
 
+  test "empty value is ok when updating device metadata using merge_device_status/3" do
+    params = %{"metadata" => %{"metadata_key" => ""}}
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             params
+           ) == {:ok, Map.put(@expected_device_status, :metadata, %{"metadata_key" => ""})}
+  end
+
+  test "empty key returns an error when updating device metadata using merge_device_status/3" do
+    params = %{"metadata" => %{"" => "metadata_val"}}
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             params
+           ) == {:error, :invalid_metadata}
+  end
+
+  test "empty key returns an error when updating device aliases using merge_device_status/3" do
+    params = %{"aliases" => %{"" => "alias_val"}}
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             params
+           ) == {:error, :invalid_alias}
+  end
+
+  test "empty value leaves the status unchanged when updating device aliases using merge_device_status/3" do
+    params = %{"aliases" => %{"alias_key" => ""}}
+
+    assert Device.merge_device_status(
+             "autotestrealm",
+             "f0VMRgIBAQAAAAAAAAAAAA",
+             params
+           ) == {:error, :invalid_alias}
+  end
+
   test "delete metadata with existing key using merge_device_status" do
     modified_metadata = %{"metadata" => %{"metadata_key" => nil}}
 
