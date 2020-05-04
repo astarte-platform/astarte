@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Layout and palette restyle.
 - Configuration accepts both base Astarte API URL and specific component URLs.
+- Public keys are shown using monospace fonts
 
 ## [0.11.0-rc.0] - 2020-01-26
 ### Added

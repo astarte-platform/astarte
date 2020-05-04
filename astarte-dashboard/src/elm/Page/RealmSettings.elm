@@ -261,6 +261,7 @@ renderConfig mConfig =
                                 , Textarea.rows 10
                                 , Textarea.value conf.pubKey
                                 , Textarea.onInput UpdatePubKey
+                                , Textarea.attrs [ class "text-monospace" ]
                                 ]
                             ]
                         ]
