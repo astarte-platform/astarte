@@ -236,45 +236,25 @@ welcomeCard width =
 
 interfacesCard : Card.Width -> Int -> Grid.Column Msg
 interfacesCard width interfaceCount =
-    let
-        interfaceText =
-            if interfaceCount == 0 then
-                "No interface installed."
+    Card.view "Interfaces"
+        width
+        [ Html.p []
+            (if interfaceCount == 0 then
+                [ Html.text "Interfaces defines how data is exchanged between Astarte and its peers."
+                , Html.br [] []
+                , Html.a
+                    [ target "_blank", href "https://docs.astarte-platform.org/snapshot/030-interface.html" ]
+                    [ Html.text "Learn more..." ]
+                ]
 
-            else
-                String.fromInt interfaceCount
-
-        description =
-            if interfaceCount == 0 then
-                Html.p [ Spacing.mt3 ]
-                    [ Html.text "Interfaces defines how data is exchanged between Astarte and its peers."
-                    , Html.br [] []
-                    , Html.a
-                        [ target "_blank", href "https://docs.astarte-platform.org/snapshot/030-interface.html" ]
-                        [ Html.text "Learn more..." ]
-                    ]
-
-            else
-                Html.text ""
-    in
-    Card.view width
-        "Interfaces"
-        [ Grid.row []
-            [ Grid.col [ Col.sm12 ]
-                [ description
-                , Card.htmlRow
-                    ( "Installed interfaces"
-                    , Html.span []
-                        [ Html.text interfaceText
-                        , Html.a
-                            [ href "/interfaces/new"
-                            , Spacing.ml3
-                            ]
-                            [ Icons.render Icons.Add [ Spacing.mr1 ]
-                            , Html.text "Install new interface..."
-                            ]
-                        ]
-                    )
+             else
+                [ Html.text <| String.fromInt interfaceCount ++ " installed interfaces." ]
+            )
+        , Html.p []
+            [ Html.a
+                [ href "/interfaces/new" ]
+                [ Icons.render Icons.Add [ Spacing.mr1 ]
+                , Html.text "Install new interface..."
                 ]
             ]
         ]
@@ -282,47 +262,27 @@ interfacesCard width interfaceCount =
 
 triggersCard : Card.Width -> Int -> Grid.Column Msg
 triggersCard width triggerCount =
-    let
-        triggerText =
-            if triggerCount == 0 then
-                "No triggers installed."
+    Card.view "Triggers"
+        width
+        [ Html.p []
+            (if triggerCount == 0 then
+                [ Html.text "Triggers in Astarte are the go-to mechanism for generating push events."
+                , Html.br [] []
+                , Html.text "Triggers allow users to specify conditions upon which a custom payload is delivered to a recipient, using a specific action, which usually maps to a specific transport/protocol, such as HTTP."
+                , Html.br [] []
+                , Html.a
+                    [ target "_blank", href "https://docs.astarte-platform.org/snapshot/060-using_triggers.html" ]
+                    [ Html.text "Learn more..." ]
+                ]
 
-            else
-                String.fromInt triggerCount
-
-        description =
-            if triggerCount == 0 then
-                Html.p [ Spacing.mt3 ]
-                    [ Html.text "Triggers in Astarte are the go-to mechanism for generating push events."
-                    , Html.br [] []
-                    , Html.text "Triggers allow users to specify conditions upon which a custom payload is delivered to a recipient, using a specific action, which usually maps to a specific transport/protocol, such as HTTP."
-                    , Html.br [] []
-                    , Html.a
-                        [ target "_blank", href "https://docs.astarte-platform.org/snapshot/060-using_triggers.html" ]
-                        [ Html.text "Learn more..." ]
-                    ]
-
-            else
-                Html.text ""
-    in
-    Card.view width
-        "Triggers"
-        [ Grid.row []
-            [ Grid.col [ Col.sm12 ]
-                [ description
-                , Card.htmlRow
-                    ( "Installed triggers"
-                    , Html.span []
-                        [ Html.text triggerText
-                        , Html.a
-                            [ href "/triggers/new"
-                            , Spacing.ml3
-                            ]
-                            [ Icons.render Icons.Add [ Spacing.mr1 ]
-                            , Html.text "Install new trigger..."
-                            ]
-                        ]
-                    )
+             else
+                [ Html.text <| String.fromInt triggerCount ++ " installed triggers." ]
+            )
+        , Html.p []
+            [ Html.a
+                [ href "/triggers/new" ]
+                [ Icons.render Icons.Add [ Spacing.mr1 ]
+                , Html.text "Install new trigger..."
                 ]
             ]
         ]
@@ -330,27 +290,23 @@ triggersCard width triggerCount =
 
 apiHealthCard : Card.Width -> Maybe Bool -> Maybe Bool -> Grid.Column Msg
 apiHealthCard width appengineHelath realmManagementHealth =
-    Card.view width
-        "API Health"
-        [ Grid.row []
-            [ Grid.col [ Col.sm12 ]
-                [ Card.htmlRow ( "Realm management API", renderHealth appengineHelath )
-                , Card.htmlRow ( "AppEngine API", renderHealth realmManagementHealth )
-                ]
-            ]
+    Card.view "API Health"
+        width
+        [ Card.subTitle "Realm management API"
+        , renderHealth appengineHelath
+        , Card.subTitle "AppEngine API"
+        , renderHealth realmManagementHealth
         ]
 
 
 appengineCard : Card.Width -> DeviceStats -> Grid.Column Msg
 appengineCard width stats =
-    Card.view width
-        "Devices"
-        [ Grid.row []
-            [ Grid.col [ Col.sm12 ]
-                [ Card.textRow ( "Total registered devices", String.fromInt stats.totalDevices )
-                , Card.textRow ( "Currently connected devices", String.fromInt stats.connectedDevices ++ "/" ++ String.fromInt stats.totalDevices )
-                ]
-            ]
+    Card.view "Devices"
+        width
+        [ Card.subTitle "Total registered devices"
+        , Card.simpleText <| String.fromInt stats.totalDevices
+        , Card.subTitle "Currently connected devices"
+        , Card.simpleText <| String.fromInt stats.connectedDevices ++ "/" ++ String.fromInt stats.totalDevices
         ]
 
 
@@ -358,17 +314,16 @@ renderHealth : Maybe Bool -> Html Msg
 renderHealth healthy =
     case healthy of
         Nothing ->
-            Html.span []
-                [ Html.text "Checking..." ]
+            Card.simpleText "Checking..."
 
         Just True ->
-            Html.span []
+            Html.p []
                 [ Icons.renderWithColor Color.green Icons.Healthy [ Spacing.mr1 ]
                 , Html.text "Healthy"
                 ]
 
         Just False ->
-            Html.span []
+            Html.p []
                 [ Icons.renderWithColor Color.red Icons.Unhealthy [ Spacing.mr1 ]
                 , Html.text "Unhealthy"
                 ]

@@ -1613,22 +1613,18 @@ renderDeleteInterfaceModal model =
         |> Modal.large
         |> Modal.h5 [] [ text "Confirmation Required" ]
         |> Modal.body []
-            [ Form.form [ onSubmit (CloseDeleteModal ModalOk) ]
+            [ Html.p []
+                [ Html.text "You are going to remove "
+                , Html.b [] [ text <| model.interface.name ++ " v0. " ]
+                , Html.text "This might cause data loss, removed interfaces cannot be restored. Are you sure?"
+                ]
+            , Html.p []
+                [ Html.text "Please type "
+                , Html.b [] [ text model.interface.name ]
+                , Html.text " to proceed."
+                ]
+            , Form.form [ onSubmit (CloseDeleteModal ModalOk) ]
                 [ Form.row []
-                    [ Form.col [ Col.sm12 ]
-                        [ text "You are going to remove "
-                        , b [] [ text <| model.interface.name ++ " v0. " ]
-                        , text "This might cause data loss, removed interfaces cannot be restored. Are you sure?"
-                        ]
-                    ]
-                , Form.row []
-                    [ Form.col [ Col.sm12 ]
-                        [ text "Please type "
-                        , b [] [ text model.interface.name ]
-                        , text " to proceed."
-                        ]
-                    ]
-                , Form.row []
                     [ Form.col [ Col.sm12 ]
                         [ Input.text
                             [ Input.id "confirmInterfaceName"
@@ -1714,7 +1710,7 @@ confirmModalWarningText editMode interfaceName interfaceMajor =
                 , br [] []
                 , text "Draft Interfaces should be used for development and testing purposes only."
                 ]
-        , text "Are you sure you want to continue?"
+        , Html.p [] [ text "Are you sure you want to continue?" ]
         ]
 
 

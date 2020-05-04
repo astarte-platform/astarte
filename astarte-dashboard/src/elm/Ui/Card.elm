@@ -17,7 +17,7 @@
 -}
 
 
-module Ui.Card exposing (Width(..), htmlRow, textRow, view, viewHeadless)
+module Ui.Card exposing (Width(..), simpleText, subTitle, view, viewHeadless)
 
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
@@ -35,80 +35,41 @@ type Width
     | HalfWidth
 
 
-view : Width -> String -> List (Html msg) -> Grid.Column msg
-view width cardName innerItems =
-    let
-        classWidth =
-            case width of
-                FullWidth ->
-                    [ Col.xs12 ]
-
-                HalfWidth ->
-                    [ Col.xs12
-                    , Col.md6
-                    ]
-    in
-    Grid.col (classWidth ++ [ Col.attrs [ Spacing.p2 ] ])
+view : String -> Width -> List (Html msg) -> Grid.Column msg
+view cardName width innerItems =
+    Grid.col (colOptionsFromWidth width ++ [ Col.attrs [ Spacing.p2 ] ])
         [ Grid.containerFluid
             [ class "bg-white", Border.rounded, Spacing.p3, Size.h100 ]
-            ([ Grid.row
-                [ Row.attrs [ Spacing.mt2 ] ]
-                [ Grid.col [ Col.sm12 ]
-                    [ Html.h5
-                        [ Display.inline
-                        , class "text-secondary"
-                        , class "font-weight-normal"
-                        , class "align-middle"
-                        ]
-                        [ Html.text cardName ]
-                    ]
-                ]
-             ]
-                ++ innerItems
-            )
+            (Html.h5 [] [ Html.text cardName ] :: innerItems)
         ]
 
 
 viewHeadless : Width -> List (Html msg) -> Grid.Column msg
 viewHeadless width innerItems =
-    let
-        classWidth =
-            case width of
-                FullWidth ->
-                    [ Col.xs12 ]
-
-                HalfWidth ->
-                    [ Col.xs12
-                    , Col.md6
-                    ]
-    in
-    Grid.col (classWidth ++ [ Col.attrs [ Spacing.p2 ] ])
+    Grid.col (colOptionsFromWidth width ++ [ Col.attrs [ Spacing.p2 ] ])
         [ Grid.containerFluid
             [ class "bg-white", Border.rounded, Spacing.p3, Size.h100 ]
             innerItems
         ]
 
 
-htmlRow : ( String, Html msg ) -> Html msg
-htmlRow ( label, value ) =
-    Grid.row
-        [ Row.attrs [ Spacing.mt3 ] ]
-        [ Grid.col [ Col.sm12 ]
-            [ Html.h6 [] [ Html.text label ]
-            , value
+colOptionsFromWidth : Width -> List (Col.Option msg)
+colOptionsFromWidth width =
+    case width of
+        FullWidth ->
+            [ Col.xs12 ]
+
+        HalfWidth ->
+            [ Col.xs12
+            , Col.md6
             ]
-        ]
 
 
-textRow : ( String, String ) -> Html msg
-textRow ( label, value ) =
-    htmlRow ( label, Html.text value )
+subTitle : String -> Html msg
+subTitle title =
+    Html.h6 [] [ Html.text title ]
 
 
-boolRow : ( String, Bool ) -> Html msg
-boolRow ( label, value ) =
-    if value then
-        textRow ( label, "True" )
-
-    else
-        textRow ( label, "False" )
+simpleText : String -> Html msg
+simpleText text =
+    Html.p [] [ Html.text text ]
