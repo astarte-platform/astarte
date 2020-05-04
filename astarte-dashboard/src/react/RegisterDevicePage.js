@@ -55,6 +55,7 @@ export default class RegisterDevicePage extends React.Component {
     this.onCustromStringChange = this.onCustromStringChange.bind(this);
     this.maybeGenerateDeviceId = this.maybeGenerateDeviceId.bind(this);
     this.confirmNamespacedId = this.confirmNamespacedId.bind(this);
+    this.returnToDeviceListPage = this.returnToDeviceListPage.bind(this);
 
     this.state = {
       showCredentialSecretModal: false,
@@ -82,7 +83,7 @@ export default class RegisterDevicePage extends React.Component {
         <Modal.Footer>
           <Button
             variant="primary"
-            onClick={this.credentialModalCancel}
+            onClick={this.returnToDeviceListPage}
             style={{ width: "8em" }}
           >
             Ok
@@ -282,6 +283,10 @@ export default class RegisterDevicePage extends React.Component {
     this.setState({
       showCredentialSecretModal: false
     });
+  }
+
+  returnToDeviceListPage() {
+    this.props.history.push({ pathname: "/devices" });
   }
 
   onNamespaceChange(e) {
