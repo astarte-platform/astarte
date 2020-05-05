@@ -295,7 +295,7 @@ function DeviceTable(props) {
       <thead>
         <tr>
           <th>Status</th>
-          <th>Device ID</th>
+          <th>Device handle</th>
           <th>Last connection event</th>
         </tr>
       </thead>
