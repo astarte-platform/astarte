@@ -345,7 +345,7 @@ function DeviceRow(props) {
           <CircleIcon className={colorClass} />
         </OverlayTrigger>
       </td>
-      <td>
+      <td className={device.hasNameAlias ? "" : "text-monospace"}>
         <Link to={`/devices/${device.id}`}>{device.name}</Link>
       </td>
       <td>{lastEvent}</td>
