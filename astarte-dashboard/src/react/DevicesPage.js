@@ -41,15 +41,7 @@ export default class DevicesPage extends React.Component {
   constructor(props) {
     super(props);
 
-    let config = JSON.parse(localStorage.session).api_config;
-    let protocol = config.secure_connection ? "https://" : "http://";
-    let astarteConfig = {
-      realm: config.realm,
-      token: config.token,
-      realmManagementUrl: protocol + config.realm_management_url,
-      appengineUrl: protocol + config.appengine_url
-    };
-    this.astarte = new AstarteClient(astarteConfig);
+    this.astarte = this.props.astarte;
 
     this.handleStatsRequest = this.handleStatsRequest.bind(this);
     this.handleDevicesRequest = this.handleDevicesRequest.bind(this);

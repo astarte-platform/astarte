@@ -32,24 +32,30 @@ import NewGroupPage from "./NewGroupPage.js";
 import DevicesPage from "./DevicesPage.js";
 import RegisterDevicePage from "./RegisterDevicePage.js";
 
-export function getRouter(reactHistory, fallback) {
+export function getRouter(reactHistory, astarteClient, fallback) {
+
+  const pageProps = {
+      history: reactHistory,
+      astarte: astarteClient
+  }
+
   return (
     <Router history={reactHistory}>
       <Switch>
         <Route exact path="/devices">
-          <DevicesPage history={reactHistory} />
+          <DevicesPage {...pageProps} />
         </Route>
         <Route exact path="/devices/register">
-          <RegisterDevicePage history={reactHistory} />
+          <RegisterDevicePage {...pageProps} />
         </Route>
         <Route exact path="/groups">
-          <GroupsPage history={reactHistory} />
+          <GroupsPage {...pageProps} />
         </Route>
         <Route exact path="/groups/new">
-          <NewGroupPage history={reactHistory} />
+          <NewGroupPage {...pageProps} />
         </Route>
         <Route path="/groups/:groupName">
-          <GroupDevicesSubPath history={reactHistory} />
+          <GroupDevicesSubPath {...pageProps} />
         </Route>
         <Route path="*">
           <NoMatch fallback={fallback} />
@@ -62,7 +68,7 @@ export function getRouter(reactHistory, fallback) {
 function GroupDevicesSubPath(props) {
   let { groupName } = useParams();
 
-  return <GroupDevicesPage groupName={groupName} history={props.history} />;
+  return <GroupDevicesPage groupName={groupName} {...props} />;
 }
 
 function NoMatch(props) {

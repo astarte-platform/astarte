@@ -28,14 +28,7 @@ export default class GroupsPage extends React.Component {
   constructor(props) {
     super(props);
 
-    let config = JSON.parse(localStorage.session).api_config;
-    let protocol = config.secure_connection ? "https://" : "http://";
-    let astarteConfig = {
-      realm: config.realm,
-      token: config.token,
-      realmManagementUrl: protocol + config.realm_management_url,
-      appengineUrl: protocol + config.appengine_url
-    };
+    this.astarte = this.props.astarte;
 
     this.state = {
       phase: "loading"
@@ -46,7 +39,6 @@ export default class GroupsPage extends React.Component {
     this.handleDeviceList = this.handleDeviceList.bind(this);
     this.handleDeviceError = this.handleDeviceError.bind(this);
 
-    this.astarte = new AstarteClient(astarteConfig);
     this.astarte
       .getGroupList()
       .then(this.handleGroupsRequest)

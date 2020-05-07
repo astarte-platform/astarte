@@ -38,14 +38,7 @@ export default class NewGroupPage extends React.Component {
   constructor(props) {
     super(props);
 
-    let config = JSON.parse(localStorage.session).api_config;
-    let protocol = config.secure_connection ? "https://" : "http://";
-    let astarteConfig = {
-      realm: config.realm,
-      token: config.token,
-      realmManagementUrl: protocol + config.realm_management_url,
-      appengineUrl: protocol + config.appengine_url
-    };
+    this.astarte = this.props.astarte;
 
     this.state = {
       phase: "loading"
@@ -58,7 +51,6 @@ export default class NewGroupPage extends React.Component {
     this.updateFilter = this.updateFilter.bind(this);
     this.createGroup = this.createGroup.bind(this);
 
-    this.astarte = new AstarteClient(astarteConfig);
     this.astarte
       .getDevices({ details: true })
       .then(this.handleDevicesRequest)

@@ -19,6 +19,7 @@
 import ReactDOM from "react-dom";
 import { createBrowserHistory } from "history";
 import { getRouter } from "../react/Router.js";
+import AstarteClient from "../react/AstarteClient.js";
 
 require("./styles/main.scss");
 
@@ -298,7 +299,7 @@ function loadPage(page) {
 
   reactHistory = createBrowserHistory();
 
-  const reactApp = getRouter(reactHistory, noMatchFallback);
+  const reactApp = getRouter(reactHistory, astarteClient(), noMatchFallback);
   ReactDOM.render(reactApp, document.getElementById("react-page"));
 }
 
@@ -311,4 +312,19 @@ function clearReact() {
 
 function noMatchFallback(url) {
   app.ports.onPageRequested.send(url);
+}
+
+function astarteClient() {
+  const config = JSON.parse(localStorage.session).api_config;
+  const protocol = config.secure_connection ? "https://" : "http://";
+  const astarteConfig = {
+    realm: config.realm,
+    token: config.token,
+    secureConnection: config.secure_connection,
+    realmManagementUrl: protocol + config.realm_management_url,
+    appengineUrl: protocol + config.appengine_url,
+    pairingUrl: protocol + config.pairing_url
+  };
+
+  return new AstarteClient(astarteConfig);
 }
