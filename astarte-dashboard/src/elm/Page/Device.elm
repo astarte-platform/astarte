@@ -865,7 +865,7 @@ deviceInfoCard : Device -> CardWidth -> Grid.Column Msg
 deviceInfoCard device width =
     renderCard "Device Info"
         width
-        [ renderTextRow ( "Device ID", device.id )
+        [ renderHtmlRow ( "Device ID", Html.span [ class "text-monospace" ] [ Html.text device.id ] )
         , renderTextRow ( "Device name", Dict.get "name" device.aliases |> Maybe.withDefault "No name alias set" )
         , renderHtmlRow ( "Status", renderConnectionStatus device )
         , renderBoolRow ( "Credentials inhibited", device.credentialsinhibited )

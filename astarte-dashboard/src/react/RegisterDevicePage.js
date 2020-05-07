@@ -158,6 +158,7 @@ export default class RegisterDevicePage extends React.Component {
               <Form.Label>Device ID</Form.Label>
               <Form.Control
                 type="text"
+                className="text-monospace"
                 placeholder="Your device ID"
                 value={this.state.deviceId}
                 onChange={this.updateDeviceId}

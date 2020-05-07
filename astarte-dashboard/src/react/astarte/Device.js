@@ -29,8 +29,12 @@ export default class Device {
     this.previousInterfaces = [];
   }
 
+  get hasNameAlias() {
+    return this.aliases.has("name");
+  }
+
   get name() {
-    if (this.aliases.has("name")) {
+    if (this.hasNameAlias) {
       return this.aliases.get("name");
     } else {
       return this.id;

@@ -192,7 +192,7 @@ function deviceTable(deviceList, showModal) {
       <thead>
         <tr>
           <th>Status</th>
-          <th>Device ID</th>
+          <th>Device handle</th>
           <th>Last connection event</th>
           <th>Actions</th>
         </tr>
@@ -242,7 +242,7 @@ function deviceTableRow(device, index, showModal) {
           <CircleIcon className={colorClass} />
         </OverlayTrigger>
       </td>
-      <td>
+      <td className={device.hasNameAlias ? "" : "text-monospace"}>
         <Link to={`/devices/${device.id}`}>{device.name}</Link>
       </td>
       <td>{lastEvent}</td>
