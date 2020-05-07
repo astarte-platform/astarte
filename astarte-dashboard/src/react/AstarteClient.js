@@ -17,6 +17,7 @@
 */
 
 import axios from "axios";
+const { Socket } = require("phoenix");
 
 export default class AstarteClient {
   constructor(config) {
@@ -28,6 +29,8 @@ export default class AstarteClient {
       throw Error("Missing parameter: realm");
     }
 
+    this.secureConnection = config.secureConnection || false;
+
     if (config.realmManagementUrl) {
       internalConfig.realmManagementUrl = new URL(config.realmManagementUrl);
     }
@@ -38,6 +41,14 @@ export default class AstarteClient {
 
     if (config.pairingUrl) {
       internalConfig.pairingUrl = new URL(config.pairingUrl);
+    }
+
+    if (config.onSocketError) {
+      this.onSocketError = config.onSocketError;
+    }
+
+    if (config.onSocketClose) {
+      this.onSocketClose = config.onSocketClose;
     }
 
     this.config = internalConfig;
@@ -54,9 +65,13 @@ export default class AstarteClient {
       groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
       groupDevices:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices`,
       deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`,
+      phoenixSocket:         astarteAPIurl`${"appengineUrl"}/v1/socket`,
       registerDevice:        astarteAPIurl`${"pairingUrl"}/v1/${"realm"}/agent/devices`,
     };
     this.apiConfig = apiConfig;
+
+    this.phoenixSocket = null;
+    this.joinedChannels = {};
   }
 
   getConfigAuth() {
@@ -185,6 +200,93 @@ export default class AstarteClient {
     })
       .then((response) => response.data);
   }
+
+  openSocketConnection() {
+    if (this.phoenixSocket) {
+      return Promise.resolve(this.phoenixSocket);
+    }
+
+    if (!this.config.appengineUrl) {
+      return Promise.reject("No AppEngine API URL configured");
+    }
+
+    const socketUrl = new URL(this.apiConfig.phoenixSocket(this.config));
+    socketUrl.protocol = (this.secureConnection ? "wss" : "ws")
+
+    return new Promise((resolve, reject) => {
+      openNewSocketConnection({
+        socketUrl: socketUrl,
+        realm: this.config.realm,
+        token: this.token
+      },
+      () => { this.onSocketError },
+      () => { this.onSocketClose })
+        .then((socket) => {
+          this.phoenixSocket = socket;
+          resolve(socket);
+        })
+    });
+  }
+
+  joinRoom(roomName) {
+    if (!this.phoenixSocket) {
+      return new Promise((resolve, reject) => {
+        this.openSocketConnection()
+        .then(() => { resolve(this.joinRoom(roomName))});
+      });
+    }
+
+    let channel = this.joinedChannels[roomName];
+    if (channel) {
+      return Promise.resolve(channel);
+    }
+
+    return new Promise((resolve, reject) => {
+      joinChannel(this.phoenixSocket, `rooms:${this.config.realm}:${roomName}`)
+        .then((channel) => {
+          this.joinedChannels[roomName] = channel;
+          resolve(true);
+        })
+    });
+  }
+
+  listenForEvents(roomName, eventHandler) {
+    let channel = this.joinedChannels[roomName];
+    if (!channel) {
+      return Promise.reject("Can't listen for room events before joining it first");
+    }
+
+    channel.on("new_event", eventHandler);
+  }
+
+  registerVolatileTrigger(roomName, triggerPayload) {
+    let channel = this.joinedChannels[roomName];
+    if (!channel) {
+      return Promise.reject("Room not joined, couldn't register trigger");
+    }
+
+    return registerTrigger(channel, triggerPayload);
+  }
+
+  leaveRoom(roomName) {
+    let channel = this.joinedChannels[roomName];
+    if (!channel) {
+      return Promise.reject("Can't leave a room without joining it first");
+    }
+
+    return leaveChannel(channel)
+      .then(() => {
+        delete this.joinedChannels[roomName];
+      });
+  }
+
+  joinedRooms() {
+    let rooms = [];
+    for (let roomName in this.joinedChannels) {
+      rooms.push(roomName);
+    }
+    return rooms;
+  }
 }
 
 function astarteAPIurl(strings, ...keys) {
@@ -197,4 +299,52 @@ function astarteAPIurl(strings, ...keys) {
     });
     return result.join("");
   };
+}
+
+
+// Wrap phoenix lib calls in promise for async handling
+
+function openNewSocketConnection(connectionParams, onErrorHanlder, onCloseHandler) {
+  const { socketUrl, realm, token } = connectionParams;
+
+  return new Promise((resolve, reject) => {
+    const phoenixSocket = new Socket(socketUrl, {
+      params: {
+        realm: realm,
+        token: token
+      }
+    });
+    phoenixSocket.onError((e) => onErrorHanlder(e));
+    phoenixSocket.onClose((e) => onCloseHandler(e));
+    phoenixSocket.onOpen(() => { resolve(phoenixSocket) });
+    phoenixSocket.connect();
+  });
+}
+
+function joinChannel(phoenixSocket, channelString) {
+  return new Promise((resolve, reject) => {
+    const channel = phoenixSocket.channel(channelString, {});
+    channel
+      .join()
+      .receive("ok", (resp) => { resolve(channel) })
+      .receive("error", (err) => { reject(err) });
+  });
+}
+
+function leaveChannel(channel) {
+  return new Promise((resolve, reject) => {
+    channel
+      .leave()
+      .receive("ok", (resp) => { resolve(channel) })
+      .receive("error", (err) => { reject(err) });
+  });
+}
+
+function registerTrigger(channel, triggerPayload) {
+  return new Promise((resolve, reject) => {
+    channel
+      .push("watch", triggerPayload)
+      .receive("ok", (resp) => { resolve(channel) })
+      .receive("error", (err) => { reject(err) });
+  });
 }
