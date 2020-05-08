@@ -56,6 +56,7 @@ import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
 import Types.FlashMessage as FlashMessage exposing (FlashMessage)
 import Types.FlashMessageHelpers as FlashMessageHelpers
 import Types.Session exposing (Session)
+import Ui.Card as Card
 import Ui.PieChart as PieChart
 
 
@@ -744,11 +745,6 @@ connectToPort model session device =
     )
 
 
-type CardWidth
-    = FullWidth
-    | HalfWidth
-
-
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
     Grid.containerFluid []
@@ -761,15 +757,15 @@ view model flashMessages =
                         [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
                     ]
                 , Grid.row []
-                    [ deviceInfoCard device HalfWidth
-                    , deviceAliasesCard device HalfWidth
-                    , deviceMetadataCard device HalfWidth
-                    , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) HalfWidth
-                    , deviceIntrospectionCard device HalfWidth
-                    , devicePreviousInterfacesCard device HalfWidth
-                    , deviceStatsCard device FullWidth
-                    , deviceEventsCard device FullWidth
-                    , deviceChannelCard model.receivedEvents FullWidth
+                    [ deviceInfoCard device Card.HalfWidth
+                    , deviceAliasesCard device Card.HalfWidth
+                    , deviceMetadataCard device Card.HalfWidth
+                    , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) Card.HalfWidth
+                    , deviceIntrospectionCard device Card.HalfWidth
+                    , devicePreviousInterfacesCard device Card.HalfWidth
+                    , deviceStatsCard device Card.FullWidth
+                    , deviceEventsCard device Card.FullWidth
+                    , deviceChannelCard model.receivedEvents Card.FullWidth
                     ]
                 , model.currentModal
                     |> Maybe.map renderModals
@@ -818,39 +814,6 @@ renderModals modal =
                 |> Html.map msgHanlder
 
 
-renderCard : String -> CardWidth -> List (Html Msg) -> Grid.Column Msg
-renderCard cardName width innerItems =
-    let
-        classWidth =
-            case width of
-                FullWidth ->
-                    [ Col.xs12 ]
-
-                HalfWidth ->
-                    [ Col.xs12
-                    , Col.md6
-                    ]
-    in
-    Grid.col (classWidth ++ [ Col.attrs [ Spacing.p2 ] ])
-        [ Grid.containerFluid
-            [ class "bg-white", Border.rounded, Spacing.p3, Size.h100, Flex.block, Flex.col ]
-            (Grid.row
-                [ Row.attrs [ Spacing.mt2 ] ]
-                [ Grid.col [ Col.sm12 ]
-                    [ h5
-                        [ Display.inline
-                        , class "text-secondary"
-                        , class "font-weight-normal"
-                        , class "align-middle"
-                        ]
-                        [ Html.text cardName ]
-                    ]
-                ]
-                :: innerItems
-            )
-        ]
-
-
 deviceErrorCard : String -> Html Msg
 deviceErrorCard error =
     Grid.row [ Row.attrs [ class "bg-white", Border.rounded, Spacing.p3, Size.h100, Flex.block, Flex.col ] ]
@@ -861,15 +824,18 @@ deviceErrorCard error =
         ]
 
 
-deviceInfoCard : Device -> CardWidth -> Grid.Column Msg
+deviceInfoCard : Device -> Card.Width -> Grid.Column Msg
 deviceInfoCard device width =
-    renderCard "Device Info"
+    Card.view "Device Info"
         width
-        [ renderHtmlRow ( "Device ID", Html.span [ class "text-monospace" ] [ Html.text device.id ] )
-        , renderTextRow ( "Device name", Dict.get "name" device.aliases |> Maybe.withDefault "No name alias set" )
-        , renderHtmlRow ( "Status", renderConnectionStatus device )
-        , renderBoolRow ( "Credentials inhibited", device.credentialsinhibited )
-        , Grid.row [ Row.attrs [ class "flex-grow-1" ] ] []
+        [ Card.subTitle "Device ID"
+        , Html.p [ class "text-monospace" ] [ Html.text device.id ]
+        , Card.subTitle "Device name"
+        , Card.simpleText (Dict.get "name" device.aliases |> Maybe.withDefault "No name alias set")
+        , Card.subTitle "Status"
+        , renderConnectionStatus device
+        , Card.subTitle "Credentials inhibited"
+        , Card.simpleText <| boolToString device.credentialsinhibited
         , buttonsRow device.credentialsinhibited
         ]
 
@@ -917,7 +883,7 @@ type alias ComputedInterfaceStats =
     }
 
 
-deviceStatsCard : Device -> CardWidth -> Grid.Column Msg
+deviceStatsCard : Device -> Card.Width -> Grid.Column Msg
 deviceStatsCard device width =
     let
         fullInterfaceList =
@@ -970,7 +936,7 @@ deviceStatsCard device width =
             , data = piecharList
             }
     in
-    renderCard "Device Stats" width <|
+    Card.view "Device Stats" width <|
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col []
@@ -1100,129 +1066,90 @@ formatPercentFloat num =
     stringPercent ++ "%"
 
 
-deviceAliasesCard : Device -> CardWidth -> Grid.Column Msg
+deviceAliasesCard : Device -> Card.Width -> Grid.Column Msg
 deviceAliasesCard device width =
-    renderCard "Aliases"
+    Card.view "Aliases"
         width
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ renderAliases device.aliases ]
-            ]
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ Html.a
-                    [ { message = OpenNewAliasPopup
-                      , preventDefault = True
-                      , stopPropagation = False
-                      }
-                        |> Decode.succeed
-                        |> Html.Events.custom "click"
-                    , href "#"
-                    , Html.Attributes.target "_self"
-                    ]
-                    [ Icons.render Icons.Add [ Spacing.mr1 ]
-                    , Html.text "Add new alias..."
-                    ]
+        [ renderAliases device.aliases
+        , Html.p []
+            [ Html.a
+                [ { message = OpenNewAliasPopup
+                  , preventDefault = True
+                  , stopPropagation = False
+                  }
+                    |> Decode.succeed
+                    |> Html.Events.custom "click"
+                , href "#"
+                , Html.Attributes.target "_self"
+                ]
+                [ Icons.render Icons.Add [ Spacing.mr1 ]
+                , Html.text "Add new alias..."
                 ]
             ]
         ]
 
 
-deviceMetadataCard : Device -> CardWidth -> Grid.Column Msg
+deviceMetadataCard : Device -> Card.Width -> Grid.Column Msg
 deviceMetadataCard device width =
-    renderCard "Metadata"
+    Card.view "Metadata"
         width
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ renderMetadata device.metadata ]
-            ]
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ Html.a
-                    [ { message = OpenNewMetadataPopup
-                      , preventDefault = True
-                      , stopPropagation = False
-                      }
-                        |> Decode.succeed
-                        |> Html.Events.custom "click"
-                    , href "#"
-                    , Html.Attributes.target "_self"
-                    ]
-                    [ Icons.render Icons.Add [ Spacing.mr1 ]
-                    , Html.text "Add new item..."
-                    ]
+        [ renderMetadata device.metadata
+        , Html.p []
+            [ Html.a
+                [ { message = OpenNewMetadataPopup
+                  , preventDefault = True
+                  , stopPropagation = False
+                  }
+                    |> Decode.succeed
+                    |> Html.Events.custom "click"
+                , href "#"
+                , Html.Attributes.target "_self"
+                ]
+                [ Icons.render Icons.Add [ Spacing.mr1 ]
+                , Html.text "Add new item..."
                 ]
             ]
         ]
 
 
-deviceGroupsCard : Device -> Bool -> CardWidth -> Grid.Column Msg
+deviceGroupsCard : Device -> Bool -> Card.Width -> Grid.Column Msg
 deviceGroupsCard device showAddToGroup width =
-    renderCard "Groups"
+    Card.view "Groups"
         width
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ renderGroups device.groups
+        [ renderGroups device.groups
+        , Html.p []
+            [ Html.a
+                [ { message = OpenGroupsPopup
+                  , preventDefault = True
+                  , stopPropagation = False
+                  }
+                    |> Decode.succeed
+                    |> Html.Events.custom "click"
+                , href "#"
+                , Html.Attributes.target "_self"
                 ]
-            ]
-        , Grid.row
-            [ Row.attrs
-                (if showAddToGroup then
-                    [ Spacing.mt2 ]
-
-                 else
-                    [ Display.none ]
-                )
-            ]
-            [ Grid.col [ Col.sm12 ]
-                [ Html.a
-                    [ { message = OpenGroupsPopup
-                      , preventDefault = True
-                      , stopPropagation = False
-                      }
-                        |> Decode.succeed
-                        |> Html.Events.custom "click"
-                    , href "#"
-                    , Html.Attributes.target "_self"
-                    ]
-                    [ Icons.render Icons.Add [ Spacing.mr1 ]
-                    , Html.text "Add to existing group..."
-                    ]
+                [ Icons.render Icons.Add [ Spacing.mr1 ]
+                , Html.text "Add to existing group..."
                 ]
             ]
         ]
 
 
-deviceIntrospectionCard : Device -> CardWidth -> Grid.Column Msg
+deviceIntrospectionCard : Device -> Card.Width -> Grid.Column Msg
 deviceIntrospectionCard device width =
-    renderCard "Interfaces"
+    Card.view "Interfaces"
         width
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ renderIntrospectionInfo device.id device.introspection ]
-            ]
-        ]
+        [ renderIntrospectionInfo device.id device.introspection ]
 
 
-devicePreviousInterfacesCard : Device -> CardWidth -> Grid.Column Msg
+devicePreviousInterfacesCard : Device -> Card.Width -> Grid.Column Msg
 devicePreviousInterfacesCard device width =
-    renderCard "Previous Interfaces"
+    Card.view "Previous Interfaces"
         width
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ renderPreviousInterfacesInfo device.previousInterfaces ]
-            ]
-        ]
+        [ renderPreviousInterfacesInfo device.previousInterfaces ]
 
 
-deviceEventsCard : Device -> CardWidth -> Grid.Column Msg
+deviceEventsCard : Device -> Card.Width -> Grid.Column Msg
 deviceEventsCard device width =
     [ ( "Last seen IP", device.lastSeenIp )
     , ( "Last credentials request IP", device.lastCredentialsRequestIp )
@@ -1232,23 +1159,19 @@ deviceEventsCard device width =
     , ( "Last disconnection", device.lastDisconnection )
     ]
         |> List.filterMap nonEmptyValue
-        |> List.map renderTextRow
-        |> renderCard "Device Status Events" width
+        |> List.map tupleToTitleText
+        |> List.concat
+        |> Card.view "Device Status Events" width
 
 
-deviceChannelCard : List JSEvent -> CardWidth -> Grid.Column Msg
+deviceChannelCard : List JSEvent -> Card.Width -> Grid.Column Msg
 deviceChannelCard events width =
-    renderCard "Device Live Events"
+    Card.view "Device Live Events"
         width
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm12 ]
-                [ Html.div [ class "device-event-container", Spacing.p3 ]
-                    [ Html.ul
-                        [ class "list-unstyled" ]
-                        (List.map renderEvent events)
-                    ]
-                ]
+        [ Html.div [ class "device-event-container", Spacing.p3 ]
+            [ Html.ul
+                [ class "list-unstyled" ]
+                (List.map renderEvent events)
             ]
         ]
 
@@ -1364,24 +1287,23 @@ renderEventItem timestamp mColor label content =
 
 renderConnectionStatus : Device -> Html Msg
 renderConnectionStatus device =
-    case ( device.lastConnection, device.connected ) of
-        ( Nothing, _ ) ->
-            Html.span []
+    Html.p []
+        (case ( device.lastConnection, device.connected ) of
+            ( Nothing, _ ) ->
                 [ Icons.render Icons.FullCircle [ class "icon-never-connected", Spacing.mr1 ]
                 , Html.text "Never connected"
                 ]
 
-        ( Just _, True ) ->
-            Html.span []
+            ( Just _, True ) ->
                 [ Icons.render Icons.FullCircle [ class "icon-connected", Spacing.mr1 ]
                 , Html.text "Connected"
                 ]
 
-        ( Just _, False ) ->
-            Html.span []
+            ( Just _, False ) ->
                 [ Icons.render Icons.FullCircle [ class "icon-disconnected", Spacing.mr1 ]
                 , Html.text "Disconnected"
                 ]
+        )
 
 
 buttonsRow : Bool -> Html Msg
@@ -1418,7 +1340,7 @@ buttonsRow deviceCredentialsInhibited =
 renderGroups : List String -> Html Msg
 renderGroups groups =
     if List.isEmpty groups then
-        Html.text "Device does not belong to any group"
+        Card.simpleText "Device does not belong to any group"
 
     else
         Html.ul [] (List.map renderGroupValue groups)
@@ -1435,7 +1357,7 @@ renderGroupValue group =
 renderAliases : Dict String String -> Html Msg
 renderAliases aliases =
     if Dict.isEmpty aliases then
-        Html.text "Device has no aliases"
+        Card.simpleText "Device has no aliases"
 
     else
         Table.simpleTable
@@ -1458,7 +1380,7 @@ renderAliases aliases =
 renderMetadata : Dict String String -> Html Msg
 renderMetadata metadata =
     if Dict.isEmpty metadata then
-        Html.text "Device has no metadata"
+        Card.simpleText "Device has no metadata"
 
     else
         Table.simpleTable
@@ -1499,29 +1421,11 @@ fieldValueTableRow editMessage deleteMessage ( key, value ) =
         ]
 
 
-renderHtmlRow : ( String, Html Msg ) -> Html Msg
-renderHtmlRow ( label, value ) =
-    Grid.row
-        [ Row.attrs [ Spacing.mt3 ] ]
-        [ Grid.col [ Col.sm12 ]
-            [ Html.h6 [] [ Html.text label ]
-            , value
-            ]
-        ]
-
-
-renderTextRow : ( String, String ) -> Html Msg
-renderTextRow ( label, value ) =
-    renderHtmlRow ( label, Html.text value )
-
-
-renderBoolRow : ( String, Bool ) -> Html Msg
-renderBoolRow ( label, value ) =
-    if value then
-        renderTextRow ( label, "True" )
-
-    else
-        renderTextRow ( label, "False" )
+tupleToTitleText : ( String, String ) -> List (Html Msg)
+tupleToTitleText ( label, value ) =
+    [ Html.h6 [] [ Html.text label ]
+    , Html.p [] [ Html.text value ]
+    ]
 
 
 renderIntrospectionInfo : String -> List Device.IntrospectionValue -> Html Msg
@@ -1588,6 +1492,15 @@ timeToString time =
     , String.padLeft 3 '0' <| String.fromInt <| Time.toMillis timezone time
     ]
         |> String.join ""
+
+
+boolToString : Bool -> String
+boolToString bool =
+    if bool then
+        "True"
+
+    else
+        "False"
 
 
 
