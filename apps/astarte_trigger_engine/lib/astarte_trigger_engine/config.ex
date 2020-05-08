@@ -73,6 +73,28 @@ defmodule Astarte.TriggerEngine.Config do
     type: :binary,
     default: "trigger_engine"
 
+  @envdoc "Enable SSL. If not specified, SSL is disabled."
+  app_env :amqp_consumer_ssl_enabled, :astarte_trigger_engine, :amqp_consumer_ssl_enabled,
+    os_env: "TRIGGER_ENGINE_AMQP_CONSUMER_SSL_ENABLED",
+    type: :boolean,
+    default: false
+
+  @envdoc "Specifies the certificates of the root Certificate Authorities to be trusted. When not specified, the bundled cURL certificate bundle will be used."
+  app_env :amqp_consumer_ssl_ca_file, :astarte_trigger_engine, :amqp_consumer_ssl_ca_file,
+    os_env: "TRIGGER_ENGINE_AMQP_CONSUMER_SSL_CA_FILE",
+    type: :binary
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :amqp_consumer_ssl_disable_sni, :astarte_trigger_engine, :amqp_consumer_ssl_disable_sni,
+    os_env: "TRIGGER_ENGINE_AMQP_CONSUMER_SSL_DISABLE_SNI",
+    type: :boolean,
+    default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :amqp_consumer_ssl_custom_sni, :astarte_trigger_engine, :amqp_consumer_ssl_custom_sni,
+    os_env: "TRIGGER_ENGINE_AMQP_CONSUMER_SSL_CUSTOM_SNI",
+    type: :binary
+
   @envdoc "The port where Trigger Engine metrics will be exposed."
   app_env :port, :astarte_trigger_engine, :port,
     os_env: "TRIGGER_ENGINE_PORT",
@@ -89,21 +111,56 @@ defmodule Astarte.TriggerEngine.Config do
   @doc """
   Returns the AMQP events consumer connection options
   """
+  @type ssl_option ::
+          {:cacertfile, String.t()}
+          | {:verify, :verify_peer}
+          | {:server_name_indication, charlist() | :disable}
+  @type ssl_options :: :none | [ssl_option]
+
   @type options ::
           {:username, String.t()}
           | {:password, String.t()}
           | {:virtual_host, String.t()}
           | {:host, String.t()}
           | {:port, integer()}
+          | {:ssl_options, ssl_options}
+
   @spec amqp_consumer_options!() :: [options]
   def amqp_consumer_options! do
-    host = amqp_consumer_host!()
-    port = amqp_consumer_port!()
-    username = amqp_consumer_username!()
-    password = amqp_consumer_password!()
-    virtual_host = amqp_consumer_virtual_host!()
+    [
+      host: amqp_consumer_host!(),
+      port: amqp_consumer_port!(),
+      username: amqp_consumer_username!(),
+      password: amqp_consumer_password!(),
+      virtual_host: amqp_consumer_virtual_host!()
+    ]
+    |> populate_ssl_options()
+  end
 
-    [host: host, port: port, username: username, password: password, virtual_host: virtual_host]
+  defp populate_ssl_options(options) do
+    if amqp_consumer_ssl_enabled!() do
+      ssl_options = build_ssl_options()
+      Keyword.put(options, :ssl_options, ssl_options)
+    else
+      options
+    end
+  end
+
+  defp build_ssl_options() do
+    [
+      cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
+      verify: :verify_peer
+    ]
+    |> populate_sni()
+  end
+
+  defp populate_sni(ssl_options) do
+    if amqp_consumer_ssl_disable_sni!() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name = amqp_consumer_ssl_custom_sni!() || amqp_consumer_host!()
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
   end
 
   @doc "A list of host values of accessible Cassandra nodes formatted in the Xandra format"
