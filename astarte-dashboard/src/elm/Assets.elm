@@ -20,7 +20,6 @@
 module Assets exposing
     ( AssetPath(..)
     , dashboardIcon
-    , homepageImage
     , loginAstarteMascotte
     , loginBackgroundBottom
     , loginBackgroundTop
@@ -67,8 +66,3 @@ loginLogo =
 dashboardIcon : AssetPath
 dashboardIcon =
     AssetPath "/static/img/logo.svg"
-
-
-homepageImage : AssetPath
-homepageImage =
-    AssetPath "/static/img/homemascotte.svg"
