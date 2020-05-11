@@ -250,18 +250,14 @@ renderConfig mConfig =
     case mConfig of
         Just conf ->
             Form.form []
-                [ Form.row []
-                    [ Form.col [ Col.sm12 ]
-                        [ Form.group []
-                            [ Form.label [ for "realmPublicKey" ] [ text "Public key" ]
-                            , Textarea.textarea
-                                [ Textarea.id "realmPublicKey"
-                                , Textarea.rows 10
-                                , Textarea.value conf.pubKey
-                                , Textarea.onInput UpdatePubKey
-                                , Textarea.attrs [ class "text-monospace" ]
-                                ]
-                            ]
+                [ Form.group []
+                    [ Form.label [ for "realmPublicKey" ] [ text "Public key" ]
+                    , Textarea.textarea
+                        [ Textarea.id "realmPublicKey"
+                        , Textarea.rows 16
+                        , Textarea.value conf.pubKey
+                        , Textarea.onInput UpdatePubKey
+                        , Textarea.attrs [ class "text-monospace" ]
                         ]
                     ]
                 ]
