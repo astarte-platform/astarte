@@ -575,46 +575,46 @@ mappingTypeToEnglishString : MappingType -> String
 mappingTypeToEnglishString t =
     case t of
         Single DoubleMapping ->
-            "Double"
+            "double"
 
         Single IntMapping ->
-            "Integer"
+            "integer"
 
         Single BoolMapping ->
-            "Boolean"
+            "boolean"
 
         Single LongIntMapping ->
-            "Long integer"
+            "long integer"
 
         Single StringMapping ->
-            "String"
+            "string"
 
         Single BinaryBlobMapping ->
-            "Binary blob"
+            "binaryblob"
 
         Single DateTimeMapping ->
-            "Date and time"
+            "datetime"
 
         Array DoubleMapping ->
-            "Array of doubles"
+            "double array"
 
         Array IntMapping ->
-            "Array of integers"
+            "integer array"
 
         Array BoolMapping ->
-            "Array of booleans"
+            "boolean array"
 
         Array LongIntMapping ->
-            "Array of long integers"
+            "long integer array"
 
         Array StringMapping ->
-            "Array of strings"
+            "string array"
 
         Array BinaryBlobMapping ->
-            "Array of binary blobs"
+            "binaryblob array"
 
         Array DateTimeMapping ->
-            "Array of date and time"
+            "datetime array"
 
 
 reliabilityToEnglishString : Reliability -> String
