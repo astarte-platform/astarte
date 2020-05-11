@@ -50,6 +50,7 @@ type alias Model =
     { deviceStats : Maybe DeviceStats
     , appengineHealth : Maybe Bool
     , realmManagementHealth : Maybe Bool
+    , pairingHealth : Maybe Bool
     , installedInterfaces : Maybe Int
     , installedTriggers : Maybe Int
     , spinner : Spinner.Model
@@ -62,6 +63,7 @@ init session =
     ( { deviceStats = Nothing
       , appengineHealth = Nothing
       , realmManagementHealth = Nothing
+      , pairingHealth = Nothing
       , installedInterfaces = Nothing
       , installedTriggers = Nothing
       , spinner = Spinner.init
@@ -71,6 +73,7 @@ init session =
         [ AstarteApi.deviceStats session.apiConfig DeviceStatsDone
         , AstarteApi.appEngineApiHealth session.apiConfig AppEngineHealthCheckDone
         , AstarteApi.realmManagementApiHealth session.apiConfig RealmManagementHealthCheckDone
+        , AstarteApi.pairingApiHealth session.apiConfig PairingHealthCheckDone
         , AstarteApi.listInterfaces session.apiConfig ListInterfacesDone AstarteError LoginRequired
         , AstarteApi.listTriggers session.apiConfig ListTriggersDone AstarteError LoginRequired
         ]
@@ -82,6 +85,7 @@ type Msg
     | DeviceStatsDone (Result AstarteApi.Error DeviceStats)
     | AppEngineHealthCheckDone (Result AstarteApi.Error Bool)
     | RealmManagementHealthCheckDone (Result AstarteApi.Error Bool)
+    | PairingHealthCheckDone (Result AstarteApi.Error Bool)
     | ListInterfacesDone (List String)
     | ListTriggersDone (List String)
     | AstarteError AstarteApi.Error
@@ -144,6 +148,22 @@ update _ msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
+        PairingHealthCheckDone (Ok healthy) ->
+            ( { model | pairingHealth = Just healthy }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        PairingHealthCheckDone (Err error) ->
+            let
+                ( message, details ) =
+                    AstarteApi.errorToHumanReadable error
+            in
+            ( { model | pairingHealth = Just False }
+            , Cmd.none
+            , ExternalMsg.AddFlashMessage FlashMessage.Error message details
+            )
+
         ListInterfacesDone interfaceList ->
             ( { model | installedInterfaces = Just <| List.length interfaceList }
             , Cmd.none
@@ -192,7 +212,7 @@ view model flashMessages =
         , Grid.row []
             (values
                 [ Just (welcomeCard Card.FullWidth)
-                , Just (apiHealthCard Card.HalfWidth model.appengineHealth model.realmManagementHealth)
+                , Just (apiHealthCard Card.HalfWidth model.appengineHealth model.realmManagementHealth model.pairingHealth)
                 , Maybe.map (appengineCard Card.HalfWidth) model.deviceStats
                 , Maybe.map (interfacesCard Card.HalfWidth) model.installedInterfaces
                 , Maybe.map (triggersCard Card.HalfWidth) model.installedTriggers
@@ -288,14 +308,16 @@ triggersCard width triggerCount =
         ]
 
 
-apiHealthCard : Card.Width -> Maybe Bool -> Maybe Bool -> Grid.Column Msg
-apiHealthCard width appengineHelath realmManagementHealth =
+apiHealthCard : Card.Width -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Grid.Column Msg
+apiHealthCard width appengineHelath realmManagementHealth pairingHealth =
     Card.view "API Health"
         width
         [ Card.subTitle "Realm management API"
         , renderHealth appengineHelath
         , Card.subTitle "AppEngine API"
         , renderHealth realmManagementHealth
+        , Card.subTitle "Pairing API"
+        , renderHealth pairingHealth
         ]
 
 
