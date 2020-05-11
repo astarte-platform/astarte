@@ -106,6 +106,7 @@ update session msg model =
                 | conf = Just config
                 , initialKey = config.pubKey
                 , keyChanged = False
+                , showSpinner = False
               }
             , Cmd.none
             , ExternalMsg.Noop
