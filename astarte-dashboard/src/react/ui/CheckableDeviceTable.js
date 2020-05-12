@@ -76,7 +76,9 @@ export default class CheckableDeviceTable extends React.Component {
             onChange={this.props.onToggleDevice}
           />
         </td>
-        <td>{highlight(device.id, filterKey)}</td>
+        <td className="text-monospace">
+          {highlight(device.id, filterKey)}
+        </td>
         <td>
           <ul className="list-unstyled">
             {deviceAliases.map((alias, index) => {
