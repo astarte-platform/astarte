@@ -78,6 +78,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:re2, "~> 1.9.4", override: true},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.12", only: :test},
+      {:castore, "~> 0.1.0"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

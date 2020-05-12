@@ -60,10 +60,11 @@ defmodule Astarte.DataAccess.Database do
   defp get_client_opts(opts) do
     case Keyword.fetch(opts, :realm) do
       {:ok, realm} ->
-        [keyspace: realm]
+        Config.cqex_options!()
+        |> Keyword.put(:keyspace, realm)
 
       :error ->
-        []
+        Config.cqex_options!()
     end
   end
 end
