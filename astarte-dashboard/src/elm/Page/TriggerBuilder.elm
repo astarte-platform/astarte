@@ -888,7 +888,7 @@ update session msg model =
         OpenNewHeaderPopup ->
             let
                 modal =
-                    NewCustomHeader (AskKeyValue.init "Add New Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewCustomHeader (AskKeyValue.init "Add custom HTTP header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -1373,7 +1373,7 @@ renderCustomHeaders customHeaders editMode =
                 , Html.Attributes.target "_self"
                 ]
                 [ Icons.render Icons.Add [ Spacing.mr1 ]
-                , Html.text "Add custom request headers..."
+                , Html.text "Add custom HTTP headers..."
                 ]
 
         rowContent =
