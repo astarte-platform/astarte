@@ -193,7 +193,7 @@ addTriggerRow =
         [ Html.a
             [ href <| Route.toString <| Route.Realm Route.NewTrigger ]
             [ Icons.render Icons.Add [ Spacing.mr2 ]
-            , Html.text "Install a new trigger ..."
+            , Html.text "Install a new trigger..."
             ]
         ]
 

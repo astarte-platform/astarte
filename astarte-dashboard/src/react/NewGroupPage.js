@@ -111,7 +111,7 @@ export default class NewGroupPage extends React.Component {
       feedback = "The group name cannot be empty.";
     } else if (name.startsWith("@") || name.startsWith("~")) {
       isValid = false;
-      feedback = "The group name cannot start with ~ or @";
+      feedback = "The group name cannot start with ~ or @.";
     } else {
       isValid = true;
     }
@@ -241,8 +241,8 @@ function FilterInputBox(props) {
 
 function deviceCountSentence(deviceCount) {
   if (deviceCount > 0) {
-    return `${deviceCount} ${deviceCount == 1 ? "device" : "devices"} selected`;
+    return `${deviceCount} ${deviceCount == 1 ? "device" : "devices"} selected.`;
   } else {
-    return `Please select at least one device`;
+    return "Please select at least one device.";
   }
 }

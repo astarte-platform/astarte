@@ -214,11 +214,11 @@ function deviceTableRow(device, index, showModal) {
   if (device.connected) {
     tooltipText = "Connected";
     colorClass = "icon-connected";
-    lastEvent = `Connected at ${device.lastConnection.toLocaleString()}`;
+    lastEvent = `Connected on ${device.lastConnection.toLocaleString()}`;
   } else if (device.lastConnection) {
     tooltipText = "Disconnected";
     colorClass = "icon-disconnected";
-    lastEvent = `Disconnected at ${device.lastDisconnection.toLocaleString()}`;
+    lastEvent = `Disconnected on ${device.lastDisconnection.toLocaleString()}`;
   } else {
     tooltipText = "Never connected";
     colorClass = "icon-never-connected";

@@ -242,7 +242,7 @@ addInterfaceRow =
         [ Html.a
             [ href <| Route.toString <| Route.Realm Route.NewInterface ]
             [ Icons.render Icons.Add [ Spacing.mr2 ]
-            , Html.text "Install a new interface ..."
+            , Html.text "Install a new interface..."
             ]
         ]
 

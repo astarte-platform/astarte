@@ -1468,10 +1468,10 @@ renderButtonRow isEdit isDraft isSourceVisible =
                 [ Col.attrs [ Display.none ] ]
             )
             [ Button.button
-                [ Button.warning
+                [ Button.danger
                 , Button.onClick ShowDeleteModal
                 ]
-                [ Html.text "Delete interface..."
+                [ Html.text "Delete interface"
                 ]
             ]
         , Grid.col colAttrs

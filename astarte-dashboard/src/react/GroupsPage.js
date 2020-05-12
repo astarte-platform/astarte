@@ -45,7 +45,6 @@ export default class GroupsPage extends React.Component {
     this.handleGroupsError = this.handleGroupsError.bind(this);
     this.handleDeviceList = this.handleDeviceList.bind(this);
     this.handleDeviceError = this.handleDeviceError.bind(this);
-    this.goNewGroupPage = this.goNewGroupPage.bind(this);
 
     this.astarte = new AstarteClient(astarteConfig);
     this.astarte
@@ -110,10 +109,6 @@ export default class GroupsPage extends React.Component {
     console.log(err);
   }
 
-  goNewGroupPage() {
-    this.props.history.push({ pathname: "/groups/new" });
-  }
-
   render() {
     let innerHTML;
 
@@ -137,10 +132,13 @@ export default class GroupsPage extends React.Component {
 
     return (
       <SingleCardPage title="Groups">
-        {innerHTML}
-        <Button className="float-right" onClick={this.goNewGroupPage}>
+        <Link
+          to="/groups/new"
+          className="float-right mb-2"
+        >
           Create new group
-        </Button>
+        </Link>
+        {innerHTML}
       </SingleCardPage>
     );
   }

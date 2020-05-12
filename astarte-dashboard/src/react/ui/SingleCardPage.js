@@ -27,7 +27,7 @@ export default function SingleCardPage(props) {
           <h3>{props.title}</h3>
         </Col>
       </Row>
-      <Row className="mt-4">
+      <Row>
         <Col sm={12}>{props.children}</Col>
       </Row>
     </Container>
