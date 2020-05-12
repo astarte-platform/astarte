@@ -147,16 +147,17 @@ The following types are supported:
 * `boolean`: Either `true` or `false`, adhering to JSON boolean type.
 * `longinteger`: A signed 64 bit integer (please note that `longinteger` is represented as a string
   by default in JSON-based APIs.).
-* `string`: An UTF-8 string.
-* `binaryblob`: An arbitrary sequence of any byte that should be shorter than 1 MiB. (`binaryblob`
+* `string`: An UTF-8 string, at most 65536 bytes long.
+* `binaryblob`: An arbitrary sequence of any byte that should be shorter than 64 KiB. (`binaryblob`
   is represented as a base64 string by default in JSON-based APIs.).
 * `datetime`: A UTC timestamp, internally represented as milliseconds since 1st Jan 1970 using a
   signed 64 bits integer. (`datetime` is represented as an ISO 8601 string by default in JSON based
   APIs.)
 * `doublearray`, `integerarray`, `booleanarray`, `longintegerarray`, `stringarray`,
   `binaryblobarray`, `datetimearray`: A list of values, represented as a JSON Array. Arrays can have
-  up to 32768 items, must be shorter than 1MiB, and each item must be shorter than 64KiB. In
-  particular, text fields must be shorter than 32000 characters.
+  up to 1024 items and each item must respect the limits of its scalar type (_i.e._ each string in a
+  `stringarray` must be at most 65535 bytes long, each binary blob in a `binaryblobarray` must be
+  shorter than 64 KiB.
 
 Make sure that the differences between two distinct interface names are not limited to the casing or
 the presence of hyphens. This situation leads to a collision in the interface names which brings to
