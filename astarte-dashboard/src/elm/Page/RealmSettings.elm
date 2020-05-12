@@ -29,6 +29,7 @@ import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Spacing as Spacing
 import Html exposing (Html, h5, p, text)
 import Html.Attributes exposing (class, for)
@@ -105,6 +106,7 @@ update session msg model =
                 | conf = Just config
                 , initialKey = config.pubKey
                 , keyChanged = False
+                , showSpinner = False
               }
             , Cmd.none
             , ExternalMsg.Noop
@@ -224,23 +226,19 @@ view model flashMessages =
             ]
         , Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col []
+                [ renderConfig model.conf ]
+            ]
+        , Grid.row
+            [ Row.attrs [ Flex.rowReverse ] ]
             [ Grid.col
-                [ Col.sm12 ]
-                [ renderConfig model.conf
-                , Button.button
+                [ Col.smAuto ]
+                [ Button.button
                     [ Button.primary
-                    , Button.onClick GetRealmConf
-                    , Button.attrs [ Spacing.mt2, Spacing.mr1 ]
-                    ]
-                    [ Icons.render Icons.Reload [ Spacing.mr2 ]
-                    , text "Reload"
-                    ]
-                , Button.button
-                    [ Button.primary
+                    , Button.disabled <| not model.keyChanged
                     , Button.onClick ShowConfirmModal
-                    , Button.attrs [ Spacing.mt2 ]
                     ]
-                    [ text "Save" ]
+                    [ Html.text "Apply" ]
                 ]
             ]
         , renderConfirmModal model.confirmModalVisibility model.keyChanged
@@ -252,18 +250,14 @@ renderConfig mConfig =
     case mConfig of
         Just conf ->
             Form.form []
-                [ Form.row []
-                    [ Form.col [ Col.sm12 ]
-                        [ Form.group []
-                            [ Form.label [ for "realmPublicKey" ] [ text "Public key" ]
-                            , Textarea.textarea
-                                [ Textarea.id "realmPublicKey"
-                                , Textarea.rows 10
-                                , Textarea.value conf.pubKey
-                                , Textarea.onInput UpdatePubKey
-                                , Textarea.attrs [ class "text-monospace" ]
-                                ]
-                            ]
+                [ Form.group []
+                    [ Form.label [ for "realmPublicKey" ] [ text "Public key" ]
+                    , Textarea.textarea
+                        [ Textarea.id "realmPublicKey"
+                        , Textarea.rows 16
+                        , Textarea.value conf.pubKey
+                        , Textarea.onInput UpdatePubKey
+                        , Textarea.attrs [ class "text-monospace" ]
                         ]
                     ]
                 ]
