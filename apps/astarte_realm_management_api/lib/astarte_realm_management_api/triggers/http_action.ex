@@ -44,6 +44,21 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
 
   @valid_methods ["delete", "get", "head", "options", "patch", "post", "put"]
 
+  @headers_blacklist MapSet.new([
+                       "connection",
+                       "content-length",
+                       "date",
+                       "host",
+                       "te",
+                       "upgrade",
+                       "x-forwarded-for",
+                       "x-forwarded-host",
+                       "x-forwarded-proto",
+                       "sec-websocket-accept",
+                       "proxy-authorization",
+                       "proxy-authenticate"
+                     ])
+
   @doc false
   def changeset(%HttpAction{} = action, %{"http_post_url" => _post_url} = attrs) do
     action
@@ -64,6 +79,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     |> validate_empty(:http_post_url)
     |> validate_url(:http_url)
     |> validate_inclusion(:http_method, @valid_methods)
+    |> validate_headers(:http_headers)
   end
 
   defp normalize_fields(changeset) do
@@ -94,6 +110,27 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
           [{field, opts[:message] || "must be a valid http(s) URL"}]
       end
     end)
+  end
+
+  defp validate_headers(changeset, field, opts \\ []) do
+    validate_change(changeset, field, fn field, headers ->
+      allowed = Enum.all?(headers, fn {header_name, _value} -> allowed_header?(header_name) end)
+
+      if allowed do
+        []
+      else
+        [{field, opts[:message] || "must contain only allowed http headers"}]
+      end
+    end)
+  end
+
+  defp allowed_header?(header_name) do
+    normalized =
+      header_name
+      |> String.trim()
+      |> String.downcase()
+
+    MapSet.member?(@headers_blacklist, normalized) == false
   end
 
   defimpl Jason.Encoder, for: HttpAction do
