@@ -59,6 +59,11 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
                        "proxy-authenticate"
                      ])
 
+  @max_headers_size 8192
+  @max_url_length 8192
+
+  @max_mustache_template_size 1024 * 1024
+
   @doc false
   def changeset(%HttpAction{} = action, %{"http_post_url" => _post_url} = attrs) do
     action
@@ -68,6 +73,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     |> validate_empty(:http_method)
     |> validate_empty(:http_headers)
     |> validate_url(:http_post_url)
+    |> validate_length(:template, max: @max_mustache_template_size)
     |> normalize_fields()
   end
 
@@ -80,6 +86,8 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     |> validate_url(:http_url)
     |> validate_inclusion(:http_method, @valid_methods)
     |> validate_headers(:http_headers)
+    |> validate_headers_size(:http_headers)
+    |> validate_length(:template, max: @max_mustache_template_size)
   end
 
   defp normalize_fields(changeset) do
@@ -99,7 +107,8 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
   end
 
   defp validate_url(changeset, field, opts \\ []) do
-    validate_change(changeset, field, fn field, value ->
+    validate_length(changeset, field, min: String.length("http://a"), max: @max_url_length)
+    |> validate_change(field, fn field, value ->
       with %URI{scheme: scheme, host: host} <- URI.parse(value),
            true <- scheme == "http" or scheme == "https",
            true <- String.valid?(host),
@@ -131,6 +140,21 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
       |> String.downcase()
 
     MapSet.member?(@headers_blacklist, normalized) == false
+  end
+
+  defp validate_headers_size(changeset, field, opts \\ []) do
+    validate_change(changeset, field, fn field, headers ->
+      size =
+        Enum.reduce(headers, 0, fn {header_name, header_value}, acc ->
+          acc + byte_size(header_name) + byte_size(": ") + byte_size(header_value)
+        end)
+
+      if size < @max_headers_size do
+        []
+      else
+        [{field, opts[:message] || "headers total size must be lower than #{@max_headers_size}"}]
+      end
+    end)
   end
 
   defimpl Jason.Encoder, for: HttpAction do
