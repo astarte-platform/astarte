@@ -134,7 +134,14 @@ setType iType interface =
     let
         updatedMappings =
             if iType == Datastream then
-                Dict.map (\_ m -> m |> InterfaceMapping.setAllowUnset False) interface.mappings
+                Dict.map
+                    (\_ mapping ->
+                        { mapping
+                            | allowUnset = False
+                            , explicitTimestamp = True
+                        }
+                    )
+                    interface.mappings
 
             else
                 Dict.map
