@@ -21,6 +21,7 @@ module Page.InterfaceBuilder exposing (BuilderMode(..), Model, Msg, init, subscr
 
 import AstarteApi
 import Bootstrap.Accordion as Accordion
+import Bootstrap.Badge as Badge
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Card.Block as Block
@@ -1572,37 +1573,36 @@ endpointToHtmlId endpoint =
 
 renderMappingHeader : InterfaceMapping -> Accordion.Header Msg
 renderMappingHeader mapping =
-    Accordion.headerH5 [] (Accordion.toggle [] [ text mapping.endpoint ])
-        |> Accordion.appendHeader
-            (if mapping.draft then
-                small
-                    [ Display.inline, Spacing.p2 ]
-                    [ text <| mappingTypeToEnglishString mapping.mType ]
-                    :: renderMappingControls mapping
-
-             else
-                [ small
-                    [ Display.inline, Spacing.p2 ]
-                    [ text <| mappingTypeToEnglishString mapping.mType ]
+    let
+        baseHeader =
+            Accordion.header [ Flex.block ]
+                (Accordion.toggle
+                    [ class "col text-left text-truncate", Spacing.pl0 ]
+                    [ Badge.badgeSecondary
+                        [ Spacing.mr2 ]
+                        [ Html.text <| InterfaceMapping.mappingTypeToEnglishString mapping.mType ]
+                    , Html.text mapping.endpoint
+                    ]
+                )
+    in
+    if mapping.draft then
+        baseHeader
+            |> Accordion.appendHeader
+                [ Button.button
+                    [ Button.outlinePrimary
+                    , Button.attrs [ Spacing.mr2 ]
+                    , Button.onClick <| ShowEditMappingModal mapping
+                    ]
+                    [ text "Edit..." ]
+                , Button.button
+                    [ Button.outlinePrimary
+                    , Button.onClick <| RemoveMapping mapping
+                    ]
+                    [ text "Remove" ]
                 ]
-            )
 
-
-renderMappingControls : InterfaceMapping -> List (Html Msg)
-renderMappingControls mapping =
-    [ Button.button
-        [ Button.outlinePrimary
-        , Button.attrs [ class "float-right" ]
-        , Button.onClick <| RemoveMapping mapping
-        ]
-        [ text "Remove" ]
-    , Button.button
-        [ Button.outlinePrimary
-        , Button.attrs [ Spacing.mr2Sm, class "float-right" ]
-        , Button.onClick <| ShowEditMappingModal mapping
-        ]
-        [ text "Edit..." ]
-    ]
+    else
+        baseHeader
 
 
 renderDeleteInterfaceModal : Model -> Html Msg
