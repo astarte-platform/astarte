@@ -246,9 +246,6 @@ welcomeCard width =
                         , Html.text "for more detailed informations on Astarte."
                         ]
                     ]
-                , Html.div
-                    [ Display.inlineBlockMd, Spacing.mxAuto ]
-                    [ Html.img [ src <| Assets.path Assets.homepageImage ] [] ]
                 ]
             ]
         ]
