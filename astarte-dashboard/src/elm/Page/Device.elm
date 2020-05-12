@@ -1314,7 +1314,7 @@ buttonsRow deviceCredentialsInhibited =
             , Col.attrs [ Flex.block, Flex.rowReverse ]
             ]
             [ Button.button
-                [ Button.secondary
+                [ Button.danger
                 , Button.onClick ShowConfirmModal
                 ]
                 [ Html.text "Wipe credential secret" ]
