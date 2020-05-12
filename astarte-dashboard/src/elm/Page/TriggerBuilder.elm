@@ -41,6 +41,7 @@ import Html.Attributes exposing (class, for, href, readonly, selected, value)
 import Html.Events exposing (onSubmit)
 import Icons
 import Json.Decode as Decode
+import ListUtils exposing (addWhen)
 import Modal.AskKeyValue as AskKeyValue
 import Modal.AskSingleValue as AskSingleValue
 import Modal.ConfirmModal as ConfirmModal
@@ -887,7 +888,7 @@ update session msg model =
         OpenNewHeaderPopup ->
             let
                 modal =
-                    NewCustomHeader (AskKeyValue.init "Add New Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewCustomHeader (AskKeyValue.init "Add custom HTTP header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -1147,23 +1148,26 @@ view model flashMessages =
     Grid.containerFluid
         [ class "bg-white"
         , Border.rounded
-        , Spacing.pb3
+        , Spacing.p3
         ]
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
+        [ Grid.row []
+            [ Grid.col []
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ if model.showSource then
-                    Col.sm6
+        , Grid.row []
+            [ Grid.col []
+                [ Html.h3
+                    [ class "text-truncate" ]
+                    [ if model.editMode then
+                        Html.text model.trigger.name
 
-                  else
-                    Col.sm12
+                      else
+                        Html.text "Install a New Trigger"
+                    ]
                 ]
+            ]
+        , Grid.row []
+            [ Grid.col []
                 [ renderContent model ]
             , Grid.col
                 [ if model.showSource then
@@ -1178,6 +1182,7 @@ view model flashMessages =
                     model.editMode
                 ]
             ]
+        , renderButtonsRow model.editMode model.showSource
         , if model.showSpinner then
             Spinner.view Spinner.defaultConfig model.spinner
 
@@ -1189,80 +1194,75 @@ view model flashMessages =
 
 renderContent : Model -> Html Msg
 renderContent model =
-    Form.form [ Spacing.mt2Sm ]
-        ([ Form.row []
-            [ Form.col []
-                [ Html.h3
-                    [ class "text-truncate" ]
-                    [ text
-                        (if model.editMode then
-                            model.trigger.name
-
-                         else
-                            "Install a New Trigger"
-                        )
-                    , if model.editMode then
-                        Button.button
-                            [ Button.warning
-                            , Button.attrs [ Spacing.ml2, class "text-secondary" ]
-                            , Button.onClick ShowDeleteModal
+    Form.form [] <|
+        List.concat
+            [ [ Form.row []
+                    [ Form.col [ Col.sm12 ]
+                        [ Form.group []
+                            [ Form.label [ for "triggerName" ] [ text "Name" ]
+                            , Input.text
+                                [ Input.id "triggerName"
+                                , Input.readonly model.editMode
+                                , Input.value model.trigger.name
+                                , Input.onInput UpdateTriggerName
+                                ]
                             ]
-                            [ Icons.render Icons.Delete [ Spacing.mr2 ]
-                            , text "Delete..."
-                            ]
-
-                      else
-                        text ""
+                        ]
                     ]
+              ]
+            , renderSimpleTrigger model
+            , renderTriggerAction model.trigger.action model.editMode
+            ]
+
+
+renderButtonsRow : Bool -> Bool -> Html Msg
+renderButtonsRow editMode showSource =
+    Grid.row
+        [ Row.rightSm
+        , Row.attrs [ Spacing.pt3, Spacing.px3 ]
+        ]
+        [ Grid.col
+            [ Col.smAuto
+            , Col.attrs [ Spacing.px1 ]
+            ]
+            [ Button.button
+                [ Button.secondary
+                , Button.onClick ToggleSource
                 ]
-            , Form.col [ Col.smAuto ]
+                [ if showSource then
+                    Html.text "Hide source"
+
+                  else
+                    Html.text "Show source"
+                ]
+            ]
+        , Grid.col
+            [ Col.smAuto
+            , Col.attrs [ Spacing.px1 ]
+            ]
+            (if editMode then
                 [ Button.button
-                    [ Button.secondary
-                    , Button.onClick ToggleSource
+                    [ Button.danger
+                    , Button.onClick ShowDeleteModal
                     ]
-                    [ Icons.render Icons.ToggleSidebar [] ]
+                    [ Html.text "Delete trigger" ]
                 ]
-            ]
-         , Form.row []
-            [ Form.col [ Col.sm12 ]
-                [ Form.group []
-                    [ Form.label [ for "triggerName" ] [ text "Name" ]
-                    , Input.text
-                        [ Input.id "triggerName"
-                        , Input.readonly model.editMode
-                        , Input.value model.trigger.name
-                        , Input.onInput UpdateTriggerName
-                        ]
-                    ]
-                ]
-            ]
-         ]
-            ++ renderSimpleTrigger model
-            ++ renderTriggerAction model.trigger.action model.editMode
-            ++ [ Form.row
-                    [ if model.editMode then
-                        Row.attrs [ Display.none ]
 
-                      else
-                        Row.rightSm
+             else
+                [ Button.button
+                    [ Button.primary
+                    , Button.onClick AddTrigger
                     ]
-                    [ Form.col [ Col.sm4 ]
-                        [ Button.button
-                            [ Button.primary
-                            , Button.attrs [ class "float-right", Spacing.ml2 ]
-                            , Button.onClick AddTrigger
-                            ]
-                            [ text "Install Trigger" ]
-                        ]
-                    ]
-               ]
-        )
+                    [ Html.text "Install Trigger" ]
+                ]
+            )
+        ]
 
 
 renderTriggerAction : Trigger.Action -> Bool -> List (Html Msg)
 renderTriggerAction action editMode =
     [ Form.row []
-        [ Form.col [ Col.sm12 ]
+        [ Form.col []
             [ Form.group []
                 [ Form.label [ for "triggerActionType" ] [ text "Action type" ]
                 , Select.select
@@ -1300,15 +1300,8 @@ renderTriggerAction action editMode =
                 ]
             ]
         ]
-    , Form.row []
-        (renderTriggerTemplate action.template editMode)
-    , Form.row []
-        [ Form.col
-            [ Col.sm12
-            , Col.attrs [ Spacing.pb1 ]
-            ]
-            (renderCustomHeaders action.customHeaders editMode)
-        ]
+    , renderTriggerTemplate action.template editMode
+    , renderCustomHeaders action.customHeaders editMode
     ]
 
 
@@ -1362,48 +1355,57 @@ actionMethodMessage str =
             Noop
 
 
-renderCustomHeaders : Dict String String -> Bool -> List (Html Msg)
+renderCustomHeaders : Dict String String -> Bool -> Html Msg
 renderCustomHeaders customHeaders editMode =
-    if editMode then
-        [ renderHeadersTable customHeaders ]
+    let
+        table =
+            renderHeadersTable customHeaders
+
+        addHeaderLink =
+            Html.a
+                [ { message = OpenNewHeaderPopup
+                  , preventDefault = True
+                  , stopPropagation = False
+                  }
+                    |> Decode.succeed
+                    |> Html.Events.custom "click"
+                , href "#"
+                , Html.Attributes.target "_self"
+                ]
+                [ Icons.render Icons.Add [ Spacing.mr1 ]
+                , Html.text "Add custom HTTP headers..."
+                ]
+
+        rowContent =
+            []
+                |> addWhen (not <| Dict.isEmpty customHeaders) table
+                |> addWhen (not <| editMode) addHeaderLink
+    in
+    if List.isEmpty rowContent then
+        Html.text ""
 
     else
-        [ renderEditableHeadersTable customHeaders
-        , Html.a
-            [ { message = OpenNewHeaderPopup
-              , preventDefault = True
-              , stopPropagation = False
-              }
-                |> Decode.succeed
-                |> Html.Events.custom "click"
-            , href "#"
-            , Html.Attributes.target "_self"
+        Form.row []
+            [ Form.col [ Col.sm12 ]
+                rowContent
             ]
-            [ Icons.render Icons.Add [ Spacing.mr1 ]
-            , Html.text "Add custom request headers..."
-            ]
-        ]
 
 
 renderHeadersTable : Dict String String -> Html Msg
 renderHeadersTable customHeaders =
-    if Dict.isEmpty customHeaders then
-        Html.text ""
-
-    else
-        Table.simpleTable
-            ( Table.simpleThead
-                [ Table.th []
-                    [ Html.text "Header" ]
-                , Table.th []
-                    [ Html.text "Value" ]
-                ]
-            , Table.tbody []
-                (customHeaders
-                    |> Dict.toList
-                    |> List.map httpHeaderTableRow
-                )
+    Table.simpleTable
+        ( Table.simpleThead
+            [ Table.th []
+                [ Html.text "Header" ]
+            , Table.th []
+                [ Html.text "Value" ]
+            ]
+        , Table.tbody []
+            (customHeaders
+                |> Dict.toList
+                |> List.map httpHeaderTableRow
             )
+        )
 
 
 renderEditableHeadersTable : Dict String String -> Html Msg
@@ -1460,8 +1462,39 @@ httpHeaderTableRowWithControls editMsg deleteMsg ( header, value ) =
         ]
 
 
-renderTriggerTemplate : Trigger.Template -> Bool -> List (Form.Col Msg)
+renderTriggerTemplate : Trigger.Template -> Bool -> Html Msg
 renderTriggerTemplate template editMode =
+    let
+        templateSelection =
+            Form.col
+                [ Col.sm12 ]
+                [ renderTriggerTemplateSelection template editMode ]
+    in
+    Form.row []
+        (case template of
+            Trigger.NoTemplate ->
+                [ templateSelection ]
+
+            Trigger.Mustache templateBody ->
+                [ templateSelection
+                , Form.col
+                    [ Col.sm12 ]
+                    [ Form.group []
+                        [ Form.label [ for "actionPayload" ] [ text "Payload" ]
+                        , Textarea.textarea
+                            [ Textarea.id "actionPayload"
+                            , Textarea.attrs [ readonly editMode ]
+                            , Textarea.value templateBody
+                            , Textarea.onInput UpdateMustachePayload
+                            ]
+                        ]
+                    ]
+                ]
+        )
+
+
+renderTriggerTemplateSelection : Trigger.Template -> Bool -> Html Msg
+renderTriggerTemplateSelection template editMode =
     let
         isMustache =
             case template of
@@ -1471,47 +1504,25 @@ renderTriggerTemplate template editMode =
                 Trigger.Mustache _ ->
                     True
     in
-    [ Form.col [ Col.sm12 ]
-        [ Form.group []
-            [ Form.label [ for "triggerTemplateType" ] [ text "Payload type" ]
-            , Select.select
-                [ Select.id "triggerTemplateType"
-                , Select.disabled editMode
-                , Select.onChange UpdateTriggerTemplate
-                ]
-                [ Select.item
-                    [ value "notemplate"
-                    , selected <| not isMustache
-                    ]
-                    [ text "Use default event format (JSON)" ]
-                , Select.item
-                    [ value "mustache"
-                    , selected isMustache
-                    ]
-                    [ text "Mustache Template" ]
-                ]
+    Form.group []
+        [ Form.label [ for "triggerTemplateType" ] [ text "Payload type" ]
+        , Select.select
+            [ Select.id "triggerTemplateType"
+            , Select.disabled editMode
+            , Select.onChange UpdateTriggerTemplate
             ]
-        , renderTemplateBody template editMode
-        ]
-    ]
-
-
-renderTemplateBody : Trigger.Template -> Bool -> Html Msg
-renderTemplateBody template editMode =
-    case template of
-        Trigger.NoTemplate ->
-            text ""
-
-        Trigger.Mustache templateBody ->
-            Form.group []
-                [ Form.label [ for "actionPayload" ] [ text "Payload" ]
-                , Textarea.textarea
-                    [ Textarea.id "actionPayload"
-                    , Textarea.attrs [ readonly editMode ]
-                    , Textarea.value templateBody
-                    , Textarea.onInput UpdateMustachePayload
-                    ]
+            [ Select.item
+                [ value "notemplate"
+                , selected <| not isMustache
                 ]
+                [ text "Use default event format (JSON)" ]
+            , Select.item
+                [ value "mustache"
+                , selected isMustache
+                ]
+                [ text "Mustache Template" ]
+            ]
+        ]
 
 
 renderSimpleTrigger : Model -> List (Html Msg)
