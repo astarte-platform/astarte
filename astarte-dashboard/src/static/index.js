@@ -59,6 +59,16 @@ $.getJSON("/user-config/config.json", function(result) {
 
     app.ports.listenToDeviceEvents.subscribe(connectToChannel);
 
+    app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
+      if (taggedDate.date) {
+        const convertedDate = new Date(taggedDate.date);
+        app.ports.onDateConverted.send({
+          name: taggedDate.name,
+          date: convertedDate.toLocaleString()
+        });
+      }
+    });
+
     window.addEventListener(
       "storage",
       function(event) {
