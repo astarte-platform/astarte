@@ -63,6 +63,7 @@ import Ui.PieChart as PieChart
 type alias Model =
     { deviceId : String
     , device : Maybe Device
+    , deviceEvents : Dict String (Maybe String)
     , deviceError : Maybe String
     , receivedEvents : List JSEvent
     , portConnected : Bool
@@ -88,6 +89,7 @@ init : Session -> String -> ( Model, Cmd Msg )
 init session deviceId =
     ( { deviceId = deviceId
       , device = Nothing
+      , deviceEvents = Dict.empty
       , deviceError = Nothing
       , portConnected = False
       , receivedEvents = []
@@ -130,6 +132,7 @@ type Msg
     | WipeDeviceCredentialsDone (Result AstarteApi.Error ())
       -- Ports
     | OnDeviceEventReceived (Result Decode.Error JSEvent)
+    | OnDateReceived (Result Decode.Error Ports.TaggedDate)
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -160,7 +163,26 @@ update session msg model =
                         connectToPort model session device
             in
             ( newModel
-            , Cmd.batch [ command, AstarteApi.groupList session.apiConfig <| GroupListDone ]
+            , Cmd.batch
+                [ command
+                , AstarteApi.groupList session.apiConfig <| GroupListDone
+                , Ports.isoDateToLocalizedString
+                    { name = "First registration"
+                    , date = device.firstRegistration
+                    }
+                , Ports.isoDateToLocalizedString
+                    { name = "First credentials request"
+                    , date = device.firstCredentialsRequest
+                    }
+                , Ports.isoDateToLocalizedString
+                    { name = "Last connection"
+                    , date = device.lastConnection
+                    }
+                , Ports.isoDateToLocalizedString
+                    { name = "Last disconnection"
+                    , date = device.lastDisconnection
+                    }
+                ]
             , externalCommand
             )
 
@@ -583,6 +605,22 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Notice "Unrecognized Device Event recerived" [ Decode.errorToString error ]
             )
 
+        OnDateReceived (Ok taggedDate) ->
+            let
+                events =
+                    Dict.insert taggedDate.name taggedDate.date model.deviceEvents
+            in
+            ( { model | deviceEvents = events }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        OnDateReceived (Err error) ->
+            ( model
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
 
 handleKeyValueCommand : Session -> Model -> AskKeyValue.ExternalMsg -> Cmd Msg
 handleKeyValueCommand session model cmd =
@@ -764,7 +802,7 @@ view model flashMessages =
                     , deviceIntrospectionCard device Card.HalfWidth
                     , devicePreviousInterfacesCard device Card.HalfWidth
                     , deviceStatsCard device Card.FullWidth
-                    , deviceEventsCard device Card.FullWidth
+                    , deviceEventsCard device model.deviceEvents Card.FullWidth
                     , deviceChannelCard model.receivedEvents Card.FullWidth
                     ]
                 , model.currentModal
@@ -1149,15 +1187,14 @@ devicePreviousInterfacesCard device width =
         [ renderPreviousInterfacesInfo device.previousInterfaces ]
 
 
-deviceEventsCard : Device -> Card.Width -> Grid.Column Msg
-deviceEventsCard device width =
-    [ ( "Last seen IP", device.lastSeenIp )
-    , ( "Last credentials request IP", device.lastCredentialsRequestIp )
-    , ( "First registration", device.firstRegistration )
-    , ( "First credentials request", device.firstCredentialsRequest )
-    , ( "Last connection", device.lastConnection )
-    , ( "Last disconnection", device.lastDisconnection )
+deviceEventsCard : Device -> Dict String (Maybe String) -> Card.Width -> Grid.Column Msg
+deviceEventsCard device events width =
+    [ [ ( "Last seen IP", device.lastSeenIp )
+      , ( "Last credentials request IP", device.lastCredentialsRequestIp )
+      ]
+    , Dict.toList events
     ]
+        |> List.concat
         |> List.filterMap nonEmptyValue
         |> List.map tupleToTitleText
         |> List.concat
@@ -1566,6 +1603,13 @@ jsReplyDecoder =
         ]
 
 
+taggedDateDecoder : Decoder Ports.TaggedDate
+taggedDateDecoder =
+    Decode.map2 Ports.TaggedDate
+        (Decode.field "name" Decode.string)
+        (Decode.field "date" (Decode.nullable Decode.string))
+
+
 
 -- SUBSCRIPTIONS
 
@@ -1573,6 +1617,7 @@ jsReplyDecoder =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     [ Sub.map OnDeviceEventReceived deviceEventReceived
+    , Sub.map OnDateReceived dateReceived
     , Time.every (30 * 1000) UpdateDeviceInfo
     ]
         |> addWhen model.showSpinner (Sub.map SpinnerMsg Spinner.subscription)
@@ -1582,3 +1627,8 @@ subscriptions model =
 deviceEventReceived : Sub (Result Decode.Error JSEvent)
 deviceEventReceived =
     Ports.onDeviceEventReceived (Decode.decodeValue jsReplyDecoder)
+
+
+dateReceived : Sub (Result Decode.Error Ports.TaggedDate)
+dateReceived =
+    Ports.onDateConverted (Decode.decodeValue taggedDateDecoder)

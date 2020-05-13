@@ -18,8 +18,11 @@
 
 
 port module Ports exposing
-    ( listenToDeviceEvents
+    ( TaggedDate
+    , isoDateToLocalizedString
+    , listenToDeviceEvents
     , loadReactPage
+    , onDateConverted
     , onDeviceEventReceived
     , onPageRequested
     , onSessionChange
@@ -72,3 +75,19 @@ port unloadReactPage : () -> Cmd msg
 
 
 port onPageRequested : (Value -> msg) -> Sub msg
+
+
+
+-- As for 13/05/2020 there is no Elm package for datetime to local aware string conversion
+
+
+type alias TaggedDate =
+    { name : String
+    , date : Maybe String
+    }
+
+
+port isoDateToLocalizedString : TaggedDate -> Cmd msg
+
+
+port onDateConverted : (Value -> msg) -> Sub msg
