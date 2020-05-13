@@ -31,16 +31,7 @@ export default class RegisterDevicePage extends React.Component {
   constructor(props) {
     super(props);
 
-    let config = JSON.parse(localStorage.session).api_config;
-    let protocol = config.secure_connection ? "https://" : "http://";
-    let astarteConfig = {
-      realm: config.realm,
-      token: config.token,
-      realmManagementUrl: protocol + config.realm_management_url,
-      appengineUrl: protocol + config.appengine_url,
-      pairingUrl: protocol + config.pairing_url
-    };
-    this.astarte = new AstarteClient(astarteConfig);
+    this.astarte = this.props.astarte;
 
     this.updateDeviceId = this.updateDeviceId.bind(this);
     this.generateRandomUUID = this.generateRandomUUID.bind(this);

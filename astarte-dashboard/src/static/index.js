@@ -19,17 +19,19 @@
 import ReactDOM from "react-dom";
 import { createBrowserHistory } from "history";
 import { getRouter } from "../react/Router.js";
+import AstarteClient from "../react/AstarteClient.js";
 
 require("./styles/main.scss");
 
 const $ = require("jquery");
-const { Socket } = require("phoenix");
 
 let reactHistory = null;
 let dashboardConfig = null;
 let phoenixSocket = null;
 let channel = null;
 let app;
+
+let astarteClient = null;
 
 $.getJSON("/user-config/config.json", function(result) {
   dashboardConfig = result;
@@ -48,16 +50,21 @@ $.getJSON("/user-config/config.json", function(result) {
     //init app
     app = require("../elm/Main").Elm.Main.init({ flags: parameters });
 
+    astarteClient = getAstarteClient(localStorage.session);
+
     /* begin Elm ports */
     app.ports.storeSession.subscribe(function(session) {
       console.log("storing session");
       localStorage.session = session;
+
+      // update with new session data
+      astarteClient = getAstarteClient(session);
     });
 
     app.ports.loadReactPage.subscribe(loadPage);
     app.ports.unloadReactPage.subscribe(clearReact);
 
-    app.ports.listenToDeviceEvents.subscribe(connectToChannel);
+    app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
 
     app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
       if (taggedDate.date) {
@@ -82,206 +89,81 @@ $.getJSON("/user-config/config.json", function(result) {
     /* end Elm ports */
   });
 
-function openSocket(params) {
-  console.log("opening web socket");
+function watchDeviceEvents(params) {
+  const { deviceId } = params;
+  const salt = Math.floor(Math.random() * 10000);
+  const roomName = `dashboard_${deviceId}_${salt}`;
+  astarteClient.joinRoom(roomName)
+    .then(() => {
+      sendInfoMessage(`Joined room for device ${params.deviceId}`);
 
-  if (phoenixSocket) {
-    console.log("web socket already opened");
-    return;
-  }
-
-  if (!params.appengineUrl) {
-    console.log("no appengine url provided");
-    return;
-  }
-
-  let protocol;
-  if (params.secureConnection) {
-    protocol = "wss";
-  } else {
-    protocol = "ws";
-  }
-
-  let socketUrl = `${protocol}://${params.appengineUrl}/v1/socket`;
-  let socketParams = { params: { realm: params.realm, token: params.token } };
-  phoenixSocket = new Socket(socketUrl, socketParams);
-  phoenixSocket.onError(socketErrorHandler);
-  phoenixSocket.onClose(socketCloseHandler);
-  phoenixSocket.onOpen(() => console.log("Socket opened"));
-  phoenixSocket.connect();
-}
-
-function connectToChannel(params) {
-  console.log(`joining room for device id ${params.deviceId}`);
-
-  if (!phoenixSocket) {
-    openSocket(params);
-  }
-
-  if (channel) {
-    // already in a room, leave and retry
-    console.log("already in a room");
-    channel
-      .leave()
-      .receive("ok", () => {
-        channel = null;
-        connectToChannel(params);
-      })
-      .receive("error", resp => {
-        console.log("Unable to leave previous room", resp);
+      astarteClient.listenForEvents(roomName, (payload) => {
+        app.ports.onDeviceEventReceived.send(payload);
       });
 
-    return;
-  }
+      const connectionTriggerPayload = {
+        name: `connectiontrigger-${deviceId}`,
+        device_id: deviceId,
+        simple_trigger: {
+          type: "device_trigger",
+          on: "device_connected",
+          device_id: deviceId
+        }
+      };
 
-  // This should be unique and you should have JOIN and WATCH permissions for it in the JWT
-  let salt = Math.floor(Math.random() * 10000);
-  let room_name = `dashboard_${params.deviceId}_${salt}`;
-  channel = phoenixSocket.channel(`rooms:${params.realm}:${room_name}`, {});
+      const disconnectionTriggerPayload = {
+        name: `disconnectiontrigger-${deviceId}`,
+        device_id: deviceId,
+        simple_trigger: {
+          type: "device_trigger",
+          on: "device_disconnected",
+          device_id: deviceId
+        }
+      };
 
-  channel
-    .join()
-    .receive("ok", resp => {
-      roomJoinedHandler(resp, params);
+      const dataTriggerPayload = {
+        name: `datatrigger-${deviceId}`,
+        device_id: deviceId,
+        simple_trigger: {
+          type: "data_trigger",
+          on: "incoming_data",
+          interface_name: "*",
+          value_match_operator: "*",
+          match_path: "/*"
+        }
+      };
+
+      astarteClient.registerVolatileTrigger(roomName, connectionTriggerPayload)
+        .then(() => { sendInfoMessage("Watching for device connection events") })
+        .catch((err) => { sendErrorMessage("Coulnd't watch for device connection events") });
+
+      astarteClient.registerVolatileTrigger(roomName, disconnectionTriggerPayload)
+        .then(() => { sendInfoMessage("Watching for device disconnection events") })
+        .catch((err) => { sendErrorMessage("Coulnd't watch for device disconnection events") });
+
+      astarteClient.registerVolatileTrigger(roomName, dataTriggerPayload)
+        .then(() => { sendInfoMessage("Watching for device data events") })
+        .catch((err) => { sendErrorMessage("Coulnd't watch for device data events") });
     })
-    .receive("error", resp => {
-      console.log("Unable to join", resp);
-      app.ports.onDeviceEventReceived.send({
-        message: `Error joining room for device ${params.deviceId}`,
-        level: "error",
-        timestamp: Date.now()
-      });
+    .catch((err) => {
+      sendErrorMessage(`Couldn't join device ${deviceId} room`);
     });
 }
 
-function socketErrorHandler() {
-  console.log("There was an error with the connection!");
+function sendErrorMessage(errorMessage) {
   app.ports.onDeviceEventReceived.send({
-    message: "Phoenix socket connection error",
+    message: errorMessage,
     level: "error",
     timestamp: Date.now()
   });
 }
 
-function socketCloseHandler() {
-  console.log("The connection dropped");
-  phoenixSocket = null;
-}
-
-function roomJoinedHandler(resp, params) {
-  console.log("Joined successfully", resp);
+function sendInfoMessage(infoMessage) {
   app.ports.onDeviceEventReceived.send({
-    message: `Joined room for device ${params.deviceId}`,
+    message: infoMessage,
     level: "info",
     timestamp: Date.now()
   });
-
-  // triggers
-  installConnectionTrigger(params.deviceId);
-  installDisconnectionTrigger(params.deviceId);
-
-  params.interfaces.forEach(installedInterface => {
-    installInterfaceTrigger(
-      params.deviceId,
-      installedInterface.name,
-      installedInterface.major
-    );
-  });
-
-  // events
-  channel.on("new_event", payload => {
-    app.ports.onDeviceEventReceived.send(payload);
-  });
-}
-
-function installConnectionTrigger(deviceId) {
-  let connection_trigger_payload = {
-    name: `connectiontrigger-${deviceId}`,
-    device_id: deviceId,
-    simple_trigger: {
-      type: "device_trigger",
-      on: "device_connected",
-      device_id: deviceId
-    }
-  };
-
-  channel
-    .push("watch", connection_trigger_payload)
-    .receive("ok", resp => {
-      app.ports.onDeviceEventReceived.send({
-        message: "Device connection trigger installed",
-        level: "info",
-        timestamp: Date.now()
-      });
-    })
-    .receive("error", resp => {
-      app.ports.onDeviceEventReceived.send({
-        message: "Failed to install the connection trigger",
-        level: "error",
-        timestamp: Date.now()
-      });
-    });
-}
-
-function installDisconnectionTrigger(deviceId) {
-  let disconnection_trigger_payload = {
-    name: `disconnectiontrigger-${deviceId}`,
-    device_id: deviceId,
-    simple_trigger: {
-      type: "device_trigger",
-      on: "device_disconnected",
-      device_id: deviceId
-    }
-  };
-
-  channel
-    .push("watch", disconnection_trigger_payload)
-    .receive("ok", resp => {
-      app.ports.onDeviceEventReceived.send({
-        message: "Device disconnection trigger installed",
-        level: "info",
-        timestamp: Date.now()
-      });
-    })
-    .receive("error", resp => {
-      app.ports.onDeviceEventReceived.send({
-        message: "Failed to install the disconnection trigger",
-        level: "error",
-        timestamp: Date.now()
-      });
-    });
-}
-
-function installInterfaceTrigger(deviceId, name, major) {
-  let data_trigger_payload = {
-    name: `datatrigger-${name}-${deviceId}`,
-    device_id: deviceId,
-    simple_trigger: {
-      type: "data_trigger",
-      on: "incoming_data",
-      interface_name: name,
-      interface_major: major,
-      value_match_operator: "*",
-      match_path: "/*"
-    }
-  };
-
-  channel
-    .push("watch", data_trigger_payload)
-    .receive("ok", resp => {
-      app.ports.onDeviceEventReceived.send({
-        message: "Data trigger for interface " + name + " installed",
-        level: "info",
-        timestamp: Date.now()
-      });
-    })
-    .receive("error", resp => {
-      app.ports.onDeviceEventReceived.send({
-        message: "Failed to install data trigger for interface " + name,
-        level: "error",
-        timestamp: Date.now()
-      });
-    });
 }
 
 function loadPage(page) {
@@ -308,7 +190,7 @@ function loadPage(page) {
 
   reactHistory = createBrowserHistory();
 
-  const reactApp = getRouter(reactHistory, noMatchFallback);
+  const reactApp = getRouter(reactHistory, astarteClient, noMatchFallback);
   ReactDOM.render(reactApp, document.getElementById("react-page"));
 }
 
@@ -321,4 +203,25 @@ function clearReact() {
 
 function noMatchFallback(url) {
   app.ports.onPageRequested.send(url);
+}
+
+function getAstarteClient(session) {
+  if (!session || session == "null") {
+    return null;
+  }
+
+  const config = JSON.parse(session).api_config;
+  const protocol = config.secure_connection ? "https://" : "http://";
+  const astarteConfig = {
+    realm: config.realm,
+    token: config.token,
+    secureConnection: config.secure_connection,
+    realmManagementUrl: protocol + config.realm_management_url,
+    appengineUrl: protocol + config.appengine_url,
+    pairingUrl: protocol + config.pairing_url,
+    onSocketError: (() => { sendErrorError("Astarte channels communication error") }),
+    onSocketClose: (() => { sendErrorError("Lost connection with the Astarte channel") })
+  };
+
+  return new AstarteClient(astarteConfig);
 }
