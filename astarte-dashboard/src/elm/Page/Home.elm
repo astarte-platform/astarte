@@ -243,7 +243,7 @@ welcomeCard width =
                         , Html.br [] []
                         , Html.text "Read the"
                         , Html.a [ target "_blank", href "https://docs.astarte-platform.org/" ] [ Html.text " documentation " ]
-                        , Html.text "for more detailed informations on Astarte."
+                        , Html.text "for detailed information on Astarte."
                         ]
                     ]
                 ]
@@ -307,7 +307,7 @@ triggersCard width triggerCount =
 
 apiHealthCard : Card.Width -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Grid.Column Msg
 apiHealthCard width appengineHelath realmManagementHealth pairingHealth =
-    Card.view "API Health"
+    Card.view "API Status"
         width
         [ Card.subTitle "Realm management API"
         , renderHealth appengineHelath
