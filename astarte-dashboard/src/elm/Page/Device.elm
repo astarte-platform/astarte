@@ -972,6 +972,7 @@ deviceStatsCard device width =
             , height = 800
             , colors = preferedColors
             , data = piecharList
+            , cssClasses = [ "device-data-piechart" ]
             }
     in
     Card.view "Device Stats" width <|
@@ -991,7 +992,14 @@ deviceStatsCard device width =
                     )
                 ]
             , Grid.col
-                [ Col.md12, Col.xl4, Col.attrs [ class "piechart-container" ] ]
+                [ Col.sm12
+                , Col.xl4
+                , Col.attrs
+                    [ Flex.block
+                    , Flex.justifyCenter
+                    , Flex.wrapReverse
+                    ]
+                ]
                 [ PieChart.view chartParams
                 , Html.ul
                     [ class "list-unstyled"
@@ -1086,10 +1094,50 @@ renderStats name bytes totalBytes msgs totalMsgs =
     Table.tr []
         [ Table.td []
             [ Html.text name ]
-        , tableCellRight <| String.fromInt bytes
+        , tableCellRight <| formatBytes bytes
         , tableCellRightXl <| formatPercentFloat <| totalBytes
         , tableCellRight <| String.fromInt msgs
         , tableCellRightXl <| formatPercentFloat <| totalMsgs
+        ]
+
+
+formatBytes : Int -> String
+formatBytes bytes =
+    if bytes < 1024 then
+        bytes
+            |> String.fromInt
+            |> stringAppend "B"
+
+    else if bytes < (1024 * 1024) then
+        floatDivision bytes 1024
+            |> Maybe.withDefault 0
+            |> formatFloat2digits
+            |> stringAppend "KiB"
+
+    else
+        floatDivision bytes (1024 * 1024)
+            |> Maybe.withDefault 0
+            |> formatFloat2digits
+            |> stringAppend "MiB"
+
+
+stringAppend : String -> String -> String
+stringAppend pre original =
+    -- String.append has wrong argument order, so i can't be chained
+    String.append original pre
+
+
+formatFloat2digits : Float -> String
+formatFloat2digits num =
+    String.concat
+        [ truncate num
+            |> String.fromInt
+        , "."
+        , (num * 100)
+            |> round
+            |> modBy 100
+            |> String.fromInt
+            |> String.padLeft 2 '0'
         ]
 
 

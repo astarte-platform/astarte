@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Public keys are shown using monospace fonts
 - Explicit timestamp is enabled for all mappings when interface type is changed to datastream.
 
+## [0.11.1] - Unreleased
+### Added
+- Byte multiples in device stats stable.
+
+### Fixed
+- Allow placeholders in data trigger paths
+- Fix label positioning in device stats pie chart.
+
+## [0.11.0] - 2020-04-13
+
+## [0.11.0-rc.1] - 2020-02-26
+
 ## [0.11.0-rc.0] - 2020-01-26
 ### Added
 - Support for data triggers matching "any interfaces".

@@ -1129,7 +1129,9 @@ innerMatch xa yb prevValue =
 
 innerMatchHelp : String -> String -> Bool
 innerMatchHelp first second =
-    isPlaceholder second || (first == second)
+    isPlaceholder first
+        || isPlaceholder second
+        || (first == second)
 
 
 isPlaceholder : String -> Bool
