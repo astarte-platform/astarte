@@ -128,12 +128,8 @@ $never-connected-color: #101010;
     color: $never-connected-color
 }
 
-.piechart-container {
-    max-height: 300px;
-
-    svg {
-        height: 100%
-    }
+.device-data-piechart {
+    max-height: 20em;
 }
 
 .square {

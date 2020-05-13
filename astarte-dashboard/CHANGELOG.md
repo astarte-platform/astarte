@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.1] - Unreleased
 ### Fixed
 - Allow placeholders in data trigger paths
+- Fix label positioning in device stats pie chart.
 
 ## [0.11.0] - 2020-04-13
 

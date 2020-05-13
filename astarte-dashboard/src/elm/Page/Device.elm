@@ -566,6 +566,7 @@ deviceStatsCard device width =
             , height = 800
             , colors = preferedColors
             , data = piecharList
+            , cssClasses = [ "device-data-piechart" ]
             }
     in
     renderCard "Device stats" width <|
@@ -585,7 +586,14 @@ deviceStatsCard device width =
                     )
                 ]
             , Grid.col
-                [ Col.md12, Col.xl4, Col.attrs [ class "piechart-container" ] ]
+                [ Col.sm12
+                , Col.xl4
+                , Col.attrs
+                    [ Flex.block
+                    , Flex.justifyCenter
+                    , Flex.wrapReverse
+                    ]
+                ]
                 [ PieChart.view chartParams
                 , Html.ul
                     [ class "list-unstyled"
