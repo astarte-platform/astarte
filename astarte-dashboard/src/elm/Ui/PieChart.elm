@@ -24,7 +24,7 @@ import Color exposing (Color)
 import Path
 import Shape exposing (defaultPieConfig)
 import TypedSvg exposing (g, svg)
-import TypedSvg.Attributes exposing (fill, stroke, transform, viewBox)
+import TypedSvg.Attributes exposing (class, fill, stroke, transform, viewBox)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (Fill(..), Transform(..))
 
@@ -34,6 +34,7 @@ type alias Params =
     , height : Float
     , colors : List Color
     , data : List ( String, Float )
+    , cssClasses : List String
     }
 
 
@@ -54,7 +55,10 @@ view params =
         makeSlice index datum =
             Path.element (Shape.arc datum) [ fill <| Fill <| Maybe.withDefault Color.black <| Array.get index colorArray, stroke Color.white ]
     in
-    svg [ viewBox 0 0 params.width params.height ]
+    svg
+        [ viewBox 0 0 params.width params.height
+        , class params.cssClasses
+        ]
         [ g [ transform [ Translate (params.width / 2) (params.height / 2) ] ]
             [ g [] <| List.indexedMap makeSlice pieData ]
         ]
