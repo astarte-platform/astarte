@@ -28,7 +28,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPAction do
     field :realm_name, :string
 
     field :amqp_exchange, :string
-    field :amqp_routing_key, :string
+    field :amqp_routing_key, :string, default: ""
     field :amqp_message_expiration_ms, :integer
     field :amqp_message_priority, :integer
     field :amqp_message_persistent, :boolean
@@ -37,11 +37,10 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPAction do
   @mandatory_attrs [
     :realm_name,
     :amqp_exchange,
-    :amqp_routing_key,
     :amqp_message_expiration_ms,
     :amqp_message_persistent
   ]
-  @all_attrs [:amqp_message_priority | @mandatory_attrs]
+  @all_attrs [:amqp_message_priority, :amqp_routing_key] ++ @mandatory_attrs
 
   @doc false
   def changeset(%AMQPAction{} = amqp_action, %{"realm_name" => realm_name} = attrs) do
