@@ -62,6 +62,7 @@
   },
   "dependencies": {
     "axios": "^0.19.2",
+    "jsonwebtoken": "^8.5.1",
     "phoenix": "^1.4.16",
     "react": "^16.13.1",
     "react-bootstrap": "^1.0.0",

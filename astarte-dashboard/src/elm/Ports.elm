@@ -26,8 +26,10 @@ port module Ports exposing
     , onDeviceEventReceived
     , onPageRequested
     , onSessionChange
+    , onTokenValidationResult
     , storeSession
     , unloadReactPage
+    , validateJWT
     )
 
 import Json.Encode exposing (Value)
@@ -75,6 +77,12 @@ port unloadReactPage : () -> Cmd msg
 
 
 port onPageRequested : (Value -> msg) -> Sub msg
+
+
+port validateJWT : String -> Cmd msg
+
+
+port onTokenValidationResult : (Value -> msg) -> Sub msg
 
 
 

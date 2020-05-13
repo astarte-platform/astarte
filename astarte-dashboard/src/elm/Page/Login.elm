@@ -17,7 +17,7 @@
 -}
 
 
-module Page.Login exposing (Model, Msg, init, update, view)
+module Page.Login exposing (Model, Msg, init, subscriptions, update, view)
 
 import Assets
 import Bootstrap.Button as Button
@@ -35,6 +35,8 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Browser.Navigation
 import Html exposing (Html, a, img, text)
 import Html.Attributes exposing (class, for, href, placeholder, src, target)
+import Json.Decode as Decode
+import Ports
 import Route
 import Types.Config as Config exposing (AuthConfig(..), AuthType(..), getAuthConfig)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -49,6 +51,7 @@ type alias Model =
     , authUrl : String
     , showAuthUrl : Bool
     , token : String
+    , tokenValidation : Maybe ValidationStatus
     , loginType : Config.AuthType
     , allowSwitching : Bool
     }
@@ -87,6 +90,7 @@ init config requestedAuth =
     in
     ( { realm = config.defaultRealm |> Maybe.withDefault ""
       , token = ""
+      , tokenValidation = Nothing
       , authUrl = authUrl
       , showAuthUrl = showAuthUrl
       , loginType = authType
@@ -112,6 +116,7 @@ type Msg
     | UpdateAuthUrl String
     | UpdateToken String
     | Forward ExternalMsg
+    | TokenValidationReceived (Result Decode.Error TokenValidation)
 
 
 update : Session -> Msg -> Model -> ( Model, Cmd Msg, ExternalMsg )
@@ -138,8 +143,15 @@ update session msg model =
             )
 
         UpdateToken newToken ->
-            ( { model | token = newToken }
-            , Cmd.none
+            let
+                token =
+                    String.trim newToken
+            in
+            ( { model
+                | token = token
+                , tokenValidation = Nothing
+              }
+            , Ports.validateJWT token
             , ExternalMsg.Noop
             )
 
@@ -147,6 +159,26 @@ update session msg model =
             ( model
             , Cmd.none
             , externalMsg
+            )
+
+        TokenValidationReceived (Ok validation) ->
+            -- Validation is async, make sure the token did not change
+            if model.token == validation.token then
+                ( { model | tokenValidation = Just validation.status }
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
+
+            else
+                ( model
+                , Cmd.none
+                , ExternalMsg.Noop
+                )
+
+        TokenValidationReceived (Err err) ->
+            ( model
+            , Cmd.none
+            , ExternalMsg.Noop
             )
 
 
@@ -263,6 +295,7 @@ loginForm model =
                 [ Col.sm12 ]
                 [ Button.button
                     [ Button.primary
+                    , Button.disabled <| not <| isValidLoginData model
                     , Button.attrs [ Size.w100, Size.w100 ]
                     , Button.onClick Login
                     ]
@@ -281,6 +314,20 @@ loginForm model =
             ]
         , additionalInfos model.loginType
         ]
+
+
+isValidLoginData : Model -> Bool
+isValidLoginData model =
+    let
+        validAuthInfo =
+            case model.loginType of
+                OAuth ->
+                    model.authUrl /= ""
+
+                Token ->
+                    model.tokenValidation == Just Valid
+    in
+    model.realm /= "" && validAuthInfo
 
 
 imageColumn : Grid.Column Msg
@@ -356,13 +403,17 @@ renderAuthInfo model =
             Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ Form.label [ for "authToken" ] [ text "Token" ]
-                    , Textarea.textarea
-                        [ Textarea.id "authToken"
+                    , [ [ Textarea.id "authToken"
                         , Textarea.attrs [ placeholder "Auth Token" ]
                         , Textarea.rows 4
                         , Textarea.value model.token
                         , Textarea.onInput UpdateToken
                         ]
+                      , validationAttributes model.tokenValidation
+                      ]
+                        |> List.concat
+                        |> Textarea.textarea
+                    , tokenFeedback model.tokenValidation
                     ]
                 ]
 
@@ -382,6 +433,38 @@ renderAuthInfo model =
 
             else
                 text ""
+
+
+validationAttributes : Maybe ValidationStatus -> List (Textarea.Option Msg)
+validationAttributes validation =
+    case validation of
+        Nothing ->
+            []
+
+        Just Valid ->
+            [ Textarea.success ]
+
+        _ ->
+            [ Textarea.danger ]
+
+
+tokenFeedback : Maybe ValidationStatus -> Html Msg
+tokenFeedback validation =
+    case validation of
+        Just Invalid ->
+            Form.invalidFeedback []
+                [ Html.text "Invalid JWT token." ]
+
+        Just Expired ->
+            Form.invalidFeedback []
+                [ Html.text "Provided token has expired." ]
+
+        Just NotAnAstarteToken ->
+            Form.invalidFeedback []
+                [ Html.text "Provided JWT token has no usable Astarte claims." ]
+
+        _ ->
+            Html.text ""
 
 
 additionalInfos : AuthType -> Html Msg
@@ -412,3 +495,56 @@ additionalInfos loginType =
 
         OAuth ->
             text ""
+
+
+type ValidationStatus
+    = Invalid
+    | NotAnAstarteToken
+    | Expired
+    | Valid
+
+
+type alias TokenValidation =
+    { token : String
+    , status : ValidationStatus
+    }
+
+
+validationDecoder : Decode.Decoder TokenValidation
+validationDecoder =
+    Decode.map2 TokenValidation
+        (Decode.field "token" Decode.string)
+        (Decode.field "status" decodeValidationStatus)
+
+
+decodeValidationStatus : Decode.Decoder ValidationStatus
+decodeValidationStatus =
+    Decode.string
+        |> Decode.andThen
+            (\s ->
+                case s of
+                    "invalid" ->
+                        Decode.succeed Invalid
+
+                    "notAnAstarteToken" ->
+                        Decode.succeed NotAnAstarteToken
+
+                    "expired" ->
+                        Decode.succeed Expired
+
+                    "valid" ->
+                        Decode.succeed Valid
+
+                    _ ->
+                        Decode.fail "Invalid validation status"
+            )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.map TokenValidationReceived deviceEventReceived
+
+
+deviceEventReceived : Sub (Result Decode.Error TokenValidation)
+deviceEventReceived =
+    Ports.onTokenValidationResult (Decode.decodeValue validationDecoder)

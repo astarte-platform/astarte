@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Pairing API health check.
 - Device metadata view and editing.
 - Add custom headers and method for trigger HTTP actions
+- Login form validation.
 
 ### Changed
 - Layout and palette restyle.
