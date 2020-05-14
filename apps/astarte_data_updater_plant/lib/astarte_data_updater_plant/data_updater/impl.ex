@@ -346,7 +346,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    with :ok <- validate_path(path),
+    with :ok <- validate_interface(interface),
+         :ok <- validate_path(path),
          maybe_descriptor <- Map.get(new_state.interfaces, interface),
          {:ok, interface_descriptor, new_state} <-
            maybe_handle_cache_miss(maybe_descriptor, interface, new_state, db_client),
@@ -551,8 +552,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         update_stats(new_state, interface, nil, path, payload)
 
+      {:error, :invalid_interface} ->
+        Logger.warn("Received invalid interface: #{inspect(interface)}.")
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
+        # We dont't update stats on an invalid interface
+        new_state
+
       {:error, :invalid_path} ->
-        Logger.warn("Received invalid path: #{path}.")
+        Logger.warn("Received invalid path: #{inspect(path)}.")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -708,12 +725,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     now_secs + ttl + 3600 < expiry_secs
   end
 
-  defp validate_path(path) do
-    # TODO: this is a temporary fix to work around a bug in EndpointsAutomaton.resolve_path/2
-    if String.contains?(path, "//") do
-      {:error, :invalid_path}
-    else
+  defp validate_interface(interface) do
+    if String.valid?(interface) do
       :ok
+    else
+      {:error, :invalid_interface}
+    end
+  end
+
+  defp validate_path(path) do
+    cond do
+      # Make sure the path is a valid unicode string
+      not String.valid?(path) ->
+        {:error, :invalid_path}
+
+      # TODO: this is a temporary fix to work around a bug in EndpointsAutomaton.resolve_path/2
+      String.contains?(path, "//") ->
+        {:error, :invalid_path}
+
+      true ->
+        :ok
     end
   end
 

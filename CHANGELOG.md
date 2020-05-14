@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Wait for schema_version agreement before applying any schema change (such as creating tables or a
   new realm). (see [#312](https://github.com/astarte-platform/astarte/issues/312).
 - [appengine_api] Fix the metric counting discarded channel events, it was not correctly increased.
+- [data_update_plant] Validate UTF8 strings coming from the broker (i.e. interface and path) to
+  avoid passing invalid strings to the database.
 
 ## [0.11.0] - 2020-04-13
 ### Fixed
