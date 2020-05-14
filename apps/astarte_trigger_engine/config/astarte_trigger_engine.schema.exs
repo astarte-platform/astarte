@@ -97,6 +97,15 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_trigger_engine.amqp_consumer_options.virtual_host"
     ],
+    "amqp_consumer_options.virtual_host": [
+      commented: true,
+      datatype: :integer,
+      default: 300,
+      env_var: "TRIGGER_ENGINE_AMQP_PREFETCH_COUNT",
+      doc: "Prefetch count for the AMQP consumer",
+      hidden: false,
+      to: "astarte_trigger_engine.amqp_prefetch_count"
+    ],
     amqp_events_queue_name: [
       commented: true,
       datatype: :binary,

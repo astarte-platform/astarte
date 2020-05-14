@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - [data_updater_plant] Add `DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT` environment variable,
   this must be equal to the total number of queues in the Astarte instance.
+- [trigger_engine] Add `TRIGGER_ENGINE_AMQP_PREFETCH_COUNT` environment variable to set the
+  prefetech count of AMQPEventsConsumer, avoiding excessive memory usage.
 
 ### Fixed
 - Wait for schema_version agreement before applying any schema change (such as creating tables or a

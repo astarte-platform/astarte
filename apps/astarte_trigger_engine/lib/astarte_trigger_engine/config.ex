@@ -29,6 +29,13 @@ defmodule Astarte.TriggerEngine.Config do
   end
 
   @doc """
+  Returns the AMQP prefetch count
+  """
+  def amqp_prefetch_count do
+    Application.get_env(:astarte_trigger_engine, :amqp_prefetch_count, 300)
+  end
+
+  @doc """
   Returns the events name of the exchange on which events are published
   """
   def events_exchange_name do
