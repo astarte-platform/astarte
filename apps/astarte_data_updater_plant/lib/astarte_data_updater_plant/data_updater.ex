@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.Core.Device
+  alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.DataUpdater.Server
   alias Astarte.DataUpdaterPlant.MessageTracker
   require Logger
@@ -104,9 +105,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         simple_trigger,
         trigger_target
       ) do
-    message_tracker = get_message_tracker(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id, offload_start: true)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker)
+    get_data_updater_process(realm, encoded_device_id, message_tracker, offload_start: true)
     |> GenServer.call(
       {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
        simple_trigger, trigger_target}
@@ -114,9 +115,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   def handle_delete_volatile_trigger(realm, encoded_device_id, trigger_id) do
-    message_tracker = get_message_tracker(realm, encoded_device_id)
+    message_tracker = get_message_tracker(realm, encoded_device_id, offload_start: true)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker)
+    get_data_updater_process(realm, encoded_device_id, message_tracker, offload_start: true)
     |> GenServer.call({:handle_delete_volatile_trigger, trigger_id})
   end
 
@@ -127,13 +128,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     |> GenServer.call({:dump_state})
   end
 
-  defp get_data_updater_process(realm, encoded_device_id, message_tracker) do
+  def get_data_updater_process(realm, encoded_device_id, message_tracker, opts \\ []) do
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       case Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
         [] ->
-          name = {:via, Registry, {Registry.DataUpdater, {realm, device_id}}}
-          {:ok, pid} = Server.start(realm, device_id, message_tracker, name: name)
-          pid
+          if Keyword.get(opts, :offload_start) do
+            # We pass through AMQPDataConsumer to start the process to make sure that
+            # that start is serialized
+            AMQPDataConsumer.start_data_updater(realm, encoded_device_id, message_tracker)
+          else
+            name = {:via, Registry, {Registry.DataUpdater, {realm, device_id}}}
+            {:ok, pid} = Server.start(realm, device_id, message_tracker, name: name)
+            pid
+          end
 
         [{pid, nil}] ->
           pid
@@ -149,14 +156,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     end
   end
 
-  defp get_message_tracker(realm, encoded_device_id) do
+  def get_message_tracker(realm, encoded_device_id, opts \\ []) do
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       device = {realm, device_id}
 
       case Registry.lookup(Registry.MessageTracker, device) do
         [] ->
-          acknowledger = self()
-          spawn_message_tracker(acknowledger, device)
+          if Keyword.get(opts, :offload_start) do
+            # We pass through AMQPDataConsumer to start the process to make sure that
+            # that start is serialized and acknowledger is the right process
+            AMQPDataConsumer.start_message_tracker(realm, encoded_device_id)
+          else
+            acknowledger = self()
+            spawn_message_tracker(acknowledger, device)
+          end
 
         [{pid, nil}] ->
           pid

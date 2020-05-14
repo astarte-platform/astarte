@@ -176,6 +176,17 @@ See the moduledoc for `Conform.Schema.Validator` for more details and examples.
       hidden: false,
       to: "astarte_data_updater_plant.data_queue_range_start"
     ],
+    data_queue_range_start: [
+      commented: true,
+      datatype: :integer,
+      required: false,
+      default: 1,
+      env_var: "DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT",
+      doc:
+        "Returns the total number of data queues in the whole Astarte cluster. This should have the same value of DATA_QUEUE_COUNT in the VerneMQ plugin",
+      hidden: false,
+      to: "astarte_data_updater_plant.data_queue_total_count"
+    ],
     data_queue_range_end: [
       commented: true,
       datatype: :integer,

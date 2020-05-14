@@ -71,6 +71,13 @@ defmodule Astarte.DataUpdaterPlant.Config do
   end
 
   @doc """
+  Returns the total number of data queues in all the Astarte cluster. Defaults to 1.
+  """
+  def data_queue_total_count do
+    Application.get_env(:astarte_data_updater_plant, :data_queue_total_count, 1)
+  end
+
+  @doc """
   Returns the AMQP consumer prefetch count for the consumer. Defaults to 300.
   """
   def amqp_consumer_prefetch_count do
