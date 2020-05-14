@@ -113,6 +113,7 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
   defp connect() do
     with {:ok, conn} <- Connection.open(Config.amqp_consumer_options()),
          {:ok, chan} <- Channel.open(conn),
+         :ok <- Basic.qos(chan, prefetch_count: Config.amqp_prefetch_count()),
          :ok <- Exchange.declare(chan, Config.events_exchange_name(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.events_queue_name(), durable: true),
          :ok <-
