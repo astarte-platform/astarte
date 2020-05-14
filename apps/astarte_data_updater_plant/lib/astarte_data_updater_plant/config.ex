@@ -182,6 +182,12 @@ defmodule Astarte.DataUpdaterPlant.Config do
     type: :integer,
     default: 0
 
+  @envdoc "The total number of data queues in all the Astarte cluster."
+  app_env :data_queue_total_count, :astarte_data_updater_plant, :amqp_data_queue_total_count,
+    os_env: "DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT",
+    type: :integer,
+    default: 1
+
   @envdoc "The prefetch count of the AMQP consumer connection. A prefetch count of 0 means unlimited (not recommended)."
   app_env :consumer_prefetch_count,
           :astarte_data_updater_plant,

@@ -28,12 +28,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [appengine_api] Remove deprecated not versioned socket route.
 
 ## [0.11.1] - Unreleased
+### Added
+- [data_updater_plant] Add `DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT` environment variable,
+  this must be equal to the total number of queues in the Astarte instance.
+
 ### Fixed
 - Wait for schema_version agreement before applying any schema change (such as creating tables or a
   new realm). (see [#312](https://github.com/astarte-platform/astarte/issues/312).
 - [appengine_api] Fix the metric counting discarded channel events, it was not correctly increased.
 - [data_update_plant] Validate UTF8 strings coming from the broker (i.e. interface and path) to
   avoid passing invalid strings to the database.
+- [data_updater_plant] Fix a bug that was sometimes stalling a data updater queue process (see
+  [#375](https://github.com/astarte-platform/astarte/issues/375).
 
 ## [0.11.0] - 2020-04-13
 ### Fixed
