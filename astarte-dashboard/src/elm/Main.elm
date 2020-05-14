@@ -1269,6 +1269,9 @@ subscriptions model =
 pageSubscriptions : Page -> Sub Msg
 pageSubscriptions page =
     case page of
+        Public (LoginPage submodel) ->
+            Sub.map LoginMsg <| Login.subscriptions submodel
+
         Realm _ (HomePage submodel) ->
             Sub.map HomeMsg <| Home.subscriptions submodel
 

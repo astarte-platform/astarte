@@ -17,6 +17,7 @@
 */
 
 import ReactDOM from "react-dom";
+import jwt from "jsonwebtoken";
 import { createBrowserHistory } from "history";
 import { getRouter } from "../react/Router.js";
 import AstarteClient from "../react/AstarteClient.js";
@@ -76,6 +77,8 @@ $.getJSON("/user-config/config.json", function(result) {
       }
     });
 
+    app.ports.validateJWT.subscribe(validateJWT);
+
     window.addEventListener(
       "storage",
       function(event) {
@@ -88,6 +91,68 @@ $.getJSON("/user-config/config.json", function(result) {
     );
     /* end Elm ports */
   });
+
+function validateJWT(token) {
+  const decoded = jwt.decode(token, {complete: true});
+
+  let status;
+
+  if (decoded) {
+    if (isExpired(decoded.payload)) {
+      status = "expired";
+
+    } else if (!hasAstarteClaims(decoded.payload)) {
+      status = "notAnAstarteToken";
+
+    } else {
+      status = "valid";
+    }
+
+  } else {
+    status = "invalid";
+  }
+
+  app.ports.onTokenValidationResult.send({
+    token: token,
+    status: status
+  });
+}
+
+function isExpired(decodedTokenObject) {
+  if (decodedTokenObject.exp) {
+    const posix = Number.parseInt(decodedTokenObject.exp);
+    const expiry = new Date(posix * 1000);
+    const now = new Date();
+
+    return (expiry <= now);
+  } else {
+    return false;
+  }
+}
+
+function hasAstarteClaims(decodedTokenObject) {
+  // AppEngine API
+  if ("a_aea" in decodedTokenObject) {
+    return true;
+  }
+
+  // Realm Management API
+  if ("a_rma" in decodedTokenObject) {
+    return true;
+  }
+
+  // Pairing API
+  if ("a_pa" in decodedTokenObject) {
+    return true;
+  }
+
+  // Astarte Channels
+  if ("a_ch" in decodedTokenObject) {
+    return true;
+  }
+
+  return false;
+}
 
 function watchDeviceEvents(params) {
   const { deviceId } = params;
