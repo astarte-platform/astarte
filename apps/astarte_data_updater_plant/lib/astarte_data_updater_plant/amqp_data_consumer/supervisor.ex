@@ -43,7 +43,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.Supervisor do
 
     for queue_index <- queue_range_start..queue_range_end do
       queue_name = "#{queue_prefix}#{queue_index}"
-      args = [queue_name: queue_name]
+      args = [queue_name: queue_name, queue_index: queue_index]
       Supervisor.child_spec({AMQPDataConsumer, args}, id: {AMQPDataConsumer, queue_index})
     end
   end
