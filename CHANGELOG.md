@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.11.1] - Unreleased
+## [0.11.1] - 2020-05-18
 ### Added
 - [data_updater_plant] Add `DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT` environment variable,
   this must be equal to the total number of queues in the Astarte instance.
