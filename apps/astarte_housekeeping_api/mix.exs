@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.0"}
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.1"}
     ]
   end
 

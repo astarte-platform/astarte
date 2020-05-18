@@ -10,7 +10,7 @@ Rooms in Astarte Channels map 1:1 to Topics in Phoenix Channels, and can be join
 
 A Room is identified by a topic with the following semantics: `rooms:<realm>:<name>`. For example, `rooms:test:myroom` will join the Room `myroom` in the Realm `test`.
 
-A room can be joined by any number of concurrent users. Rooms serve as containers for Transient Triggers, which can be installed by any authorized user. Transient Triggers are actual [Triggers](060-triggers.md), with the difference that they exist within a Channels Room rather than within a Realm - this mostly affects their timespan - and that the `action` can't be configured - every time a Condition is triggered a message is delivered to users in the Room, [in a well-known format](https://github.com/astarte-platform/astarte_core/blob/v0.11.0/lib/astarte_core/triggers/simple_events/encoder.ex).
+A room can be joined by any number of concurrent users. Rooms serve as containers for Transient Triggers, which can be installed by any authorized user. Transient Triggers are actual [Triggers](060-triggers.md), with the difference that they exist within a Channels Room rather than within a Realm - this mostly affects their timespan - and that the `action` can't be configured - every time a Condition is triggered a message is delivered to users in the Room, [in a well-known format](https://github.com/astarte-platform/astarte_core/blob/v0.11.1/lib/astarte_core/triggers/simple_events/encoder.ex).
 
 ### Events
 
@@ -26,7 +26,7 @@ Everytime a Condition of an installed Trigger is triggered, an event is sent to 
 }
 ```
 
-`device_id` is always present (as long as the trigger matches a device) and identifies the device emitting the event. `event`, instead, depends on the kind of installed trigger. It always carries a `type` string, which identifies the content of the object. Currently, the documentation of every event's payload can be found in [Astarte's protobuf files](https://github.com/astarte-platform/astarte_core/tree/v0.11.0/lib/astarte_core/triggers/simple_events). However, there are some discrepancies in mapping (e.g.). It is advised also to have a look at the [encoder](https://github.com/astarte-platform/astarte_core/blob/v0.11.0/lib/astarte_core/triggers/simple_events/encoder.ex). In the foreseeable future, more user friendly documentation will be provided.
+`device_id` is always present (as long as the trigger matches a device) and identifies the device emitting the event. `event`, instead, depends on the kind of installed trigger. It always carries a `type` string, which identifies the content of the object. Currently, the documentation of every event's payload can be found in [Astarte's protobuf files](https://github.com/astarte-platform/astarte_core/tree/v0.11.1/lib/astarte_core/triggers/simple_events). However, there are some discrepancies in mapping (e.g.). It is advised also to have a look at the [encoder](https://github.com/astarte-platform/astarte_core/blob/v0.11.1/lib/astarte_core/triggers/simple_events/encoder.ex). In the foreseeable future, more user friendly documentation will be provided.
 
 ### Lifecycle
 
