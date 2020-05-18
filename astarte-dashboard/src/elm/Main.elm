@@ -138,16 +138,34 @@ init jsParam location key =
             , pairingApiHealth = Nothing
             , flowApiHealth = Nothing
             }
+
+        healthChecks =
+            case configFromJavascript of
+                Config.EditorOnly ->
+                    []
+
+                Config.Standard params ->
+                    if params.enableFlowPreview then
+                        [ AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
+                        , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
+                        , AstarteApi.pairingApiHealth updatedSession.apiConfig PairingHealthCheckDone
+                        , AstarteApi.flowApiHealth updatedSession.apiConfig FlowHealthCheckDone
+                        ]
+
+                    else
+                        [ AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
+                        , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
+                        , AstarteApi.pairingApiHealth updatedSession.apiConfig PairingHealthCheckDone
+                        ]
     in
     ( initialModel
-    , Cmd.batch
-        [ navbarCmd
+    , [ [ navbarCmd
         , initialCommand
-        , AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
-        , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
-        , AstarteApi.pairingApiHealth updatedSession.apiConfig PairingHealthCheckDone
-        , AstarteApi.flowApiHealth updatedSession.apiConfig FlowHealthCheckDone
         ]
+      , healthChecks
+      ]
+        |> List.concat
+        |> Cmd.batch
     )
 
 
@@ -921,11 +939,12 @@ view model =
 
 renderNavbar : Model -> Html Msg
 renderNavbar model =
-    if Config.isEditorOnly model.config then
-        editorNavBar model
+    case model.config of
+        Config.EditorOnly ->
+            editorNavBar model
 
-    else
-        standardNavBar model
+        Config.Standard params ->
+            standardNavBar model params
 
 
 editorNavBar : Model -> Html Msg
@@ -942,8 +961,16 @@ editorNavBar model =
         |> Navbar.view model.navbarState
 
 
-standardNavBar : Model -> Html Msg
-standardNavBar model =
+standardNavBar : Model -> Config.Params -> Html Msg
+standardNavBar model params =
+    let
+        linksBuilder =
+            if params.enableFlowPreview then
+                navbarLinks
+
+            else
+                navbarLinksNoFlow
+    in
     case model.selectedPage of
         Public (LoginPage _) ->
             text ""
@@ -957,7 +984,7 @@ standardNavBar model =
                 |> Navbar.collapseMedium
                 |> dashboardBrand
                 |> Navbar.customItems
-                    [ navbarLinks realmName
+                    [ linksBuilder realmName
                         model.selectedPage
                         model.appEngineApiHealth
                         model.realmManagementApiHealth
@@ -997,6 +1024,70 @@ editorNavbarLinks selectedPage =
                     Icons.Interface
                     False
                     Route.InterfaceEditor
+                ]
+            ]
+
+
+navbarLinksNoFlow : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
+navbarLinksNoFlow realm selectedPage appEngineHealth realmManagementHealth pairingHealth flowHealth =
+    Navbar.customItem <|
+        Grid.container
+            [ Flex.col
+            , Spacing.p0
+            ]
+            [ ul
+                [ class "navbar-nav"
+                , Size.w100
+                , Spacing.mt2
+                ]
+                [ renderNavbarLink
+                    "Home"
+                    Icons.Home
+                    (isHomeRelated selectedPage)
+                    (Route.Realm Route.Home)
+
+                -- Realm Management
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Interfaces"
+                    Icons.Interface
+                    (isInterfacesRelated selectedPage)
+                    (Route.Realm Route.ListInterfaces)
+                , renderNavbarLink
+                    "Triggers"
+                    Icons.Trigger
+                    (isTriggersRelated selectedPage)
+                    (Route.Realm Route.ListTriggers)
+                , renderNavbarLink
+                    "Realm settings"
+                    Icons.Settings
+                    (isSettingsRelated selectedPage)
+                    (Route.Realm Route.RealmSettings)
+
+                -- AppEngine
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Devices"
+                    Icons.Device
+                    (isDeviceRelated selectedPage)
+                    (Route.Realm Route.DeviceList)
+                , renderNavbarLink
+                    "Groups"
+                    Icons.Group
+                    (isGroupRelated selectedPage)
+                    (Route.Realm Route.GroupList)
+
+                -- General
+                , renderNavbarSeparator
+                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth Nothing
+
+                -- Common
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Logout"
+                    Icons.Logout
+                    False
+                    (Route.Realm Route.Logout)
                 ]
             ]
 
@@ -1101,10 +1192,7 @@ healthItem label maybeHealthy =
     in
     case maybeHealthy of
         Nothing ->
-            Html.div [ spacing ]
-                [ Icons.render Icons.EmptyCircle [ Spacing.mr2 ]
-                , Html.text label
-                ]
+            Html.text ""
 
         Just True ->
             Html.div [ spacing ]
