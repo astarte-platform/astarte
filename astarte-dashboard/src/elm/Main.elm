@@ -85,6 +85,7 @@ type alias Model =
     , appEngineApiHealth : Maybe Bool
     , realmManagementApiHealth : Maybe Bool
     , pairingApiHealth : Maybe Bool
+    , flowApiHealth : Maybe Bool
     }
 
 
@@ -135,6 +136,7 @@ init jsParam location key =
             , appEngineApiHealth = Nothing
             , realmManagementApiHealth = Nothing
             , pairingApiHealth = Nothing
+            , flowApiHealth = Nothing
             }
     in
     ( initialModel
@@ -144,6 +146,7 @@ init jsParam location key =
         , AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
         , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
         , AstarteApi.pairingApiHealth updatedSession.apiConfig PairingHealthCheckDone
+        , AstarteApi.flowApiHealth updatedSession.apiConfig FlowHealthCheckDone
         ]
     )
 
@@ -232,6 +235,7 @@ type Msg
     | AppEngineHealthCheckDone (Result AstarteApi.Error Bool)
     | RealmManagementHealthCheckDone (Result AstarteApi.Error Bool)
     | PairingHealthCheckDone (Result AstarteApi.Error Bool)
+    | FlowHealthCheckDone (Result AstarteApi.Error Bool)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -341,6 +345,11 @@ update msg model =
 
         PairingHealthCheckDone (Ok healty) ->
             ( { model | pairingApiHealth = Just healty }
+            , Cmd.none
+            )
+
+        FlowHealthCheckDone (Ok healty) ->
+            ( { model | flowApiHealth = Just healty }
             , Cmd.none
             )
 
@@ -953,6 +962,7 @@ standardNavBar model =
                         model.appEngineApiHealth
                         model.realmManagementApiHealth
                         model.pairingApiHealth
+                        model.flowApiHealth
                     ]
                 |> Navbar.view model.navbarState
 
@@ -991,8 +1001,8 @@ editorNavbarLinks selectedPage =
             ]
 
 
-navbarLinks : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
-navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHealth =
+navbarLinks : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
+navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHealth flowHealth =
     Navbar.customItem <|
         Grid.container
             [ Flex.col
@@ -1055,7 +1065,7 @@ navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHeal
 
                 -- General
                 , renderNavbarSeparator
-                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth
+                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth flowHealth
 
                 -- Common
                 , renderNavbarSeparator
@@ -1068,8 +1078,8 @@ navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHeal
             ]
 
 
-renderStatusRow : String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Html Msg
-renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth =
+renderStatusRow : String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Html Msg
+renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth flowHealth =
     Html.li
         [ class "navbar-status navbar-item", Spacing.pl2 ]
         [ statusRow "Realm"
@@ -1078,6 +1088,7 @@ renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth =
             [ healthItem "AppEngine" appEngineHealth
             , healthItem "Realm Management" realmManagementHealth
             , healthItem "Pairing" pairingHealth
+            , healthItem "Flow" flowHealth
             ]
         ]
 
