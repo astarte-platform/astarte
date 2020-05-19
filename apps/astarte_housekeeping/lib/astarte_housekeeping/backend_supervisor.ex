@@ -32,8 +32,12 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
   def init(_init_arg) do
     Logger.info("BackendSupervisor init", tag: "housekeeping_backend_sup_init")
 
+    xandra_options =
+      Config.xandra_options!()
+      |> Keyword.put(:name, :xandra)
+
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra},
+      {Xandra.Cluster, xandra_options},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
     ]
 

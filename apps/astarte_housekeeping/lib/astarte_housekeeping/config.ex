@@ -38,6 +38,8 @@ defmodule Astarte.Housekeeping.Config do
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 
+  defdelegate xandra_options!, to: DataAccessConfig
+
   defdelegate amqp_connection_username, to: RPCConfig
   defdelegate amqp_connection_username!, to: RPCConfig
 

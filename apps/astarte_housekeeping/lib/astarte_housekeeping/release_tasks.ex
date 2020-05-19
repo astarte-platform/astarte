@@ -112,7 +112,12 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     :ok = Application.load(:astarte_data_access)
 
     _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
-    {:ok, _pid} = Xandra.Cluster.start_link(nodes: Config.xandra_nodes!(), name: :xandra)
+
+    xandra_options =
+      Config.xandra_options!()
+      |> Keyword.put(:name, :xandra)
+
+    {:ok, _pid} = Xandra.Cluster.start_link(xandra_options)
 
     :ok
   end

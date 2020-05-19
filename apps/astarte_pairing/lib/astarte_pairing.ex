@@ -41,8 +41,12 @@ defmodule Astarte.Pairing do
     Config.validate!()
     Config.init!()
 
+    xandra_options =
+      Config.xandra_options!()
+      |> Keyword.put(:name, :xandra)
+
     children = [
-      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra},
+      {Xandra.Cluster, xandra_options},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.PairingWeb.Metrics.Supervisor,
       {Astarte.Pairing.CredentialsSecret.Cache, []}

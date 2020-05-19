@@ -38,10 +38,12 @@ defmodule Astarte.TriggerEngine.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_nodes = Config.xandra_nodes!()
+    xandra_options =
+      Config.xandra_options!()
+      |> Keyword.put(:name, :xandra)
 
     children = [
-      {Xandra.Cluster, nodes: xandra_nodes, name: :xandra},
+      {Xandra.Cluster, xandra_options},
       AMQPEventsConsumer,
       Astarte.TriggerEngineWeb.Metrics.Supervisor
     ]

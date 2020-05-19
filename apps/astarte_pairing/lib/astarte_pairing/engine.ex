@@ -56,8 +56,15 @@ defmodule Astarte.Pairing.Engine do
   end
 
   def get_agent_public_key_pems(realm) do
-    with cassandra_node <- Config.cassandra_node!(),
-         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm)
+
+    with {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
          {:ok, jwt_pems} <- Queries.get_agent_public_key_pems(client) do
       {:ok, jwt_pems}
     else
@@ -83,9 +90,17 @@ defmodule Astarte.Pairing.Engine do
 
     :telemetry.execute([:astarte, :pairing, :get_credentials], %{}, %{realm: realm})
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm)
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
-         {:ok, client} <- Config.cassandra_node!() |> Client.new(keyspace: realm),
+         {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
          {:ok, device_row} <- Queries.select_device_for_credentials_request(client, device_id),
          {:authorized?, true} <-
            {:authorized?,
@@ -140,9 +155,16 @@ defmodule Astarte.Pairing.Engine do
   def get_info(realm, hardware_id, credentials_secret) do
     Logger.debug("get_info request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm)
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         cassandra_node <- Config.cassandra_node!(),
-         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
          {:ok, device_row} <- Queries.select_device_for_info(client, device_id),
          {:authorized?, true} <-
            {:authorized?,
@@ -173,9 +195,16 @@ defmodule Astarte.Pairing.Engine do
 
     :telemetry.execute([:astarte, :pairing, :register_new_device], %{}, %{realm: realm})
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm)
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         cassandra_node <- Config.cassandra_node!(),
-         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
          credentials_secret <- CredentialsSecret.generate(),
          secret_hash <- CredentialsSecret.hash(credentials_secret),
          :ok <- Queries.register_device(client, device_id, hardware_id, secret_hash, opts) do
@@ -195,9 +224,16 @@ defmodule Astarte.Pairing.Engine do
         "in realm #{inspect(realm)}"
     )
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm)
+
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         cassandra_node <- Config.cassandra_node!(),
-         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
          :ok <- Queries.unregister_device(client, device_id) do
       :ok
     else
@@ -214,9 +250,16 @@ defmodule Astarte.Pairing.Engine do
       "verify_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm)
+
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         cassandra_node <- Config.cassandra_node!(),
-         {:ok, client} <- Client.new(cassandra_node, keyspace: realm),
+         {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
          {:ok, device_row} <- Queries.select_device_for_verify_credentials(client, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(secret, device_row[:credentials_secret])} do
