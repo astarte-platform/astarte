@@ -28,6 +28,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           {:cacertfile, String.t()}
           | {:verify, :verify_peer}
           | {:server_name_indication, charlist() | :disable}
+          | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
 
   @type amqp_options ::
@@ -246,7 +247,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
   defp build_consumer_ssl_options() do
     [
       cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
-      verify: :verify_peer
+      verify: :verify_peer,
+      depth: 10
     ]
     |> populate_consumer_sni()
   end
@@ -354,7 +356,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
     [
       cacertfile:
         amqp_producer_ssl_ca_file!() || amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
-      verify: :verify_peer
+      verify: :verify_peer,
+      depth: 10
     ]
     |> populate_producer_sni()
   end

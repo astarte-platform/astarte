@@ -115,6 +115,7 @@ defmodule Astarte.TriggerEngine.Config do
           {:cacertfile, String.t()}
           | {:verify, :verify_peer}
           | {:server_name_indication, charlist() | :disable}
+          | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
 
   @type options ::
@@ -149,7 +150,8 @@ defmodule Astarte.TriggerEngine.Config do
   defp build_ssl_options() do
     [
       cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
-      verify: :verify_peer
+      verify: :verify_peer,
+      depth: 10
     ]
     |> populate_sni()
   end
