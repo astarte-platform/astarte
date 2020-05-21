@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [data_updater_plant] Handle device hearbeat sent by VerneMQ plugin.
 - [data_updater_plant] Deactivate Data Updaters when they don't receive messages for some time,
   freeing up resources.
+- [appengine_api] Support SSL connections to RabbitMQ.
+- [data_updater_plant] Support SSL connections to RabbitMQ.
+- [trigger_engine] Support SSL connections to RabbitMQ.
+- Default max certificate chain length to 10.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
