@@ -31,6 +31,7 @@ defmodule Astarte.DataAccess.Config do
           {:cacertfile, String.t()}
           | {:verify, :verify_peer}
           | {:server_name_indication, :disable | charlist()}
+          | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
   @type auth_options :: {module(), [{String.t(), String.t()}]}
   @type cqex_opts ::
@@ -134,6 +135,7 @@ defmodule Astarte.DataAccess.Config do
     [
       cacertfile: ssl_ca_file!(),
       verify: :verify_peer,
+      depth: 10,
       server_name_indication: :disable
     ]
   end
