@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Device metadata view and editing.
 - Add custom headers and method for trigger HTTP actions
 - Login form validation.
+- Astarte Flow feature preview.
 
 ### Changed
 - Layout and palette restyle.
