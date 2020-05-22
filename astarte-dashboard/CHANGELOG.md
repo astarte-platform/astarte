@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add custom headers and method for trigger HTTP actions
 - Login form validation.
 - Astarte Flow feature preview.
+- AMQP trigger actions.
 
 ### Changed
 - Layout and palette restyle.

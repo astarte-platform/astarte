@@ -1,7 +1,7 @@
 {-
    This file is part of Astarte.
 
-   Copyright 2018 Ispirata Srl
+   Copyright 2018-2020 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -41,7 +41,6 @@ import Html.Attributes exposing (class, for, href, readonly, selected, value)
 import Html.Events exposing (onSubmit)
 import Icons
 import Json.Decode as Decode
-import ListUtils exposing (addWhen)
 import Modal.AskKeyValue as AskKeyValue
 import Modal.AskSingleValue as AskSingleValue
 import Modal.ConfirmModal as ConfirmModal
@@ -58,6 +57,8 @@ import Types.Interface as Interface exposing (Interface)
 import Types.InterfaceMapping as InterfaceMapping exposing (InterfaceMapping, MappingType(..))
 import Types.Session exposing (Session)
 import Types.Trigger as Trigger exposing (Trigger)
+import Types.TriggerAction as TriggerAction
+import Ui.TriggerActionEditor as TriggerActionEditor
 
 
 type alias Model =
@@ -74,6 +75,7 @@ type alias Model =
     , spinner : Spinner.Model
     , showSpinner : Bool
     , currentModal : Maybe PageModals
+    , actionEditorConfig : TriggerActionEditor.Config Msg
 
     -- decoupled types
     , selectedInterfaceName : String
@@ -85,6 +87,9 @@ type PageModals
     = NewCustomHeader AskKeyValue.Model (AskKeyValue.Msg -> Msg)
     | EditCustomHeader AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
     | ConfirmCustomHeaderDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
+    | NewAmqpStaticHeader AskKeyValue.Model (AskKeyValue.Msg -> Msg)
+    | EditAmqpStaticHeader AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
+    | ConfirmAmqpStaticHeaderDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
     | ConfirmTriggerDeletion String String
 
 
@@ -117,6 +122,15 @@ init maybeTriggerName session =
       , spinner = Spinner.init
       , showSpinner = True
       , currentModal = Nothing
+      , actionEditorConfig =
+            { updateMsg = UpdateAction
+            , newHttpHeaderMsg = OpenNewHttpHeaderPopup
+            , editHttpHeaderMsg = OpenEditHttpHeaderPopup
+            , deleteHttpHeaderMsg = OpenDeleteHttpHeaderPopup
+            , newAmqpHeaderMsg = OpenNewAmqpHeaderPopup
+            , editAmqpHeaderMsg = OpenEditAmqpHeaderPopup
+            , deleteAmqpHeaderMsg = OpenDeleteAmqpHeaderPopup
+            }
       }
     , case maybeTriggerName of
         Just name ->
@@ -157,11 +171,8 @@ type Msg
     | Forward ExternalMsg
       -- Trigger messages
     | UpdateTriggerName String
-    | UpdateTriggerUrl String
-    | UpdateTriggerTemplate String
-    | UpdateMustachePayload String
     | UpdateSimpleTriggerType String
-    | UpdateActionMethod Trigger.HttpMethod
+    | UpdateAction TriggerActionEditor.Msg
       -- Data Trigger
     | UpdateDataTriggerInterfaceName String
     | UpdateDataTriggerInterfaceMajor String
@@ -176,9 +187,12 @@ type Msg
     | ShowDeleteModal
     | CloseDeleteModal ModalResult
     | UpdateConfirmTriggerName String
-    | OpenNewHeaderPopup
-    | OpenEditHeaderPopup String
-    | OpenDeleteHeaderPopup String
+    | OpenNewHttpHeaderPopup
+    | OpenEditHttpHeaderPopup String
+    | OpenDeleteHttpHeaderPopup String
+    | OpenNewAmqpHeaderPopup
+    | OpenEditAmqpHeaderPopup String
+    | OpenDeleteAmqpHeaderPopup String
     | UpdateKeyValueModal AskKeyValue.Msg
     | UpdateSingleValueModal AskSingleValue.Msg
     | UpdateConfirmModal ConfirmModal.Msg
@@ -468,61 +482,6 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        UpdateTriggerUrl newUrl ->
-            let
-                newTrigger =
-                    Trigger.setUrl newUrl model.trigger
-            in
-            ( { model
-                | trigger = newTrigger
-                , sourceBuffer = Trigger.toPrettySource newTrigger
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
-        UpdateTriggerTemplate template ->
-            let
-                t =
-                    case template of
-                        "mustache" ->
-                            Trigger.Mustache ""
-
-                        _ ->
-                            Trigger.NoTemplate
-
-                newTrigger =
-                    Trigger.setTemplate t model.trigger
-            in
-            ( { model
-                | trigger = newTrigger
-                , sourceBuffer = Trigger.toPrettySource newTrigger
-              }
-            , Cmd.none
-            , ExternalMsg.Noop
-            )
-
-        UpdateMustachePayload payload ->
-            case model.trigger.action.template of
-                Trigger.Mustache _ ->
-                    let
-                        newTrigger =
-                            Trigger.setTemplate (Trigger.Mustache payload) model.trigger
-                    in
-                    ( { model
-                        | trigger = newTrigger
-                        , sourceBuffer = Trigger.toPrettySource newTrigger
-                      }
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
-                _ ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
-
         UpdateSimpleTriggerType simpleTriggerType ->
             case simpleTriggerType of
                 "data" ->
@@ -564,19 +523,16 @@ update session msg model =
                     , ExternalMsg.AddFlashMessage FlashMessage.Fatal "Parse error. Unknown simple trigger type" []
                     )
 
-        UpdateActionMethod method ->
+        UpdateAction actionEditorMsg ->
             let
-                trigger =
+                newAction =
+                    TriggerActionEditor.update actionEditorMsg model.trigger.action
+
+                oldTrigger =
                     model.trigger
 
-                action =
-                    trigger.action
-
-                newAction =
-                    { action | httpMethod = method }
-
                 newTrigger =
-                    { trigger | action = newAction }
+                    { oldTrigger | action = newAction }
             in
             ( { model
                 | trigger = newTrigger
@@ -885,7 +841,7 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        OpenNewHeaderPopup ->
+        OpenNewHttpHeaderPopup ->
             let
                 modal =
                     NewCustomHeader (AskKeyValue.init "Add custom HTTP header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
@@ -895,7 +851,7 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        OpenEditHeaderPopup header ->
+        OpenEditHttpHeaderPopup header ->
             let
                 modalModel =
                     AskSingleValue.init
@@ -912,11 +868,11 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        OpenDeleteHeaderPopup header ->
+        OpenDeleteHttpHeaderPopup header ->
             let
                 modalModel =
                     ConfirmModal.init
-                        "Warning"
+                        "Remove Header"
                         ("Remove custom header \"" ++ header ++ "\"?")
                         (Just "Remove header")
                         (Just ConfirmModal.Danger)
@@ -924,6 +880,51 @@ update session msg model =
 
                 modal =
                     ConfirmCustomHeaderDeletion modalModel UpdateConfirmModal header
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        OpenNewAmqpHeaderPopup ->
+            let
+                modal =
+                    NewAmqpStaticHeader (AskKeyValue.init "Add custom AMQP header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        OpenEditAmqpHeaderPopup header ->
+            let
+                modalModel =
+                    AskSingleValue.init
+                        ("Edit Value for header \"" ++ header ++ "\"")
+                        "Value"
+                        AskSingleValue.AnyValue
+                        True
+
+                modal =
+                    EditAmqpStaticHeader modalModel UpdateSingleValueModal header
+            in
+            ( { model | currentModal = Just modal }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
+
+        OpenDeleteAmqpHeaderPopup header ->
+            let
+                modalModel =
+                    ConfirmModal.init
+                        "Remove Header"
+                        ("Remove static header \"" ++ header ++ "\"?")
+                        (Just "Remove header")
+                        (Just ConfirmModal.Danger)
+                        True
+
+                modal =
+                    ConfirmAmqpStaticHeaderDeletion modalModel UpdateConfirmModal header
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -939,6 +940,20 @@ update session msg model =
 
                         ( updatedModel, cmd ) =
                             { model | currentModal = Just (NewCustomHeader newModalModel msgTag) }
+                                |> handleKeyValueModalCommand session externalCommand
+                    in
+                    ( updatedModel
+                    , cmd
+                    , ExternalMsg.Noop
+                    )
+
+                Just (NewAmqpStaticHeader modalModel msgTag) ->
+                    let
+                        ( newModalModel, externalCommand ) =
+                            AskKeyValue.update modalMsg modalModel
+
+                        ( updatedModel, cmd ) =
+                            { model | currentModal = Just (NewAmqpStaticHeader newModalModel msgTag) }
                                 |> handleKeyValueModalCommand session externalCommand
                     in
                     ( updatedModel
@@ -968,6 +983,20 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
+                Just (EditAmqpStaticHeader modalModel msgTag header) ->
+                    let
+                        ( newModalModel, externalCommand ) =
+                            AskSingleValue.update modalMsg modalModel
+
+                        ( updatedModel, cmd ) =
+                            { model | currentModal = Just (EditAmqpStaticHeader newModalModel msgTag header) }
+                                |> handleSingleValueModalCommand session externalCommand header
+                    in
+                    ( updatedModel
+                    , cmd
+                    , ExternalMsg.Noop
+                    )
+
                 _ ->
                     ( model
                     , Cmd.none
@@ -990,6 +1019,20 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
+                Just (ConfirmAmqpStaticHeaderDeletion modalModel msgTag header) ->
+                    let
+                        ( newModalModel, externalCommand ) =
+                            ConfirmModal.update modalMsg modalModel
+
+                        ( updatedModel, cmd ) =
+                            { model | currentModal = Just (ConfirmAmqpStaticHeaderDeletion newModalModel msgTag header) }
+                                |> handleConfirmModalCommand session externalCommand header
+                    in
+                    ( updatedModel
+                    , cmd
+                    , ExternalMsg.Noop
+                    )
+
                 _ ->
                     ( model
                     , Cmd.none
@@ -1005,20 +1048,17 @@ update session msg model =
 
 handleKeyValueModalCommand : Session -> AskKeyValue.ExternalMsg -> Model -> ( Model, Cmd Msg )
 handleKeyValueModalCommand session msg model =
-    case msg of
-        AskKeyValue.Confirm header value ->
+    case ( msg, model.trigger.action ) of
+        ( AskKeyValue.Confirm header value, TriggerAction.Http action ) ->
             let
                 trigger =
                     model.trigger
-
-                action =
-                    trigger.action
 
                 newAction =
                     { action | customHeaders = Dict.insert header value action.customHeaders }
 
                 newTrigger =
-                    { trigger | action = newAction }
+                    { trigger | action = TriggerAction.Http newAction }
             in
             ( { model
                 | trigger = newTrigger
@@ -1027,7 +1067,25 @@ handleKeyValueModalCommand session msg model =
             , Cmd.none
             )
 
-        _ ->
+        ( AskKeyValue.Confirm header value, TriggerAction.Amqp action ) ->
+            let
+                trigger =
+                    model.trigger
+
+                newAction =
+                    { action | staticHeaders = Dict.insert header value action.staticHeaders }
+
+                newTrigger =
+                    { trigger | action = TriggerAction.Amqp newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            )
+
+        ( _, _ ) ->
             ( model
             , Cmd.none
             )
@@ -1035,20 +1093,17 @@ handleKeyValueModalCommand session msg model =
 
 handleSingleValueModalCommand : Session -> AskSingleValue.ExternalMsg -> String -> Model -> ( Model, Cmd Msg )
 handleSingleValueModalCommand session msg header model =
-    case msg of
-        AskSingleValue.Confirm value ->
+    case ( msg, model.trigger.action ) of
+        ( AskSingleValue.Confirm value, TriggerAction.Http action ) ->
             let
                 trigger =
                     model.trigger
-
-                action =
-                    trigger.action
 
                 newAction =
                     { action | customHeaders = Dict.insert header value action.customHeaders }
 
                 newTrigger =
-                    { trigger | action = newAction }
+                    { trigger | action = TriggerAction.Http newAction }
             in
             ( { model
                 | trigger = newTrigger
@@ -1057,7 +1112,25 @@ handleSingleValueModalCommand session msg header model =
             , Cmd.none
             )
 
-        _ ->
+        ( AskSingleValue.Confirm value, TriggerAction.Amqp action ) ->
+            let
+                trigger =
+                    model.trigger
+
+                newAction =
+                    { action | staticHeaders = Dict.insert header value action.staticHeaders }
+
+                newTrigger =
+                    { trigger | action = TriggerAction.Amqp newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            )
+
+        ( _, _ ) ->
             ( model
             , Cmd.none
             )
@@ -1065,20 +1138,35 @@ handleSingleValueModalCommand session msg header model =
 
 handleConfirmModalCommand : Session -> ConfirmModal.ExternalMsg -> String -> Model -> ( Model, Cmd Msg )
 handleConfirmModalCommand session msg header model =
-    case msg of
-        ConfirmModal.Confirm ->
+    case ( msg, model.trigger.action ) of
+        ( ConfirmModal.Confirm, TriggerAction.Http action ) ->
             let
                 trigger =
                     model.trigger
-
-                action =
-                    trigger.action
 
                 newAction =
                     { action | customHeaders = Dict.remove header action.customHeaders }
 
                 newTrigger =
-                    { trigger | action = newAction }
+                    { trigger | action = TriggerAction.Http newAction }
+            in
+            ( { model
+                | trigger = newTrigger
+                , sourceBuffer = Trigger.toPrettySource newTrigger
+              }
+            , Cmd.none
+            )
+
+        ( ConfirmModal.Confirm, TriggerAction.Amqp action ) ->
+            let
+                trigger =
+                    model.trigger
+
+                newAction =
+                    { action | staticHeaders = Dict.remove header action.staticHeaders }
+
+                newTrigger =
+                    { trigger | action = TriggerAction.Amqp newAction }
             in
             ( { model
                 | trigger = newTrigger
@@ -1190,7 +1278,9 @@ view model flashMessages =
 
           else
             text ""
-        , renderModals model.currentModal
+        , model.currentModal
+            |> Maybe.map renderModals
+            |> Maybe.withDefault (Html.text "")
         ]
 
 
@@ -1213,7 +1303,7 @@ renderContent model =
                     ]
               ]
             , renderSimpleTrigger model
-            , renderTriggerAction model.trigger.action model.editMode
+            , TriggerActionEditor.view model.actionEditorConfig model.trigger.action model.editMode
             ]
 
 
@@ -1258,272 +1348,6 @@ renderButtonsRow editMode showSource =
                     [ Html.text "Install Trigger" ]
                 ]
             )
-        ]
-
-
-renderTriggerAction : Trigger.Action -> Bool -> List (Html Msg)
-renderTriggerAction action editMode =
-    [ Form.row []
-        [ Form.col []
-            [ Form.group []
-                [ Form.label [ for "triggerActionType" ] [ text "Action type" ]
-                , Select.select
-                    [ Select.id "triggerActionType"
-                    , Select.disabled editMode
-                    ]
-                    [ Select.item
-                        [ value "http" ]
-                        [ text "HTTP request" ]
-                    ]
-                ]
-            ]
-        ]
-    , Form.row []
-        [ Form.col [ Col.sm4 ]
-            [ Form.group []
-                [ Form.label [ for "triggerMethod" ] [ text "HTTP method" ]
-                , Select.select
-                    [ Select.id "triggerMethod"
-                    , Select.disabled editMode
-                    , Select.onChange actionMethodMessage
-                    ]
-                    (actionHttpMethodOptions action.httpMethod)
-                ]
-            ]
-        , Form.col [ Col.sm8 ]
-            [ Form.group []
-                [ Form.label [ for "triggerUrl" ] [ text "Action URL" ]
-                , Input.text
-                    [ Input.id "triggerUrl"
-                    , Input.readonly editMode
-                    , Input.value action.url
-                    , Input.onInput UpdateTriggerUrl
-                    ]
-                ]
-            ]
-        ]
-    , renderTriggerTemplate action.template editMode
-    , renderCustomHeaders action.customHeaders editMode
-    ]
-
-
-actionHttpMethodOptions : Trigger.HttpMethod -> List (Select.Item Msg)
-actionHttpMethodOptions selectedMethod =
-    [ ( "DELETE", selectedMethod == Trigger.Delete )
-    , ( "GET", selectedMethod == Trigger.Get )
-    , ( "HEAD", selectedMethod == Trigger.Head )
-    , ( "OPTIONS", selectedMethod == Trigger.Options )
-    , ( "PATCH", selectedMethod == Trigger.Patch )
-    , ( "POST", selectedMethod == Trigger.Post )
-    , ( "PUT", selectedMethod == Trigger.Put )
-    ]
-        |> List.map simpleSelectOption
-
-
-simpleSelectOption : ( String, Bool ) -> Select.Item Msg
-simpleSelectOption ( selectValue, isSelected ) =
-    Select.item
-        [ value selectValue
-        , selected isSelected
-        ]
-        [ Html.text selectValue ]
-
-
-actionMethodMessage : String -> Msg
-actionMethodMessage str =
-    case str of
-        "DELETE" ->
-            UpdateActionMethod Trigger.Delete
-
-        "GET" ->
-            UpdateActionMethod Trigger.Get
-
-        "HEAD" ->
-            UpdateActionMethod Trigger.Head
-
-        "OPTIONS" ->
-            UpdateActionMethod Trigger.Options
-
-        "PATCH" ->
-            UpdateActionMethod Trigger.Patch
-
-        "POST" ->
-            UpdateActionMethod Trigger.Post
-
-        "PUT" ->
-            UpdateActionMethod Trigger.Put
-
-        _ ->
-            Noop
-
-
-renderCustomHeaders : Dict String String -> Bool -> Html Msg
-renderCustomHeaders customHeaders editMode =
-    let
-        table =
-            renderHeadersTable customHeaders
-
-        addHeaderLink =
-            Html.a
-                [ { message = OpenNewHeaderPopup
-                  , preventDefault = True
-                  , stopPropagation = False
-                  }
-                    |> Decode.succeed
-                    |> Html.Events.custom "click"
-                , href "#"
-                , Html.Attributes.target "_self"
-                ]
-                [ Icons.render Icons.Add [ Spacing.mr1 ]
-                , Html.text "Add custom HTTP headers..."
-                ]
-
-        rowContent =
-            []
-                |> addWhen (not <| Dict.isEmpty customHeaders) table
-                |> addWhen (not <| editMode) addHeaderLink
-    in
-    if List.isEmpty rowContent then
-        Html.text ""
-
-    else
-        Form.row []
-            [ Form.col [ Col.sm12 ]
-                rowContent
-            ]
-
-
-renderHeadersTable : Dict String String -> Html Msg
-renderHeadersTable customHeaders =
-    Table.simpleTable
-        ( Table.simpleThead
-            [ Table.th []
-                [ Html.text "Header" ]
-            , Table.th []
-                [ Html.text "Value" ]
-            ]
-        , Table.tbody []
-            (customHeaders
-                |> Dict.toList
-                |> List.map httpHeaderTableRow
-            )
-        )
-
-
-renderEditableHeadersTable : Dict String String -> Html Msg
-renderEditableHeadersTable customHeaders =
-    if Dict.isEmpty customHeaders then
-        Html.text ""
-
-    else
-        Table.simpleTable
-            ( Table.simpleThead
-                [ Table.th []
-                    [ Html.text "Header" ]
-                , Table.th []
-                    [ Html.text "Value" ]
-                , Table.th [ Table.cellAttr <| class "action-column" ]
-                    [ Html.text "Actions" ]
-                ]
-            , Table.tbody []
-                (customHeaders
-                    |> Dict.toList
-                    |> List.map (httpHeaderTableRowWithControls OpenEditHeaderPopup OpenDeleteHeaderPopup)
-                )
-            )
-
-
-httpHeaderTableRow : ( String, String ) -> Table.Row Msg
-httpHeaderTableRow ( header, value ) =
-    Table.tr []
-        [ Table.td []
-            [ Html.text header ]
-        , Table.td []
-            [ Html.text value ]
-        ]
-
-
-httpHeaderTableRowWithControls : (String -> Msg) -> (String -> Msg) -> ( String, String ) -> Table.Row Msg
-httpHeaderTableRowWithControls editMsg deleteMsg ( header, value ) =
-    Table.tr []
-        [ Table.td []
-            [ Html.text header ]
-        , Table.td []
-            [ Html.text value ]
-        , Table.td [ Table.cellAttr <| class "text-center" ]
-            [ Icons.render Icons.Edit
-                [ class "color-grey action-icon"
-                , Spacing.mr2
-                , Html.Events.onClick (editMsg header)
-                ]
-            , Icons.render Icons.Erase
-                [ class "color-red action-icon"
-                , Html.Events.onClick (deleteMsg header)
-                ]
-            ]
-        ]
-
-
-renderTriggerTemplate : Trigger.Template -> Bool -> Html Msg
-renderTriggerTemplate template editMode =
-    let
-        templateSelection =
-            Form.col
-                [ Col.sm12 ]
-                [ renderTriggerTemplateSelection template editMode ]
-    in
-    Form.row []
-        (case template of
-            Trigger.NoTemplate ->
-                [ templateSelection ]
-
-            Trigger.Mustache templateBody ->
-                [ templateSelection
-                , Form.col
-                    [ Col.sm12 ]
-                    [ Form.group []
-                        [ Form.label [ for "actionPayload" ] [ text "Payload" ]
-                        , Textarea.textarea
-                            [ Textarea.id "actionPayload"
-                            , Textarea.attrs [ readonly editMode ]
-                            , Textarea.value templateBody
-                            , Textarea.onInput UpdateMustachePayload
-                            ]
-                        ]
-                    ]
-                ]
-        )
-
-
-renderTriggerTemplateSelection : Trigger.Template -> Bool -> Html Msg
-renderTriggerTemplateSelection template editMode =
-    let
-        isMustache =
-            case template of
-                Trigger.NoTemplate ->
-                    False
-
-                Trigger.Mustache _ ->
-                    True
-    in
-    Form.group []
-        [ Form.label [ for "triggerTemplateType" ] [ text "Payload type" ]
-        , Select.select
-            [ Select.id "triggerTemplateType"
-            , Select.disabled editMode
-            , Select.onChange UpdateTriggerTemplate
-            ]
-            [ Select.item
-                [ value "notemplate"
-                , selected <| not isMustache
-                ]
-                [ text "Use default event format (JSON)" ]
-            , Select.item
-                [ value "mustache"
-                , selected isMustache
-                ]
-                [ text "Mustache Template" ]
-            ]
         ]
 
 
@@ -1856,25 +1680,34 @@ renderDeleteTriggerModal triggerName confirmTriggerName =
         |> Modal.view Modal.shown
 
 
-renderModals : Maybe PageModals -> Html Msg
+renderModals : PageModals -> Html Msg
 renderModals currentModal =
     case currentModal of
-        Nothing ->
-            Html.text ""
-
-        Just (NewCustomHeader model messageHandler) ->
+        NewCustomHeader model messageHandler ->
             AskKeyValue.view model
                 |> Html.map messageHandler
 
-        Just (EditCustomHeader model messageHandler _) ->
+        EditCustomHeader model messageHandler _ ->
             AskSingleValue.view model
                 |> Html.map messageHandler
 
-        Just (ConfirmCustomHeaderDeletion model messageHandler _) ->
+        ConfirmCustomHeaderDeletion model messageHandler _ ->
             ConfirmModal.view model
                 |> Html.map messageHandler
 
-        Just (ConfirmTriggerDeletion triggerName confirmTriggerName) ->
+        NewAmqpStaticHeader model messageHandler ->
+            AskKeyValue.view model
+                |> Html.map messageHandler
+
+        EditAmqpStaticHeader model messageHandler _ ->
+            AskSingleValue.view model
+                |> Html.map messageHandler
+
+        ConfirmAmqpStaticHeaderDeletion model messageHandler _ ->
+            ConfirmModal.view model
+                |> Html.map messageHandler
+
+        ConfirmTriggerDeletion triggerName confirmTriggerName ->
             renderDeleteTriggerModal triggerName confirmTriggerName
 
 
