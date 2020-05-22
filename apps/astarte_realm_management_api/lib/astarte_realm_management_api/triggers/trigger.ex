@@ -33,33 +33,16 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   end
 
   @doc false
-  def changeset(%Trigger{} = trigger, attrs) do
-    attrs =
-      attrs
-      |> propagate_realm()
-      |> move_action()
+  def changeset(%Trigger{} = trigger, attrs, opts) do
+    attrs = move_action(attrs)
 
     trigger
     |> cast(attrs, [:name])
     |> validate_required([:name])
-    |> cast_embed(:amqp_action, required: false)
+    |> cast_embed(:amqp_action, required: false, with: {AMQPAction, :changeset, [opts]})
     |> cast_embed(:http_action, required: false)
     |> cast_embed(:simple_triggers, required: true)
     |> normalize()
-  end
-
-  def propagate_realm(%{realm_name: realm_name, action: action} = attrs) do
-    updated_action = Map.put(action, :realm_name, realm_name)
-    Map.put(attrs, :action, updated_action)
-  end
-
-  def propagate_realm(%{"realm_name" => realm_name, "action" => action} = attrs) do
-    updated_action = Map.put(action, "realm_name", realm_name)
-    Map.put(attrs, "action", updated_action)
-  end
-
-  def propagate_realm(attrs) do
-    attrs
   end
 
   def move_action(%{action: action} = attrs) do

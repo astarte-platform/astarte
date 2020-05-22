@@ -27,10 +27,11 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
     @invalid_attrs %{}
 
     def trigger_fixture(attrs \\ %{}) do
-      {:ok, trigger} =
+      trigger_attrs =
         attrs
         |> Enum.into(@valid_attrs)
-        |> RealmManagement.API.Triggers.create_trigger()
+
+      {:ok, trigger} = RealmManagement.API.Triggers.create_trigger("test", trigger_attrs)
 
       trigger
     end

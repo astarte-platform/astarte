@@ -26,7 +26,6 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
 
   test "valid triggers with http action are accepted" do
     input = %{
-      "realm_name" => "test",
       "name" => "test_trigger",
       "simple_triggers" => [
         %{
@@ -43,7 +42,7 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
 
     out =
       %Trigger{}
-      |> Trigger.changeset(input)
+      |> Trigger.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok,
@@ -65,7 +64,6 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
 
   test "valid triggers with old http action format are accepted" do
     input = %{
-      "realm_name" => "test",
       "name" => "test_trigger",
       "simple_triggers" => [
         %{
@@ -81,7 +79,7 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
 
     out =
       %Trigger{}
-      |> Trigger.changeset(input)
+      |> Trigger.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok,
@@ -103,7 +101,6 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
 
   test "valid triggers with AMQP action are accepted" do
     input = %{
-      "realm_name" => "test",
       "name" => "test_trigger",
       "simple_triggers" => [
         %{
@@ -123,14 +120,13 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
 
     out =
       %Trigger{}
-      |> Trigger.changeset(input)
+      |> Trigger.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok,
             %Trigger{
               name: "test_trigger",
               action: %AMQPAction{
-                realm_name: "test",
                 amqp_exchange: "astarte_events_test_custom_exchange",
                 amqp_routing_key: "routing_key",
                 amqp_message_persistent: true,

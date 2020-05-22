@@ -23,7 +23,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "a valid AMQP action is accepted" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "test_routing_key",
       "amqp_message_persistent" => true,
@@ -33,12 +32,11 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok,
             %AMQPAction{
-              realm_name: "test",
               amqp_exchange: "astarte_events_test_custom_exchange",
               amqp_routing_key: "test_routing_key",
               amqp_message_persistent: true,
@@ -49,7 +47,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "message priority is optional" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "routing_key",
       "amqp_message_persistent" => true,
@@ -58,12 +55,11 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok,
             %AMQPAction{
-              realm_name: "test",
               amqp_exchange: "astarte_events_test_custom_exchange",
               amqp_routing_key: "routing_key",
               amqp_message_persistent: true,
@@ -73,7 +69,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "an empty routing key is accepted" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "",
       "amqp_message_persistent" => true,
@@ -83,12 +78,11 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok,
             %AMQPAction{
-              realm_name: "test",
               amqp_exchange: "astarte_events_test_custom_exchange",
               amqp_routing_key: "",
               amqp_message_persistent: true,
@@ -99,7 +93,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "amqp_exchange must contain realm_name" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_other_custom_exchange",
       "amqp_routing_key" => "test_routing_key",
       "amqp_message_persistent" => true,
@@ -109,7 +102,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:error, %Changeset{errors: errors, valid?: false}} = out
@@ -119,7 +112,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "amqp_exchange must have a well known prefix" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "test_custom_exchange",
       "amqp_routing_key" => "test_routing_key",
       "amqp_message_persistent" => true,
@@ -129,7 +121,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:error, %Changeset{errors: errors, valid?: false}} = out
@@ -139,7 +131,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "amqp_exchange is mandatory" do
     input = %{
-      "realm_name" => "test",
       "amqp_routing_key" => "test_routing_key",
       "amqp_message_persistent" => false,
       "amqp_message_expiration_ms" => 100
@@ -147,7 +138,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:error, %Changeset{errors: errors, valid?: false}} = out
@@ -157,7 +148,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "amqp_message_priority must below 10" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "test_routing_key",
       "amqp_message_persistent" => false,
@@ -167,7 +157,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:error, %Changeset{errors: errors, valid?: false}} = out
@@ -180,7 +170,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "a valid AMQPAction can be encoded to JSON" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "test_routing_key",
       "amqp_message_persistent" => true,
@@ -190,7 +179,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok, action} = out
@@ -211,7 +200,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "not set message priority is omitted" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "test_routing_key",
       "amqp_message_persistent" => false,
@@ -220,7 +208,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok, action} = out
@@ -240,7 +228,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
   test "empty routing key is encoded to empty string" do
     input = %{
-      "realm_name" => "test",
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "",
       "amqp_message_persistent" => false,
@@ -249,7 +236,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
 
     out =
       %AMQPAction{}
-      |> AMQPAction.changeset(input)
+      |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
     assert {:ok, action} = out
