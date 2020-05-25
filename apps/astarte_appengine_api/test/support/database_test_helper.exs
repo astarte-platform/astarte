@@ -675,7 +675,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   defp insert_datastream_receiving_device_endpoints(client) do
     insert_endpoint_query = """
     INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
-    (13ccc31d-f911-29df-cbe6-be22635293bd, 44c2421d-1abf-f3ec-14e1-986928d764aa, False, '/%{sensor_id}/samplingPeriod', 0, 0, 1, 'org.ServerOwnedIndividual', 2, 1, 1, 3);
+    (13ccc31d-f911-29df-cbe6-be22635293bd, 44c2421d-1abf-f3ec-14e1-986928d764aa, False, '/%{sensor_id}/samplingPeriod', 0, 0, 1, 'org.ServerOwnedIndividual', 2, 3, 1, 3);
     """
 
     DatabaseQuery.call!(client, insert_endpoint_query)
@@ -741,11 +741,11 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     insert_endpoint_queries = [
       """
       INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
-      (65c96ecb-f2d5-b440-4840-16cd84d2c2be, 76c99541-dd31-6369-bcdd-f2fdacc2d3ff, False, '/%{sensor_id}/enable', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 1, 1, 9);
+      (65c96ecb-f2d5-b440-4840-16cd84d2c2be, 76c99541-dd31-6369-bcdd-f2fdacc2d3ff, False, '/%{sensor_id}/enable', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 3, 1, 9);
       """,
       """
       INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
-      (65c96ecb-f2d5-b440-4840-16cd84d2c2be, 6ebd007e-dd74-8e32-f032-78d433b1b8e7, False, '/%{sensor_id}/samplingPeriod', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 1, 1, 3);
+      (65c96ecb-f2d5-b440-4840-16cd84d2c2be, 6ebd007e-dd74-8e32-f032-78d433b1b8e7, False, '/%{sensor_id}/samplingPeriod', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 3, 1, 3);
       """
     ]
 

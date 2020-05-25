@@ -102,6 +102,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("503_cannot_push_to_device.json", _assigns) do
+    %{errors: %{detail: "Cannot push to device"}}
+  end
+
   def render("503_degraded_health.json", _assigns) do
     %{errors: %{detail: "Service degraded"}}
   end
