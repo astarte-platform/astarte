@@ -487,6 +487,7 @@ defmodule Astarte.RealmManagement.Engine do
       exchange: exchange,
       routing_key: key,
       parent_trigger_id: parent_uuid,
+      static_headers: Map.get(action, "amqp_static_headers"),
       message_expiration_ms: Map.get(action, "amqp_message_expiration_ms"),
       message_priority: Map.get(action, "amqp_message_priority"),
       message_persistent: Map.get(action, "amqp_message_persistent")
