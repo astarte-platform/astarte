@@ -181,7 +181,7 @@ to produce `text/plain` payloads, not valid JSON.
 
 #### Default action
 
-This is the configuration object representing the default action:
+This is the configuration object representing a minimal default action:
 
 ```json
 {
@@ -191,6 +191,20 @@ This is the configuration object representing the default action:
 ```
 
 The default action sends an HTTP request to the specified `http_url` using `http_method` method (e.g. `POST`).
+
+Further options might be used, such as "http_headers", enabling auth to remote services:
+
+```json
+{
+  "http_url": "<http_url>",
+  "http_method": "<method>",
+  "http_headers": {
+    "Authorization": "Bearer <token>"
+  }
+}
+```
+
+Please, beware that some http headers might be not allowed or reserved for http connection signaling.
 
 The payload of the request is JSON document with this format:
 
