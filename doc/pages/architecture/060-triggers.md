@@ -32,7 +32,8 @@ This is a JSON representation of an example trigger:
 {
   "name": "example_trigger",
   "action": {
-    "http_post_url": "https://example.com/my_hook"
+    "http_url": "https://example.com/my_hook",
+    "http_method": "post"
   },
   "simple_triggers": [
     {
@@ -182,11 +183,12 @@ This is the configuration object representing the default action:
 
 ```json
 {
-  "http_post_url": "<http_post_url>"
+  "http_url": "<http_url>",
+  "http_method": "<method>"
 }
 ```
 
-The default action sends an HTTP `POST` request to the specified `http_post_url`.
+The default action sends an HTTP request to the specified `http_url` using `http_method` method (e.g. `POST`).
 
 The payload of the request is JSON document with this format:
 
@@ -348,13 +350,14 @@ This is the configuration object representing a Mustache action:
 
 ```json
 {
-  "http_post_url": "<http_post_url>",
+  "http_url": "<http_url>",
+  "http_method": "<http_method>",
   "template_type": "mustache",
   "template": "<template>"
 }
 ```
 
-The Mustache action sends an HTTP `POST` request to the specified `http_post_url`, with the payload
+The Mustache action sends an HTTP request to the specified `http_url`, with the payload
 built with the [Mustache](https://mustache.github.io/) template specified in `template`. If the
 template contains a key inside a double curly bracket (like so: `{{ key }}`), it will be substituted
 with the actual value of that key in the event.
@@ -380,7 +383,8 @@ This is an example of a trigger that uses Mustache action.
   "action": {
     "template_type": "mustache",
     "template": "Device {{ device_id }} just connected from IP {{ device_ip_address }}",
-    "http_post_url": "https://example.com/my_mustache_hook"
+    "http_url": "https://example.com/my_mustache_hook",
+    "http_method": "post"
   },
   "simple_triggers": [
     {

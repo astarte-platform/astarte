@@ -33,7 +33,8 @@ $ astartectl realm-management triggers show my_connection_trigger
 {
   "name": "my_connection_trigger",
   "action": {
-      "http_post_url": "<post-url>"
+      "http_url": "<url>",
+      "http_method": "<method>"
   },
   "simple_triggers": [
       {
@@ -71,7 +72,8 @@ To get a Trigger definition:
   "data": {
     "name": "my_connection_trigger",
     "action": {
-        "http_post_url": "<post-url>"
+        "http_url": "<url>",
+        "http_method": "<method>"
     },
     "simple_triggers": [
         {
@@ -121,7 +123,8 @@ The POST request must have the following request body, with content type `applic
   "data": {
     "name": "my_connection_trigger",
     "action": {
-        "http_post_url": "<post-url>"
+        "http_url": "<url>",
+        "http_method": "<method>"
     },
     "simple_triggers": [
         {
@@ -165,7 +168,7 @@ sample payload for its HTTP Post URL action.
 
 ### Connection Trigger
 
-This trigger will send a `POST` request to `<post-url>` every time any device connects to its
+This trigger will send a `POST` request to `<url>` every time any device connects to its
 transport.
 
 This is the JSON representation of the trigger:
@@ -174,7 +177,8 @@ This is the JSON representation of the trigger:
 {
     "name": "my_connection_trigger",
     "action": {
-        "http_post_url": "<post-url>"
+        "http_url": "<url>",
+        "http_method": "post"
     },
     "simple_triggers": [
         {
@@ -186,7 +190,7 @@ This is the JSON representation of the trigger:
 }
 ```
 
-If the Trigger is installed, when a device connects, `<post-url>` will receive the following JSON payload:
+If the Trigger is installed, when a device connects, `<url>` will receive the following JSON payload:
 
 ```json
 {
@@ -201,7 +205,7 @@ If the Trigger is installed, when a device connects, `<post-url>` will receive t
 
 ### Data Trigger
 
-This trigger will send a `POST` request to `<post-url>` every time a device sends data to the
+This trigger will send a `POST` request to `http://www.example.com/hook` every time a device sends data to the
 `org.astarte-platform.genericsensors.Values` major version `0` interface on the `/streamTest/value` path.
 
 This is the JSON representation of the trigger
@@ -210,7 +214,8 @@ This is the JSON representation of the trigger
 {
     "name": "my_data_trigger",
     "action": {
-        "http_post_url": "<post-url>"
+        "http_url": "http://www.example.com/hook",
+        "http_method": "post"
     },
     "simple_triggers": [
         {
@@ -226,7 +231,7 @@ This is the JSON representation of the trigger
 ```
 
 If the Trigger is installed, when a device sends data to the interface/path defined above,
-`<post-url>` will receive the following JSON payload:
+`<url>` will receive the following JSON payload:
 
 ```json
 {

@@ -112,7 +112,8 @@ Replace `http://example.com` with your target URL in the command below, you can 
 {
   "name": "my_trigger",
   "action": {
-    "http_post_url": "$TRIGGER_TARGET_URL"
+    "http_url": "$TRIGGER_TARGET_URL",
+    "http_method": "post"
   },
   "simple_triggers": [
     {
