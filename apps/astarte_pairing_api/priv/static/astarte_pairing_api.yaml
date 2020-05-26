@@ -34,7 +34,9 @@ paths:
       summary: Register a device
       description: >-
         Register a device, obtaining its credentials secret. The registration
-        can be repeated as long as the device didn't request any credentials
+        can be repeated as long as the device didn't request any credentials.
+        An optional initial introspection for the device can be passed in the
+        registration request.
       operationId: registerDevice
       security:
         - JWT: []
@@ -95,6 +97,13 @@ paths:
               example:
                 data:
                   hw_id: YHjKs3SMTgqq09eD7fzm6wY25SWGI5RCyD48hqywwznQ
+                  initial_introspection:
+                    org.astarte-platform.genericsensors.Values:
+                      major: 0
+                      minor: 1
+                    org.astarte-platform.genericsensors.AvailableSensors:
+                      major: 0
+                      minor: 1
         description: Device parameters
         required: true
   '/{realm_name}/agent/devices/{device_id}':
@@ -454,9 +463,39 @@ components:
   schemas:
     DeviceRegistrationRequest:
       type: object
+      required:
+        - hw_id
       properties:
         hw_id:
           type: string
+        initial_introspection:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/IntrospectionEntry'
+          description: >-
+            An optional object specifying the initial introspection for the device. The keys
+            of the object are the interface names, while the values are objects with the "major"
+            and "minor" properties, specifying the major and minor version of the interface
+            that is going to be supported by the device.
+          example:
+            org.astarte-platform.genericsensors.Values:
+              major: 0
+              minor: 1
+            org.astarte-platform.genericsensors.AvailableSensors:
+              major: 0
+              minor: 1
+    IntrospectionEntry:
+      type: object
+      required:
+        - major
+        - minor
+      properties:
+        major:
+          type: integer
+          description: The major version of the interface
+        minor:
+          type: integer
+          description: The minor version of the interface
     DeviceRegistrationResponse:
       type: object
       properties:
