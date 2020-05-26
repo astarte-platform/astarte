@@ -428,9 +428,10 @@ Device ydqBlFsGQ--xZ-_efQxuLw just connected from IP 172.18.0.1
 
 ### AMQP 0-9-1 Actions
 
-AMQP 0-9-1 actions might be configured as an alternative to HTTP actions for advacend use cases. 
+AMQP 0-9-1 actions might be configured as an alternative to HTTP actions for advanced use cases.
 AMQP 0-9-1 is the right choice for a number of scenarios, including Astarte Flow integration, high
 performance ingestion, integration with an existing AMQP infrasturcture, etc...
+
 Payloads are always encoded using [protobuf](https://developers.google.com/protocol-buffers),
 therefore if any other format is required Astarte Flow should be employed as a format converter.
 
@@ -461,10 +462,10 @@ It is possible to configure more advanced AMQP 0-9-1 actions:
 ```
 
 Some Astarte specific restrictions apply:
-* `amqp_exchange` must have astarte_events_<realm-name>_<any-allowed-string> format.
+* `amqp_exchange` must have `astarte_events_<realm-name>_<any-allowed-string>` format.
 * `amqp_routing_key` must not contain `{` and `}`, which are reserved for future uses.
 
-For further details RabbitMQ documentation is suggested.
+For further details [RabbitMQ documentation](https://www.rabbitmq.com/amqp-0-9-1-reference.html) is suggested.
 
 ## Relationship with Channels
 
