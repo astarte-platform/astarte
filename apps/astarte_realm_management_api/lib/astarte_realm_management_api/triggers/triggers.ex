@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018-2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
   def create_trigger(realm_name, attrs \\ %{}) do
     changeset =
       %Trigger{}
-      |> Trigger.changeset(attrs)
+      |> Trigger.changeset(attrs, realm_name: realm_name)
 
     with {:ok, trigger_params} <- Changeset.apply_action(changeset, :insert),
          {:ok, encoded_action} <- Jason.encode(trigger_params.action),
@@ -123,11 +123,11 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_trigger(_realm_name, %Trigger{} = trigger, attrs) do
+  def update_trigger(realm_name, %Trigger{} = trigger, attrs) do
     _ = Logger.debug("Update: #{inspect(trigger)}.")
 
     trigger
-    |> Trigger.changeset(attrs)
+    |> Trigger.changeset(attrs, realm_name: realm_name)
 
     {:ok, %Trigger{name: "mock_trigger_4"}}
   end
@@ -159,7 +159,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       %Ecto.Changeset{source: %Trigger{}}
 
   """
-  def change_trigger(_realm_name, %Trigger{} = trigger) do
-    Trigger.changeset(trigger, %{})
+  def change_trigger(realm_name, %Trigger{} = trigger) do
+    Trigger.changeset(trigger, %{}, realm_name: realm_name)
   end
 end

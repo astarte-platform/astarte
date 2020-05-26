@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   use Bitwise, only_operators: true
   require Logger
+  alias Astarte.DataUpdaterPlant.Config
 
   @moduledoc """
   This module handles the triggers by generating the events requested
@@ -401,11 +402,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end
   end
 
-  defp wait_backoff_and_publish(:ok, _retry, _payload, _routing_key, _headers) do
+  defp wait_backoff_and_publish(:ok, _retry, _exchange, _routing_key, _payload, _opts) do
     :ok
   end
 
-  defp wait_backoff_and_publish({:error, reason}, retry, payload, routing_key, headers) do
+  defp wait_backoff_and_publish({:error, reason}, retry, exchange, routing_key, payload, opts) do
     Logger.warn(
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
@@ -420,20 +421,26 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         retry
       end
 
-    AMQPEventsProducer.publish(payload, routing_key, headers)
-    |> wait_backoff_and_publish(next_retry, payload, routing_key, headers)
+    AMQPEventsProducer.publish(exchange, routing_key, payload, opts)
+    |> wait_backoff_and_publish(next_retry, exchange, routing_key, payload, opts)
   end
 
-  defp wait_ok_publish(payload, routing_key, headers) do
-    AMQPEventsProducer.publish(payload, routing_key, headers)
-    |> wait_backoff_and_publish(1, payload, routing_key, headers)
+  defp wait_ok_publish(exchange, routing_key, payload, opts) do
+    AMQPEventsProducer.publish(exchange, routing_key, payload, opts)
+    |> wait_backoff_and_publish(1, exchange, routing_key, payload, opts)
   end
 
   defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
+         exchange: target_exchange,
          routing_key: routing_key,
-         static_headers: static_headers
+         static_headers: static_headers,
+         message_expiration_ms: message_expiration_ms,
+         message_priority: message_priority,
+         message_persistent: message_persistent
        }) do
     {event_type, _event_struct} = simple_event.event
+
+    exchange = target_exchange || Config.events_exchange_name!()
 
     simple_trigger_id_str =
       simple_event.simple_trigger_id
@@ -454,9 +461,17 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       | static_headers
     ]
 
-    result =
-      SimpleEvent.encode(simple_event)
-      |> wait_ok_publish(routing_key, headers)
+    opts_with_nil = [
+      expiration: message_expiration_ms,
+      priority: message_priority,
+      persistent: message_persistent
+    ]
+
+    opts = Enum.filter(opts_with_nil, fn {_k, v} -> v != nil end)
+
+    payload = SimpleEvent.encode(simple_event)
+
+    result = wait_ok_publish(exchange, routing_key, payload, [{:headers, headers} | opts])
 
     :telemetry.execute(
       [:astarte, :data_updater_plant, :triggers_handler, :published_event],

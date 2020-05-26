@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018-2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,21 +20,73 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.API.Triggers.{AMQPAction, HttpAction, Trigger}
 
   @derive {Phoenix.Param, key: :name}
   @primary_key false
   embedded_schema do
     field :name, :string
-    field :action, :map
+    field :action, :any, virtual: true
+    embeds_one :amqp_action, AMQPAction
+    embeds_one :http_action, HttpAction
     embeds_many :simple_triggers, SimpleTriggerConfig
   end
 
   @doc false
-  def changeset(%Trigger{} = trigger, attrs) do
+  def changeset(%Trigger{} = trigger, attrs, opts) do
+    attrs = move_action(attrs)
+
     trigger
-    |> cast(attrs, [:name, :action])
-    |> validate_required([:name, :action])
+    |> cast(attrs, [:name])
+    |> validate_required([:name])
+    |> cast_embed(:amqp_action, required: false, with: {AMQPAction, :changeset, [opts]})
+    |> cast_embed(:http_action, required: false)
     |> cast_embed(:simple_triggers, required: true)
+    |> normalize()
+  end
+
+  def move_action(%{action: action} = attrs) do
+    choose_action_type(attrs, action)
+  end
+
+  def move_action(%{"action" => action} = attrs) do
+    choose_action_type(attrs, action)
+  end
+
+  def choose_action_type(map, action) do
+    type =
+      case action do
+        %{"amqp_exchange" => _} -> "amqp_action"
+        %{amqp_exchange: _} -> :amqp_action
+        %{"http_url" => _} -> "http_action"
+        %{http_url: _} -> :http_action
+        %{"http_post_url" => _} -> "http_action"
+        %{http_post_url: _} -> :http_action
+        _ -> nil
+      end
+
+    map
+    |> Map.delete(type)
+    |> Map.put(type, action)
+  end
+
+  def normalize(changeset) do
+    amqp_action = get_field(changeset, :amqp_action)
+    http_action = get_field(changeset, :http_action)
+
+    case {amqp_action, http_action} do
+      {nil, nil} ->
+        changeset
+
+      {_, nil} ->
+        changeset
+        |> delete_change(:amqp_action)
+        |> put_change(:action, amqp_action)
+
+      {nil, _} ->
+        changeset
+        |> delete_change(:http_action)
+        |> put_change(:action, http_action)
+    end
   end
 end

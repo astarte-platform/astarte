@@ -32,7 +32,8 @@ This is a JSON representation of an example trigger:
 {
   "name": "example_trigger",
   "action": {
-    "http_post_url": "https://example.com/my_hook"
+    "http_url": "https://example.com/my_hook",
+    "http_method": "post"
   },
   "simple_triggers": [
     {
@@ -166,6 +167,8 @@ Actions are triggered by a matching condition. An Action defines how the event s
 outer world (e.g. an http POST on a certain URL). In addition, most actions have a Payload, which
 carries the body of the event.
 
+### HTTP Actions
+
 Payloads are most of the time represented as text, and Astarte provides several ways to generate
 them. By default Astarte generates a JSON payload with all the relevant information of the event.
 This is also the format used when delivering payloads in Astarte Channels. The format of the payload
@@ -176,17 +179,32 @@ Astarte also provides a powerful templating mechanism for plain-text payloads ba
 actors which require custom plain-text payloads. Keep in mind that Mustache templates are only able
 to produce `text/plain` payloads, not valid JSON.
 
-### Default action
+#### Default action
 
-This is the configuration object representing the default action:
+This is the configuration object representing a minimal default action:
 
 ```json
 {
-  "http_post_url": "<http_post_url>"
+  "http_url": "<http_url>",
+  "http_method": "<method>"
 }
 ```
 
-The default action sends an HTTP `POST` request to the specified `http_post_url`.
+The default action sends an HTTP request to the specified `http_url` using `http_method` method (e.g. `POST`).
+
+Further options might be used, such as "http_headers", enabling auth to remote services:
+
+```json
+{
+  "http_url": "<http_url>",
+  "http_method": "<method>",
+  "http_headers": {
+    "Authorization": "Bearer <token>"
+  }
+}
+```
+
+Please, beware that some http headers might be not allowed or reserved for http connection signaling.
 
 The payload of the request is JSON document with this format:
 
@@ -209,9 +227,9 @@ that generated it. Event objects are detailed below.
 Additionally, the realm that originated the trigger is available in the request in the
 `Astarte-Realm` header.
 
-#### Event objects
+##### Event objects
 
-##### DeviceConnectedEvent
+###### DeviceConnectedEvent
 
 ```json
 {
@@ -222,7 +240,7 @@ Additionally, the realm that originated the trigger is available in the request 
 
 `device_ip_address` is the IP address of the device.
 
-##### DeviceDisconnectedEvent
+###### DeviceDisconnectedEvent
 
 ```json
 {
@@ -230,7 +248,7 @@ Additionally, the realm that originated the trigger is available in the request 
 }
 ```
 
-##### IncomingDataEvent
+###### IncomingDataEvent
 
 ```json
 {
@@ -248,7 +266,7 @@ Additionally, the realm that originated the trigger is available in the request 
 `value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-##### ValueStoredEvent
+###### ValueStoredEvent
 
 ```json
 {
@@ -266,7 +284,7 @@ Additionally, the realm that originated the trigger is available in the request 
 `value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-##### ValueChangeEvent
+###### ValueChangeEvent
 
 ```json
 {
@@ -288,7 +306,7 @@ Additionally, the realm that originated the trigger is available in the request 
 `new_value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-##### ValueChangeAppliedEvent
+###### ValueChangeAppliedEvent
 
 ```json
 {
@@ -310,7 +328,7 @@ Additionally, the realm that originated the trigger is available in the request 
 `new_value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-##### PathCreatedEvent
+###### PathCreatedEvent
 
 ```json
 {
@@ -328,7 +346,7 @@ Additionally, the realm that originated the trigger is available in the request 
 `value` is the received value. Its type depends on the type of the mapping it's coming from.
 `binaryblob` and `binaryblobarray` type values are encoded with Base64.
 
-##### PathRemovedEvent
+###### PathRemovedEvent
 
 ```json
 {
@@ -342,19 +360,20 @@ Additionally, the realm that originated the trigger is available in the request 
 
 `path` is the path that has been removed.
 
-### Mustache action
+#### Mustache action
 
 This is the configuration object representing a Mustache action:
 
 ```json
 {
-  "http_post_url": "<http_post_url>",
+  "http_url": "<http_url>",
+  "http_method": "<http_method>",
   "template_type": "mustache",
   "template": "<template>"
 }
 ```
 
-The Mustache action sends an HTTP `POST` request to the specified `http_post_url`, with the payload
+The Mustache action sends an HTTP request to the specified `http_url`, with the payload
 built with the [Mustache](https://mustache.github.io/) template specified in `template`. If the
 template contains a key inside a double curly bracket (like so: `{{ key }}`), it will be substituted
 with the actual value of that key in the event.
@@ -370,7 +389,7 @@ previous section](#event-objects) are available, always by wrapping them in `{{ 
 
 The realm is also sent in the `Astarte-Realm` header.
 
-#### Example
+##### Example
 
 This is an example of a trigger that uses Mustache action.
 
@@ -380,7 +399,8 @@ This is an example of a trigger that uses Mustache action.
   "action": {
     "template_type": "mustache",
     "template": "Device {{ device_id }} just connected from IP {{ device_ip_address }}",
-    "http_post_url": "https://example.com/my_mustache_hook"
+    "http_url": "https://example.com/my_mustache_hook",
+    "http_method": "post"
   },
   "simple_triggers": [
     {
@@ -405,6 +425,46 @@ User-Agent: hackney/1.13.0
 
 Device ydqBlFsGQ--xZ-_efQxuLw just connected from IP 172.18.0.1
 ```
+
+### AMQP 0-9-1 Actions
+
+AMQP 0-9-1 actions might be configured as an alternative to HTTP actions for advacend use cases. 
+AMQP 0-9-1 is the right choice for a number of scenarios, including Astarte Flow integration, high
+performance ingestion, integration with an existing AMQP infrasturcture, etc...
+Payloads are always encoded using [protobuf](https://developers.google.com/protocol-buffers),
+therefore if any other format is required Astarte Flow should be employed as a format converter.
+
+This is a minimal configuration object representing an
+[AMQP 0-9-1](https://www.rabbitmq.com/tutorials/amqp-concepts.html) action:
+
+```json
+{
+  "amqp_exchange": "astarte_events_<realm-name>_<exchange-suffix>",
+  "amqp_message_expiration_ms": <expiration in milliseconds>,
+  "amqp_message_persistent": <true when disk persistency is used>
+}
+```
+
+It is possible to configure more advanced AMQP 0-9-1 actions:
+
+```json
+{
+  "amqp_exchange": "astarte_events_myrealm_myexchange",
+  "amqp_routing_key": "my routing key",
+  "amqp_static_headers": {
+    "key": "calue"
+  },
+  "amqp_message_expiration_ms": 10000,
+  "amqp_message_priority": 0,
+  "amqp_message_persistent": true,
+}
+```
+
+Some Astarte specific restrictions apply:
+* `amqp_exchange` must have astarte_events_<realm-name>_<any-allowed-string> format.
+* `amqp_routing_key` must not contain `{` and `}`, which are reserved for future uses.
+
+For further details RabbitMQ documentation is suggested.
 
 ## Relationship with Channels
 

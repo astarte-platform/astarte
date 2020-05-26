@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,8 +34,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def publish(payload, routing_key, headers) do
-    GenServer.call(__MODULE__, {:publish, payload, routing_key, headers})
+  def publish(exchange, routing_key, payload, opts) do
+    GenServer.call(__MODULE__, {:publish, exchange, routing_key, payload, opts})
   end
 
   # Server callbacks
@@ -49,9 +49,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     Connection.close(conn)
   end
 
-  def handle_call({:publish, payload, routing_key, headers}, _from, chan) do
-    reply =
-      Basic.publish(chan, Config.events_exchange_name!(), routing_key, payload, headers: headers)
+  def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
+    reply = Basic.publish(chan, exchange, routing_key, payload, opts)
 
     {:reply, reply, chan}
   end

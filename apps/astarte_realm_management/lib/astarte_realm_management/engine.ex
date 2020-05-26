@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -458,10 +458,11 @@ defmodule Astarte.RealmManagement.Engine do
          simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
          trigger = build_trigger(trigger_name, simple_trigger_maps, action),
          %Trigger{trigger_uuid: trigger_uuid} = trigger,
-         target = build_trigger_target_container("trigger_engine", trigger_uuid),
+         trigger_target = target_from_action(action, trigger_uuid),
+         t_container = build_trigger_target_container(trigger_target),
          :ok <- validate_simple_triggers(client, simple_trigger_maps),
          # TODO: these should be batched together
-         :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, target) do
+         :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, t_container) do
       _ =
         Logger.info("Installing trigger.",
           trigger_name: trigger_name,
@@ -476,6 +477,28 @@ defmodule Astarte.RealmManagement.Engine do
       any ->
         any
     end
+  end
+
+  defp target_from_action(
+         %{"amqp_exchange" => exchange, "amqp_routing_key" => key} = action,
+         parent_uuid
+       ) do
+    %AMQPTriggerTarget{
+      exchange: exchange,
+      routing_key: key,
+      parent_trigger_id: parent_uuid,
+      static_headers: Map.get(action, "amqp_static_headers"),
+      message_expiration_ms: Map.get(action, "amqp_message_expiration_ms"),
+      message_priority: Map.get(action, "amqp_message_priority"),
+      message_persistent: Map.get(action, "amqp_message_persistent")
+    }
+  end
+
+  defp target_from_action(_action, parent_uuid) do
+    %AMQPTriggerTarget{
+      routing_key: "trigger_engine",
+      parent_trigger_id: parent_uuid
+    }
   end
 
   defp build_simple_trigger_maps(serialized_tagged_simple_triggers) do
@@ -509,14 +532,11 @@ defmodule Astarte.RealmManagement.Engine do
     }
   end
 
-  defp build_trigger_target_container(routing_key, trigger_uuid) do
+  defp build_trigger_target_container(%AMQPTriggerTarget{} = trigger_target) do
     %TriggerTargetContainer{
       trigger_target: {
         :amqp_trigger_target,
-        %AMQPTriggerTarget{
-          routing_key: routing_key,
-          parent_trigger_id: trigger_uuid
-        }
+        trigger_target
       }
     }
   end
