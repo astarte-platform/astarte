@@ -388,4 +388,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
   """
   defdelegate cqex_nodes, to: DataAccessConfig
   defdelegate cqex_nodes!, to: DataAccessConfig
+
+  defdelegate xandra_options!, to: DataAccessConfig
+  defdelegate cqex_options!, to: DataAccessConfig
 end

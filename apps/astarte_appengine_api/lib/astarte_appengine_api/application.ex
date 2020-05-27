@@ -48,13 +48,17 @@ defmodule Astarte.AppEngine.API.Application do
     Metrics.PrometheusExporter.setup()
     Metrics.AppEngineInstrumenter.setup()
 
+    xandra_options =
+      Config.xandra_options!()
+      |> Keyword.put(:name, :xandra)
+
     # Define workers and child supervisors to be supervised
     children = [
       supervisor(Astarte.RPC.AMQP.Client, []),
       supervisor(Astarte.AppEngine.API.Rooms.MasterSupervisor, []),
       supervisor(Astarte.AppEngine.API.Rooms.AMQPClient, []),
       supervisor(Astarte.AppEngine.APIWeb.Endpoint, []),
-      {Xandra.Cluster, nodes: Config.xandra_nodes!(), name: :xandra}
+      {Xandra.Cluster, xandra_options}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

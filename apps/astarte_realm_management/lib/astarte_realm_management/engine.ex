@@ -419,10 +419,14 @@ defmodule Astarte.RealmManagement.Engine do
   def get_jwt_public_key_pem(realm_name) do
     _ = Logger.debug("Get JWT public key PEM.")
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm_name)
+
     with {:ok, client} <-
            DatabaseClient.new(
-             List.first(Config.cqex_nodes!()),
-             keyspace: realm_name
+             Config.cassandra_node!(),
+             cqex_options
            ) do
       Queries.get_jwt_public_key_pem(client)
     else
@@ -432,10 +436,14 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm_name)
+
     with {:ok, client} <-
            DatabaseClient.new(
-             List.first(Config.cqex_nodes!()),
-             keyspace: realm_name
+             Config.cassandra_node!(),
+             cqex_options
            ) do
       _ = Logger.info("Updating JWT public key PEM.", tag: "updating_jwt_pub_key")
       Queries.update_jwt_public_key_pem(client, jwt_public_key_pem)
@@ -690,9 +698,13 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   defp get_database_client(realm_name) do
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm_name)
+
     DatabaseClient.new(
-      List.first(Config.cqex_nodes!()),
-      keyspace: realm_name
+      Config.cassandra_node!(),
+      cqex_options
     )
   end
 end

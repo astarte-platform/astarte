@@ -65,7 +65,7 @@ defmodule Astarte.Pairing.Config do
   Returns the cassandra node configuration
   """
   @spec cassandra_node!() :: {String.t(), integer()}
-  def cassandra_node!, do: List.first(cqex_nodes!())
+  def cassandra_node!, do: Enum.random(cqex_nodes!())
 
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
@@ -75,4 +75,7 @@ defmodule Astarte.Pairing.Config do
 
   defdelegate cqex_nodes, to: DataAccessConfig
   defdelegate cqex_nodes!, to: DataAccessConfig
+
+  defdelegate xandra_options!, to: DataAccessConfig
+  defdelegate cqex_options!, to: DataAccessConfig
 end

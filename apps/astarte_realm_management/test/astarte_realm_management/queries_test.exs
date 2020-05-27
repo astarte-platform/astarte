@@ -207,7 +207,11 @@ defmodule Astarte.RealmManagement.QueriesTest do
   end
 
   def connect_to_test_realm(realm) do
-    CQEx.Client.new!(List.first(Config.cqex_nodes!()), keyspace: realm)
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, realm)
+
+    CQEx.Client.new!(Config.cassandra_node!(), cqex_options)
   end
 
   def retrieve_endpoint_id(client, interface_name, interface_major, path) do
