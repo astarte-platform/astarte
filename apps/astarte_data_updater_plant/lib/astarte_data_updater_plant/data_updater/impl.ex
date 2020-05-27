@@ -2010,7 +2010,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         end
       end)
 
-    send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list)
+    # TODO: use the returned byte count in stats
+    {:ok, _bytes} = send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list)
 
     state
   end
@@ -2066,7 +2067,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     each_interface_mapping(mappings, interface_descriptor, fn mapping ->
       Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
       |> Enum.each(fn [{:path, path}, {_, value}] ->
-        {:ok, _} = send_value(realm, encoded_device_id, interface_descriptor.name, path, value)
+        # TODO: use the returned bytes count in stats
+        {:ok, _bytes} =
+          send_value(realm, encoded_device_id, interface_descriptor.name, path, value)
       end)
     end)
   end
@@ -2086,8 +2089,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     payload = <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
 
     case VMQPlugin.publish(topic, payload, 2) do
-      :ok ->
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 1 ->
         {:ok, byte_size(topic) + byte_size(payload)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
+        # This should not happen so we print a warning, but we consider it a succesful publish
+        Logger.warning("Multiple match while publishing #{inspect(payload)} on #{topic}.",
+          tag: "publish_multiple_matches"
+        )
+
+        {:ok, byte_size(topic) + byte_size(payload)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 0 ->
+        {:error, :session_not_found}
 
       {:error, reason} ->
         {:error, reason}
@@ -2103,8 +2117,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.debug("Going to publish #{inspect(encapsulated_value)} on #{topic}.")
 
     case VMQPlugin.publish(topic, bson_value, 2) do
-      :ok ->
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 1 ->
         {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
+        # This should not happen so we print a warning, but we consider it a succesful publish
+        Logger.warning(
+          "Multiple match while publishing #{inspect(encapsulated_value)} on #{topic}.",
+          tag: "publish_multiple_matches"
+        )
+
+        {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 0 ->
+        {:error, :session_not_found}
 
       {:error, reason} ->
         {:error, reason}

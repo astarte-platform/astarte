@@ -232,6 +232,20 @@ defmodule Astarte.AppEngine.API.Device do
            Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
          {:ok, value} <- cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value),
+         wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
+         interface_type = interface_descriptor.type,
+         reliability = mapping.reliability,
+         publish_opts = build_publish_opts(interface_type, reliability),
+         interface_name = interface_descriptor.name,
+         :ok <-
+           ensure_publish(
+             realm_name,
+             device_id,
+             interface_name,
+             path,
+             wrapped_value,
+             publish_opts
+           ),
          {:ok, realm_max_ttl} <-
            Queries.fetch_datastream_maximum_storage_retention(client) do
       timestamp_micro =
@@ -266,37 +280,17 @@ defmodule Astarte.AppEngine.API.Device do
         opts
       )
 
-      wrapped_value = wrap_to_bson_struct(mapping.value_type, value)
-
-      case interface_descriptor.type do
-        :properties ->
-          DataTransmitter.set_property(
-            realm_name,
-            device_id,
-            interface_descriptor.name,
-            path,
-            wrapped_value
-          )
-
-        :datastream ->
-          Queries.insert_path_into_db(
-            client,
-            device_id,
-            interface_descriptor,
-            endpoint_id,
-            path,
-            timestamp_micro,
-            div(timestamp_micro, 1000),
-            opts
-          )
-
-          DataTransmitter.push_datastream(
-            realm_name,
-            device_id,
-            interface_descriptor.name,
-            path,
-            wrapped_value
-          )
+      if interface_descriptor.type == :datastream do
+        Queries.insert_path_into_db(
+          client,
+          device_id,
+          interface_descriptor,
+          endpoint_id,
+          path,
+          timestamp_micro,
+          div(timestamp_micro, 1000),
+          opts
+        )
       end
 
       {:ok,
@@ -419,6 +413,20 @@ defmodule Astarte.AppEngine.API.Device do
          endpoint_id <- endpoint.endpoint_id,
          expected_types <- extract_expected_types(mappings),
          :ok <- validate_value_type(expected_types, raw_value),
+         wrapped_value = wrap_to_bson_struct(nil, raw_value),
+         reliability = extract_aggregate_reliability(mappings),
+         interface_type = interface_descriptor.type,
+         publish_opts = build_publish_opts(interface_type, reliability),
+         interface_name = interface_descriptor.name,
+         :ok <-
+           ensure_publish(
+             realm_name,
+             device_id,
+             interface_name,
+             path,
+             wrapped_value,
+             publish_opts
+           ),
          {:ok, realm_max_ttl} <-
            Queries.fetch_datastream_maximum_storage_retention(client) do
       db_max_ttl = min(realm_max_ttl, object_retention(mappings))
@@ -444,8 +452,6 @@ defmodule Astarte.AppEngine.API.Device do
         opts
       )
 
-      wrapped_value = wrap_to_bson_struct(nil, raw_value)
-
       Queries.insert_path_into_db(
         client,
         device_id,
@@ -455,14 +461,6 @@ defmodule Astarte.AppEngine.API.Device do
         timestamp_micro,
         div(timestamp_micro, 1000),
         opts
-      )
-
-      DataTransmitter.push_datastream(
-        realm_name,
-        device_id,
-        interface_descriptor.name,
-        path,
-        wrapped_value
       )
 
       {:ok,
@@ -550,6 +548,118 @@ defmodule Astarte.AppEngine.API.Device do
 
       {expected_key, mapping.value_type}
     end)
+  end
+
+  defp extract_aggregate_reliability([mapping, _rest] = _mappings) do
+    # Extract the reliability from the first mapping since it's
+    # the same for all mappings in object aggregated interfaces
+    mapping.reliability
+  end
+
+  defp build_publish_opts(:properties, _reliability) do
+    [type: :properties]
+  end
+
+  defp build_publish_opts(:datastream, reliability) do
+    [type: :datastream, reliability: reliability]
+  end
+
+  defp ensure_unset(realm, device_id, interface, path) do
+    with {:ok, %{local_matches: local_matches, remote_matches: remote_matches}} <-
+           DataTransmitter.unset_property(realm, device_id, interface, path) do
+      case local_matches + remote_matches do
+        0 ->
+          {:error, :cannot_push_to_device}
+
+        1 ->
+          :ok
+
+        matches when matches > 1 ->
+          # Multiple matches, we print a warning but we consider it ok
+          Logger.warn(
+            "Multiple matches while sending unset to device, " <>
+              "local_matches: #{local_matches}, remote_matches: #{remote_matches}",
+            tag: "publish_multiple_matches"
+          )
+
+          :ok
+      end
+    end
+  end
+
+  defp ensure_publish(realm, device_id, interface, path, value, opts) do
+    with {:ok, %{local_matches: local_matches, remote_matches: remote_matches}} <-
+           publish_data(realm, device_id, interface, path, value, opts),
+         :ok <- ensure_publish_reliability(local_matches, remote_matches, opts) do
+      :ok
+    end
+  end
+
+  defp publish_data(realm, device_id, interface, path, value, opts) do
+    case Keyword.fetch!(opts, :type) do
+      :properties ->
+        DataTransmitter.set_property(
+          realm,
+          device_id,
+          interface,
+          path,
+          value
+        )
+
+      :datastream ->
+        qos =
+          Keyword.fetch!(opts, :reliability)
+          |> reliability_to_qos()
+
+        DataTransmitter.push_datastream(
+          realm,
+          device_id,
+          interface,
+          path,
+          value,
+          qos: qos
+        )
+    end
+  end
+
+  # Exactly one match, always good
+  defp ensure_publish_reliability(local_matches, remote_matches, _opts)
+       when local_matches + remote_matches == 1 do
+    :ok
+  end
+
+  # Multiple matches, we print a warning but we consider it ok
+  defp ensure_publish_reliability(local_matches, remote_matches, _opts)
+       when local_matches + remote_matches > 1 do
+    Logger.warn(
+      "Multiple matches while publishing to device, " <>
+        "local_matches: #{local_matches}, remote_matches: #{remote_matches}",
+      tag: "publish_multiple_matches"
+    )
+
+    :ok
+  end
+
+  # No matches, check type and reliability
+  defp ensure_publish_reliability(_local, _remote, opts) do
+    type = Keyword.fetch!(opts, :type)
+    # We use get since we can be in a properties case
+    reliability = Keyword.get(opts, :reliability)
+
+    if type == :datastream and reliability == :unreliable do
+      # Unreliable datastream is the only case where this is ok
+      :ok
+    else
+      {:error, :cannot_push_to_device}
+    end
+  end
+
+  defp reliability_to_qos(reliability) do
+    case reliability do
+      :unreliable -> 0
+      :guaranteed -> 1
+      :unique -> 2
+    end
   end
 
   defp validate_value_type(expected_types, object)
@@ -697,7 +807,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       case interface_descriptor.type do
         :properties ->
-          DataTransmitter.unset_property(realm_name, device_id, interface, path)
+          ensure_unset(realm_name, device_id, interface, path)
 
         :datastream ->
           :ok

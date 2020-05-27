@@ -29,6 +29,9 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   @doc """
   Pushes a payload on a datastream interface.
 
+  Returns `{:ok, %{local_matches: local, remote_matches: remote}}` for a successful
+  publish, `{:error, reason}` otherwise.
+
   ## Options
   `opts` is a keyword list that can contain the following keys:
   * `timestamp`: a timestamp that is added in the BSON object inside the `t` key
@@ -61,6 +64,9 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
   @doc """
   Pushes a payload on a properties interface.
 
+  Returns `{:ok, %{local_matches: local, remote_matches: remote}}` for a successful
+  publish, `{:error, reason}` otherwise.
+
   ## Options
   `opts` is a keyword list that can contain the following keys:
   * `timestamp`: a timestamp that is added in the BSON object inside the `t` key
@@ -91,6 +97,9 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
 
   @doc """
   Pushes an unset message on a properties interface.
+
+  Returns `{:ok, %{local_matches: local, remote_matches: remote}}` for a successful
+  publish, `{:error, reason}` otherwise.
   """
   def unset_property(realm, device_id, interface, path) do
     topic = make_topic(realm, device_id, interface, path)

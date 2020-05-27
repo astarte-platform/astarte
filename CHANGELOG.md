@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [trigger_engine] Support SSL connections to RabbitMQ.
 - Default max certificate chain length to 10.
 - AMQP trigger actions (publish to custom exchanges) as an alternative to http triggers actions.
+- Ensure data pushed towards the device is correctly delivered when using QoS > 0.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.

@@ -29,6 +29,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
     GenericErrorReply,
     GenericOkReply,
     Publish,
+    PublishReply,
     Reply
   }
 
@@ -87,6 +88,10 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
 
   defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
     :ok
+  end
+
+  defp extract_reply({:publish_reply, %PublishReply{} = reply}) do
+    {:ok, %{local_matches: reply.local_matches, remote_matches: reply.remote_matches}}
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do

@@ -29,6 +29,7 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
     GenericErrorReply,
     GenericOkReply,
     Publish,
+    PublishReply,
     Reply
   }
 
@@ -81,10 +82,20 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
     {:error, reason}
   end
 
+  defp extract_reply({:publish_reply, %PublishReply{} = reply}) do
+    _ = Logger.debug("Got publish reply from VMQ.")
+
+    {:ok, %{local_matches: reply.local_matches, remote_matches: reply.remote_matches}}
+  end
+
   defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
     _ = Logger.debug("Got ok reply from VMQ.")
 
     :ok
+  end
+
+  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "session_not_found"}}) do
+    {:error, :session_not_found}
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do

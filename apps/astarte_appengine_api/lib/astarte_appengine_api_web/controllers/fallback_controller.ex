@@ -46,6 +46,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"404_device")
   end
 
+  def call(conn, {:error, :cannot_push_to_device}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"503_cannot_push_to_device")
+  end
+
   def call(conn, {:error, :endpoint_not_found}) do
     conn
     |> put_status(:bad_request)
