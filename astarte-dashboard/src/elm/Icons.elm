@@ -38,11 +38,13 @@ type Icon
     | ExclamationMark
     | EmptyCircle
     | FullCircle
+    | Flow
     | Group
     | Healthy
     | Home
     | Interface
     | Logout
+    | Pipeline
     | Reload
     | Settings
     | ToggleSidebar
@@ -106,6 +108,9 @@ className icon =
         FullCircle ->
             "fa-circle"
 
+        Flow ->
+            "fa-wind"
+
         Group ->
             "fa-object-group"
 
@@ -120,6 +125,9 @@ className icon =
 
         Logout ->
             "fa-sign-out-alt"
+
+        Pipeline ->
+            "fa-code-branch"
 
         Reload ->
             "fa-sync-alt"

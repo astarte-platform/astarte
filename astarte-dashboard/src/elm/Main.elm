@@ -85,6 +85,7 @@ type alias Model =
     , appEngineApiHealth : Maybe Bool
     , realmManagementApiHealth : Maybe Bool
     , pairingApiHealth : Maybe Bool
+    , flowApiHealth : Maybe Bool
     }
 
 
@@ -135,16 +136,36 @@ init jsParam location key =
             , appEngineApiHealth = Nothing
             , realmManagementApiHealth = Nothing
             , pairingApiHealth = Nothing
+            , flowApiHealth = Nothing
             }
+
+        healthChecks =
+            case configFromJavascript of
+                Config.EditorOnly ->
+                    []
+
+                Config.Standard params ->
+                    if params.enableFlowPreview then
+                        [ AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
+                        , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
+                        , AstarteApi.pairingApiHealth updatedSession.apiConfig PairingHealthCheckDone
+                        , AstarteApi.flowApiHealth updatedSession.apiConfig FlowHealthCheckDone
+                        ]
+
+                    else
+                        [ AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
+                        , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
+                        , AstarteApi.pairingApiHealth updatedSession.apiConfig PairingHealthCheckDone
+                        ]
     in
     ( initialModel
-    , Cmd.batch
-        [ navbarCmd
+    , [ [ navbarCmd
         , initialCommand
-        , AstarteApi.appEngineApiHealth updatedSession.apiConfig AppEngineHealthCheckDone
-        , AstarteApi.realmManagementApiHealth updatedSession.apiConfig RealmManagementHealthCheckDone
-        , AstarteApi.pairingApiHealth updatedSession.apiConfig PairingHealthCheckDone
         ]
+      , healthChecks
+      ]
+        |> List.concat
+        |> Cmd.batch
     )
 
 
@@ -203,6 +224,8 @@ type RealmPage
 type ReactPageCategory
     = Devices
     | Groups
+    | Flow
+    | Pipelines
 
 
 
@@ -230,6 +253,7 @@ type Msg
     | AppEngineHealthCheckDone (Result AstarteApi.Error Bool)
     | RealmManagementHealthCheckDone (Result AstarteApi.Error Bool)
     | PairingHealthCheckDone (Result AstarteApi.Error Bool)
+    | FlowHealthCheckDone (Result AstarteApi.Error Bool)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -339,6 +363,11 @@ update msg model =
 
         PairingHealthCheckDone (Ok healty) ->
             ( { model | pairingApiHealth = Just healty }
+            , Cmd.none
+            )
+
+        FlowHealthCheckDone (Ok healty) ->
+            ( { model | flowApiHealth = Just healty }
             , Cmd.none
             )
 
@@ -549,6 +578,24 @@ pageInit realmRoute config session =
 
         Route.GroupDevices groupName ->
             initReactPage session Groups "group-devices" realmRoute
+
+        Route.FlowInstances ->
+            initReactPage session Flow "flow-instances" realmRoute
+
+        Route.FlowConfigure _ ->
+            initReactPage session Flow "flow-configure" realmRoute
+
+        Route.FlowDetails _ ->
+            initReactPage session Flow "flow-details" realmRoute
+
+        Route.PipelineList ->
+            initReactPage session Pipelines "pipeline-list" realmRoute
+
+        Route.NewPipeline ->
+            initReactPage session Pipelines "pipeline-new" realmRoute
+
+        Route.PipelineShowSource _ ->
+            initReactPage session Pipelines "pipeline-show-source" realmRoute
 
 
 initReactPage : Session -> ReactPageCategory -> String -> RealmRoute -> ( Page, Cmd Msg, Session )
@@ -892,11 +939,12 @@ view model =
 
 renderNavbar : Model -> Html Msg
 renderNavbar model =
-    if Config.isEditorOnly model.config then
-        editorNavBar model
+    case model.config of
+        Config.EditorOnly ->
+            editorNavBar model
 
-    else
-        standardNavBar model
+        Config.Standard params ->
+            standardNavBar model params
 
 
 editorNavBar : Model -> Html Msg
@@ -913,8 +961,16 @@ editorNavBar model =
         |> Navbar.view model.navbarState
 
 
-standardNavBar : Model -> Html Msg
-standardNavBar model =
+standardNavBar : Model -> Config.Params -> Html Msg
+standardNavBar model params =
+    let
+        linksBuilder =
+            if params.enableFlowPreview then
+                navbarLinks
+
+            else
+                navbarLinksNoFlow
+    in
     case model.selectedPage of
         Public (LoginPage _) ->
             text ""
@@ -928,11 +984,12 @@ standardNavBar model =
                 |> Navbar.collapseMedium
                 |> dashboardBrand
                 |> Navbar.customItems
-                    [ navbarLinks realmName
+                    [ linksBuilder realmName
                         model.selectedPage
                         model.appEngineApiHealth
                         model.realmManagementApiHealth
                         model.pairingApiHealth
+                        model.flowApiHealth
                     ]
                 |> Navbar.view model.navbarState
 
@@ -971,8 +1028,8 @@ editorNavbarLinks selectedPage =
             ]
 
 
-navbarLinks : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
-navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHealth =
+navbarLinksNoFlow : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
+navbarLinksNoFlow realm selectedPage appEngineHealth realmManagementHealth pairingHealth flowHealth =
     Navbar.customItem <|
         Grid.container
             [ Flex.col
@@ -1022,7 +1079,7 @@ navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHeal
 
                 -- General
                 , renderNavbarSeparator
-                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth
+                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth Nothing
 
                 -- Common
                 , renderNavbarSeparator
@@ -1035,8 +1092,85 @@ navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHeal
             ]
 
 
-renderStatusRow : String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Html Msg
-renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth =
+navbarLinks : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
+navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHealth flowHealth =
+    Navbar.customItem <|
+        Grid.container
+            [ Flex.col
+            , Spacing.p0
+            ]
+            [ ul
+                [ class "navbar-nav"
+                , Size.w100
+                , Spacing.mt2
+                ]
+                [ renderNavbarLink
+                    "Home"
+                    Icons.Home
+                    (isHomeRelated selectedPage)
+                    (Route.Realm Route.Home)
+
+                -- Realm Management
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Interfaces"
+                    Icons.Interface
+                    (isInterfacesRelated selectedPage)
+                    (Route.Realm Route.ListInterfaces)
+                , renderNavbarLink
+                    "Triggers"
+                    Icons.Trigger
+                    (isTriggersRelated selectedPage)
+                    (Route.Realm Route.ListTriggers)
+                , renderNavbarLink
+                    "Realm settings"
+                    Icons.Settings
+                    (isSettingsRelated selectedPage)
+                    (Route.Realm Route.RealmSettings)
+
+                -- AppEngine
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Devices"
+                    Icons.Device
+                    (isDeviceRelated selectedPage)
+                    (Route.Realm Route.DeviceList)
+                , renderNavbarLink
+                    "Groups"
+                    Icons.Group
+                    (isGroupRelated selectedPage)
+                    (Route.Realm Route.GroupList)
+
+                -- Flow
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Flows"
+                    Icons.Flow
+                    (isFlowRelated selectedPage)
+                    (Route.Realm Route.FlowInstances)
+                , renderNavbarLink
+                    "Pipelines"
+                    Icons.Pipeline
+                    (isPipelinesRelated selectedPage)
+                    (Route.Realm Route.PipelineList)
+
+                -- General
+                , renderNavbarSeparator
+                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth flowHealth
+
+                -- Common
+                , renderNavbarSeparator
+                , renderNavbarLink
+                    "Logout"
+                    Icons.Logout
+                    False
+                    (Route.Realm Route.Logout)
+                ]
+            ]
+
+
+renderStatusRow : String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Html Msg
+renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth flowHealth =
     Html.li
         [ class "navbar-status navbar-item", Spacing.pl2 ]
         [ statusRow "Realm"
@@ -1045,6 +1179,7 @@ renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth =
             [ healthItem "AppEngine" appEngineHealth
             , healthItem "Realm Management" realmManagementHealth
             , healthItem "Pairing" pairingHealth
+            , healthItem "Flow" flowHealth
             ]
         ]
 
@@ -1057,10 +1192,7 @@ healthItem label maybeHealthy =
     in
     case maybeHealthy of
         Nothing ->
-            Html.div [ spacing ]
-                [ Icons.render Icons.EmptyCircle [ Spacing.mr2 ]
-                , Html.text label
-                ]
+            Html.text ""
 
         Just True ->
             Html.div [ spacing ]
@@ -1177,6 +1309,26 @@ isGroupRelated : Page -> Bool
 isGroupRelated page =
     case page of
         Realm _ (ReactInitPage Groups) ->
+            True
+
+        _ ->
+            False
+
+
+isFlowRelated : Page -> Bool
+isFlowRelated page =
+    case page of
+        Realm _ (ReactInitPage Flow) ->
+            True
+
+        _ ->
+            False
+
+
+isPipelinesRelated : Page -> Bool
+isPipelinesRelated page =
+    case page of
+        Realm _ (ReactInitPage Pipelines) ->
             True
 
         _ ->

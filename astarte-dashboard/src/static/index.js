@@ -284,6 +284,7 @@ function getAstarteClient(session) {
     realmManagementUrl: protocol + config.realm_management_url,
     appengineUrl: protocol + config.appengine_url,
     pairingUrl: protocol + config.pairing_url,
+    flowUrl: protocol + config.flow_url,
     onSocketError: (() => { sendErrorError("Astarte channels communication error") }),
     onSocketClose: (() => { sendErrorError("Lost connection with the Astarte channel") })
   };

@@ -35,6 +35,7 @@ module AstarteApi exposing
     , deviceStats
     , encodeConfig
     , errorToHumanReadable
+    , flowApiHealth
     , getInterface
     , getTrigger
     , groupList
@@ -752,6 +753,19 @@ pairingApiHealth apiConfig resultMsg =
         { method = "GET"
         , headers = buildHeaders apiConfig.token
         , url = buildUrl apiConfig.secureConnection apiConfig.pairingUrl [ "health" ] []
+        , body = Http.emptyBody
+        , expect = expectHealthCheck resultMsg
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+flowApiHealth : Config -> (Result Error Bool -> msg) -> Cmd msg
+flowApiHealth apiConfig resultMsg =
+    Http.request
+        { method = "GET"
+        , headers = buildHeaders apiConfig.token
+        , url = buildUrl apiConfig.secureConnection apiConfig.flowUrl [ "health" ] []
         , body = Http.emptyBody
         , expect = expectHealthCheck resultMsg
         , timeout = Nothing

@@ -20,7 +20,7 @@
 module Types.Config exposing
     ( AuthConfig(..)
     , AuthType(..)
-    , Config
+    , Config(..)
     , Params
     , decoder
     , defaultAuthConfig
@@ -31,7 +31,7 @@ module Types.Config exposing
     )
 
 import Json.Decode as Decode exposing (Decoder, andThen, field, list, maybe, nullable, string)
-import Json.Decode.Pipeline exposing (optional)
+import Json.Decode.Pipeline exposing (optional, required)
 import JsonHelpers as JsonHelpers
 
 
@@ -49,6 +49,7 @@ type alias Params =
     , defaultRealm : Maybe String
     , defaultAuth : AuthType
     , enabledAuth : List AuthConfig
+    , enableFlowPreview : Bool
     }
 
 
@@ -129,21 +130,29 @@ type alias ParamsChangeset =
     , defaultRealm : Maybe String
     , defaultAuth : AuthType
     , enabledAuth : List AuthConfig
+    , enableFlowPreview : Bool
     }
 
 
 decoder : Decoder Config
 decoder =
-    Decode.map8 ParamsChangeset
-        (Decode.maybe <| Decode.field "astarte_api_url" decodeAstarteUrl)
-        (Decode.maybe <| Decode.field "appengine_api_url" decodeHttpUrl)
-        (Decode.maybe <| Decode.field "realm_management_api_url" decodeHttpUrl)
-        (Decode.maybe <| Decode.field "pairing_api_url" decodeHttpUrl)
-        (Decode.maybe <| Decode.field "flow_api_url" decodeHttpUrl)
-        (Decode.maybe <| Decode.field "default_realm" Decode.string)
-        (Decode.field "default_auth" authTypeDecoder)
-        (Decode.field "auth" <| Decode.list authConfigDecoder)
+    (Decode.succeed ParamsChangeset
+        |> optionalish "astarte_api_url" decodeAstarteUrl
+        |> optionalish "appengine_api_url" decodeHttpUrl
+        |> optionalish "realm_management_api_url" decodeHttpUrl
+        |> optionalish "pairing_api_url" decodeHttpUrl
+        |> optionalish "flow_api_url" decodeHttpUrl
+        |> optionalish "default_realm" Decode.string
+        |> required "default_auth" authTypeDecoder
+        |> required "auth" (Decode.list authConfigDecoder)
+        |> optional "enable_flow_preview" Decode.bool False
+    )
         |> Decode.andThen validateChangeset
+
+
+optionalish : String -> Decoder a -> Decoder (Maybe a -> b) -> Decoder b
+optionalish field fieldDecoder =
+    optional field (Decode.maybe fieldDecoder) Nothing
 
 
 decodeAstarteUrl : Decoder String
@@ -240,6 +249,7 @@ validateChangeset params =
             , defaultRealm = params.defaultRealm
             , defaultAuth = params.defaultAuth
             , enabledAuth = params.enabledAuth
+            , enableFlowPreview = params.enableFlowPreview
             }
 
 
