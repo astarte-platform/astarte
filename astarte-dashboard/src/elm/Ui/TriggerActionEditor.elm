@@ -190,9 +190,22 @@ updateHttpConfig httpMsg config =
 -- Validation
 
 
-exchangeFormatRegex : Regex
-exchangeFormatRegex =
-    Regex.fromString "^astarte_events_[a-zA-Z0-9]+_[a-zA-Z0-9_\\.\\:]+$"
+exchangeFormatRegex : String -> Regex
+exchangeFormatRegex realm =
+    let
+        realmStringRegex =
+            if realm /= "" then
+                realm
+
+            else
+                "[a-zA-Z0-9]+"
+    in
+    [ "^astarte_events_"
+    , realmStringRegex
+    , "_[a-zA-Z0-9_\\.\\:]+$"
+    ]
+        |> String.concat
+        |> Regex.fromString
         |> Maybe.withDefault Regex.never
 
 
@@ -202,9 +215,9 @@ routingKeyFormatRegex =
         |> Maybe.withDefault Regex.never
 
 
-isValidExchange : String -> Bool
-isValidExchange exchange =
-    Regex.contains exchangeFormatRegex exchange && (String.length exchange < 256)
+isValidExchange : String -> String -> Bool
+isValidExchange realm exchange =
+    Regex.contains (exchangeFormatRegex realm) exchange && (String.length exchange < 256)
 
 
 isValidRoutingKey : String -> Bool
@@ -216,8 +229,8 @@ isValidRoutingKey routingKey =
 -- View
 
 
-view : Config msg -> TriggerAction -> Bool -> List (Html msg)
-view config action editMode =
+view : Config msg -> TriggerAction -> Bool -> String -> List (Html msg)
+view config action editMode currentRealm =
     let
         actionSelection =
             actionTypeSelector action editMode
@@ -228,6 +241,7 @@ view config action editMode =
                 TriggerAction.Amqp amqpConfig ->
                     amqpTriggerAction amqpConfig
                         editMode
+                        currentRealm
                         config.updateMsg
                         config.newAmqpHeaderMsg
                         config.editAmqpHeaderMsg
@@ -298,13 +312,14 @@ actionTypeSelector action editMode =
 amqpTriggerAction :
     TriggerAction.AmqpActionConfig
     -> Bool
+    -> String
     -> (Msg -> msg)
     -> msg
     -> (String -> msg)
     -> (String -> msg)
     -> List (Html msg)
-amqpTriggerAction config editMode messageTag newStaticHeader editStaticHeader deleteStaticHeader =
-    [ amqpExchangeRow config.exchange editMode
+amqpTriggerAction config editMode currentRealm messageTag newStaticHeader editStaticHeader deleteStaticHeader =
+    [ amqpExchangeRow config.exchange editMode currentRealm
         |> Html.map messageTag
     , amqpRoutingKeyRow config.routingKey editMode
         |> Html.map messageTag
@@ -364,11 +379,11 @@ amqpTriggerAction config editMode messageTag newStaticHeader editStaticHeader de
     ]
 
 
-amqpExchangeRow : String -> Bool -> Html Msg
-amqpExchangeRow exchange editMode =
+amqpExchangeRow : String -> Bool -> String -> Html Msg
+amqpExchangeRow exchange editMode currentRealm =
     let
         isValid =
-            isValidExchange exchange
+            isValidExchange currentRealm exchange
 
         isInvalid =
             exchange /= "" && not isValid && not editMode

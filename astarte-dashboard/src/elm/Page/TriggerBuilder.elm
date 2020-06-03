@@ -75,6 +75,7 @@ type alias Model =
     , spinner : Spinner.Model
     , showSpinner : Bool
     , currentModal : Maybe PageModals
+    , currentRealm : String
     , actionEditorConfig : TriggerActionEditor.Config Msg
 
     -- decoupled types
@@ -99,8 +100,8 @@ type BufferStatus
     | Typing
 
 
-init : Maybe String -> Session -> ( Model, Cmd Msg )
-init maybeTriggerName session =
+init : Maybe String -> Session -> String -> ( Model, Cmd Msg )
+init maybeTriggerName session currentRealm =
     let
         debouncer =
             Debouncer.manual
@@ -122,6 +123,7 @@ init maybeTriggerName session =
       , spinner = Spinner.init
       , showSpinner = True
       , currentModal = Nothing
+      , currentRealm = currentRealm
       , actionEditorConfig =
             { updateMsg = UpdateAction
             , newHttpHeaderMsg = OpenNewHttpHeaderPopup
@@ -1303,7 +1305,7 @@ renderContent model =
                     ]
               ]
             , renderSimpleTrigger model
-            , TriggerActionEditor.view model.actionEditorConfig model.trigger.action model.editMode
+            , TriggerActionEditor.view model.actionEditorConfig model.trigger.action model.editMode model.currentRealm
             ]
 
 
