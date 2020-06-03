@@ -91,6 +91,35 @@ he will not get it, and there's no way he can retrieve it if he joined at a late
 Triggers can be uninstalled by issuing an `unwatch` event in the Channel. The payload of the event
 should be the name of the trigger which should be uninstalled.
 
+### Group Triggers
+
+Transient triggers can also target an Astarte group instead of a single device. To install a group
+volatile trigger, pass the `group_name` key in the JSON payload instead of the `device_id` key.
+
+For example, the trigger below is equivalent to the one in the previous section, but it targets all
+devices that are in the group `mygroup`.
+
+```json
+{
+    "name": "groupdevicetrigger",
+    "group_name": "mygroup",
+    "simple_trigger": {
+        "type": "data_trigger",
+        "on": "incoming_data",
+        "interface_name": "org.astarte-platform.genericsensors.Values",
+        "interface_major": 0,
+        "match_path": "/streamTest/value",
+        "value_match_operator": ">",
+        "known_value": 0.6
+    }
+}
+```
+
+Note that the devices belonging to the group are evaluated when the trigger is installed, _i.e._ if
+a device is added to the group when the trigger is already installed, the trigger will not target
+the newly added device. The same goes for devices removed from the group, that will still be
+targeted by the trigger until it is removed.
+
 ## Authorization
 
 Just like any other Astarte component, Authorization is encapsulated in a token claim, in particular
