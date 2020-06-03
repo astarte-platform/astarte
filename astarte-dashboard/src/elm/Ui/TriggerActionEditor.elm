@@ -35,6 +35,7 @@ import Html.Events as Events
 import Icons
 import Json.Decode as Decode
 import ListUtils exposing (addWhen)
+import Regex exposing (Regex)
 import Types.TriggerAction as TriggerAction exposing (TriggerAction)
 
 
@@ -186,6 +187,32 @@ updateHttpConfig httpMsg config =
 
 
 
+-- Validation
+
+
+exchangeFormatRegex : Regex
+exchangeFormatRegex =
+    Regex.fromString "^astarte_events_[a-zA-Z0-9]+_[a-zA-Z0-9_\\.\\:]+$"
+        |> Maybe.withDefault Regex.never
+
+
+routingKeyFormatRegex : Regex
+routingKeyFormatRegex =
+    Regex.fromString "^[^{}]+$"
+        |> Maybe.withDefault Regex.never
+
+
+isValidExchange : String -> Bool
+isValidExchange exchange =
+    Regex.contains exchangeFormatRegex exchange && (String.length exchange < 256)
+
+
+isValidRoutingKey : String -> Bool
+isValidRoutingKey routingKey =
+    Regex.contains routingKeyFormatRegex routingKey && (String.length routingKey < 256)
+
+
+
 -- View
 
 
@@ -277,36 +304,10 @@ amqpTriggerAction :
     -> (String -> msg)
     -> List (Html msg)
 amqpTriggerAction config editMode messageTag newStaticHeader editStaticHeader deleteStaticHeader =
-    [ Form.row []
-        [ Form.col [ Col.sm12 ]
-            [ Form.group []
-                [ Form.label [ for "amqpExchange" ] [ Html.text "Exchange" ]
-                , Input.text
-                    [ Input.id "amqpExchange"
-                    , Input.readonly editMode
-                    , Input.value config.exchange
-                    , Input.onInput UpdateExchange
-                    ]
-                    |> Html.map UpdateAmqpAction
-                    |> Html.map messageTag
-                ]
-            ]
-        ]
-    , Form.row []
-        [ Form.col [ Col.sm12 ]
-            [ Form.group []
-                [ Form.label [ for "amqpRoutingKey" ] [ Html.text "Routing key" ]
-                , Input.text
-                    [ Input.id "amqpRoutingKey"
-                    , Input.readonly editMode
-                    , Input.value config.routingKey
-                    , Input.onInput UpdateRoutingKey
-                    ]
-                    |> Html.map UpdateAmqpAction
-                    |> Html.map messageTag
-                ]
-            ]
-        ]
+    [ amqpExchangeRow config.exchange editMode
+        |> Html.map messageTag
+    , amqpRoutingKeyRow config.routingKey editMode
+        |> Html.map messageTag
     , Form.row []
         [ Form.col [ Col.sm12 ]
             [ Form.group []
@@ -361,6 +362,60 @@ amqpTriggerAction config editMode messageTag newStaticHeader editStaticHeader de
         ]
     , staticAmqpHeaders config.staticHeaders editMode newStaticHeader editStaticHeader deleteStaticHeader
     ]
+
+
+amqpExchangeRow : String -> Bool -> Html Msg
+amqpExchangeRow exchange editMode =
+    let
+        isValid =
+            isValidExchange exchange
+
+        isInvalid =
+            exchange /= "" && not isValid && not editMode
+    in
+    Form.row []
+        [ Form.col [ Col.sm12 ]
+            [ Form.group []
+                [ Form.label [ for "amqpExchange" ] [ Html.text "Exchange" ]
+                , [ Input.id "amqpExchange"
+                  , Input.readonly editMode
+                  , Input.value exchange
+                  , Input.onInput UpdateExchange
+                  ]
+                    |> addWhen isValid Input.success
+                    |> addWhen isInvalid Input.danger
+                    |> Input.text
+                    |> Html.map UpdateAmqpAction
+                ]
+            ]
+        ]
+
+
+amqpRoutingKeyRow : String -> Bool -> Html Msg
+amqpRoutingKeyRow routingKey editMode =
+    let
+        isValid =
+            isValidRoutingKey routingKey
+
+        isInvalid =
+            routingKey /= "" && not isValid && not editMode
+    in
+    Form.row []
+        [ Form.col [ Col.sm12 ]
+            [ Form.group []
+                [ Form.label [ for "amqpRoutingKey" ] [ Html.text "Routing key" ]
+                , [ Input.id "amqpRoutingKey"
+                  , Input.readonly editMode
+                  , Input.value routingKey
+                  , Input.onInput UpdateRoutingKey
+                  ]
+                    |> addWhen isValid Input.success
+                    |> addWhen isInvalid Input.danger
+                    |> Input.text
+                    |> Html.map UpdateAmqpAction
+                ]
+            ]
+        ]
 
 
 
