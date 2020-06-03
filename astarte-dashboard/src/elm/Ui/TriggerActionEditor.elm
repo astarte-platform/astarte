@@ -387,6 +387,13 @@ amqpExchangeRow exchange editMode currentRealm =
 
         isInvalid =
             exchange /= "" && not isValid && not editMode
+
+        placeholder =
+            String.concat
+                [ "astarte_events_"
+                , currentRealm
+                , "_exchangename"
+                ]
     in
     Form.row []
         [ Form.col [ Col.sm12 ]
@@ -396,6 +403,7 @@ amqpExchangeRow exchange editMode currentRealm =
                   , Input.readonly editMode
                   , Input.value exchange
                   , Input.onInput UpdateExchange
+                  , Input.placeholder placeholder
                   ]
                     |> addWhen isValid Input.success
                     |> addWhen isInvalid Input.danger
