@@ -690,7 +690,7 @@ initTriggerBuilderPage : Maybe String -> Session -> String -> ( Page, Cmd Msg, S
 initTriggerBuilderPage maybeTriggerName session realm =
     let
         ( initialModel, initialCommand ) =
-            TriggerBuilder.init maybeTriggerName session
+            TriggerBuilder.init maybeTriggerName session realm
     in
     ( Realm realm (TriggerBuilderPage initialModel)
     , Cmd.map TriggerBuilderMsg initialCommand
