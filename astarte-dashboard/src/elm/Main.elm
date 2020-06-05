@@ -39,7 +39,6 @@ import Json.Encode as Encode
 import ListUtils exposing (addWhen)
 import Page.Device as Device
 import Page.DeviceData as DeviceData
-import Page.Home as Home
 import Page.InterfaceBuilder as InterfaceBuilder
 import Page.Interfaces as Interfaces
 import Page.Login as Login
@@ -213,8 +212,7 @@ type PublicPage
 
 
 type RealmPage
-    = HomePage Home.Model
-    | InterfacesPage Interfaces.Model
+    = InterfacesPage Interfaces.Model
     | InterfaceBuilderPage InterfaceBuilder.Model
     | TriggersPage Triggers.Model
     | TriggerBuilderPage TriggerBuilder.Model
@@ -225,7 +223,8 @@ type RealmPage
 
 
 type ReactPageCategory
-    = Devices
+    = Home
+    | Devices
     | Groups
     | Flow
     | Pipelines
@@ -243,7 +242,6 @@ type Msg
     | UpdateRelativeURL (Maybe String)
     | UpdateSession (Maybe Session)
     | LoginMsg Login.Msg
-    | HomeMsg Home.Msg
     | InterfacesMsg Interfaces.Msg
     | InterfaceBuilderMsg InterfaceBuilder.Msg
     | RealmSettingsMsg RealmSettings.Msg
@@ -422,9 +420,6 @@ updateRealmPage realm realmPage msg model =
     let
         ( page, command, externalMsg ) =
             case ( msg, realmPage ) of
-                ( HomeMsg subMsg, HomePage subModel ) ->
-                    updateRealmPageHelper realm (Home.update model.session subMsg subModel) HomeMsg HomePage
-
                 ( InterfacesMsg subMsg, InterfacesPage subModel ) ->
                     updateRealmPageHelper realm (Interfaces.update model.session subMsg subModel) InterfacesMsg InterfacesPage
 
@@ -513,10 +508,10 @@ pageInit realmRoute config session =
     case realmRoute of
         Route.Auth _ _ ->
             -- already logged in
-            initHomePage session session.apiConfig.realm
+            initReactPage session Home "home" realmRoute
 
         Route.Home ->
-            initHomePage session session.apiConfig.realm
+            initReactPage session Home "home" realmRoute
 
         Route.Logout ->
             let
@@ -629,18 +624,6 @@ initLoginPage config session =
     in
     ( Public (LoginPage initialSubModel)
     , Cmd.map LoginMsg initialPageCommand
-    , session
-    )
-
-
-initHomePage : Session -> String -> ( Page, Cmd Msg, Session )
-initHomePage session realm =
-    let
-        ( initialModel, initialCommand ) =
-            Home.init session
-    in
-    ( Realm realm (HomePage initialModel)
-    , Cmd.map HomeMsg initialCommand
     , session
     )
 
@@ -1137,7 +1120,7 @@ renderNavbarSeparator =
 isHomeRelated : Page -> Bool
 isHomeRelated page =
     case page of
-        Realm _ (HomePage _) ->
+        Realm _ (ReactInitPage Home) ->
             True
 
         _ ->
@@ -1254,10 +1237,6 @@ renderPublicPage flashMessages page =
 renderProtectedPage : List FlashMessage -> RealmPage -> Html Msg
 renderProtectedPage flashMessages page =
     case page of
-        HomePage submodel ->
-            Home.view submodel flashMessages
-                |> Html.map HomeMsg
-
         InterfacesPage submodel ->
             Interfaces.view submodel flashMessages
                 |> Html.map InterfacesMsg
@@ -1311,9 +1290,6 @@ pageSubscriptions page =
     case page of
         Public (LoginPage submodel) ->
             Sub.map LoginMsg <| Login.subscriptions submodel
-
-        Realm _ (HomePage submodel) ->
-            Sub.map HomeMsg <| Home.subscriptions submodel
 
         Realm _ (InterfaceBuilderPage submodel) ->
             Sub.map InterfaceBuilderMsg <| InterfaceBuilder.subscriptions submodel
