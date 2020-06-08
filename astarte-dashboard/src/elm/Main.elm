@@ -1060,41 +1060,36 @@ dashboardBrand =
 renderStatusRow : String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Html Msg
 renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth flowHealth =
     let
-        componentsHealth =
-            [ ( "AppEngine", appEngineHealth )
-            , ( "Realm Management", realmManagementHealth )
-            , ( "Pairing", pairingHealth )
-            , ( "Flow", flowHealth )
-            ]
+        errorCount =
+            [ appEngineHealth, realmManagementHealth, pairingHealth, flowHealth ]
+                |> List.foldr
+                    (\serviceOk errorcount ->
+                        case serviceOk of
+                            Just False ->
+                                errorcount + 1
+
+                            _ ->
+                                errorcount
+                    )
+                    0
     in
     Html.div
         [ class "nav-status nav-item", Spacing.pl4 ]
         [ Html.div [] [ Html.b [] [ Html.text "Realm" ] ]
         , Html.p [] [ Html.text realm ]
         , Html.div [] [ Html.b [] [ Html.text "API Status" ] ]
-        , Html.div []
-            (List.filterMap healthItem componentsHealth)
+        , if errorCount > 0 then
+            Html.p [ Spacing.my1 ]
+                [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-red" ]
+                , Html.text "Degraded"
+                ]
+
+          else
+            Html.p [ Spacing.my1 ]
+                [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-green" ]
+                , Html.text "Up and running"
+                ]
         ]
-
-
-healthItem : ( String, Maybe Bool ) -> Maybe (Html Msg)
-healthItem ( label, maybeHealthy ) =
-    Maybe.map (healthItemHelper label) maybeHealthy
-
-
-healthItemHelper : String -> Bool -> Html Msg
-healthItemHelper label healthy =
-    Html.div [ Spacing.my1 ]
-        (if healthy then
-            [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-green" ]
-            , Html.text label
-            ]
-
-         else
-            [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-red" ]
-            , Html.text label
-            ]
-        )
 
 
 renderNavbarLink : String -> Icon -> Bool -> Route -> Html Msg
