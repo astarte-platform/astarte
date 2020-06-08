@@ -27,6 +27,7 @@ import {
   Spinner,
   Table
 } from "react-bootstrap";
+import DevicesPieChart from "./ui/DevicesPieChart.js"
 
 export default class HomePage extends React.Component {
   constructor(props) {
@@ -272,10 +273,24 @@ function DevicesCard({ connectedDevices, totalDevices }) {
     <Card className="h-100">
       <Card.Header as="h5">Devices</Card.Header>
       <Card.Body>
-        <Card.Title>Connected devices</Card.Title>
-        <Card.Text>{connectedDevices}</Card.Text>
-        <Card.Title>Registered devices</Card.Title>
-        <Card.Text>{totalDevices}</Card.Text>
+        <Container className="h-100 p-0" fluid>
+          <Row noGutters>
+            <Col xs={12} lg={6}>
+              <Card.Title>Connected devices</Card.Title>
+              <Card.Text>{connectedDevices}</Card.Text>
+              <Card.Title>Registered devices</Card.Title>
+              <Card.Text>{totalDevices}</Card.Text>
+            </Col>
+            <Col xs={12} lg={6}>
+              { totalDevices > 0 &&
+                <DevicesPieChart
+                  connectedDevices={connectedDevices}
+                  disconnectedDevices={totalDevices - connectedDevices}
+                />
+              }
+            </Col>
+          </Row>
+        </Container>
       </Card.Body>
     </Card>
   );
