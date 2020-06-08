@@ -163,8 +163,10 @@ export default class HomePage extends React.Component {
     return (
       <Container fluid className="p-0">
         <Row noGutters>
-          <Col xs={12} className={cellSpacingClass}>
-            <WelcomeCard />
+          <Col xs={12}>
+            <h2 className="pl-4">
+              Astarte Dashboard
+            </h2>
           </Col>
           <Col xs={6} className={cellSpacingClass}>
             <ApiStatusCard
@@ -203,24 +205,6 @@ export default class HomePage extends React.Component {
       </Container>
     );
   }
-}
-
-function WelcomeCard() {
-  return (
-    <Card>
-      <Card.Body>
-        <Card.Title as="h2">
-          Welcome to Astarte Dashboard!
-        </Card.Title>
-        <Card.Text>
-            Here you can easily manage your Astarte realm.
-        </Card.Text>
-        <Card.Text>
-          Read the <a href="https://docs.astarte-platform.org/" target="_blank">documentation</a> for detailed information on Astarte.
-        </Card.Text>
-      </Card.Body>
-    </Card>
-  );
 }
 
 function ApiStatusCard(props) {
