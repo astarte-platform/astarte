@@ -65,6 +65,9 @@ export default class AstarteClient {
     // prettier-ignore
     let apiConfig = {
       auth:                  astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/config/auth`,
+      interfaces:            astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces`,
+      interfaceMajors:       astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces/${"interfaceName"}`,
+      triggers:              astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/triggers`,
       devicesStats:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/stats/devices`,
       devices:               astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices`,
       groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
@@ -85,6 +88,18 @@ export default class AstarteClient {
 
   getConfigAuth() {
     return this._get(this.apiConfig["auth"](this.config));
+  }
+
+  getInterfaceNames() {
+    return this._get(this.apiConfig["interfaces"](this.config));
+  }
+
+  getInterfaceMajors(interfaceName) {
+    return this._get(this.apiConfig["interfaceMajors"]({ ...this.config, interfaceName: interfaceName }));
+  }
+
+  getTriggerNames() {
+    return this._get(this.apiConfig["triggers"](this.config));
   }
 
   getDevicesStats() {
