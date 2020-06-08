@@ -70,7 +70,7 @@ import Json.Decode as Decode
         , string
         , succeed
         )
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode exposing (Value)
 import Types.Device as Device exposing (Device)
 import Types.DeviceData as DeviceData exposing (DeviceData)
@@ -99,6 +99,7 @@ type alias Config =
     , flowUrl : String
     , realm : String
     , token : String
+    , enableFlowPreview : Bool
     }
 
 
@@ -796,6 +797,7 @@ encodeConfig config =
         , ( "flow_url", Encode.string config.flowUrl )
         , ( "realm", Encode.string config.realm )
         , ( "token", Encode.string config.token )
+        , ( "enable_flow_preview", Encode.bool config.enableFlowPreview )
         ]
 
 
@@ -809,6 +811,7 @@ configDecoder =
         |> required "flow_url" Decode.string
         |> required "realm" Decode.string
         |> required "token" Decode.string
+        |> optional "enable_flow_preview" Decode.bool False
 
 
 

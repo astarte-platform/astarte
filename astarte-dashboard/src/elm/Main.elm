@@ -183,6 +183,7 @@ initNewSession hostUrl config =
                     , flowUrl = params.flowApiUrl
                     , realm = ""
                     , token = ""
+                    , enableFlowPreview = params.enableFlowPreview
                     }
 
                 Nothing ->
@@ -193,6 +194,7 @@ initNewSession hostUrl config =
                     , flowUrl = ""
                     , realm = ""
                     , token = ""
+                    , enableFlowPreview = False
                     }
     in
     { hostUrl = hostUrl

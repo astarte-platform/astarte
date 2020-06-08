@@ -55,6 +55,7 @@ export default class AstarteClient {
       this.onSocketClose = config.onSocketClose;
     }
 
+    internalConfig.enableFlowPreview = config.enableFlowPreview || false;
     this.config = internalConfig;
 
     if (config.token) {

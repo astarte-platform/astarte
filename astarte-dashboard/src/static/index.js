@@ -285,6 +285,7 @@ function getAstarteClient(session) {
     appengineUrl: protocol + config.appengine_url,
     pairingUrl: protocol + config.pairing_url,
     flowUrl: protocol + config.flow_url,
+    enableFlowPreview: config.enable_flow_preview,
     onSocketError: (() => { sendErrorError("Astarte channels communication error") }),
     onSocketClose: (() => { sendErrorError("Lost connection with the Astarte channel") })
   };
