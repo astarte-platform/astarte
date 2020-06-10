@@ -1428,14 +1428,22 @@ renderGroups groups =
         Card.simpleText "Device does not belong to any group"
 
     else
-        Html.ul [] (List.map renderGroupValue groups)
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th [] [ Html.text "Name" ] ]
+            , Table.tbody []
+                (List.map renderGroupValue groups)
+            )
 
 
-renderGroupValue : String -> Html Msg
+renderGroupValue : String -> Table.Row Msg
 renderGroupValue group =
-    Html.li []
-        [ Html.a [ href <| Route.toString <| Route.Realm <| Route.GroupDevices group ]
-            [ Html.text group ]
+    Table.tr []
+        [ Table.td []
+            [ Html.a
+                [ href <| Route.toString <| Route.Realm <| Route.GroupDevices group ]
+                [ Html.text group ]
+            ]
         ]
 
 
