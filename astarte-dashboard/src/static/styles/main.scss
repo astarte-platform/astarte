@@ -263,3 +263,13 @@ h6,
 .action-icon {
     cursor: pointer;
 }
+
+.chart-container {
+    position: relative;
+}
+
+/* Bootstrap overwrite */
+
+.card .table th {
+    border-top: 0;
+}

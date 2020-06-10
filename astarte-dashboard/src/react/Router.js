@@ -26,6 +26,7 @@ import {
   useRouteMatch
 } from "react-router-dom";
 
+import HomePage from "./HomePage.js";
 import GroupsPage from "./GroupsPage.js";
 import GroupDevicesPage from "./GroupDevicesPage.js";
 import NewGroupPage from "./NewGroupPage.js";
@@ -48,6 +49,9 @@ export function getRouter(reactHistory, astarteClient, fallback) {
   return (
     <Router history={reactHistory}>
       <Switch>
+        <Route exact path={["/", "/home"]}>
+          <HomePage {...pageProps} />
+        </Route>
         <Route exact path="/devices">
           <DevicesPage {...pageProps} />
         </Route>

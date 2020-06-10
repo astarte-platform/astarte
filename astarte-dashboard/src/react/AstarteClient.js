@@ -55,6 +55,7 @@ export default class AstarteClient {
       this.onSocketClose = config.onSocketClose;
     }
 
+    internalConfig.enableFlowPreview = config.enableFlowPreview || false;
     this.config = internalConfig;
 
     if (config.token) {
@@ -63,14 +64,21 @@ export default class AstarteClient {
 
     // prettier-ignore
     let apiConfig = {
+      realmManagementHealth: astarteAPIurl`${"realmManagementUrl"}/health`,
       auth:                  astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/config/auth`,
+      interfaces:            astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces`,
+      interfaceMajors:       astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces/${"interfaceName"}`,
+      triggers:              astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/triggers`,
+      appengineHealth:       astarteAPIurl`${"appengineUrl"}/health`,
       devicesStats:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/stats/devices`,
       devices:               astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices`,
       groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
       groupDevices:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices`,
       deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`,
       phoenixSocket:         astarteAPIurl`${"appengineUrl"}/v1/socket`,
+      pairingHealth:         astarteAPIurl`${"pairingUrl"}/health`,
       registerDevice:        astarteAPIurl`${"pairingUrl"}/v1/${"realm"}/agent/devices`,
+      flowHealth:            astarteAPIurl`${"flowUrl"}/health`,
       flows:                 astarteAPIurl`${"flowUrl"}/v1/${"realm"}/flows`,
       flowInstance:          astarteAPIurl`${"flowUrl"}/v1/${"realm"}/flows/${"instanceName"}`,
       pipelines:             astarteAPIurl`${"flowUrl"}/v1/${"realm"}/pipelines`,
@@ -84,6 +92,18 @@ export default class AstarteClient {
 
   getConfigAuth() {
     return this._get(this.apiConfig["auth"](this.config));
+  }
+
+  getInterfaceNames() {
+    return this._get(this.apiConfig["interfaces"](this.config));
+  }
+
+  getInterfaceMajors(interfaceName) {
+    return this._get(this.apiConfig["interfaceMajors"]({ ...this.config, interfaceName: interfaceName }));
+  }
+
+  getTriggerNames() {
+    return this._get(this.apiConfig["triggers"](this.config));
   }
 
   getDevicesStats() {
@@ -212,6 +232,22 @@ export default class AstarteClient {
 
   deletePipeline(pipelineId) {
     return this._delete(this.apiConfig["pipelineSource"]({...this.config, pipelineId: pipelineId}));
+  }
+
+  getRealmManagementHealth() {
+    return this._get(this.apiConfig["realmManagementHealth"](this.config));
+  }
+
+  getAppengineHealth() {
+    return this._get(this.apiConfig["appengineHealth"](this.config));
+  }
+
+  getPairingHealth() {
+    return this._get(this.apiConfig["pairingHealth"](this.config));
+  }
+
+  getFlowHealth() {
+    return this._get(this.apiConfig["flowHealth"](this.config));
   }
 
   _get(url) {
