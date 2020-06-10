@@ -20,7 +20,7 @@ This makes integrating Astarte with 3rd party authentication/authorization frame
 
 ## Authorization
 
-Currently, Astarte supports a URL-based authorization for the API. Given that Astarte's data access APIs match the devices' topology like a tree, declaring the authorization in terms of path whitelisting gives enough flexibility to give each user the correct permissions without limitations.
+Currently, Astarte supports a URL-based authorization for the API. Given that Astarte's data access APIs match the devices' topology like a tree, declaring the authorization in terms of path allow-listing gives enough flexibility to give each user the correct permissions without limitations.
 
 As said, Astarte does not have the concept of user, and neither has a durable storage which tracks permissions. As such, it expects the authorization information to be inside the token, which is the only entity Astarte can trust - given it has been verified and authenticated through its signature.
 

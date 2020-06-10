@@ -44,7 +44,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
 
   @valid_methods ["delete", "get", "head", "options", "patch", "post", "put"]
 
-  @headers_blacklist MapSet.new([
+  @headers_blocklist MapSet.new([
                        "connection",
                        "content-length",
                        "date",
@@ -139,7 +139,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
       |> String.trim()
       |> String.downcase()
 
-    MapSet.member?(@headers_blacklist, normalized) == false
+    MapSet.member?(@headers_blocklist, normalized) == false
   end
 
   defp validate_headers_size(changeset, field, opts \\ []) do
