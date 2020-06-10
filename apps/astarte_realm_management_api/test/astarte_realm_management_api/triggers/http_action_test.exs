@@ -149,7 +149,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
     assert length(errors) == 1
   end
 
-  test "http_headers with blacklisted header must be rejected" do
+  test "http_headers with blocklisted header must be rejected" do
     input = %{
       "http_url" => "http://example.com/",
       "http_method" => "put",
