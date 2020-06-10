@@ -25,6 +25,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Navbar as Navbar
+import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
@@ -910,23 +911,37 @@ attemptLogin maybeRealm maybeToken maybeOauthUrl config session =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        ( showNavbar, realmName ) =
+            case model.selectedPage of
+                Public (LoginPage _) ->
+                    ( False, "" )
+
+                Realm realm _ ->
+                    ( True, realm )
+    in
     { title = "Astarte - Dashboard"
     , body =
-        case model.selectedPage of
-            Public (LoginPage _) ->
-                [ div
-                    [ class "main-content" ]
-                    [ renderPage model model.selectedPage ]
-                ]
+        [ Grid.containerFluid
+            [ Spacing.px0 ]
+            [ Grid.row
+                [ Row.attrs [ class "no-gutters" ] ]
+                [ Grid.col
+                    (if showNavbar then
+                        [ Col.xsAuto
+                        , Col.attrs [ class "nav-col" ]
+                        ]
 
-            Realm _ _ ->
-                [ renderNavbar model
-                , div
-                    [ class "main-content"
-                    , Spacing.p3
-                    ]
+                     else
+                        [ Col.attrs [ Display.none ] ]
+                    )
+                    [ renderNavbar model realmName ]
+                , Grid.col
+                    [ Col.attrs [ class "main-content", Spacing.p3 ] ]
                     [ renderPage model model.selectedPage ]
                 ]
+            ]
+        ]
     }
 
 
@@ -937,313 +952,184 @@ view model =
 -}
 
 
-renderNavbar : Model -> Html Msg
-renderNavbar model =
+renderNavbar : Model -> String -> Html Msg
+renderNavbar model realm =
     case model.config of
         Config.EditorOnly ->
-            editorNavBar model
+            editorNavBar
 
-        Config.Standard params ->
-            standardNavBar model params
-
-
-editorNavBar : Model -> Html Msg
-editorNavBar model =
-    Navbar.config NavbarMsg
-        |> Navbar.darkCustomClass "customDarkColor"
-        |> Navbar.withAnimation
-        |> Navbar.attrs
-            [ class "navbar-vertical fixed-left" ]
-        |> Navbar.collapseMedium
-        |> dashboardBrand
-        |> Navbar.customItems
-            [ editorNavbarLinks model.selectedPage ]
-        |> Navbar.view model.navbarState
+        Config.Standard config ->
+            standardNavBar
+                model.selectedPage
+                realm
+                model.appEngineApiHealth
+                model.realmManagementApiHealth
+                model.pairingApiHealth
+                model.flowApiHealth
+                config.enableFlowPreview
 
 
-standardNavBar : Model -> Config.Params -> Html Msg
-standardNavBar model params =
-    let
-        linksBuilder =
-            if params.enableFlowPreview then
-                navbarLinks
-
-            else
-                navbarLinksNoFlow
-    in
-    case model.selectedPage of
-        Public (LoginPage _) ->
-            text ""
-
-        Realm realmName _ ->
-            Navbar.config NavbarMsg
-                |> Navbar.darkCustomClass "customDarkColor"
-                |> Navbar.withAnimation
-                |> Navbar.attrs
-                    [ class "navbar-vertical fixed-left" ]
-                |> Navbar.collapseMedium
-                |> dashboardBrand
-                |> Navbar.customItems
-                    [ linksBuilder realmName
-                        model.selectedPage
-                        model.appEngineApiHealth
-                        model.realmManagementApiHealth
-                        model.pairingApiHealth
-                        model.flowApiHealth
-                    ]
-                |> Navbar.view model.navbarState
+editorNavBar : Html Msg
+editorNavBar =
+    Html.nav [ class "nav", Flex.col ]
+        [ dashboardBrand
+        , renderNavbarLink
+            "Interface Editor"
+            Icons.Interface
+            False
+            Route.InterfaceEditor
+        ]
 
 
-dashboardBrand : Navbar.Config Msg -> Navbar.Config Msg
-dashboardBrand prevConfig =
-    Navbar.brand
-        [ href <| Route.toString (Route.Realm Route.Home) ]
-        [ img
+standardNavBar : Page -> String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Bool -> Html Msg
+standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHealth enableFlowPreview =
+    [ [ dashboardBrand
+      , renderNavbarLink
+            "Home"
+            Icons.Home
+            (isHomeRelated selectedPage)
+            (Route.Realm Route.Home)
+
+      -- Realm Management
+      , renderNavbarSeparator
+      , renderNavbarLink
+            "Interfaces"
+            Icons.Interface
+            (isInterfacesRelated selectedPage)
+            (Route.Realm Route.ListInterfaces)
+      , renderNavbarLink
+            "Triggers"
+            Icons.Trigger
+            (isTriggersRelated selectedPage)
+            (Route.Realm Route.ListTriggers)
+      , renderNavbarLink
+            "Realm settings"
+            Icons.Settings
+            (isSettingsRelated selectedPage)
+            (Route.Realm Route.RealmSettings)
+
+      -- AppEngine
+      , renderNavbarSeparator
+      , renderNavbarLink
+            "Devices"
+            Icons.Device
+            (isDeviceRelated selectedPage)
+            (Route.Realm Route.DeviceList)
+      , renderNavbarLink
+            "Groups"
+            Icons.Group
+            (isGroupRelated selectedPage)
+            (Route.Realm Route.GroupList)
+      ]
+
+    -- Flow
+    , if enableFlowPreview then
+        [ renderNavbarSeparator
+        , renderNavbarLink
+            "Flows"
+            Icons.Flow
+            (isFlowRelated selectedPage)
+            (Route.Realm Route.FlowInstances)
+        , renderNavbarLink
+            "Pipelines"
+            Icons.Pipeline
+            (isPipelinesRelated selectedPage)
+            (Route.Realm Route.PipelineList)
+        ]
+
+      else
+        []
+
+    -- General
+    , [ renderNavbarSeparator
+      , renderStatusRow realmName aeApiHealth rmApiHealth pApiHealth fApiHealth
+
+      -- Common
+      , renderNavbarSeparator
+      , renderNavbarLink
+            "Logout"
+            Icons.Logout
+            False
+            (Route.Realm Route.Logout)
+      ]
+    ]
+        |> List.concat
+        |> Html.nav [ class "nav navbar-dark", Flex.col ]
+
+
+dashboardBrand : Html Msg
+dashboardBrand =
+    Html.a
+        [ href <| Route.toString (Route.Realm Route.Home)
+        , class "nav-brand"
+        , Spacing.mb3
+        ]
+        [ Html.img
             [ src <| Assets.path Assets.dashboardIcon
             , class "brand-logo"
             ]
             []
         ]
-        prevConfig
-
-
-editorNavbarLinks : Page -> Navbar.CustomItem Msg
-editorNavbarLinks selectedPage =
-    Navbar.customItem <|
-        Grid.container
-            [ Flex.col
-            , Spacing.p0
-            ]
-            [ ul
-                [ class "navbar-nav"
-                , Size.w100
-                , Spacing.mt2
-                ]
-                [ renderNavbarLink
-                    "Interface Editor"
-                    Icons.Interface
-                    False
-                    Route.InterfaceEditor
-                ]
-            ]
-
-
-navbarLinksNoFlow : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
-navbarLinksNoFlow realm selectedPage appEngineHealth realmManagementHealth pairingHealth flowHealth =
-    Navbar.customItem <|
-        Grid.container
-            [ Flex.col
-            , Spacing.p0
-            ]
-            [ ul
-                [ class "navbar-nav"
-                , Size.w100
-                , Spacing.mt2
-                ]
-                [ renderNavbarLink
-                    "Home"
-                    Icons.Home
-                    (isHomeRelated selectedPage)
-                    (Route.Realm Route.Home)
-
-                -- Realm Management
-                , renderNavbarSeparator
-                , renderNavbarLink
-                    "Interfaces"
-                    Icons.Interface
-                    (isInterfacesRelated selectedPage)
-                    (Route.Realm Route.ListInterfaces)
-                , renderNavbarLink
-                    "Triggers"
-                    Icons.Trigger
-                    (isTriggersRelated selectedPage)
-                    (Route.Realm Route.ListTriggers)
-                , renderNavbarLink
-                    "Realm settings"
-                    Icons.Settings
-                    (isSettingsRelated selectedPage)
-                    (Route.Realm Route.RealmSettings)
-
-                -- AppEngine
-                , renderNavbarSeparator
-                , renderNavbarLink
-                    "Devices"
-                    Icons.Device
-                    (isDeviceRelated selectedPage)
-                    (Route.Realm Route.DeviceList)
-                , renderNavbarLink
-                    "Groups"
-                    Icons.Group
-                    (isGroupRelated selectedPage)
-                    (Route.Realm Route.GroupList)
-
-                -- General
-                , renderNavbarSeparator
-                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth Nothing
-
-                -- Common
-                , renderNavbarSeparator
-                , renderNavbarLink
-                    "Logout"
-                    Icons.Logout
-                    False
-                    (Route.Realm Route.Logout)
-                ]
-            ]
-
-
-navbarLinks : String -> Page -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Navbar.CustomItem Msg
-navbarLinks realm selectedPage appEngineHealth realmManagementHealth pairingHealth flowHealth =
-    Navbar.customItem <|
-        Grid.container
-            [ Flex.col
-            , Spacing.p0
-            ]
-            [ ul
-                [ class "navbar-nav"
-                , Size.w100
-                , Spacing.mt2
-                ]
-                [ renderNavbarLink
-                    "Home"
-                    Icons.Home
-                    (isHomeRelated selectedPage)
-                    (Route.Realm Route.Home)
-
-                -- Realm Management
-                , renderNavbarSeparator
-                , renderNavbarLink
-                    "Interfaces"
-                    Icons.Interface
-                    (isInterfacesRelated selectedPage)
-                    (Route.Realm Route.ListInterfaces)
-                , renderNavbarLink
-                    "Triggers"
-                    Icons.Trigger
-                    (isTriggersRelated selectedPage)
-                    (Route.Realm Route.ListTriggers)
-                , renderNavbarLink
-                    "Realm settings"
-                    Icons.Settings
-                    (isSettingsRelated selectedPage)
-                    (Route.Realm Route.RealmSettings)
-
-                -- AppEngine
-                , renderNavbarSeparator
-                , renderNavbarLink
-                    "Devices"
-                    Icons.Device
-                    (isDeviceRelated selectedPage)
-                    (Route.Realm Route.DeviceList)
-                , renderNavbarLink
-                    "Groups"
-                    Icons.Group
-                    (isGroupRelated selectedPage)
-                    (Route.Realm Route.GroupList)
-
-                -- Flow
-                , renderNavbarSeparator
-                , renderNavbarLink
-                    "Flows"
-                    Icons.Flow
-                    (isFlowRelated selectedPage)
-                    (Route.Realm Route.FlowInstances)
-                , renderNavbarLink
-                    "Pipelines"
-                    Icons.Pipeline
-                    (isPipelinesRelated selectedPage)
-                    (Route.Realm Route.PipelineList)
-
-                -- General
-                , renderNavbarSeparator
-                , renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth flowHealth
-
-                -- Common
-                , renderNavbarSeparator
-                , renderNavbarLink
-                    "Logout"
-                    Icons.Logout
-                    False
-                    (Route.Realm Route.Logout)
-                ]
-            ]
 
 
 renderStatusRow : String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Html Msg
 renderStatusRow realm appEngineHealth realmManagementHealth pairingHealth flowHealth =
-    Html.li
-        [ class "navbar-status navbar-item", Spacing.pl2 ]
-        [ statusRow "Realm"
-            [ Html.span [] [ Html.text realm ] ]
-        , statusRow "API Status"
-            [ healthItem "AppEngine" appEngineHealth
-            , healthItem "Realm Management" realmManagementHealth
-            , healthItem "Pairing" pairingHealth
-            , healthItem "Flow" flowHealth
-            ]
-        ]
-
-
-healthItem : String -> Maybe Bool -> Html Msg
-healthItem label maybeHealthy =
     let
-        spacing =
-            Spacing.my1
+        componentsHealth =
+            [ ( "AppEngine", appEngineHealth )
+            , ( "Realm Management", realmManagementHealth )
+            , ( "Pairing", pairingHealth )
+            , ( "Flow", flowHealth )
+            ]
     in
-    case maybeHealthy of
-        Nothing ->
-            Html.text ""
-
-        Just True ->
-            Html.div [ spacing ]
-                [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-green" ]
-                , Html.text label
-                ]
-
-        Just False ->
-            Html.div [ spacing ]
-                [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-red" ]
-                , Html.text label
-                ]
-
-
-statusRow : String -> List (Html Msg) -> Html Msg
-statusRow label items =
-    Grid.row [ Row.attrs [ Spacing.mb2, Spacing.pl2, class "no-gutters" ] ]
-        [ Grid.col []
-            [ Html.b [] [ Html.text label ] ]
-        , Grid.col [ Col.sm12 ]
-            items
+    Html.div
+        [ class "nav-status nav-item", Spacing.pl4 ]
+        [ Html.div [] [ Html.b [] [ Html.text "Realm" ] ]
+        , Html.p [] [ Html.text realm ]
+        , Html.div [] [ Html.b [] [ Html.text "API Status" ] ]
+        , Html.div []
+            (List.filterMap healthItem componentsHealth)
         ]
+
+
+healthItem : ( String, Maybe Bool ) -> Maybe (Html Msg)
+healthItem ( label, maybeHealthy ) =
+    Maybe.map (healthItemHelper label) maybeHealthy
+
+
+healthItemHelper : String -> Bool -> Html Msg
+healthItemHelper label healthy =
+    Html.div [ Spacing.my1 ]
+        (if healthy then
+            [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-green" ]
+            , Html.text label
+            ]
+
+         else
+            [ Icons.render Icons.FullCircle [ Spacing.mr2, class "color-red" ]
+            , Html.text label
+            ]
+        )
 
 
 renderNavbarLink : String -> Icon -> Bool -> Route -> Html Msg
 renderNavbarLink name icon active route =
-    li
+    Html.a
         [ classList
-            [ ( "navbar-item", True )
+            [ ( "nav-link", True )
             , ( "active", active )
             ]
+        , href <| Route.toString route
         ]
-        [ a
-            [ classList
-                [ ( "nav-link", True )
-                , ( "active", active )
-                ]
-            , href <| Route.toString route
-            ]
-            [ span
-                [ class "icon-spacer" ]
-                [ Icons.render icon [] ]
-            , text name
-            ]
+        [ Icons.render icon [ Spacing.mr2 ]
+        , Html.text name
         ]
 
 
 renderNavbarSeparator : Html Msg
 renderNavbarSeparator =
-    li [ class "navbar-item" ]
-        [ hr [] [] ]
+    Html.div [ class "nav-item" ]
+        [ Html.hr [] [] ]
 
 
 isHomeRelated : Page -> Bool
