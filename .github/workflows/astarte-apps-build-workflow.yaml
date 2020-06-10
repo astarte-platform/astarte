@@ -18,8 +18,8 @@ on:
     - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
-  elixir_version: 1.10.1
-  otp_version: 22.2
+  elixir_version: 1.10.3
+  otp_version: 23.0
 
 jobs:
   test-dialyzer:
