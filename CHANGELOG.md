@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Replace Conform and Distillery with Elixir native releases.
 - Remove the `ASTARTE_` prefix from all env variables.
 - [realm_management_api] Triggers http actions are now validated.
+- [realm_management_api] It is now possible to omit the `device_id` in a `device_trigger`. This is
+  equivalent to passing `*` as `device_id`. The old behaviour is still supported.
 
 ### Added
 - [appengine_api] Add metadata to device
@@ -30,6 +32,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Default max certificate chain length to 10.
 - AMQP trigger actions (publish to custom exchanges) as an alternative to http triggers actions.
 - Ensure data pushed towards the device is correctly delivered when using QoS > 0.
+- [realm_management_api] Allow installing device-specific and group-specific triggers. To do so,
+  pass the `device_id` or `group_name` key inside the `simple_trigger`.
+- [data_updater_plant] Add support for device-specific and group-specific triggers.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.

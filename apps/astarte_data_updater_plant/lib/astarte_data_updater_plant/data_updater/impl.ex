@@ -46,6 +46,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @paths_cache_size 32
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id, message_tracker) do
     MessageTracker.register_data_updater(message_tracker)
@@ -56,6 +57,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       device_id: device_id,
       message_tracker: message_tracker,
       connected: true,
+      groups: [],
       interfaces: %{},
       interface_ids_to_name: %{},
       interfaces_by_expiry: [],
@@ -68,7 +70,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       interface_exchanged_bytes: %{},
       interface_exchanged_msgs: %{},
       last_seen_message: 0,
-      last_device_triggers_refresh: 0
+      last_device_triggers_refresh: 0,
+      last_groups_refresh: 0
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
@@ -1428,12 +1431,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, %{state | introspection_triggers: updated_introspection_triggers}}
   end
 
+  defp reload_groups_on_expiry(state, timestamp, db_client) do
+    if state.last_groups_refresh + @groups_lifespan_decimicroseconds <= timestamp do
+      {:ok, groups} = Queries.get_device_groups(db_client, state.device_id)
+
+      %{state | last_groups_refresh: timestamp, groups: groups}
+    else
+      state
+    end
+  end
+
   defp reload_device_triggers_on_expiry(state, timestamp, db_client) do
     if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
          timestamp do
       any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
 
       any_interface_id = SimpleTriggersProtobufUtils.any_interface_object_id()
+
+      device_and_any_interface_object_id =
+        SimpleTriggersProtobufUtils.get_device_and_any_interface_object_id(state.device_id)
 
       # TODO when introspection triggers are supported, we should also forget any_interface
       # introspection triggers here, or handle them separately
@@ -1445,14 +1461,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> populate_triggers_for_object!(db_client, any_device_id, :any_device)
       |> populate_triggers_for_object!(db_client, state.device_id, :device)
       |> populate_triggers_for_object!(db_client, any_interface_id, :any_interface)
+      |> populate_triggers_for_object!(
+        db_client,
+        device_and_any_interface_object_id,
+        :device_and_any_interface
+      )
+      |> populate_group_device_triggers!(db_client)
+      |> populate_group_and_any_interface_triggers!(db_client)
     else
       state
     end
   end
 
+  defp populate_group_device_triggers!(state, db_client) do
+    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_object_id/1)
+    |> Enum.reduce(state, &populate_triggers_for_object!(&2, db_client, &1, :group))
+  end
+
+  defp populate_group_and_any_interface_triggers!(state, db_client) do
+    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_and_any_interface_object_id/1)
+    |> Enum.reduce(
+      state,
+      &populate_triggers_for_object!(&2, db_client, &1, :group_and_any_interface)
+    )
+  end
+
   defp execute_time_based_actions(state, timestamp, db_client) do
     state
     |> Map.put(:last_seen_message, timestamp)
+    |> reload_groups_on_expiry(timestamp, db_client)
     |> purge_expired_interfaces(timestamp)
     |> reload_device_triggers_on_expiry(timestamp, db_client)
   end
@@ -1537,10 +1574,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            DeviceQueries.interface_version(db_client, state.device_id, interface_name),
          {:ok, interface_row} <-
            InterfaceQueries.retrieve_interface_row(db_client, interface_name, major_version),
-         %InterfaceDescriptor{} = interface_descriptor <-
+         %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor <-
            InterfaceDescriptor.from_db_result!(interface_row),
          {:ok, mappings} <-
-           Mappings.fetch_interface_mappings_map(db_client, interface_descriptor.interface_id),
+           Mappings.fetch_interface_mappings_map(db_client, interface_id),
          new_interfaces_by_expiry <-
            state.interfaces_by_expiry ++
              [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],
@@ -1550,7 +1587,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
              interface_ids_to_name:
                Map.put(
                  state.interface_ids_to_name,
-                 interface_descriptor.interface_id,
+                 interface_id,
                  interface_name
                ),
              interfaces_by_expiry: new_interfaces_by_expiry,
@@ -1562,6 +1599,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
              db_client,
              interface_descriptor.interface_id,
              :interface
+           ),
+         device_and_interface_object_id =
+           SimpleTriggersProtobufUtils.get_device_and_interface_object_id(
+             state.device_id,
+             interface_id
+           ),
+         new_state =
+           populate_triggers_for_object!(
+             new_state,
+             db_client,
+             device_and_interface_object_id,
+             :device_and_interface
+           ),
+         new_state =
+           populate_triggers_for_group_and_interface!(
+             new_state,
+             db_client,
+             interface_id
            ) do
       # TODO: make everything with-friendly
       {:ok, interface_descriptor, new_state}
@@ -1587,6 +1642,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp maybe_handle_cache_miss(interface_descriptor, _interface_name, state, _db_client) do
     {:ok, interface_descriptor, state}
+  end
+
+  defp populate_triggers_for_group_and_interface!(state, db_client, interface_id) do
+    Enum.map(
+      state.groups,
+      &SimpleTriggersProtobufUtils.get_group_and_interface_object_id(&1, interface_id)
+    )
+    |> Enum.reduce(
+      state,
+      &populate_triggers_for_object!(&2, db_client, &1, :group_and_interface)
+    )
   end
 
   defp prune_device_properties(state, decoded_payload, timestamp) do

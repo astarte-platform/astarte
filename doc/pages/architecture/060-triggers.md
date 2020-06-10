@@ -95,7 +95,8 @@ This is the generic representation of a Data Trigger:
 {
   "type": "device_trigger",
   "on": "<device_trigger_type>",
-  "device_id": "<device_id>"
+  "device_id": "<device_id>",
+  "group_name": "<group_name>"
 }
 ```
 
@@ -106,8 +107,14 @@ This is the generic representation of a Data Trigger:
 - `device_connected`: triggered when a device connects to its transport.
 - `device_disconnected`: triggered when a device disconnects from its transport.
 
-`device_id` can be a specific Device ID or `*`, meaning the trigger will be installed for all
-devices in a Realm.
+`device_id` can be used to pass a specific Device ID to restrict the trigger to a single device. `*`
+is also accepted as `device_id` to maintain backwards compatibility and it is considered equivalent
+to no `device_id` specified.
+
+`group_name` can be used to restrict the trigger to all devices that are member of the group.
+
+`device_id` and `group_name` are mutually exclusive and if neither of them is specified in the
+simple trigger, the simple trigger will be installed for all devices in a realm.
 
 ### Data Triggers
 
@@ -118,6 +125,8 @@ This is the generic representation of a Device Trigger:
 ```json
 {
   "type": "data_trigger",
+  "device_id": "<device_id>",
+  "group_name": "<group_name>",
   "on": "<data_trigger_type>",
   "interface_name": "<interface_name>",
   "interface_major": "<interface_major>",
@@ -130,6 +139,15 @@ This is the generic representation of a Device Trigger:
 Data triggers are installed for all devices in a Realm.
 
 #### Data Triggers Parameters
+
+`device_id` can be used to pass a specific Device ID to restrict the trigger to a single device. `*`
+is also accepted as `device_id` to maintain backwards compatibility and it is considered equivalent
+to no `device_id` specified.
+
+`group_name` can be used to restrict the trigger to all devices that are member of the group.
+
+`device_id` and `group_name` are mutually exclusive and if neither of them is specified in the
+simple trigger, the simple trigger will be installed for all devices in a realm.
 
 `data_trigger_type` can be one of the following:
 

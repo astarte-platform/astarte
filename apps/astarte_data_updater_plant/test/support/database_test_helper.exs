@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
@@ -60,15 +62,16 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
         last_pairing_ip inet,
         last_seen_ip inet,
+        groups map<text, timeuuid>,
 
         PRIMARY KEY (device_id)
     );
   """
 
   @insert_device """
-        INSERT INTO autotestrealm.devices (device_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection)
+        INSERT INTO autotestrealm.devices (device_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection, groups)
           VALUES (:device_id, false, :last_connection, :last_disconnection, :first_pairing,
-          :last_seen_ip, :last_pairing_ip, :total_received_msgs, :total_received_bytes, :introspection);
+          :last_seen_ip, :last_pairing_ip, :total_received_msgs, :total_received_bytes, :introspection, :groups);
   """
 
   @create_interfaces_table """
@@ -555,6 +558,205 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
         DatabaseQuery.call!(client, query)
 
+        # group 1 device trigger
+        simple_trigger_data =
+          %SimpleTriggerContainer{
+            simple_trigger: {
+              :device_trigger,
+              %DeviceTrigger{
+                device_event_type: :DEVICE_CONNECTED,
+                group_name: "group1"
+              }
+            }
+          }
+          |> SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %AMQPTriggerTarget{
+                routing_key: AMQPTestHelper.events_routing_key()
+              }
+            }
+          }
+          |> TriggerTargetContainer.encode()
+
+        object_id = SimpleTriggersProtobufUtils.get_group_object_id("group1")
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, object_id)
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:group)
+          )
+          |> DatabaseQuery.put(:simple_trigger_id, group1_device_connected_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+
+        DatabaseQuery.call!(client, query)
+
+        # group 2 device trigger
+        simple_trigger_data =
+          %SimpleTriggerContainer{
+            simple_trigger: {
+              :device_trigger,
+              %DeviceTrigger{
+                device_event_type: :DEVICE_CONNECTED,
+                group_name: "group2"
+              }
+            }
+          }
+          |> SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %AMQPTriggerTarget{
+                routing_key: AMQPTestHelper.events_routing_key()
+              }
+            }
+          }
+          |> TriggerTargetContainer.encode()
+
+        object_id = SimpleTriggersProtobufUtils.get_group_object_id("group2")
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(:object_id, object_id)
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:group)
+          )
+          |> DatabaseQuery.put(:simple_trigger_id, group2_device_connected_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+
+        DatabaseQuery.call!(client, query)
+
+        # Device-specific data trigger
+
+        target_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
+
+        simple_trigger_data =
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
+            simple_trigger: {
+              :data_trigger,
+              %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
+                device_id: target_device_id,
+                interface_name: "com.test.LCDMonitor",
+                interface_major: 1,
+                data_trigger_type: :INCOMING_DATA,
+                match_path: "/weekSchedule/%{weekDay}/start",
+                value_match_operator: :LESS_THAN,
+                known_value: Cyanide.encode!(%{v: 2})
+              }
+            }
+          }
+          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
+                routing_key: AMQPTestHelper.events_routing_key()
+              }
+            }
+          }
+          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+
+        {:ok, target_decoded_device_id} = target_device_id |> Device.decode_device_id()
+
+        interface_id = CQLUtils.interface_id("com.test.LCDMonitor", 1)
+
+        object_id =
+          SimpleTriggersProtobufUtils.get_device_and_interface_object_id(
+            target_decoded_device_id,
+            interface_id
+          )
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(
+            :object_id,
+            object_id
+          )
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:device_and_interface)
+          )
+          |> DatabaseQuery.put(:simple_trigger_id, less_than_device_incoming_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+
+        DatabaseQuery.call!(client, query)
+
+        # Group-specific data trigger
+        target_group = "group1"
+
+        simple_trigger_data =
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
+            simple_trigger: {
+              :data_trigger,
+              %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
+                group_name: target_group,
+                interface_name: "com.test.LCDMonitor",
+                interface_major: 1,
+                data_trigger_type: :INCOMING_DATA,
+                match_path: "/weekSchedule/%{weekDay}/start",
+                value_match_operator: :EQUAL_TO,
+                known_value: Cyanide.encode!(%{v: 3})
+              }
+            }
+          }
+          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+
+        trigger_target_data =
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
+            trigger_target: {
+              :amqp_trigger_target,
+              %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
+                routing_key: AMQPTestHelper.events_routing_key()
+              }
+            }
+          }
+          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+
+        interface_id = CQLUtils.interface_id("com.test.LCDMonitor", 1)
+
+        object_id =
+          SimpleTriggersProtobufUtils.get_group_and_interface_object_id(
+            target_group,
+            interface_id
+          )
+
+        query =
+          DatabaseQuery.new()
+          |> DatabaseQuery.statement(@insert_into_simple_triggers)
+          |> DatabaseQuery.put(
+            :object_id,
+            object_id
+          )
+          |> DatabaseQuery.put(
+            :object_type,
+            SimpleTriggersProtobufUtils.object_type_to_int!(:group_and_interface)
+          )
+          |> DatabaseQuery.put(:simple_trigger_id, equal_to_group_incoming_trigger_id())
+          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
+          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
+          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+
+        DatabaseQuery.call!(client, query)
+
         {:ok, client}
 
       %{msg: msg} ->
@@ -581,6 +783,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     total_received_msgs = Keyword.get(opts, :total_received_msgs, 0)
     total_received_bytes = Keyword.get(opts, :total_received_bytes, 0)
     introspection = Keyword.get(opts, :introspection, %{})
+    groups = Keyword.get(opts, :groups, [])
+    groups_map = for group <- groups, do: {group, UUID.uuid1()}
 
     query =
       DatabaseQuery.new()
@@ -594,6 +798,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
       |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
       |> DatabaseQuery.put(:introspection, introspection)
+      |> DatabaseQuery.put(:groups, groups_map)
 
     DatabaseQuery.call(client, query)
   end
@@ -629,6 +834,14 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     <<216, 12, 133, 232, 80, 173, 169, 7, 46, 113, 239, 216, 165, 193, 220, 33>>
   end
 
+  def group1_device_connected_trigger_id() do
+    <<182, 120, 174, 119, 245, 179, 155, 140, 4, 8, 11, 179, 198, 39, 108, 227>>
+  end
+
+  def group2_device_connected_trigger_id() do
+    <<237, 137, 173, 250, 141, 190, 136, 30, 95, 127, 62, 188, 145, 4, 134, 154>>
+  end
+
   def interface_added_trigger_id() do
     <<29, 75, 194, 112, 8, 190, 133, 129, 152, 38, 51, 180, 37, 93, 103, 33>>
   end
@@ -639,5 +852,13 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
   def greater_than_incoming_trigger_id() do
     <<173, 82, 46, 100, 127, 143, 79, 136, 37, 210, 111, 73, 7, 24, 69, 130>>
+  end
+
+  def less_than_device_incoming_trigger_id() do
+    <<186, 166, 108, 33, 121, 60, 44, 72, 206, 25, 165, 98, 144, 127, 142, 227>>
+  end
+
+  def equal_to_group_incoming_trigger_id() do
+    <<140, 143, 242, 83, 113, 178, 249, 23, 213, 224, 46, 58, 138, 34, 20, 45>>
   end
 end
