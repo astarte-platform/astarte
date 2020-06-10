@@ -27,10 +27,10 @@ jobs:
       with:
         repository: astarte-platform/docs
         path: docs
-    - uses: actions/setup-elixir@v1.2.0
+    - uses: actions/setup-elixir@v1.3.0
       with:
-        otp-version: 21.3
-        elixir-version: 1.8.1
+        otp-version: "23.0"
+        elixir-version: "1.10.3"
     - name: Install Dependencies
       working-directory: ./astarte/doc
       run: mix deps.get
