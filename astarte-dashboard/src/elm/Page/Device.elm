@@ -792,7 +792,9 @@ view model flashMessages =
                     [ Row.attrs [ Spacing.mt2 ] ]
                     [ Grid.col
                         [ Col.sm12 ]
-                        [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
+                        [ Html.h2 [ Spacing.pl2 ] [ Html.text "Device" ]
+                        , FlashMessageHelpers.renderFlashMessages flashMessages Forward
+                        ]
                     ]
                 , Grid.row []
                     [ deviceInfoCard device Card.HalfWidth
@@ -874,7 +876,27 @@ deviceInfoCard device width =
         , renderConnectionStatus device
         , Card.subTitle "Credentials inhibited"
         , Card.simpleText <| boolToString device.credentialsinhibited
-        , buttonsRow device.credentialsinhibited
+        ]
+        [ if device.credentialsinhibited then
+            Button.button
+                [ Button.success
+                , Button.attrs [ Spacing.mr1 ]
+                , Button.onClick (SetCredentialsInhibited False)
+                ]
+                [ Html.text "Enable credentials request" ]
+
+          else
+            Button.button
+                [ Button.danger
+                , Button.attrs [ Spacing.mr1 ]
+                , Button.onClick (SetCredentialsInhibited True)
+                ]
+                [ Html.text "Inhibit credentials" ]
+        , Button.button
+            [ Button.danger
+            , Button.onClick ShowConfirmModal
+            ]
+            [ Html.text "Wipe credential secret" ]
         ]
 
 
@@ -975,7 +997,8 @@ deviceStatsCard device width =
             , cssClasses = [ "device-data-piechart" ]
             }
     in
-    Card.view "Device Stats" width <|
+    Card.view "Device Stats"
+        width
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col []
@@ -1011,6 +1034,7 @@ deviceStatsCard device width =
                 ]
             ]
         ]
+        []
 
 
 indexToHue : Int -> Int -> Float
@@ -1156,22 +1180,12 @@ deviceAliasesCard : Device -> Card.Width -> Grid.Column Msg
 deviceAliasesCard device width =
     Card.view "Aliases"
         width
-        [ renderAliases device.aliases
-        , Html.p []
-            [ Html.a
-                [ { message = OpenNewAliasPopup
-                  , preventDefault = True
-                  , stopPropagation = False
-                  }
-                    |> Decode.succeed
-                    |> Html.Events.custom "click"
-                , href "#"
-                , Html.Attributes.target "_self"
-                ]
-                [ Icons.render Icons.Add [ Spacing.mr1 ]
-                , Html.text "Add new alias..."
-                ]
+        [ renderAliases device.aliases ]
+        [ Button.button
+            [ Button.primary
+            , Button.onClick OpenNewAliasPopup
             ]
+            [ Html.text "Add new alias" ]
         ]
 
 
@@ -1179,22 +1193,12 @@ deviceMetadataCard : Device -> Card.Width -> Grid.Column Msg
 deviceMetadataCard device width =
     Card.view "Metadata"
         width
-        [ renderMetadata device.metadata
-        , Html.p []
-            [ Html.a
-                [ { message = OpenNewMetadataPopup
-                  , preventDefault = True
-                  , stopPropagation = False
-                  }
-                    |> Decode.succeed
-                    |> Html.Events.custom "click"
-                , href "#"
-                , Html.Attributes.target "_self"
-                ]
-                [ Icons.render Icons.Add [ Spacing.mr1 ]
-                , Html.text "Add new item..."
-                ]
+        [ renderMetadata device.metadata ]
+        [ Button.button
+            [ Button.primary
+            , Button.onClick OpenNewMetadataPopup
             ]
+            [ Html.text "Add new item" ]
         ]
 
 
@@ -1202,22 +1206,12 @@ deviceGroupsCard : Device -> Bool -> Card.Width -> Grid.Column Msg
 deviceGroupsCard device showAddToGroup width =
     Card.view "Groups"
         width
-        [ renderGroups device.groups
-        , Html.p []
-            [ Html.a
-                [ { message = OpenGroupsPopup
-                  , preventDefault = True
-                  , stopPropagation = False
-                  }
-                    |> Decode.succeed
-                    |> Html.Events.custom "click"
-                , href "#"
-                , Html.Attributes.target "_self"
-                ]
-                [ Icons.render Icons.Add [ Spacing.mr1 ]
-                , Html.text "Add to existing group..."
-                ]
+        [ renderGroups device.groups ]
+        [ Button.button
+            [ Button.primary
+            , Button.onClick OpenNewMetadataPopup
             ]
+            [ Html.text "Add to existing group" ]
         ]
 
 
@@ -1226,6 +1220,7 @@ deviceIntrospectionCard device width =
     Card.view "Interfaces"
         width
         [ renderIntrospectionInfo device.id device.introspection ]
+        []
 
 
 devicePreviousInterfacesCard : Device -> Card.Width -> Grid.Column Msg
@@ -1233,20 +1228,27 @@ devicePreviousInterfacesCard device width =
     Card.view "Previous Interfaces"
         width
         [ renderPreviousInterfacesInfo device.previousInterfaces ]
+        []
 
 
 deviceEventsCard : Device -> Dict String (Maybe String) -> Card.Width -> Grid.Column Msg
 deviceEventsCard device events width =
-    [ [ ( "Last seen IP", device.lastSeenIp )
-      , ( "Last credentials request IP", device.lastCredentialsRequestIp )
-      ]
-    , Dict.toList events
-    ]
-        |> List.concat
-        |> List.filterMap nonEmptyValue
-        |> List.map tupleToTitleText
-        |> List.concat
-        |> Card.view "Device Status Events" width
+    let
+        filteredEvents =
+            [ [ ( "Last seen IP", device.lastSeenIp )
+              , ( "Last credentials request IP", device.lastCredentialsRequestIp )
+              ]
+            , Dict.toList events
+            ]
+                |> List.concat
+                |> List.filterMap nonEmptyValue
+                |> List.map tupleToTitleText
+                |> List.concat
+    in
+    Card.view "Device Status Events"
+        width
+        filteredEvents
+        []
 
 
 deviceChannelCard : List JSEvent -> Card.Width -> Grid.Column Msg
@@ -1259,6 +1261,7 @@ deviceChannelCard events width =
                 (List.map renderEvent events)
             ]
         ]
+        []
 
 
 type LabelType
@@ -1391,37 +1394,6 @@ renderConnectionStatus device =
         )
 
 
-buttonsRow : Bool -> Html Msg
-buttonsRow deviceCredentialsInhibited =
-    Grid.row []
-        [ Grid.col
-            [ Col.sm12
-            , Col.attrs [ Flex.block, Flex.rowReverse ]
-            ]
-            [ Button.button
-                [ Button.danger
-                , Button.onClick ShowConfirmModal
-                ]
-                [ Html.text "Wipe credential secret" ]
-            , if deviceCredentialsInhibited then
-                Button.button
-                    [ Button.success
-                    , Button.attrs [ Spacing.mr1 ]
-                    , Button.onClick (SetCredentialsInhibited False)
-                    ]
-                    [ Html.text "Enable credentials request" ]
-
-              else
-                Button.button
-                    [ Button.danger
-                    , Button.attrs [ Spacing.mr1 ]
-                    , Button.onClick (SetCredentialsInhibited True)
-                    ]
-                    [ Html.text "Inhibit credentials" ]
-            ]
-        ]
-
-
 renderGroups : List String -> Html Msg
 renderGroups groups =
     if List.isEmpty groups then
@@ -1527,7 +1499,15 @@ renderIntrospectionInfo deviceId introspectionValues =
         Html.text "No introspection info"
 
     else
-        Html.ul [] <| List.map (renderIntrospectionValue deviceId) introspectionValues
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th [] [ Html.text "Name" ]
+                , Table.th [] [ Html.text "Major" ]
+                , Table.th [] [ Html.text "Minor" ]
+                ]
+            , Table.tbody []
+                (List.map (renderIntrospectionValue deviceId) introspectionValues)
+            )
 
 
 renderPreviousInterfacesInfo : List Device.IntrospectionValue -> Html Msg
@@ -1536,31 +1516,45 @@ renderPreviousInterfacesInfo previousInterfaces =
         Html.text "No previous interfaces info"
 
     else
-        Html.ul [] (List.map renderPreviousIntrospectionValue previousInterfaces)
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th [] [ Html.text "Name" ]
+                , Table.th [] [ Html.text "Major" ]
+                , Table.th [] [ Html.text "Minor" ]
+                ]
+            , Table.tbody []
+                (List.map renderPreviousIntrospectionValue previousInterfaces)
+            )
 
 
-renderIntrospectionValue : String -> Device.IntrospectionValue -> Html Msg
+renderIntrospectionValue : String -> Device.IntrospectionValue -> Table.Row Msg
 renderIntrospectionValue deviceId value =
     case value of
         Device.InterfaceInfo name major minor _ _ ->
-            Html.li []
-                [ Html.a
-                    [ href <| Route.toString <| Route.Realm (Route.ShowDeviceData deviceId name) ]
-                    [ [ name, " v", String.fromInt major, ".", String.fromInt minor ]
-                        |> String.join ""
-                        |> Html.text
+            Table.tr []
+                [ Table.td []
+                    [ Html.a
+                        [ href <| Route.toString <| Route.Realm (Route.ShowDeviceData deviceId name) ]
+                        [ Html.text name ]
                     ]
+                , Table.td []
+                    [ Html.text <| String.fromInt major ]
+                , Table.td []
+                    [ Html.text <| String.fromInt minor ]
                 ]
 
 
-renderPreviousIntrospectionValue : Device.IntrospectionValue -> Html Msg
+renderPreviousIntrospectionValue : Device.IntrospectionValue -> Table.Row Msg
 renderPreviousIntrospectionValue value =
     case value of
         Device.InterfaceInfo name major minor _ _ ->
-            Html.li []
-                [ [ name, " v", String.fromInt major, ".", String.fromInt minor ]
-                    |> String.join ""
-                    |> Html.text
+            Table.tr []
+                [ Table.td []
+                    [ Html.text name ]
+                , Table.td []
+                    [ Html.text <| String.fromInt major ]
+                , Table.td []
+                    [ Html.text <| String.fromInt minor ]
                 ]
 
 

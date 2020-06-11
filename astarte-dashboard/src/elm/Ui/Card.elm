@@ -17,13 +17,14 @@
 -}
 
 
-module Ui.Card exposing (Width(..), simpleText, subTitle, view, viewHeadless)
+module Ui.Card exposing (Width(..), simpleText, subTitle, view)
 
+import Bootstrap.Card as Card
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
+import Bootstrap.Utilities.Flex as Flex
 import Bootstrap.Utilities.Size as Size
 import Bootstrap.Utilities.Spacing as Spacing
 import Html exposing (Html)
@@ -35,21 +36,20 @@ type Width
     | HalfWidth
 
 
-view : String -> Width -> List (Html msg) -> Grid.Column msg
-view cardName width innerItems =
+view : String -> Width -> List (Html msg) -> List (Html msg) -> Grid.Column msg
+view cardName width innerItems bottomItems =
     Grid.col (colOptionsFromWidth width ++ [ Col.attrs [ Spacing.p2 ] ])
-        [ Grid.containerFluid
-            [ class "bg-white", Border.rounded, Spacing.p3, Size.h100 ]
-            (Html.h5 [] [ Html.text cardName ] :: innerItems)
-        ]
+        [ Html.div [ class "card", Size.h100 ]
+            [ Html.h5 [ class "card-header" ]
+                [ Html.text cardName ]
+            , Html.div [ class "card-body", Flex.block, Flex.col ]
+                (if List.isEmpty bottomItems then
+                    innerItems
 
-
-viewHeadless : Width -> List (Html msg) -> Grid.Column msg
-viewHeadless width innerItems =
-    Grid.col (colOptionsFromWidth width ++ [ Col.attrs [ Spacing.p2 ] ])
-        [ Grid.containerFluid
-            [ class "bg-white", Border.rounded, Spacing.p3, Size.h100 ]
-            innerItems
+                 else
+                    innerItems ++ [ Html.div [ Spacing.mtAuto ] bottomItems ]
+                )
+            ]
         ]
 
 
