@@ -1499,7 +1499,15 @@ renderIntrospectionInfo deviceId introspectionValues =
         Html.text "No introspection info"
 
     else
-        Html.ul [] <| List.map (renderIntrospectionValue deviceId) introspectionValues
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th [] [ Html.text "Name" ]
+                , Table.th [] [ Html.text "Major" ]
+                , Table.th [] [ Html.text "Minor" ]
+                ]
+            , Table.tbody []
+                (List.map (renderIntrospectionValue deviceId) introspectionValues)
+            )
 
 
 renderPreviousInterfacesInfo : List Device.IntrospectionValue -> Html Msg
@@ -1508,31 +1516,45 @@ renderPreviousInterfacesInfo previousInterfaces =
         Html.text "No previous interfaces info"
 
     else
-        Html.ul [] (List.map renderPreviousIntrospectionValue previousInterfaces)
+        Table.simpleTable
+            ( Table.simpleThead
+                [ Table.th [] [ Html.text "Name" ]
+                , Table.th [] [ Html.text "Major" ]
+                , Table.th [] [ Html.text "Minor" ]
+                ]
+            , Table.tbody []
+                (List.map renderPreviousIntrospectionValue previousInterfaces)
+            )
 
 
-renderIntrospectionValue : String -> Device.IntrospectionValue -> Html Msg
+renderIntrospectionValue : String -> Device.IntrospectionValue -> Table.Row Msg
 renderIntrospectionValue deviceId value =
     case value of
         Device.InterfaceInfo name major minor _ _ ->
-            Html.li []
-                [ Html.a
-                    [ href <| Route.toString <| Route.Realm (Route.ShowDeviceData deviceId name) ]
-                    [ [ name, " v", String.fromInt major, ".", String.fromInt minor ]
-                        |> String.join ""
-                        |> Html.text
+            Table.tr []
+                [ Table.td []
+                    [ Html.a
+                        [ href <| Route.toString <| Route.Realm (Route.ShowDeviceData deviceId name) ]
+                        [ Html.text name ]
                     ]
+                , Table.td []
+                    [ Html.text <| String.fromInt major ]
+                , Table.td []
+                    [ Html.text <| String.fromInt minor ]
                 ]
 
 
-renderPreviousIntrospectionValue : Device.IntrospectionValue -> Html Msg
+renderPreviousIntrospectionValue : Device.IntrospectionValue -> Table.Row Msg
 renderPreviousIntrospectionValue value =
     case value of
         Device.InterfaceInfo name major minor _ _ ->
-            Html.li []
-                [ [ name, " v", String.fromInt major, ".", String.fromInt minor ]
-                    |> String.join ""
-                    |> Html.text
+            Table.tr []
+                [ Table.td []
+                    [ Html.text name ]
+                , Table.td []
+                    [ Html.text <| String.fromInt major ]
+                , Table.td []
+                    [ Html.text <| String.fromInt minor ]
                 ]
 
 
