@@ -12,13 +12,13 @@ on:
   pull_request:
 
 env:
-  elixir_version: 1.10.2
-  otp_version: 22.3
+  elixir_version: "1.10.3"
+  otp_version: "23.0"
 
 jobs:
   test-dialyzer:
     name: Check Dialyzer
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     env:
       MIX_ENV: ci
     steps:
@@ -41,7 +41,7 @@ jobs:
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-
-    - uses: actions/setup-elixir@v1.2.0
+    - uses: actions/setup-elixir@v1.3.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
@@ -53,7 +53,7 @@ jobs:
 
   test-coverage:
     name: Build and Test
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     # Wait for Dialyzer to give it a go before building
     needs:
       - test-dialyzer
@@ -86,7 +86,7 @@ jobs:
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-
-    - uses: actions/setup-elixir@v1.2.0
+    - uses: actions/setup-elixir@v1.3.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
