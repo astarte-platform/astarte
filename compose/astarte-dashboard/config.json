@@ -1,7 +1,7 @@
 {
     "secure_connection": false,
-    "appengine_api_url": "http://localhost:4002/v1",
-    "realm_management_api_url": "http://localhost:4000/v1",
+    "appengine_api_url": "http://localhost:4002",
+    "realm_management_api_url": "http://localhost:4000",
     "default_auth": "token",
     "auth": [
         {

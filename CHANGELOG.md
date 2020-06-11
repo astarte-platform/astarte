@@ -34,10 +34,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 
-## [0.11.1] - Unreleased
+## [0.11.1] - 2020-05-18
 ### Added
 - [data_updater_plant] Add `DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT` environment variable,
   this must be equal to the total number of queues in the Astarte instance.
+- [trigger_engine] Add `TRIGGER_ENGINE_AMQP_PREFETCH_COUNT` environment variable to set the
+  prefetech count of AMQPEventsConsumer, avoiding excessive memory usage.
 
 ### Fixed
 - Wait for schema_version agreement before applying any schema change (such as creating tables or a
