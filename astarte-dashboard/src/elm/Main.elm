@@ -987,11 +987,6 @@ standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHea
             Icons.Trigger
             (isTriggersRelated selectedPage)
             (Route.Realm Route.ListTriggers)
-      , renderNavbarLink
-            "Realm settings"
-            Icons.Settings
-            (isSettingsRelated selectedPage)
-            (Route.Realm Route.RealmSettings)
 
       -- AppEngine
       , renderNavbarSeparator
@@ -1027,6 +1022,12 @@ standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHea
 
     -- General
     , [ renderNavbarSeparator
+      , renderNavbarLink
+            "Realm settings"
+            Icons.Settings
+            (isSettingsRelated selectedPage)
+            (Route.Realm Route.RealmSettings)
+      , renderNavbarSeparator
       , renderStatusRow realmName aeApiHealth rmApiHealth pApiHealth fApiHealth
 
       -- Common
