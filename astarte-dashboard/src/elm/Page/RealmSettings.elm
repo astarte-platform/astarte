@@ -205,35 +205,29 @@ update session msg model =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid
-        [ class "bg-white"
-        , Border.rounded
-        , Spacing.pb3
-        ]
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
-            ]
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ Html.h3 []
-                    [ text "Realm Settings" ]
+    Grid.containerFluid [ Spacing.p3 ]
+        [ Grid.row []
+            [ Grid.col []
+                [ Html.h2 []
+                    [ Html.text "Realm Settings" ]
                 ]
             ]
         , Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col []
-                [ renderConfig model.conf ]
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row
-            [ Row.attrs [ Flex.rowReverse ] ]
+            [ Row.attrs [ Spacing.mt2, class "no-gutters" ] ]
             [ Grid.col
-                [ Col.smAuto ]
-                [ Button.button
+                [ Col.attrs
+                    [ class "bg-white"
+                    , Border.rounded
+                    , Spacing.p3
+                    ]
+                ]
+                [ renderConfig model.conf
+                , Button.button
                     [ Button.primary
                     , Button.disabled <| not model.keyChanged
                     , Button.onClick ShowConfirmModal

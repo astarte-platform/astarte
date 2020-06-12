@@ -213,16 +213,23 @@ export default class DevicesPage extends React.Component {
         break;
 
       default:
-        innerHTML = <Spinner animation="border" role="status" />;
+        innerHTML = (
+          <div>
+            <Spinner animation="border" role="status" />
+          </div>
+        );
         break;
     }
 
     return (
-      <SingleCardPage title="Device Lists">
-        <Link className="float-right mb-2" to={`/devices/register`}>
-          Register a new device
-        </Link>
+      <SingleCardPage title="Devices">
         {innerHTML}
+        <Button
+          variant="primary"
+          onClick={() => { this.props.history.push("/devices/register") }}
+        >
+          Register a new device
+        </Button>
       </SingleCardPage>
     );
   }

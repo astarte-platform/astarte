@@ -38,7 +38,7 @@ type Width
 
 view : String -> Width -> List (Html msg) -> List (Html msg) -> Grid.Column msg
 view cardName width innerItems bottomItems =
-    Grid.col (colOptionsFromWidth width ++ [ Col.attrs [ Spacing.p2 ] ])
+    Grid.col (colOptionsFromWidth width ++ [ Col.attrs [ Spacing.mb4 ] ])
         [ Html.div [ class "card", Size.h100 ]
             [ Html.h5 [ class "card-header" ]
                 [ Html.text cardName ]

@@ -147,7 +147,7 @@ export default class HomePage extends React.Component {
   }
 
   render() {
-    const cellSpacingClass = "p-2";
+    const cellSpacingClass = "mb-3";
 
     const {
       connectedDevices,
@@ -161,12 +161,10 @@ export default class HomePage extends React.Component {
     } = this.state;
 
     return (
-      <Container fluid className="p-0">
-        <Row noGutters>
+      <Container fluid className="p-3">
+        <Row>
           <Col xs={12}>
-            <h2 className="pl-4">
-              Astarte Dashboard
-            </h2>
+            <h2 className="mb-4">Astarte Dashboard</h2>
           </Col>
           <Col xs={6} className={cellSpacingClass}>
             <ApiStatusCard

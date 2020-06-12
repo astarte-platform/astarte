@@ -80,18 +80,23 @@ export default class FlowInstancesPage extends React.Component {
         break;
 
       default:
-        innerHTML = <Spinner animation="border" role="status" />;
+        innerHTML = (
+          <div>
+            <Spinner animation="border" role="status" />;
+          </div>
+        );
         break;
     }
 
     return (
       <SingleCardPage title="Running Flows">
-        <Row className="flex-row-reverse pb-2">
-          <Col xs="auto">
-            <Link to="/pipelines">New flow</Link>
-          </Col>
-        </Row>
         {innerHTML}
+        <Button
+          variant="primary"
+          onClick={() => { this.props.history.push("/pipelines") } }
+        >
+          New flow
+        </Button>
         <Modal
           size="sm"
           show={this.state.showModal}

@@ -785,11 +785,10 @@ connectToPort model session device =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid []
+    Grid.containerFluid [ Spacing.p3 ]
         (case ( model.device, model.deviceError ) of
             ( Just device, _ ) ->
-                [ Grid.row
-                    [ Row.attrs [ Spacing.mt2 ] ]
+                [ Grid.row []
                     [ Grid.col
                         [ Col.sm12 ]
                         [ Html.h2 [ Spacing.pl2 ] [ Html.text "Device" ]

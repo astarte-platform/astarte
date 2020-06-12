@@ -922,7 +922,7 @@ view model =
                     )
                     [ renderNavbar model realmName ]
                 , Grid.col
-                    [ Col.attrs [ class "main-content", Spacing.p3 ] ]
+                    [ Col.attrs [ class "main-content" ] ]
                     [ renderPage model model.selectedPage ]
                 ]
             ]

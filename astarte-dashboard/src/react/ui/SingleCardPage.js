@@ -23,7 +23,8 @@ export default function SingleCardPage(props) {
   const { errorMessages, onAlertClose, children, title } = props;
 
   return (
-    <Container fluid className="bg-white rounded pb-3 pt-2">
+    <Container fluid className="p-3">
+      <h2>{title}</h2>
       { errorMessages &&
         <Row>
           { Array.from(errorMessages).map(([key, value]) =>
@@ -41,14 +42,9 @@ export default function SingleCardPage(props) {
           }
         </Row>
       }
-      <Row>
-        <Col sm={12}>
-          <h3>{title}</h3>
-        </Col>
-      </Row>
-      <Row>
-        <Col sm={12}>{children}</Col>
-      </Row>
+      <Container fluid className="bg-white rounded p-3 mt-4">
+        {children}
+      </Container>
     </Container>
   );
 }

@@ -118,19 +118,22 @@ export default class GroupsPage extends React.Component {
         break;
 
       default:
-        innerHTML = <Spinner animation="border" role="status" />;
+        innerHTML = (
+          <div>
+            <Spinner animation="border" role="status" />
+          </div>
+        );
         break;
     }
 
     return (
       <SingleCardPage title="Groups">
-        <Link
-          to="/groups/new"
-          className="float-right mb-2"
+        {innerHTML}
+        <Button
+          variant="primary"
         >
           Create new group
-        </Link>
-        {innerHTML}
+        </Button>
       </SingleCardPage>
     );
   }

@@ -18,11 +18,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { CardDeck, Spinner, Table } from "react-bootstrap";
-
-import SingleCardPage from "./ui/SingleCardPage.js";
-import PipelineCard from "./ui/PipelineCard.js";
-import NewPipelineCard from "./ui/NewPipelineCard.js";
+import { Button, Card, CardDeck, Container, Spinner, Table } from "react-bootstrap";
 
 export default class PipelinesPage extends React.Component {
   constructor(props) {
@@ -50,7 +46,7 @@ export default class PipelinesPage extends React.Component {
     switch (this.state.phase) {
       case "ok":
         innerHTML = (
-          <CardDeck>
+          <CardDeck className="mt-4">
             <NewPipelineCard
               onCreate={() =>
                 this.props.history.push(`/pipelines/new`)
@@ -95,9 +91,10 @@ export default class PipelinesPage extends React.Component {
     }
 
     return (
-      <SingleCardPage title="Pipelines">
+      <Container fluid className="p-3">
+        <h2>Pipelines</h2>
         {innerHTML}
-      </SingleCardPage>
+      </Container>
     );
   }
 
@@ -134,4 +131,32 @@ export default class PipelinesPage extends React.Component {
       error: err
     });
   }
+}
+
+function NewPipelineCard({ onCreate }) {
+  return (
+    <Card className="mb-4">
+      <Card.Header as="h5">New Pipeline</Card.Header>
+      <Card.Body>
+        <Card.Text>Create your custom pipeline</Card.Text>
+        <Button variant="secondary" onClick={onCreate}>
+          Create
+        </Button>
+      </Card.Body>
+    </Card>
+  );
+}
+
+function PipelineCard({ pipelineName, pipelineDescription, configureCB }) {
+  return (
+    <Card className="mb-4">
+      <Card.Header as="h5">{pipelineName}</Card.Header>
+      <Card.Body>
+        <Card.Text>{pipelineDescription}</Card.Text>
+        <Button variant="primary" onClick={configureCB}>
+          Instantiate
+        </Button>
+      </Card.Body>
+    </Card>
+  );
 }

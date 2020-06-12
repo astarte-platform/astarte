@@ -144,29 +144,16 @@ update session msg model =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid
-        [ class "bg-white"
-        , Border.rounded
-        , Spacing.pb3
-        ]
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
-            ]
-        , if model.showSpinner then
-            Spinner.view Spinner.defaultConfig model.spinner
-
-          else
-            text ""
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ Html.h3 []
+    Grid.containerFluid [ Spacing.p3 ]
+        [ Grid.row []
+            [ Grid.col []
+                [ Html.h2 []
                     [ Html.text "Triggers" ]
                 ]
+            ]
+        , Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col [ Col.sm12 ]
@@ -178,6 +165,11 @@ view model flashMessages =
                     )
                 ]
             ]
+        , if model.showSpinner then
+            Spinner.view Spinner.defaultConfig model.spinner
+
+          else
+            text ""
         ]
 
 
