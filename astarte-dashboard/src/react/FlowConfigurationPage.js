@@ -127,15 +127,13 @@ export default class FlowConfigurationPage extends React.Component {
             onChange={this.onConfigChange}
           />
         </Form.Group>
-        <Form.Row className="flex-row-reverse">
-          <Button
-            variant="primary"
-            disabled={parsedConfig == null || flowName == ""}
-            onClick={this.createFlow}
-          >
-            Instantiate Flow
-          </Button>
-        </Form.Row>
+        <Button
+          variant="primary"
+          disabled={parsedConfig == null || flowName == ""}
+          onClick={this.createFlow}
+        >
+          Instantiate Flow
+        </Button>
       </Form>
     );
 

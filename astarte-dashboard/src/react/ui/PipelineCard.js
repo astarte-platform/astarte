@@ -45,7 +45,7 @@ function normal(props) {
 
 function headless(props) {
   return (
-    <Card className="mb-2">
+    <Card className="mb-4">
       <Card.Body>
         <Card.Title>{props.pipelineName}</Card.Title>
         <Card.Subtitle className="mb-2 text-muted">

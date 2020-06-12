@@ -111,16 +111,12 @@ export default class PipelineSourcePage extends React.Component {
               </SyntaxHighlighter>
             </Col>
           </Row>
-          <Row className="flex-row-reverse">
-            <Col xs="auto">
-              <Button
-                variant="danger"
-                onClick={this.deletePipeline}
-              >
-                Delete pipeline
-              </Button>
-            </Col>
-          </Row>
+          <Button
+            variant="danger"
+            onClick={this.deletePipeline}
+          >
+            Delete pipeline
+          </Button>
           </>
         );
         break;

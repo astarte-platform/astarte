@@ -148,16 +148,12 @@ export default class NewPipelinePage extends React.Component {
             />
           </Form.Group>
         </Form>
-        <Row className="flex-row-reverse">
-          <Col sm="auto">
-            <Button
-              variant="primary"
-              onClick={this.createPipeline}
-            >
-              Create new pipeline
-            </Button>
-          </Col>
-        </Row>
+        <Button
+          variant="primary"
+          onClick={this.createPipeline}
+        >
+          Create new pipeline
+        </Button>
       </SingleCardPage>
     );
   }

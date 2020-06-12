@@ -18,7 +18,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { CardDeck, Spinner, Table } from "react-bootstrap";
+import { CardDeck, Container, Spinner, Table } from "react-bootstrap";
 
 import SingleCardPage from "./ui/SingleCardPage.js";
 import PipelineCard from "./ui/PipelineCard.js";
@@ -50,7 +50,7 @@ export default class PipelinesPage extends React.Component {
     switch (this.state.phase) {
       case "ok":
         innerHTML = (
-          <CardDeck>
+          <CardDeck className="mt-4">
             <NewPipelineCard
               onCreate={() =>
                 this.props.history.push(`/pipelines/new`)
@@ -95,9 +95,10 @@ export default class PipelinesPage extends React.Component {
     }
 
     return (
-      <SingleCardPage title="Pipelines">
+      <Container fluid className="p-3">
+        <h2>Pipelines</h2>
         {innerHTML}
-      </SingleCardPage>
+      </Container>
     );
   }
 

@@ -192,32 +192,19 @@ getInterfaceMajorsHelper apiConfig interfaceName =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid
-        [ class "bg-white"
-        , Border.rounded
-        , Spacing.pb3
-        ]
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
-            ]
-        , if model.showSpinner then
-            Spinner.view Spinner.defaultConfig model.spinner
-
-          else
-            text ""
-        , Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ Html.h3 []
+    Grid.containerFluid [ Spacing.p3 ]
+        [ Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ Html.h2 []
                     [ Html.text "Interfaces" ]
                 ]
             ]
+        , Grid.row []
+            [ Grid.col []
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
+            ]
         , Grid.row [ Row.attrs [ Spacing.mt3 ] ]
-            [ Grid.col [ Col.sm12 ]
+            [ Grid.col []
                 [ ListGroup.ul
                     (model.interfaces
                         |> Dict.toList
@@ -227,6 +214,11 @@ view model flashMessages =
                     )
                 ]
             ]
+        , if model.showSpinner then
+            Spinner.view Spinner.defaultConfig model.spinner
+
+          else
+            text ""
         ]
 
 
