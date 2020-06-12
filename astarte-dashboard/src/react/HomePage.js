@@ -147,6 +147,8 @@ export default class HomePage extends React.Component {
   }
 
   render() {
+    const cellSpacingClass = "mb-3";
+
     const {
       connectedDevices,
       totalDevices,
@@ -164,7 +166,7 @@ export default class HomePage extends React.Component {
           <Col xs={12}>
             <h2 className="mb-4">Astarte Dashboard</h2>
           </Col>
-          <Col xs={6} className="mb-3">
+          <Col xs={6} className={cellSpacingClass}>
             <ApiStatusCard
               appengine={appengineStatus}
               realmManagement={realmManagementStatus}
@@ -173,7 +175,7 @@ export default class HomePage extends React.Component {
             />
           </Col>
           { isReady(connectedDevices) &&
-            <Col xs={6} className="mb-3">
+            <Col xs={6} className={cellSpacingClass}>
               <DevicesCard
                 connectedDevices={connectedDevices}
                 totalDevices={totalDevices}
@@ -181,7 +183,7 @@ export default class HomePage extends React.Component {
             </Col>
           }
           { isReady(interfaces) &&
-            <Col xs={6} className="mb-3">
+            <Col xs={6} className={cellSpacingClass}>
               <InterfacesCard
                 interfaceList={interfaces}
                 onInterfaceClick={this.redirectToLastInterface}
@@ -190,7 +192,7 @@ export default class HomePage extends React.Component {
             </Col>
           }
           { isReady(triggers) &&
-            <Col xs={6} className="mb-3">
+            <Col xs={6} className={cellSpacingClass}>
               <TriggersCard
                 triggerList={triggers}
                 onInstallTriggerClick={() => { this.props.history.push("/triggers/new") }}
