@@ -1248,15 +1248,7 @@ view model flashMessages =
             ]
         , Grid.row []
             [ Grid.col []
-                [ Html.h3
-                    [ class "text-truncate" ]
-                    [ if model.editMode then
-                        Html.text model.trigger.name
-
-                      else
-                        Html.text "Install a New Trigger"
-                    ]
-                ]
+                [ Html.h3 [] [ Html.text "Trigger Editor" ] ]
             ]
         , Grid.row []
             [ Grid.col []

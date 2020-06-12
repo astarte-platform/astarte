@@ -122,7 +122,12 @@ export default class GroupDevicesPage extends React.Component {
 
     switch (this.state.phase) {
       case "ok":
-        innerHTML = deviceTable(this.state.devices, this.showModal);
+        innerHTML = (
+          <>
+            <h5 className="mt-1 mb-3">Devices in group {this.props.groupName}</h5>
+            { deviceTable(this.state.devices, this.showModal) }
+          </>
+        );
         break;
 
       case "err":
@@ -135,7 +140,7 @@ export default class GroupDevicesPage extends React.Component {
     }
 
     return (
-      <SingleCardPage title={`Devices in Group "${this.props.groupName}"`}>
+      <SingleCardPage title="Group Devices">
         {innerHTML}
         <Modal
           size="lg"

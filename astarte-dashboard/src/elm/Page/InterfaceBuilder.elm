@@ -1016,7 +1016,10 @@ view model flashMessages =
                 [ Col.sm12 ]
                 [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
-        , renderCardTitleRow model.builderMode model.interface
+        , Grid.row [ Row.attrs [ Spacing.mt2 ] ]
+            [ Grid.col []
+                [ Html.h3 [] [ Html.text "Interface Editor" ] ]
+            ]
         , Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
             [ Grid.col
@@ -1217,29 +1220,6 @@ renderContent model interface interfaceEditMode accordionState =
                         |> Accordion.view accordionState
                     ]
                 ]
-            ]
-        ]
-
-
-renderCardTitleRow : BuilderMode -> Interface -> Html Msg
-renderCardTitleRow builderMode interface =
-    let
-        title =
-            case builderMode of
-                EditorOnly ->
-                    "Interface Editor"
-
-                New ->
-                    "Install a New Interface"
-
-                Edit _ ->
-                    interface.name
-    in
-    Grid.row [ Row.attrs [ Spacing.mt2 ] ]
-        [ Grid.col []
-            [ Html.h3
-                [ class "text-truncate" ]
-                [ Html.text title ]
             ]
         ]
 
