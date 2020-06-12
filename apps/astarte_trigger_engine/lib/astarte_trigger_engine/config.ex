@@ -73,6 +73,12 @@ defmodule Astarte.TriggerEngine.Config do
     type: :binary,
     default: "trigger_engine"
 
+  @envdoc "The AMQP consumer prefetch count."
+  app_env :amqp_consumer_prefetch_count, :astarte_trigger_engine, :amqp_consumer_prefetch_count,
+    os_env: "TRIGGER_ENGINE_AMQP_CONSUMER_PREFETCH_COUNT",
+    type: :integer,
+    default: 300
+
   @envdoc "Enable SSL. If not specified, SSL is disabled."
   app_env :amqp_consumer_ssl_enabled, :astarte_trigger_engine, :amqp_consumer_ssl_enabled,
     os_env: "TRIGGER_ENGINE_AMQP_CONSUMER_SSL_ENABLED",
