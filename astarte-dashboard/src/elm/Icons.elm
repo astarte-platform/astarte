@@ -30,6 +30,7 @@ import Html.Attributes exposing (class, style)
 
 type Icon
     = Add
+    | Back
     | Close
     | Delete
     | Device
@@ -83,6 +84,9 @@ className icon =
     case icon of
         Add ->
             "fa-plus"
+
+        Back ->
+            "fa-chevron-left"
 
         Close ->
             "fa-times"

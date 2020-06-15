@@ -45,7 +45,7 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
 import Dict
 import Html exposing (Html, b, br, h5, p, small, text)
-import Html.Attributes exposing (class, for, selected, value)
+import Html.Attributes exposing (class, for, href, selected, value)
 import Html.Events exposing (onSubmit)
 import Icons
 import Modal.MappingBuilder as MappingBuilder
@@ -1005,20 +1005,21 @@ handleMappingBuilderMessages message model =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid
-        [ class "bg-white"
-        , Border.rounded
-        , Spacing.pb3
-        ]
-        [ Grid.row
-            [ Row.attrs [ Spacing.mt2 ] ]
-            [ Grid.col
-                [ Col.sm12 ]
-                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
+    Grid.containerFluid [ Spacing.p3 ]
+        [ Grid.row []
+            [ Grid.col [ Col.sm12 ]
+                [ Html.h2
+                    [ Spacing.pl2 ]
+                    [ Html.a
+                        [ href "/interfaces", Spacing.mr2 ]
+                        [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                    , Html.text "Interface Editor"
+                    ]
+                ]
             ]
-        , Grid.row [ Row.attrs [ Spacing.mt2 ] ]
+        , Grid.row []
             [ Grid.col []
-                [ Html.h3 [] [ Html.text "Interface Editor" ] ]
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row
             [ Row.attrs [ Spacing.mt2 ] ]
@@ -1067,7 +1068,11 @@ view model flashMessages =
 
 renderContent : Model -> Interface -> Bool -> Accordion.State -> Html Msg
 renderContent model interface interfaceEditMode accordionState =
-    Grid.containerFluid []
+    Grid.containerFluid
+        [ class "bg-white"
+        , Border.rounded
+        , Spacing.p3
+        ]
         [ Form.form []
             [ Form.row []
                 [ Form.col [ Col.sm6 ]

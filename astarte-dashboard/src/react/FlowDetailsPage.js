@@ -69,7 +69,7 @@ export default class FlowDetailsPage extends React.Component {
     }
 
     return (
-      <SingleCardPage title="Flow Details">
+      <SingleCardPage title="Flow Details" backLink="/flows">
         {innerHTML}
       </SingleCardPage>
     );

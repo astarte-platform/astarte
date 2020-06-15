@@ -206,7 +206,9 @@ export default class NewGroupPage extends React.Component {
     }
 
     return (
-      <SingleCardPage title={`Create a New Group`}>{innerHTML}</SingleCardPage>
+      <SingleCardPage title="Create a New Group" backLink="/groups">
+        {innerHTML}
+      </SingleCardPage>
     );
   }
 }

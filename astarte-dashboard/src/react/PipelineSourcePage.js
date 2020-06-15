@@ -133,6 +133,7 @@ export default class PipelineSourcePage extends React.Component {
     return (
       <SingleCardPage
         title="Pipeline Details"
+        backLink="/pipelines"
         errorMessages={this.state.alerts}
         onAlertClose={this.closeAlert}
       >

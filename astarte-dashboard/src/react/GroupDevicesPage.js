@@ -140,7 +140,7 @@ export default class GroupDevicesPage extends React.Component {
     }
 
     return (
-      <SingleCardPage title="Group Devices">
+      <SingleCardPage title="Group Devices" backLink="/groups">
         {innerHTML}
         <Modal
           size="lg"
