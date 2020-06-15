@@ -922,7 +922,7 @@ view model =
                     )
                     [ renderNavbar model realmName ]
                 , Grid.col
-                    [ Col.attrs [ class "main-content" ] ]
+                    [ Col.attrs [ class "main-content overflow-hidden" ] ]
                     [ renderPage model model.selectedPage ]
                 ]
             ]
