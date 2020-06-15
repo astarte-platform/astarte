@@ -1143,28 +1143,80 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_control(state, "/emptyCache", _payload, message_id, _timestamp) do
+  def handle_control(state, "/emptyCache", _payload, message_id, timestamp) do
     Logger.debug("Received /emptyCache")
 
-    new_state =
-      state
-      |> send_control_consumer_properties()
-      |> resend_all_properties()
-
     {:ok, db_client} = Database.connect(realm: state.realm)
-    :ok = Queries.set_pending_empty_cache(db_client, state.device_id, false)
 
-    MessageTracker.ack_delivery(state.message_tracker, message_id)
+    new_state = execute_time_based_actions(state, timestamp, db_client)
 
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :processed_empty_cache],
-      %{},
-      %{
-        realm: new_state.realm
-      }
-    )
+    with :ok <- send_control_consumer_properties(state, db_client),
+         {:ok, new_state} <- resend_all_properties(state, db_client),
+         :ok <- Queries.set_pending_empty_cache(db_client, new_state.device_id, false) do
+      MessageTracker.ack_delivery(state.message_tracker, message_id)
 
-    new_state
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :data_updater, :processed_empty_cache],
+        %{},
+        %{
+          realm: new_state.realm
+        }
+      )
+
+      new_state
+    else
+      {:error, :session_not_found} ->
+        Logger.warn("Cannot push data to device.", tag: "device_session_not_found")
+
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
+        new_state
+
+      {:error, :sending_properties_to_interface_failed} ->
+        Logger.warn("Cannot resend properties to interface",
+          tag: "resend_interface_properties_failed"
+        )
+
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
+        new_state
+
+      {:error, reason} ->
+        Logger.warn("Unhandled error during emptyCache: #{inspect(reason)}",
+          tag: "empty_cache_error"
+        )
+
+        ask_clean_session(new_state)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{
+            realm: new_state.realm
+          }
+        )
+
+        new_state
+    end
   end
 
   def handle_control(state, path, payload, message_id, _timestamp) do
@@ -2057,9 +2109,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
-  defp send_control_consumer_properties(state) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
+  defp send_control_consumer_properties(state, db_client) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}.")
 
     abs_paths_list =
@@ -2077,9 +2127,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end)
 
     # TODO: use the returned byte count in stats
-    {:ok, _bytes} = send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list)
-
-    state
+    with {:ok, _bytes} <-
+           send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list) do
+      :ok
+    end
   end
 
   defp gather_interface_properties(
@@ -2099,28 +2150,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     []
   end
 
-  defp resend_all_properties(state) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
+  defp resend_all_properties(state, db_client) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}")
 
-    Enum.each(state.introspection, fn {interface, _} ->
+    Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, _}, {:ok, state_acc} ->
+      maybe_descriptor = Map.get(state_acc.interfaces, interface)
+
       with {:ok, interface_descriptor, new_state} <-
-             maybe_handle_cache_miss(
-               Map.get(state.interfaces, interface),
-               interface,
-               state,
-               db_client
-             ) do
-        resend_all_interface_properties(new_state, db_client, interface_descriptor)
+             maybe_handle_cache_miss(maybe_descriptor, interface, state_acc, db_client),
+           :ok <- resend_all_interface_properties(new_state, db_client, interface_descriptor) do
+        {:cont, {:ok, new_state}}
       else
         {:error, :interface_loading_failed} ->
           Logger.warn("Failed #{interface} interface loading.")
-          {:error, :sending_properties_to_interface_failed}
+          {:halt, {:error, :sending_properties_to_interface_failed}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
       end
     end)
-
-    state
   end
 
   defp resend_all_interface_properties(
@@ -2132,10 +2180,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     each_interface_mapping(mappings, interface_descriptor, fn mapping ->
       Queries.retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping)
-      |> Enum.each(fn [{:path, path}, {_, value}] ->
-        # TODO: use the returned bytes count in stats
-        {:ok, _bytes} =
-          send_value(realm, encoded_device_id, interface_descriptor.name, path, value)
+      |> Enum.reduce_while(:ok, fn [{:path, path}, {_, value}], _acc ->
+        case send_value(realm, encoded_device_id, interface_descriptor.name, path, value) do
+          {:ok, _bytes} ->
+            # TODO: use the returned bytes count in stats
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
       end)
     end)
   end
@@ -2160,7 +2213,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
         # This should not happen so we print a warning, but we consider it a succesful publish
-        Logger.warning("Multiple match while publishing #{inspect(payload)} on #{topic}.",
+        Logger.warn("Multiple match while publishing #{inspect(payload)} on #{topic}.",
           tag: "publish_multiple_matches"
         )
 
@@ -2188,7 +2241,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
         # This should not happen so we print a warning, but we consider it a succesful publish
-        Logger.warning(
+        Logger.warn(
           "Multiple match while publishing #{inspect(encapsulated_value)} on #{topic}.",
           tag: "publish_multiple_matches"
         )
