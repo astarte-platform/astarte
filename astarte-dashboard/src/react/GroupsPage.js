@@ -131,6 +131,7 @@ export default class GroupsPage extends React.Component {
         {innerHTML}
         <Button
           variant="primary"
+          onClick={() => { this.props.history.push("/groups/new/") }}
         >
           Create new group
         </Button>
