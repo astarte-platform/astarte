@@ -906,6 +906,12 @@ components:
           type: string
           enum:
             - data_trigger
+        device_id:
+          description: The device id the trigger will be restricted to.
+          type: string
+        group_name:
+          description: The group name the trigger will be restricted to.
+          type: string
         interface_name:
           description: The name of the target interface or * to match all interfaces.
           type: string
@@ -976,12 +982,14 @@ components:
             - device_empty_cache_received
             - device_error
         device_id:
-          description: The device id of the target device or * to match all devices.
+          description: The device id the trigger will be restricted to.
+          type: string
+        group_name:
+          description: The group name the trigger will be restricted to.
           type: string
       required:
         - type
         - 'on'
-        - device_id
     GenericError:
       type: object
       required:

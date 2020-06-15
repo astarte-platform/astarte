@@ -614,6 +614,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
+  def get_device_groups(db_client, device_id) do
+    groups_statement = """
+    SELECT groups
+    FROM devices
+    WHERE device_id=:device_id
+    """
+
+    groups_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(groups_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(db_client, groups_query),
+         [groups: groups] when is_list(groups) <- DatabaseResult.head(result) do
+      {:ok, Keyword.keys(groups)}
+    else
+      [groups: nil] ->
+        {:ok, []}
+
+      %{acc: _, msg: error_message} ->
+        Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        Logger.warn("Failed with reason #{inspect(reason)}.", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
   def update_device_introspection!(db_client, device_id, introspection, introspection_minor) do
     introspection_update_statement = """
     UPDATE devices

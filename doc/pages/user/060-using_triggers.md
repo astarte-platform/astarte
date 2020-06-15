@@ -5,7 +5,8 @@ data. More details on Triggers can be found in the [Architecture Documentation](
 
 Astarte allows you to install and delete Triggers dynamically through its clients. Upon installation
 or deletion, changes to the Trigger infrastructure might take some time to propagate, and some devices
-might pick up changes at a later time. If a Trigger shows as installed, it will eventually be loaded.
+might pick up changes at a later time. If a Trigger shows as installed, it will eventually be
+loaded. This propagation can take up to 10 minutes.
 
 ## Listing Triggers
 
@@ -245,3 +246,14 @@ If the Trigger is installed, when a device sends data to the interface/path defi
   }
 }
 ```
+
+## Restricting triggers to a single device or group
+
+Both device and data triggers accept the `device_id` and `group_name` keys to restrict a trigger to
+a single device or a single group.
+
+Triggers containing the `device_id` key will be triggered only for the specified device, while
+triggers containing the `group_name` key will be triggered only if the device is member of the group
+that is indicated in the `group_name` key. Note that when devices in a group are added or removed,
+the changes are not reflected immediately in group triggers. It can take up to 10 minutes to see the
+propagation of said changes.

@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :device_id,
     :message_tracker,
     :introspection,
+    :groups,
     :interfaces,
     :interface_ids_to_name,
     :interfaces_by_expiry,
@@ -40,6 +41,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :interface_exchanged_msgs,
     :last_seen_message,
     :last_device_triggers_refresh,
+    :last_groups_refresh,
     :datastream_maximum_storage_retention
   ]
 end

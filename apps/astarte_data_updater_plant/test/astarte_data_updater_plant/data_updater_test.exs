@@ -62,7 +62,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     insert_opts = [
       introspection: existing_introspection_map,
       total_received_msgs: received_msgs,
-      total_received_bytes: received_bytes
+      total_received_bytes: received_bytes,
+      groups: ["group1"]
     ]
 
     DatabaseTestHelper.insert_device(device_id, insert_opts)
@@ -124,6 +125,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
+    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    assert conn_headers["x_astarte_event_type"] == "device_connected_event"
+    assert conn_headers["x_astarte_realm"] == realm
+    assert conn_headers["x_astarte_device_id"] == encoded_device_id
+
+    assert :uuid.string_to_uuid(conn_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(conn_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.group1_device_connected_trigger_id()
+
+    assert SimpleEvent.decode(conn_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :device_connected_event,
+               %DeviceConnectedEvent{
+                 device_ip_address: "10.0.0.1"
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.group1_device_connected_trigger_id(),
+             version: 1
+           }
+
     {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
@@ -288,6 +315,85 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == :ok
 
     # Incoming data sub-test
+    timestamp_us_x_10 = make_timestamp("2017-10-09T14:10:31+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
+    DataUpdater.handle_data(
+      realm,
+      encoded_device_id,
+      "com.test.LCDMonitor",
+      "/weekSchedule/3/start",
+      Cyanide.encode!(%{"v" => 1}),
+      gen_tracking_id(),
+      timestamp_us_x_10
+    )
+
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "incoming_data_event"
+    assert incoming_headers["x_astarte_device_id"] == encoded_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.less_than_device_incoming_trigger_id()
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :incoming_data_event,
+               %IncomingDataEvent{
+                 bson_value: Cyanide.encode!(%{"v" => 1}),
+                 interface: "com.test.LCDMonitor",
+                 path: "/weekSchedule/3/start"
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.less_than_device_incoming_trigger_id(),
+             version: 1
+           }
+
+    DataUpdater.handle_data(
+      realm,
+      encoded_device_id,
+      "com.test.LCDMonitor",
+      "/weekSchedule/4/start",
+      Cyanide.encode!(%{"v" => 3}),
+      gen_tracking_id(),
+      timestamp_us_x_10
+    )
+
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "incoming_data_event"
+    assert incoming_headers["x_astarte_device_id"] == encoded_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.equal_to_group_incoming_trigger_id()
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :incoming_data_event,
+               %IncomingDataEvent{
+                 bson_value: Cyanide.encode!(%{"v" => 3}),
+                 interface: "com.test.LCDMonitor",
+                 path: "/weekSchedule/4/start"
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.equal_to_group_incoming_trigger_id(),
+             version: 1
+           }
+
     DataUpdater.handle_data(
       realm,
       encoded_device_id,
@@ -900,16 +1006,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert device_row == [
              connected: false,
-             total_received_msgs: 45013,
-             total_received_bytes: 4_500_692,
+             total_received_msgs: 45015,
+             total_received_bytes: 4_500_796,
              exchanged_msgs_by_interface: [
                {["com.example.TestObject", 1], 5},
-               {["com.test.LCDMonitor", 1], 4},
+               {["com.test.LCDMonitor", 1], 6},
                {["com.test.SimpleStreamTest", 1], 1}
              ],
              exchanged_bytes_by_interface: [
                {["com.example.TestObject", 1], 243},
-               {["com.test.LCDMonitor", 1], 187},
+               {["com.test.LCDMonitor", 1], 291},
                {["com.test.SimpleStreamTest", 1], 45}
              ]
            ]
@@ -930,19 +1036,48 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     new_introspection_map = %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1}
     new_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
 
-    DatabaseTestHelper.insert_device(device_id)
+    DatabaseTestHelper.insert_device(device_id, groups: ["group2"])
 
     {:ok, db_client} = Database.connect(realm: realm)
+
+    timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
 
     DataUpdater.handle_connection(
       realm,
       encoded_device_id,
       "10.0.0.1",
       gen_tracking_id(),
-      make_timestamp("2017-12-09T14:00:32+00:00")
+      timestamp_us_x_10
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
+
+    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    assert conn_headers["x_astarte_event_type"] == "device_connected_event"
+    assert conn_headers["x_astarte_realm"] == realm
+    assert conn_headers["x_astarte_device_id"] == encoded_device_id
+
+    assert :uuid.string_to_uuid(conn_headers["x_astarte_parent_trigger_id"]) ==
+             DatabaseTestHelper.fake_parent_trigger_id()
+
+    assert :uuid.string_to_uuid(conn_headers["x_astarte_simple_trigger_id"]) ==
+             DatabaseTestHelper.group2_device_connected_trigger_id()
+
+    assert SimpleEvent.decode(conn_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :device_connected_event,
+               %DeviceConnectedEvent{
+                 device_ip_address: "10.0.0.1"
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
+             realm: realm,
+             simple_trigger_id: DatabaseTestHelper.group2_device_connected_trigger_id(),
+             version: 1
+           }
 
     device_introspection_query =
       DatabaseQuery.new()
