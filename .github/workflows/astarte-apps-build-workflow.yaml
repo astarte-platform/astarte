@@ -18,8 +18,8 @@ on:
     - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
-  elixir_version: 1.10.1
-  otp_version: 22.2
+  elixir_version: "1.10.3"
+  otp_version: "23.0"
 
 jobs:
   test-dialyzer:
@@ -60,7 +60,7 @@ jobs:
         key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/setup-elixir@v1.2.0
+    - uses: actions/setup-elixir@v1.3.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
@@ -128,7 +128,7 @@ jobs:
         key: ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/setup-elixir@v1.2.0
+    - uses: actions/setup-elixir@v1.3.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
