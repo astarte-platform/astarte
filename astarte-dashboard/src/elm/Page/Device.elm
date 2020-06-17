@@ -35,7 +35,7 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Color exposing (Color)
 import Dict exposing (Dict)
 import Html exposing (Html, h5)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class, href, target)
 import Html.Events
 import Icons
 import Json.Decode as Decode exposing (Decoder)
@@ -1267,6 +1267,7 @@ type LabelType
     = ChannelLabel
     | DeviceConnectedLabel
     | DeviceDisconnectedLabel
+    | DeviceErrorLabel
     | IncommingDataLabel
 
 
@@ -1279,8 +1280,11 @@ renderLabel labelType =
         DeviceConnectedLabel ->
             Badge.badgeSuccess [ Spacing.mr2 ] [ Html.text "device connected" ]
 
+        DeviceErrorLabel ->
+            Badge.badgeDanger [ Spacing.mr2 ] [ Html.text "device error" ]
+
         DeviceDisconnectedLabel ->
-            Badge.badgeDanger [ Spacing.mr2 ] [ Html.text "device disconnected" ]
+            Badge.badgeWarning [ Spacing.mr2 ] [ Html.text "device disconnected" ]
 
         IncommingDataLabel ->
             Badge.badgeInfo [ Spacing.mr2 ] [ Html.text "incoming data" ]
@@ -1318,6 +1322,11 @@ renderDeviceEvent event =
                 DeviceEvent.DeviceDisconnected ->
                     ( DeviceDisconnectedLabel
                     , Html.span [] [ Html.text "Device disconnected" ]
+                    )
+
+                DeviceEvent.DeviceError data ->
+                    ( DeviceErrorLabel
+                    , Html.span [] (renderErrorInfo data)
                     )
 
                 DeviceEvent.IncomingData data ->
@@ -1370,6 +1379,108 @@ renderEventItem timestamp mColor label content =
         , renderLabel label
         , content
         ]
+
+
+renderErrorInfo : DeviceEvent.ErrorParams -> List (Html Msg)
+renderErrorInfo errorEvent =
+    let
+        ( eventMsg, externalLinkAnchor ) =
+            case errorEvent.errorType of
+                DeviceEvent.WriteOnServerOwnedInterface ->
+                    ( "Write on a server owned interface"
+                    , Just "write_on_server_owned_interface"
+                    )
+
+                DeviceEvent.InvalidInterface ->
+                    ( "Invalid interface"
+                    , Just "invalid_interface"
+                    )
+
+                DeviceEvent.InvalidPath ->
+                    ( "Invalid path"
+                    , Just "invalid_path"
+                    )
+
+                DeviceEvent.MappingNotFound ->
+                    ( "Mapping not found"
+                    , Just "mapping_not_found"
+                    )
+
+                DeviceEvent.InterfaceLoadingFailed ->
+                    ( "Interface loading failed"
+                    , Just "interface_loading_failed"
+                    )
+
+                DeviceEvent.AmbiguousPath ->
+                    ( "Ambiguous path"
+                    , Just "ambiguous_path"
+                    )
+
+                DeviceEvent.UndecodableBsonPayload ->
+                    ( "Undecodable BSON payload"
+                    , Just "undecodable_bson_payload"
+                    )
+
+                DeviceEvent.UnexpectedValueType ->
+                    ( "Unexpected value type"
+                    , Just "unexpected_value_type"
+                    )
+
+                DeviceEvent.ValueSizeExceeded ->
+                    ( "Value size exceeded"
+                    , Just "value_size_exceeded"
+                    )
+
+                DeviceEvent.UnexpectedObjectKey ->
+                    ( "Unexpected object key"
+                    , Just "unexpected_object_key"
+                    )
+
+                DeviceEvent.InvalidIntrospection ->
+                    ( "Invalid introspection"
+                    , Just "invalid_introspection"
+                    )
+
+                DeviceEvent.UnexpectedControlMessage ->
+                    ( "Unexpected control message"
+                    , Just "unexpected_control_message"
+                    )
+
+                DeviceEvent.DeviceSessionNotFound ->
+                    ( "Device session not found"
+                    , Just "device_session_not_found"
+                    )
+
+                DeviceEvent.ResendInterfacePropertiesFailed ->
+                    ( "Resend interface properties failed"
+                    , Just "resend_interface_properties_failed"
+                    )
+
+                DeviceEvent.EmptyCacheError ->
+                    ( "Empty cache error"
+                    , Just "empty_cache_error"
+                    )
+
+                DeviceEvent.UserDefined name ->
+                    ( "Error name: " ++ name
+                    , Nothing
+                    )
+    in
+    [ Html.span [] [ Html.text eventMsg ]
+    , externalLinkAnchor
+        |> Maybe.map (docLink "https://docs.astarte-platform.org/snapshot/045-device_errors.html")
+        |> Maybe.withDefault (Html.text "")
+    ]
+
+
+docLink : String -> String -> Html Msg
+docLink baseUrl anchor =
+    Html.a
+        [ href (baseUrl ++ "#" ++ anchor)
+        , target "_blank"
+        , Spacing.ml2
+        ]
+        [ Icons.render Icons.ExternalLink [] ]
 
 
 renderConnectionStatus : Device -> Html Msg

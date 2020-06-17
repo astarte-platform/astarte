@@ -36,6 +36,7 @@ type Icon
     | Edit
     | Erase
     | ExclamationMark
+    | ExternalLink
     | EmptyCircle
     | FullCircle
     | Flow
@@ -101,6 +102,9 @@ className icon =
 
         ExclamationMark ->
             "fa-exclamation-circle"
+
+        ExternalLink ->
+            "fa-external-link-alt"
 
         EmptyCircle ->
             "fa-circle"

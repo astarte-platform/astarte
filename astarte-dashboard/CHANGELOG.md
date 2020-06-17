@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Login form validation.
 - Astarte Flow feature preview.
 - AMQP trigger actions.
+- Device error triggers.
 
 ### Changed
 - Layout and palette restyle.

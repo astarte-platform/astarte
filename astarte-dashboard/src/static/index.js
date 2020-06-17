@@ -186,6 +186,16 @@ function watchDeviceEvents(params) {
         }
       };
 
+      const errorTriggerPayload = {
+          name: `errortrigger-${deviceId}`,
+          device_id: deviceId,
+          simple_trigger: {
+              type: "device_trigger",
+              on: "device_error",
+              device_id: deviceId
+          }
+     };
+
       const dataTriggerPayload = {
         name: `datatrigger-${deviceId}`,
         device_id: deviceId,
@@ -205,6 +215,10 @@ function watchDeviceEvents(params) {
       astarteClient.registerVolatileTrigger(roomName, disconnectionTriggerPayload)
         .then(() => { sendInfoMessage("Watching for device disconnection events") })
         .catch((err) => { sendErrorMessage("Coulnd't watch for device disconnection events") });
+
+      astarteClient.registerVolatileTrigger(roomName, errorTriggerPayload)
+        .then(() => { sendInfoMessage("Watching for device error events") })
+        .catch((err) => { sendErrorMessage("Coulnd't watch for device error events") });
 
       astarteClient.registerVolatileTrigger(roomName, dataTriggerPayload)
         .then(() => { sendInfoMessage("Watching for device data events") })
