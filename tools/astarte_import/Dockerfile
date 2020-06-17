@@ -1,4 +1,4 @@
-FROM elixir:1.8.2 as builder
+FROM ispirata/elixir:1.10-otp-23 as builder
 
 RUN apt-get -qq update
 RUN apt-get -qq install git build-essential curl
