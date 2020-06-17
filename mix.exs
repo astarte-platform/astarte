@@ -71,7 +71,7 @@ defmodule Astarte.DataAccess.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:cqex, "~> 1.0.0"},
+      {:cqex, "~> 1.0"},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.12", only: :test},
       {:castore, "~> 0.1.0"},
