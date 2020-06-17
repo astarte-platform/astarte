@@ -107,6 +107,59 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     assert Map.get(headers_map, static_header_key) == static_header_value
   end
 
+  test "device_error AMQPTarget handling" do
+    simple_trigger_id = :uuid.get_v4()
+    parent_trigger_id = :uuid.get_v4()
+    static_header_key = "important_metadata_error"
+    static_header_value = "test_meta_error"
+    static_headers = [{static_header_key, static_header_value}]
+    timestamp = get_timestamp()
+
+    target = %AMQPTriggerTarget{
+      simple_trigger_id: simple_trigger_id,
+      parent_trigger_id: parent_trigger_id,
+      static_headers: static_headers,
+      routing_key: @routing_key
+    }
+
+    error_metadata = %{"base64_payload" => Base.encode64("aninvalidintrospection")}
+
+    TriggersHandler.device_error(
+      target,
+      @realm,
+      @device_id,
+      "invalid_introspection",
+      error_metadata,
+      timestamp
+    )
+
+    assert_receive {:event, payload, meta}
+
+    assert %SimpleEvent{
+             device_id: @device_id,
+             parent_trigger_id: ^parent_trigger_id,
+             simple_trigger_id: ^simple_trigger_id,
+             realm: @realm,
+             timestamp: ^timestamp,
+             event: {:device_error_event, device_error_event}
+           } = SimpleEvent.decode(payload)
+
+    assert %DeviceErrorEvent{
+             error_name: error_name,
+             metadata: metadata
+           } = device_error_event
+
+    assert error_name == "invalid_introspection"
+    assert metadata |> Enum.into(%{}) == error_metadata
+
+    headers_map = amqp_headers_to_map(meta.headers)
+
+    assert Map.get(headers_map, "x_astarte_realm") == @realm
+    assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+    assert Map.get(headers_map, "x_astarte_event_type") == "device_error_event"
+    assert Map.get(headers_map, static_header_key) == static_header_value
+  end
+
   test "device_disconnected AMQPTarget handling" do
     simple_trigger_id = :uuid.get_v4()
     parent_trigger_id = :uuid.get_v4()

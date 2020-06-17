@@ -344,6 +344,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
+  defp execute_device_error_triggers(state, error_name, error_metadata \\ %{}, timestamp) do
+    timestamp_ms = div(timestamp, 10_000)
+
+    trigger_targets = Map.get(state.device_triggers, :on_device_error, [])
+    device_id_string = Device.encode_device_id(state.device_id)
+
+    TriggersHandler.device_error(
+      trigger_targets,
+      state.realm,
+      device_id_string,
+      error_name,
+      error_metadata,
+      timestamp_ms
+    )
+
+    :ok
+  end
+
   def handle_data(state, interface, path, payload, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
@@ -472,7 +490,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             end
 
         interface_descriptor.type == :datastream ->
-          Logger.warn("Tried to unset a datastream")
+          Logger.warn("Tried to unset a datastream.", tag: "unset_on_datastream")
           MessageTracker.discard(new_state.message_tracker, message_id)
 
           :telemetry.execute(
@@ -481,6 +499,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             %{
               realm: new_state.realm
             }
+          )
+
+          base64_payload = Base.encode64(payload)
+
+          error_metadata = %{
+            "interface" => inspect(interface),
+            "path" => inspect(path),
+            "base64_payload" => base64_payload
+          }
+
+          execute_device_error_triggers(
+            new_state,
+            "unset_on_datastream",
+            error_metadata,
+            timestamp
           )
 
           raise "Unsupported"
@@ -539,7 +572,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:error, :cannot_write_on_server_owned_interface} ->
         Logger.warn(
           "Tried to write on server owned interface: #{interface} on " <>
-            "path: #{path}, payload: #{inspect(payload)}, timestamp: #{inspect(timestamp)}."
+            "path: #{path}, payload: #{inspect(payload)}, timestamp: #{inspect(timestamp)}.",
+          tag: "write_on_server_owned_interface"
         )
 
         ask_clean_session(new_state)
@@ -551,12 +585,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{
             realm: new_state.realm
           }
+        )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(
+          new_state,
+          "write_on_server_owned_interface",
+          error_metadata,
+          timestamp
         )
 
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :invalid_interface} ->
-        Logger.warn("Received invalid interface: #{inspect(interface)}.")
+        Logger.warn("Received invalid interface: #{inspect(interface)}.", tag: "invalid_interface")
+
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -567,12 +617,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             realm: new_state.realm
           }
         )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(new_state, "invalid_interface", error_metadata, timestamp)
 
         # We dont't update stats on an invalid interface
         new_state
 
       {:error, :invalid_path} ->
-        Logger.warn("Received invalid path: #{inspect(path)}.")
+        Logger.warn("Received invalid path: #{inspect(path)}.", tag: "invalid_path")
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -583,11 +643,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             realm: new_state.realm
           }
         )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(new_state, "invalid_path", error_metadata, timestamp)
 
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :mapping_not_found} ->
-        Logger.warn("Mapping not found for #{interface}#{path}. Maybe outdated introspection?")
+        Logger.warn("Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
+          tag: "mapping_not_found"
+        )
 
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
@@ -600,10 +672,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           }
         )
 
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(new_state, "mapping_not_found", error_metadata, timestamp)
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :interface_loading_failed} ->
-        Logger.warn("Cannot load interface: #{interface}.")
+        Logger.warn("Cannot load interface: #{interface}.", tag: "interface_loading_failed")
         # TODO: think about additional actions since the problem
         # could be a missing interface in the DB
         ask_clean_session(new_state)
@@ -617,10 +699,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           }
         )
 
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(
+          new_state,
+          "interface_loading_failed",
+          error_metadata,
+          timestamp
+        )
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:guessed, _guessed_endpoints} ->
-        Logger.warn("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?")
+        Logger.warn("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
+          tag: "ambiguous_path"
+        )
+
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -630,12 +730,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{
             realm: new_state.realm
           }
+        )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(
+          new_state,
+          "ambiguous_path",
+          error_metadata,
+          timestamp
         )
 
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :undecodable_bson_payload} ->
-        Logger.warn("Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.",
+          tag: "undecodable_bson_payload"
+        )
+
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -645,12 +763,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{
             realm: new_state.realm
           }
+        )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(
+          new_state,
+          "undecodable_bson_payload",
+          error_metadata,
+          timestamp
         )
 
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_value_type} ->
-        Logger.warn("Received invalid value: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Received invalid value: #{inspect(payload)} sent to #{interface}#{path}.",
+          tag: "unexpected_value_type"
+        )
+
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -660,12 +796,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{
             realm: new_state.realm
           }
+        )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(
+          new_state,
+          "unexpected_value_type",
+          error_metadata,
+          timestamp
         )
 
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :value_size_exceeded} ->
-        Logger.warn("Received huge payload: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Received huge payload: #{inspect(payload)} sent to #{interface}#{path}.",
+          tag: "value_size_exceeded"
+        )
+
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -677,10 +831,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           }
         )
 
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(new_state, "value_size_exceeded", error_metadata, timestamp)
+
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_object_key} ->
-        Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.")
+        Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.",
+          tag: "unexcpected_object_key"
+        )
+
         ask_clean_session(new_state)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -690,6 +857,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{
             realm: new_state.realm
           }
+        )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(
+          new_state,
+          "unexpected_object_key",
+          error_metadata,
+          timestamp
         )
 
         update_stats(new_state, interface, nil, path, payload)
@@ -886,7 +1068,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       process_introspection(state, new_introspection_list, payload, message_id, timestamp)
     else
       {:error, :invalid_introspection} ->
-        Logger.warn("Discarding invalid introspection: #{inspect(payload)}.")
+        Logger.warn("Discarding invalid introspection: #{inspect(payload)}.",
+          tag: "invalid_introspection"
+        )
+
         ask_clean_session(state)
         MessageTracker.discard(state.message_tracker, message_id)
 
@@ -897,6 +1082,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             realm: state.realm
           }
         )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(state, "invalid_introspection", error_metadata, timestamp)
 
         update_stats(state, "", nil, "", payload)
     end
@@ -1179,6 +1372,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           }
         )
 
+        execute_device_error_triggers(new_state, "device_session_not_found", timestamp)
+
         new_state
 
       {:error, :sending_properties_to_interface_failed} ->
@@ -1196,6 +1391,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             realm: new_state.realm
           }
         )
+
+        execute_device_error_triggers(new_state, "resend_interface_properties_failed", timestamp)
 
         new_state
 
@@ -1215,12 +1412,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           }
         )
 
+        error_metadata = %{"reason" => inspect(reason)}
+
+        execute_device_error_triggers(new_state, "empty_cache_error", error_metadata, timestamp)
+
         new_state
     end
   end
 
-  def handle_control(state, path, payload, message_id, _timestamp) do
-    Logger.warn("Unexpected control on #{path}, payload: #{inspect(payload)}")
+  def handle_control(state, path, payload, message_id, timestamp) do
+    Logger.warn("Unexpected control on #{path}, payload: #{inspect(payload)}",
+      tag: "unexpected_control_message"
+    )
 
     ask_clean_session(state)
     MessageTracker.discard(state.message_tracker, message_id)
@@ -1232,6 +1435,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         realm: state.realm
       }
     )
+
+    base64_payload = Base.encode64(payload)
+
+    error_metadata = %{
+      "path" => inspect(path),
+      "base64_payload" => base64_payload
+    }
+
+    execute_device_error_triggers(state, "unexpected_control_message", error_metadata, timestamp)
 
     update_stats(state, "", nil, path, payload)
   end
@@ -1976,7 +2188,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :introspection_triggers, next_introspection_triggers)
   end
 
-  # TODO: implement on_empty_cache_received, on_device_error
+  # TODO: implement on_empty_cache_received
   defp load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
     device_triggers = state.device_triggers
 

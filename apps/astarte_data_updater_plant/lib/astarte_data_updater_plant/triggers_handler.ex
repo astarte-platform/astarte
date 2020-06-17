@@ -71,6 +71,28 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     |> dispatch_event(target)
   end
 
+  def device_error(targets, realm, device_id, error_name, error_metadata, timestamp)
+      when is_list(targets) do
+    execute_all_ok(targets, fn target ->
+      device_error(target, realm, device_id, error_name, error_metadata, timestamp) == :ok
+    end)
+  end
+
+  def device_error(target, realm, device_id, error_name, error_metadata, timestamp) do
+    metadata_kw = Enum.into(error_metadata, [])
+
+    %DeviceErrorEvent{error_name: error_name, metadata: metadata_kw}
+    |> make_simple_event(
+      :device_error_event,
+      target.simple_trigger_id,
+      target.parent_trigger_id,
+      realm,
+      device_id,
+      timestamp
+    )
+    |> dispatch_event(target)
+  end
+
   def incoming_data(targets, realm, device_id, interface, path, bson_value, timestamp)
       when is_list(targets) do
     execute_all_ok(targets, fn target ->
