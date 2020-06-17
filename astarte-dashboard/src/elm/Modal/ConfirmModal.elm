@@ -26,6 +26,7 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Modal as Modal
 import Html exposing (Html)
 import Html.Attributes exposing (for, value)
+import HtmlUtils
 
 
 type alias Model =
@@ -107,6 +108,7 @@ view model =
                 [ Html.text model.action ]
             ]
         |> Modal.view model.visibility
+        |> HtmlUtils.handleEnterKeyPress (Close ModalOk) True
 
 
 buttonStyle : ModalType -> Button.Option Msg

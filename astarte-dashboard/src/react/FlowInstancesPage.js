@@ -65,11 +65,19 @@ export default class FlowInstancesPage extends React.Component {
   render() {
     let innerHTML;
 
-    switch (this.state.phase) {
+    const {
+      instances,
+      phase,
+      showModal,
+      selectedFlow,
+      deletingFlow
+    } = this.state;
+
+    switch (phase) {
       case "ok":
         innerHTML = (
           <InstancesTable
-            instances={this.state.instances}
+            instances={instances}
             onDelete={this.deleteInstance}
           />
         );
@@ -97,36 +105,13 @@ export default class FlowInstancesPage extends React.Component {
         >
           New flow
         </Button>
-        <Modal
-          size="sm"
-          show={this.state.showModal}
-          onHide={this.handleModalCancel}
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Warning</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <p>Delete flow <b>{this.state.selectedFlow}</b>?</p>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={this.handleModalCancel}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={this.deleteFlow}>
-              <>
-                {this.state.deletingFlow ? (
-                  <Spinner
-                    className="mr-1"
-                    size="sm"
-                    animation="border"
-                    role="status"
-                  />
-                ) : null}
-                Remove
-              </>
-            </Button>
-          </Modal.Footer>
-        </Modal>
+        <ConfirmDeletionModal
+          show={showModal}
+          flowName={selectedFlow}
+          isDeleting={deletingFlow}
+          onCancel={this.handleModalCancel}
+          onDelete={this.deleteFlow}
+        />
       </SingleCardPage>
     );
   }
@@ -303,3 +288,42 @@ const CircleIcon = React.forwardRef((props, ref) => (
     {props.children}
   </i>
 ));
+
+function ConfirmDeletionModal(props) {
+  const { show, flowName, isDeleting, onCancel, onDelete } = props;
+
+  return (
+    <div onKeyDown={(e) => { if (e.key == "Enter") onDelete() }}>
+      <Modal
+        size="sm"
+        show={show}
+        onHide={onCancel}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Warning</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Delete flow <b>{flowName}</b>?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={onDelete}>
+            <>
+              {isDeleting ? (
+                <Spinner
+                  className="mr-1"
+                  size="sm"
+                  animation="border"
+                  role="status"
+                />
+              ) : null}
+              Remove
+            </>
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+}

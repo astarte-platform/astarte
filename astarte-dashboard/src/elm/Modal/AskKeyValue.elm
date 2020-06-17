@@ -34,6 +34,9 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Modal as Modal
 import Html exposing (Html)
 import Html.Attributes exposing (for, value)
+import Html.Events
+import HtmlUtils
+import Json.Decode as Decode exposing (Decoder)
 
 
 type alias Model =
@@ -147,6 +150,10 @@ invalidForm key value valueValidation =
 
 view : Model -> Html Msg
 view model =
+    let
+        disableSubmit =
+            invalidForm model.key model.value model.valueValidation
+    in
     Modal.config (Close ModalCancel)
         |> Modal.large
         |> Modal.h5 [] [ Html.text model.title ]
@@ -160,12 +167,13 @@ view model =
                 [ Html.text "Cancel" ]
             , Button.button
                 [ Button.primary
-                , Button.disabled <| invalidForm model.key model.value model.valueValidation
+                , Button.disabled disableSubmit
                 , Button.onClick <| Close ModalOk
                 ]
                 [ Html.text "Confirm" ]
             ]
         |> Modal.view model.visibility
+        |> HtmlUtils.handleEnterKeyPress (Close ModalOk) (not disableSubmit)
 
 
 renderBody : String -> String -> String -> String -> Html Msg

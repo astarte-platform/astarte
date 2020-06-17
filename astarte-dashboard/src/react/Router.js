@@ -38,6 +38,7 @@ import FlowConfigurationPage from "./FlowConfigurationPage.js";
 import PipelinesPage from "./PipelinesPage.js";
 import PipelineSourcePage from "./PipelineSourcePage.js";
 import NewPipelinePage from "./NewPipelinePage.js";
+import RealmSettingsPage from "./RealmSettingsPage.js";
 
 export function getRouter(reactHistory, astarteClient, fallback) {
 
@@ -84,6 +85,9 @@ export function getRouter(reactHistory, astarteClient, fallback) {
         </Route>
         <Route exact path="/pipelines/:pipelineId">
           <PipelineSubPath {...pageProps} />
+        </Route>
+        <Route exact path="/settings">
+          <RealmSettingsPage {...pageProps} />
         </Route>
         <Route path="*">
           <NoMatch fallback={fallback} />
