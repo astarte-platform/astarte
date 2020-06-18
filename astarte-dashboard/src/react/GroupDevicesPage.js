@@ -139,45 +139,24 @@ export default class GroupDevicesPage extends React.Component {
         break;
     }
 
+    const {
+      showModal,
+      selectedDeviceName,
+      removingDevice
+    } = this.state;
+
     return (
       <SingleCardPage title="Group Devices" backLink="/groups">
         {innerHTML}
-        <Modal
-          size="lg"
-          show={this.state.showModal}
-          onHide={this.handleModalCancel}
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Warning</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {this.state.devices?.length == 1 ? (
-              <p>
-                This is the last device in the group. Removing this device will
-                delete the group
-              </p>
-            ) : null}
-            <p>{`Remove device "${this.state.selectedDeviceName}" from group "${this.props.groupName}"?`}</p>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={this.handleModalCancel}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={this.removeDevice}>
-              <>
-                {this.state.removingDevice ? (
-                  <Spinner
-                    className="mr-1"
-                    size="sm"
-                    animation="border"
-                    role="status"
-                  />
-                ) : null}
-                Remove
-              </>
-            </Button>
-          </Modal.Footer>
-        </Modal>
+        <ConfirmDeviceRemovalModal
+          deviceName={selectedDeviceName}
+          groupName={this.props.groupName}
+          isLastDevice={this.state.devices?.length == 1}
+          isRemoving={removingDevice}
+          show={showModal}
+          onCancel={this.handleModalCancel}
+          onRemove={this.removeDevice}
+        />
       </SingleCardPage>
     );
   }
@@ -272,3 +251,56 @@ const CircleIcon = React.forwardRef((props, ref) => (
     {props.children}
   </i>
 ));
+
+function ConfirmDeviceRemovalModal(props) {
+  const {
+    deviceName,
+    groupName,
+    isLastDevice,
+    isRemoving,
+    show,
+    onCancel,
+    onRemove
+  } = props;
+
+  return (
+    <div onKeyDown={(e) => { if (e.key == "Enter") onRemove() }}>
+      <Modal
+        size="lg"
+        show={show}
+        onHide={onCancel}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Warning</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          { isLastDevice && (
+            <p>
+              This is the last device in the group. Removing this device will
+              delete the group
+            </p>
+          )}
+          <p>{`Remove device "${deviceName}" from group "${groupName}"?`}</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={onRemove}>
+            <>
+              { isRemoving && (
+                <Spinner
+                  className="mr-1"
+                  size="sm"
+                  animation="border"
+                  role="status"
+                />
+              )}
+              Remove
+            </>
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+}

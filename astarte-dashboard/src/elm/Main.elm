@@ -43,7 +43,6 @@ import Page.InterfaceBuilder as InterfaceBuilder
 import Page.Interfaces as Interfaces
 import Page.Login as Login
 import Page.ReactInit as ReactInit
-import Page.RealmSettings as RealmSettings
 import Page.TriggerBuilder as TriggerBuilder
 import Page.Triggers as Triggers
 import Ports
@@ -216,7 +215,6 @@ type RealmPage
     | InterfaceBuilderPage InterfaceBuilder.Model
     | TriggersPage Triggers.Model
     | TriggerBuilderPage TriggerBuilder.Model
-    | RealmSettingsPage RealmSettings.Model
     | DevicePage Device.Model
     | DeviceDataPage DeviceData.Model
     | ReactInitPage ReactPageCategory
@@ -228,6 +226,7 @@ type ReactPageCategory
     | Groups
     | Flow
     | Pipelines
+    | RealmSettings
 
 
 
@@ -244,7 +243,6 @@ type Msg
     | LoginMsg Login.Msg
     | InterfacesMsg Interfaces.Msg
     | InterfaceBuilderMsg InterfaceBuilder.Msg
-    | RealmSettingsMsg RealmSettings.Msg
     | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | DeviceMsg Device.Msg
@@ -426,9 +424,6 @@ updateRealmPage realm realmPage msg model =
                 ( InterfaceBuilderMsg subMsg, InterfaceBuilderPage subModel ) ->
                     updateRealmPageHelper realm (InterfaceBuilder.update model.session subMsg subModel) InterfaceBuilderMsg InterfaceBuilderPage
 
-                ( RealmSettingsMsg subMsg, RealmSettingsPage subModel ) ->
-                    updateRealmPageHelper realm (RealmSettings.update model.session subMsg subModel) RealmSettingsMsg RealmSettingsPage
-
                 ( TriggersMsg subMsg, TriggersPage subModel ) ->
                     updateRealmPageHelper realm (Triggers.update model.session subMsg subModel) TriggersMsg TriggersPage
 
@@ -539,7 +534,7 @@ pageInit realmRoute config session =
             )
 
         Route.RealmSettings ->
-            initSettingsPage session session.apiConfig.realm
+            initReactPage session RealmSettings "realm-settings" realmRoute
 
         Route.ListInterfaces ->
             initInterfacesPage session session.apiConfig.realm
@@ -704,18 +699,6 @@ initDeviceDataPage deviceId interfaceName session realm =
     in
     ( Realm realm (DeviceDataPage initialModel)
     , Cmd.map DeviceDataMsg initialCommand
-    , session
-    )
-
-
-initSettingsPage : Session -> String -> ( Page, Cmd Msg, Session )
-initSettingsPage session realm =
-    let
-        ( initialModel, initialCommand ) =
-            RealmSettings.init session
-    in
-    ( Realm realm (RealmSettingsPage initialModel)
-    , Cmd.map RealmSettingsMsg initialCommand
     , session
     )
 
@@ -1152,7 +1135,7 @@ isTriggersRelated page =
 isSettingsRelated : Page -> Bool
 isSettingsRelated page =
     case page of
-        Realm _ (RealmSettingsPage _) ->
+        Realm _ (ReactInitPage RealmSettings) ->
             True
 
         _ ->
@@ -1245,10 +1228,6 @@ renderProtectedPage flashMessages page =
             Triggers.view submodel flashMessages
                 |> Html.map TriggersMsg
 
-        RealmSettingsPage submodel ->
-            RealmSettings.view submodel flashMessages
-                |> Html.map RealmSettingsMsg
-
         TriggerBuilderPage submodel ->
             TriggerBuilder.view submodel flashMessages
                 |> Html.map TriggerBuilderMsg
@@ -1304,9 +1283,6 @@ pageSubscriptions page =
 
         Realm _ (DeviceDataPage submodel) ->
             Sub.map DeviceDataMsg <| DeviceData.subscriptions submodel
-
-        Realm _ (RealmSettingsPage submodel) ->
-            Sub.map RealmSettingsMsg <| RealmSettings.subscriptions submodel
 
         _ ->
             Sub.none

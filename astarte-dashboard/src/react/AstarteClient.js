@@ -94,6 +94,12 @@ export default class AstarteClient {
     return this._get(this.apiConfig["auth"](this.config));
   }
 
+  updateConfigAuth(publicKey) {
+    return this._put(this.apiConfig["auth"](this.config), {
+      "jwt_public_key_pem": publicKey
+    });
+  }
+
   getInterfaceNames() {
     return this._get(this.apiConfig["interfaces"](this.config));
   }
@@ -265,6 +271,21 @@ export default class AstarteClient {
   _post(url, data) {
     return axios({
       method: "post",
+      url: url,
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+        'Content-Type': 'application/json;charset=UTF-8'
+      },
+      data: {
+        data: data
+      }
+    })
+      .then((response) => response.data);
+  }
+
+  _put(url, data) {
+    return axios({
+      method: "put",
       url: url,
       headers: {
         'Authorization': `Bearer ${this.token}`,

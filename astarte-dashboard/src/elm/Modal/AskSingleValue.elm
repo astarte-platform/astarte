@@ -34,6 +34,8 @@ import Bootstrap.Grid.Col as Col
 import Bootstrap.Modal as Modal
 import Html exposing (Html)
 import Html.Attributes exposing (for, value)
+import Html.Events
+import HtmlUtils
 
 
 type alias Model =
@@ -73,6 +75,7 @@ type ModalResult
 type Msg
     = Close ModalResult
     | UpdateValue String
+    | PreventSubmit
 
 
 type ExternalMsg
@@ -99,6 +102,11 @@ update message model =
             , Noop
             )
 
+        PreventSubmit ->
+            ( model
+            , Noop
+            )
+
 
 adaptValue : String -> ValueValidation -> String
 adaptValue value validation =
@@ -122,6 +130,10 @@ invalidForm value valueValidation =
 
 view : Model -> Html Msg
 view model =
+    let
+        disableSubmit =
+            invalidForm model.value model.valueValidation
+    in
     Modal.config (Close ModalCancel)
         |> Modal.large
         |> Modal.h5 [] [ Html.text model.title ]
@@ -135,17 +147,18 @@ view model =
                 [ Html.text "Cancel" ]
             , Button.button
                 [ Button.primary
-                , Button.disabled <| invalidForm model.value model.valueValidation
+                , Button.disabled disableSubmit
                 , Button.onClick <| Close ModalOk
                 ]
                 [ Html.text "Confirm" ]
             ]
         |> Modal.view model.visibility
+        |> HtmlUtils.handleEnterKeyPress (Close ModalOk) (not disableSubmit)
 
 
 renderBody : String -> String -> Html Msg
 renderBody valueLabel value =
-    Form.form []
+    Form.form [ Html.Events.onSubmit PreventSubmit ]
         [ Form.row []
             [ Form.col [ Col.sm12 ]
                 [ Form.group []
