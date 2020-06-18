@@ -96,6 +96,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:prometheus_phoenix, "~> 1.3"},
       {:prometheus_plugs, "~> 1.1"},
       {:skogsra, "~> 2.2"},
+      {:observer_cli, "~> 1.5"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

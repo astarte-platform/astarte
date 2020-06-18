@@ -87,6 +87,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
+      {:observer_cli, "~> 1.5"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

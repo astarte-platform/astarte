@@ -91,6 +91,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:prometheus_plugs, "~> 1.1"},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
+      {:observer_cli, "~> 1.5"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

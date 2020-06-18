@@ -104,6 +104,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:telemetry, "~> 0.4"},
       {:skogsra, "~> 2.2"},
       {:castore, "~> 0.1.0"},
+      {:observer_cli, "~> 1.5"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
