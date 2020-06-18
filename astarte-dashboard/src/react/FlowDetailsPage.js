@@ -35,8 +35,6 @@ export default class FlowDetailsPage extends React.Component {
 
     this.handleFlowResponse = this.handleFlowResponse.bind(this);
     this.handleFlowError = this.handleFlowError.bind(this);
-    this.handlePipelineResponse = this.handlePipelineResponse.bind(this);
-    this.handlePipelineError = this.handlePipelineError.bind(this);
 
     this.astarte
       .getFlowDetails(props.flowName)
@@ -50,7 +48,6 @@ export default class FlowDetailsPage extends React.Component {
     switch (this.state.phase) {
       case "ok":
         const flow = this.state.flowDescription;
-        const pipelineManifest = this.state.pipelineManifest;
 
         innerHTML = (
           <>
@@ -80,32 +77,12 @@ export default class FlowDetailsPage extends React.Component {
 
   handleFlowResponse(response) {
     this.setState({
-      phase: "loading",
+      phase: "ok",
       flowDescription: response.data
     });
-
-    this.astarte
-      .getPipelineInputConfig(response.data.pipeline)
-      .then(this.handlePipelineResponse)
-      .catch(this.handlePipelineError);
   }
 
   handleFlowError(err) {
-    console.log(err);
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
-
-  handlePipelineResponse(response) {
-    this.setState({
-      phase: "ok",
-      pipelineManifest: response.data
-    });
-  }
-
-  handlePipelineError(err) {
     console.log(err);
     this.setState({
       phase: "err",
