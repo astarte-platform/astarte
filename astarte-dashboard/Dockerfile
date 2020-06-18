@@ -1,4 +1,4 @@
-FROM node:13-buster as builder
+FROM node:14 as builder
 
 WORKDIR /app
 ADD . .
