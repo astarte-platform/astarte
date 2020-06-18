@@ -18,13 +18,17 @@
 
 import React from "react";
 import { Alert, Container, Row, Col } from "react-bootstrap";
+import BackButton from "./BackButton.js";
 
 export default function SingleCardPage(props) {
-  const { errorMessages, onAlertClose, children, title } = props;
+  const { backLink, errorMessages, onAlertClose, children, title } = props;
 
   return (
     <Container fluid className="p-3">
-      <h2>{title}</h2>
+      <h2>
+        { backLink &&  <BackButton href={backLink} /> }
+        {title}
+      </h2>
       { errorMessages &&
         <Row>
           { Array.from(errorMessages).map(([key, value]) =>

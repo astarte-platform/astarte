@@ -1237,18 +1237,21 @@ placeholderRegex =
 
 view : Model -> List FlashMessage -> Html Msg
 view model flashMessages =
-    Grid.containerFluid
-        [ class "bg-white"
-        , Border.rounded
-        , Spacing.p3
-        ]
+    Grid.containerFluid [ Spacing.p3 ]
         [ Grid.row []
-            [ Grid.col []
-                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
+            [ Grid.col [ Col.sm12 ]
+                [ Html.h2
+                    [ Spacing.pl2 ]
+                    [ Html.a
+                        [ href "/triggers", Spacing.mr2 ]
+                        [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                    , Html.text "Trigger Editor"
+                    ]
+                ]
             ]
         , Grid.row []
             [ Grid.col []
-                [ Html.h3 [] [ Html.text "Trigger Editor" ] ]
+                [ FlashMessageHelpers.renderFlashMessages flashMessages Forward ]
             ]
         , Grid.row []
             [ Grid.col []
@@ -1280,25 +1283,36 @@ view model flashMessages =
 
 renderContent : Model -> Html Msg
 renderContent model =
-    Form.form [] <|
-        List.concat
-            [ [ Form.row []
-                    [ Form.col [ Col.sm12 ]
-                        [ Form.group []
-                            [ Form.label [ for "triggerName" ] [ text "Name" ]
-                            , Input.text
-                                [ Input.id "triggerName"
-                                , Input.readonly model.editMode
-                                , Input.value model.trigger.name
-                                , Input.onInput UpdateTriggerName
+    Grid.containerFluid
+        [ class "bg-white"
+        , Border.rounded
+        , Spacing.p3
+        ]
+        [ Form.form []
+            (List.concat
+                [ [ Form.row []
+                        [ Form.col [ Col.sm12 ]
+                            [ Form.group []
+                                [ Form.label [ for "triggerName" ] [ text "Name" ]
+                                , Input.text
+                                    [ Input.id "triggerName"
+                                    , Input.readonly model.editMode
+                                    , Input.value model.trigger.name
+                                    , Input.onInput UpdateTriggerName
+                                    ]
                                 ]
                             ]
                         ]
-                    ]
-              ]
-            , renderSimpleTrigger model
-            , TriggerActionEditor.view model.actionEditorConfig model.trigger.action model.editMode model.currentRealm
-            ]
+                  ]
+                , renderSimpleTrigger model
+                , TriggerActionEditor.view
+                    model.actionEditorConfig
+                    model.trigger.action
+                    model.editMode
+                    model.currentRealm
+                ]
+            )
+        ]
 
 
 renderButtonsRow : Bool -> Bool -> Html Msg

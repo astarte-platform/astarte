@@ -142,7 +142,7 @@ export default class RegisterDevicePage extends React.Component {
 
   render() {
     return (
-      <SingleCardPage title="Register Device">
+      <SingleCardPage title="Register Device" backLink="/devices">
         <Form onSubmit={this.registerDevice}>
           <Form.Row>
             <Form.Group as={Col} controlId="deviceIdInput">

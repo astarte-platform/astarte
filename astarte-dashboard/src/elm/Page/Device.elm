@@ -791,7 +791,13 @@ view model flashMessages =
                 [ Grid.row []
                     [ Grid.col
                         [ Col.sm12 ]
-                        [ Html.h2 [ Spacing.pl2 ] [ Html.text "Device" ]
+                        [ Html.h2
+                            [ Spacing.pl2 ]
+                            [ Html.a
+                                [ href "/devices", Spacing.mr2 ]
+                                [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                            , Html.text "Device"
+                            ]
                         , FlashMessageHelpers.renderFlashMessages flashMessages Forward
                         ]
                     ]

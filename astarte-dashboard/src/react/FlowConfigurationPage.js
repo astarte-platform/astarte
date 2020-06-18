@@ -140,6 +140,7 @@ export default class FlowConfigurationPage extends React.Component {
     return (
       <SingleCardPage
         title="Flow Configuration"
+        backLink="/pipelines"
         errorMessages={alerts}
         onAlertClose={this.closeAlert}
       >
