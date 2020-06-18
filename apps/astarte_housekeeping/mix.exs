@@ -87,7 +87,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
       {:skogsra, "~> 2.2"},
-      {:pretty_log, "~> 0.1"}
+      {:pretty_log, "~> 0.1"},
+      {:observer_cli, "~> 1.5"}
     ]
   end
 end

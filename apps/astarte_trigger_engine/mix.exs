@@ -89,6 +89,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:telemetry, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:skogsra, "~> 2.2"},
+      {:observer_cli, "~> 1.5"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

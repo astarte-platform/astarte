@@ -83,6 +83,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:prometheus_ex, "~> 3.0"},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
+      {:observer_cli, "~> 1.5"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
