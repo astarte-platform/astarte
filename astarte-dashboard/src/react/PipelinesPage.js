@@ -150,7 +150,11 @@ function NewPipelineCard({ onCreate }) {
 function PipelineCard({ pipelineName, pipelineDescription, configureCB }) {
   return (
     <Card className="mb-4">
-      <Card.Header as="h5">{pipelineName}</Card.Header>
+      <Card.Header as="h5">
+        <Link to={`/pipelines/${pipelineName}`}>
+          {pipelineName}
+        </Link>
+      </Card.Header>
       <Card.Body>
         <Card.Text>{pipelineDescription}</Card.Text>
         <Button variant="primary" onClick={configureCB}>
