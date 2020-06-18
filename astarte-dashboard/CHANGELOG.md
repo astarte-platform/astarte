@@ -6,23 +6,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.0.0-alpha.1] - 2020-06-18
 ### Added
-- Add pagination to the device list page.
 - Device registration page.
-- Button for device credentials wipe.
+- Add button for device credentials wipe on device page.
 - Error messages when accessing pages with invalid direct URLs.
 - Pairing API health check.
-- Device metadata view and editing.
-- Add custom headers and method for trigger HTTP actions
-- Login form validation.
-- Astarte Flow feature preview.
+- Support to device metadata.
+- Add support to custom headers and method for trigger HTTP actions
+- Login form JWT token validation.
+- Astarte Flow technology preview.
 - AMQP trigger actions.
 - Device error triggers.
 
 ### Changed
-- Layout and palette restyle.
+- Look & feel.
+- Paginate device list page.
 - Configuration accepts both base Astarte API URL and specific component URLs.
-- Public keys are shown using monospace fonts
-- Explicit timestamp is enabled for all mappings when interface type is changed to datastream.
+- Explicit timestamp is enabled by default for all mappings when interface type is changed to
+  datastream.
 
 ## [0.11.1] - 2020-05-18
 ### Added
