@@ -17,8 +17,9 @@
 -}
 
 
-module Types.DeviceEvent exposing (DeviceEvent, Event(..), decoder)
+module Types.DeviceEvent exposing (DeviceError(..), DeviceEvent, ErrorParams, Event(..), decoder)
 
+import Dict exposing (Dict)
 import Iso8601
 import Json.Decode as Decode exposing (Decoder)
 import Time
@@ -35,6 +36,7 @@ type alias DeviceEvent =
 type Event
     = DeviceConnected ConnectionParams
     | DeviceDisconnected
+    | DeviceError ErrorParams
     | IncomingData ValueParams
     | ValueStored ValueParams
     | ValueChanged ValueChangeParams
@@ -42,6 +44,25 @@ type Event
     | PathCreated ValueParams
     | PathRemoved PathParams
     | Other String
+
+
+type DeviceError
+    = WriteOnServerOwnedInterface
+    | InvalidInterface
+    | InvalidPath
+    | MappingNotFound
+    | InterfaceLoadingFailed
+    | AmbiguousPath
+    | UndecodableBsonPayload
+    | UnexpectedValueType
+    | ValueSizeExceeded
+    | UnexpectedObjectKey
+    | InvalidIntrospection
+    | UnexpectedControlMessage
+    | DeviceSessionNotFound
+    | ResendInterfacePropertiesFailed
+    | EmptyCacheError
+    | UserDefined String
 
 
 type alias ConnectionParams =
@@ -66,6 +87,12 @@ type alias ValueChangeParams =
 type alias PathParams =
     { interface : String
     , path : String
+    }
+
+
+type alias ErrorParams =
+    { errorType : DeviceError
+    , metadata : Dict String String
     }
 
 
@@ -104,6 +131,9 @@ knownEventsDecoderHelper eventType =
         "device_disconnected" ->
             Decode.succeed DeviceDisconnected
 
+        "device_error" ->
+            Decode.map DeviceError errorParamsDecoder
+
         "incoming_data" ->
             Decode.map IncomingData valueParamsDecoder
 
@@ -124,6 +154,64 @@ knownEventsDecoderHelper eventType =
 
         _ ->
             Decode.fail <| "Unknown event type " ++ eventType
+
+
+deviceErrorDecoder : Decoder DeviceError
+deviceErrorDecoder =
+    Decode.string
+        |> Decode.andThen knownDeviceErrorHelper
+
+
+knownDeviceErrorHelper : String -> Decoder DeviceError
+knownDeviceErrorHelper errorName =
+    case errorName of
+        "write_on_server_owned_interface" ->
+            Decode.succeed WriteOnServerOwnedInterface
+
+        "invalid_interface" ->
+            Decode.succeed InvalidInterface
+
+        "invalid_path" ->
+            Decode.succeed InvalidPath
+
+        "mapping_not_found" ->
+            Decode.succeed MappingNotFound
+
+        "interface_loading_failed" ->
+            Decode.succeed InterfaceLoadingFailed
+
+        "ambiguous_path" ->
+            Decode.succeed AmbiguousPath
+
+        "undecodable_bson_payload" ->
+            Decode.succeed UndecodableBsonPayload
+
+        "unexpected_value_type" ->
+            Decode.succeed UnexpectedValueType
+
+        "value_size_exceeded" ->
+            Decode.succeed ValueSizeExceeded
+
+        "unexpected_object_key" ->
+            Decode.succeed UnexpectedObjectKey
+
+        "invalid_introspection" ->
+            Decode.succeed InvalidIntrospection
+
+        "unexpected_control_message" ->
+            Decode.succeed UnexpectedControlMessage
+
+        "device_session_not_found" ->
+            Decode.succeed DeviceSessionNotFound
+
+        "resend_interface_properties_failed" ->
+            Decode.succeed ResendInterfacePropertiesFailed
+
+        "empty_cache_error" ->
+            Decode.succeed EmptyCacheError
+
+        name ->
+            Decode.succeed <| UserDefined name
 
 
 connectionParamsDecoder : Decoder ConnectionParams
@@ -153,3 +241,10 @@ pathParamsDecoder =
     Decode.map2 PathParams
         (Decode.field "interface" Decode.string)
         (Decode.field "path" Decode.string)
+
+
+errorParamsDecoder : Decoder ErrorParams
+errorParamsDecoder =
+    Decode.map2 ErrorParams
+        (Decode.field "error_name" deviceErrorDecoder)
+        (Decode.field "metadata" <| Decode.dict Decode.string)
