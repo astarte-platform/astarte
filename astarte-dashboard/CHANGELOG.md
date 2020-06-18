@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Public keys are shown using monospace fonts
 - Explicit timestamp is enabled for all mappings when interface type is changed to datastream.
 
-## [0.11.1] - Unreleased
+## [0.11.1] - 2020-05-18
 ### Added
 - Byte multiples in device stats stable.
 
