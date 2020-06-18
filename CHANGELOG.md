@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [realm_management_api] Allow installing device-specific and group-specific triggers. To do so,
   pass the `device_id` or `group_name` key inside the `simple_trigger`.
 - [data_updater_plant] Add support for device-specific and group-specific triggers.
+- Add support for device error triggers.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.

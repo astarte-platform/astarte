@@ -106,6 +106,7 @@ This is the generic representation of a Data Trigger:
 
 - `device_connected`: triggered when a device connects to its transport.
 - `device_disconnected`: triggered when a device disconnects from its transport.
+- `device_error`: triggered when data from a device causes an error.
 
 `device_id` can be used to pass a specific Device ID to restrict the trigger to a single device. `*`
 is also accepted as `device_id` to maintain backwards compatibility and it is considered equivalent
@@ -224,7 +225,10 @@ Further options might be used, such as "http_headers", enabling auth to remote s
 
 Please, beware that some http headers might be not allowed or reserved for http connection signaling.
 
-The payload of the request is JSON document with this format:
+### SimpleEvent payloads
+
+The payload delivered in a default HTTP action or in [Astarte Channels](052-using_channels.html) is
+a JSON document with this format:
 
 ```json
 {
@@ -265,6 +269,25 @@ Additionally, the realm that originated the trigger is available in the request 
   "type": "device_disconnected"
 }
 ```
+
+###### DeviceErrorEvent
+
+```json
+{
+  "type": "device_error",
+  "error_name": "<error_name>",
+  "metadata": {
+    "<key>": "<value>"
+  }
+}
+```
+
+`error_name` is a string identifying the error. More details can be found in the [device errors
+documentation](045-device_errors.html)
+
+`metadata` is a map with string key and string values that may contain additional information about
+the error. Some metadata (_e.g._ binary payloads) might be encoded in base64 if they cannot be
+represented as string. In that case, the key is prepended with the `base64_` prefix.
 
 ###### IncomingDataEvent
 
