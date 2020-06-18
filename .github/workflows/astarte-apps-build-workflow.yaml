@@ -93,7 +93,7 @@ jobs:
         - astarte_trigger_engine
         database:
         - "cassandra:3.11.6"
-        - "scylladb/scylla:4.0.1"
+        - "scylladb/scylla:4.1.rc2"
         rabbitmq:
         - "rabbitmq:3.8-management"
     services:
@@ -162,6 +162,6 @@ jobs:
         CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
     - name: Upload Coverage Results to CodeCov
       # Don't upload more than once per component
-      if: matrix.database == 'scylladb/scylla:4.0.1'
+      if: matrix.database == 'scylladb/scylla:4.1.rc2'
       working-directory: ./apps/${{ matrix.app }}
       run: bash <(curl -s https://codecov.io/bash)
