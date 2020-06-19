@@ -16,7 +16,7 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 ## Resources and Quickstart
 
- * [Astarte Documentation](https://docs.astarte-platform.org/snapshot) - The main resource to learn about Astarte.
+ * [Astarte Documentation](https://docs.astarte-platform.org/1.0) - The main resource to learn about Astarte.
  * [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your Astarte cluster(s).
  * [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) - The preferred and
    supported way to run Astarte - in Production, and pretty much anywhere else.
@@ -41,7 +41,7 @@ Make sure to use the latest stable release if you want a flawless experience.
 
 You should be up and running in a matter of minutes. If you want a more thorough explanation and
 find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in
-5 minutes" tutorial](https://docs.astarte-platform.org/snapshot/010-astarte_in_5_minutes.html) to get
+5 minutes" tutorial](https://docs.astarte-platform.org/1.0/010-astarte_in_5_minutes.html) to get
 some fake or real devices to stream and process data while your tea gets ready.
 
 ## Sweet! Let's move it to production!
@@ -51,10 +51,10 @@ tricky, and requires some knowledge about the platform to make sure it won't bre
 
 So, if you're serious about getting Astarte in your production environment, you might want to learn
 more about it first. Start by [having a look at its
-architecture](https://docs.astarte-platform.org/snapshot/001-intro_architecture.html) and [finding
-out how it works](https://docs.astarte-platform.org/snapshot/001-intro_user.html). Once you feel
+architecture](https://docs.astarte-platform.org/1.0/001-intro_architecture.html) and [finding
+out how it works](https://docs.astarte-platform.org/1.0/001-intro_user.html). Once you feel
 confident, head over to the [Administration
-Manual](https://docs.astarte-platform.org/snapshot/001-intro_administrator.html).
+Manual](https://docs.astarte-platform.org/1.0/001-intro_administrator.html).
 
 ## Where do I find binaries?
 

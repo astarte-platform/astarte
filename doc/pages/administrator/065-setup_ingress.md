@@ -61,5 +61,5 @@ In particular, assuming your API host was `api.astarte.yourdomain.com`:
 
 `AstarteVoyagerIngress` has a number of advanced options that can be used to accommodate needs of the most diverse
 deployments. Consult the
-[CRD Documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/master/deploy/crds/api.astarte-platform.org_astartevoyageringresses_crd.yaml)
+[CRD Documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/release-1.0/deploy/crds/api.astarte-platform.org_astartevoyageringresses_crd.yaml)
 to learn more.
