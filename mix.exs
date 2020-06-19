@@ -22,7 +22,7 @@ defmodule Astarte.DataAccess.Mixfile do
   def project do
     [
       app: :astarte_data_access,
-      version: "1.0.0-dev",
+      version: "1.0.0-alpha.1",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -75,6 +75,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.12", only: :test},
       {:castore, "~> 0.1.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
