@@ -13,6 +13,8 @@ on:
     # Create the snapshot only when it matters
     - 'master'
     - 'release-*'
+  # Run on branch/tag creation
+  create:
 
 jobs:
   docs:
