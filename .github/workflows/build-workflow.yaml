@@ -62,7 +62,7 @@ jobs:
       matrix:
         database:
         - "cassandra:3.11.6"
-        - "scylladb/scylla:3.3.0"
+        - "scylladb/scylla:4.1.rc2"
     services:
       database:
         image: ${{ matrix.database }}
