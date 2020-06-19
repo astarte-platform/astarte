@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   def project do
     [
       app: :astarte_housekeeping_api,
-      version: "1.0.0-dev",
+      version: "1.0.0-alpha.1",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_rpc, "~> 1.0.0-alpha.1"}
     ]
   end
 

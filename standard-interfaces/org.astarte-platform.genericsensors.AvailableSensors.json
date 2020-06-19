@@ -1,7 +1,7 @@
 {
     "interface_name": "org.astarte-platform.genericsensors.AvailableSensors",
-    "version_major": 0,
-    "version_minor": 1,
+    "version_major": 1,
+    "version_minor": 0,
     "type": "properties",
     "ownership": "device",
     "description": "Describes available generic sensors.",

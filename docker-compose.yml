@@ -1,7 +1,7 @@
 version: '2'
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:snapshot
+    image: astarte/astarte_housekeeping:1.0.0-alpha.1
     env_file:
      - ./compose.env
     ports:
@@ -12,7 +12,7 @@ services:
       - "scylla"
 
   astarte-housekeeping-api:
-    image: astarte/astarte_housekeeping_api:snapshot
+    image: astarte/astarte_housekeeping_api:1.0.0-alpha.1
     env_file:
      - ./compose.env
     environment:
@@ -26,7 +26,7 @@ services:
       - "rabbitmq"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:snapshot
+    image: astarte/astarte_realm_management:1.0.0-alpha.1
     env_file:
      - ./compose.env
     ports:
@@ -37,7 +37,7 @@ services:
       - "scylla"
 
   astarte-realm-management-api:
-    image: astarte/astarte_realm_management_api:snapshot
+    image: astarte/astarte_realm_management_api:1.0.0-alpha.1
     env_file:
      - ./compose.env
     ports:
@@ -47,7 +47,7 @@ services:
       - "rabbitmq"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:snapshot
+    image: astarte/astarte_pairing:1.0.0-alpha.1
     env_file:
      - ./compose.env
     ports:
@@ -60,7 +60,7 @@ services:
       - "scylla"
 
   astarte-pairing-api:
-    image: astarte/astarte_pairing_api:snapshot
+    image: astarte/astarte_pairing_api:1.0.0-alpha.1
     env_file:
      - ./compose.env
     ports:
@@ -70,7 +70,7 @@ services:
       - "rabbitmq"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:snapshot
+    image: astarte/astarte_appengine_api:1.0.0-alpha.1
     env_file:
      - ./compose.env
     environment:
@@ -86,7 +86,7 @@ services:
       - "scylla"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:snapshot
+    image: astarte/astarte_data_updater_plant:1.0.0-alpha.1
     env_file:
      - ./compose.env
     ports:
@@ -104,7 +104,7 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:snapshot
+    image: astarte/astarte_trigger_engine:1.0.0-alpha.1
     env_file:
      - ./compose.env
     ports:
@@ -117,7 +117,7 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:snapshot
+    image: astarte/astarte-dashboard:1.0.0-alpha.1
     ports:
       - "4040:80"
     volumes:
@@ -127,7 +127,7 @@ services:
       - "astarte-appengine-api"
 
   astarte-grafana:
-    image: astarte/grafana:snapshot
+    image: astarte/grafana:1.0.0-alpha.1
     ports:
       - "3000:3000"
     depends_on:
@@ -168,7 +168,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:snapshot
+    image: astarte/vernemq:1.0.0-alpha.1
     env_file:
      - ./compose.env
     environment:
