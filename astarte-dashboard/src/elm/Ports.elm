@@ -20,6 +20,7 @@
 port module Ports exposing
     ( TaggedDate
     , isoDateToLocalizedString
+    , leaveDeviceRoom
     , listenToDeviceEvents
     , loadReactPage
     , onDateConverted
@@ -58,6 +59,9 @@ type alias InterfaceId =
 
 
 port listenToDeviceEvents : DeviceSocketParams -> Cmd msg
+
+
+port leaveDeviceRoom : () -> Cmd msg
 
 
 port onDeviceEventReceived : (Value -> msg) -> Sub msg
