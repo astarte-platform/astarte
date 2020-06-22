@@ -724,16 +724,31 @@ setRoute model ( maybeRoute, maybeToken ) =
     let
         ( page, command, updatedSession ) =
             processRoute model.config model.session ( maybeRoute, maybeToken )
+
+        reactEnvCommand =
+            if isReactBased page then
+                Cmd.none
+
+            else
+                Ports.unloadReactPage ()
+
+        astarteChannelsCommand =
+            case page of
+                Realm _ (DevicePage _) ->
+                    Cmd.none
+
+                _ ->
+                    Ports.leaveDeviceRoom ()
     in
     ( { model
         | selectedPage = page
         , session = updatedSession
       }
-    , if isReactBased page then
-        command
-
-      else
-        Cmd.batch [ command, Ports.unloadReactPage () ]
+    , Cmd.batch
+        [ command
+        , reactEnvCommand
+        , astarteChannelsCommand
+        ]
     )
 
 

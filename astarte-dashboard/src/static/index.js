@@ -64,6 +64,7 @@ $.getJSON("/user-config/config.json", function(result) {
 
     app.ports.loadReactPage.subscribe(loadPage);
     app.ports.unloadReactPage.subscribe(clearReact);
+    app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
 
     app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
 
@@ -227,6 +228,13 @@ function watchDeviceEvents(params) {
     .catch((err) => {
       sendErrorMessage(`Couldn't join device ${deviceId} room`);
     });
+}
+
+function leaveDeviceRoom() {
+  for (let room of astarteClient.joinedRooms()) {
+    console.log("leaving room " + room);
+    astarteClient.leaveRoom(room);
+  }
 }
 
 function sendErrorMessage(errorMessage) {
