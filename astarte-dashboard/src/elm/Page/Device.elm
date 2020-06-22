@@ -49,7 +49,7 @@ import Route
 import Set
 import Spinner
 import Time
-import Types.AstarteValue as AstarteValue
+import Types.AstarteValue as AstarteValue exposing (AstarteValue)
 import Types.Device as Device exposing (Device)
 import Types.DeviceEvent as DeviceEvent exposing (DeviceEvent)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -1338,10 +1338,9 @@ renderDeviceEvent event =
                 DeviceEvent.IncomingData data ->
                     ( IncommingDataLabel
                     , Html.span []
-                        [ Html.span [ Spacing.mr2 ] [ Html.text data.interface ]
-                        , Html.span [ Spacing.mr2 ] [ Html.text data.path ]
-                        , Html.span [ class "text-monospace" ] [ Html.text <| AstarteValue.toString data.value ]
-                        ]
+                        (Html.span [ Spacing.mr2 ] [ Html.text data.interface ]
+                            :: pathValueToHtml data.path data.value
+                        )
                     )
 
                 DeviceEvent.Other eventType ->
@@ -1356,6 +1355,30 @@ renderDeviceEvent event =
                     )
     in
     renderEventItem event.timestamp Nothing label message
+
+
+pathValueToHtml : String -> DeviceEvent.PathValue -> List (Html Msg)
+pathValueToHtml path value =
+    case value of
+        DeviceEvent.SingleValue val ->
+            renderPathValue path <| AstarteValue.toString val
+
+        DeviceEvent.ObjectValue obj ->
+            Dict.toList obj
+                |> List.map (objectValueMapHelper path)
+                |> List.concat
+
+
+objectValueMapHelper : String -> ( String, AstarteValue ) -> List (Html Msg)
+objectValueMapHelper path ( subPath, value ) =
+    renderPathValue (path ++ subPath) (AstarteValue.toString value)
+
+
+renderPathValue : String -> String -> List (Html Msg)
+renderPathValue path value =
+    [ Html.span [ Spacing.mr2 ] [ Html.text path ]
+    , Html.span [ Spacing.mr2, class "text-monospace" ] [ Html.text value ]
+    ]
 
 
 renderEventItem : Time.Posix -> Maybe Color -> LabelType -> Html Msg -> Html Msg
