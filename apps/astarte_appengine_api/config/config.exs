@@ -18,6 +18,7 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   secret_key_base: "oLTSqHyMVoBtu3Gu504Dn6HFN1qdFXtkJ0yFViRDbXckOHgTjFs1XaRS0QaKZ8KL",
   render_errors: [view: Astarte.AppEngine.APIWeb.ErrorView, accepts: ~w(json)],
   pubsub: [name: Astarte.AppEngine.API.PubSub, adapter: Phoenix.PubSub.PG2],
+  check_origin: false,
   instrumenters: [Astarte.AppEngine.APIWeb.Metrics.PhoenixInstrumenter]
 
 # Configures Elixir's Logger
