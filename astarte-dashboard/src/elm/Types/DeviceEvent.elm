@@ -17,7 +17,7 @@
 -}
 
 
-module Types.DeviceEvent exposing (DeviceError(..), DeviceEvent, ErrorParams, Event(..), decoder)
+module Types.DeviceEvent exposing (DeviceError(..), DeviceEvent, ErrorParams, Event(..), PathValue(..), decoder)
 
 import Dict exposing (Dict)
 import Iso8601
@@ -65,6 +65,11 @@ type DeviceError
     | UserDefined String
 
 
+type PathValue
+    = SingleValue AstarteValue
+    | ObjectValue (Dict String AstarteValue)
+
+
 type alias ConnectionParams =
     { ip : String }
 
@@ -72,7 +77,7 @@ type alias ConnectionParams =
 type alias ValueParams =
     { interface : String
     , path : String
-    , value : AstarteValue
+    , value : PathValue
     }
 
 
@@ -156,12 +161,6 @@ knownEventsDecoderHelper eventType =
             Decode.fail <| "Unknown event type " ++ eventType
 
 
-deviceErrorDecoder : Decoder DeviceError
-deviceErrorDecoder =
-    Decode.string
-        |> Decode.andThen knownDeviceErrorHelper
-
-
 knownDeviceErrorHelper : String -> Decoder DeviceError
 knownDeviceErrorHelper errorName =
     case errorName of
@@ -224,7 +223,7 @@ valueParamsDecoder =
     Decode.map3 ValueParams
         (Decode.field "interface" Decode.string)
         (Decode.field "path" Decode.string)
-        (Decode.field "value" AstarteValue.decoder)
+        (Decode.field "value" pathValueDecoder)
 
 
 valueChangeParamsDecoder : Decoder ValueChangeParams
@@ -248,3 +247,26 @@ errorParamsDecoder =
     Decode.map2 ErrorParams
         (Decode.field "error_name" deviceErrorDecoder)
         (Decode.field "metadata" <| Decode.dict Decode.string)
+
+
+deviceErrorDecoder : Decoder DeviceError
+deviceErrorDecoder =
+    Decode.string
+        |> Decode.andThen knownDeviceErrorHelper
+
+
+pathValueDecoder : Decoder PathValue
+pathValueDecoder =
+    Decode.oneOf [ singleValueDecoder, objectValueDecoder ]
+
+
+singleValueDecoder : Decoder PathValue
+singleValueDecoder =
+    AstarteValue.decoder
+        |> Decode.map SingleValue
+
+
+objectValueDecoder : Decoder PathValue
+objectValueDecoder =
+    Decode.dict AstarteValue.decoder
+        |> Decode.map ObjectValue
