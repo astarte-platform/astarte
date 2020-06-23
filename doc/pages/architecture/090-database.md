@@ -96,6 +96,7 @@ CREATE TABLE <realm_name>.devices (
   exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
   last_credentials_request_ip inet,
   last_seen_ip inet,
+  metadata map<varchar, varchar>,
 
   groups map<text, timeuuid>,
 
@@ -227,6 +228,7 @@ Devices table stores the list of all the devices for a certain realm and all the
 | `exchanged_bytes_by_interface`| `bigint`                              | Amount of exchanged messages bytes since the device registration.                                                                                                                                  |
 | `last_credentials_request_ip` | `inet`                                | Device IP address used during the last credential request.                                                                                                                                         |
 | `last_seen_ip`                | `inet`                                | Most recent device IP address.                                                                                                                                                                     |
+| `metadata`                    | `map<varchar, varchar>`               | Device metadata. It can contain arbitrary string key and values associated with the device.
 | `groups`                      | `map<text, timeuuid>`                 | Groups which the device belongs to, the key is the group name, and the value is its insertion timeuuid, which is used as part of the key on grouped_devices table.                                                                                                                                                                               |
 
 ## Schema changes
@@ -295,3 +297,12 @@ ADD (
 * The `connected` field of the `devices` table is now saved with a TTL, so it automatically expires
   if it doesn't gets refreshed by the hearbeat sent by the broker. This behaviour was added to
   avoid stale connected devices if they disconnect while the broker is down.
+
+* Add `metadata` column to the `devices` table
+
+```sql
+ALTER TABLE devices
+ADD (
+    metadata map<varchar, varchar>
+);
+```
