@@ -23,7 +23,7 @@ export default function BackButton({ href }) {
   return (
     <Link
       to={href}
-      className="align-text-bottom mr-2"
+      className="align-bottom mr-2"
     >
       <i className="fas fa-chevron-left align-text-bottom" />
     </Link>
