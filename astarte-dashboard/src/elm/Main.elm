@@ -38,7 +38,6 @@ import Json.Decode as Decode exposing (Value, at, string)
 import Json.Encode as Encode
 import ListUtils exposing (addWhen)
 import Page.Device as Device
-import Page.DeviceData as DeviceData
 import Page.InterfaceBuilder as InterfaceBuilder
 import Page.Interfaces as Interfaces
 import Page.Login as Login
@@ -216,7 +215,6 @@ type RealmPage
     | TriggersPage Triggers.Model
     | TriggerBuilderPage TriggerBuilder.Model
     | DevicePage Device.Model
-    | DeviceDataPage DeviceData.Model
     | ReactInitPage ReactPageCategory
 
 
@@ -246,7 +244,6 @@ type Msg
     | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | DeviceMsg Device.Msg
-    | DeviceDataMsg DeviceData.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
     | AppEngineHealthCheckDone (Result AstarteApi.Error Bool)
@@ -433,9 +430,6 @@ updateRealmPage realm realmPage msg model =
                 ( DeviceMsg subMsg, DevicePage subModel ) ->
                     updateRealmPageHelper realm (Device.update model.session subMsg subModel) DeviceMsg DevicePage
 
-                ( DeviceDataMsg subMsg, DeviceDataPage subModel ) ->
-                    updateRealmPageHelper realm (DeviceData.update model.session subMsg subModel) DeviceDataMsg DeviceDataPage
-
                 -- Ignore messages from not matching pages
                 ( _, _ ) ->
                     ( model.selectedPage, Cmd.none, Noop )
@@ -558,7 +552,7 @@ pageInit realmRoute config session =
             initDevicePage deviceId session session.apiConfig.realm
 
         Route.ShowDeviceData deviceId interfaceName ->
-            initDeviceDataPage deviceId interfaceName session session.apiConfig.realm
+            initReactPage session Devices "device-data" realmRoute
 
         Route.DeviceList ->
             initReactPage session Devices "devices-list" realmRoute
@@ -687,18 +681,6 @@ initDevicePage deviceId session realm =
     in
     ( Realm realm (DevicePage initialModel)
     , Cmd.map DeviceMsg initialCommand
-    , session
-    )
-
-
-initDeviceDataPage : String -> String -> Session -> String -> ( Page, Cmd Msg, Session )
-initDeviceDataPage deviceId interfaceName session realm =
-    let
-        ( initialModel, initialCommand ) =
-            DeviceData.init session deviceId interfaceName
-    in
-    ( Realm realm (DeviceDataPage initialModel)
-    , Cmd.map DeviceDataMsg initialCommand
     , session
     )
 
@@ -1251,10 +1233,6 @@ renderProtectedPage flashMessages page =
             Device.view submodel flashMessages
                 |> Html.map DeviceMsg
 
-        DeviceDataPage submodel ->
-            DeviceData.view submodel flashMessages
-                |> Html.map DeviceDataMsg
-
         ReactInitPage _ ->
             ReactInit.view flashMessages
                 |> Html.map (\a -> Ignore)
@@ -1295,9 +1273,6 @@ pageSubscriptions page =
 
         Realm _ (DevicePage submodel) ->
             Sub.map DeviceMsg <| Device.subscriptions submodel
-
-        Realm _ (DeviceDataPage submodel) ->
-            Sub.map DeviceDataMsg <| DeviceData.subscriptions submodel
 
         _ ->
             Sub.none
