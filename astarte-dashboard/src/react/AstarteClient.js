@@ -68,10 +68,13 @@ export default class AstarteClient {
       auth:                  astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/config/auth`,
       interfaces:            astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces`,
       interfaceMajors:       astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces/${"interfaceName"}`,
+      interfaceData:         astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces/${"interfaceName"}/${"interfaceMajor"}`,
       triggers:              astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/triggers`,
       appengineHealth:       astarteAPIurl`${"appengineUrl"}/health`,
       devicesStats:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/stats/devices`,
       devices:               astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices`,
+      deviceInfo:            astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices/${"deviceId"}`,
+      deviceData:            astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices/${"deviceId"}/interfaces/${"interfaceName"}`,
       groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
       groupDevices:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices`,
       deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`,
@@ -108,6 +111,14 @@ export default class AstarteClient {
     return this._get(this.apiConfig["interfaceMajors"]({ ...this.config, interfaceName: interfaceName }));
   }
 
+  getInterface({ interfaceName, interfaceMajor }) {
+    return this._get(this.apiConfig["interfaceData"]({
+      interfaceName: interfaceName,
+      interfaceMajor: interfaceMajor,
+      ...this.config
+    }));
+  }
+
   getTriggerNames() {
     return this._get(this.apiConfig["triggers"](this.config));
   }
@@ -138,6 +149,18 @@ export default class AstarteClient {
     }
 
     return this._get(endpointUri);
+  }
+
+  getDeviceInfo(deviceId) {
+    return this._get(this.apiConfig["deviceInfo"]({ deviceId: deviceId, ...this.config }));
+  }
+
+  getDeviceData({ deviceId, interfaceName, interfaceMajor }) {
+    return this._get(this.apiConfig["deviceData"]({
+      deviceId: deviceId,
+      interfaceName: interfaceName,
+      ...this.config
+    }));
   }
 
   getGroupList() {
