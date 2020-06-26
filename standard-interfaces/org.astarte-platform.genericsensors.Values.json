@@ -8,7 +8,7 @@
     "doc": "Values allows generic sensors to stream samples. It is usually used in combination with AvailableSensors, which makes API client aware of what sensors and what unit of measure they are reporting. sensor_id represents an unique identifier for an individual sensor, and should match sensor_id in AvailableSensors when used in combination.",
     "mappings": [
         {
-            "endpoint": "/%{sensor_id}/value",
+            "endpoint": "/%{sensor_id}/values",
             "type": "double",
             "explicit_timestamp": true,
             "description": "Sampled real value.",
