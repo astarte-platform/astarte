@@ -55,7 +55,7 @@ type alias AmqpActionConfig =
 type alias HttpActionConfig =
     { url : String
     , httpMethod : HttpMethod
-    , customHeaders : Dict String String
+    , staticHeaders : Dict String String
     , template : Template
     }
 
@@ -80,7 +80,7 @@ emptyHttpAction =
     Http
         { url = ""
         , httpMethod = Post
-        , customHeaders = Dict.empty
+        , staticHeaders = Dict.empty
         , template = NoTemplate
         }
 
@@ -127,7 +127,7 @@ encode action =
             Encode.object
                 ([ ( "http_url", Encode.string config.url )
                  , ( "http_method", encodeMethod config.httpMethod )
-                 , ( "http_custom_headers", Encode.dict identity Encode.string config.customHeaders )
+                 , ( "http_static_headers", Encode.dict identity Encode.string config.staticHeaders )
                  ]
                     ++ templateEncoder config.template
                 )
@@ -203,7 +203,7 @@ decodeHttpPostAction =
     Decode.succeed buildHttpAction
         |> required "http_post_url" Decode.string
         |> hardcoded Post
-        |> optional "http_custom_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
+        |> optional "http_static_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
         |> optional "template_type" (Decode.nullable Decode.string) Nothing
         |> optional "template" (Decode.nullable Decode.string) Nothing
         |> resolve
@@ -214,7 +214,7 @@ decodeStandardHttpAction =
     Decode.succeed buildHttpAction
         |> required "http_url" Decode.string
         |> required "http_method" methodDecoder
-        |> optional "http_custom_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
+        |> optional "http_static_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
         |> optional "template_type" (Decode.nullable Decode.string) Nothing
         |> optional "template" (Decode.nullable Decode.string) Nothing
         |> resolve

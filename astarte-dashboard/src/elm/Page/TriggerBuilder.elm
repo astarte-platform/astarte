@@ -1057,7 +1057,7 @@ handleKeyValueModalCommand session msg model =
                     model.trigger
 
                 newAction =
-                    { action | customHeaders = Dict.insert header value action.customHeaders }
+                    { action | staticHeaders = Dict.insert header value action.staticHeaders }
 
                 newTrigger =
                     { trigger | action = TriggerAction.Http newAction }
@@ -1102,7 +1102,7 @@ handleSingleValueModalCommand session msg header model =
                     model.trigger
 
                 newAction =
-                    { action | customHeaders = Dict.insert header value action.customHeaders }
+                    { action | staticHeaders = Dict.insert header value action.staticHeaders }
 
                 newTrigger =
                     { trigger | action = TriggerAction.Http newAction }
@@ -1147,7 +1147,7 @@ handleConfirmModalCommand session msg header model =
                     model.trigger
 
                 newAction =
-                    { action | customHeaders = Dict.remove header action.customHeaders }
+                    { action | staticHeaders = Dict.remove header action.staticHeaders }
 
                 newTrigger =
                     { trigger | action = TriggerAction.Http newAction }
