@@ -533,7 +533,7 @@ httpTriggerAction config editMode messageTag newCustomHeader editCustomHeader de
     , payloadTemplate config.template editMode
         |> Html.map UpdateHttpAction
         |> Html.map messageTag
-    , customHttpHeaders config.customHeaders editMode newCustomHeader editCustomHeader deleteCustomHeader
+    , customHttpHeaders config.staticHeaders editMode newCustomHeader editCustomHeader deleteCustomHeader
     ]
 
 
