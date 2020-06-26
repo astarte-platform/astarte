@@ -53,10 +53,10 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
     assert length(errors) == 1
   end
 
-  test "HttpAction is invalid when both http_post_url and http_headers are set" do
+  test "HttpAction is invalid when both http_post_url and http_static_headers are set" do
     input = %{
       "http_post_url" => "http://example.com/post",
-      "http_headers" => %{
+      "http_static_headers" => %{
         "X-Custom-Header" => "Test",
         "Authorization" => "Bearer foo"
       }
@@ -68,7 +68,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
       |> Changeset.apply_action(:insert)
 
     assert {:error, %Changeset{errors: errors, valid?: false}} = out
-    assert errors[:http_headers] == {"must be blank", []}
+    assert errors[:http_static_headers] == {"must be blank", []}
     assert length(errors) == 1
   end
 
@@ -99,11 +99,11 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
     assert {:ok, %HttpAction{http_url: "http://example.com/", http_method: "get"}} = out
   end
 
-  test "HttpAction with valid http_url, http_method and http_headers is valid" do
+  test "HttpAction with valid http_url, http_method and http_static_headers is valid" do
     input = %{
       "http_url" => "http://example.com/",
       "http_method" => "put",
-      "http_headers" => %{
+      "http_static_headers" => %{
         "X-Custom-Header" => "Test",
         "Authorization" => "Bearer foo"
       }
@@ -117,7 +117,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
     expected_action = %HttpAction{
       http_url: "http://example.com/",
       http_method: "put",
-      http_headers: %{
+      http_static_headers: %{
         "X-Custom-Header" => "Test",
         "Authorization" => "Bearer foo"
       }
@@ -126,11 +126,11 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
     assert {:ok, expected_action} == out
   end
 
-  test "http_headers with non-string values must be rejected" do
+  test "http_static_headers with non-string values must be rejected" do
     input = %{
       "http_url" => "http://example.com/",
       "http_method" => "put",
-      "http_headers" => %{
+      "http_static_headers" => %{
         "X-Custom-Header" => 5,
         "Authorization" => "Bearer foo"
       }
@@ -143,17 +143,17 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
 
     assert {:error, %Changeset{errors: errors, valid?: false}} = out
 
-    assert errors[:http_headers] ==
+    assert errors[:http_static_headers] ==
              {"is invalid", [{:type, {:map, :string}}, {:validation, :cast}]}
 
     assert length(errors) == 1
   end
 
-  test "http_headers with blocklisted header must be rejected" do
+  test "http_static_headers with blocklisted header must be rejected" do
     input = %{
       "http_url" => "http://example.com/",
       "http_method" => "put",
-      "http_headers" => %{
+      "http_static_headers" => %{
         "Connection" => "close",
         "Authorization" => "Bearer foo"
       }
@@ -165,7 +165,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
       |> Changeset.apply_action(:insert)
 
     assert {:error, %Changeset{errors: errors, valid?: false}} = out
-    assert errors[:http_headers] == {"must contain only allowed http headers", []}
+    assert errors[:http_static_headers] == {"must contain only allowed http headers", []}
     assert length(errors) == 1
   end
 
@@ -206,5 +206,34 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
               ]}
 
     assert length(errors) == 1
+  end
+
+  test "well-formed http action with headers is correctly encoded" do
+    input = %{
+      "http_url" => "https://example.com/",
+      "http_method" => "put",
+      "http_static_headers" => %{
+        "Foo" => "Bar",
+        "Key" => "Value"
+      }
+    }
+
+    out =
+      %HttpAction{}
+      |> HttpAction.changeset(input)
+      |> Changeset.apply_action(:insert)
+
+    assert {:ok, action} = out
+
+    jason_out_map =
+      action
+      |> Jason.encode!()
+      |> Jason.decode!()
+
+    assert %{
+             "http_url" => "https://example.com/",
+             "http_method" => "put",
+             "http_static_headers" => %{"Foo" => "Bar", "Key" => "Value"}
+           } = jason_out_map
   end
 end

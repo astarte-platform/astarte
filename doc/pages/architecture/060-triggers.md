@@ -211,13 +211,13 @@ This is the configuration object representing a minimal default action:
 
 The default action sends an HTTP request to the specified `http_url` using `http_method` method (e.g. `POST`).
 
-Further options might be used, such as "http_headers", enabling auth to remote services:
+Further options might be used, such as "http_static_headers", enabling auth to remote services:
 
 ```json
 {
   "http_url": "<http_url>",
   "http_method": "<method>",
-  "http_headers": {
+  "http_static_headers": {
     "Authorization": "Bearer <token>"
   }
 }

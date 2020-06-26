@@ -25,7 +25,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
   embedded_schema do
     field :http_url, :string
     field :http_method, :string
-    field :http_headers, {:map, :string}
+    field :http_static_headers, {:map, :string}
 
     field :template, :string
     field :template_type, :string
@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
   @all_attrs [
     :http_url,
     :http_method,
-    :http_headers,
+    :http_static_headers,
     :template,
     :template_type,
     :http_post_url
@@ -71,7 +71,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     |> validate_required([:http_post_url])
     |> validate_empty(:http_url)
     |> validate_empty(:http_method)
-    |> validate_empty(:http_headers)
+    |> validate_empty(:http_static_headers)
     |> validate_url(:http_post_url)
     |> validate_length(:template, max: @max_mustache_template_size)
     |> normalize_fields()
@@ -85,8 +85,8 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     |> validate_empty(:http_post_url)
     |> validate_url(:http_url)
     |> validate_inclusion(:http_method, @valid_methods)
-    |> validate_headers(:http_headers)
-    |> validate_headers_size(:http_headers)
+    |> validate_headers(:http_static_headers)
+    |> validate_headers_size(:http_static_headers)
     |> validate_length(:template, max: @max_mustache_template_size)
   end
 
@@ -162,7 +162,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
       %HttpAction{
         http_url: http_url,
         http_method: http_method,
-        http_headers: http_headers,
+        http_static_headers: http_static_headers,
         template: template,
         template_type: template_type
       } = action
@@ -171,7 +171,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
         "http_url" => http_url,
         "http_method" => http_method
       }
-      |> maybe_put("http_headers", http_headers)
+      |> maybe_put("http_static_headers", http_static_headers)
       |> maybe_put("template", template)
       |> maybe_put("template_type", template_type)
       |> Jason.Encode.map(opts)
