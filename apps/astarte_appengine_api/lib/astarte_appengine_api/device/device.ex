@@ -550,7 +550,7 @@ defmodule Astarte.AppEngine.API.Device do
     end)
   end
 
-  defp extract_aggregate_reliability([mapping, _rest] = _mappings) do
+  defp extract_aggregate_reliability([mapping | _rest] = _mappings) do
     # Extract the reliability from the first mapping since it's
     # the same for all mappings in object aggregated interfaces
     mapping.reliability
