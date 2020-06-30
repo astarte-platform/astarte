@@ -87,14 +87,14 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     :ok = stop_services()
   end
 
-  defp wait_connection_and_check_astarte_keyspace(retries \\ 10) do
+  defp wait_connection_and_check_astarte_keyspace(retries \\ 60) do
     case Queries.is_astarte_keyspace_existing() do
       {:ok, exists?} ->
         {:ok, exists?}
 
       {:error, :database_connection_error} ->
         if retries > 0 do
-          :timer.sleep(100)
+          :timer.sleep(1000)
           wait_connection_and_check_astarte_keyspace(retries - 1)
         else
           {:error, :database_connection_error}
