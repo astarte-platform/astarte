@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Fix regression that made it impossible to use Astarte Channels.
 
+### Changed
+- [housekeeping] Increase the delay between connection attempts to 1000 ms, for an overall number
+  of 60 attempts.
+
 ## [1.0.0-alpha.1] - 2020-06-19
 ### Fixed
 - Make sure devices are eventually marked as disconnected even if they disconnect while VerneMQ is
