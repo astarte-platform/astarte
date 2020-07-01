@@ -329,13 +329,13 @@ triggersCard width triggerCount =
 
 
 apiHealthCard : Card.Width -> Maybe Bool -> Maybe Bool -> Grid.Column Msg
-apiHealthCard width appengineHelath realmManagementHealth =
+apiHealthCard width appengineHealth realmManagementHealth =
     Card.view width
         "API Status"
         [ Grid.row []
             [ Grid.col [ Col.sm12 ]
-                [ Card.htmlRow ( "Realm management API", renderHealth appengineHelath )
-                , Card.htmlRow ( "AppEngine API", renderHealth realmManagementHealth )
+                [ Card.htmlRow ( "AppEngine API", renderHealth appengineHealth )
+                , Card.htmlRow ( "Realm management API", renderHealth realmManagementHealth )
                 ]
             ]
         ]
