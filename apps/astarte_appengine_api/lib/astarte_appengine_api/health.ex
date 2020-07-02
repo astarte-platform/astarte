@@ -27,13 +27,13 @@ defmodule Astarte.AppEngine.API.Health do
     # make sure that this gets called regularly or the health gauge won't
     # get updated
     with {:ok, client} <- Database.connect(),
-         :ok <- Queries.check_astarte_health(client, :local_quorum) do
-      HealthStatus.set_health_status(:local_quorum, true)
+         :ok <- Queries.check_astarte_health(client, :quorum) do
+      HealthStatus.set_health_status(:quorum, true)
       HealthStatus.set_health_status(:one, true)
       :ok
     else
       {:error, :health_check_bad} ->
-        HealthStatus.set_health_status(:local_quorum, false)
+        HealthStatus.set_health_status(:quorum, false)
 
         with {:ok, client} <- Database.connect(),
              :ok <- Queries.check_astarte_health(client, :one) do
@@ -50,7 +50,7 @@ defmodule Astarte.AppEngine.API.Health do
         end
 
       {:error, :database_connection_error} ->
-        HealthStatus.set_health_status(:local_quorum, false)
+        HealthStatus.set_health_status(:quorum, false)
         HealthStatus.set_health_status(:one, false)
         {:error, :bad_health}
     end
