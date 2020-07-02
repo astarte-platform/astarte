@@ -74,12 +74,6 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       replication_class: "NetworkTopologyStrategy",
       datacenter_replication_factors: %{}
     }
-    @invalid_datacenter_name_attrs %{
-      realm_name: "mytestrealm",
-      jwt_public_key_pem: @pubkey,
-      replication_class: "NetworkTopologyStrategy",
-      datacenter_replication_factors: %{"OR 1=1; --" => 2}
-    }
     @less_than_zero_datacenter_replication_attrs %{
       realm_name: "mytestrealm",
       jwt_public_key_pem: @pubkey,
@@ -137,7 +131,6 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@malformed_pubkey_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_replication_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_replication_class_attrs)
-      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_datacenter_name_attrs)
 
       assert {:error, %Ecto.Changeset{}} =
                Realms.create_realm(@empty_datacenter_replication_attrs)

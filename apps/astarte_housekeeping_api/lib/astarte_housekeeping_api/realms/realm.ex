@@ -21,7 +21,6 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   import Ecto.Changeset
 
   @default_replication_factor 1
-  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_-]*$/
 
   @required_fields [:realm_name, :jwt_public_key_pem]
   @allowed_fields [
@@ -67,15 +66,10 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
 
   defp datacenter_map_validator(field, datacenter_map) do
     Enum.reduce(datacenter_map, [], fn {datacenter_name, replication_factor}, errors_acc ->
-      cond do
-        not Regex.match?(@datacenter_name_regex, datacenter_name) ->
-          [{field, "has invalid datacenter name: #{datacenter_name}"} | errors_acc]
-
-        not is_number(replication_factor) or replication_factor <= 0 ->
-          [{field, "has invalid replication factor: #{replication_factor}"} | errors_acc]
-
-        true ->
-          errors_acc
+      if is_number(replication_factor) and replication_factor > 0 do
+        errors_acc
+      else
+        [{field, "has invalid replication factor: #{replication_factor}"} | errors_acc]
       end
     end)
   end
