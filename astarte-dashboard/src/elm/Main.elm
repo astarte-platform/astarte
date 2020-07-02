@@ -516,11 +516,7 @@ pageInit realmRoute config session =
                 logoutPath =
                     case session.loginStatus of
                         LoggedIn (OAuthLogin authUrl) ->
-                            Url.Builder.custom
-                                (Url.Builder.CrossOrigin authUrl)
-                                [ "logout" ]
-                                [ Url.Builder.string "redirect_uri" session.hostUrl ]
-                                Nothing
+                            Url.Builder.custom (Url.Builder.CrossOrigin authUrl) [] [] Nothing
 
                         _ ->
                             Route.toString <| Route.RealmSelection (Just "token")
@@ -814,69 +810,24 @@ processRealmRoute maybeToken realmRoute config session =
         apiConfig =
             session.apiConfig
     in
-    if String.isEmpty apiConfig.realm then
-        case realmRoute of
-            Route.Auth maybeRealm maybeOauthUrl ->
-                attemptLogin maybeRealm maybeToken maybeOauthUrl config session
+    case ( realmRoute, apiConfig.realm, maybeToken ) of
+        ( Route.Auth (Just realm) maybeOauthUrl, "", Just token ) ->
+            -- login
+            loginToHome realm token maybeOauthUrl config session
 
-            _ ->
-                -- not authorized
-                initLoginPage config session
+        ( Route.Auth (Just realm) maybeOauthUrl, prevRealm, Just token ) ->
+            -- overwrite previous session
+            loginToHome realm token maybeOauthUrl config session
 
-    else
-        case maybeToken of
-            Just token ->
-                -- update token
-                let
-                    sessionWithUpdatedToken =
-                        session
-                            |> Session.setToken token
+        ( _, "", _ ) ->
+            -- not authorized
+            initLoginPage config session
 
-                    ( page, command, updatedSession ) =
-                        pageInit realmRoute config sessionWithUpdatedToken
-                in
-                ( page
-                , Cmd.batch [ storeSession updatedSession, command ]
-                , updatedSession
-                )
-
-            Nothing ->
-                -- access granted
-                pageInit realmRoute config session
-
-
-attemptLogin : Maybe String -> Maybe String -> Maybe String -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
-attemptLogin maybeRealm maybeToken maybeOauthUrl config session =
-    let
-        apiConfig =
-            session.apiConfig
-    in
-    case ( maybeRealm, maybeToken ) of
-        ( Just realm, Just token ) ->
-            -- login into realm
+        ( _, _, Just token ) ->
+            -- update token
             let
-                updatedApiConfig =
-                    { apiConfig
-                        | realm = realm
-                        , token = token
-                    }
-
-                loginType =
-                    case maybeOauthUrl of
-                        Nothing ->
-                            Session.TokenLogin
-
-                        Just url ->
-                            Session.OAuthLogin url
-
-                sessionWithCredentials =
-                    { session
-                        | loginStatus = LoggedIn loginType
-                        , apiConfig = updatedApiConfig
-                    }
-
                 ( page, command, updatedSession ) =
-                    pageInit Route.Home config sessionWithCredentials
+                    pageInit realmRoute config (Session.setToken token session)
             in
             ( page
             , Cmd.batch [ storeSession updatedSession, command ]
@@ -884,8 +835,43 @@ attemptLogin maybeRealm maybeToken maybeOauthUrl config session =
             )
 
         _ ->
-            -- missing parameters
-            initLoginPage config session
+            -- access granted
+            pageInit realmRoute config session
+
+
+loginToHome : String -> String -> Maybe String -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
+loginToHome realm token maybeOauthUrl config session =
+    let
+        apiConfig =
+            session.apiConfig
+
+        updatedApiConfig =
+            { apiConfig
+                | realm = realm
+                , token = token
+            }
+
+        loginType =
+            case maybeOauthUrl of
+                Nothing ->
+                    Session.TokenLogin
+
+                Just url ->
+                    Session.OAuthLogin url
+
+        sessionWithCredentials =
+            { session
+                | loginStatus = LoggedIn loginType
+                , apiConfig = updatedApiConfig
+            }
+
+        ( page, command, updatedSession ) =
+            pageInit Route.Home config sessionWithCredentials
+    in
+    ( page
+    , Cmd.batch [ storeSession updatedSession, command ]
+    , updatedSession
+    )
 
 
 
