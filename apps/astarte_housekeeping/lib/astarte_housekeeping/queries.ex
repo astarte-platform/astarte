@@ -22,8 +22,6 @@ defmodule Astarte.Housekeeping.Queries do
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Migrator
 
-  @datacenter_name_regex ~r/^[a-z][a-zA-Z0-9_-]*$/
-
   @default_replication_factor 1
 
   def create_realm(realm_name, public_key_pem, nil = _replication_factor, opts) do
@@ -963,17 +961,9 @@ defmodule Astarte.Housekeeping.Queries do
               []
             end
 
-          with {:valid_dc_name, true} <-
-                 {:valid_dc_name, Regex.match?(@datacenter_name_regex, datacenter)},
-               :ok <-
-                 check_replication_for_datacenter(conn, datacenter, replication_factor, opts) do
-            {:cont, :ok}
-          else
-            {:valid_dc_name, false} ->
-              {:halt, {:error, :invalid_datacenter_name}}
-
-            {:error, reason} ->
-              {:halt, {:error, reason}}
+          case check_replication_for_datacenter(conn, datacenter, replication_factor, opts) do
+            :ok -> {:cont, :ok}
+            {:error, reason} -> {:halt, {:error, reason}}
           end
       end)
     end
