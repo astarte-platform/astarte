@@ -271,6 +271,18 @@ function loadPage(page) {
     return;
   }
 
+  // This is done to handle the race condition from the save-session and load-page commands
+  // A better solution would require JS to nofify Elm of the correct session initialization
+  // so that Elm can trigger a safe page load command
+  // TODO remove the command race condition
+  if (!astarteClient) {
+    console.log("Elm did not init the Astarte client yet. retry later...");
+    setTimeout(function() {
+      loadPage(page);
+    }, 100);
+    return;
+  }
+
   let node = document.createElement("div");
   node.id = "react-page";
   pageNode.appendChild(node);
