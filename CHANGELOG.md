@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_housekeeping_api] Remove format check on Cassandra datacenter name when a realm is
   created, the datacenter is just verified against the one present in the database.
 
+### Changed
+- [housekeeping] Increase the delay between connection attempts to 1000 ms, for an overall number
+  of 60 attempts.
+
 ## [1.0.0-alpha.1] - 2020-06-19
 ### Fixed
 - Make sure devices are eventually marked as disconnected even if they disconnect while VerneMQ is
