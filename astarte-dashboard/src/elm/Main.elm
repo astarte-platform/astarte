@@ -516,11 +516,7 @@ pageInit realmRoute config session =
                 logoutPath =
                     case session.loginStatus of
                         LoggedIn (OAuthLogin authUrl) ->
-                            Url.Builder.custom
-                                (Url.Builder.CrossOrigin authUrl)
-                                [ "logout" ]
-                                [ Url.Builder.string "redirect_uri" session.hostUrl ]
-                                Nothing
+                            Url.Builder.custom (Url.Builder.CrossOrigin authUrl) [] [] Nothing
 
                         _ ->
                             Route.toString <| Route.RealmSelection (Just "token")
