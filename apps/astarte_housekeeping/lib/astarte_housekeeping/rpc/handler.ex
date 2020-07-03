@@ -24,6 +24,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   alias Astarte.RPC.Protocol.Housekeeping.{
     Call,
     CreateRealm,
+    DeleteRealm,
     DoesRealmExist,
     DoesRealmExistReply,
     GenericErrorReply,
@@ -128,6 +129,33 @@ defmodule Astarte.Housekeeping.RPC.Handler do
           )
 
         generic_error(:existing_realm, "realm already exists")
+
+      {:error, {reason, details}} ->
+        generic_error(reason, details)
+
+      {:error, reason} ->
+        generic_error(reason)
+    end
+  end
+
+  defp call_rpc({:delete_realm, %DeleteRealm{realm: ""}}) do
+    _ = Logger.warn("DeleteRealm with empty realm.", tag: "rpc_delete_empty_realm")
+    generic_error(:empty_name, "empty realm name")
+  end
+
+  defp call_rpc({:delete_realm, %DeleteRealm{realm: realm, async_operation: async}}) do
+    with {:ok, true} <- Engine.is_realm_existing(realm),
+         :ok <- Engine.delete_realm(realm, async: async) do
+      generic_ok(async)
+    else
+      {:ok, false} ->
+        _ =
+          Logger.warn("DeleteRealm with non-existing realm.",
+            tag: "rpc_delete_non_existing_realm",
+            realm: realm
+          )
+
+        generic_error(:realm_not_found)
 
       {:error, {reason, details}} ->
         generic_error(reason, details)

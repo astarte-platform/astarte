@@ -41,6 +41,13 @@ defmodule Astarte.Housekeeping.APIWeb.FallbackController do
     |> render(:realm_not_found)
   end
 
+  def call(conn, {:error, :realm_deletion_disabled}) do
+    conn
+    |> put_status(:method_not_allowed)
+    |> put_view(ErrorView)
+    |> render(:realm_deletion_disabled)
+  end
+
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)

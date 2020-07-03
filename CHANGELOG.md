@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Fix regression that made it impossible to use Astarte Channels.
 - [astarte_appengine_api] Fix bug that prevented data publishing in object aggregated interfaces.
 
+### Added
+- [astarte_housekeeping] Allow deleting a realm. The feature can be enabled with an environment
+  variable (defaults to disabled).
+
 ### Changed
 - [astarte_housekeeping_api] Remove format check on Cassandra datacenter name when a realm is
   created, the datacenter is just verified against the one present in the database.
-
-### Changed
 - [housekeeping] Increase the delay between connection attempts to 1000 ms, for an overall number
   of 60 attempts.
 

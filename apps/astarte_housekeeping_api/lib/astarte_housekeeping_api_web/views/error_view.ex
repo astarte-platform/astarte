@@ -39,6 +39,10 @@ defmodule Astarte.Housekeeping.APIWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("realm_deletion_disabled.json", _assigns) do
+    %{errors: %{detail: "Realm deletion disabled"}}
+  end
+
   # In case no render clause matches or no
   # template is found, let's render it as 500
   def template_not_found(_template, assigns) do
