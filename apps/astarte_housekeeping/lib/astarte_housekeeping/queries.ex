@@ -45,6 +45,16 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
+  def delete_realm(realm_name, opts \\ []) do
+    if opts[:async] do
+      {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name) end)
+
+      :ok
+    else
+      do_delete_realm(realm_name)
+    end
+  end
+
   defp build_replication_map_str(replication_factor)
        when is_integer(replication_factor) and replication_factor > 0 do
     replication_map_str =
@@ -82,6 +92,25 @@ defmodule Astarte.Housekeeping.Queries do
 
       {:error, :realm_not_allowed}
     end
+  end
+
+  defp do_delete_realm(realm_name) do
+    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
+      with :ok <- validate_realm_name(realm_name),
+           :ok <- delete_realm_keyspace(conn, realm_name),
+           :ok <- remove_realm(conn, realm_name) do
+        :ok
+      else
+        {:error, reason} ->
+          _ =
+            Logger.warn("Cannot delete realm: #{inspect(reason)}.",
+              tag: "realm_deletion_failed",
+              realm: realm_name
+            )
+
+          {:error, reason}
+      end
+    end)
   end
 
   defp do_create_realm(realm_name, public_key_pem, replication_map_str) do
@@ -127,6 +156,28 @@ defmodule Astarte.Housekeeping.Queries do
           )
 
         {:error, reason}
+    end
+  end
+
+  defp delete_realm_keyspace(conn, realm_name) do
+    query = """
+    DROP KEYSPACE #{realm_name}
+    """
+
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
     end
   end
 
@@ -480,6 +531,33 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.Void{}} <-
            Xandra.execute(conn, query, %{}, consistency: :each_quorum) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  defp remove_realm(conn, realm_name) do
+    query = """
+    DELETE FROM astarte.realms
+    WHERE realm_name = :realm_name;
+    """
+
+    params = %{"realm_name" => realm_name}
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, %Xandra.Void{}} <-
+           Xandra.execute(conn, prepared, params, consistency: :each_quorum) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->

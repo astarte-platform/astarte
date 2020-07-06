@@ -35,6 +35,15 @@ defmodule Astarte.Housekeeping.Config do
     type: :integer,
     default: 4008
 
+  @envdoc """
+  By default Astarte Housekeeping doesn't support realm deletion. Set this variable to true to
+  enable this feature. WARNING: this feature can cause permanent data loss when deleting a realm.
+  """
+  app_env :enable_realm_deletion, :astarte_housekeeping, :enable_realm_deletion,
+    os_env: "HOUSEKEEPING_ENABLE_REALM_DELETION",
+    type: :boolean,
+    default: false
+
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 

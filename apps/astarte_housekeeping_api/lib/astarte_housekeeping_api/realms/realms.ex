@@ -97,15 +97,19 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   ## Examples
 
-      iex> delete_realm(realm)
-      {:ok, %Realm{}}
+      iex> delete_realm(realm_name)
+      :ok
 
-      iex> delete_realm(realm)
+      iex> delete_realm(realm_name)
       {:error, ...}
 
   """
-  def delete_realm(%Realm{} = _realm) do
-    raise "TODO"
+  def delete_realm(realm_name) do
+    case Housekeeping.delete_realm(realm_name) do
+      :ok -> :ok
+      {:ok, :started} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   @doc """

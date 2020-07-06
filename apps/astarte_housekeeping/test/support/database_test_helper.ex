@@ -46,23 +46,6 @@ defmodule Astarte.Housekeeping.DatabaseTestHelper do
   end
 
   def realm_cleanup(realm) do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      delete_from_astarte_query = """
-      DELETE FROM astarte.realms
-      WHERE realm_name=:realm_name
-      """
-
-      delete_from_astarte_prepared = Xandra.prepare!(conn, delete_from_astarte_query)
-
-      _ = Xandra.execute!(conn, delete_from_astarte_prepared, %{"realm_name" => realm})
-
-      delete_keyspace_query = """
-      DROP KEYSPACE #{realm}
-      """
-
-      _ = Xandra.execute!(conn, delete_keyspace_query)
-
-      :ok
-    end)
+    Queries.delete_realm(realm)
   end
 end

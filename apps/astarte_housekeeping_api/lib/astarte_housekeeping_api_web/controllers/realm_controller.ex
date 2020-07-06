@@ -52,8 +52,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
   end
 
   def delete(conn, %{"id" => id}) do
-    with {:ok, %Realm{} = realm} <- Realms.get_realm(id),
-         {:ok, %Realm{}} <- Realms.delete_realm(realm) do
+    with :ok <- Realms.delete_realm(id) do
       send_resp(conn, :no_content, "")
     end
   end
