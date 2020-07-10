@@ -646,11 +646,20 @@ defmodule Astarte.AppEngine.API.Device do
     # We use get since we can be in a properties case
     reliability = Keyword.get(opts, :reliability)
 
-    if type == :datastream and reliability == :unreliable do
-      # Unreliable datastream is the only case where this is ok
-      :ok
-    else
-      {:error, :cannot_push_to_device}
+    cond do
+      type == :properties ->
+        # No matches will happen only if the device doesn't have a session on
+        # the broker, but the SDK would then send an emptyCache at the first
+        # connection and receive all properties. Hence, we return :ok for
+        # properties even if there are no matches
+        :ok
+
+      type == :datastream and reliability == :unreliable ->
+        # Unreliable datastream is allowed to fail
+        :ok
+
+      true ->
+        {:error, :cannot_push_to_device}
     end
   end
 

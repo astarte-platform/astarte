@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Fix regression that made it impossible to use Astarte Channels.
 - [astarte_appengine_api] Fix bug that prevented data publishing in object aggregated interfaces.
+- [astarte_appengine_api] Fix regression that prevented properties to be set before the first
+  connection of a device.
 
 ### Added
 - [astarte_housekeeping] Allow deleting a realm. The feature can be enabled with an environment
