@@ -117,9 +117,9 @@ type Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
     | DeviceMetadataUpdated (Dict String String) (Result AstarteApi.Error ())
     | EditAlias String
-    | DeleteAlias String
+    | DeleteAlias String String
     | EditMetadata String
-    | RemoveMetadata String
+    | RemoveMetadata String String
     | SetCredentialsInhibited Bool
     | ShowConfirmModal
       -- spinner
@@ -442,13 +442,13 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
-        DeleteAlias aliasTag ->
+        DeleteAlias aliasTag aliasValue ->
             let
                 title =
                     "Delete Alias"
 
                 body =
-                    "Delete alias \"" ++ aliasTag ++ "\"?"
+                    "Delete alias \"" ++ aliasValue ++ "\"?"
 
                 action =
                     Just "Delete"
@@ -490,7 +490,7 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        RemoveMetadata key ->
+        RemoveMetadata key _ ->
             let
                 title =
                     "Delete Item"
@@ -1604,7 +1604,7 @@ renderMetadata metadata =
             )
 
 
-fieldValueTableRow : (String -> Msg) -> (String -> Msg) -> ( String, String ) -> Table.Row Msg
+fieldValueTableRow : (String -> Msg) -> (String -> String -> Msg) -> ( String, String ) -> Table.Row Msg
 fieldValueTableRow editMessage deleteMessage ( key, value ) =
     Table.tr []
         [ Table.td []
@@ -1619,7 +1619,7 @@ fieldValueTableRow editMessage deleteMessage ( key, value ) =
                 ]
             , Icons.render Icons.Erase
                 [ class "color-red action-icon"
-                , Html.Events.onClick (deleteMessage key)
+                , Html.Events.onClick (deleteMessage key value)
                 ]
             ]
         ]
