@@ -181,8 +181,8 @@ export default class DevicesPage extends React.Component {
     switch (this.state.phase) {
       case "ok":
         if (this.state.totalDevices) {
-          const { activePage, cachedPages } = this.state;
-          const viewAblePages = cachedPages.length;
+          const { activePage, cachedPages, maxPage } = this.state;
+          const viewAblePages = Math.min(cachedPages.length, maxPage);
           const devices = cachedPages[activePage].devices;
 
           innerHTML = (
