@@ -468,7 +468,9 @@ handleExternalMessage model externalMsg =
             )
 
         RequestRoute route ->
-            setRoute model ( Just route, Nothing )
+            ( model
+            , Browser.Navigation.pushUrl model.navigationKey <| Route.toString route
+            )
 
         RequestRouteWithToken route fragment ->
             setRoute model ( Just route, Just fragment )
