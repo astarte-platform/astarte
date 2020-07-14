@@ -63,9 +63,7 @@ $ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k
 We will use Astarte’s standard interfaces for our test. You can install them by running:
 
 ```
-$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.Values.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
-$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.SamplingRate.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
-$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.AvailableSensors.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+astartectl realm-management interfaces sync standard-interfaces/*.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
 ```
 
 Now `org.astarte-platform.genericsensors.Values`, `org.astarte-platform.genericsensors.SamplingRate` and `org.astarte-platform.genericsensors.AvailableSensors` should show up among our available interfaces:
@@ -96,7 +94,7 @@ Replace `http://example.com` with your target URL in the command below, you can 
       "on": "incoming_data",
       "interface_name": "org.astarte-platform.genericsensors.Values",
       "interface_major": 0,
-      "match_path": "/realValue",
+      "match_path": "/*",
       "value_match_operator": ">",
       "known_value": 0.6
     }
@@ -174,7 +172,7 @@ You can now run `stream-qt5-test` from your last build directory. Refer to its [
 Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-qt5-test`, you can get the last sent value with `astartectl`:
 
 ```sh
-$ astartectl appengine devices get-samples <your device id> org.astarteplatform.Values /realValue --count 1 --appengine-url http://localhost:4002 -r test -k test_private.pem
+$ astartectl appengine devices data-snapshot <your device id> org.astarteplatform.Values --appengine-url http://localhost:4002 -r test -k test_private.pem
 ```
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
