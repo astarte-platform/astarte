@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   created, the datacenter is just verified against the one present in the database.
 - [housekeeping] Increase the delay between connection attempts to 1000 ms, for an overall number
   of 60 attempts.
+- [data_updater_plant] Default the total queue count to 128, de facto exploiting multiqueue support.
+- [data_updater_plant] Default the queue range end to 127.
 
 ## [1.0.0-alpha.1] - 2020-06-19
 ### Fixed
