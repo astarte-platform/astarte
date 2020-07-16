@@ -20,30 +20,30 @@
 module Types.DeviceTrigger exposing
     ( DeviceTrigger
     , DeviceTriggerEvent(..)
+    , Target(..)
     , decoder
     , deviceTriggerEventToString
     , empty
     , encode
-    , setDeviceId
     , setOn
     , stringToDeviceTriggerEvent
     )
 
 import Json.Decode as Decode exposing (Decoder, Value, string)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline exposing (optional, required, resolve)
 import Json.Encode as Encode
 import JsonHelpers
 
 
 type alias DeviceTrigger =
-    { deviceId : String
+    { target : Target
     , on : DeviceTriggerEvent
     }
 
 
 empty : DeviceTrigger
 empty =
-    { deviceId = ""
+    { target = AllDevices
     , on = DeviceConnected
     }
 
@@ -55,13 +55,14 @@ type DeviceTriggerEvent
     | EmptyCacheReceived
 
 
+type Target
+    = AllDevices
+    | DeviceGroup String
+    | SpecificDevice String
+
+
 
 -- Setters
-
-
-setDeviceId : String -> DeviceTrigger -> DeviceTrigger
-setDeviceId deviceId deviceTrigger =
-    { deviceTrigger | deviceId = deviceId }
 
 
 setOn : DeviceTriggerEvent -> DeviceTrigger -> DeviceTrigger
@@ -75,11 +76,26 @@ setOn deviceTriggerEvent deviceTrigger =
 
 encode : DeviceTrigger -> Value
 encode deviceTrigger =
-    Encode.object
-        [ ( "type", Encode.string "device_trigger" )
-        , ( "device_id", Encode.string deviceTrigger.deviceId )
-        , ( "on", deviceTriggerEventEncoder deviceTrigger.on )
-        ]
+    [ [ ( "type", Encode.string "device_trigger" )
+      , ( "on", deviceTriggerEventEncoder deviceTrigger.on )
+      ]
+    , encodeTarget deviceTrigger.target
+    ]
+        |> List.concat
+        |> Encode.object
+
+
+encodeTarget : Target -> List ( String, Value )
+encodeTarget target =
+    case target of
+        AllDevices ->
+            []
+
+        DeviceGroup groupName ->
+            [ ( "group_name", Encode.string groupName ) ]
+
+        SpecificDevice deviceId ->
+            [ ( "device_id", Encode.string deviceId ) ]
 
 
 deviceTriggerEventEncoder : DeviceTriggerEvent -> Value
@@ -111,9 +127,36 @@ deviceTriggerEventToString d =
 
 decoder : Decoder DeviceTrigger
 decoder =
-    Decode.succeed DeviceTrigger
-        |> required "device_id" string
+    Decode.succeed deviceTriggerDecoderHelper
+        |> optional "group_name" string "*"
+        |> optional "device_id" string "*"
         |> required "on" deviceTriggerEventDecoder
+        |> resolve
+
+
+deviceTriggerDecoderHelper : String -> String -> DeviceTriggerEvent -> Decoder DeviceTrigger
+deviceTriggerDecoderHelper groupName deviceId on =
+    case ( groupName, deviceId ) of
+        ( "*", "*" ) ->
+            Decode.succeed
+                { target = AllDevices
+                , on = on
+                }
+
+        ( _, "*" ) ->
+            Decode.succeed
+                { target = DeviceGroup groupName
+                , on = on
+                }
+
+        ( "*", _ ) ->
+            Decode.succeed
+                { target = SpecificDevice deviceId
+                , on = on
+                }
+
+        ( _, _ ) ->
+            Decode.fail "Cannot have both device ID and group name"
 
 
 deviceTriggerEventDecoder : Decoder DeviceTriggerEvent
