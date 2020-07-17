@@ -457,7 +457,7 @@ isGoodInterfaceName interfaceName =
 
 isLowerCase : String -> Bool
 isLowerCase str =
-    String.all Char.isLower str
+    String.all (\c -> Char.isLower c || c == '-') str
 
 
 isTitleCase : String -> Bool
