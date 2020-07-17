@@ -19,9 +19,7 @@ config :astarte_housekeeping_api,
 config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "Nxme5JSsvLykfa6sSoC+7cy9f3ycI8No2T1pwqFpB47KAt6tK/61jGpB+TIhNdjl",
-  render_errors: [view: Astarte.Housekeeping.APIWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Astarte.Housekeeping.API.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [Astarte.Housekeeping.APIWeb.Metrics.PhoenixInstrumenter]
+  render_errors: [view: Astarte.Housekeeping.APIWeb.ErrorView, accepts: ~w(json)]
 
 # Configures Elixir's Logger
 config :logger, :console,

@@ -79,11 +79,11 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:phoenix, "~> 1.4.16"},
+      {:phoenix, "~> 1.5"},
       {:phoenix_ecto, "~> 4.0"},
       {:gettext, "~> 0.11"},
       {:cors_plug, "~> 2.0"},
-      {:plug_cowboy, "~> 2.0"},
+      {:plug_cowboy, "~> 2.1"},
       {:guardian, "~> 2.1"},
       {:excoveralls, "~> 0.12", only: :test},
       {:prometheus_process_collector, "~> 1.4"},

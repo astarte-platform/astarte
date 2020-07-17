@@ -28,8 +28,6 @@ defmodule Astarte.AppEngine.API.Application do
     alias Astarte.DataAccess.Config, as: DataAccessConfig
     alias Astarte.RPC.Config, as: RPCConfig
 
-    import Supervisor.Spec
-
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
       :ignore_rabbitmq_progress_reports,
@@ -54,10 +52,11 @@ defmodule Astarte.AppEngine.API.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
-      supervisor(Astarte.RPC.AMQP.Client, []),
-      supervisor(Astarte.AppEngine.API.Rooms.MasterSupervisor, []),
-      supervisor(Astarte.AppEngine.API.Rooms.AMQPClient, []),
-      supervisor(Astarte.AppEngine.APIWeb.Endpoint, []),
+      {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
+      Astarte.RPC.AMQP.Client,
+      Astarte.AppEngine.API.Rooms.MasterSupervisor,
+      Astarte.AppEngine.API.Rooms.AMQPClient,
+      Astarte.AppEngine.APIWeb.Endpoint,
       {Xandra.Cluster, xandra_options}
     ]
 

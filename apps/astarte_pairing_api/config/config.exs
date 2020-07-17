@@ -31,9 +31,7 @@ config :astarte_pairing_api,
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "LXWGqSIaFRDtOaX5Qgfw5TrSAsWQs6V8OkXEsGuuqRhc1oFvrGax/SfP7F7gAIcX",
-  render_errors: [view: Astarte.Pairing.APIWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Astarte.Pairing.API.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [Astarte.Pairing.APIWeb.Metrics.PhoenixInstrumenter]
+  render_errors: [view: Astarte.Pairing.APIWeb.ErrorView, accepts: ~w(json)]
 
 # Configures Elixir's Logger
 config :logger, :console,
