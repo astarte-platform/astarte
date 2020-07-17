@@ -53,57 +53,13 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.SocketGuardian,
 
 config :phoenix, :json_library, Jason
 
+# Disable phoenix logger since we're using PlugLoggerWithMeta
+config :phoenix, :logger, false
+
 # Enable Swagger by default (if we're here, we're not on distillery)
 config :astarte_appengine_api, swagger_ui: true
 
 config :astarte_appengine_api, :max_results_limit, 10000
-
-config :prometheus, Astarte.AppEngine.APIWeb.Metrics.PhoenixInstrumenter,
-  controller_call_labels: [:controller, :action],
-  channel_join_labels: [:channel, :transport],
-  channel_receive_labels: [:channel, :transport, :event],
-  duration_buckets: [
-    10,
-    25,
-    50,
-    100,
-    250,
-    500,
-    1000,
-    2500,
-    5000,
-    10_000,
-    25_000,
-    50_000,
-    100_000,
-    250_000,
-    500_000,
-    1_000_000,
-    2_500_000,
-    5_000_000,
-    10_000_000
-  ],
-  registry: :default,
-  duration_unit: :microseconds
-
-config :prometheus, Astarte.AppEngine.APIWeb.Metrics.PipelineInstrumenter,
-  labels: [:status_class, :method, :host, :scheme],
-  duration_buckets: [
-    10,
-    100,
-    1_000,
-    10_000,
-    100_000,
-    300_000,
-    500_000,
-    750_000,
-    1_000_000,
-    1_500_000,
-    2_000_000,
-    3_000_000
-  ],
-  registry: :default,
-  duration_unit: :microseconds
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

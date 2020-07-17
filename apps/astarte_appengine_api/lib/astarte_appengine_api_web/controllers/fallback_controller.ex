@@ -156,20 +156,6 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_value_size_exceeded")
   end
 
-  def call(conn, {:error, :degraded_health}) do
-    conn
-    |> put_status(:service_unavailable)
-    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"503_degraded_health")
-  end
-
-  def call(conn, {:error, :bad_health}) do
-    conn
-    |> put_status(:service_unavailable)
-    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"503_service_unavailable")
-  end
-
   def call(conn, {:error, :alias_already_in_use}) do
     conn
     |> put_status(:conflict)

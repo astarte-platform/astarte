@@ -119,10 +119,6 @@ defmodule Astarte.AppEngine.APIWeb.Router do
            :delete
   end
 
-  scope "/health", Astarte.AppEngine.APIWeb do
-    get "/", HealthController, :show
-  end
-
   scope "/swagger" do
     pipe_through :swagger
 
