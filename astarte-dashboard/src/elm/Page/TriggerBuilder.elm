@@ -386,7 +386,17 @@ update session msg model =
                             , sourceBufferStatus = Valid
                             , trigger = trigger
                           }
-                        , Cmd.none
+                        , case trigger.simpleTrigger of
+                            Trigger.Data dataTrigger ->
+                                AstarteApi.getInterface session.apiConfig
+                                    dataTrigger.interfaceName
+                                    dataTrigger.interfaceMajor
+                                    GetInterfaceDone
+                                    (ShowError "Could not retrieve selected interface")
+                                    RedirectToLogin
+
+                            _ ->
+                                Cmd.none
                         , ExternalMsg.Noop
                         )
 
