@@ -39,6 +39,7 @@ import PipelinesPage from "./PipelinesPage.js";
 import PipelineSourcePage from "./PipelineSourcePage.js";
 import NewPipelinePage from "./NewPipelinePage.js";
 import RealmSettingsPage from "./RealmSettingsPage.js";
+import DeviceInterfaceValues from "./DeviceInterfaceValues.js";
 
 export function getRouter(reactHistory, astarteClient, fallback) {
 
@@ -58,6 +59,9 @@ export function getRouter(reactHistory, astarteClient, fallback) {
         </Route>
         <Route exact path="/devices/register">
           <RegisterDevicePage {...pageProps} />
+        </Route>
+        <Route exact path="/devices/:deviceId/interfaces/:interfaceName">
+          <DeviceDataSubPath {...pageProps} />
         </Route>
         <Route exact path="/groups">
           <GroupsPage {...pageProps} />
@@ -122,6 +126,18 @@ function PipelineSubPath(props) {
 
   return (
     <PipelineSourcePage pipelineId={pipelineId} {...props} />
+  );
+}
+
+function DeviceDataSubPath(props) {
+  const { deviceId, interfaceName } = useParams();
+
+  return (
+    <DeviceInterfaceValues
+      deviceId={deviceId}
+      interfaceName={interfaceName}
+      {...props}
+    />
   );
 }
 
