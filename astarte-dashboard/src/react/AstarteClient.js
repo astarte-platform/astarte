@@ -212,11 +212,25 @@ export default class AstarteClient {
     );
   }
 
-  registerDevice(params) {
-    const { deviceId } = params;
-    return this._post(this.apiConfig["registerDevice"](this.config), {
+  registerDevice({ deviceId, introspection }) {
+    let requestBody = {
       hw_id: deviceId
-    });
+    };
+
+    if (introspection) {
+      let encodedintrospection = {};
+
+      for (const [key, interfaceId] of introspection) {
+        encodedintrospection[key] = {
+          major: interfaceId.major,
+          minor: interfaceId.minor
+        }
+      }
+
+      requestBody.initial_introspection = encodedintrospection;
+    }
+
+    return this._post(this.apiConfig["registerDevice"](this.config), requestBody);
   }
 
   getFlowInstances() {
