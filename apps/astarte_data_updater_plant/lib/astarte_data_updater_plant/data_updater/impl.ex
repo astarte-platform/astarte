@@ -191,9 +191,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :device_disconnection],
       %{},
-      %{
-        realm: new_state.realm
-      }
+      %{realm: new_state.realm}
     )
 
     %{new_state | connected: false, last_seen_message: timestamp}
@@ -496,9 +494,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           :telemetry.execute(
             [:astarte, :data_updater_plant, :data_updater, :discarded_message],
             %{},
-            %{
-              realm: new_state.realm
-            }
+            %{realm: new_state.realm}
           )
 
           base64_payload = Base.encode64(payload)
@@ -582,9 +578,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -613,9 +607,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -639,9 +631,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -667,9 +657,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -694,9 +682,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -727,9 +713,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -760,9 +744,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -793,9 +775,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -826,9 +806,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -854,9 +832,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -960,13 +936,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   # TODO: we should test for this kind of unexpected messages
   # We expected an individual value, but we received an aggregated
-  def validate_value_type(expected_types, %{} = object) do
+  def validate_value_type(_expected_types, %{} = _object) do
     {:error, :unexpected_value_type}
   end
 
   # TODO: we should test for this kind of unexpected messages
   # We expected an aggregated, but we received an individual
-  def validate_value_type(%{} = expected_types, object) do
+  def validate_value_type(%{} = _expected_types, _object) do
     {:error, :unexpected_value_type}
   end
 
@@ -1007,9 +983,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :exchanged_bytes],
       %{bytes: exchanged_bytes},
-      %{
-        realm: state.realm
-      }
+      %{realm: state.realm}
     )
 
     %{
@@ -1078,9 +1052,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
           %{},
-          %{
-            realm: state.realm
-          }
+          %{realm: state.realm}
         )
 
         base64_payload = Base.encode64(payload)
@@ -1267,9 +1239,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :processed_introspection],
       %{},
-      %{
-        realm: realm
-      }
+      %{realm: realm}
     )
 
     %{
@@ -1351,9 +1321,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       :telemetry.execute(
         [:astarte, :data_updater_plant, :data_updater, :processed_empty_cache],
         %{},
-        %{
-          realm: new_state.realm
-        }
+        %{realm: new_state.realm}
       )
 
       new_state
@@ -1367,9 +1335,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         execute_device_error_triggers(new_state, "device_session_not_found", timestamp)
@@ -1387,9 +1353,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         execute_device_error_triggers(new_state, "resend_interface_properties_failed", timestamp)
@@ -1407,9 +1371,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
-          %{
-            realm: new_state.realm
-          }
+          %{realm: new_state.realm}
         )
 
         error_metadata = %{"reason" => inspect(reason)}
@@ -1431,9 +1393,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :discarded_control_message],
       %{},
-      %{
-        realm: state.realm
-      }
+      %{realm: state.realm}
     )
 
     base64_payload = Base.encode64(payload)
@@ -2010,9 +1970,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       :telemetry.execute(
         [:astarte, :data_updater_plant, :data_updater, :clean_session_request],
         %{},
-        %{
-          realm: state.realm
-        }
+        %{realm: state.realm}
+      )
+
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :data_updater, :device_disconnection],
+        %{},
+        %{realm: state.realm}
       )
 
       :ok

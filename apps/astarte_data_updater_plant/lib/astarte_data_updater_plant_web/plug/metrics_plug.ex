@@ -16,23 +16,19 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataUpdaterPlantWeb.Metrics.Supervisor do
-  use Supervisor
+defmodule Astarte.DataUpdaterPlantWeb.MetricsPlug do
+  import Plug.Conn
 
-  def start_link(init_arg) do
-    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  def init(_args), do: nil
+
+  def call(%{request_path: "/metrics", method: "GET"} = conn, _opts) do
+    metrics = TelemetryMetricsPrometheus.Core.scrape()
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(200, metrics)
+    |> halt()
   end
 
-  @impl true
-  def init(_init_arg) do
-    Astarte.DataUpdaterPlantWeb.Metrics.setup()
-
-    # TODO: make the port configurable when we switch to Elixir native releases
-    children = [
-      {Plug.Cowboy,
-       scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, options: [port: 4000]}
-    ]
-
-    Supervisor.init(children, strategy: :one_for_one)
-  end
+  def call(conn, _opts), do: conn
 end
