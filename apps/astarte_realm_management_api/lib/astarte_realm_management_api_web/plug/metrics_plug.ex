@@ -16,13 +16,24 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.Metrics.PipelineInstrumenter do
-  use Prometheus.PlugPipelineInstrumenter
+defmodule Astarte.RealmManagement.APIWeb.MetricsPlug do
+  @behaviour Plug
+  import Plug.Conn
 
-  # TODO enable label value. Currently it was suppressed as to limit the number
-  # of the different metrics which are generated.
-  # see issue #339
-  # def label_value(:request_path, conn) do
-  #   conn.request_path
-  # end
+  def init(_opts) do
+    nil
+  end
+
+  def call(%{request_path: "/metrics", method: "GET"} = conn, _opts) do
+    metrics = TelemetryMetricsPrometheus.Core.scrape()
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(200, metrics)
+    |> halt()
+  end
+
+  def call(conn, _opts) do
+    conn
+  end
 end

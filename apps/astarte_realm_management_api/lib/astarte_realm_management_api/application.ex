@@ -20,7 +20,6 @@ defmodule Astarte.RealmManagement.API.Application do
   use Application
 
   require Logger
-  alias Astarte.RealmManagement.APIWeb.Metrics
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
@@ -34,13 +33,10 @@ defmodule Astarte.RealmManagement.API.Application do
     Logger.info("Starting application", tag: "realm_management_api_start")
 
     children = [
+      Astarte.RealmManagement.APIWeb.Telemetry,
       Astarte.RealmManagement.APIWeb.Endpoint,
       Astarte.RPC.AMQP.Client
     ]
-
-    Metrics.PhoenixInstrumenter.setup()
-    Metrics.PipelineInstrumenter.setup()
-    Metrics.PrometheusExporter.setup()
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
