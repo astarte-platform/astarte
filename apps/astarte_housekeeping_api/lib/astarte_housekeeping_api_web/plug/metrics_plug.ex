@@ -16,6 +16,24 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Metrics.PrometheusExporter do
-  use Prometheus.PlugExporter
+defmodule Astarte.Housekeeping.APIWeb.MetricsPlug do
+  @behaviour Plug
+  import Plug.Conn
+
+  def init(_opts) do
+    nil
+  end
+
+  def call(%{request_path: "/metrics", method: "GET"} = conn, _opts) do
+    metrics = TelemetryMetricsPrometheus.Core.scrape()
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(200, metrics)
+    |> halt()
+  end
+
+  def call(conn, _opts) do
+    conn
+  end
 end

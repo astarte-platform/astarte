@@ -29,8 +29,4 @@ defmodule Astarte.Housekeeping.APIWeb.Router do
 
     resources "/realms", RealmController, except: [:new, :edit]
   end
-
-  scope "/health", Astarte.Housekeeping.APIWeb do
-    get "/", HealthController, :show
-  end
 end

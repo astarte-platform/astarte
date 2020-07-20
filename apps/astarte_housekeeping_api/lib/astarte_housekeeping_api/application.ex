@@ -20,7 +20,6 @@ defmodule Astarte.Housekeeping.API.Application do
   use Application
   require Logger
 
-  alias Astarte.Housekeeping.APIWeb.Metrics
   alias Astarte.Housekeeping.API.Config
   alias Astarte.RPC.Config, as: RPCConfig
 
@@ -39,12 +38,9 @@ defmodule Astarte.Housekeeping.API.Application do
     RPCConfig.validate!()
     Config.validate_jwt_public_key_pem!()
 
-    Metrics.PhoenixInstrumenter.setup()
-    Metrics.PipelineInstrumenter.setup()
-    Metrics.PrometheusExporter.setup()
-
     # Define workers and child supervisors to be supervised
     children = [
+      Astarte.Housekeeping.APIWeb.Telemetry,
       Astarte.Housekeeping.APIWeb.Endpoint,
       Astarte.RPC.AMQP.Client
     ]

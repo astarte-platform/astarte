@@ -19,12 +19,6 @@
 defmodule Astarte.Housekeeping.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_housekeeping_api
 
-  alias Astarte.Housekeeping.APIWeb.Metrics
-  alias Astarte.Housekeeping.API.Config
-
-  plug Metrics.PrometheusExporter
-  plug Metrics.PipelineInstrumenter
-
   socket "/socket", Astarte.Housekeeping.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -45,6 +39,10 @@ defmodule Astarte.Housekeeping.APIWeb.Endpoint do
 
   plug Plug.RequestId
   plug Plug.Logger
+  plug CORSPlug
+  plug Astarte.Housekeeping.APIWeb.HealthPlug
+  plug Astarte.Housekeeping.APIWeb.MetricsPlug
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -62,6 +60,5 @@ defmodule Astarte.Housekeeping.APIWeb.Endpoint do
     key: "_astarte_housekeeping_api_key",
     signing_salt: "DtYzPxzr"
 
-  plug CORSPlug
   plug Astarte.Housekeeping.APIWeb.Router
 end
