@@ -39,7 +39,6 @@ import Json.Encode as Encode
 import ListUtils exposing (addWhen)
 import Page.Device as Device
 import Page.InterfaceBuilder as InterfaceBuilder
-import Page.Interfaces as Interfaces
 import Page.Login as Login
 import Page.ReactInit as ReactInit
 import Page.TriggerBuilder as TriggerBuilder
@@ -209,8 +208,7 @@ type PublicPage
 
 
 type RealmPage
-    = InterfacesPage Interfaces.Model
-    | InterfaceBuilderPage InterfaceBuilder.Model
+    = InterfaceBuilderPage InterfaceBuilder.Model
     | TriggerBuilderPage TriggerBuilder.Model
     | DevicePage Device.Model
     | ReactInitPage ReactPageCategory
@@ -219,6 +217,7 @@ type RealmPage
 type ReactPageCategory
     = Home
     | Triggers
+    | Interfaces
     | Devices
     | Groups
     | Flow
@@ -238,7 +237,6 @@ type Msg
     | UpdateRelativeURL (Maybe String)
     | UpdateSession (Maybe Session)
     | LoginMsg Login.Msg
-    | InterfacesMsg Interfaces.Msg
     | InterfaceBuilderMsg InterfaceBuilder.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | DeviceMsg Device.Msg
@@ -413,8 +411,6 @@ updateRealmPage realm realmPage msg model =
     let
         ( page, command, externalMsg ) =
             case ( msg, realmPage ) of
-                ( InterfacesMsg subMsg, InterfacesPage subModel ) ->
-                    updateRealmPageHelper realm (Interfaces.update model.session subMsg subModel) InterfacesMsg InterfacesPage
 
                 ( InterfaceBuilderMsg subMsg, InterfaceBuilderPage subModel ) ->
                     updateRealmPageHelper realm (InterfaceBuilder.update model.session subMsg subModel) InterfaceBuilderMsg InterfaceBuilderPage
@@ -524,7 +520,7 @@ pageInit realmRoute config session =
             initReactPage session RealmSettings "realm-settings" realmRoute
 
         Route.ListInterfaces ->
-            initInterfacesPage session session.apiConfig.realm
+            initReactPage session Interfaces "interfaces" realmRoute
 
         Route.NewInterface ->
             initInterfaceBuilderPage Nothing session session.apiConfig.realm
@@ -606,18 +602,6 @@ initLoginPage config session =
     in
     ( Public (LoginPage initialSubModel)
     , Cmd.map LoginMsg initialPageCommand
-    , session
-    )
-
-
-initInterfacesPage : Session -> String -> ( Page, Cmd Msg, Session )
-initInterfacesPage session realm =
-    let
-        ( initialModel, initialCommand ) =
-            Interfaces.init session
-    in
-    ( Realm realm (InterfacesPage initialModel)
-    , Cmd.map InterfacesMsg initialCommand
     , session
     )
 
@@ -1077,7 +1061,7 @@ isHomeRelated page =
 isInterfacesRelated : Page -> Bool
 isInterfacesRelated page =
     case page of
-        Realm _ (InterfacesPage _) ->
+        Realm _ (ReactInitPage Interfaces) ->
             True
 
         Realm _ (InterfaceBuilderPage _) ->
@@ -1184,10 +1168,6 @@ renderPublicPage flashMessages page =
 renderProtectedPage : List FlashMessage -> RealmPage -> Html Msg
 renderProtectedPage flashMessages page =
     case page of
-        InterfacesPage submodel ->
-            Interfaces.view submodel flashMessages
-                |> Html.map InterfacesMsg
-
         InterfaceBuilderPage submodel ->
             InterfaceBuilder.view submodel flashMessages
                 |> Html.map InterfaceBuilderMsg
@@ -1228,9 +1208,6 @@ pageSubscriptions page =
 
         Realm _ (InterfaceBuilderPage submodel) ->
             Sub.map InterfaceBuilderMsg <| InterfaceBuilder.subscriptions submodel
-
-        Realm _ (InterfacesPage submodel) ->
-            Sub.map InterfacesMsg <| Interfaces.subscriptions submodel
 
         Realm _ (TriggerBuilderPage submodel) ->
             Sub.map TriggerBuilderMsg <| TriggerBuilder.subscriptions submodel
