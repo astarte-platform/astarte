@@ -20,17 +20,12 @@ defmodule Astarte.Pairing.API.Application do
   use Application
 
   require Logger
-  alias Astarte.Pairing.APIWeb.Metrics
   alias Astarte.Pairing.API.Config
   alias Astarte.RPC.Config, as: RPCConfig
 
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    Metrics.PhoenixInstrumenter.setup()
-    Metrics.PipelineInstrumenter.setup()
-    Metrics.PrometheusExporter.setup()
-
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
       :ignore_rabbitmq_progress_reports,
@@ -44,6 +39,7 @@ defmodule Astarte.Pairing.API.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
+      Astarte.Pairing.APIWeb.Telemetry,
       Astarte.Pairing.APIWeb.Endpoint,
       Astarte.RPC.AMQP.Client
     ]
