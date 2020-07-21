@@ -4,22 +4,25 @@
 [![codecov](https://codecov.io/gh/astarte-platform/astarte/branch/master/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
 
 <img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT
-platform focused on Data management and processing written in [Elixir](https://github.com/elixir-lang/elixir).
-It is a turnkey solution which packs in everything you need for connecting a device fleet to a set of
-remote applications and process data as it flows through a set of built-in features.
+platform focused on Data management and processing written in
+[Elixir](https://github.com/elixir-lang/elixir). It is a turnkey solution which packs in everything
+you need for connecting a device fleet to a set of remote applications and process data as it flows
+through a set of built-in features.
 
-It performs data modeling, automated data reduction, real-time events,
-and provides you with any feature you might expect in a modern IoT platform.
+It performs data modeling, automated data reduction, real-time events, and provides you with any
+feature you might expect in a modern IoT platform.
 
 Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https://www.rabbitmq.com/)
 and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.com/).
 
 ## Resources and Quickstart
 
- * [Astarte Documentation](https://docs.astarte-platform.org/1.0) - The main resource to learn about Astarte.
- * [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your Astarte cluster(s).
- * [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) - The preferred and
-   supported way to run Astarte - in Production, and pretty much anywhere else.
+ * [Astarte Documentation](https://docs.astarte-platform.org/1.0) - The main resource to learn about
+ Astarte.
+ * [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your
+ Astarte cluster(s).
+ * [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) -
+ The preferred and supported way to run Astarte - in Production, and pretty much anywhere else.
  * Device SDKs - Connect your device to Astarte in a few lines of code. Available for
    [Python](https://github.com/astarte-platform/astarte-device-sdk-python),
    [Qt5](https://github.com/astarte-platform/astarte-device-sdk-qt5),
@@ -46,14 +49,14 @@ some fake or real devices to stream and process data while your tea gets ready.
 
 ## Sweet! Let's move it to production!
 
-Whoa, not so fast. Putting together an Astarte instance which can handle your data might be
-tricky, and requires some knowledge about the platform to make sure it won't break.
+Whoa, not so fast. Putting together an Astarte instance which can handle your data might be tricky,
+and requires some knowledge about the platform to make sure it won't break.
 
 So, if you're serious about getting Astarte in your production environment, you might want to learn
 more about it first. Start by [having a look at its
-architecture](https://docs.astarte-platform.org/1.0/001-intro_architecture.html) and [finding
-out how it works](https://docs.astarte-platform.org/1.0/001-intro_user.html). Once you feel
-confident, head over to the [Administration
+architecture](https://docs.astarte-platform.org/1.0/001-intro_architecture.html) and [finding out
+how it works](https://docs.astarte-platform.org/1.0/001-intro_user.html). Once you feel confident,
+head over to the [Administration
 Manual](https://docs.astarte-platform.org/1.0/001-intro_administrator.html).
 
 ## Where do I find binaries?
@@ -85,7 +88,11 @@ philosophy, and have some tests.
 
 ## Any chance I can get a hosted and managed instance?
 
-Yup, stay tuned :) or get in touch with us.
+We've got you covered. [Astarte Cloud](https://astarte.cloud/cloud) is a complete hosted and managed
+solution to employ Astarte as a service, without having to worry about setting up your own
+infrastructure and its related costs. You can also choose specifically how many resources you need
+for your use-case and scale up your business model. Joining Astarte Cloud is as easy as [logging
+into its Console](https://console.astarte.cloud) via your favourite authentication method.
 
 ## I need some help with my installation! Where can I get commercial support?
 
