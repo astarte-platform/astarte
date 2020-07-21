@@ -83,11 +83,11 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:excoveralls, "~> 0.12", only: :test},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
       {:plug_cowboy, "~> 2.1"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:prometheus_ex, "~> 3.0"},
       {:skogsra, "~> 2.2"},
       {:pretty_log, "~> 0.1"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"},
       {:observer_cli, "~> 1.5"}
     ]
   end

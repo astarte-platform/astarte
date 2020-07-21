@@ -29,8 +29,8 @@ defmodule Astarte.Housekeeping do
     DataAccessConfig.validate!()
 
     children = [
-      Astarte.Housekeeping.BackendSupervisor,
-      Astarte.HousekeepingWeb.Metrics.Supervisor
+      Astarte.HousekeepingWeb.Telemetry,
+      Astarte.Housekeeping.BackendSupervisor
     ]
 
     # make amqp supervisors logs less verbose
