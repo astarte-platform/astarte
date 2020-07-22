@@ -44,9 +44,9 @@ defmodule Astarte.RealmManagement do
       |> Keyword.put(:name, :xandra)
 
     children = [
+      Astarte.RealmManagementWeb.Telemetry,
       {Xandra.Cluster, xandra_options},
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
-      Astarte.RealmManagementWeb.Metrics.Supervisor
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.RealmManagement.Supervisor]
