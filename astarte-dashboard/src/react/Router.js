@@ -23,6 +23,7 @@ import {
   Route,
   Link,
   useParams,
+  useLocation,
   useRouteMatch
 } from "react-router-dom";
 
@@ -150,8 +151,9 @@ function DeviceDataSubPath(props) {
 }
 
 function NoMatch(props) {
-  let { path, url } = useRouteMatch();
-  props.fallback(url);
+  const pageLocation = useLocation()
+  const relativeUrl = [pageLocation.pathname, pageLocation.search, pageLocation.hash].join('');
+  props.fallback(relativeUrl);
 
   return <p>Redirecting...</p>;
 }
