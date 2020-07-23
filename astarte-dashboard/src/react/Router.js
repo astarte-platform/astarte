@@ -27,6 +27,7 @@ import {
   useRouteMatch
 } from "react-router-dom";
 
+import LoginPage from "./LoginPage.js";
 import HomePage from "./HomePage.js";
 import GroupsPage from "./GroupsPage.js";
 import GroupDevicesPage from "./GroupDevicesPage.js";
@@ -44,7 +45,7 @@ import NewPipelinePage from "./NewPipelinePage.js";
 import RealmSettingsPage from "./RealmSettingsPage.js";
 import DeviceInterfaceValues from "./DeviceInterfaceValues.js";
 
-export function getRouter(reactHistory, astarteClient, fallback) {
+export function getRouter(reactHistory, astarteClient, config, fallback) {
 
   const pageProps = {
       history: reactHistory,
@@ -56,6 +57,14 @@ export function getRouter(reactHistory, astarteClient, fallback) {
       <Switch>
         <Route exact path={["/", "/home"]}>
           <HomePage {...pageProps} />
+        </Route>
+        <Route path="/login">
+          <Login
+            allowSwitching={config.auth.length > 1}
+            defaultLoginType={config.default_auth || "token"}
+            defaultRealm={config.default_realm || ""}
+            {...pageProps}
+          />
         </Route>
         <Route exact path="/triggers">
           <TriggersPage {...pageProps} />
@@ -107,6 +116,18 @@ export function getRouter(reactHistory, astarteClient, fallback) {
         </Route>
       </Switch>
     </Router>
+  );
+}
+
+function Login(props) {
+  const { search } = useLocation();
+  const loginType = new URLSearchParams(search).get("type") || props.defaultLoginType;
+
+  return (
+    <LoginPage
+      type={loginType}
+      {...props}
+    />
   );
 }
 

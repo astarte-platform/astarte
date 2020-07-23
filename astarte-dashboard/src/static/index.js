@@ -17,7 +17,6 @@
 */
 
 import ReactDOM from "react-dom";
-import jwt from "jsonwebtoken";
 import { createBrowserHistory } from "history";
 import { getRouter } from "../react/Router.js";
 import AstarteClient from "../react/AstarteClient.js";
@@ -51,15 +50,15 @@ $.getJSON("/user-config/config.json", function(result) {
     //init app
     app = require("../elm/Main").Elm.Main.init({ flags: parameters });
 
-    astarteClient = getAstarteClient(localStorage.session);
+    astarteClient = getAstarteClient(dashboardConfig);
+    updateAstarteClientSession();
 
     /* begin Elm ports */
     app.ports.storeSession.subscribe(function(session) {
       console.log("storing session");
       localStorage.session = session;
 
-      // update with new session data
-      astarteClient = getAstarteClient(session);
+      updateAstarteClientSession();
     });
 
     app.ports.loadReactPage.subscribe(loadPage);
@@ -78,82 +77,17 @@ $.getJSON("/user-config/config.json", function(result) {
       }
     });
 
-    app.ports.validateJWT.subscribe(validateJWT);
-
-    window.addEventListener(
-      "storage",
-      function(event) {
+    window.addEventListener("storage", (event) => {
         if (event.storageArea === localStorage && event.key === "session") {
           console.log("local session changed");
           app.ports.onSessionChange.send(event.newValue);
+          updateAstarteClientSession();
         }
       },
       false
     );
     /* end Elm ports */
   });
-
-function validateJWT(token) {
-  const decoded = jwt.decode(token, {complete: true});
-
-  let status;
-
-  if (decoded) {
-    if (isExpired(decoded.payload)) {
-      status = "expired";
-
-    } else if (!hasAstarteClaims(decoded.payload)) {
-      status = "notAnAstarteToken";
-
-    } else {
-      status = "valid";
-    }
-
-  } else {
-    status = "invalid";
-  }
-
-  app.ports.onTokenValidationResult.send({
-    token: token,
-    status: status
-  });
-}
-
-function isExpired(decodedTokenObject) {
-  if (decodedTokenObject.exp) {
-    const posix = Number.parseInt(decodedTokenObject.exp);
-    const expiry = new Date(posix * 1000);
-    const now = new Date();
-
-    return (expiry <= now);
-  } else {
-    return false;
-  }
-}
-
-function hasAstarteClaims(decodedTokenObject) {
-  // AppEngine API
-  if ("a_aea" in decodedTokenObject) {
-    return true;
-  }
-
-  // Realm Management API
-  if ("a_rma" in decodedTokenObject) {
-    return true;
-  }
-
-  // Pairing API
-  if ("a_pa" in decodedTokenObject) {
-    return true;
-  }
-
-  // Astarte Channels
-  if ("a_ch" in decodedTokenObject) {
-    return true;
-  }
-
-  return false;
-}
 
 function watchDeviceEvents(params) {
   const { deviceId } = params;
@@ -271,25 +205,13 @@ function loadPage(page) {
     return;
   }
 
-  // This is done to handle the race condition from the save-session and load-page commands
-  // A better solution would require JS to nofify Elm of the correct session initialization
-  // so that Elm can trigger a safe page load command
-  // TODO remove the command race condition
-  if (!astarteClient) {
-    console.log("Elm did not init the Astarte client yet. retry later...");
-    setTimeout(function() {
-      loadPage(page);
-    }, 100);
-    return;
-  }
-
   let node = document.createElement("div");
   node.id = "react-page";
   pageNode.appendChild(node);
 
   reactHistory = createBrowserHistory();
 
-  const reactApp = getRouter(reactHistory, astarteClient, noMatchFallback);
+  const reactApp = getRouter(reactHistory, astarteClient, dashboardConfig, noMatchFallback);
   ReactDOM.render(reactApp, document.getElementById("react-page"));
 }
 
@@ -304,25 +226,72 @@ function noMatchFallback(url) {
   app.ports.onPageRequested.send(url);
 }
 
-function getAstarteClient(session) {
-  if (!session || session == "null") {
+function getAstarteClient(config) {
+  if (!config || config == "null") {
     return null;
   }
 
-  const config = JSON.parse(session).api_config;
-  const protocol = config.secure_connection ? "https://" : "http://";
-  const astarteConfig = {
-    realm: config.realm,
-    token: config.token,
-    secureConnection: config.secure_connection,
-    realmManagementUrl: protocol + config.realm_management_url,
-    appengineUrl: protocol + config.appengine_url,
-    pairingUrl: protocol + config.pairing_url,
-    flowUrl: protocol + config.flow_url,
-    enableFlowPreview: config.enable_flow_preview,
+  // base API URL
+  const astarteApiUrl = config.astarte_api_url;
+  let appEngineApiUrl = "";
+  let realmManagementApiUrl = "";
+  let pairingApiUrl = "";
+  let flowApiUrl = "";
+
+  if (astarteApiUrl === "localhost") {
+    appEngineApiUrl = new URL("http://localhost:4002");
+    realmManagementApiUrl = new URL("http://localhost:4000");
+    pairingApiUrl = new URL("http://localhost:4003");
+    flowApiUrl = new URL("http://localhost:4009");
+
+  } else if (typeof astarteApiUrl === "string") {
+    appEngineApiUrl = new URL("appengine/", astarteApiUrl);
+    realmManagementApiUrl = new URL("realmmanagement/", astarteApiUrl);
+    pairingApiUrl = new URL("pairing/", astarteApiUrl);
+    flowApiUrl = new URL("flow/", astarteApiUrl);
+  }
+
+  // API URL overwrite
+  if (config.appengine_api_url) {
+    appEngineApiUrl = new URL(config.appengine_api_url);
+  }
+
+  if (config.realm_management_api_url) {
+    realmManagementApiUrl = new URL(config.realm_management_api_url);
+  }
+
+  if (config.pairing_api_url) {
+    pairingApiUrl = new URL(config.pairing_api_url);
+  }
+
+  if (config.flow_api_url) {
+    flowApiUrl = new URL(config.flow_api_url);
+  }
+
+  return new AstarteClient({
+    realmManagementUrl: realmManagementApiUrl,
+    appengineUrl: appEngineApiUrl,
+    pairingUrl: pairingApiUrl,
+    flowUrl: flowApiUrl,
+    enableFlowPreview: Boolean(config.enable_flow_preview),
     onSocketError: (() => { sendErrorError("Astarte channels communication error") }),
     onSocketClose: (() => { sendErrorError("Lost connection with the Astarte channel") })
-  };
+  });
+}
 
-  return new AstarteClient(astarteConfig);
+function updateAstarteClientSession() {
+  console.log("updating client")
+  if (localStorage.session && localStorage.session !== "null") {
+    const config = JSON.parse(localStorage.session).api_config;
+    astarteClient.setCredentials({
+      token: config.token,
+      realm: config.realm
+    });
+  } else {
+    console.log("null session")
+    astarteClient.setCredentials({
+      token: "",
+      realm: ""
+    });
+  }
 }

@@ -39,7 +39,6 @@ import Json.Encode as Encode
 import ListUtils exposing (addWhen)
 import Page.Device as Device
 import Page.InterfaceBuilder as InterfaceBuilder
-import Page.Login as Login
 import Page.ReactInit as ReactInit
 import Page.TriggerBuilder as TriggerBuilder
 import Ports
@@ -119,7 +118,7 @@ init jsParam location key =
 
         ( initialPage, initialCommand, updatedSession ) =
             Route.fromUrl location
-                |> processRoute configFromJavascript initialSession
+                |> processRoute key configFromJavascript initialSession
 
         initialModel =
             { navigationKey = key
@@ -199,12 +198,8 @@ initNewSession hostUrl config =
 
 
 type Page
-    = Public PublicPage
+    = LoginPage
     | Realm String RealmPage
-
-
-type PublicPage
-    = LoginPage Login.Model
 
 
 type RealmPage
@@ -236,7 +231,6 @@ type Msg
     | UrlRequest UrlRequest
     | UpdateRelativeURL (Maybe String)
     | UpdateSession (Maybe Session)
-    | LoginMsg Login.Msg
     | InterfaceBuilderMsg InterfaceBuilder.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | DeviceMsg Device.Msg
@@ -371,39 +365,14 @@ update msg model =
 updatePage : Page -> Msg -> Model -> ( Model, Cmd Msg )
 updatePage page msg model =
     case page of
-        Public publicPage ->
-            updatePublicPage publicPage msg model
-
-        Realm realm realmPage ->
-            updateRealmPage realm realmPage msg model
-
-
-updatePublicPage : PublicPage -> Msg -> Model -> ( Model, Cmd Msg )
-updatePublicPage publicPage msg model =
-    case ( msg, publicPage ) of
-        ( LoginMsg subMsg, LoginPage subModel ) ->
-            let
-                ( newModel, pageCommand, externalMsg ) =
-                    Login.update model.session subMsg subModel
-
-                updatedPageModel =
-                    { model | selectedPage = Public <| LoginPage newModel }
-
-                ( updatedModel, newCommands ) =
-                    handleExternalMessage updatedPageModel externalMsg
-            in
-            ( updatedModel
-            , Cmd.batch
-                [ newCommands
-                , Cmd.map LoginMsg pageCommand
-                ]
-            )
-
-        -- Ignore messages from not matching pages
-        ( _, _ ) ->
+        LoginPage ->
+            -- LoginPage is handled in Elm, nothing to update
             ( model
             , Cmd.none
             )
+
+        Realm realm realmPage ->
+            updateRealmPage realm realmPage msg model
 
 
 updateRealmPage : String -> RealmPage -> Msg -> Model -> ( Model, Cmd Msg )
@@ -411,7 +380,6 @@ updateRealmPage realm realmPage msg model =
     let
         ( page, command, externalMsg ) =
             case ( msg, realmPage ) of
-
                 ( InterfaceBuilderMsg subMsg, InterfaceBuilderPage subModel ) ->
                     updateRealmPageHelper realm (InterfaceBuilder.update model.session subMsg subModel) InterfaceBuilderMsg InterfaceBuilderPage
 
@@ -496,25 +464,7 @@ pageInit realmRoute config session =
             initReactPage session Home "home" realmRoute
 
         Route.Logout ->
-            let
-                ( page, _, updatedSession ) =
-                    initLoginPage config session
-
-                logoutPath =
-                    case session.loginStatus of
-                        LoggedIn (OAuthLogin authUrl) ->
-                            Url.Builder.custom (Url.Builder.CrossOrigin authUrl) [] [] Nothing
-
-                        _ ->
-                            Route.toString <| Route.RealmSelection (Just "token")
-            in
-            ( page
-            , Cmd.batch
-                [ Ports.storeSession Nothing
-                , Browser.Navigation.load <| logoutPath
-                ]
-            , updatedSession
-            )
+            initLoginPage session
 
         Route.RealmSettings ->
             initReactPage session RealmSettings "realm-settings" realmRoute
@@ -586,22 +536,10 @@ initReactPage session category pageName pageRoute =
     )
 
 
-initLoginPage : Config.Params -> Session -> ( Page, Cmd Msg, Session )
-initLoginPage config session =
-    let
-        authType =
-            case session.loginStatus of
-                RequestLogin loginType ->
-                    loginType
-
-                _ ->
-                    config.defaultAuth
-
-        ( initialSubModel, initialPageCommand ) =
-            Login.init config authType
-    in
-    ( Public (LoginPage initialSubModel)
-    , Cmd.map LoginMsg initialPageCommand
+initLoginPage : Session -> ( Page, Cmd Msg, Session )
+initLoginPage session =
+    ( LoginPage
+    , Cmd.map (\a -> Ignore) (ReactInit.init session "login" <| Route.RealmSelection Nothing)
     , session
     )
 
@@ -670,7 +608,7 @@ setRoute : Model -> ( Maybe Route, Maybe String ) -> ( Model, Cmd Msg )
 setRoute model ( maybeRoute, maybeToken ) =
     let
         ( page, command, updatedSession ) =
-            processRoute model.config model.session ( maybeRoute, maybeToken )
+            processRoute model.navigationKey model.config model.session ( maybeRoute, maybeToken )
 
         reactEnvCommand =
             if isReactBased page then
@@ -699,126 +637,136 @@ setRoute model ( maybeRoute, maybeToken ) =
     )
 
 
-processRoute : Config -> Session -> ( Maybe Route, Maybe String ) -> ( Page, Cmd Msg, Session )
-processRoute config session ( maybeRoute, maybeToken ) =
-    let
-        loggedIn =
-            Session.isLoggedIn session
-
-        configParams =
-            Config.getParams config
-    in
-    case ( configParams, maybeRoute ) of
-        ( Nothing, Nothing ) ->
-            initInterfaceEditorPage session
-
+processRoute : Browser.Navigation.Key -> Config -> Session -> ( Maybe Route, Maybe String ) -> ( Page, Cmd Msg, Session )
+processRoute key config session ( maybeRoute, maybeToken ) =
+    case ( Config.getParams config, maybeRoute ) of
         ( Nothing, _ ) ->
             initInterfaceEditorPage session
 
         ( Just params, Nothing ) ->
-            if loggedIn then
-                processRealmRoute maybeToken Route.Home params session
+            -- unknown route
+            if Session.isLoggedIn session then
+                initReactPage session Home "home" Route.Home
+                    |> attachCommand (replaceWithHomeUrlCmd key)
 
             else
-                initLoginPage params session
+                initLoginPage session
+                    |> attachCommand (replaceWithLoginUrlCmd key)
 
-        ( Just params, Just Route.Root ) ->
-            if loggedIn then
-                processRealmRoute maybeToken Route.Home params session
+        ( Just params, Just route ) ->
+            handleKnownRoute key params session route maybeToken
 
-            else
-                initLoginPage params session
 
-        ( Just params, Just (Route.RealmSelection loginTypeString) ) ->
-            if loggedIn then
-                processRealmRoute maybeToken Route.ListInterfaces params session
+handleKnownRoute : Browser.Navigation.Key -> Config.Params -> Session -> Route -> Maybe String -> ( Page, Cmd Msg, Session )
+handleKnownRoute key params session route maybeToken =
+    if Session.isLoggedIn session then
+        case route of
+            Route.Root ->
+                initReactPage session Home "home" Route.Home
 
-            else
+            Route.Realm Route.Logout ->
                 let
-                    loginStatus =
-                        case loginTypeString of
-                            Just "token" ->
-                                RequestLogin Config.Token
+                    logoutPath =
+                        case session.loginStatus of
+                            LoggedIn (OAuthLogin authUrl) ->
+                                Url.Builder.custom (Url.Builder.CrossOrigin authUrl) [] [] Nothing
 
                             _ ->
-                                RequestLogin Config.OAuth
+                                Route.toString <| Route.RealmSelection (Just "token")
 
-                    updatedSession =
-                        { session | loginStatus = loginStatus }
+                    logoutCmd =
+                        Cmd.batch
+                            [ Ports.storeSession Nothing
+                            , Browser.Navigation.load <| logoutPath
+                            ]
                 in
-                initLoginPage params updatedSession
+                initLoginPage session
+                    |> attachCommand logoutCmd
 
-        ( Just params, Just (Route.Realm realmRoute) ) ->
-            processRealmRoute maybeToken realmRoute params session
+            Route.RealmSelection loginTypeString ->
+                initReactPage session Home "home" Route.Home
+                    |> attachCommand (replaceWithHomeUrlCmd key)
+
+            Route.Realm (Route.Auth maybeRealm maybeOauthUrl) ->
+                initReactPage session Home "home" Route.Home
+                    |> attachCommand (replaceWithHomeUrlCmd key)
+
+            Route.Realm realmRoute ->
+                pageInit realmRoute params session
+
+    else
+        case route of
+            Route.Realm (Route.Auth (Just realm) maybeOauthUrl) ->
+                attemptLogin realm maybeToken maybeOauthUrl key session
+
+            Route.RealmSelection loginTypeString ->
+                initLoginPage session
+
+            _ ->
+                initLoginPage session
+                    |> attachCommand (replaceWithLoginUrlCmd key)
 
 
-processRealmRoute : Maybe String -> RealmRoute -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
-processRealmRoute maybeToken realmRoute config session =
-    let
-        apiConfig =
-            session.apiConfig
-    in
-    case ( realmRoute, apiConfig.realm, maybeToken ) of
-        ( Route.Auth (Just realm) maybeOauthUrl, "", Just token ) ->
-            -- login
-            loginToHome realm token maybeOauthUrl config session
-
-        ( Route.Auth (Just realm) maybeOauthUrl, prevRealm, Just token ) ->
-            -- overwrite previous session
-            loginToHome realm token maybeOauthUrl config session
-
-        ( _, "", _ ) ->
-            -- not authorized
-            initLoginPage config session
-
-        ( _, _, Just token ) ->
-            -- update token
+attemptLogin : String -> Maybe String -> Maybe String -> Browser.Navigation.Key -> Session -> ( Page, Cmd Msg, Session )
+attemptLogin realm maybeToken maybeOauthUrl key session =
+    case maybeToken of
+        Just token ->
             let
-                ( page, command, updatedSession ) =
-                    pageInit realmRoute config (Session.setToken token session)
+                apiConfig =
+                    session.apiConfig
+
+                updatedApiConfig =
+                    { apiConfig
+                        | realm = realm
+                        , token = token
+                    }
+
+                loginType =
+                    case maybeOauthUrl of
+                        Nothing ->
+                            Session.TokenLogin
+
+                        Just url ->
+                            Session.OAuthLogin url
+
+                loggedInSession =
+                    { session
+                        | loginStatus = LoggedIn loginType
+                        , apiConfig = updatedApiConfig
+                    }
+
+                loginCmd =
+                    Cmd.batch
+                        [ storeSession loggedInSession
+                        , replaceWithHomeUrlCmd key
+                        ]
             in
-            ( page
-            , Cmd.batch [ storeSession updatedSession, command ]
-            , updatedSession
-            )
+            initReactPage loggedInSession Home "home" Route.Home
+                |> attachCommand loginCmd
 
-        _ ->
-            -- access granted
-            pageInit realmRoute config session
+        Nothing ->
+            initLoginPage session
+                |> attachCommand (replaceWithLoginUrlCmd key)
 
 
-loginToHome : String -> String -> Maybe String -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
-loginToHome realm token maybeOauthUrl config session =
-    let
-        apiConfig =
-            session.apiConfig
+replaceWithHomeUrlCmd : Browser.Navigation.Key -> Cmd Msg
+replaceWithHomeUrlCmd key =
+    Browser.Navigation.replaceUrl key <| Route.toString (Route.Realm Route.Home)
 
-        updatedApiConfig =
-            { apiConfig
-                | realm = realm
-                , token = token
-            }
 
-        loginType =
-            case maybeOauthUrl of
-                Nothing ->
-                    Session.TokenLogin
+replaceWithLoginUrlCmd : Browser.Navigation.Key -> Cmd Msg
+replaceWithLoginUrlCmd key =
+    Browser.Navigation.replaceUrl key <| Route.toString (Route.RealmSelection Nothing)
 
-                Just url ->
-                    Session.OAuthLogin url
 
-        sessionWithCredentials =
-            { session
-                | loginStatus = LoggedIn loginType
-                , apiConfig = updatedApiConfig
-            }
-
-        ( page, command, updatedSession ) =
-            pageInit Route.Home config sessionWithCredentials
-    in
+attachCommand : Cmd Msg -> ( Page, Cmd Msg, Session ) -> ( Page, Cmd Msg, Session )
+attachCommand newCmd ( page, cmd, session ) =
     ( page
-    , Cmd.batch [ storeSession updatedSession, command ]
-    , updatedSession
+    , Cmd.batch
+        [ newCmd
+        , cmd
+        ]
+    , session
     )
 
 
@@ -831,7 +779,7 @@ view model =
     let
         ( showNavbar, realmName ) =
             case model.selectedPage of
-                Public (LoginPage _) ->
+                LoginPage ->
                     ( False, "" )
 
                 Realm realm _ ->
@@ -1137,6 +1085,9 @@ isPipelinesRelated page =
 isReactBased : Page -> Bool
 isReactBased page =
     case page of
+        LoginPage ->
+            True
+
         Realm _ (ReactInitPage _) ->
             True
 
@@ -1147,19 +1098,12 @@ isReactBased page =
 renderPage : Model -> Page -> Html Msg
 renderPage model page =
     case page of
-        Public publicPage ->
-            renderPublicPage model.flashMessages publicPage
+        LoginPage ->
+            ReactInit.view model.flashMessages
+                |> Html.map (\a -> Ignore)
 
         Realm _ realmPage ->
             renderProtectedPage model.flashMessages realmPage
-
-
-renderPublicPage : List FlashMessage -> PublicPage -> Html Msg
-renderPublicPage flashMessages page =
-    case page of
-        LoginPage submodel ->
-            Login.view submodel flashMessages
-                |> Html.map LoginMsg
 
 
 renderProtectedPage : List FlashMessage -> RealmPage -> Html Msg
@@ -1200,9 +1144,6 @@ subscriptions model =
 pageSubscriptions : Page -> Sub Msg
 pageSubscriptions page =
     case page of
-        Public (LoginPage submodel) ->
-            Sub.map LoginMsg <| Login.subscriptions submodel
-
         Realm _ (InterfaceBuilderPage submodel) ->
             Sub.map InterfaceBuilderMsg <| InterfaceBuilder.subscriptions submodel
 

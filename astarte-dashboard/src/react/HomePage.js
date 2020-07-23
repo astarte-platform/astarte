@@ -36,15 +36,13 @@ export default class HomePage extends React.Component {
     this.astarte = this.props.astarte;
 
     this.updateDeviceStats = this.updateDeviceStats.bind(this);
-    this.handleStatsError = this.handleStatsError.bind(this);
     this.updateInterfaceNames = this.updateInterfaceNames.bind(this);
-    this.handleInterfaceError = this.handleInterfaceError.bind(this);
     this.updateTriggerNames = this.updateTriggerNames.bind(this);
-    this.handleTriggerError = this.handleTriggerError.bind(this);
     this.redirectToLastInterface = this.redirectToLastInterface.bind(this);
     this.updateStatus = this.updateStatus.bind(this);
+    this.syncData = this.syncData.bind(this);
 
-    const queryFlowHealth = this.astarte.config.enableFlowPreview;
+    this.queryFlowHealth = this.astarte.config.enableFlowPreview;
 
     this.state = {
       connectedDevices: "loading",
@@ -54,20 +52,32 @@ export default class HomePage extends React.Component {
       appengineStatus: "loading",
       realmManagementStatus: "loading",
       pairingStatus: "loading",
-      flowStatus: queryFlowHealth ? "loading" : null
+      flowStatus: this.queryFlowHealth ? "loading" : null
     };
 
+    this.syncData();
+  }
+
+  componentDidMount() {
+    this.astarte.addListener('credentialsChange', this.syncData)
+  }
+
+  componentWillUnmount() {
+    this.astarte.removeListener('credentialsChange', this.syncData)
+  }
+
+  syncData() {
     this.astarte.getDevicesStats()
       .then(this.updateDeviceStats)
-      .catch(this.handleStatsError);
+      .catch((e) => this.handleSectionError("connectedDevices", e));
 
     this.astarte.getInterfaceNames()
       .then(this.updateInterfaceNames)
-      .catch(this.handleInterfaceError);
+      .catch((e) => this.handleSectionError("interfaces", e));
 
     this.astarte.getTriggerNames()
       .then(this.updateTriggerNames)
-      .catch(this.handleTriggerError);
+      .catch((e) => this.handleSectionError("triggers", e));
 
     this.astarte.getRealmManagementHealth()
       .then(() => { this.updateStatus("realmManagementStatus", "ok") })
@@ -81,7 +91,7 @@ export default class HomePage extends React.Component {
       .then(() => { this.updateStatus("pairingStatus", "ok") })
       .catch(() => { this.updateStatus("pairingStatus", "err") });
 
-    if (queryFlowHealth) {
+    if (this.queryFlowHealth) {
       this.astarte.getFlowHealth()
         .then(() => { this.updateStatus("flowStatus", "ok") })
         .catch(() => { this.updateStatus("flowStatus", "err") });
@@ -92,13 +102,6 @@ export default class HomePage extends React.Component {
     this.setState({
       connectedDevices: response.data.connected_devices,
       totalDevices: response.data.total_devices
-    });
-  }
-
-  handleStatsError(error) {
-    this.setState({
-      connectedDevices: "err",
-      totalDevices: "err"
     });
   }
 
@@ -114,17 +117,9 @@ export default class HomePage extends React.Component {
     });
   }
 
-  handleInterfaceError(err) {
-    console.log(err);
-    this.setState({
-      interfaces: "err"
-    });
-  }
-
-  handleTriggerError(err) {
-    console.log(err);
-    this.setState({
-      triggers: "err"
+  handleSectionError(section, err) {
+    this.setState((state) => {
+      return (state[section] === "loading" ? {[section]: "err"} : state)
     });
   }
 
@@ -385,7 +380,7 @@ function ServiceStatusRow({ service, status }) {
   } else {
     messageCell = (
       <td className="color-red">
-        <i class="fas fa-times-circle mr-1"></i>
+        <i className="fas fa-times-circle mr-1"></i>
         This service appears offline
       </td>
     );
