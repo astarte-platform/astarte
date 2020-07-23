@@ -712,9 +712,6 @@ processRoute config session ( maybeRoute, maybeToken ) =
         ( Nothing, Nothing ) ->
             initInterfaceEditorPage session
 
-        ( _, Just Route.InterfaceEditor ) ->
-            initInterfaceEditorPage session
-
         ( Nothing, _ ) ->
             initInterfaceEditorPage session
 
@@ -897,7 +894,7 @@ editorNavBar =
             "Interface Editor"
             Icons.Interface
             False
-            Route.InterfaceEditor
+            Route.Root
         ]
 
 
