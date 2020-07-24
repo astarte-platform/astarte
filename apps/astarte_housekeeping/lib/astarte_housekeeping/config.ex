@@ -33,7 +33,7 @@ defmodule Astarte.Housekeeping.Config do
   app_env :port, :astarte_housekeeping, :port,
     os_env: "HOUSEKEEPING_PORT",
     type: :integer,
-    default: 4008
+    default: 4000
 
   @envdoc """
   By default Astarte Housekeeping doesn't support realm deletion. Set this variable to true to
