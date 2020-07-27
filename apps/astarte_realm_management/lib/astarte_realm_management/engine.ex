@@ -466,7 +466,8 @@ defmodule Astarte.RealmManagement.Engine do
          simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
          trigger = build_trigger(trigger_name, simple_trigger_maps, action),
          %Trigger{trigger_uuid: trigger_uuid} = trigger,
-         trigger_target = target_from_action(action, trigger_uuid),
+         {:ok, action_map} <- Jason.decode(action),
+         trigger_target = target_from_action(action_map, trigger_uuid),
          t_container = build_trigger_target_container(trigger_target),
          :ok <- validate_simple_triggers(client, simple_trigger_maps),
          # TODO: these should be batched together
