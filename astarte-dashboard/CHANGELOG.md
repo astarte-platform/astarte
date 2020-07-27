@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support device groups in device triggers.
 - Initial device introspection during device registration.
 
+### Fixed
+- Fix bug which caused marking triggers as invalid on parametric endpoints containing an underscore.
+
 ## [1.0.0-alpha.1] - 2020-06-18
 ### Added
 - Device registration page.

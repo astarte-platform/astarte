@@ -1309,7 +1309,7 @@ isPlaceholder token =
 
 placeholderRegex : Regex
 placeholderRegex =
-    Regex.fromString "^%{([a-zA-Z][a-zA-Z0-9]*)}$"
+    Regex.fromString "^%{[a-zA-Z][a-zA-Z0-9_]*}$"
         |> Maybe.withDefault Regex.never
 
 
