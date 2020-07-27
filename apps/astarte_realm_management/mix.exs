@@ -74,6 +74,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:excoveralls, "~> 0.12", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
+      {:jason, "~> 1.2"},
       {:prometheus_process_collector, "~> 1.4"},
       {:prometheus_plugs, "~> 1.1"},
       {:prometheus_ex, "~> 3.0"},
