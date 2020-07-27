@@ -1321,8 +1321,8 @@ view model flashMessages =
                 [ Html.h2
                     [ Spacing.pl2 ]
                     [ Html.a
-                        [ href "/triggers", Spacing.mr2 ]
-                        [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                        [ href "/triggers", Spacing.mr2, class "align-bottom" ]
+                        [ Icons.render Icons.Back [] ]
                     , Html.text "Trigger Editor"
                     ]
                 ]

@@ -1011,8 +1011,8 @@ view model flashMessages =
                 [ Html.h2
                     [ Spacing.pl2 ]
                     [ Html.a
-                        [ href "/interfaces", Spacing.mr2 ]
-                        [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                        [ href "/interfaces", Spacing.mr2, class "align-bottom" ]
+                        [ Icons.render Icons.Back [] ]
                     , Html.text "Interface Editor"
                     ]
                 ]

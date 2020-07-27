@@ -794,8 +794,8 @@ view model flashMessages =
                         [ Html.h2
                             [ Spacing.pl2 ]
                             [ Html.a
-                                [ href "/devices", Spacing.mr2 ]
-                                [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                                [ href "/devices", Spacing.mr2, class "align-bottom" ]
+                                [ Icons.render Icons.Back [] ]
                             , Html.text "Device"
                             ]
                         , FlashMessageHelpers.renderFlashMessages flashMessages Forward
