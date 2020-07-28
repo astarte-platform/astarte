@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [0.11.2] - Unreleased
+### Added
+- [trigger_engine] Add `ignore_ssl_errors` key in trigger actions, allowing to ignore SSL actions
+  when delivering an HTTP trigger action.
+
 ### Changed
 - [appengine_api] Remove `topic` from channel metrics.
 

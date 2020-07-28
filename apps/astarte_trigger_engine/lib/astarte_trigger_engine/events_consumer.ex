@@ -177,9 +177,18 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     end
   end
 
-  defp execute_action(payload, headers, action) do
+  defp build_request_opts(%{"ignore_ssl_errors" => true} = _action) do
+    [ssl: [verify: :verify_none]]
+  end
+
+  defp build_request_opts(_action) do
+    []
+  end
+
+  def execute_action(payload, headers, action) do
     with {:ok, url} <- Map.fetch(action, "http_post_url"),
-         {:ok, response} <- HTTPoison.post(url, payload, headers) do
+         opts = build_request_opts(action),
+         {:ok, response} <- HTTPoison.post(url, payload, headers, opts) do
       %HTTPoison.Response{status_code: status_code} = response
 
       case status_code do

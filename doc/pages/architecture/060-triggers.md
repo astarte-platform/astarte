@@ -182,11 +182,16 @@ This is the configuration object representing the default action:
 
 ```json
 {
-  "http_post_url": "<http_post_url>"
+  "http_post_url": "<http_post_url>",
+  "ignore_ssl_errors": <true|false>
 }
 ```
 
 The default action sends an HTTP `POST` request to the specified `http_post_url`.
+
+The `ignore_ssl_errors` key is optional and defaults to `false`. If set to `true`, any SSL error
+encountered while doing the HTTP request will be ignored. This can be useful if the trigger must
+ignore self-signed or expired certificates.
 
 The payload of the request is JSON document with this format:
 
@@ -351,6 +356,7 @@ This is the configuration object representing a Mustache action:
   "http_post_url": "<http_post_url>",
   "template_type": "mustache",
   "template": "<template>"
+  "ignore_ssl_errors": <true|false>
 }
 ```
 
@@ -364,6 +370,10 @@ The basic keys that can be use to populate the template are:
 - `{{ realm }}`: the realm the trigger belongs to.
 - `{{ device_id }}`: the device that originated the trigger.
 - `{{ event_type }}`: the type of the received event.
+
+The `ignore_ssl_errors` key is optional and defaults to `false`. If set to `true`, any SSL error
+encountered while doing the HTTP request will be ignored. This can be useful if the trigger must
+ignore self-signed or expired certificates.
 
 Moreover, depending on the event type, all keys that are contained in the events [described in the
 previous section](#event-objects) are available, always by wrapping them in `{{ }}`.
