@@ -43,7 +43,6 @@ import Page.Interfaces as Interfaces
 import Page.Login as Login
 import Page.ReactInit as ReactInit
 import Page.TriggerBuilder as TriggerBuilder
-import Page.Triggers as Triggers
 import Ports
 import Route exposing (RealmRoute, Route)
 import Task
@@ -212,7 +211,6 @@ type PublicPage
 type RealmPage
     = InterfacesPage Interfaces.Model
     | InterfaceBuilderPage InterfaceBuilder.Model
-    | TriggersPage Triggers.Model
     | TriggerBuilderPage TriggerBuilder.Model
     | DevicePage Device.Model
     | ReactInitPage ReactPageCategory
@@ -220,6 +218,7 @@ type RealmPage
 
 type ReactPageCategory
     = Home
+    | Triggers
     | Devices
     | Groups
     | Flow
@@ -241,7 +240,6 @@ type Msg
     | LoginMsg Login.Msg
     | InterfacesMsg Interfaces.Msg
     | InterfaceBuilderMsg InterfaceBuilder.Msg
-    | TriggersMsg Triggers.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | DeviceMsg Device.Msg
     | NewFlashMessage Severity String (List String) Posix
@@ -421,9 +419,6 @@ updateRealmPage realm realmPage msg model =
                 ( InterfaceBuilderMsg subMsg, InterfaceBuilderPage subModel ) ->
                     updateRealmPageHelper realm (InterfaceBuilder.update model.session subMsg subModel) InterfaceBuilderMsg InterfaceBuilderPage
 
-                ( TriggersMsg subMsg, TriggersPage subModel ) ->
-                    updateRealmPageHelper realm (Triggers.update model.session subMsg subModel) TriggersMsg TriggersPage
-
                 ( TriggerBuilderMsg subMsg, TriggerBuilderPage subModel ) ->
                     updateRealmPageHelper realm (TriggerBuilder.update model.session subMsg subModel) TriggerBuilderMsg TriggerBuilderPage
 
@@ -538,7 +533,7 @@ pageInit realmRoute config session =
             initInterfaceBuilderPage (Just ( name, major )) session session.apiConfig.realm
 
         Route.ListTriggers ->
-            initTriggersPage session session.apiConfig.realm
+            initReactPage session Triggers "trigger-list" realmRoute
 
         Route.NewTrigger ->
             initTriggerBuilderPage Nothing session session.apiConfig.realm
@@ -643,18 +638,6 @@ initInterfaceBuilderPage maybeInterfaceId session realm =
     in
     ( Realm realm (InterfaceBuilderPage initialModel)
     , Cmd.map InterfaceBuilderMsg initialCommand
-    , session
-    )
-
-
-initTriggersPage : Session -> String -> ( Page, Cmd Msg, Session )
-initTriggersPage session realm =
-    let
-        ( initialModel, initialCommand ) =
-            Triggers.init session
-    in
-    ( Realm realm (TriggersPage initialModel)
-    , Cmd.map TriggersMsg initialCommand
     , session
     )
 
@@ -1107,7 +1090,7 @@ isInterfacesRelated page =
 isTriggersRelated : Page -> Bool
 isTriggersRelated page =
     case page of
-        Realm _ (TriggersPage _) ->
+        Realm _ (ReactInitPage Triggers) ->
             True
 
         Realm _ (TriggerBuilderPage _) ->
@@ -1209,10 +1192,6 @@ renderProtectedPage flashMessages page =
             InterfaceBuilder.view submodel flashMessages
                 |> Html.map InterfaceBuilderMsg
 
-        TriggersPage submodel ->
-            Triggers.view submodel flashMessages
-                |> Html.map TriggersMsg
-
         TriggerBuilderPage submodel ->
             TriggerBuilder.view submodel flashMessages
                 |> Html.map TriggerBuilderMsg
@@ -1255,9 +1234,6 @@ pageSubscriptions page =
 
         Realm _ (TriggerBuilderPage submodel) ->
             Sub.map TriggerBuilderMsg <| TriggerBuilder.subscriptions submodel
-
-        Realm _ (TriggersPage submodel) ->
-            Sub.map TriggersMsg <| Triggers.subscriptions submodel
 
         Realm _ (DevicePage submodel) ->
             Sub.map DeviceMsg <| Device.subscriptions submodel
