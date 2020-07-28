@@ -31,6 +31,7 @@ import GroupsPage from "./GroupsPage.js";
 import GroupDevicesPage from "./GroupDevicesPage.js";
 import NewGroupPage from "./NewGroupPage.js";
 import TriggersPage from "./TriggersPage.js";
+import InterfacesPage from "./InterfacesPage.js";
 import DevicesPage from "./DevicesPage.js";
 import RegisterDevicePage from "./RegisterDevicePage.js";
 import FlowInstancesPage from "./FlowInstancesPage.js";
@@ -57,6 +58,9 @@ export function getRouter(reactHistory, astarteClient, fallback) {
         </Route>
         <Route exact path="/triggers">
           <TriggersPage {...pageProps} />
+        </Route>
+        <Route exact path="/interfaces">
+          <InterfacesPage {...pageProps} />
         </Route>
         <Route exact path="/devices">
           <DevicesPage {...pageProps} />
