@@ -60,6 +60,8 @@ config :astarte_appengine_api, :max_results_limit, 10000
 
 config :prometheus, Astarte.AppEngine.APIWeb.Metrics.PhoenixInstrumenter,
   controller_call_labels: [:controller, :action],
+  channel_join_labels: [:channel, :transport],
+  channel_receive_labels: [:channel, :transport, :event],
   duration_buckets: [
     10,
     25,
