@@ -492,11 +492,15 @@ defmodule Astarte.RealmManagement.Engine do
          %{"amqp_exchange" => exchange, "amqp_routing_key" => key} = action,
          parent_uuid
        ) do
+    static_headers =
+      Map.get(action, "amqp_static_headers", %{})
+      |> Enum.to_list()
+
     %AMQPTriggerTarget{
       exchange: exchange,
       routing_key: key,
       parent_trigger_id: parent_uuid,
-      static_headers: Map.get(action, "amqp_static_headers"),
+      static_headers: static_headers,
       message_expiration_ms: Map.get(action, "amqp_message_expiration_ms"),
       message_priority: Map.get(action, "amqp_message_priority"),
       message_persistent: Map.get(action, "amqp_message_persistent")
