@@ -105,7 +105,7 @@ defmodule Astarte.TriggerEngine.Config do
   app_env :port, :astarte_trigger_engine, :port,
     os_env: "TRIGGER_ENGINE_PORT",
     type: :integer,
-    default: 4007
+    default: 4000
 
   @envdoc "The module used to consume events, used for tests with Mox"
   app_env :events_consumer, :astarte_trigger_engine, :events_consumer,
