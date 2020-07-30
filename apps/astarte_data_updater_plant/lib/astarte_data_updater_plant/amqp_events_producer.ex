@@ -55,7 +55,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     {:reply, reply, chan}
   end
 
-  def handle_info({:try_to_connect}, _state) do
+  def handle_info(:try_to_connect, _state) do
     {:ok, new_state} = rabbitmq_connect()
     {:noreply, new_state}
   end
@@ -71,10 +71,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   defp rabbitmq_connect(retry \\ true) do
     with {:ok, conn} <- Connection.open(Config.amqp_producer_options!()),
-         # Get notifications when the connection goes down
-         Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
-         :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true) do
+         :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true),
+         # Get notifications when the chan or connection goes down
+         Process.monitor(chan.pid) do
       {:ok, chan}
     else
       {:error, reason} ->
@@ -93,7 +93,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   defp maybe_retry(retry) do
     if retry do
       Logger.warn("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), {:try_to_connect})
+      :erlang.send_after(@connection_backoff, :erlang.self(), :try_to_connect)
       {:ok, :not_connected}
     else
       {:stop, :connection_failed}
