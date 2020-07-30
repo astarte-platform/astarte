@@ -38,6 +38,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     GenServer.call(__MODULE__, {:publish, exchange, routing_key, payload, opts})
   end
 
+  def declare_exchange(exchange) do
+    GenServer.call(__MODULE__, {:declare_exchange, exchange})
+  end
+
   # Server callbacks
 
   def init(_args) do
@@ -51,6 +55,14 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
     reply = Basic.publish(chan, exchange, routing_key, payload, opts)
+
+    {:reply, reply, chan}
+  end
+
+  def handle_call({:declare_exchange, exchange}, _from, chan) do
+    # TODO: we need to decide who is responsible of deleting the exchange once it is
+    # no longer needed
+    reply = Exchange.declare(chan, exchange, :direct, durable: true)
 
     {:reply, reply, chan}
   end

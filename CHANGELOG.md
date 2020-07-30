@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - [astarte_housekeeping] Allow deleting a realm. The feature can be enabled with an environment
   variable (defaults to disabled).
+- [astarte_data_updater_plant] Declare custom exchanges when an AMQP trigger is loaded.
 
 ### Changed
 - [astarte_housekeeping_api] Remove format check on Cassandra datacenter name when a realm is
