@@ -484,7 +484,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     ]
 
     opts_with_nil = [
-      expiration: message_expiration_ms,
+      expiration: message_expiration_ms && to_string(message_expiration_ms),
       priority: message_priority,
       persistent: message_persistent
     ]
