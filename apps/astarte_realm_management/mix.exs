@@ -75,10 +75,10 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:jason, "~> 1.2"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:prometheus_ex, "~> 3.0"},
       {:skogsra, "~> 2.2"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:observer_cli, "~> 1.5"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}

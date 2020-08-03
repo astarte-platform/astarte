@@ -43,9 +43,9 @@ defmodule Astarte.TriggerEngine.Application do
       |> Keyword.put(:name, :xandra)
 
     children = [
+      Astarte.TriggerEngineWeb.Telemetry,
       {Xandra.Cluster, xandra_options},
-      AMQPEventsConsumer,
-      Astarte.TriggerEngineWeb.Metrics.Supervisor
+      AMQPEventsConsumer
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.TriggerEngine.Supervisor]

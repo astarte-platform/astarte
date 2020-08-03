@@ -20,15 +20,12 @@ defmodule Astarte.Housekeeping.API.Application do
   use Application
   require Logger
 
-  alias Astarte.Housekeeping.APIWeb.Metrics
   alias Astarte.Housekeeping.API.Config
   alias Astarte.RPC.Config, as: RPCConfig
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
-    import Supervisor.Spec
-
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
       :ignore_rabbitmq_progress_reports,
@@ -41,16 +38,11 @@ defmodule Astarte.Housekeeping.API.Application do
     RPCConfig.validate!()
     Config.validate_jwt_public_key_pem!()
 
-    Metrics.PhoenixInstrumenter.setup()
-    Metrics.PipelineInstrumenter.setup()
-    Metrics.PrometheusExporter.setup()
-
     # Define workers and child supervisors to be supervised
     children = [
-      # Start the endpoint when the application starts
-      supervisor(Astarte.Housekeeping.APIWeb.Endpoint, []),
-      # Start your own worker by calling: Astarte.Housekeeping.API.Worker.start_link(arg1, arg2, arg3)
-      worker(Astarte.RPC.AMQP.Client, [])
+      Astarte.Housekeeping.APIWeb.Telemetry,
+      Astarte.Housekeeping.APIWeb.Endpoint,
+      Astarte.RPC.AMQP.Client
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

@@ -29,9 +29,21 @@ defmodule Astarte.Housekeeping.API.Health do
   """
   def get_backend_health do
     with {:ok, %{status: status}} <- Housekeeping.get_health() do
+      :telemetry.execute(
+        [:astarte, :housekeeping, :service],
+        %{health: 1},
+        %{}
+      )
+
       {:ok, %BackendHealth{status: status}}
     else
       _ ->
+        :telemetry.execute(
+          [:astarte, :housekeeping, :service],
+          %{health: 0},
+          %{}
+        )
+
         {:ok, %BackendHealth{status: :error}}
     end
   end

@@ -53,9 +53,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
     :telemetry.execute(
       [:astarte, :appengine, :device, :message_sent],
       %{exchanged_bytes: exchanged_bytes},
-      %{
-        realm: realm
-      }
+      %{realm: realm}
     )
 
     VMQPlugin.publish(topic, bson_payload, qos)
@@ -87,9 +85,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
     :telemetry.execute(
       [:astarte, :appengine, :device, :message_sent],
       %{exchanged_bytes: exchanged_bytes},
-      %{
-        realm: realm
-      }
+      %{realm: realm}
     )
 
     VMQPlugin.publish(topic, bson_payload, @property_qos)
@@ -109,9 +105,7 @@ defmodule Astarte.AppEngine.API.DataTransmitter do
     :telemetry.execute(
       [:astarte, :appengine, :device, :message_sent],
       %{exchanged_bytes: exchanged_bytes},
-      %{
-        realm: realm
-      }
+      %{realm: realm}
     )
 
     VMQPlugin.publish(topic, "", @property_qos)

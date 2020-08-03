@@ -19,12 +19,6 @@
 defmodule Astarte.RealmManagement.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_realm_management_api
 
-  alias Astarte.RealmManagement.APIWeb.Metrics
-  alias Astarte.RealmManagement.API.Config
-
-  plug Metrics.PrometheusExporter
-  plug Metrics.PipelineInstrumenter
-
   socket "/socket", Astarte.RealmManagement.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -44,7 +38,11 @@ defmodule Astarte.RealmManagement.APIWeb.Endpoint do
   end
 
   plug Plug.RequestId
+  plug CORSPlug
+  plug Astarte.RealmManagement.APIWeb.HealthPlug
+  plug Astarte.RealmManagement.APIWeb.MetricsPlug
   plug PlugLoggerWithMeta
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -62,6 +60,5 @@ defmodule Astarte.RealmManagement.APIWeb.Endpoint do
     key: "_astarte_realm_management_api_key",
     signing_salt: "5VDxq45D"
 
-  plug CORSPlug
   plug Astarte.RealmManagement.APIWeb.Router
 end

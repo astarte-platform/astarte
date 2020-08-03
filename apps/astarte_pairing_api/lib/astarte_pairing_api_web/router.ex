@@ -38,8 +38,4 @@ defmodule Astarte.Pairing.APIWeb.Router do
          DeviceController,
          :verify_credentials
   end
-
-  scope "/health", Astarte.Pairing.APIWeb do
-    get "/", HealthController, :show
-  end
 end

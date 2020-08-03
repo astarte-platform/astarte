@@ -20,7 +20,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.Database
-  alias Astarte.TriggerEngine.Config
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require Logger
