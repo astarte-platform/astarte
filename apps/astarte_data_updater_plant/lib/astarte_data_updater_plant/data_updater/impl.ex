@@ -2132,7 +2132,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  # TODO: implement: on_value_change, on_value_changed, on_path_created, on_value_stored
   defp load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
     new_data_trigger =
       SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
@@ -2151,6 +2150,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     new_targets = [trigger_target | congruent_targets]
     new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
+
+    # Register the new target
+    :ok = TriggersHandler.register_target(trigger_target)
 
     # Replace the (eventual) congruent existing trigger with the new one
     new_data_triggers_for_key = [
@@ -2185,6 +2187,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     next_introspection_triggers =
       Map.put(introspection_triggers, introspection_trigger_key, new_targets)
 
+    # Register the new target
+    :ok = TriggersHandler.register_target(trigger_target)
+
     Map.put(state, :introspection_triggers, next_introspection_triggers)
   end
 
@@ -2198,6 +2203,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     existing_trigger_targets = Map.get(device_triggers, event_type, [])
 
     new_targets = [trigger_target | existing_trigger_targets]
+
+    # Register the new target
+    :ok = TriggersHandler.register_target(trigger_target)
 
     next_device_triggers = Map.put(device_triggers, event_type, new_targets)
     Map.put(state, :device_triggers, next_device_triggers)
