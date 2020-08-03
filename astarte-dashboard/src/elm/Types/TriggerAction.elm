@@ -54,6 +54,7 @@ type alias AmqpActionConfig =
 
 type alias HttpActionConfig =
     { url : String
+    , ignoreSSLErrors : Bool
     , httpMethod : HttpMethod
     , staticHeaders : Dict String String
     , template : Template
@@ -79,6 +80,7 @@ emptyHttpAction : TriggerAction
 emptyHttpAction =
     Http
         { url = ""
+        , ignoreSSLErrors = False
         , httpMethod = Post
         , staticHeaders = Dict.empty
         , template = NoTemplate
@@ -126,6 +128,7 @@ encode action =
         Http config ->
             Encode.object
                 ([ ( "http_url", Encode.string config.url )
+                 , ( "ignore_ssl_errors", Encode.bool config.ignoreSSLErrors )
                  , ( "http_method", encodeMethod config.httpMethod )
                  , ( "http_static_headers", Encode.dict identity Encode.string config.staticHeaders )
                  ]
@@ -202,6 +205,7 @@ decodeHttpPostAction : Decoder TriggerAction
 decodeHttpPostAction =
     Decode.succeed buildHttpAction
         |> required "http_post_url" Decode.string
+        |> optional "ignore_ssl_errors" Decode.bool False
         |> hardcoded Post
         |> optional "http_static_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
         |> optional "template_type" (Decode.nullable Decode.string) Nothing
@@ -213,6 +217,7 @@ decodeStandardHttpAction : Decoder TriggerAction
 decodeStandardHttpAction =
     Decode.succeed buildHttpAction
         |> required "http_url" Decode.string
+        |> optional "ignore_ssl_errors" Decode.bool False
         |> required "http_method" methodDecoder
         |> optional "http_static_headers" (Decode.nullable <| Decode.dict Decode.string) Nothing
         |> optional "template_type" (Decode.nullable Decode.string) Nothing
@@ -220,15 +225,15 @@ decodeStandardHttpAction =
         |> resolve
 
 
-buildHttpAction : String -> HttpMethod -> Maybe (Dict String String) -> Maybe String -> Maybe String -> Decoder TriggerAction
-buildHttpAction url method maybeHeaders maybeTemplateType maybeTemplate =
+buildHttpAction : String -> Bool -> HttpMethod -> Maybe (Dict String String) -> Maybe String -> Maybe String -> Decoder TriggerAction
+buildHttpAction url ignoreSSLErrors method maybeHeaders maybeTemplateType maybeTemplate =
     let
         headers =
             Maybe.withDefault Dict.empty maybeHeaders
     in
     case stringsToTemplate maybeTemplateType maybeTemplate of
         Ok template ->
-            Decode.succeed <| Http <| HttpActionConfig url method headers template
+            Decode.succeed <| Http <| HttpActionConfig url ignoreSSLErrors method headers template
 
         Err err ->
             Decode.fail err
