@@ -60,6 +60,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 
+## [0.11.2] - Unreleased
+### Added
+- [trigger_engine] Add `ignore_ssl_errors` key in trigger actions, allowing to ignore SSL actions
+  when delivering an HTTP trigger action.
+
+### Changed
+- [appengine_api] Remove `topic` from channel metrics.
+
 ## [0.11.1] - 2020-05-18
 ### Added
 - [data_updater_plant] Add `DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT` environment variable,
