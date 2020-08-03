@@ -26,7 +26,7 @@ import {
 
 const InterfaceRow = ({ name, majors }) => (
   <ListGroup.Item>
-    <Container className="p-0">
+    <Container className="p-0" fluid>
       <Row>
         <Col>
           <Link to={`/interfaces/${name}/${Math.max(...majors)}`}>
