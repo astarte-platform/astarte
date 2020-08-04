@@ -44,13 +44,17 @@ export default class GroupDevicesPage extends React.Component {
     this.handleModalCancel = this.handleModalCancel.bind(this);
     this.removeDevice = this.removeDevice.bind(this);
 
+    this.state = {
+      isRemovingDevice: false
+    };
+
     this.loadGroups();
   }
 
   loadGroups() {
     this.state = {
       phase: "loading",
-      showModal: false
+      showModal: false,
     };
 
     this.astarte
@@ -96,7 +100,7 @@ export default class GroupDevicesPage extends React.Component {
 
   removeDevice() {
     this.setState({
-      removingDevice: true
+      isRemovingDevice: true
     });
 
     this.astarte
@@ -109,7 +113,7 @@ export default class GroupDevicesPage extends React.Component {
           this.props.history.push({ pathname: "/groups" });
         } else {
           this.setState({
-            removingDevice: false,
+            isRemovingDevice: false,
             showModal: false
           });
           this.loadGroups();
@@ -125,7 +129,7 @@ export default class GroupDevicesPage extends React.Component {
         innerHTML = (
           <>
             <h5 className="mt-1 mb-3">Devices in group {this.props.groupName}</h5>
-            { deviceTable(this.state.devices, this.showModal) }
+            {deviceTable(this.state.devices, this.showModal)}
           </>
         );
         break;
@@ -142,7 +146,7 @@ export default class GroupDevicesPage extends React.Component {
     const {
       showModal,
       selectedDeviceName,
-      removingDevice
+      isRemovingDevice
     } = this.state;
 
     return (
@@ -152,7 +156,7 @@ export default class GroupDevicesPage extends React.Component {
           deviceName={selectedDeviceName}
           groupName={this.props.groupName}
           isLastDevice={this.state.devices?.length == 1}
-          isRemoving={removingDevice}
+          isRemoving={isRemovingDevice}
           show={showModal}
           onCancel={this.handleModalCancel}
           onRemove={this.removeDevice}
@@ -264,7 +268,7 @@ function ConfirmDeviceRemovalModal(props) {
   } = props;
 
   return (
-    <div onKeyDown={(e) => { if (e.key == "Enter") onRemove() }}>
+    <div onKeyDown={(e) => { if (e.key == "Enter" && !isRemoving) onRemove() }}>
       <Modal
         size="lg"
         show={show}
@@ -286,18 +290,16 @@ function ConfirmDeviceRemovalModal(props) {
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onRemove}>
-            <>
-              { isRemoving && (
+          <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
+              {isRemoving && (
                 <Spinner
-                  className="mr-1"
+                  className="mr-2"
                   size="sm"
                   animation="border"
                   role="status"
                 />
               )}
               Remove
-            </>
           </Button>
         </Modal.Footer>
       </Modal>

@@ -41,7 +41,8 @@ export default class NewGroupPage extends React.Component {
     this.astarte = this.props.astarte;
 
     this.state = {
-      phase: "loading"
+      phase: "loading",
+      isCreatingGroup: false
     };
 
     this.handleDevicesRequest = this.handleDevicesRequest.bind(this);
@@ -123,6 +124,7 @@ export default class NewGroupPage extends React.Component {
   }
 
   createGroup(e) {
+    this.setState({ isCreatingGroup: true });
     e.preventDefault();
     const { groupName, selectedDevices } = this.state;
 
@@ -134,7 +136,8 @@ export default class NewGroupPage extends React.Component {
       .then(() => {
         this.props.history.push({ pathname: "/groups" });
       })
-      .catch(() => {
+      .catch((err) => {
+        this.setState({ isCreatingGroup: false })
         console.log(err);
       });
   }
@@ -145,6 +148,10 @@ export default class NewGroupPage extends React.Component {
   }
 
   render() {
+    const {
+      isCreatingGroup
+    } = this.state;
+
     let innerHTML;
 
     switch (this.state.phase) {
@@ -187,8 +194,17 @@ export default class NewGroupPage extends React.Component {
               <Button
                 variant="primary"
                 type="submit"
-                disabled={!this.validInput(this.state)}
+                disabled={!this.validInput(this.state) || isCreatingGroup}
               >
+                {isCreatingGroup && (
+                <Spinner
+                  as="span"
+                  size="sm"
+                  animation="border"
+                  role="status"
+                  className={"mr-2"}
+                />
+              )}
                 Create group
               </Button>
             </Form.Row>

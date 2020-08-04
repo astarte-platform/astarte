@@ -59,7 +59,8 @@ export default class RegisterDevicePage extends React.Component {
       deviceId: "",
       namespace: "",
       customString: "",
-      namespacedID: ""
+      namespacedID: "",
+      isRegisteringDevice: false
     };
   }
 
@@ -151,7 +152,8 @@ export default class RegisterDevicePage extends React.Component {
       isValidDeviceId,
       isInvalidDeviceId,
       sendIntrospection,
-      introspectionInterfaces
+      introspectionInterfaces,
+      isRegisteringDevice
     } = this.state;
 
     return (
@@ -211,8 +213,17 @@ export default class RegisterDevicePage extends React.Component {
             <Button
               variant="primary"
               type="submit"
-              disabled={!isValidDeviceId}
+              disabled={!isValidDeviceId || isRegisteringDevice}
             >
+              {isRegisteringDevice && (
+                <Spinner
+                  as="span"
+                  size="sm"
+                  animation="border"
+                  role="status"
+                  className={"mr-2"}
+                />
+              )}
               Register device
             </Button>
           </Form.Row>
@@ -225,6 +236,7 @@ export default class RegisterDevicePage extends React.Component {
 
   registerDevice(e) {
     e.preventDefault();
+    this.setState({ isRegisteringDevice: true });
 
     const params = {
       deviceId: this.state.deviceId
@@ -237,7 +249,8 @@ export default class RegisterDevicePage extends React.Component {
     this.astarte
       .registerDevice(params)
       .then(this.handleRegistrationSuccess)
-      .catch(this.handleRegistrationError);
+      .catch(this.handleRegistrationError)
+      .finally(() => this.setState({ isRegisteringDevice: false }));
   }
 
   handleRegistrationSuccess(response) {
