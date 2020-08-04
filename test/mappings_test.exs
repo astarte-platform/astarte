@@ -23,6 +23,28 @@ defmodule Astarte.DataAccess.MappingsTest do
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Mappings
 
+  @test_interface_id <<83, 208, 155, 48, 103, 205, 220, 243, 222, 30, 40, 112, 234, 210, 31, 19>>
+
+  @test_mapping %{
+    <<102, 99, 106, 232, 232, 167, 20, 89, 90, 33, 238, 64, 182, 95, 205, 244>> => %Mapping{
+      allow_unset: false,
+      database_retention_policy: :no_ttl,
+      database_retention_ttl: nil,
+      description: "The description.",
+      doc: "The doc.",
+      endpoint: "/new/interface/value",
+      endpoint_id: <<102, 99, 106, 232, 232, 167, 20, 89, 90, 33, 238, 64, 182, 95, 205, 244>>,
+      expiry: 0,
+      explicit_timestamp: false,
+      interface_id: <<83, 208, 155, 48, 103, 205, 220, 243, 222, 30, 40, 112, 234, 210, 31, 19>>,
+      path: nil,
+      reliability: :unreliable,
+      retention: :discard,
+      type: nil,
+      value_type: :double
+    }
+  }
+
   @simplestreamtest_interface_id <<10, 13, 167, 125, 133, 181, 147, 217, 212, 210, 189, 38, 221,
                                    24, 201, 175>>
 
@@ -138,6 +160,9 @@ defmodule Astarte.DataAccess.MappingsTest do
 
     assert Mappings.fetch_interface_mappings_map(db_client, @simplestreamtest_interface_id) ==
              {:ok, @simplestreamtest_mappings}
+
+    assert Mappings.fetch_interface_mappings_map(db_client, @test_interface_id, include_docs: true) ==
+             {:ok, @test_mapping}
 
     # FIXME: this should return {:error, :interface_not_found}
     # missing_interface_id = :crypto.strong_rand_bytes(16)
