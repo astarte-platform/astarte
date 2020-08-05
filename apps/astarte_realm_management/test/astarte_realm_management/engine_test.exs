@@ -345,6 +345,69 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_interface_d_0 """
+  {
+    "interface_name": "org.astarte-platform.Values",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value",
+            "type": "double",
+            "explicit_timestamp": true,
+            "description": "Description.",
+            "doc": "Docs."
+        }
+    ]
+  }
+  """
+
+  @test_interface_d_1 """
+  {
+    "interface_name": "org.astarte-platform.Values",
+    "version_major": 1,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value",
+            "type": "double",
+            "explicit_timestamp": false,
+            "description": "Updated description.",
+            "doc": "Updated docs."
+        }
+    ]
+  }
+  """
+
+  @test_interface_d_incompatible_change """
+  {
+    "interface_name": "org.astarte-platform.Values",
+    "version_major": 1,
+    "version_minor": 2,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value",
+            "type": "string",
+            "explicit_timestamp": false,
+            "description": "Updated description.",
+            "doc": "Updated docs."
+        }
+    ]
+  }
+  """
+
   setup do
     with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
       DatabaseTestHelper.seed_test_data(client)
@@ -637,6 +700,23 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 15]]}
+  end
+
+  test "update explicit timestamp, doc and description for individual datastream interface" do
+    assert Engine.install_interface("autotestrealm", @test_interface_d_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["org.astarte-platform.Values"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "org.astarte-platform.Values") ==
+             {:ok, [[major_version: 1, minor_version: 0]]}
+
+    assert Engine.update_interface("autotestrealm", @test_interface_d_1) == :ok
+
+    assert Engine.list_interface_versions("autotestrealm", "org.astarte-platform.Values") ==
+             {:ok, [[major_version: 1, minor_version: 1]]}
+
+    assert Engine.update_interface("autotestrealm", @test_interface_d_incompatible_change) ==
+             {:error, :incompatible_endpoint_change}
   end
 
   test "update object aggregated interface" do
