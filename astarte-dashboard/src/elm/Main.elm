@@ -687,7 +687,10 @@ handleKnownRoute key params session route maybeToken =
                 initReactPage session Home "home" Route.Home
                     |> attachCommand (replaceWithHomeUrlCmd key)
 
-            Route.Realm (Route.Auth maybeRealm maybeOauthUrl) ->
+            Route.Realm (Route.Auth (Just realm) maybeOauthUrl) ->
+                attemptLogin realm maybeToken maybeOauthUrl key session
+
+            Route.Realm (Route.Auth Nothing maybeOauthUrl) ->
                 initReactPage session Home "home" Route.Home
                     |> attachCommand (replaceWithHomeUrlCmd key)
 
