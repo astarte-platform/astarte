@@ -201,6 +201,13 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (9651f167-a619-3ff5-1c4e-6771fb1929d4, 342c0830-f496-0db0-6776-2d1a7e534022, True, '/%{x}/%{y}/color', 0, 1, 0, 'com.example.PixelsConfiguration', 1, 1, 1, 7);
+    """,
+    """
+      INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version,
+        interface_minor_version, interface_name, interface_type, reliability, retention, value_type, doc, description,
+        explicit_timestamp) VALUES
+        (53d09b30-67cd-dcf3-de1e-2870ead21f13, 66636ae8-e8a7-1459-5a21-ee40b65fcdf4, False, '/new/interface/value', 0, 0,
+        1, 'org.astarte-platform.NewInterface', 1, 1, 1, 1, 'The doc.', 'The description.', false);
     """
   ]
 
@@ -371,6 +378,12 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     ('com.example.PixelsConfiguration', 1, :automaton_accepting_states, :automaton_transitions, 1, 9651f167-a619-3ff5-1c4e-6771fb1929d4, 0, 2, 'individual_properties', 1, 1)
   """
 
+  @insert_into_interface_4 """
+  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation,
+    interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+    ('org.astarte-platform.NewInterface', 0, :automaton_accepting_states, :automaton_transitions, 1,
+    53d09b30-67cd-dcf3-de1e-2870ead21f13, 1, 1, 'individual_properties', 1, 1)
+  """
   def connect_to_test_keyspace() do
     Database.connect(realm: "autotestrealm")
   end
@@ -519,6 +532,22 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       |> DatabaseQuery.put(
         :automaton_transitions,
         Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAABhAmgCYQJtAAAABWNvbG9yYQM=")
+      )
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_into_interface_4)
+      |> DatabaseQuery.put(
+        :automaton_accepting_states,
+        Base.decode64!("g3QAAAABYQNtAAAAEGZjaujopxRZWiHuQLZfzfQ=")
+      )
+      |> DatabaseQuery.put(
+        :automaton_transitions,
+        Base.decode64!(
+          "g3QAAAADaAJhAG0AAAADbmV3YQFoAmEBbQAAAAlpbnRlcmZhY2VhAmgCYQJtAAAABXZhbHVlYQM="
+        )
       )
 
     DatabaseQuery.call!(client, query)
