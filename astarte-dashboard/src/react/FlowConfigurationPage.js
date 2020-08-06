@@ -16,136 +16,131 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Button, Form, Spinner } from "react-bootstrap";
 
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-export default class FlowConfigurationPage extends React.Component {
-  constructor(props) {
-    super(props);
+let alertId = 0;
 
-    this.astarte = this.props.astarte;
+export default ({ astarte, history, pipelineId }) => {
+  const [alerts, setAlerts] = useState(new Map());
+  const [flow, setFlow] = useState({
+    name: "",
+    config: "{}",
+  });
+  const [isCreatingFlow, setIsCreatingFlow] = useState(false);
 
-    this.addAlert = this.addAlert.bind(this);
-    this.closeAlert = this.closeAlert.bind(this);
-    this.onFlowNameChange = this.onFlowNameChange.bind(this);
-    this.onConfigChange = this.onConfigChange.bind(this);
-    this.createFlow = this.createFlow.bind(this);
-
-    this.state = {
-      alerts: new Map(),
-      alertId: 0,
-      flowName: "",
-      config: "{}",
-      parsedConfig: null
-    }
-  }
-
-  addAlert(message) {
-    this.setState((state) => {
-      const newAlertId = state.alertId + 1;
-      let newAlerts = state.alerts;
-      newAlerts.set(newAlertId, message);
-
-      return Object.assign(state, {
-        alertId: newAlertId,
-        alerts: newAlerts
-      });
-    });
-  }
-
-  closeAlert(alertId) {
-    this.setState((state) => {
-      state.alerts.delete(alertId);
-      return state;
-    });
-  }
-
-  onFlowNameChange(e) {
-    const newValue = e.target.value;
-
-    this.setState({
-      flowName: newValue
-    });
-  }
-
-  onConfigChange(e) {
-    const newValue = e.target.value;
-    let parsedConfig;
-
+  const parsedFlowConfig = useMemo(() => {
     try {
-      parsedConfig = JSON.parse(newValue);
-    } catch (e) {
-      parsedConfig = null;
+      return JSON.parse(flow.config);
+    } catch {
+      return null;
     }
+  }, [flow.config]);
 
-    this.setState({
-      config: newValue,
-      parsedConfig: parsedConfig
-    });
-  }
-
-  createFlow() {
-    const { flowName, parsedConfig } = this.state;
-
-    this.astarte
-      .createNewFlowInstance({
-        config: parsedConfig,
-        name: flowName,
-        pipeline: this.props.pipelineId
-      })
-      .then(() => { this.props.history.push("/flows") })
-      .catch((err) => {
-        this.addAlert(`Couldn't instantiate the Flow: ${err.message}`);
+  const addAlert = useCallback(
+    (message) => {
+      alertId += 1;
+      setAlerts((alerts) => {
+        const newAlerts = new Map(alerts);
+        newAlerts.set(alertId, message);
+        return newAlerts;
       });
-  }
+    },
+    [setAlerts]
+  );
 
-  render() {
-    const { alerts, flowName, config, parsedConfig } = this.state;
-    let innerHTML = (
-      <Form>
-        <Form.Group controlId="flow.name">
-          <Form.Label>Name</Form.Label>
-          <Form.Control
-            type="text"
-            placeholder="Your flow name"
-            value={flowName}
-            onChange={this.onFlowNameChange}
-          />
-        </Form.Group>
-        <label>Pipeline ID</label>
-        <p>
-          <i>{this.props.pipelineId}</i>
-        </p>
-        <Form.Group controlId="flow.config">
-          <Form.Label>Flow config</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows="12"
-            value={config}
-            onChange={this.onConfigChange}
-          />
-        </Form.Group>
-        <Button
-          variant="primary"
-          disabled={parsedConfig == null || flowName == ""}
-          onClick={this.createFlow}
-        >
-          Instantiate Flow
-        </Button>
-      </Form>
-    );
+  const closeAlert = useCallback(
+    (alertId) => {
+      setAlerts((alerts) => {
+        const newAlerts = new Map(alerts);
+        newAlerts.delete(alertId);
+        return newAlerts;
+      });
+    },
+    [setAlerts]
+  );
 
-    return (
-      <SingleCardPage
-        title="Flow Configuration"
-        backLink="/pipelines"
-        errorMessages={alerts}
-        onAlertClose={this.closeAlert}
+  const createFlow = useCallback(() => {
+    setIsCreatingFlow(true);
+    astarte
+      .createNewFlowInstance({
+        name: flow.name,
+        config: parsedFlowConfig,
+        pipeline: pipelineId,
+      })
+      .then(() => {
+        history.push("/flows");
+      })
+      .catch((err) => {
+        setIsCreatingFlow(false);
+        addAlert(`Couldn't instantiate the Flow: ${err.message}`);
+      });
+  }, [
+    setIsCreatingFlow,
+    flow,
+    parsedFlowConfig,
+    pipelineId,
+    astarte,
+    history,
+    addAlert,
+  ]);
+
+  const isValidFlowName = flow.name !== "";
+  const isValidFlowConfig = parsedFlowConfig != null;
+  const isValidForm = isValidFlowName && isValidFlowConfig;
+
+  let innerHTML = (
+    <Form>
+      <Form.Group controlId="flow.name">
+        <Form.Label>Name</Form.Label>
+        <Form.Control
+          type="text"
+          placeholder="Your flow name"
+          value={flow.name}
+          onChange={(e) => setFlow({ ...flow, name: e.target.value })}
+        />
+      </Form.Group>
+      <label>Pipeline ID</label>
+      <p>
+        <i>{pipelineId}</i>
+      </p>
+      <Form.Group controlId="flow.config">
+        <Form.Label>Flow config</Form.Label>
+        <Form.Control
+          as="textarea"
+          rows="12"
+          value={flow.config}
+          onChange={(e) => setFlow({ ...flow, config: e.target.value })}
+        />
+      </Form.Group>
+      <Button
+        variant="primary"
+        disabled={!isValidForm || isCreatingFlow}
+        onClick={createFlow}
       >
-        {innerHTML}
-      </SingleCardPage>
-    );
-  }
-}
+        {isCreatingFlow && (
+          <Spinner
+            className="mr-2"
+            size="sm"
+            animation="border"
+            role="status"
+          />
+        )}
+        Instantiate Flow
+      </Button>
+    </Form>
+  );
+
+  return (
+    <SingleCardPage
+      title="Flow Configuration"
+      backLink="/pipelines"
+      errorMessages={alerts}
+      onAlertClose={closeAlert}
+    >
+      {innerHTML}
+    </SingleCardPage>
+  );
+};

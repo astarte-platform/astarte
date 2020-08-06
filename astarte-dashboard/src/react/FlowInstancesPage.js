@@ -293,7 +293,7 @@ function ConfirmDeletionModal(props) {
   const { show, flowName, isDeleting, onCancel, onDelete } = props;
 
   return (
-    <div onKeyDown={(e) => { if (e.key == "Enter") onDelete() }}>
+    <div onKeyDown={(e) => { if (e.key == "Enter" && !isDeleting) onDelete() }}>
       <Modal
         size="sm"
         show={show}
@@ -309,16 +309,16 @@ function ConfirmDeletionModal(props) {
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onDelete}>
+          <Button variant="danger" onClick={onDelete} disabled={isDeleting}>
             <>
-              {isDeleting ? (
+              {isDeleting && (
                 <Spinner
-                  className="mr-1"
+                  className="mr-2"
                   size="sm"
                   animation="border"
                   role="status"
                 />
-              ) : null}
+              )}
               Remove
             </>
           </Button>
