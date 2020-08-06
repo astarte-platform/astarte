@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Accordion,
   Button,
@@ -34,202 +34,197 @@ import SingleCardPage from "./ui/SingleCardPage.js";
 import CheckableDeviceTable from "./ui/CheckableDeviceTable.js";
 import { Link } from "react-router-dom";
 
-export default class NewGroupPage extends React.Component {
-  constructor(props) {
-    super(props);
+let alertId = 0;
 
-    this.astarte = this.props.astarte;
+export default ({ astarte, history }) => {
+  const [phase, setPhase] = useState("loading");
+  const [groupName, setGroupName] = useState("");
+  const [deviceFilter, setDeviceFilter] = useState("");
+  const [devices, setDevices] = useState([]);
+  const [selectedDevices, setSelectedDevices] = useState(new Set());
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [alerts, setAlerts] = useState(new Map());
 
-    this.state = {
-      phase: "loading",
-      isCreatingGroup: false
+  useEffect(() => {
+    const handleDevicesRequest = (response) => {
+      const deviceList = response.data.map((value) => Device.fromObject(value));
+      setDevices(deviceList);
+      setPhase("ok");
     };
 
-    this.handleDevicesRequest = this.handleDevicesRequest.bind(this);
-    this.handleDevicesError = this.handleDevicesError.bind(this);
-    this.toggleDevice = this.toggleDevice.bind(this);
-    this.updateGroupName = this.updateGroupName.bind(this);
-    this.updateFilter = this.updateFilter.bind(this);
-    this.createGroup = this.createGroup.bind(this);
+    const handleDevicesError = (err) => {
+      setPhase("err");
+    };
 
-    this.astarte
+    astarte
       .getDevices({ details: true })
-      .then(this.handleDevicesRequest)
-      .catch(this.handleDevicesError);
-  }
+      .then(handleDevicesRequest)
+      .catch(handleDevicesError);
 
-  handleDevicesRequest(response) {
-    let deviceList = response.data.map((value, index) => {
-      return Device.fromObject(value);
-    });
+  }, [astarte]);
 
-    this.setState({
-      phase: "ok",
-      devices: deviceList,
-      selectedDevices: new Set(),
-      deviceFilter: ""
-    });
-  }
+  const addAlert = useCallback(
+    (message) => {
+      alertId += 1;
+      setAlerts((alerts) => {
+        const newAlerts = new Map(alerts);
+        newAlerts.set(alertId, message);
+        return newAlerts;
+      });
+    },
+    [setAlerts]
+  );
 
-  handleDevicesError(err) {
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
+  const closeAlert = useCallback(
+    (alertId) => {
+      setAlerts((alerts) => {
+        const newAlerts = new Map(alerts);
+        newAlerts.delete(alertId);
+        return newAlerts;
+      });
+    },
+    [setAlerts]
+  );
 
-  toggleDevice(eventParams) {
-    const senderItem = eventParams.target;
-    const deviceId = senderItem.dataset.deviceId;
-    let updatedSet = this.state.selectedDevices;
-
-    if (senderItem.checked) {
-      updatedSet.add(deviceId);
-    } else {
-      updatedSet.delete(deviceId);
-    }
-
-    this.setState({
-      selectedDevices: updatedSet
-    });
-  }
-
-  updateGroupName(e) {
-    const name = e.target.value.trim();
-    let feedback;
-    let isValid;
-
-    if (name.length == 0) {
-      isValid = false;
-      feedback = "The group name cannot be empty.";
-    } else if (name.startsWith("@") || name.startsWith("~")) {
-      isValid = false;
-      feedback = "The group name cannot start with ~ or @.";
-    } else {
-      isValid = true;
-    }
-
-    this.setState({
-      groupName: name,
-      validGroupName: isValid,
-      markInvalid: !isValid,
-      groupNameFeedback: feedback
-    });
-  }
-
-  updateFilter(e) {
-    this.setState({
-      deviceFilter: e.target.value
-    });
-  }
-
-  createGroup(e) {
-    this.setState({ isCreatingGroup: true });
+  const createGroup = (e) => {
     e.preventDefault();
-    const { groupName, selectedDevices } = this.state;
 
-    this.astarte
+    setIsCreatingGroup(true);
+
+    astarte
       .createGroup({
         groupName: groupName,
         deviceList: Array.from(selectedDevices)
       })
       .then(() => {
-        this.props.history.push({ pathname: "/groups" });
+        history.push({ pathname: "/groups" });
       })
       .catch((err) => {
-        this.setState({ isCreatingGroup: false })
-        console.log(err);
+        addAlert(err.message);
+        setIsCreatingGroup(false);
       });
-  }
+  };
 
-  validInput(state) {
-    const { validGroupName, selectedDevices } = state;
-    return selectedDevices.size > 0 && validGroupName;
-  }
+  const handleDeviceToggle = (e) => {
+    const senderItem = e.target;
+    const deviceId = senderItem.dataset.deviceId;
 
-  render() {
-    const {
-      isCreatingGroup
-    } = this.state;
+    setSelectedDevices((previousSelection) => {
+      const newSelection = new Set(previousSelection);
+      if (senderItem.checked) {
+        newSelection.add(deviceId);
+      } else {
+        newSelection.delete(deviceId);
+      }
+      return newSelection;
+    });
+  };
 
-    let innerHTML;
+  const selectedDeviceCount = selectedDevices.size;
+  const isValidGroupName = groupName !== '' && !groupName.startsWith("@") && !groupName.startsWith("~");
+  const isValidForm = isValidGroupName && selectedDeviceCount > 0;
 
-    switch (this.state.phase) {
-      case "ok":
-        innerHTML = (
-          <Form onSubmit={this.createGroup}>
-            <Form.Group controlId="groupNameInput">
-              <Form.Label>Group name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Your group name"
-                onChange={this.updateGroupName}
-                autoComplete="off"
-                required
-                isValid={this.state.validGroupName}
-                isInvalid={this.state.markInvalid}
-              />
-              <Form.Control.Feedback type="invalid">
-                {this.state.groupNameFeedback}
-              </Form.Control.Feedback>
-            </Form.Group>
-            <div className="table-toolbar p-1">
-              <span>
-                {deviceCountSentence(this.state.selectedDevices.size)}
-              </span>
-              <div className="float-right">
-                <FilterInputBox
-                  placeholder="Device ID/alias"
-                  onChange={this.updateFilter}
-                />
-              </div>
-            </div>
-            <CheckableDeviceTable
-              filter={this.state.deviceFilter}
-              devices={this.state.devices}
-              selectedDevices={this.state.selectedDevices}
-              onToggleDevice={this.toggleDevice}
+  return (
+    <NewGroupPageWrapper
+      phase={phase}
+      errorMessages={alerts}
+      onAlertClose={closeAlert}
+    >
+      <Form onSubmit={createGroup}>
+        <GroupNameFormGroup
+          groupName={groupName}
+          onGroupNameChange={setGroupName}
+        />
+        <div className="table-toolbar p-1">
+          <span>
+            { selectedDeviceCount > 0 ?
+              `${selectedDeviceCount} ${selectedDeviceCount == 1 ? 'device' : 'devices'} selected.`
+            :
+              'Please select at least one device.'
+            }
+          </span>
+          <div className="float-right">
+            <FilterInputBox
+              filter={deviceFilter}
+              onFilterChange={setDeviceFilter}
             />
-            <Form.Row className="flex-row-reverse pr-2">
-              <Button
-                variant="primary"
-                type="submit"
-                disabled={!this.validInput(this.state) || isCreatingGroup}
-              >
-                {isCreatingGroup && (
-                <Spinner
-                  as="span"
-                  size="sm"
-                  animation="border"
-                  role="status"
-                  className={"mr-2"}
-                />
-              )}
-                Create group
-              </Button>
-            </Form.Row>
-          </Form>
-        );
-        break;
-
-      case "err":
-        innerHTML = <p>Couldn't load the device list</p>;
-        break;
-
-      default:
-        innerHTML = <Spinner animation="border" role="status" />;
-        break;
-    }
-
-    return (
-      <SingleCardPage title="Create a New Group" backLink="/groups">
-        {innerHTML}
-      </SingleCardPage>
-    );
-  }
+          </div>
+        </div>
+        <CheckableDeviceTable
+          filter={deviceFilter}
+          devices={devices}
+          selectedDevices={selectedDevices}
+          onToggleDevice={handleDeviceToggle}
+        />
+        <Form.Row className="flex-row-reverse pr-2">
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={!isValidForm}
+          >
+            {isCreatingGroup && (
+              <Spinner
+                as="span"
+                size="sm"
+                animation="border"
+                role="status"
+                className={"mr-2"}
+              />
+            )}
+            Create group
+          </Button>
+        </Form.Row>
+      </Form>
+    </NewGroupPageWrapper>
+  );
 }
 
-function FilterInputBox(props) {
+const NewGroupPageWrapper = ({ phase, children, ...props }) => {
+  let innerHtml;
+
+  if (phase === "ok") {
+    innerHtml = children;
+
+  } else if (phase === "err") {
+    innerHtml = (<p>Couldn't load the device list</p>);
+
+  } else {
+    innerHtml = (<Spinner animation="border" role="status" />);
+  }
+
+  return (
+    <SingleCardPage title="Create a New Group" backLink="/groups" {...props}>
+      {innerHtml}
+    </SingleCardPage>
+  );
+}
+
+const GroupNameFormGroup = ({ groupName, onGroupNameChange }) => {
+  const isValidGroupName = !groupName.startsWith("@") && !groupName.startsWith("~");
+
+  return (
+    <Form.Group controlId="groupNameInput">
+      <Form.Label>Group name</Form.Label>
+      <Form.Control
+        type="text"
+        placeholder="Your group name"
+        value={groupName}
+        onChange={(e) => onGroupNameChange(e.target.value.trim())}
+        autoComplete="off"
+        required
+        isValid={groupName !== '' && isValidGroupName}
+        isInvalid={groupName !== '' && !isValidGroupName}
+      />
+      { !isValidGroupName &&
+        <Form.Control.Feedback type="invalid">
+          The group name cannot start with ~ or @.
+        </Form.Control.Feedback>
+      }
+    </Form.Group>
+  );
+}
+
+const FilterInputBox = ({ filter, onFilterChange }) => {
   return (
     <Form.Group>
       <Form.Label srOnly>Table filter</Form.Label>
@@ -241,18 +236,11 @@ function FilterInputBox(props) {
         </InputGroup.Prepend>
         <Form.Control
           type="text"
-          placeholder={props.placeholder}
-          onChange={props.onChange}
+          value={filter}
+          onChange={(e) => onFilterChange(e.target.value)}
+          placeholder="Device ID/alias"
         />
       </InputGroup>
     </Form.Group>
   );
-}
-
-function deviceCountSentence(deviceCount) {
-  if (deviceCount > 0) {
-    return `${deviceCount} ${deviceCount == 1 ? "device" : "devices"} selected.`;
-  } else {
-    return "Please select at least one device.";
-  }
 }
