@@ -95,7 +95,7 @@ export default class PipelineSourcePage extends React.Component {
 
     switch (this.state.phase) {
       case "ok":
-        const { name, source, description } = this.state.pipelineSource;
+        const { name, source, schema, description } = this.state.pipelineSource;
 
         innerHTML = (
           <>
@@ -103,12 +103,24 @@ export default class PipelineSourcePage extends React.Component {
             <Col>
               <h5 className="mt-2 mb-2">Name</h5>
               <p>{name}</p>
-              <h5 className="mt-2 mb-2">Description</h5>
-              <p>{description}</p>
+              { description &&
+                <>
+                  <h5 className="mt-2 mb-2">Description</h5>
+                  <p>{description}</p>
+                </>
+              }
               <h5 className="mt-2 mb-2">Source</h5>
               <SyntaxHighlighter language="text" showLineNumbers="true">
                 {source}
               </SyntaxHighlighter>
+              { !isEmpty(schema) &&
+                <>
+                  <h5 className="mt-2 mb-2">Schema</h5>
+                  <SyntaxHighlighter language="json" showLineNumbers="true">
+                    {JSON.stringify(schema, null, 2)}
+                  </SyntaxHighlighter>
+                </>
+              }
             </Col>
           </Row>
           <Button
@@ -141,4 +153,8 @@ export default class PipelineSourcePage extends React.Component {
       </SingleCardPage>
     );
   }
+}
+
+function isEmpty(obj) {
+  return !obj || Object.keys(obj).length === 0;
 }
