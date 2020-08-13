@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [data_updater_plant] Default the queue range end to 127.
 - Update Phoenix to version 1.5.
 - Rework metrics to reduce the clutter while monitoring astarte services.
+- [realm_management] Allow updating doc, description and explicit_timestamp within mappings when
+  bumping an interface minor.
 
 ## [1.0.0-alpha.1] - 2020-06-19
 ### Fixed
