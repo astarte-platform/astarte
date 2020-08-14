@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      version: "0.11.1",
+      version: "0.11.2",
       elixir: "~> 1.8",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -63,9 +63,9 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.1"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.1"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.2"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.2"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.2"}
     ]
   end
 

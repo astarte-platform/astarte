@@ -32,7 +32,7 @@ jobs:
     - uses: actions/setup-elixir@v1.2.0
       with:
         otp-version: 21.3
-        elixir-version: 1.8.1
+        elixir-version: 1.8.2
     - name: Install Dependencies
       working-directory: ./astarte/doc
       run: mix deps.get

@@ -22,7 +22,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      version: "0.11.1",
+      version: "0.11.2",
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -59,8 +59,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.1"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.2"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.2"}
     ]
   end
 
@@ -75,6 +75,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       {:amqp, "== 1.2.1"},
       {:bbmustache, "== 1.8.0"},
+      {:certifi, "== 2.5.2", override: true},
       {:conform, "== 2.5.2"},
       {:cyanide, "== 1.0.0"},
       {:httpoison, "== 1.5.1"},
