@@ -18,7 +18,7 @@ on:
     - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
-  elixir_version: 1.8.1
+  elixir_version: 1.8.2
   otp_version: 21.3
 
 jobs:
