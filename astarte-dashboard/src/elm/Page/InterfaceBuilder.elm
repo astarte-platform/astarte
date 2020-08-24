@@ -739,40 +739,31 @@ update session msg model =
                     )
 
         UpdateObjectMappingExpiry newExpiry ->
-            case String.toInt newExpiry of
-                Just expiry ->
-                    if expiry >= 0 then
-                        let
-                            newInterface =
-                                model.interface
-                                    |> Interface.setObjectMappingAttributes
-                                        model.objectReliability
-                                        model.objectRetention
-                                        expiry
-                                        model.objectExplicitTimestamp
-                                        model.objectDatabaseRetention
-                                        model.objectTTL
-                        in
-                        ( { model
-                            | objectExpiry = expiry
-                            , interface = newInterface
-                            , sourceBuffer = Interface.toPrettySource newInterface
-                          }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
+            let
+                expiry =
+                  newExpiry
+                  |> String.toInt
+                  |> Maybe.withDefault 0
+                  |> max 0
 
-                    else
-                        ( model
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
-
-                Nothing ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+                newInterface =
+                    model.interface
+                        |> Interface.setObjectMappingAttributes
+                            model.objectReliability
+                            model.objectRetention
+                            expiry
+                            model.objectExplicitTimestamp
+                            model.objectDatabaseRetention
+                            model.objectTTL
+            in
+            ( { model
+                | objectExpiry = expiry
+                , interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateObjectMappingDatabaseRetention newDatabaseRetention ->
             case InterfaceMapping.stringToDatabaseRetention newDatabaseRetention of
@@ -810,41 +801,32 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        UpdateObjectMappingTTL newTTL ->
-            case String.toInt newTTL of
-                Just ttl ->
-                    if ttl >= 60 then
-                        let
-                            newInterface =
-                                model.interface
-                                    |> Interface.setObjectMappingAttributes
-                                        model.objectReliability
-                                        model.objectRetention
-                                        model.objectExpiry
-                                        model.objectExplicitTimestamp
-                                        model.objectDatabaseRetention
-                                        ttl
-                        in
-                        ( { model
-                            | objectTTL = ttl
-                            , interface = newInterface
-                            , sourceBuffer = Interface.toPrettySource newInterface
-                          }
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
+        UpdateObjectMappingTTL stringTTL ->
+            let
+                ttl =
+                  stringTTL
+                  |> String.toInt
+                  |> Maybe.withDefault 0
+                  |> max 0
 
-                    else
-                        ( model
-                        , Cmd.none
-                        , ExternalMsg.Noop
-                        )
-
-                Nothing ->
-                    ( model
-                    , Cmd.none
-                    , ExternalMsg.Noop
-                    )
+                newInterface =
+                    model.interface
+                        |> Interface.setObjectMappingAttributes
+                            model.objectReliability
+                            model.objectRetention
+                            model.objectExpiry
+                            model.objectExplicitTimestamp
+                            model.objectDatabaseRetention
+                            ttl
+            in
+            ( { model
+                | objectTTL = ttl
+                , interface = newInterface
+                , sourceBuffer = Interface.toPrettySource newInterface
+              }
+            , Cmd.none
+            , ExternalMsg.Noop
+            )
 
         UpdateObjectMappingExplicitTimestamp explicitTimestamp ->
             let
