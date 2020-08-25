@@ -20,39 +20,15 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Button, Form, Modal, Spinner } from "react-bootstrap";
 
 import SingleCardPage from "./ui/SingleCardPage.js";
-
-let alertId = 0;
+import { useAlerts } from "./AlertManager";
 
 export default ({ astarte, history }) => {
-  const [alerts, setAlerts] = useState(new Map());
   const [phase, setPhase] = useState("loading");
   const [userPublicKey, setUserPublicKey] = useState("");
   const [draftPublicKey, setDraftPublicKey] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
-
-  const addAlert = useCallback(
-    (message) => {
-      alertId += 1;
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.set(alertId, message);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
-
-  const closeAlert = useCallback(
-    (alertId) => {
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.delete(alertId);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
+  const formAlerts = useAlerts();
 
   const showModal = useCallback(() => setIsModalVisible(true), [
     setIsModalVisible,
@@ -72,7 +48,7 @@ export default ({ astarte, history }) => {
       .catch((err) => {
         setIsUpdatingSettings(false);
         dismissModal();
-        addAlert(err.message);
+        formAlerts.showError(err.message);
       });
   }, [
     setIsUpdatingSettings,
@@ -80,7 +56,7 @@ export default ({ astarte, history }) => {
     draftPublicKey,
     history,
     dismissModal,
-    addAlert,
+    formAlerts.showError,
   ]);
 
   useEffect(() => {
@@ -100,26 +76,29 @@ export default ({ astarte, history }) => {
   switch (phase) {
     case "ok":
       innerHTML = (
-        <Form>
-          <Form.Group controlId="public-key">
-            <Form.Label>Public key</Form.Label>
-            <Form.Control
-              as="textarea"
-              className="text-monospace"
-              rows="16"
-              value={draftPublicKey}
-              onChange={(e) => setDraftPublicKey(e.target.value)}
-            />
-          </Form.Group>
-          {/* TODO: this action is destructive, maybe we should use danger/warning variants */}
-          <Button
-            variant="primary"
-            disabled={draftPublicKey === userPublicKey}
-            onClick={showModal}
-          >
-            Apply
-          </Button>
-        </Form>
+        <>
+          <formAlerts.Alerts />
+          <Form>
+            <Form.Group controlId="public-key">
+              <Form.Label>Public key</Form.Label>
+              <Form.Control
+                as="textarea"
+                className="text-monospace"
+                rows="16"
+                value={draftPublicKey}
+                onChange={(e) => setDraftPublicKey(e.target.value)}
+              />
+            </Form.Group>
+            {/* TODO: this action is destructive, maybe we should use danger/warning variants */}
+            <Button
+              variant="primary"
+              disabled={draftPublicKey === userPublicKey}
+              onClick={showModal}
+            >
+              Apply
+            </Button>
+          </Form>
+        </>
       );
       break;
 
@@ -139,8 +118,6 @@ export default ({ astarte, history }) => {
   return (
     <SingleCardPage
       title="Realm Settings"
-      errorMessages={alerts}
-      onAlertClose={closeAlert}
     >
       {innerHTML}
       <ConfirmKeyChanges

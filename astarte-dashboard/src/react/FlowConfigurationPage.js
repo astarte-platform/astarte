@@ -19,12 +19,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Button, Form, Spinner } from "react-bootstrap";
 
+import { useAlerts } from "./AlertManager";
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-let alertId = 0;
-
 export default ({ astarte, history, pipelineId }) => {
-  const [alerts, setAlerts] = useState(new Map());
   const [flow, setFlow] = useState({
     name: "",
     config: "{}",
@@ -39,28 +37,7 @@ export default ({ astarte, history, pipelineId }) => {
     }
   }, [flow.config]);
 
-  const addAlert = useCallback(
-    (message) => {
-      alertId += 1;
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.set(alertId, message);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
-
-  const closeAlert = useCallback(
-    (alertId) => {
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.delete(alertId);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
+  const formAlerts = useAlerts();
 
   const createFlow = useCallback(() => {
     setIsCreatingFlow(true);
@@ -75,7 +52,7 @@ export default ({ astarte, history, pipelineId }) => {
       })
       .catch((err) => {
         setIsCreatingFlow(false);
-        addAlert(`Couldn't instantiate the Flow: ${err.message}`);
+        formAlerts.showError(`Couldn't instantiate the Flow: ${err.message}`);
       });
   }, [
     setIsCreatingFlow,
@@ -84,7 +61,7 @@ export default ({ astarte, history, pipelineId }) => {
     pipelineId,
     astarte,
     history,
-    addAlert,
+    formAlerts.showError,
   ]);
 
   const isValidFlowName = flow.name !== "";
@@ -137,9 +114,8 @@ export default ({ astarte, history, pipelineId }) => {
     <SingleCardPage
       title="Flow Configuration"
       backLink="/pipelines"
-      errorMessages={alerts}
-      onAlertClose={closeAlert}
     >
+      <formAlerts.Alerts />
       {innerHTML}
     </SingleCardPage>
   );

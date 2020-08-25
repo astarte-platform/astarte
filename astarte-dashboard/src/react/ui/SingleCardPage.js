@@ -17,50 +17,21 @@
 */
 
 import React from "react";
-import { Alert, Container, Row, Col } from "react-bootstrap";
+import { Container } from "react-bootstrap";
 import BackButton from "./BackButton.js";
 
 export default function SingleCardPage(props) {
-  const { backLink, errorMessages, onAlertClose, children, title } = props;
+  const { backLink, children, title } = props;
 
   return (
     <Container fluid className="p-3">
       <h2>
-        { backLink &&  <BackButton href={backLink} /> }
+        {backLink && <BackButton href={backLink} />}
         {title}
       </h2>
-      { errorMessages &&
-        <Row>
-          { Array.from(errorMessages).map(([key, value]) =>
-              <Col
-                key={key}
-                xs={12}
-              >
-                <ErrorAlert
-                  alertId={key}
-                  message={value}
-                  onClose={() => onAlertClose(key)}
-                />
-              </Col>
-            )
-          }
-        </Row>
-      }
       <Container fluid className="bg-white rounded p-3 mt-4">
         {children}
       </Container>
     </Container>
-  );
-}
-
-function ErrorAlert(props) {
-  return (
-    <Alert
-      variant="danger"
-      onClose={() => props.onClose(props.alertId)}
-      dismissible
-    >
-      {props.message}
-    </Alert>
   );
 }

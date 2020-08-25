@@ -19,21 +19,18 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
-  Col,
   Form,
-  Row,
   Spinner
 } from "react-bootstrap";
 import Ajv from 'ajv';
 
+import { useAlerts } from "./AlertManager";
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-let alertId = 0;
 const ajv = new Ajv({schemaId: 'id'});
 ajv.addMetaSchema(require('ajv/lib/refs/json-schema-draft-04.json'));
 
 export default ({ astarte, history }) => {
-  const [alerts, setAlerts] = useState(new Map());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [pipeline, setPipeline] = useState({
     name: "",
@@ -41,29 +38,7 @@ export default ({ astarte, history }) => {
     source: "",
     schema: ""
   });
-
-  const addAlert = useCallback(
-    (message) => {
-      alertId += 1;
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.set(alertId, message);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
-
-  const closeAlert = useCallback(
-    (alertId) => {
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.delete(alertId);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
+  const formAlerts = useAlerts();
 
   const createPipeline = useCallback(() => {
     setIsCreatingPipeline(true);
@@ -83,9 +58,9 @@ export default ({ astarte, history }) => {
       .then(() => history.push('/pipelines'))
       .catch((err) => {
         setIsCreatingPipeline(false);
-        addAlert(`Couldn't create pipeline: ${err.message}`);
+        formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
       });
-  }, [astarte, history, setIsCreatingPipeline, addAlert, pipeline, schemaObject]);
+  }, [astarte, history, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
 
   const schemaObject = useMemo(() => {
     if (pipeline.schema === '') {
@@ -118,9 +93,9 @@ export default ({ astarte, history }) => {
   return (
     <SingleCardPage
       title="New Pipeline"
-      errorMessages={alerts}
-      onAlertClose={closeAlert}
+      backLink="/pipelines"
     >
+      <formAlerts.Alerts />
       <Form>
         <Form.Group controlId="pipeline-name">
           <Form.Label>Name</Form.Label>

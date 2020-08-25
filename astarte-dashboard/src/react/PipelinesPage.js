@@ -16,124 +16,96 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Card, CardDeck, Container, Spinner, Table } from "react-bootstrap";
+import {
+  Button,
+  Card,
+  CardDeck,
+  Container,
+  Spinner,
+  Table,
+} from "react-bootstrap";
 
-export default class PipelinesPage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history }) => {
+  const [phase, setPhase] = useState("loading");
+  const [pipelines, setPipelines] = useState(null);
 
-    this.astarte = this.props.astarte;
-
-    this.state = {
-      phase: "loading"
-    };
-
-    this.redirectToConfiguration = this.redirectToConfiguration.bind(this);
-    this.handlePipelinesResponse = this.handlePipelinesResponse.bind(this);
-    this.handlePipelinesError = this.handlePipelinesError.bind(this);
-
-    this.astarte
-      .getPipelineDefinitions()
-      .then(this.handlePipelinesResponse)
-      .catch(this.handlePipelinesError);
-  }
-
-  render() {
-    let innerHTML;
-
-    switch (this.state.phase) {
-      case "ok":
-        innerHTML = (
-          <CardDeck className="mt-4">
-            <NewPipelineCard
-              onCreate={() =>
-                this.props.history.push(`/pipelines/new`)
-              }
-            />
-            {this.state.pipelines.map((pipeline, index) => {
-              return (
-                <React.Fragment key={`fragment-${index}`}>
-                  {index % 2 ? (
-                    <div className="w-100 d-none d-md-block" />
-                  ) : null}
-                  <PipelineCard
-                    headless="true"
-                    pipelineName={pipeline.name}
-                    pipelineDescription={pipeline.description}
-                    pipelineLongDescription={pipeline.longDescription}
-                    configureCB={() =>
-                      this.props.history.push(`/flows/new/${pipeline.name}`)
-                    }
-                    onShow={() =>
-                      this.props.history.push(`/pipelines/${pipeline.name}`)
-                    }
-                  />
-                  {index == this.state.pipelines.length - 1 &&
-                  this.state.pipelines.length % 2 == 0 ? (
-                    <div className="w-50 d-none d-md-block" />
-                  ) : null}
-                </React.Fragment>
-              );
-            })}
-          </CardDeck>
-        );
-        break;
-
-      case "err":
-        innerHTML = <p>Couldn't load avalilable pipelines</p>;
-        break;
-
-      default:
-        innerHTML = <Spinner animation="border" role="status" />;
-        break;
-    }
-
-    return (
-      <Container fluid className="p-3">
-        <h2>Pipelines</h2>
-        {innerHTML}
-      </Container>
-    );
-  }
-
-  redirectToConfiguration(pipelineId) {
-    this.props.history.push(`/flows/new/${pipelineId}`);
-  }
-
-  handlePipelinesResponse(response) {
-    const pipelineList = response.data;
-    const promiseList = pipelineList.map((pipelineName) =>
-      this.astarte.getPipelineInputConfig(pipelineName)
-    );
-
-    Promise.allSettled(promiseList)
-      .then((result) => {
-        let pipelineData = [];
-
-        for (let pipelineResult of result) {
+  useEffect(() => {
+    const handlePipelinesResponse = (response) => {
+      const pipelineList = response.data;
+      const promiseList = pipelineList.map((pipelineName) =>
+        astarte.getPipelineInputConfig(pipelineName)
+      );
+      Promise.allSettled(promiseList).then((result) => {
+        const pipelineData = [];
+        for (const pipelineResult of result) {
           if (pipelineResult.status == "fulfilled") {
             pipelineData.push(pipelineResult.value.data);
           }
         }
-
-        this.setState({
-          phase: "ok",
-          pipelines: pipelineData
-        });
+        setPipelines(pipelineData);
+        setPhase("ok");
       });
+    };
+    const handlePipelinesError = (err) => {
+      setPhase("err");
+    };
+    astarte
+      .getPipelineDefinitions()
+      .then(handlePipelinesResponse)
+      .catch(handlePipelinesError);
+  }, [astarte]);
+
+  let innerHTML;
+
+  switch (phase) {
+    case "ok":
+      innerHTML = (
+        <CardDeck className="mt-4">
+          <NewPipelineCard onCreate={() => history.push(`/pipelines/new`)} />
+          {pipelines.map((pipeline, index) => {
+            return (
+              <React.Fragment key={`fragment-${index}`}>
+                {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
+                <PipelineCard
+                  headless="true"
+                  pipelineName={pipeline.name}
+                  pipelineDescription={pipeline.description}
+                  pipelineLongDescription={pipeline.longDescription}
+                  configureCB={() =>
+                    history.push(`/flows/new/${pipeline.name}`)
+                  }
+                  onShow={() => history.push(`/pipelines/${pipeline.name}`)}
+                />
+                {index == pipelines.length - 1 && pipelines.length % 2 == 0 ? (
+                  <div className="w-50 d-none d-md-block" />
+                ) : null}
+              </React.Fragment>
+            );
+          })}
+        </CardDeck>
+      );
+      break;
+
+    case "err":
+      innerHTML = <p>Couldn't load avalilable pipelines</p>;
+      break;
+
+    default:
+      innerHTML = <Spinner animation="border" role="status" />;
+      break;
   }
 
-  handlePipelinesError(err) {
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
-}
+  return (
+    <Container fluid className="p-3">
+      <h2>Pipelines</h2>
+      {innerHTML}
+    </Container>
+  );
+};
 
-function NewPipelineCard({ onCreate }) {
+const NewPipelineCard = ({ onCreate }) => {
   return (
     <Card className="mb-4">
       <Card.Header as="h5">New Pipeline</Card.Header>
@@ -145,15 +117,13 @@ function NewPipelineCard({ onCreate }) {
       </Card.Body>
     </Card>
   );
-}
+};
 
-function PipelineCard({ pipelineName, pipelineDescription, configureCB }) {
+const PipelineCard = ({ pipelineName, pipelineDescription, configureCB }) => {
   return (
     <Card className="mb-4">
       <Card.Header as="h5">
-        <Link to={`/pipelines/${pipelineName}`}>
-          {pipelineName}
-        </Link>
+        <Link to={`/pipelines/${pipelineName}`}>{pipelineName}</Link>
       </Card.Header>
       <Card.Body>
         <Card.Text>{pipelineDescription}</Card.Text>
@@ -163,4 +133,4 @@ function PipelineCard({ pipelineName, pipelineDescription, configureCB }) {
       </Card.Body>
     </Card>
   );
-}
+};
