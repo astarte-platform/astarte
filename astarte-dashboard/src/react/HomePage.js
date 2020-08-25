@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -27,187 +27,106 @@ import {
   Spinner,
   Table
 } from "react-bootstrap";
-import DevicesPieChart from "./ui/DevicesPieChart.js"
+import useFetch from "./hooks/useFetch.js";
+import DevicesPieChart from "./ui/DevicesPieChart.js";
+import WaitForData from "./components/WaitForData.js";
 
-export default class HomePage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history }) => {
+  const devicesStats = useFetch(astarte.getDevicesStats);
+  const interfaces = useFetch(astarte.getInterfaceNames);
+  const triggers = useFetch(astarte.getTriggerNames);
+  const appEngineHealth = useFetch(astarte.getAppengineHealth);
+  const realmManagementHealth = useFetch(astarte.getRealmManagementHealth);
+  const pairingHealth = useFetch(astarte.getPairingHealth);
+  const flowHealth = astarte.config.enableFlowPreview ? useFetch(astarte.getFlowHealth) : null;
 
-    this.astarte = this.props.astarte;
-
-    this.updateDeviceStats = this.updateDeviceStats.bind(this);
-    this.updateInterfaceNames = this.updateInterfaceNames.bind(this);
-    this.updateTriggerNames = this.updateTriggerNames.bind(this);
-    this.redirectToLastInterface = this.redirectToLastInterface.bind(this);
-    this.updateStatus = this.updateStatus.bind(this);
-    this.syncData = this.syncData.bind(this);
-
-    this.queryFlowHealth = this.astarte.config.enableFlowPreview;
-
-    this.state = {
-      connectedDevices: "loading",
-      totalDevices: "loading",
-      interfaces: "loading",
-      triggers: "loading",
-      appengineStatus: "loading",
-      realmManagementStatus: "loading",
-      pairingStatus: "loading",
-      flowStatus: this.queryFlowHealth ? "loading" : null
-    };
-
-    this.syncData();
-  }
-
-  componentDidMount() {
-    this.astarte.addListener('credentialsChange', this.syncData)
-  }
-
-  componentWillUnmount() {
-    this.astarte.removeListener('credentialsChange', this.syncData)
-  }
-
-  syncData() {
-    this.astarte.getDevicesStats()
-      .then(this.updateDeviceStats)
-      .catch((e) => this.handleSectionError("connectedDevices", e));
-
-    this.astarte.getInterfaceNames()
-      .then(this.updateInterfaceNames)
-      .catch((e) => this.handleSectionError("interfaces", e));
-
-    this.astarte.getTriggerNames()
-      .then(this.updateTriggerNames)
-      .catch((e) => this.handleSectionError("triggers", e));
-
-    this.astarte.getRealmManagementHealth()
-      .then(() => { this.updateStatus("realmManagementStatus", "ok") })
-      .catch(() => { this.updateStatus("realmManagementStatus", "err") });
-
-    this.astarte.getAppengineHealth()
-      .then(() => { this.updateStatus("appengineStatus", "ok") })
-      .catch(() => { this.updateStatus("appengineStatus", "err") });
-
-    this.astarte.getPairingHealth()
-      .then(() => { this.updateStatus("pairingStatus", "ok") })
-      .catch(() => { this.updateStatus("pairingStatus", "err") });
-
-    if (this.queryFlowHealth) {
-      this.astarte.getFlowHealth()
-        .then(() => { this.updateStatus("flowStatus", "ok") })
-        .catch(() => { this.updateStatus("flowStatus", "err") });
+  const refreshData = () => {
+    devicesStats.refresh();
+    interfaces.refresh();
+    triggers.refresh();
+    appEngineHealth.refresh();
+    realmManagementHealth.refresh();
+    pairingHealth.refresh();
+    if (astarte.config.enableFlowPreview) {
+      flowHealth.refresh();
     }
-  }
+  };
 
-  updateDeviceStats(response) {
-    this.setState({
-      connectedDevices: response.data.connected_devices,
-      totalDevices: response.data.total_devices
+  useEffect(() => {
+    const refreshTimer = setInterval(() => {
+      refreshData();
+    }, 30000);
+    astarte.addListener('credentialsChange', refreshData);
+
+    return (() => {
+      clearTimeout(refreshTimer);
+      astarte.removeListener('credentialsChange', refreshData);
     });
-  }
+  }, [astarte]);
 
-  updateInterfaceNames(response) {
-    this.setState({
-      interfaces: response.data
-    });
-  }
-
-  updateTriggerNames(response) {
-    this.setState({
-      triggers: response.data
-    });
-  }
-
-  handleSectionError(section, err) {
-    this.setState((state) => {
-      return (state[section] === "loading" ? {[section]: "err"} : state)
-    });
-  }
-
-  updateStatus(service, status) {
-    this.setState({
-      [service]: status
-    });
-  }
-
-  redirectToLastInterface(e, interfaceName) {
+  const redirectToLastInterface = useCallback((e, interfaceName) => {
     e.preventDefault();
-
-    const reactHistory = this.props.history;
-
-    this.astarte.getInterfaceMajors(interfaceName)
+    astarte.getInterfaceMajors(interfaceName)
       .then((response) => {
         const latestMajor = Math.max(...response.data);
-        reactHistory.push(`/interfaces/${interfaceName}/${latestMajor}`);
+        history.push(`/interfaces/${interfaceName}/${latestMajor}`);
       });
-  }
+  }, []);
 
-  render() {
-    const cellSpacingClass = "mb-3";
+  const cellSpacingClass = "mb-3";
 
-    const {
-      connectedDevices,
-      totalDevices,
-      appengineStatus,
-      realmManagementStatus,
-      pairingStatus,
-      flowStatus,
-      interfaces,
-      triggers
-    } = this.state;
-
-    return (
-      <Container fluid className="p-3">
-        <Row>
-          <Col xs={12}>
-            <h2 className="mb-4">Astarte Dashboard</h2>
-          </Col>
-          <Col xs={6} className={cellSpacingClass}>
-            <ApiStatusCard
-              appengine={appengineStatus}
-              realmManagement={realmManagementStatus}
-              pairing={pairingStatus}
-              flow={flowStatus}
-            />
-          </Col>
-          { isReady(connectedDevices) &&
+  return (
+    <Container fluid className="p-3">
+      <Row>
+        <Col xs={12}>
+          <h2 className="mb-4">Astarte Dashboard</h2>
+        </Col>
+        <Col xs={6} className={cellSpacingClass}>
+          <ApiStatusCard
+            appengine={appEngineHealth.status}
+            realmManagement={realmManagementHealth.status}
+            pairing={pairingHealth.status}
+            showFlowStatus={astarte.config.enableFlowPreview}
+            flow={flowHealth.status}
+          />
+        </Col>
+        <WaitForData data={devicesStats.value} status={devicesStats.status}>
+          {({connected_devices, total_devices}) => (
             <Col xs={6} className={cellSpacingClass}>
               <DevicesCard
-                connectedDevices={connectedDevices}
-                totalDevices={totalDevices}
+                connectedDevices={connected_devices}
+                totalDevices={total_devices}
               />
             </Col>
-          }
-          { isReady(interfaces) &&
+          )}
+        </WaitForData>
+        <WaitForData data={interfaces.value} status={interfaces.status}>
+          {(interfaceList) => (
             <Col xs={6} className={cellSpacingClass}>
               <InterfacesCard
-                interfaceList={interfaces}
-                onInterfaceClick={this.redirectToLastInterface}
-                onInstallInterfaceClick={() => { this.props.history.push("/interfaces/new") }}
+                interfaceList={interfaceList}
+                onInterfaceClick={redirectToLastInterface}
+                onInstallInterfaceClick={() => history.push("/interfaces/new")}
               />
             </Col>
-          }
-          { isReady(triggers) &&
+          )}
+        </WaitForData>
+        <WaitForData data={triggers.value} status={triggers.status}>
+          {(triggerList) => (
             <Col xs={6} className={cellSpacingClass}>
               <TriggersCard
-                triggerList={triggers}
-                onInstallTriggerClick={() => { this.props.history.push("/triggers/new") }}
+                triggerList={triggerList}
+                onInstallTriggerClick={() => history.push("/triggers/new")}
               />
             </Col>
-          }
-        </Row>
-      </Container>
-    );
-  }
-}
+          )}
+        </WaitForData>
+      </Row>
+    </Container>
+  );
+};
 
-function ApiStatusCard(props) {
-  const {
-    appengine,
-    realmManagement,
-    pairing,
-    flow
-  } = props;
-
+const ApiStatusCard = ({appengine, realmManagement, pairing, showFlowStatus, flow}) => {
   return (
     <Card className="h-100">
       <Card.Header as="h5">
@@ -234,18 +153,20 @@ function ApiStatusCard(props) {
               service="Pairing"
               status={pairing}
             />
-            <ServiceStatusRow
-              service="Flow"
-              status={flow}
-            />
+            { showFlowStatus &&
+              <ServiceStatusRow
+                service="Flow"
+                status={flow}
+              />
+            }
           </tbody>
         </Table>
       </Card.Body>
     </Card>
   );
-}
+};
 
-function DevicesCard({ connectedDevices, totalDevices }) {
+const DevicesCard = ({ connectedDevices, totalDevices }) => {
   return (
     <Card className="h-100">
       <Card.Header as="h5">Devices</Card.Header>
@@ -271,9 +192,9 @@ function DevicesCard({ connectedDevices, totalDevices }) {
       </Card.Body>
     </Card>
   );
-}
+};
 
-function InterfacesCard({ interfaceList, onInterfaceClick, onInstallInterfaceClick }) {
+const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceClick }) => {
   return (
     <Card className="h-100">
       <Card.Header as="h5">
@@ -313,7 +234,7 @@ function InterfacesCard({ interfaceList, onInterfaceClick, onInstallInterfaceCli
   );
 }
 
-function TriggersCard({ triggerList, onInstallTriggerClick }) {
+const TriggersCard = ({ triggerList, onInstallTriggerClick }) => {
   return (
     <Card className="h-100">
       <Card.Header as="h5">
@@ -353,13 +274,9 @@ function TriggersCard({ triggerList, onInstallTriggerClick }) {
       </Card.Body>
     </Card>
   );
-}
+};
 
-function ServiceStatusRow({ service, status }) {
-  if (!status) {
-    return null;
-  }
-
+const ServiceStatusRow = ({ service, status }) => {
   let messageCell;
 
   if (status == "loading") {
@@ -392,9 +309,9 @@ function ServiceStatusRow({ service, status }) {
       { messageCell }
     </tr>
   );
-}
+};
 
-function InterfaceList({ interfaces, onInterfaceClick, maxShownInterfaces }) {
+const InterfaceList = ({ interfaces, onInterfaceClick, maxShownInterfaces }) => {
   const shownInterfaces = interfaces.slice(0, maxShownInterfaces);
   const remainingInterfaces = interfaces.length - maxShownInterfaces;
 
@@ -406,7 +323,7 @@ function InterfaceList({ interfaces, onInterfaceClick, maxShownInterfaces }) {
             className="my-1"
           >
             <a href="/interfaces"
-              onClick={(e) => {onInterfaceClick(e, interfaceName)}}
+              onClick={(e) => { onInterfaceClick(e, interfaceName); }}
             >
               <i className="fas fa-stream mr-1" />
               {interfaceName}
@@ -422,9 +339,9 @@ function InterfaceList({ interfaces, onInterfaceClick, maxShownInterfaces }) {
       }
     </ul>
   );
-}
+};
 
-function TriggerList({ triggers, maxShownTriggers }) {
+const TriggerList = ({ triggers, maxShownTriggers }) => {
   const shownTriggers = triggers.slice(0, maxShownTriggers);
   const remainingTriggers = triggers.length - maxShownTriggers;
 
@@ -452,8 +369,4 @@ function TriggerList({ triggers, maxShownTriggers }) {
       }
     </ul>
   );
-}
-
-function isReady(value) {
-  return (value != "loading" && value != "err");
-}
+};

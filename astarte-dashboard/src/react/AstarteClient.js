@@ -40,6 +40,14 @@ class AstarteClient {
     internalConfig.enableFlowPreview = config.enableFlowPreview || false;
     this.config = internalConfig;
 
+    this.getDevicesStats = this.getDevicesStats.bind(this);
+    this.getInterfaceNames = this.getInterfaceNames.bind(this);
+    this.getTriggerNames = this.getTriggerNames.bind(this);
+    this.getAppengineHealth = this.getAppengineHealth.bind(this);
+    this.getRealmManagementHealth = this.getRealmManagementHealth.bind(this);
+    this.getPairingHealth = this.getPairingHealth.bind(this);
+    this.getFlowHealth = this.getFlowHealth.bind(this);
+
     // prettier-ignore
     let apiConfig = {
       realmManagementHealth: astarteAPIurl`${ config.realmManagementUrl }health`,
