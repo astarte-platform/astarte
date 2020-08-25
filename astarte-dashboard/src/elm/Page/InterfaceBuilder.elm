@@ -1419,7 +1419,7 @@ renderCommonMappingSettings model =
                     ]
                     |> InputGroup.config
                     |> InputGroup.successors
-                        [ InputGroup.span [] [ text "milliseconds" ] ]
+                        [ InputGroup.span [] [ text "seconds" ] ]
                     |> InputGroup.view
                 ]
             ]
