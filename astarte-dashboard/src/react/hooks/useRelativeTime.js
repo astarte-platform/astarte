@@ -24,10 +24,13 @@ import { useInterval } from "./useInterval";
 
 dayjs.extend(dayjsRelativeTime);
 
-export const useRelativeTime = dateTime => {
+export const useRelativeTime = (dateTime) => {
   const [relativeTimeString, setRelativeTimeString] = useState(
     dayjs(dateTime).fromNow()
   );
-  useInterval(() => setRelativeTimeString(dayjs(dateTime).fromNow()), 1000);
+  const refreshRelativeTimeString = useCallback(() => {
+    setRelativeTimeString(dayjs(dateTime).fromNow());
+  }, [dateTime]);
+  useInterval(refreshRelativeTimeString, 1000);
   return relativeTimeString;
 };
