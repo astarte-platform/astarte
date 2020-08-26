@@ -21,10 +21,8 @@ import {
   Router,
   Switch,
   Route,
-  Link,
   useParams,
   useLocation,
-  useRouteMatch
 } from "react-router-dom";
 
 import LoginPage from "./LoginPage.js";
@@ -45,8 +43,7 @@ import NewPipelinePage from "./NewPipelinePage.js";
 import RealmSettingsPage from "./RealmSettingsPage.js";
 import DeviceInterfaceValues from "./DeviceInterfaceValues.js";
 
-export function getRouter(reactHistory, astarteClient, config, fallback) {
-
+export default ({ reactHistory, astarteClient, config, fallback }) => {
   const pageProps = {
       history: reactHistory,
       astarte: astarteClient
@@ -64,7 +61,7 @@ export function getRouter(reactHistory, astarteClient, config, fallback) {
             defaultLoginType={config.default_auth || "token"}
             defaultRealm={config.default_realm || ""}
             {...pageProps}
-          />
+            />
         </Route>
         <Route exact path="/triggers">
           <TriggersPage {...pageProps} />

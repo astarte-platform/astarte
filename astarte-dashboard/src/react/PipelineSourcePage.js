@@ -16,144 +16,110 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button, Col, Row, Spinner } from "react-bootstrap";
-import SyntaxHighlighter from 'react-syntax-highlighter';
+import SyntaxHighlighter from "react-syntax-highlighter";
 
+import { useAlerts } from "./AlertManager";
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-export default class PipelineSourcePage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history, pipelineId }) => {
+  const [phase, setPhase] = useState("loading");
+  const [pipeline, setPipeline] = useState(null);
+  const [isDeletingPipeline, setIsDeletingPipeline] = useState(false);
+  const deletionAlerts = useAlerts();
 
-    this.astarte = this.props.astarte;
-
-    this.state = {
-      alerts: new Map(),
-      alertId: 0,
-      phase: "loading"
+  useEffect(() => {
+    const handlePipelineResponse = (response) => {
+      setPipeline(response.data);
+      setPhase("ok");
     };
+    const handlePipelineError = (err) => {
+      setPhase("err");
+    };
+    astarte
+      .getPipelineSource(pipelineId)
+      .then(handlePipelineResponse)
+      .catch(handlePipelineError);
+  }, [astarte]);
 
-    this.addAlert = this.addAlert.bind(this);
-    this.closeAlert = this.closeAlert.bind(this);
-    this.handlePipelineResponse = this.handlePipelineResponse.bind(this);
-    this.handlePipelineError = this.handlePipelineError.bind(this);
-    this.deletePipeline = this.deletePipeline.bind(this);
-
-    this.astarte
-      .getPipelineSource(props.pipelineId)
-      .then(this.handlePipelineResponse)
-      .catch(this.handlePipelineError);
-  }
-
-  addAlert(message) {
-    this.setState((state) => {
-      const newAlertId = state.alertId + 1;
-      let newAlerts = state.alerts;
-      newAlerts.set(newAlertId, message);
-
-      return Object.assign(state, {
-        alertId: newAlertId,
-        alerts: newAlerts
-      });
-    });
-  }
-
-  closeAlert(alertId) {
-    this.setState((state) => {
-      state.alerts.delete(alertId);
-      return state;
-    });
-  }
-
-  deletePipeline() {
-    this.astarte
-      .deletePipeline(this.props.pipelineId)
-      .then(this.props.history.push(`/pipelines`))
+  const deletePipeline = useCallback(() => {
+    setIsDeletingPipeline(true);
+    astarte
+      .deletePipeline(pipelineId)
+      .then(() => history.push(`/pipelines`))
       .catch((err) => {
-        this.addAlert(`Couldn't delete pipeline: ${err.message}`);
+        deletionAlerts.showError(`Couldn't delete pipeline: ${err.message}`);
+        setIsDeletingPipeline(false);
       });
-  }
+  }, [astarte, pipelineId, history, deletionAlerts.showError]);
 
-  handlePipelineResponse(response) {
-    this.setState({
-      phase: "ok",
-      pipelineSource: response.data
-    });
-  }
+  let innerHTML;
 
-  handlePipelineError(err) {
-    console.log(err);
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
-
-  render() {
-    let innerHTML;
-
-    switch (this.state.phase) {
-      case "ok":
-        const { name, source, schema, description } = this.state.pipelineSource;
-
-        innerHTML = (
-          <>
+  switch (phase) {
+    case "ok":
+      innerHTML = (
+        <>
+          <deletionAlerts.Alerts />
           <Row>
             <Col>
               <h5 className="mt-2 mb-2">Name</h5>
-              <p>{name}</p>
-              { description &&
+              <p>{pipeline.name}</p>
+              {pipeline.description && (
                 <>
                   <h5 className="mt-2 mb-2">Description</h5>
-                  <p>{description}</p>
+                  <p>{pipeline.description}</p>
                 </>
-              }
+              )}
               <h5 className="mt-2 mb-2">Source</h5>
               <SyntaxHighlighter language="text" showLineNumbers="true">
-                {source}
+                {pipeline.source}
               </SyntaxHighlighter>
-              { !isEmpty(schema) &&
+              {!isEmpty(pipeline.schema) && (
                 <>
                   <h5 className="mt-2 mb-2">Schema</h5>
                   <SyntaxHighlighter language="json" showLineNumbers="true">
-                    {JSON.stringify(schema, null, 2)}
+                    {JSON.stringify(pipeline.schema, null, 2)}
                   </SyntaxHighlighter>
                 </>
-              }
+              )}
             </Col>
           </Row>
           <Button
             variant="danger"
-            onClick={this.deletePipeline}
+            onClick={deletePipeline}
+            disabled={isDeletingPipeline}
           >
+            {isDeletingPipeline && (
+              <Spinner
+                as="span"
+                size="sm"
+                animation="border"
+                role="status"
+                className={"mr-2"}
+              />
+            )}
             Delete pipeline
           </Button>
-          </>
-        );
-        break;
+        </>
+      );
+      break;
 
-      case "err":
-        innerHTML = <p>Couldn't load pipeline source</p>;
-        break;
+    case "err":
+      innerHTML = <p>Couldn't load pipeline source</p>;
+      break;
 
-      default:
-        innerHTML = <Spinner animation="border" role="status" />;
-        break;
-    }
-
-    return (
-      <SingleCardPage
-        title="Pipeline Details"
-        backLink="/pipelines"
-        errorMessages={this.state.alerts}
-        onAlertClose={this.closeAlert}
-      >
-        {innerHTML}
-      </SingleCardPage>
-    );
+    default:
+      innerHTML = <Spinner animation="border" role="status" />;
+      break;
   }
-}
+
+  return (
+    <SingleCardPage title="Pipeline Details" backLink="/pipelines">
+      {innerHTML}
+    </SingleCardPage>
+  );
+};
 
 function isEmpty(obj) {
   return !obj || Object.keys(obj).length === 0;

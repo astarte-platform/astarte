@@ -17,76 +17,53 @@
 */
 
 import React from "react";
-import { Link } from "react-router-dom";
-import { Button, Row, Spinner, Table } from "react-bootstrap";
-import SyntaxHighlighter from 'react-syntax-highlighter';
+import { Spinner } from "react-bootstrap";
+import SyntaxHighlighter from "react-syntax-highlighter";
 
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-export default class FlowDetailsPage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history, flowName }) => {
+  const [phase, setPhase] = useState("loading");
+  const [flow, setFlow] = useState(null);
 
-    this.astarte = this.props.astarte;
+  useEffect(() => {
+    astarte
+      .getFlowDetails(flowName)
+      .then((response) => {
+        setFlow(response.data);
+        setPhase("ok");
+      })
+      .catch((err) => {
+        setPhase("err");
+      });
+  }, [astarte, setFlow, setPhase]);
 
-    this.state = {
-      phase: "loading"
-    };
+  let innerHTML;
 
-    this.handleFlowResponse = this.handleFlowResponse.bind(this);
-    this.handleFlowError = this.handleFlowError.bind(this);
-
-    this.astarte
-      .getFlowDetails(props.flowName)
-      .then(this.handleFlowResponse)
-      .catch(this.handleFlowError);
-  }
-
-  render() {
-    let innerHTML;
-
-    switch (this.state.phase) {
-      case "ok":
-        const flow = this.state.flowDescription;
-
-        innerHTML = (
-          <>
+  switch (phase) {
+    case "ok":
+      innerHTML = (
+        <>
           <h5>Flow configuration</h5>
           <SyntaxHighlighter language="json" showLineNumbers="true">
             {JSON.stringify(flow, null, 4)}
           </SyntaxHighlighter>
-          </>
-        );
-        break;
+        </>
+      );
+      break;
 
-      case "err":
-        innerHTML = <p>Couldn't load flow description</p>;
-        break;
+    case "err":
+      innerHTML = <p>Couldn't load flow description</p>;
+      break;
 
-      default:
-        innerHTML = <Spinner animation="border" role="status" />;
-        break;
-    }
-
-    return (
-      <SingleCardPage title="Flow Details" backLink="/flows">
-        {innerHTML}
-      </SingleCardPage>
-    );
+    default:
+      innerHTML = <Spinner animation="border" role="status" />;
+      break;
   }
 
-  handleFlowResponse(response) {
-    this.setState({
-      phase: "ok",
-      flowDescription: response.data
-    });
-  }
-
-  handleFlowError(err) {
-    console.log(err);
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
-}
+  return (
+    <SingleCardPage title="Flow Details" backLink="/flows">
+      {innerHTML}
+    </SingleCardPage>
+  );
+};

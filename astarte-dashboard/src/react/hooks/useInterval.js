@@ -16,22 +16,14 @@
    limitations under the License.
 */
 
-import React from "react";
-import { Container } from "react-bootstrap";
-import BackButton from "./BackButton.js";
+import { useEffect } from "react";
 
-export default function SingleCardPage(props) {
-  const { backLink, children, title } = props;
-
-  return (
-    <Container fluid className="p-3">
-      <h2>
-        {backLink && <BackButton href={backLink} />}
-        {title}
-      </h2>
-      <Container fluid className="bg-white rounded p-3 mt-4">
-        {children}
-      </Container>
-    </Container>
-  );
-}
+export const useInterval = (callback, delay) => {
+  useEffect(() => {
+    if (delay == null) {
+      return;
+    }
+    const intervalId = setInterval(callback, delay);
+    return () => clearInterval(intervalId);
+  }, [callback, delay]);
+};

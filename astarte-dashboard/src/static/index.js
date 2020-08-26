@@ -18,7 +18,7 @@
 
 import ReactDOM from "react-dom";
 import { createBrowserHistory } from "history";
-import { getRouter } from "../react/Router.js";
+import getReactApp from "../react/App.js";
 import AstarteClient from "../react/AstarteClient.js";
 
 require("./styles/main.scss");
@@ -211,7 +211,7 @@ function loadPage(page) {
 
   reactHistory = createBrowserHistory();
 
-  const reactApp = getRouter(reactHistory, astarteClient, dashboardConfig, noMatchFallback);
+  const reactApp = getReactApp(reactHistory, astarteClient, dashboardConfig, noMatchFallback);
   ReactDOM.render(reactApp, document.getElementById("react-page"));
 }
 

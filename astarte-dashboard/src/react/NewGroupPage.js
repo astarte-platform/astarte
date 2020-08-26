@@ -16,25 +16,18 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Accordion,
   Button,
   Form,
   InputGroup,
-  OverlayTrigger,
-  Table,
-  Tooltip,
   Spinner
 } from "react-bootstrap";
 
-import AstarteClient from "./AstarteClient.js";
+import { useAlerts } from "./AlertManager";
 import Device from "./astarte/Device.js";
 import SingleCardPage from "./ui/SingleCardPage.js";
 import CheckableDeviceTable from "./ui/CheckableDeviceTable.js";
-import { Link } from "react-router-dom";
-
-let alertId = 0;
 
 export default ({ astarte, history }) => {
   const [phase, setPhase] = useState("loading");
@@ -43,7 +36,7 @@ export default ({ astarte, history }) => {
   const [devices, setDevices] = useState([]);
   const [selectedDevices, setSelectedDevices] = useState(new Set());
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-  const [alerts, setAlerts] = useState(new Map());
+  const formAlerts = useAlerts();
 
   useEffect(() => {
     const handleDevicesRequest = (response) => {
@@ -51,46 +44,18 @@ export default ({ astarte, history }) => {
       setDevices(deviceList);
       setPhase("ok");
     };
-
     const handleDevicesError = (err) => {
       setPhase("err");
     };
-
     astarte
       .getDevices({ details: true })
       .then(handleDevicesRequest)
       .catch(handleDevicesError);
-
   }, [astarte]);
-
-  const addAlert = useCallback(
-    (message) => {
-      alertId += 1;
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.set(alertId, message);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
-
-  const closeAlert = useCallback(
-    (alertId) => {
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.delete(alertId);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
 
   const createGroup = (e) => {
     e.preventDefault();
-
     setIsCreatingGroup(true);
-
     astarte
       .createGroup({
         groupName: groupName,
@@ -100,7 +65,7 @@ export default ({ astarte, history }) => {
         history.push({ pathname: "/groups" });
       })
       .catch((err) => {
-        addAlert(err.message);
+        formAlerts.showError(`Could not create group: ${err.message}`);
         setIsCreatingGroup(false);
       });
   };
@@ -108,7 +73,6 @@ export default ({ astarte, history }) => {
   const handleDeviceToggle = (e) => {
     const senderItem = e.target;
     const deviceId = senderItem.dataset.deviceId;
-
     setSelectedDevices((previousSelection) => {
       const newSelection = new Set(previousSelection);
       if (senderItem.checked) {
@@ -127,9 +91,8 @@ export default ({ astarte, history }) => {
   return (
     <NewGroupPageWrapper
       phase={phase}
-      errorMessages={alerts}
-      onAlertClose={closeAlert}
     >
+      <formAlerts.Alerts />
       <Form onSubmit={createGroup}>
         <GroupNameFormGroup
           groupName={groupName}
@@ -160,7 +123,7 @@ export default ({ astarte, history }) => {
           <Button
             variant="primary"
             type="submit"
-            disabled={!isValidForm}
+            disabled={!isValidForm || isCreatingGroup}
           >
             {isCreatingGroup && (
               <Spinner
@@ -184,10 +147,8 @@ const NewGroupPageWrapper = ({ phase, children, ...props }) => {
 
   if (phase === "ok") {
     innerHtml = children;
-
   } else if (phase === "err") {
     innerHtml = (<p>Couldn't load the device list</p>);
-
   } else {
     innerHtml = (<Spinner animation="border" role="status" />);
   }
