@@ -25,9 +25,10 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { v4 as uuidv4 } from "uuid";
-import { Alert, Container, Row, Col, Toast } from "react-bootstrap";
+import { Alert, Row, Col } from "react-bootstrap";
+
+import { useRelativeTime } from "./hooks/useRelativeTime";
 
 const useAlertsContext = ({ timeout } = {}) => {
   const timersId = useRef([]);
@@ -133,55 +134,11 @@ const useAlertsContext = ({ timeout } = {}) => {
   };
 };
 
-const AlertsBanner = ({ alerts: currentAlerts, setNotifier }) => {
-  const [alerts, setAlerts] = useState(currentAlerts);
-  useEffect(() => setAlerts(currentAlerts), [setAlerts, currentAlerts]);
-  setNotifier && setNotifier(setAlerts);
-  if (!alerts || alerts.length === 0) {
-    return null;
-  }
-  return (
-    <Row>
-      {alerts.map((alert) => (
-        <Col key={alert.id} xs={12}>
-          <Alert
-            variant={alert.options.variant}
-            onClose={alert.close}
-            dismissible
-          >
-            {alert.message}
-          </Alert>
-        </Col>
-      ))}
-    </Row>
-  );
-};
-
-const AlertsSnackbar = ({ alerts }) => {
-  if (!alerts || alerts.length === 0) {
-    return null;
-  }
-  return (
-    <Container fluid className="fixed-bottom p-3">
-      {alerts.map((alert) => (
-        <Toast key={alert.id} onClose={alert.close} className={`mx-auto`}>
-          <Toast.Header className={`bg-${alert.options.variant} text-light`}>
-            <span className="mx-auto">
-              {new Date(alert.timestamp).toLocaleString()}
-            </span>
-          </Toast.Header>
-          <Toast.Body>{alert.message}</Toast.Body>
-        </Toast>
-      ))}
-    </Container>
-  );
-};
-
-const GlobalAlertsContext = createContext();
+const GlobalAlertsUtilsContext = createContext();
+const GlobalAlertsStateContext = createContext();
 
 const GlobalAlertsProvider = ({ children, ...props }) => {
-  const root = useRef(null);
-  const alertContext = useRef(null);
+  const alertUtilsContext = useRef(null);
   const {
     alerts,
     close,
@@ -192,20 +149,7 @@ const GlobalAlertsProvider = ({ children, ...props }) => {
     showInfo,
   } = useAlertsContext({ timeout: 5000 });
 
-  useEffect(() => {
-    root.current = document.createElement("div");
-    root.current.id = "__alert-manager__";
-    document.body.appendChild(root.current);
-    return () => {
-      if (root.current) document.body.removeChild(root.current);
-    };
-  }, []);
-
-  const Alerts = useMemo(() => {
-    return () => <AlertsSnackbar alerts={alerts} />;
-  }, [alerts]);
-
-  alertContext.current = {
+  alertUtilsContext.current = {
     close,
     closeAll,
     showSuccess,
@@ -215,56 +159,56 @@ const GlobalAlertsProvider = ({ children, ...props }) => {
   };
 
   return (
-    <GlobalAlertsContext.Provider value={alertContext} {...props}>
-      {children}
-      {root.current && createPortal(<Alerts />, root.current)}
-    </GlobalAlertsContext.Provider>
+    <GlobalAlertsUtilsContext.Provider value={alertUtilsContext} {...props}>
+      <GlobalAlertsStateContext.Provider value={alerts} {...props}>
+        {children}
+      </GlobalAlertsStateContext.Provider>
+    </GlobalAlertsUtilsContext.Provider>
+  );
+};
+
+const AlertBanner = ({ alert }) => {
+  const alertRelativeTime = useRelativeTime(alert.timestamp);
+  return (
+    <Col xs={12}>
+      <Alert
+        variant={alert.options.variant}
+        onClose={alert.close}
+        dismissible
+        className="d-flex justify-content-between flex-wrap"
+      >
+        {alert.message}
+        <div className="col text-right">{alertRelativeTime}</div>
+      </Alert>
+    </Col>
+  );
+};
+
+const AlertsBanner = ({ alerts }) => {
+  return (
+    <Row>
+      {alerts.map((alert) => (
+        <AlertBanner key={alert.id} alert={alert} />
+      ))}
+    </Row>
   );
 };
 
 export const useAlerts = () => {
-  const {
-    alerts,
-    close,
-    closeAll,
-    showSuccess,
-    showWarning,
-    showError,
-    showInfo,
-  } = useAlertsContext();
-  const notifyAlerts = useRef(null);
-
-  const setNotifier = useCallback((cb) => {
-    notifyAlerts.current = cb;
-  }, []);
-
-  const Alerts = useMemo(() => {
-    return () => <AlertsBanner alerts={alerts} setNotifier={setNotifier} />;
-  }, [alerts]);
-
-  useEffect(() => {
-    if (notifyAlerts.current) notifyAlerts.current(alerts);
-  }, [alerts]);
-
-  return useMemo(
-    () => ({
-      Alerts,
-      close,
-      closeAll,
-      showSuccess,
-      showWarning,
-      showError,
-      showInfo,
-    }),
-    [alerts]
-  );
+  const alertsContext = useAlertsContext();
+  alertsContext.Alerts = () => <AlertsBanner alerts={alertsContext.alerts} />;
+  return alertsContext;
 };
 
 export const useGlobalAlerts = () => {
-  const alertContext = useContext(GlobalAlertsContext);
+  const alertContext = useContext(GlobalAlertsUtilsContext);
   return useMemo(() => {
     return alertContext.current;
   }, [alertContext]);
+};
+
+export const useGlobalAlertsState = () => {
+  return useContext(GlobalAlertsStateContext);
 };
 
 export default GlobalAlertsProvider;

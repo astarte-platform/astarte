@@ -21,13 +21,10 @@ import {
   Router,
   Switch,
   Route,
-  Link,
   useParams,
   useLocation,
-  useRouteMatch
 } from "react-router-dom";
 
-import AlertsProvider from "./AlertManager";
 import LoginPage from "./LoginPage.js";
 import HomePage from "./HomePage.js";
 import GroupsPage from "./GroupsPage.js";
@@ -46,8 +43,7 @@ import NewPipelinePage from "./NewPipelinePage.js";
 import RealmSettingsPage from "./RealmSettingsPage.js";
 import DeviceInterfaceValues from "./DeviceInterfaceValues.js";
 
-export function getRouter(reactHistory, astarteClient, config, fallback) {
-
+export default ({ reactHistory, astarteClient, config, fallback }) => {
   const pageProps = {
       history: reactHistory,
       astarte: astarteClient
@@ -55,69 +51,67 @@ export function getRouter(reactHistory, astarteClient, config, fallback) {
 
   return (
     <Router history={reactHistory}>
-      <AlertsProvider>
-        <Switch>
-          <Route exact path={["/", "/home"]}>
-            <HomePage {...pageProps} />
-          </Route>
-          <Route path="/login">
-            <Login
-              allowSwitching={config.auth.length > 1}
-              defaultLoginType={config.default_auth || "token"}
-              defaultRealm={config.default_realm || ""}
-              {...pageProps}
-              />
-          </Route>
-          <Route exact path="/triggers">
-            <TriggersPage {...pageProps} />
-          </Route>
-          <Route exact path="/interfaces">
-            <InterfacesPage {...pageProps} />
-          </Route>
-          <Route exact path="/devices">
-            <DevicesPage {...pageProps} />
-          </Route>
-          <Route exact path="/devices/register">
-            <RegisterDevicePage {...pageProps} />
-          </Route>
-          <Route exact path="/devices/:deviceId/interfaces/:interfaceName">
-            <DeviceDataSubPath {...pageProps} />
-          </Route>
-          <Route exact path="/groups">
-            <GroupsPage {...pageProps} />
-          </Route>
-          <Route exact path="/groups/new">
-            <NewGroupPage {...pageProps} />
-          </Route>
-          <Route path="/groups/:groupName">
-            <GroupDevicesSubPath {...pageProps} />
-          </Route>
-          <Route exact path="/flows">
-            <FlowInstancesPage {...pageProps} />
-          </Route>
-          <Route path="/flows/new/:pipelineId">
-            <FlowConfiguration {...pageProps} />
-          </Route>
-          <Route path="/flows/:flowName">
-            <FlowDetails {...pageProps} />
-          </Route>
-          <Route exact path="/pipelines">
-            <PipelinesPage {...pageProps} />
-          </Route>
-          <Route exact path="/pipelines/new">
-            <NewPipelinePage {...pageProps} />
-          </Route>
-          <Route exact path="/pipelines/:pipelineId">
-            <PipelineSubPath {...pageProps} />
-          </Route>
-          <Route exact path="/settings">
-            <RealmSettingsPage {...pageProps} />
-          </Route>
-          <Route path="*">
-            <NoMatch fallback={fallback} />
-          </Route>
-        </Switch>
-      </AlertsProvider>
+      <Switch>
+        <Route exact path={["/", "/home"]}>
+          <HomePage {...pageProps} />
+        </Route>
+        <Route path="/login">
+          <Login
+            allowSwitching={config.auth.length > 1}
+            defaultLoginType={config.default_auth || "token"}
+            defaultRealm={config.default_realm || ""}
+            {...pageProps}
+            />
+        </Route>
+        <Route exact path="/triggers">
+          <TriggersPage {...pageProps} />
+        </Route>
+        <Route exact path="/interfaces">
+          <InterfacesPage {...pageProps} />
+        </Route>
+        <Route exact path="/devices">
+          <DevicesPage {...pageProps} />
+        </Route>
+        <Route exact path="/devices/register">
+          <RegisterDevicePage {...pageProps} />
+        </Route>
+        <Route exact path="/devices/:deviceId/interfaces/:interfaceName">
+          <DeviceDataSubPath {...pageProps} />
+        </Route>
+        <Route exact path="/groups">
+          <GroupsPage {...pageProps} />
+        </Route>
+        <Route exact path="/groups/new">
+          <NewGroupPage {...pageProps} />
+        </Route>
+        <Route path="/groups/:groupName">
+          <GroupDevicesSubPath {...pageProps} />
+        </Route>
+        <Route exact path="/flows">
+          <FlowInstancesPage {...pageProps} />
+        </Route>
+        <Route path="/flows/new/:pipelineId">
+          <FlowConfiguration {...pageProps} />
+        </Route>
+        <Route path="/flows/:flowName">
+          <FlowDetails {...pageProps} />
+        </Route>
+        <Route exact path="/pipelines">
+          <PipelinesPage {...pageProps} />
+        </Route>
+        <Route exact path="/pipelines/new">
+          <NewPipelinePage {...pageProps} />
+        </Route>
+        <Route exact path="/pipelines/:pipelineId">
+          <PipelineSubPath {...pageProps} />
+        </Route>
+        <Route exact path="/settings">
+          <RealmSettingsPage {...pageProps} />
+        </Route>
+        <Route path="*">
+          <NoMatch fallback={fallback} />
+        </Route>
+      </Switch>
     </Router>
   );
 }
