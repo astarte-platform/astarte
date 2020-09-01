@@ -16,229 +16,125 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Container, Spinner, Table } from "react-bootstrap";
 
 import Device from "./astarte/Device.js";
 import BackButton from "./ui/BackButton.js";
+import WaitForData from "./components/WaitForData.js";
+import useFetch from "./hooks/useFetch.js";
+import { useAlerts } from "./AlertManager";
 
-export default class DeviceInterfaceValues extends React.Component {
-  constructor(props) {
-    super(props);
+const MAX_SHOWN_VALUES = 20;
 
-    this.astarte = this.props.astarte;
+const DeviceInterfaceValues = ({ astarte, hisory, deviceId, interfaceName }) => {
+  const [ interfaceType, setInterfaceType ] = useState(null);
+  const deviceData = useFetch(() => astarte.getDeviceData({
+    deviceId: deviceId,
+    interfaceName: interfaceName,
+  }));
 
-    this.handleDeviceResponse = this.handleDeviceResponse.bind(this);
-    this.handleDeviceError = this.handleDeviceError.bind(this);
-    this.handleDataResponse = this.handleDataResponse.bind(this);
-    this.handleDataError = this.handleDataError.bind(this);
-    this.handleInterfaceResponse = this.handleInterfaceResponse.bind(this);
-    this.handleInterfaceError = this.handleInterfaceError.bind(this);
+  const deviceAlerts = useAlerts();
 
-    this.state = {
-      phase: "loading"
-    }
+  useEffect(() => {
+    const getInterfaceType = async () => {
+      const deviceInfos = await astarte.getDeviceInfo(deviceId)
+        .catch(() => { throw new Error('Device not found.'); });
+      const device = Device.fromObject(deviceInfos.data);
+      const interfaceIntrospection = device.introspection[interfaceName];
 
-    this.MAX_VALUES = 20;
-
-    this.astarte
-      .getDeviceInfo(props.deviceId)
-      .then(this.handleDeviceResponse)
-      .catch(this.handleDeviceError);
-  }
-
-  handleDeviceResponse(response) {
-    const device = Device.fromObject(response.data);
-    const { interfaceName } = this.props;
-
-    const interfaceIntrospection = device.introspection[this.props.interfaceName];
-    if (interfaceIntrospection) {
-      const interfaceId = {
-        name: interfaceName,
-        major: interfaceIntrospection.major,
-        minor: interfaceIntrospection.minor
+      if (!interfaceIntrospection) {
+        throw new Error('Interface not found in device introspection.');
       }
 
-      this.setState({
-        device: device,
-        interfaceId: interfaceId
+      const interfaceSrc = await astarte.getInterface({
+        interfaceName: interfaceName,
+        interfaceMajor: interfaceIntrospection.major,
+      })
+        .catch(() => { throw new Error('Could not retrieve interface properties.'); });
+
+      const interfaceData = interfaceSrc.data;
+
+      if (interfaceData.type == 'properties') {
+        setInterfaceType('properties');
+      } else if (interfaceData.type == 'datastream' && interfaceData.aggregation == 'object') {
+        setInterfaceType('datastream-object');
+      } else {
+        setInterfaceType('datastream-individual');
+      }
+    };
+
+    getInterfaceType()
+      .catch((err) => {
+        deviceAlerts.showError(err.message);
       });
+  }, []);
 
-      this.astarte
-        .getInterface({
-          interfaceName: interfaceId.name,
-          interfaceMajor: interfaceId.major
-        })
-        .then(this.handleInterfaceResponse)
-        .catch(this.handleInterfaceError)
-        .finally(() => {
-          this.astarte
-            .getDeviceData({
-              deviceId: device.id,
-              interfaceName: interfaceId.name
-            })
-            .then(this.handleDataResponse)
-            .catch(this.handleDataError);
-        });
+  return (
+    <Container fluid className="p-3">
+      <h2><BackButton href={`/devices/${deviceId}`} />Interface Data</h2>
+      <Card className="mt-4">
+        <Card.Header>
+          <span className="text-monospace">{deviceId}</span> / {interfaceName}
+        </Card.Header>
+        <Card.Body>
+          <deviceAlerts.Alerts />
+          <WaitForData
+            data={deviceData.value}
+            status={deviceData.status}
+            fallback={<Spinner animation="border" role="status" />}
+          >
+            {(interfaceData) => (
+              <InterfaceData data={interfaceData} type={interfaceType} />
+            )}
+          </WaitForData>
+        </Card.Body>
+      </Card>
+    </Container>
+  );
+};
 
-    } else {
-      this.setState({
-        phase: "err",
-        errorMessage: "Interface not found in device introspection."
-      });
-    }
-  }
-
-  handleDataResponse(response) {
-    let interfaceData;
-
-    switch (this.state.interfaceType) {
-      case "properties":
-        interfaceData = response.data;
-        break;
-
-      case "datastream-object":
-        interfaceData = response.data.slice(0, this.MAX_VALUES);
-        break;
-
-      case "datastream-individual":
-        interfaceData = response.data;
-        break;
-    }
-
-    this.setState({
-      phase: "ok",
-      interfaceData: interfaceData
-    });
-  }
-
-  handleInterfaceResponse(response) {
-    const interfaceSrc = response.data;
-
-    let interfaceType;
-
-    if (interfaceSrc.type == "properties") {
-      interfaceType = "properties";
-
-    } else if (interfaceSrc.type == "datastream" && interfaceSrc.aggregation == "object") {
-      interfaceType = "datastream-object";
-
-    } else {
-      interfaceType = "datastream-individual";
-    }
-
-    this.setState({
-      interfaceType: interfaceType
-    });
-  }
-
-  handleDeviceError(err) {
-    console.log(err);
-    this.setState({
-      phase: "err",
-      errorMessage: "Device not found."
-    });
-  }
-
-  handleDataError(err) {
-    console.log(err);
-    this.setState({
-      phase: "err",
-      errorMessage: "Could not retrieve device data."
-    });
-  }
-
-  handleInterfaceError(err) {
-    // TODO autodetect interface type from returned data
-    console.log(err);
-    this.setState({
-      phase: "err",
-      errorMessage: "Could not retrieve interface properties."
-    });
-  }
-
-  render() {
-    const { deviceId, interfaceName } = this.props;
-    const { device, interfaceData, interfaceId, interfaceType, phase } = this.state;
-
-    let innerHTML;
-
-    switch (phase) {
-      case "ok":
-        innerHTML = <InterfaceData data={interfaceData} type={interfaceType} />;
-        break;
-
-      case "err":
-        innerHTML = <p>{this.state.errorMessage}</p>;
-        break;
-
-      default:
-        innerHTML = (
-          <div>
-            <Spinner animation="border" role="status" />
-          </div>
-        );
-        break;
-    }
-
+const InterfaceData = ({data, type}) => {
+  switch (type) {
+  case "properties":
     return (
-      <Container fluid className="p-3">
-        <h2><BackButton href={`/devices/${deviceId}`} />Interface Data</h2>
-        <Card className="mt-4">
-          <Card.Header>
-            <span className="text-monospace">{deviceId}</span> / {interfaceName}
-          </Card.Header>
-          <Card.Body>
-            {innerHTML}
-          </Card.Body>
-        </Card>
-      </Container>
+      <PropertyTree data={data} />
+    );
+
+  case "datastream-object":
+    if (data.length > 0) {
+      return (
+        <>
+          <h5 className="mb-1">Latest sent objects</h5>
+          <ObjectDatastreamTable data={data.slice(0, MAX_SHOWN_VALUES)} />
+        </>
+      );
+    } else {
+      return (
+        <p>No data sent by the device.</p>
+      );
+    }
+
+  case "datastream-individual":
+    return (
+      <IndividualDatastreamTable data={data} />
     );
   }
-}
 
-function InterfaceData({data, type}) {
-  switch (type) {
-    case "properties":
-      return (
-        <PropertyTree data={data} />
-      );
-
-    case "datastream-object":
-      if (data.length > 0) {
-        return (
-          <>
-            <h5 className="mb-1">Latest sent objects</h5>
-            <ObjectDatastreamTable data={data} />
-          </>
-        );
-      } else {
-        return (
-          <p>No data sent by the device.</p>
-        );
-      }
-
-    case "datastream-individual":
-      return (
-        <IndividualDatastreamTable data={data} />
-      );
-  }
-
+  // TODO autodetect interface type from data structure
   return null;
-}
+};
 
-function PropertyTree({data}) {
-  return (
-    <pre>
-      <code>
-        {JSON.stringify(data, null, 2)}
-      </code>
-    </pre>
-  );
-}
+const PropertyTree = ({data}) => (
+  <pre>
+    <code>
+      {JSON.stringify(data, null, 2)}
+    </code>
+  </pre>
+);
 
-function IndividualDatastreamTable({data}) {
-  let paths = linearizePathTree("", data);
+const IndividualDatastreamTable = ({data}) => {
+  const paths = linearizePathTree("", data);
 
   return (
     <Table>
@@ -261,20 +157,18 @@ function IndividualDatastreamTable({data}) {
       </tbody>
     </Table>
   );
-}
+};
 
-function IndividualDatastreamRow({path, value, timestamp}) {
-  return (
-    <tr>
-      <td>{path}</td>
-      <td>{value}</td>
-      <td>{new Date(timestamp).toLocaleString()}</td>
-    </tr>
-  );
-}
+const IndividualDatastreamRow = ({path, value, timestamp}) => (
+  <tr>
+    <td>{path}</td>
+    <td>{value}</td>
+    <td>{new Date(timestamp).toLocaleString()}</td>
+  </tr>
+);
 
-function ObjectDatastreamTable({data}) {
-  let labels = [];
+const ObjectDatastreamTable = ({data}) => {
+  const labels = [];
 
   for (let prop in data[0]) {
     if (prop != "timestamp") {
@@ -295,16 +189,14 @@ function ObjectDatastreamTable({data}) {
       </tbody>
     </Table>
   );
-}
+};
 
-function ObjectDatastreamRow({labels, obj}) {
-  return (
-    <tr>
-      { labels.map((label) => <td key={label}>{obj[label]}</td>) }
-      <td>{new Date(obj.timestamp).toLocaleString()}</td>
-    </tr>
-  );
-}
+const ObjectDatastreamRow = ({labels, obj}) => (
+  <tr>
+    { labels.map((label) => <td key={label}>{obj[label]}</td>) }
+    <td>{new Date(obj.timestamp).toLocaleString()}</td>
+  </tr>
+);
 
 function linearizePathTree(prefix, data) {
   return Object.entries(data).map(([key, value]) => linearizeHelper(prefix, key, value)).flat();
@@ -313,7 +205,7 @@ function linearizePathTree(prefix, data) {
 function linearizeHelper(prefix, key, value) {
   const newPrefix = prefix + "/" + key;
 
-  if (typeof value.value !== 'object' && value.value !== null) {
+  if (value.value && typeof value.value !== 'object') {
     return {
       path: newPrefix,
       value: value.value,
@@ -323,3 +215,5 @@ function linearizeHelper(prefix, key, value) {
     return linearizePathTree(newPrefix, value).flat();
   }
 }
+
+export default DeviceInterfaceValues;
