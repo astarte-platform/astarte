@@ -32,6 +32,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Explicit timestamp is enabled by default for all mappings when interface type is changed to
   datastream.
 
+## [0.11.3] - Unreleased
+### Fixed
+- Fix wrong measurement unit used for mapping expiry.
+
+## [0.11.2] - 2020-08-14
+### Fixed
+- Match API labels with their corresponding status.
+
 ## [0.11.1] - 2020-05-18
 ### Added
 - Byte multiples in device stats stable.
