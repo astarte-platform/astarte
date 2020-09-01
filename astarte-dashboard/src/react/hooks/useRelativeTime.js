@@ -16,22 +16,21 @@
    limitations under the License.
 */
 
-import React from "react";
-import { Container } from "react-bootstrap";
-import BackButton from "./BackButton.js";
+import { useState } from "react";
+import dayjs from "dayjs";
+import dayjsRelativeTime from "dayjs/plugin/relativeTime";
 
-export default function SingleCardPage(props) {
-  const { backLink, children, title } = props;
+import { useInterval } from "./useInterval";
 
-  return (
-    <Container fluid className="p-3">
-      <h2>
-        {backLink && <BackButton href={backLink} />}
-        {title}
-      </h2>
-      <Container fluid className="bg-white rounded p-3 mt-4">
-        {children}
-      </Container>
-    </Container>
+dayjs.extend(dayjsRelativeTime);
+
+export const useRelativeTime = (dateTime) => {
+  const [relativeTimeString, setRelativeTimeString] = useState(
+    dayjs(dateTime).fromNow()
   );
-}
+  const refreshRelativeTimeString = useCallback(() => {
+    setRelativeTimeString(dayjs(dateTime).fromNow());
+  }, [dateTime]);
+  useInterval(refreshRelativeTimeString, 1000);
+  return relativeTimeString;
+};

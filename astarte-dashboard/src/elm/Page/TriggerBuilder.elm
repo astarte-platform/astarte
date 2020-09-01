@@ -183,7 +183,9 @@ type Msg
     | UpdateDataTriggerOperator String
     | UpdateDataTriggerKnownValue String
       -- Device Trigger
-    | UpdateDeviceTriggerId String
+    | UpdateDeviceTriggerTarget TargetChoice
+    | UpdateDeviceTriggerDeviceId String
+    | UpdateDeviceTriggerGroupName String
     | UpdateDeviceTriggerCondition String
       -- Modal
     | ShowDeleteModal
@@ -384,7 +386,17 @@ update session msg model =
                             , sourceBufferStatus = Valid
                             , trigger = trigger
                           }
-                        , Cmd.none
+                        , case trigger.simpleTrigger of
+                            Trigger.Data dataTrigger ->
+                                AstarteApi.getInterface session.apiConfig
+                                    dataTrigger.interfaceName
+                                    dataTrigger.interfaceMajor
+                                    GetInterfaceDone
+                                    (ShowError "Could not retrieve selected interface")
+                                    RedirectToLogin
+
+                            _ ->
+                                Cmd.none
                         , ExternalMsg.Noop
                         )
 
@@ -735,17 +747,83 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-        UpdateDeviceTriggerId deviceId ->
+        UpdateDeviceTriggerTarget targetChoice ->
+            case model.trigger.simpleTrigger of
+                Trigger.Device deviceTrigger ->
+                    let
+                        newTarget =
+                            case targetChoice of
+                                AllDevices ->
+                                    DeviceTrigger.AllDevices
+
+                                SpecificDevice ->
+                                    DeviceTrigger.SpecificDevice ""
+
+                                DeviceGroup ->
+                                    DeviceTrigger.DeviceGroup ""
+
+                        newSimpleTrigger =
+                            Trigger.Device { deviceTrigger | target = newTarget }
+
+                        oldTrigger =
+                            model.trigger
+
+                        newTrigger =
+                            { oldTrigger | simpleTrigger = newSimpleTrigger }
+                    in
+                    ( { model
+                        | trigger = newTrigger
+                        , sourceBuffer = Trigger.toPrettySource newTrigger
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Trigger.Data _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateDeviceTriggerDeviceId deviceId ->
             case model.trigger.simpleTrigger of
                 Trigger.Device deviceTrigger ->
                     let
                         newSimpleTrigger =
-                            deviceTrigger
-                                |> DeviceTrigger.setDeviceId deviceId
-                                |> Trigger.Device
+                            Trigger.Device { deviceTrigger | target = DeviceTrigger.SpecificDevice deviceId }
+
+                        oldTrigger =
+                            model.trigger
 
                         newTrigger =
-                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                            { oldTrigger | simpleTrigger = newSimpleTrigger }
+                    in
+                    ( { model
+                        | trigger = newTrigger
+                        , sourceBuffer = Trigger.toPrettySource newTrigger
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Trigger.Data _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateDeviceTriggerGroupName groupName ->
+            case model.trigger.simpleTrigger of
+                Trigger.Device deviceTrigger ->
+                    let
+                        newSimpleTrigger =
+                            Trigger.Device { deviceTrigger | target = DeviceTrigger.DeviceGroup groupName }
+
+                        oldTrigger =
+                            model.trigger
+
+                        newTrigger =
+                            { oldTrigger | simpleTrigger = newSimpleTrigger }
                     in
                     ( { model
                         | trigger = newTrigger
@@ -1057,7 +1135,7 @@ handleKeyValueModalCommand session msg model =
                     model.trigger
 
                 newAction =
-                    { action | customHeaders = Dict.insert header value action.customHeaders }
+                    { action | staticHeaders = Dict.insert header value action.staticHeaders }
 
                 newTrigger =
                     { trigger | action = TriggerAction.Http newAction }
@@ -1102,7 +1180,7 @@ handleSingleValueModalCommand session msg header model =
                     model.trigger
 
                 newAction =
-                    { action | customHeaders = Dict.insert header value action.customHeaders }
+                    { action | staticHeaders = Dict.insert header value action.staticHeaders }
 
                 newTrigger =
                     { trigger | action = TriggerAction.Http newAction }
@@ -1147,7 +1225,7 @@ handleConfirmModalCommand session msg header model =
                     model.trigger
 
                 newAction =
-                    { action | customHeaders = Dict.remove header action.customHeaders }
+                    { action | staticHeaders = Dict.remove header action.staticHeaders }
 
                 newTrigger =
                     { trigger | action = TriggerAction.Http newAction }
@@ -1231,7 +1309,7 @@ isPlaceholder token =
 
 placeholderRegex : Regex
 placeholderRegex =
-    Regex.fromString "^%{([a-zA-Z][a-zA-Z0-9]*)}$"
+    Regex.fromString "^%{[a-zA-Z][a-zA-Z0-9_]*}$"
         |> Maybe.withDefault Regex.never
 
 
@@ -1243,8 +1321,8 @@ view model flashMessages =
                 [ Html.h2
                     [ Spacing.pl2 ]
                     [ Html.a
-                        [ href "/triggers", Spacing.mr2 ]
-                        [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                        [ href "/triggers", Spacing.mr2, class "align-bottom" ]
+                        [ Icons.render Icons.Back [] ]
                     , Html.text "Trigger Editor"
                     ]
                 ]
@@ -1582,40 +1660,137 @@ selectOptions selectedId options =
 
 renderDeviceTrigger : DeviceTrigger -> Bool -> List (Html Msg)
 renderDeviceTrigger deviceTrigger editMode =
-    [ Form.row []
-        [ Form.col [ Col.sm12 ]
-            [ Form.group []
-                [ Form.label [ for "triggerDeviceId" ] [ text "Device id" ]
-                , Input.text
-                    [ Input.id "triggerDeviceId"
-                    , Input.readonly editMode
-                    , Input.value deviceTrigger.deviceId
-                    , Input.onInput UpdateDeviceTriggerId
-                    ]
-                ]
-            ]
-        ]
-    , Form.row []
-        [ Form.col [ Col.sm12 ]
-            [ Form.group []
-                [ Form.label [ for "triggerDeviceOn" ] [ text "Trigger condition" ]
-                , Select.select
-                    [ Select.id "triggerDeviceOn"
-                    , Select.disabled editMode
-                    , Select.onChange UpdateDeviceTriggerCondition
-                    ]
-                    (List.map
-                        (deviceTriggerEventOptions deviceTrigger.on)
-                        [ ( DeviceTrigger.DeviceConnected, "Device Connected" )
-                        , ( DeviceTrigger.DeviceDisconnected, "Device Disconnected" )
-                        , ( DeviceTrigger.DeviceError, "Device Error" )
-                        , ( DeviceTrigger.EmptyCacheReceived, "Empty Cache Received" )
+    renderDeviceTriggerTarget editMode deviceTrigger.target
+        ++ [ Form.row []
+                [ Form.col [ Col.sm12 ]
+                    [ Form.group []
+                        [ Form.label [ for "triggerDeviceOn" ] [ text "Trigger condition" ]
+                        , Select.select
+                            [ Select.id "triggerDeviceOn"
+                            , Select.disabled editMode
+                            , Select.onChange UpdateDeviceTriggerCondition
+                            ]
+                            (List.map
+                                (deviceTriggerEventOptions deviceTrigger.on)
+                                [ ( DeviceTrigger.DeviceConnected, "Device Connected" )
+                                , ( DeviceTrigger.DeviceDisconnected, "Device Disconnected" )
+                                , ( DeviceTrigger.DeviceError, "Device Error" )
+                                , ( DeviceTrigger.EmptyCacheReceived, "Empty Cache Received" )
+                                ]
+                            )
                         ]
-                    )
+                    ]
+                ]
+           ]
+
+
+type TargetChoice
+    = AllDevices
+    | DeviceGroup
+    | SpecificDevice
+
+
+renderDeviceTriggerTarget : Bool -> DeviceTrigger.Target -> List (Html Msg)
+renderDeviceTriggerTarget editMode target =
+    case target of
+        DeviceTrigger.AllDevices ->
+            [ Form.row []
+                [ Form.col [ Col.sm12 ]
+                    [ renderDeviceTriggerTargetSelect editMode target ]
                 ]
             ]
+
+        DeviceTrigger.DeviceGroup groupName ->
+            [ Form.row []
+                [ Form.col [ Col.sm4 ]
+                    [ renderDeviceTriggerTargetSelect editMode target ]
+                , Form.col [ Col.sm8 ]
+                    [ Form.group []
+                        [ Form.label [ for "triggerGroupName" ] [ text "Group Name" ]
+                        , Input.text
+                            [ Input.id "triggerGroupName"
+                            , Input.readonly editMode
+                            , Input.value groupName
+                            , Input.onInput UpdateDeviceTriggerGroupName
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
+        DeviceTrigger.SpecificDevice deviceId ->
+            [ Form.row []
+                [ Form.col [ Col.sm4 ]
+                    [ renderDeviceTriggerTargetSelect editMode target ]
+                , Form.col [ Col.sm8 ]
+                    [ Form.group []
+                        [ Form.label [ for "triggerDeviceId" ] [ text "Device id" ]
+                        , Input.text
+                            [ Input.id "triggerDeviceId"
+                            , Input.readonly editMode
+                            , Input.value deviceId
+                            , Input.onInput UpdateDeviceTriggerDeviceId
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
+
+renderDeviceTriggerTargetSelect : Bool -> DeviceTrigger.Target -> Html Msg
+renderDeviceTriggerTargetSelect editMode target =
+    let
+        targetChoice =
+            case target of
+                DeviceTrigger.AllDevices ->
+                    AllDevices
+
+                DeviceTrigger.DeviceGroup _ ->
+                    DeviceGroup
+
+                DeviceTrigger.SpecificDevice _ ->
+                    SpecificDevice
+    in
+    Form.group []
+        [ Form.label [ for "deviceTriggerTargetSelect" ] [ text "Target" ]
+        , Select.select
+            [ Select.id "deviceTriggerTargetSelect"
+            , Select.disabled editMode
+            , Select.onChange updateDeviceTriggerTarget
+            ]
+            [ Select.item
+                [ value "all_devices"
+                , selected (targetChoice == AllDevices)
+                ]
+                [ text "All devices" ]
+            , Select.item
+                [ value "specific_device"
+                , selected (targetChoice == SpecificDevice)
+                ]
+                [ text "Device" ]
+            , Select.item
+                [ value "device_group"
+                , selected (targetChoice == DeviceGroup)
+                ]
+                [ text "Group" ]
+            ]
         ]
-    ]
+
+
+updateDeviceTriggerTarget : String -> Msg
+updateDeviceTriggerTarget targetChoice =
+    case targetChoice of
+        "all_devices" ->
+            UpdateDeviceTriggerTarget AllDevices
+
+        "specific_device" ->
+            UpdateDeviceTriggerTarget SpecificDevice
+
+        "device_group" ->
+            UpdateDeviceTriggerTarget DeviceGroup
+
+        _ ->
+            Noop
 
 
 renderTriggerSource : String -> BufferStatus -> Bool -> Html Msg

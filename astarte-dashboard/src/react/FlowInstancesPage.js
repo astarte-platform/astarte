@@ -16,181 +16,143 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Button,
-  Col,
   Modal,
   OverlayTrigger,
-  Row,
   Spinner,
   Table,
-  Tooltip
+  Tooltip,
 } from "react-bootstrap";
 
+import { useAlerts } from "./AlertManager";
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-export default class FlowInstancesPage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history }) => {
+  const [phase, setPhase] = useState("loading");
+  const [instances, setInstances] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedFlow, setSelectedFlow] = useState(null);
+  const [isDeletingFlow, setIsDeletingFlow] = useState(false);
+  const deletionAlerts = useAlerts();
 
-    this.astarte = this.props.astarte;
-
-    this.state = {
-      phase: "loading",
-      showModal: false
+  useEffect(() => {
+    const handleInstanceResponse = (response) => {
+      const instance = response.data;
+      setInstances((instances) => instances.concat(instance));
+      setPhase("ok");
     };
-
-    this.handleFlowResponse = this.handleFlowResponse.bind(this);
-    this.handleFlowError = this.handleFlowError.bind(this);
-    this.deleteInstance = this.deleteInstance.bind(this);
-    this.handleInstanceResponse = this.handleInstanceResponse.bind(this);
-    this.handleModalCancel = this.handleModalCancel.bind(this);
-    this.deleteFlow = this.deleteFlow.bind(this);
-
-    this.astarte
+    const handleFlowResponse = (response) => {
+      const instanceNames = response.data;
+      if (instanceNames.length == 0) {
+        setInstances([]);
+        setPhase("ok");
+      } else {
+        setInstances([]);
+        setPhase("loading");
+        for (const name of instanceNames) {
+          astarte.getFlowDetails(name).then(handleInstanceResponse);
+        }
+      }
+      return null;
+    };
+    const handleFlowError = (err) => {
+      setPhase("err");
+    };
+    astarte
       .getFlowInstances()
-      .then(this.handleFlowResponse)
-      .catch(this.handleFlowError);
-  }
+      .then(handleFlowResponse)
+      .catch(handleFlowError);
+  }, [astarte, setInstances, setPhase]);
 
-  deleteInstance(instanceName) {
-    this.setState({
-      showModal: true,
-      selectedFlow: instanceName,
-    });
-  }
+  const confirmDeleteFlow = useCallback(
+    (instanceName) => {
+      setSelectedFlow(instanceName);
+      setIsModalVisible(true);
+    },
+    [setSelectedFlow, setIsModalVisible]
+  );
 
-  render() {
-    let innerHTML;
-
-    const {
-      instances,
-      phase,
-      showModal,
-      selectedFlow,
-      deletingFlow
-    } = this.state;
-
-    switch (phase) {
-      case "ok":
-        innerHTML = (
-          <InstancesTable
-            instances={instances}
-            onDelete={this.deleteInstance}
-          />
-        );
-        break;
-
-      case "err":
-        innerHTML = <p>Couldn't load flow instances</p>;
-        break;
-
-      default:
-        innerHTML = (
-          <div>
-            <Spinner animation="border" role="status" />;
-          </div>
-        );
-        break;
-    }
-
-    return (
-      <SingleCardPage title="Running Flows">
-        {innerHTML}
-        <Button
-          variant="primary"
-          onClick={() => { this.props.history.push("/pipelines") } }
-        >
-          New flow
-        </Button>
-        <ConfirmDeletionModal
-          show={showModal}
-          flowName={selectedFlow}
-          isDeleting={deletingFlow}
-          onCancel={this.handleModalCancel}
-          onDelete={this.deleteFlow}
-        />
-      </SingleCardPage>
-    );
-  }
-
-  handleModalCancel() {
-    this.setState({
-      showModal: false,
-      selectedFlow: ""
-    });
-  }
-
-  deleteFlow() {
-    const flowName = this.state.selectedFlow;
-
-    this.setState({
-      deletingFlow: true
-    });
-
-    this.astarte
+  const deleteFlow = useCallback(() => {
+    const flowName = electedFlow;
+    setIsDeletingFlow(true);
+    astarte
       .deleteFlowInstance(flowName)
       .then(() => {
-        this.setState(oldState => {
-          oldState.showModal = false;
-          oldState.selectedFlow = "";
-          oldState.deletingFlow = false;
-          oldState.phase = "ok";
-          oldState.instances = oldState.instances.filter(instance => instance.name != flowName);
-          return oldState;
-        });
+        setIsModalVisible(false);
+        setSelectedFlow(null);
+        setIsDeletingFlow(false);
+        setInstances((instances) =>
+          instances.filter((instance) => instance.name != flowName)
+        );
+        setPhase("ok");
+      })
+      .catch((err) => {
+        setIsDeletingFlow(false);
+        deletionAlerts.showError(`Could not delete flow instance: ${err}`);
       });
+  }, [
+    setIsModalVisible,
+    setSelectedFlow,
+    setIsDeletingFlow,
+    setInstances,
+    setPhase,
+    deletionAlerts.showError,
+  ]);
+
+  const handleModalCancel = useCallback(() => {
+    setIsModalVisible(false);
+    setSelectedFlow(null);
+  }, [setIsModalVisible, setSelectedFlow]);
+
+  let innerHTML;
+
+  switch (phase) {
+    case "ok":
+      innerHTML = (
+        <>
+          <deletionAlerts.Alerts />
+          <InstancesTable instances={instances} onDelete={confirmDeleteFlow} />
+        </>
+      );
+      break;
+
+    case "err":
+      innerHTML = <p>Couldn't load flow instances</p>;
+      break;
+
+    default:
+      innerHTML = (
+        <div>
+          <Spinner animation="border" role="status" />;
+        </div>
+      );
+      break;
   }
 
-  handleFlowResponse(response) {
-    const instanceNames = response.data;
+  return (
+    <SingleCardPage title="Running Flows">
+      {innerHTML}
+      <Button variant="primary" onClick={() => history.push("/pipelines")}>
+        New flow
+      </Button>
+      <ConfirmDeletionModal
+        show={isModalVisible}
+        flowName={selectedFlow}
+        isDeleting={isDeletingFlow}
+        onCancel={handleModalCancel}
+        onDelete={deleteFlow}
+      />
+    </SingleCardPage>
+  );
+};
 
-    if (instanceNames.length == 0) {
-      this.setState({
-        phase: "ok",
-        instances: []
-      });
-    } else {
-      this.setState({
-        phase: "loading",
-        instances: []
-      });
-
-      for (let name of instanceNames) {
-        this.astarte.getFlowDetails(name).then(this.handleInstanceResponse);
-      }
-    }
-
-    return null; // handle details async
-  }
-
-  handleInstanceResponse(response) {
-    const instance = response.data;
-
-    this.setState(oldState => {
-      oldState.phase = "ok";
-      oldState.instances.push(instance);
-      return oldState;
-    });
-  }
-
-  handleFlowError(err) {
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
-}
-
-function InstancesTable(props) {
-  let instances = props.instances;
-
+const InstancesTable = ({ instances, onDelete }) => {
   if (instances.length == 0) {
     return <p>No running flows</p>;
   }
-
   return (
     <Table responsive>
       <thead>
@@ -202,24 +164,21 @@ function InstancesTable(props) {
         </tr>
       </thead>
       <tbody>
-        {instances.map((instance, index) => (
+        {instances.map((instance) => (
           <TableRow
             key={instance.name}
             instance={instance}
-            onDelete={props.onDelete}
+            onDelete={onDelete}
           />
         ))}
       </tbody>
     </Table>
   );
-}
+};
 
-function TableRow(props) {
-  const instance = props.instance;
-
+const TableRow = ({ instance, onDelete }) => {
   let colorClass;
   let tooltipText;
-
   switch (instance.status) {
     case "running":
       colorClass = "color-green";
@@ -237,7 +196,6 @@ function TableRow(props) {
       tooltipText = "Running";
       break;
   }
-
   return (
     <tr>
       <td>
@@ -248,7 +206,7 @@ function TableRow(props) {
             backgroundColor: "rgba(255, 100, 100, 0.85)",
             padding: "2px 10px",
             color: "white",
-            borderRadius: 3
+            borderRadius: 3,
           }}
           overlay={<Tooltip>{tooltipText}</Tooltip>}
         >
@@ -267,7 +225,7 @@ function TableRow(props) {
             backgroundColor: "rgba(255, 100, 100, 0.85)",
             padding: "2px 10px",
             color: "white",
-            borderRadius: 3
+            borderRadius: 3,
           }}
           overlay={<Tooltip>Delete instance</Tooltip>}
         >
@@ -275,13 +233,13 @@ function TableRow(props) {
             as="i"
             variant="danger"
             className="fas fa-times"
-            onClick={() => props.onDelete(instance.name)}
+            onClick={() => onDelete(instance.name)}
           ></Button>
         </OverlayTrigger>
       </td>
     </tr>
   );
-}
+};
 
 const CircleIcon = React.forwardRef((props, ref) => (
   <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
@@ -289,36 +247,42 @@ const CircleIcon = React.forwardRef((props, ref) => (
   </i>
 ));
 
-function ConfirmDeletionModal(props) {
-  const { show, flowName, isDeleting, onCancel, onDelete } = props;
-
+const ConfirmDeletionModal = ({
+  show,
+  flowName,
+  isDeleting,
+  onCancel,
+  onDelete,
+}) => {
   return (
-    <div onKeyDown={(e) => { if (e.key == "Enter") onDelete() }}>
-      <Modal
-        size="sm"
-        show={show}
-        onHide={onCancel}
-      >
+    <div
+      onKeyDown={(e) => {
+        if (e.key == "Enter" && !isDeleting) onDelete();
+      }}
+    >
+      <Modal size="sm" show={show} onHide={onCancel}>
         <Modal.Header closeButton>
           <Modal.Title>Warning</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p>Delete flow <b>{flowName}</b>?</p>
+          <p>
+            Delete flow <b>{flowName}</b>?
+          </p>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onDelete}>
+          <Button variant="danger" onClick={onDelete} disabled={isDeleting}>
             <>
-              {isDeleting ? (
+              {isDeleting && (
                 <Spinner
-                  className="mr-1"
+                  className="mr-2"
                   size="sm"
                   animation="border"
                   role="status"
                 />
-              ) : null}
+              )}
               Remove
             </>
           </Button>
@@ -326,4 +290,4 @@ function ConfirmDeletionModal(props) {
       </Modal>
     </div>
   );
-}
+};

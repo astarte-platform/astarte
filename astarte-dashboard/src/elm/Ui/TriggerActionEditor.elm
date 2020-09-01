@@ -59,6 +59,7 @@ type SupportedTemplates
 type HttpActionMsg
     = HttpNoop
     | UpdateUrl String
+    | UpdateIgnoreSSLErrors Bool
     | UpdateMethod TriggerAction.HttpMethod
     | UpdateTemplate SupportedTemplates
     | UpdateMustachePayload String
@@ -153,6 +154,9 @@ updateHttpConfig httpMsg config =
 
         UpdateUrl newUrl ->
             { config | url = newUrl }
+
+        UpdateIgnoreSSLErrors ignore ->
+            { config | ignoreSSLErrors = ignore }
 
         UpdateMethod newMethod ->
             { config | httpMethod = newMethod }
@@ -527,13 +531,24 @@ httpTriggerAction config editMode messageTag newCustomHeader editCustomHeader de
                     ]
                 ]
             ]
+        , Form.col [ Col.sm12 ]
+            [ Form.group []
+                [ Checkbox.checkbox
+                    [ Checkbox.id "actionIgnoreSSLErrors"
+                    , Checkbox.disabled editMode
+                    , Checkbox.checked config.ignoreSSLErrors
+                    , Checkbox.onCheck UpdateIgnoreSSLErrors
+                    ]
+                    "Ignore SSL errors"
+                ]
+            ]
         ]
         |> Html.map UpdateHttpAction
         |> Html.map messageTag
     , payloadTemplate config.template editMode
         |> Html.map UpdateHttpAction
         |> Html.map messageTag
-    , customHttpHeaders config.customHeaders editMode newCustomHeader editCustomHeader deleteCustomHeader
+    , customHttpHeaders config.staticHeaders editMode newCustomHeader editCustomHeader deleteCustomHeader
     ]
 
 

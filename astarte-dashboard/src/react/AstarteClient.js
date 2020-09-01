@@ -17,35 +17,15 @@
 */
 
 import axios from "axios";
+import jwt from "jsonwebtoken";
 const { Socket } = require("phoenix");
 
-export default class AstarteClient {
+class AstarteClient {
   constructor(config) {
     let internalConfig = {};
 
-    if (config.realm) {
-      internalConfig.realm = config.realm;
-    } else {
-      throw Error("Missing parameter: realm");
-    }
-
-    this.secureConnection = config.secureConnection || false;
-
-    if (config.realmManagementUrl) {
-      internalConfig.realmManagementUrl = new URL(config.realmManagementUrl);
-    }
-
-    if (config.appengineUrl) {
-      internalConfig.appengineUrl = new URL(config.appengineUrl);
-    }
-
-    if (config.pairingUrl) {
-      internalConfig.pairingUrl = new URL(config.pairingUrl);
-    }
-
-    if (config.flowUrl) {
-      internalConfig.flowUrl = new URL(config.flowUrl);
-    }
+    internalConfig.realm = config.realm || "";
+    this.token = config.token || "";
 
     if (config.onSocketError) {
       this.onSocketError = config.onSocketError;
@@ -58,36 +38,65 @@ export default class AstarteClient {
     internalConfig.enableFlowPreview = config.enableFlowPreview || false;
     this.config = internalConfig;
 
-    if (config.token) {
-      this.token = config.token;
-    }
-
     // prettier-ignore
     let apiConfig = {
-      realmManagementHealth: astarteAPIurl`${"realmManagementUrl"}/health`,
-      auth:                  astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/config/auth`,
-      interfaces:            astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces`,
-      interfaceMajors:       astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/interfaces/${"interfaceName"}`,
-      triggers:              astarteAPIurl`${"realmManagementUrl"}/v1/${"realm"}/triggers`,
-      appengineHealth:       astarteAPIurl`${"appengineUrl"}/health`,
-      devicesStats:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/stats/devices`,
-      devices:               astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/devices`,
-      groups:                astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups`,
-      groupDevices:          astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices`,
-      deviceInGroup:         astarteAPIurl`${"appengineUrl"}/v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`,
-      phoenixSocket:         astarteAPIurl`${"appengineUrl"}/v1/socket`,
-      pairingHealth:         astarteAPIurl`${"pairingUrl"}/health`,
-      registerDevice:        astarteAPIurl`${"pairingUrl"}/v1/${"realm"}/agent/devices`,
-      flowHealth:            astarteAPIurl`${"flowUrl"}/health`,
-      flows:                 astarteAPIurl`${"flowUrl"}/v1/${"realm"}/flows`,
-      flowInstance:          astarteAPIurl`${"flowUrl"}/v1/${"realm"}/flows/${"instanceName"}`,
-      pipelines:             astarteAPIurl`${"flowUrl"}/v1/${"realm"}/pipelines`,
-      pipelineSource:        astarteAPIurl`${"flowUrl"}/v1/${"realm"}/pipelines/${"pipelineId"}`,
+      realmManagementHealth: astarteAPIurl`${ config.realmManagementUrl }health`,
+      auth:                  astarteAPIurl`${ config.realmManagementUrl }v1/${"realm"}/config/auth`,
+      interfaces:            astarteAPIurl`${ config.realmManagementUrl }v1/${"realm"}/interfaces`,
+      interfaceMajors:       astarteAPIurl`${ config.realmManagementUrl }v1/${"realm"}/interfaces/${"interfaceName"}`,
+      interfaceData:         astarteAPIurl`${ config.realmManagementUrl }v1/${"realm"}/interfaces/${"interfaceName"}/${"interfaceMajor"}`,
+      triggers:              astarteAPIurl`${ config.realmManagementUrl }v1/${"realm"}/triggers`,
+      appengineHealth:       astarteAPIurl`${ config.appengineUrl }health`,
+      devicesStats:          astarteAPIurl`${ config.appengineUrl }v1/${"realm"}/stats/devices`,
+      devices:               astarteAPIurl`${ config.appengineUrl }v1/${"realm"}/devices`,
+      deviceInfo:            astarteAPIurl`${ config.appengineUrl }v1/${"realm"}/devices/${"deviceId"}`,
+      deviceData:            astarteAPIurl`${ config.appengineUrl }v1/${"realm"}/devices/${"deviceId"}/interfaces/${"interfaceName"}`,
+      groups:                astarteAPIurl`${ config.appengineUrl }v1/${"realm"}/groups`,
+      groupDevices:          astarteAPIurl`${ config.appengineUrl }v1/${"realm"}/groups/${"groupName"}/devices`,
+      deviceInGroup:         astarteAPIurl`${ config.appengineUrl }v1/${"realm"}/groups/${"groupName"}/devices/${"deviceId"}`,
+      phoenixSocket:         astarteAPIurl`${ config.appengineUrl }v1/socket`,
+      pairingHealth:         astarteAPIurl`${ config.pairingUrl }health`,
+      registerDevice:        astarteAPIurl`${ config.pairingUrl }v1/${"realm"}/agent/devices`,
+      flowHealth:            astarteAPIurl`${ config.flowUrl }health`,
+      flows:                 astarteAPIurl`${ config.flowUrl }v1/${"realm"}/flows`,
+      flowInstance:          astarteAPIurl`${ config.flowUrl }v1/${"realm"}/flows/${"instanceName"}`,
+      pipelines:             astarteAPIurl`${ config.flowUrl }v1/${"realm"}/pipelines`,
+      pipelineSource:        astarteAPIurl`${ config.flowUrl }v1/${"realm"}/pipelines/${"pipelineId"}`,
     };
     this.apiConfig = apiConfig;
 
     this.phoenixSocket = null;
     this.joinedChannels = {};
+    this.listeners = {};
+  }
+
+  addListener(eventName, callback) {
+    if (!this.listeners[eventName]) {
+      this.listeners[eventName] = [];
+    }
+
+    this.listeners[eventName].push(callback);
+  }
+
+  removeListener(eventName, callback) {
+    const previousListeners = this.listeners[eventName];
+    if (previousListeners) {
+      this.listeners[eventName] = previousListeners.filter((listener) => listener !== callback);
+    }
+  }
+
+  dispatch(eventName) {
+    const listeners = this.listeners[eventName];
+    if (listeners) {
+      listeners.forEach((listener) => listener());
+    }
+  }
+
+  setCredentials({ realm, token }) {
+    this.config.realm = realm || "";
+    this.token = token || "";
+
+    this.dispatch('credentialsChange');
   }
 
   getConfigAuth() {
@@ -106,6 +115,14 @@ export default class AstarteClient {
 
   getInterfaceMajors(interfaceName) {
     return this._get(this.apiConfig["interfaceMajors"]({ ...this.config, interfaceName: interfaceName }));
+  }
+
+  getInterface({ interfaceName, interfaceMajor }) {
+    return this._get(this.apiConfig["interfaceData"]({
+      interfaceName: interfaceName,
+      interfaceMajor: interfaceMajor,
+      ...this.config
+    }));
   }
 
   getTriggerNames() {
@@ -138,6 +155,18 @@ export default class AstarteClient {
     }
 
     return this._get(endpointUri);
+  }
+
+  getDeviceInfo(deviceId) {
+    return this._get(this.apiConfig["deviceInfo"]({ deviceId: deviceId, ...this.config }));
+  }
+
+  getDeviceData({ deviceId, interfaceName, interfaceMajor }) {
+    return this._get(this.apiConfig["deviceData"]({
+      deviceId: deviceId,
+      interfaceName: interfaceName,
+      ...this.config
+    }));
   }
 
   getGroupList() {
@@ -189,11 +218,25 @@ export default class AstarteClient {
     );
   }
 
-  registerDevice(params) {
-    const { deviceId } = params;
-    return this._post(this.apiConfig["registerDevice"](this.config), {
+  registerDevice({ deviceId, introspection }) {
+    let requestBody = {
       hw_id: deviceId
-    });
+    };
+
+    if (introspection) {
+      let encodedintrospection = {};
+
+      for (const [key, interfaceId] of introspection) {
+        encodedintrospection[key] = {
+          major: interfaceId.major,
+          minor: interfaceId.minor
+        }
+      }
+
+      requestBody.initial_introspection = encodedintrospection;
+    }
+
+    return this._post(this.apiConfig["registerDevice"](this.config), requestBody);
   }
 
   getFlowInstances() {
@@ -315,12 +358,8 @@ export default class AstarteClient {
       return Promise.resolve(this.phoenixSocket);
     }
 
-    if (!this.config.appengineUrl) {
-      return Promise.reject("No AppEngine API URL configured");
-    }
-
     const socketUrl = new URL(this.apiConfig.phoenixSocket(this.config));
-    socketUrl.protocol = (this.secureConnection ? "wss" : "ws")
+    socketUrl.protocol = (socketUrl.protocol === "https:" ? "wss:" : "ws:")
 
     return new Promise((resolve, reject) => {
       openNewSocketConnection({
@@ -398,15 +437,15 @@ export default class AstarteClient {
   }
 }
 
-function astarteAPIurl(strings, ...keys) {
+function astarteAPIurl(strings, baseUrl, ...keys) {
   return function(...values) {
     let dict = values[values.length - 1] || {};
-    let result = [strings[0]];
+    let result = [strings[1]];
     keys.forEach(function(key, i) {
       let value = Number.isInteger(key) ? values[key] : dict[key];
-      result.push(value, strings[i + 1]);
+      result.push(value, strings[i + 2]);
     });
-    return result.join("");
+    return new URL(result.join(""), baseUrl);
   };
 }
 
@@ -457,3 +496,71 @@ function registerTrigger(channel, triggerPayload) {
       .receive("error", (err) => { reject(err) });
   });
 }
+
+function isValidRealmName(name) {
+  return RegExp('^[a-z][a-z0-9]{0,47}$').test(name) &&
+        !name.startsWith("astarte") &&
+        !name.startsWith("system");
+}
+
+function isTokenExpired(decodedTokenObject) {
+  if (decodedTokenObject.exp) {
+    const posix = Number.parseInt(decodedTokenObject.exp);
+    const expiry = new Date(posix * 1000);
+    const now = new Date();
+
+    return (expiry <= now);
+  } else {
+    return false;
+  }
+}
+
+function hasAstarteClaims(decodedTokenObject) {
+  // AppEngine API
+  if ("a_aea" in decodedTokenObject) {
+    return true;
+  }
+
+  // Realm Management API
+  if ("a_rma" in decodedTokenObject) {
+    return true;
+  }
+
+  // Pairing API
+  if ("a_pa" in decodedTokenObject) {
+    return true;
+  }
+
+  // Astarte Channels
+  if ("a_ch" in decodedTokenObject) {
+    return true;
+  }
+
+  return false;
+}
+
+function validateAstarteToken(token) {
+  const decoded = jwt.decode(token, {complete: true});
+
+  let status;
+
+  if (decoded) {
+    if (isTokenExpired(decoded.payload)) {
+      status = "expired";
+
+    } else if (!hasAstarteClaims(decoded.payload)) {
+      status = "notAnAstarteToken";
+
+    } else {
+      status = "valid";
+    }
+
+  } else {
+    status = "invalid";
+  }
+
+  return status;
+}
+
+export default AstarteClient;
+export { isValidRealmName, validateAstarteToken };

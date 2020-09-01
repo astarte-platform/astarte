@@ -17,21 +17,21 @@
 */
 
 import React from "react";
-import { Container } from "react-bootstrap";
-import BackButton from "./BackButton.js";
 
-export default function SingleCardPage(props) {
-  const { backLink, children, title } = props;
+import AlertsProvider from "./AlertManager";
+import Router from "./Router";
+import Snackbar from "./ui/Snackbar";
 
+export default (reactHistory, astarteClient, config, fallback) => {
   return (
-    <Container fluid className="p-3">
-      <h2>
-        {backLink && <BackButton href={backLink} />}
-        {title}
-      </h2>
-      <Container fluid className="bg-white rounded p-3 mt-4">
-        {children}
-      </Container>
-    </Container>
+    <AlertsProvider>
+      <Router
+        reactHistory={reactHistory}
+        astarteClient={astarteClient}
+        config={config}
+        fallback={fallback}
+      />
+      <Snackbar />
+    </AlertsProvider>
   );
-}
+};

@@ -16,153 +16,128 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Button,
   Modal,
   OverlayTrigger,
   Spinner,
   Table,
-  Tooltip
+  Tooltip,
 } from "react-bootstrap";
 
-import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
 import SingleCardPage from "./ui/SingleCardPage.js";
 import { Link } from "react-router-dom";
 
-export default class GroupDevicesPage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history, groupName }) => {
+  const [phase, setPhase] = useState("loading");
+  const [devices, setDevices] = useState(null);
+  const [selectedDevice, setSelectedDevice] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isRemovingDevice, setIsRemovingDevice] = useState(false);
 
-    this.astarte = this.props.astarte;
-
-    this.loadGroups = this.loadGroups.bind(this);
-    this.handleDeviesRequest = this.handleDeviesRequest.bind(this);
-    this.handleDevicesError = this.handleDevicesError.bind(this);
-    this.showModal = this.showModal.bind(this);
-    this.handleModalCancel = this.handleModalCancel.bind(this);
-    this.removeDevice = this.removeDevice.bind(this);
-
-    this.loadGroups();
-  }
-
-  loadGroups() {
-    this.state = {
-      phase: "loading",
-      showModal: false
+  const fetchDevices = useCallback(() => {
+    const handleDevicesRequest = (response) => {
+      const devices = response.data.map((value) => {
+        return Device.fromObject(value);
+      });
+      setDevices(devices);
+      setPhase("ok");
     };
-
-    this.astarte
+    const handleDevicesError = (err) => {
+      setPhase("err");
+    };
+    astarte
       .getDevicesInGroup({
-        groupName: this.props.groupName,
-        details: true
+        groupName,
+        details: true,
       })
-      .then(this.handleDeviesRequest)
-      .catch(this.handleDevicesError);
-  }
+      .then(handleDevicesRequest)
+      .catch(handleDevicesError);
+  }, [astarte, groupName, setPhase, setDevices]);
 
-  handleDeviesRequest(response) {
-    let deviceList = response.data.map((value, index) => {
-      return Device.fromObject(value);
-    });
+  const showModal = useCallback(
+    (device) => {
+      setSelectedDevice(device);
+      setIsModalVisible(true);
+    },
+    [setSelectedDevice, setIsModalVisible]
+  );
 
-    this.setState({
-      phase: "ok",
-      devices: deviceList
-    });
-  }
+  const closeModal = useCallback(() => {
+    setIsModalVisible(false);
+  }, [setIsModalVisible]);
 
-  handleDevicesError(err) {
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
-
-  showModal(device) {
-    this.setState({
-      showModal: true,
-      selectedDeviceName: device.name,
-      selectedDeviceId: device.id
-    });
-  }
-
-  handleModalCancel() {
-    this.setState({
-      showModal: false
-    });
-  }
-
-  removeDevice() {
-    this.setState({
-      removingDevice: true
-    });
-
-    this.astarte
+  const removeDevice = useCallback(() => {
+    setIsRemovingDevice(true);
+    astarte
       .removeDeviceFromGroup({
-        groupName: this.props.groupName,
-        deviceId: this.state.selectedDeviceId
+        groupName,
+        deviceId: selectedDevice.id,
       })
       .finally(() => {
-        if (this.state.devices?.length == 1) {
-          this.props.history.push({ pathname: "/groups" });
+        if (devices?.length == 1) {
+          history.push({ pathname: "/groups" });
         } else {
-          this.setState({
-            removingDevice: false,
-            showModal: false
-          });
-          this.loadGroups();
+          setIsRemovingDevice(false);
+          setIsModalVisible(false);
+          fetchDevices();
         }
       });
+  }, [
+    astarte,
+    setIsRemovingDevice,
+    setIsModalVisible,
+    fetchDevices,
+    groupName,
+    selectedDevice,
+    devices,
+    history,
+  ]);
+
+  useEffect(() => {
+    fetchDevices();
+  }, [fetchDevices]);
+
+  let innerHTML;
+
+  switch (phase) {
+    case "ok":
+      innerHTML = (
+        <>
+          <h5 className="mt-1 mb-3">Devices in group {groupName}</h5>
+          {deviceTable(devices, showModal)}
+        </>
+      );
+      break;
+
+    case "err":
+      innerHTML = <p>Couldn't load devices in group</p>;
+      break;
+
+    default:
+      innerHTML = <Spinner animation="border" role="status" />;
+      break;
   }
 
-  render() {
-    let innerHTML;
+  return (
+    <SingleCardPage title="Group Devices" backLink="/groups">
+      {innerHTML}
+      <ConfirmDeviceRemovalModal
+        deviceName={selectedDevice?.name}
+        groupName={groupName}
+        isLastDevice={devices?.length == 1}
+        isRemoving={isRemovingDevice}
+        show={isModalVisible}
+        onCancel={closeModal}
+        onRemove={removeDevice}
+      />
+    </SingleCardPage>
+  );
+};
 
-    switch (this.state.phase) {
-      case "ok":
-        innerHTML = (
-          <>
-            <h5 className="mt-1 mb-3">Devices in group {this.props.groupName}</h5>
-            { deviceTable(this.state.devices, this.showModal) }
-          </>
-        );
-        break;
-
-      case "err":
-        innerHTML = <p>Couldn't load devices in group</p>;
-        break;
-
-      default:
-        innerHTML = <Spinner animation="border" role="status" />;
-        break;
-    }
-
-    const {
-      showModal,
-      selectedDeviceName,
-      removingDevice
-    } = this.state;
-
-    return (
-      <SingleCardPage title="Group Devices" backLink="/groups">
-        {innerHTML}
-        <ConfirmDeviceRemovalModal
-          deviceName={selectedDeviceName}
-          groupName={this.props.groupName}
-          isLastDevice={this.state.devices?.length == 1}
-          isRemoving={removingDevice}
-          show={showModal}
-          onCancel={this.handleModalCancel}
-          onRemove={this.removeDevice}
-        />
-      </SingleCardPage>
-    );
-  }
-}
-
-function deviceTable(deviceList, showModal) {
+const deviceTable = (deviceList, showModal) => {
   return (
     <Table responsive>
       <thead>
@@ -180,9 +155,9 @@ function deviceTable(deviceList, showModal) {
       </tbody>
     </Table>
   );
-}
+};
 
-function deviceTableRow(device, index, showModal) {
+const deviceTableRow = (device, index, showModal) => {
   let colorClass;
   let lastEvent;
   let tooltipText;
@@ -211,7 +186,7 @@ function deviceTableRow(device, index, showModal) {
             backgroundColor: "rgba(255, 100, 100, 0.85)",
             padding: "2px 10px",
             color: "white",
-            borderRadius: 3
+            borderRadius: 3,
           }}
           overlay={<Tooltip>{tooltipText}</Tooltip>}
         >
@@ -230,7 +205,7 @@ function deviceTableRow(device, index, showModal) {
             backgroundColor: "rgba(255, 100, 100, 0.85)",
             padding: "2px 10px",
             color: "white",
-            borderRadius: 3
+            borderRadius: 3,
           }}
           overlay={<Tooltip>Remove from group</Tooltip>}
         >
@@ -244,7 +219,7 @@ function deviceTableRow(device, index, showModal) {
       </td>
     </tr>
   );
-}
+};
 
 const CircleIcon = React.forwardRef((props, ref) => (
   <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
@@ -252,29 +227,27 @@ const CircleIcon = React.forwardRef((props, ref) => (
   </i>
 ));
 
-function ConfirmDeviceRemovalModal(props) {
-  const {
-    deviceName,
-    groupName,
-    isLastDevice,
-    isRemoving,
-    show,
-    onCancel,
-    onRemove
-  } = props;
-
+const ConfirmDeviceRemovalModal = ({
+  deviceName,
+  groupName,
+  isLastDevice,
+  isRemoving,
+  show,
+  onCancel,
+  onRemove,
+}) => {
   return (
-    <div onKeyDown={(e) => { if (e.key == "Enter") onRemove() }}>
-      <Modal
-        size="lg"
-        show={show}
-        onHide={onCancel}
-      >
+    <div
+      onKeyDown={(e) => {
+        if (e.key == "Enter" && !isRemoving) onRemove();
+      }}
+    >
+      <Modal size="lg" show={show} onHide={onCancel}>
         <Modal.Header closeButton>
           <Modal.Title>Warning</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          { isLastDevice && (
+          {isLastDevice && (
             <p>
               This is the last device in the group. Removing this device will
               delete the group
@@ -286,21 +259,19 @@ function ConfirmDeviceRemovalModal(props) {
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onRemove}>
-            <>
-              { isRemoving && (
-                <Spinner
-                  className="mr-1"
-                  size="sm"
-                  animation="border"
-                  role="status"
-                />
-              )}
-              Remove
-            </>
+          <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
+            {isRemoving && (
+              <Spinner
+                className="mr-2"
+                size="sm"
+                animation="border"
+                role="status"
+              />
+            )}
+            Remove
           </Button>
         </Modal.Footer>
       </Modal>
     </div>
   );
-}
+};

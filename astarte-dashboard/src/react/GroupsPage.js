@@ -16,153 +16,121 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Spinner, Table } from "react-bootstrap";
 
-import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-export default class GroupsPage extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.astarte = this.props.astarte;
-
-    this.state = {
-      phase: "loading"
-    };
-
-    this.handleGroupsRequest = this.handleGroupsRequest.bind(this);
-    this.handleGroupsError = this.handleGroupsError.bind(this);
-    this.handleDeviceList = this.handleDeviceList.bind(this);
-    this.handleDeviceError = this.handleDeviceError.bind(this);
-
-    this.astarte
-      .getGroupList()
-      .then(this.handleGroupsRequest)
-      .catch(this.handleGroupsError);
-  }
-
-  handleGroupsRequest(response) {
-    let groupMap = response.data.reduce((acc, groupName) => {
-      acc.set(groupName, { name: groupName, loading: true });
-      return acc;
-    }, new Map());
-
-    for (let groupName of groupMap.keys()) {
-      this.astarte
-        .getDevicesInGroup({
-          groupName: groupName,
-          details: true
-        })
-        .then(response => this.handleDeviceList(groupName, response))
-        .catch(err => this.handleDeviceError(groupName, err));
-    }
-
-    this.setState({
-      phase: "ok",
-      groups: groupMap
-    });
-
-    return null; // handle getDevices asynchronously
-  }
-
-  handleGroupsError(err) {
-    this.setState({
-      phase: "err",
-      error: err
-    });
-  }
-
-  handleDeviceList(groupName, response) {
-    let deviceList = response.data.map((value, index) => {
-      return Device.fromObject(value);
-    });
-
-    let groupMap = this.state.groups;
-    let newGroupState = groupMap.get(groupName);
-    newGroupState.loading = false;
-    newGroupState.totalDevices = deviceList.length;
-
-    let connectedDevices = deviceList.filter(device => device.connected);
-    newGroupState.connectedDevices = connectedDevices.length;
-
-    groupMap.set(groupName, newGroupState);
-
-    this.setState({
-      groups: groupMap
-    });
-  }
-
-  handleDeviceError(groupName, err) {
-    console.log(`Couldn't get the device list for group ${groupName}`);
-    console.log(err);
-  }
-
-  render() {
-    let innerHTML;
-
-    switch (this.state.phase) {
-      case "ok":
-        if (this.state.groups.size > 0) {
-          innerHTML = this.renderGroupsTable();
-        } else {
-          innerHTML = <p>No registered group</p>;
-        }
-        break;
-
-      case "err":
-        innerHTML = <p>Couldn't load groups</p>;
-        break;
-
-      default:
-        innerHTML = (
-          <div>
-            <Spinner animation="border" role="status" />
-          </div>
+export default ({ astarte, history }) => {
+  const [phase, setPhase] = useState("loading");
+  const [groups, setGroups] = useState(null);
+  useEffect(() => {
+    const handleDeviceList = (groupName, response) => {
+      setGroups((groupMap) => {
+        const deviceList = response.data.map((value) => {
+          return Device.fromObject(value);
+        });
+        const newGroupState = groupMap.get(groupName);
+        newGroupState.loading = false;
+        newGroupState.totalDevices = deviceList.length;
+        const connectedDevices = deviceList.filter(
+          (device) => device.connected
         );
-        break;
-    }
+        newGroupState.connectedDevices = connectedDevices.length;
+        groupMap.set(groupName, newGroupState);
+        return new Map(groupMap);
+      });
+    };
+    const handleDeviceError = (groupName, err) => {
+      console.log(`Couldn't get the device list for group ${groupName}`);
+      console.log(err);
+    };
+    const handleGroupsRequest = (response) => {
+      const groupMap = response.data.reduce((acc, groupName) => {
+        acc.set(groupName, { name: groupName, loading: true });
+        return acc;
+      }, new Map());
+      for (const groupName of groupMap.keys()) {
+        astarte
+          .getDevicesInGroup({
+            groupName,
+            details: true,
+          })
+          .then((response) => handleDeviceList(groupName, response))
+          .catch((err) => handleDeviceError(groupName, err));
+      }
+      setGroups(groupMap);
+      setPhase("ok");
+    };
+    const handleGroupsError = (err) => {
+      setPhase("err");
+    };
+    astarte
+      .getGroupList()
+      .then(handleGroupsRequest)
+      .catch(handleGroupsError);
+  }, [astarte, setGroups, setPhase]);
 
-    return (
-      <SingleCardPage title="Groups">
-        {innerHTML}
-        <Button
-          variant="primary"
-          onClick={() => { this.props.history.push("/groups/new/") }}
-        >
-          Create new group
-        </Button>
-      </SingleCardPage>
-    );
-  }
+  let innerHTML;
 
-  renderGroupsTable() {
-    return (
-      <Table responsive>
-        <thead>
-          <tr>
-            <th>Group name</th>
-            <th>Connected devices</th>
-            <th>Total devices</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from(this.state.groups.values()).map((group, index) => {
-            return (
-              <tr key={group.name}>
-                <td>
-                  <Link to={`/groups/${group.name}`}>{group.name}</Link>
-                </td>
-                <td>{group.connectedDevices}</td>
-                <td>{group.totalDevices}</td>
+  switch (phase) {
+    case "ok":
+      if (groups.size === 0) {
+        innerHTML = <p>No registered group</p>;
+      } else {
+        innerHTML = (
+          <Table responsive>
+            <thead>
+              <tr>
+                <th>Group name</th>
+                <th>Connected devices</th>
+                <th>Total devices</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </Table>
-    );
+            </thead>
+            <tbody>
+              {Array.from(groups.values()).map((group, index) => {
+                return (
+                  <tr key={group.name}>
+                    <td>
+                      <Link to={`/groups/${group.name}`}>{group.name}</Link>
+                    </td>
+                    <td>{group.connectedDevices}</td>
+                    <td>{group.totalDevices}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        );
+      }
+      break;
+
+    case "err":
+      innerHTML = <p>Couldn't load groups</p>;
+      break;
+
+    default:
+      innerHTML = (
+        <div>
+          <Spinner animation="border" role="status" />
+        </div>
+      );
+      break;
   }
-}
+
+  return (
+    <SingleCardPage title="Groups">
+      {innerHTML}
+      <Button
+        variant="primary"
+        onClick={() => {
+          history.push("/groups/new/");
+        }}
+      >
+        Create new group
+      </Button>
+    </SingleCardPage>
+  );
+};

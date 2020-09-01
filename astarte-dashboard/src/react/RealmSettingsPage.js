@@ -16,129 +16,68 @@
    limitations under the License.
 */
 
-import React from "react";
-import {
-  Button,
-  Form,
-  Modal,
-  Spinner
-} from "react-bootstrap";
+import React, { useCallback, useEffect, useState } from "react";
+import { Button, Form, Modal, Spinner } from "react-bootstrap";
 
 import SingleCardPage from "./ui/SingleCardPage.js";
+import { useAlerts } from "./AlertManager";
 
-export default class RealmSettingsPage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history }) => {
+  const [phase, setPhase] = useState("loading");
+  const [userPublicKey, setUserPublicKey] = useState("");
+  const [draftPublicKey, setDraftPublicKey] = useState("");
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const formAlerts = useAlerts();
 
-    this.astarte = this.props.astarte;
+  const showModal = useCallback(() => setIsModalVisible(true), [
+    setIsModalVisible,
+  ]);
 
-    this.handleConfigRespose = this.handleConfigRespose.bind(this);
-    this.handleConfigError = this.handleConfigError.bind(this);
-    this.updateUserKey = this.updateUserKey.bind(this);
-    this.showConfirmModal = this.showConfirmModal.bind(this);
-    this.dismissModal = this.dismissModal.bind(this);
-    this.applyNewSettings = this.applyNewSettings.bind(this);
-    this.onUpdateSettingsError = this.onUpdateSettingsError.bind(this);
-    this.dismissAlert = this.dismissAlert.bind(this);
+  const dismissModal = useCallback(() => setIsModalVisible(false), [
+    setIsModalVisible,
+  ]);
 
-    this.state = {
-      alerts: new Map(),
-      alertId: 0,
-      phase: "loading",
-      userPublicKey: "",
-      showModal: false
-    };
-
-    this.astarte
-      .getConfigAuth()
-      .then(this.handleConfigRespose)
-      .catch(this.handleConfigError);
-  }
-
-  handleConfigRespose(response) {
-    const publicKey = response.data.jwt_public_key_pem;
-
-    this.setState({
-      phase: "ok",
-      publicKey: publicKey,
-      userPublicKey: publicKey,
-    });
-  }
-
-  handleConfigError(err) {
-    this.setState({
-      phase: "err"
-    });
-  }
-
-  updateUserKey(e) {
-    const newKey = e.target.value;
-
-    this.setState({
-      userPublicKey: newKey
-    });
-  }
-
-  showConfirmModal() {
-    this.setState({
-      showModal: true
-    });
-  }
-
-  dismissModal() {
-    this.setState({
-      showModal: false
-    });
-  }
-
-  applyNewSettings() {
-    this.setState({
-      isUpdating: true
-    });
-
-    this.astarte
-      .updateConfigAuth(this.state.userPublicKey)
-      .then(() => {this.props.history.push("/logout")})
-      .catch(this.onUpdateSettingsError);
-  }
-
-  onUpdateSettingsError(err) {
-    this.setState((state) => {
-      const newAlertId = state.alertId + 1;
-      let newAlerts = state.alerts;
-      newAlerts.set(newAlertId, err.message);
-
-      return Object.assign(state, {
-        alertId: newAlertId,
-        alerts: newAlerts,
-        isUpdating: false,
-        showModal: false
+  const applyNewSettings = useCallback(() => {
+    setIsUpdatingSettings(true);
+    astarte
+      .updateConfigAuth(draftPublicKey)
+      .then(() => {
+        history.push("/logout");
+      })
+      .catch((err) => {
+        setIsUpdatingSettings(false);
+        dismissModal();
+        formAlerts.showError(err.message);
       });
-    });
-  }
+  }, [
+    setIsUpdatingSettings,
+    astarte,
+    draftPublicKey,
+    history,
+    dismissModal,
+    formAlerts.showError,
+  ]);
 
-  dismissAlert(alertId) {
-    this.setState((state) => {
-      state.alerts.delete(alertId);
-      return state;
-    });
-  }
+  useEffect(() => {
+    astarte
+      .getConfigAuth()
+      .then((response) => {
+        const publicKey = response.data.jwt_public_key_pem;
+        setUserPublicKey(publicKey);
+        setDraftPublicKey(publicKey);
+        setPhase("ok");
+      })
+      .catch((err) => setPhase("err"));
+  }, [astarte, setUserPublicKey, setDraftPublicKey, setPhase]);
 
-  render() {
-    let innerHTML;
+  let innerHTML;
 
-    const {
-      alerts,
-      isUpdating,
-      phase,
-      publicKey,
-      showModal,
-      userPublicKey
-    } = this.state;
-
-    switch (phase) {
-      case "ok":
-        innerHTML = (
+  switch (phase) {
+    case "ok":
+      innerHTML = (
+        <>
+          <formAlerts.Alerts />
           <Form>
             <Form.Group controlId="public-key">
               <Form.Label>Public key</Form.Label>
@@ -146,55 +85,58 @@ export default class RealmSettingsPage extends React.Component {
                 as="textarea"
                 className="text-monospace"
                 rows="16"
-                value={userPublicKey}
-                onChange={this.updateUserKey}
+                value={draftPublicKey}
+                onChange={(e) => setDraftPublicKey(e.target.value)}
               />
             </Form.Group>
             {/* TODO: this action is destructive, maybe we should use danger/warning variants */}
             <Button
               variant="primary"
-              disabled={userPublicKey == publicKey}
-              onClick={this.showConfirmModal}
+              disabled={draftPublicKey === userPublicKey}
+              onClick={showModal}
             >
               Apply
             </Button>
           </Form>
-        );
-        break;
+        </>
+      );
+      break;
 
-      case "err":
-        innerHTML = <p>Couldn't load realm settings</p>;
-        break;
+    case "err":
+      innerHTML = <p>Couldn't load realm settings</p>;
+      break;
 
-      default:
-        innerHTML = (
-          <div>
-            <Spinner animation="border" role="status" />
-          </div>
-        );
-        break;
-    }
-
-    return (
-      <SingleCardPage title="Realm Settings"
-        errorMessages={alerts}
-        onAlertClose={this.dismissAlert}
-      >
-        {innerHTML}
-        <ConfirmKeyChanges
-          isUpdating={isUpdating}
-          show={showModal}
-          onCancel={this.dismissModal}
-          onConfirm={this.applyNewSettings}
-        />
-      </SingleCardPage>
-    );
+    default:
+      innerHTML = (
+        <div>
+          <Spinner animation="border" role="status" />
+        </div>
+      );
+      break;
   }
-}
 
-function ConfirmKeyChanges({ show, isUpdating, onCancel, onConfirm }) {
   return (
-    <div onKeyDown={(e) => { if (e.key == "Enter") onConfirm() }}>
+    <SingleCardPage
+      title="Realm Settings"
+    >
+      {innerHTML}
+      <ConfirmKeyChanges
+        isUpdating={isUpdatingSettings}
+        show={isModalVisible}
+        onCancel={dismissModal}
+        onConfirm={applyNewSettings}
+      />
+    </SingleCardPage>
+  );
+};
+
+const ConfirmKeyChanges = ({ show, isUpdating, onCancel, onConfirm }) => {
+  return (
+    <div
+      onKeyDown={(e) => {
+        if (e.key == "Enter" && !isUpdating) onConfirm();
+      }}
+    >
       <Modal
         size="lg"
         show={show}
@@ -204,16 +146,19 @@ function ConfirmKeyChanges({ show, isUpdating, onCancel, onConfirm }) {
           <Modal.Title>Confirm Public Key Update</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p>Realm public key will be changed, users will not be able to make further API calls using their current auth token. Confirm?</p>
+          <p>
+            Realm public key will be changed, users will not be able to make
+            further API calls using their current auth token. Confirm?
+          </p>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={onConfirm}>
+          <Button variant="primary" onClick={onConfirm} disabled={isUpdating}>
             {isUpdating && (
               <Spinner
-                className="mr-1"
+                className="mr-2"
                 size="sm"
                 animation="border"
                 role="status"
@@ -225,4 +170,4 @@ function ConfirmKeyChanges({ show, isUpdating, onCancel, onConfirm }) {
       </Modal>
     </div>
   );
-}
+};

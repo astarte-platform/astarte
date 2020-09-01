@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.0-beta.1] - Unreleased
+### Added
+- Support device groups in device triggers.
+- Initial device introspection during device registration.
+
+### Fixed
+- Fix bug which caused marking triggers as invalid on parametric endpoints containing an underscore.
+
 ## [1.0.0-alpha.1] - 2020-06-18
 ### Added
 - Device registration page.
@@ -25,6 +33,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Configuration accepts both base Astarte API URL and specific component URLs.
 - Explicit timestamp is enabled by default for all mappings when interface type is changed to
   datastream.
+
+## [0.11.3] - Unreleased
+### Fixed
+- Fix wrong measurement unit used for mapping expiry.
+
+## [0.11.2] - 2020-08-14
+### Fixed
+- Match API labels with their corresponding status.
 
 ## [0.11.1] - 2020-05-18
 ### Added

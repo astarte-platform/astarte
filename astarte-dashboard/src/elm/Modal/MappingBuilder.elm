@@ -400,7 +400,7 @@ renderBody mapping isProperties isObject editMode endpointWarningPopup =
                         ]
                         |> InputGroup.config
                         |> InputGroup.successors
-                            [ InputGroup.span [] [ text "ms" ] ]
+                            [ InputGroup.span [] [ text "s" ] ]
                         |> InputGroup.view
                     ]
                 ]

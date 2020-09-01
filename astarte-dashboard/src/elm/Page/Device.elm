@@ -49,7 +49,7 @@ import Route
 import Set
 import Spinner
 import Time
-import Types.AstarteValue as AstarteValue
+import Types.AstarteValue as AstarteValue exposing (AstarteValue)
 import Types.Device as Device exposing (Device)
 import Types.DeviceEvent as DeviceEvent exposing (DeviceEvent)
 import Types.ExternalMessage as ExternalMsg exposing (ExternalMsg)
@@ -117,9 +117,9 @@ type Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
     | DeviceMetadataUpdated (Dict String String) (Result AstarteApi.Error ())
     | EditAlias String
-    | DeleteAlias String
+    | DeleteAlias String String
     | EditMetadata String
-    | RemoveMetadata String
+    | RemoveMetadata String String
     | SetCredentialsInhibited Bool
     | ShowConfirmModal
       -- spinner
@@ -442,13 +442,13 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
-        DeleteAlias aliasTag ->
+        DeleteAlias aliasTag aliasValue ->
             let
                 title =
                     "Delete Alias"
 
                 body =
-                    "Delete alias \"" ++ aliasTag ++ "\"?"
+                    "Delete alias \"" ++ aliasValue ++ "\"?"
 
                 action =
                     Just "Delete"
@@ -490,7 +490,7 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        RemoveMetadata key ->
+        RemoveMetadata key _ ->
             let
                 title =
                     "Delete Item"
@@ -794,8 +794,8 @@ view model flashMessages =
                         [ Html.h2
                             [ Spacing.pl2 ]
                             [ Html.a
-                                [ href "/devices", Spacing.mr2 ]
-                                [ Icons.render Icons.Back [ class "align-text-bottom" ] ]
+                                [ href "/devices", Spacing.mr2, class "align-bottom" ]
+                                [ Icons.render Icons.Back [] ]
                             , Html.text "Device"
                             ]
                         , FlashMessageHelpers.renderFlashMessages flashMessages Forward
@@ -1338,10 +1338,9 @@ renderDeviceEvent event =
                 DeviceEvent.IncomingData data ->
                     ( IncommingDataLabel
                     , Html.span []
-                        [ Html.span [ Spacing.mr2 ] [ Html.text data.interface ]
-                        , Html.span [ Spacing.mr2 ] [ Html.text data.path ]
-                        , Html.span [ class "text-monospace" ] [ Html.text <| AstarteValue.toString data.value ]
-                        ]
+                        (Html.span [ Spacing.mr2 ] [ Html.text data.interface ]
+                            :: pathValueToHtml data.path data.value
+                        )
                     )
 
                 DeviceEvent.Other eventType ->
@@ -1356,6 +1355,30 @@ renderDeviceEvent event =
                     )
     in
     renderEventItem event.timestamp Nothing label message
+
+
+pathValueToHtml : String -> DeviceEvent.PathValue -> List (Html Msg)
+pathValueToHtml path value =
+    case value of
+        DeviceEvent.SingleValue val ->
+            renderPathValue path <| AstarteValue.toString val
+
+        DeviceEvent.ObjectValue obj ->
+            Dict.toList obj
+                |> List.map (objectValueMapHelper path)
+                |> List.concat
+
+
+objectValueMapHelper : String -> ( String, AstarteValue ) -> List (Html Msg)
+objectValueMapHelper path ( subPath, value ) =
+    renderPathValue (path ++ subPath) (AstarteValue.toString value)
+
+
+renderPathValue : String -> String -> List (Html Msg)
+renderPathValue path value =
+    [ Html.span [ Spacing.mr2 ] [ Html.text path ]
+    , Html.span [ Spacing.mr2, class "text-monospace" ] [ Html.text value ]
+    ]
 
 
 renderEventItem : Time.Posix -> Maybe Color -> LabelType -> Html Msg -> Html Msg
@@ -1581,7 +1604,7 @@ renderMetadata metadata =
             )
 
 
-fieldValueTableRow : (String -> Msg) -> (String -> Msg) -> ( String, String ) -> Table.Row Msg
+fieldValueTableRow : (String -> Msg) -> (String -> String -> Msg) -> ( String, String ) -> Table.Row Msg
 fieldValueTableRow editMessage deleteMessage ( key, value ) =
     Table.tr []
         [ Table.td []
@@ -1596,7 +1619,7 @@ fieldValueTableRow editMessage deleteMessage ( key, value ) =
                 ]
             , Icons.render Icons.Erase
                 [ class "color-red action-icon"
-                , Html.Events.onClick (deleteMessage key)
+                , Html.Events.onClick (deleteMessage key value)
                 ]
             ]
         ]

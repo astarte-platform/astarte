@@ -21,15 +21,17 @@ import {
   Router,
   Switch,
   Route,
-  Link,
   useParams,
-  useRouteMatch
+  useLocation,
 } from "react-router-dom";
 
+import LoginPage from "./LoginPage.js";
 import HomePage from "./HomePage.js";
 import GroupsPage from "./GroupsPage.js";
 import GroupDevicesPage from "./GroupDevicesPage.js";
 import NewGroupPage from "./NewGroupPage.js";
+import TriggersPage from "./TriggersPage.js";
+import InterfacesPage from "./InterfacesPage.js";
 import DevicesPage from "./DevicesPage.js";
 import RegisterDevicePage from "./RegisterDevicePage.js";
 import FlowInstancesPage from "./FlowInstancesPage.js";
@@ -39,9 +41,9 @@ import PipelinesPage from "./PipelinesPage.js";
 import PipelineSourcePage from "./PipelineSourcePage.js";
 import NewPipelinePage from "./NewPipelinePage.js";
 import RealmSettingsPage from "./RealmSettingsPage.js";
+import DeviceInterfaceValues from "./DeviceInterfaceValues.js";
 
-export function getRouter(reactHistory, astarteClient, fallback) {
-
+export default ({ reactHistory, astarteClient, config, fallback }) => {
   const pageProps = {
       history: reactHistory,
       astarte: astarteClient
@@ -53,11 +55,28 @@ export function getRouter(reactHistory, astarteClient, fallback) {
         <Route exact path={["/", "/home"]}>
           <HomePage {...pageProps} />
         </Route>
+        <Route path="/login">
+          <Login
+            allowSwitching={config.auth.length > 1}
+            defaultLoginType={config.default_auth || "token"}
+            defaultRealm={config.default_realm || ""}
+            {...pageProps}
+            />
+        </Route>
+        <Route exact path="/triggers">
+          <TriggersPage {...pageProps} />
+        </Route>
+        <Route exact path="/interfaces">
+          <InterfacesPage {...pageProps} />
+        </Route>
         <Route exact path="/devices">
           <DevicesPage {...pageProps} />
         </Route>
         <Route exact path="/devices/register">
           <RegisterDevicePage {...pageProps} />
+        </Route>
+        <Route exact path="/devices/:deviceId/interfaces/:interfaceName">
+          <DeviceDataSubPath {...pageProps} />
         </Route>
         <Route exact path="/groups">
           <GroupsPage {...pageProps} />
@@ -97,6 +116,18 @@ export function getRouter(reactHistory, astarteClient, fallback) {
   );
 }
 
+function Login(props) {
+  const { search } = useLocation();
+  const loginType = new URLSearchParams(search).get("type") || props.defaultLoginType;
+
+  return (
+    <LoginPage
+      type={loginType}
+      {...props}
+    />
+  );
+}
+
 function GroupDevicesSubPath(props) {
   let { groupName } = useParams();
 
@@ -125,9 +156,22 @@ function PipelineSubPath(props) {
   );
 }
 
+function DeviceDataSubPath(props) {
+  const { deviceId, interfaceName } = useParams();
+
+  return (
+    <DeviceInterfaceValues
+      deviceId={deviceId}
+      interfaceName={interfaceName}
+      {...props}
+    />
+  );
+}
+
 function NoMatch(props) {
-  let { path, url } = useRouteMatch();
-  props.fallback(url);
+  const pageLocation = useLocation()
+  const relativeUrl = [pageLocation.pathname, pageLocation.search, pageLocation.hash].join('');
+  props.fallback(relativeUrl);
 
   return <p>Redirecting...</p>;
 }

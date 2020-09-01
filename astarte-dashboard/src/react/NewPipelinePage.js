@@ -16,145 +16,140 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
-  Col,
   Form,
-  Row
+  Spinner
 } from "react-bootstrap";
+import Ajv from 'ajv';
 
+import { useAlerts } from "./AlertManager";
 import SingleCardPage from "./ui/SingleCardPage.js";
 
-export default class NewPipelinePage extends React.Component {
-  constructor(props) {
-    super(props);
+const ajv = new Ajv({schemaId: 'id'});
+ajv.addMetaSchema(require('ajv/lib/refs/json-schema-draft-04.json'));
 
-    this.astarte = this.props.astarte;
+export default ({ astarte, history }) => {
+  const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
+  const [pipeline, setPipeline] = useState({
+    name: "",
+    description: "",
+    source: "",
+    schema: ""
+  });
+  const formAlerts = useAlerts();
 
-    this.addAlert = this.addAlert.bind(this);
-    this.closeAlert = this.closeAlert.bind(this);
-    this.onNameChanged = this.onNameChanged.bind(this);
-    this.onSourceChanged = this.onSourceChanged.bind(this);
-    this.onDescriptionChanged = this.onDescriptionChanged.bind(this);
-    this.createPipeline = this.createPipeline.bind(this);
+  const createPipeline = useCallback(() => {
+    setIsCreatingPipeline(true);
 
-    this.state = {
-      alerts: new Map(),
-      alertId: 0,
-      pipelineName: "",
-      pipelineSource: "",
-      pipelineDescription: ""
+    const pipelineParams = {
+      name: pipeline.name,
+      source: pipeline.source,
+      description: pipeline.description
     };
-  }
 
-  addAlert(message) {
-    this.setState((state) => {
-      const newAlertId = state.alertId + 1;
-      let newAlerts = state.alerts;
-      newAlerts.set(newAlertId, message);
+    if (schemaObject) {
+      pipelineParams.schema = schemaObject;
+    }
 
-      return Object.assign(state, {
-        alertId: newAlertId,
-        alerts: newAlerts
-      });
-    });
-  }
-
-  closeAlert(alertId) {
-    this.setState((state) => {
-      state.alerts.delete(alertId);
-      return state;
-    });
-  }
-
-  createPipeline(e) {
-    const { pipelineName, pipelineSource, pipelineDescription } = this.state;
-
-    this.astarte.registerPipeline({
-      name: pipelineName,
-      source: pipelineSource,
-      description: pipelineDescription
-    })
-      .then(() => { this.props.history.push("/pipelines") })
+    astarte
+      .registerPipeline(pipelineParams)
+      .then(() => history.push('/pipelines'))
       .catch((err) => {
-        this.addAlert(`Couldn't create pipeline: ${err.message}`);
+        setIsCreatingPipeline(false);
+        formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
       });
-  }
+  }, [astarte, history, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
 
-  isValidForm() {
-    const { pipelineName, pipelineSource, pipelineDescription } = this.state;
+  const schemaObject = useMemo(() => {
+    if (pipeline.schema === '') {
+      return undefined;
+    }
+    try {
+      const schema = JSON.parse(pipeline.schema);
+      return schema;
+    } catch (e) {
+      return undefined;
+    }
+  }, [pipeline.schema]);
 
-    return (pipelineName != ""
-        && pipelineName != "new"
-        && pipelineSource != ""
-    );
-  }
+  const isValidSchema = useMemo(() => {
+    if (!schemaObject) {
+      return false;
+    }
+    try {
+      ajv.compile(schemaObject);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }, [schemaObject, ajv]);
 
-  onNameChanged(e) {
-    const newVal = e.target.value;
-    this.setState({
-        pipelineName: newVal
-    });
-  }
+  const isValidPipelineName = pipeline.name !== '' && pipeline.name !== 'new';
+  const isValidSource = pipeline.source !== '';
+  const isValidForm = isValidPipelineName && isValidSource;
 
-  onSourceChanged(e) {
-    const newVal = e.target.value;
-    this.setState({
-        pipelineSource: newVal
-    });
-  }
-
-  onDescriptionChanged(e) {
-    const newVal = e.target.value;
-    this.setState({
-      pipelineDescription: newVal
-    });
-  }
-
-  render() {
-    const { alerts, pipelineName, pipelineSource, pipelineDescription } = this.state;
-
-    return (
-      <SingleCardPage
-        title="New Pipeline"
-        errorMessages={alerts}
-        onAlertClose={this.closeAlert}
+  return (
+    <SingleCardPage
+      title="New Pipeline"
+      backLink="/pipelines"
+    >
+      <formAlerts.Alerts />
+      <Form>
+        <Form.Group controlId="pipeline-name">
+          <Form.Label>Name</Form.Label>
+          <Form.Control
+            type="text"
+            value={pipeline.name}
+            onChange={(e) => setPipeline({ ...pipeline, name: e.target.value})}
+          />
+        </Form.Group>
+        <Form.Group controlId="pipeline-description">
+          <Form.Label>Description</Form.Label>
+          <Form.Control
+            as="textarea"
+            value={pipeline.description}
+            onChange={(e) => setPipeline({ ...pipeline, description: e.target.value})}
+          />
+        </Form.Group>
+        <Form.Group controlId="pipeline-source">
+          <Form.Label>Source</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={8}
+            value={pipeline.source}
+            onChange={(e) => setPipeline({ ...pipeline, source: e.target.value})}
+          />
+        </Form.Group>
+        <Form.Group controlId="pipeline-schema">
+          <Form.Label>Schema</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={8}
+            value={pipeline.schema}
+            isValid={pipeline.schema !== '' && isValidSchema}
+            isInvalid={pipeline.schema !== '' && !isValidSchema}
+            onChange={(e) => setPipeline({ ...pipeline, schema: e.target.value})}
+          />
+        </Form.Group>
+      </Form>
+      <Button
+        variant="primary"
+        onClick={createPipeline}
+        disabled={!isValidForm || isCreatingPipeline}
       >
-        <Form>
-          <Form.Group controlId="pipeline-name">
-            <Form.Label>Name</Form.Label>
-            <Form.Control
-              type="text"
-              value={pipelineName}
-              onChange={this.onNameChanged}
-            />
-          </Form.Group>
-          <Form.Group controlId="pipeline-source">
-            <Form.Label>Source</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={12}
-              value={pipelineSource}
-              onChange={this.onSourceChanged}
-            />
-          </Form.Group>
-          <Form.Group controlId="pipeline-description">
-            <Form.Label>Description</Form.Label>
-            <Form.Control
-              as="textarea"
-              value={pipelineDescription}
-              onChange={this.onDescriptionChanged}
-            />
-          </Form.Group>
-        </Form>
-        <Button
-          variant="primary"
-          onClick={this.createPipeline}
-        >
-          Create new pipeline
-        </Button>
-      </SingleCardPage>
-    );
-  }
+        {isCreatingPipeline && (
+          <Spinner
+            as="span"
+            size="sm"
+            animation="border"
+            role="status"
+            className={"mr-2"}
+          />
+        )}
+        Create new pipeline
+      </Button>
+    </SingleCardPage>
+  );
 }
