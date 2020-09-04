@@ -1,4 +1,4 @@
-# AstarteE2e
+# AstarteE2E
 
 **TODO: Add description**
 

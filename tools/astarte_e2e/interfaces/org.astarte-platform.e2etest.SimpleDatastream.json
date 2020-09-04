@@ -1,0 +1,16 @@
+{
+    "interface_name": "org.astarte-platform.e2etest.SimpleDatastream",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "SimpleDatastream allows to stream custom strings. Each string is employed to assess the end to end functionality of Astarte.",
+    "mappings": [
+        {
+            "endpoint": "/correlationId",
+            "type": "string",
+            "database_retention_ttl": 500,
+            "description": "Each correlationId persists into the database for a predefined amount of time as to avoid an unbounded collection of entries."
+        }
+    ]
+}
