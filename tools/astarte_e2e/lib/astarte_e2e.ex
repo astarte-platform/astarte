@@ -64,6 +64,7 @@ defmodule AstarteE2E do
 
   def init(opts) do
     children = [
+      AstarteE2EWeb.Telemetry,
       {Device, device_opts(opts)},
       {Client, client_opts(opts)},
       {Scheduler, scheduler_opts(opts)}
@@ -86,6 +87,7 @@ defmodule AstarteE2E do
                |> Base.encode16(), "/correlationId"}
 
             Device.send_datastream(device_pid, interface_name, path, value)
+            :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
 
             :timer.sleep(1000)
             Client.verify_device_payload(interface_name, path, value, timestamp)
@@ -96,6 +98,7 @@ defmodule AstarteE2E do
                |> Base.encode16(), "/correlationId"}
 
             Device.set_property(device_pid, interface_name, path, value)
+            :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
 
             :timer.sleep(1000)
             Client.verify_device_payload(interface_name, path, value, timestamp)

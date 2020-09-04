@@ -48,6 +48,12 @@ defmodule AstarteE2E.Client do
              name: :astarte_ws_client
            ) do
       Logger.info("[Client] Started process with pid #{inspect(pid)}.")
+
+      :telemetry.execute(
+        [:astarte_end_to_end, :astarte_platform, :status],
+        %{health: 0}
+      )
+
       {:ok, pid}
     end
   end
@@ -92,6 +98,12 @@ defmodule AstarteE2E.Client do
 
   def handle_disconnected(reason, state) do
     Logger.info("[Client] Disconnected with reason: #{inspect(reason)}.")
+
+    :telemetry.execute(
+      [:astarte_end_to_end, :astarte_platform, :status],
+      %{health: 0}
+    )
+
     {:ok, state}
   end
 
@@ -116,6 +128,8 @@ defmodule AstarteE2E.Client do
       ) do
     Logger.info("[Client] Handling incoming_data message.")
 
+    :telemetry.execute([:astarte_end_to_end, :messages, :received], %{})
+
     reception_timestamp = :erlang.monotonic_time(:millisecond)
 
     %{
@@ -125,11 +139,22 @@ defmodule AstarteE2E.Client do
 
     case Map.pop(pending_requests, {interface_name, path, value}) do
       {{timestamp, from}, new_pending_requests} ->
-        dt = reception_timestamp - timestamp
+        dt_ms = reception_timestamp - timestamp
         new_state = Map.put(state, :pending_requests, new_pending_requests)
 
-        Logger.info("[Client] Message verified. Round trip time = #{inspect(dt)} ms.")
-        GenSocketClient.reply(from, {:ok, {:round_trip_time_ms, dt}})
+        Logger.info("[Client] Message verified. Round trip time = #{inspect(dt_ms)} ms.")
+
+        :telemetry.execute(
+          [:astarte_end_to_end, :messages, :round_trip_time],
+          %{duration_seconds: dt_ms / 1_000}
+        )
+
+        :telemetry.execute(
+          [:astarte_end_to_end, :astarte_platform, :status],
+          %{health: 1}
+        )
+
+        GenSocketClient.reply(from, {:ok, {:round_trip_time_ms, dt_ms}})
 
         {:ok, new_state}
 
@@ -165,6 +190,12 @@ defmodule AstarteE2E.Client do
 
   def handle_info(:timeout, _transport, state) do
     Logger.error("[Client] Request timed out.")
+
+    :telemetry.execute(
+      [:astarte_end_to_end, :astarte_platform, :status],
+      %{health: 0}
+    )
+
     {:stop, :timeout, state}
   end
 
@@ -187,12 +218,22 @@ defmodule AstarteE2E.Client do
       {reception_timestamp, new_pending_messages} =
         Map.pop(pending_messages, {interface_name, path, value})
 
-      dt = reception_timestamp - timestamp
+      dt_ms = reception_timestamp - timestamp
       new_state = Map.put(state, :pending_messages, new_pending_messages)
 
-      Logger.info("[Client] Round trip time = #{inspect(dt)} ms.")
+      :telemetry.execute(
+        [:astarte_end_to_end, :messages, :round_trip_time],
+        %{duration_seconds: dt_ms / 1_000}
+      )
 
-      {:reply, {:ok, {:round_trip_time_ms, dt}}, new_state}
+      :telemetry.execute(
+        [:astarte_end_to_end, :astarte_platform, :status],
+        %{health: 1}
+      )
+
+      Logger.info("[Client] Round trip time = #{inspect(dt_ms)} ms.")
+
+      {:reply, {:ok, {:round_trip_time_ms, dt_ms}}, new_state}
     else
       new_pending_requests =
         Map.put(pending_requests, {interface_name, path, value}, {timestamp, from})

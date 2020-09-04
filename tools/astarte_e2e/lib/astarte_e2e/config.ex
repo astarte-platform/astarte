@@ -69,6 +69,12 @@ defmodule AstarteE2E.Config do
     type: :integer,
     default: 60
 
+  @envdoc "The port used to expose AstarteE2E's metrics. Defaults to 4010."
+  app_env :port, :astarte_e2e, :port,
+    os_env: "ASTARTE_E2E_PORT",
+    type: :integer,
+    default: 4010
+
   @envdoc "Overall number of consistency checks repetitions. Defaults to 0, corresponding to endless checks."
   app_env :check_repetitions, :astarte_e2e, :check_repetitions,
     os_env: "ASTARTE_E2E_CHECK_REPETITIONS",
