@@ -16,91 +16,94 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Form, Table } from "react-bootstrap";
 
-export default class CheckableDeviceTable extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.deviceTableRow = this.deviceTableRow.bind(this);
+const Highlight = ({text, word}) => {
+  if (!word) {
+    return text;
   }
 
-  render() {
-    let deviceList = this.props.devices;
-    const filterKey = this.props.filter;
+  return text.split(word)
+    .reduce((prev, current, index) => [
+      prev,
+      <span key={index} className="bg-warning text-dark">{word}</span>,
+      current,
+    ]);
+};
 
-    if (filterKey) {
-      deviceList = deviceList.filter(device => {
+const DeviceTableRow = ({deviceId, deviceAliases, filter, selected, onToggleDevice}) => (
+  <tr>
+    <td>
+      <Form.Check
+        id={`device-${deviceId}`}
+        type="checkbox"
+        data-device-id={deviceId}
+        checked={selected}
+        onChange={onToggleDevice}
+      />
+    </td>
+    <td className="text-monospace">
+      <Highlight
+        text={deviceId}
+        word={filter}
+      />
+    </td>
+    <td>
+      <ul className="list-unstyled">
+        {deviceAliases.map(([aliasTag, alias]) => (
+          <li key={aliasTag}>
+            <Highlight
+              text={alias}
+              word={filter}
+            />
+          </li>
+        ))}
+      </ul>
+    </td>
+  </tr>
+);
+
+const CheckableDeviceTable = ({devices, filter, selectedDevices, onToggleDevice}) => {
+  const filteredDevices = useMemo(() => {
+    if (filter) {
+      return devices.filter(device => {
         const aliases = Array.from(device.aliases.values());
-
-        return (
-          aliases.filter(alias => alias.includes(filterKey)).length > 0 ||
-          device.id.includes(filterKey)
-        );
+        return device.id.includes(filter) ||
+          aliases.filter(alias => alias.includes(filter)).length > 0;
       });
+    } else {
+      return devices;
     }
+  }, [devices, filter]);
 
-    if (!deviceList.length) {
-      return <p>No device ID matched the current filter</p>;
-    }
-
-    return (
-      <Table responsive hover>
-        <thead>
-          <tr>
-            <th>Selected</th>
-            <th>Device ID</th>
-            <th>Aliases</th>
-          </tr>
-        </thead>
-        <tbody>{deviceList.map(this.deviceTableRow)}</tbody>
-      </Table>
-    );
+  if (!filteredDevices.length) {
+    return (<p>No device matched the current filter</p>);
   }
 
-  deviceTableRow(device, index) {
-    const filterKey = this.props.filter;
-    const deviceAliases = Array.from(device.aliases.values());
-
-    const selected = this.props.selectedDevices.has(device.id);
-
-    return (
-      <tr key={index}>
-        <td>
-          <Form.Check
-            id={`device-${device.id}`}
-            type="checkbox"
-            data-device-id={device.id}
-            checked={selected}
-            onChange={this.props.onToggleDevice}
+  return (
+    <Table responsive hover>
+      <thead>
+        <tr>
+          <th>Selected</th>
+          <th>Device ID</th>
+          <th>Aliases</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filteredDevices.map((device) => (
+          <DeviceTableRow
+            key={device.id}
+            deviceId={device.id}
+            deviceAliases={Array.from(device.aliases.entries())}
+            selected={selectedDevices.has(device.id)}
+            filter={filter}
+            onToggleDevice={onToggleDevice}
           />
-        </td>
-        <td className="text-monospace">
-          {highlight(device.id, filterKey)}
-        </td>
-        <td>
-          <ul className="list-unstyled">
-            {deviceAliases.map((alias, index) => {
-              return <li key={index}>{highlight(alias, filterKey)}</li>;
-            })}
-          </ul>
-        </td>
-      </tr>
-    );
-  }
-}
+        ))}
+      </tbody>
+    </Table>
+  );
+};
 
-function highlight(word, sub) {
-  if (sub) {
-    return word.split(sub).reduce((prev, next) => (
-      <>
-        {prev}
-        <span className="bg-warning text-dark">{sub}</span>
-        {next}
-      </>
-    ));
-  } else {
-    return word;
-  }
-}
+export default CheckableDeviceTable;
