@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import dayjs from "dayjs";
 import dayjsRelativeTime from "dayjs/plugin/relativeTime";
 
