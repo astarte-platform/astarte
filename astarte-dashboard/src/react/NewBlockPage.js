@@ -19,9 +19,8 @@
 import React, { useCallback, useState } from "react";
 import { Button, Form, Row, Spinner } from "react-bootstrap";
 
+import { useAlerts } from "./AlertManager";
 import SingleCardPage from "./ui/SingleCardPage.js";
-
-let alertId = 0;
 
 const isJSON = (string) => {
   try {
@@ -33,7 +32,6 @@ const isJSON = (string) => {
 };
 
 export default ({ astarte, history }) => {
-  const [alerts, setAlerts] = useState(new Map());
   const [block, setBlock] = useState({
     name: "",
     source: "",
@@ -42,29 +40,7 @@ export default ({ astarte, history }) => {
   });
   const [isValidated, setIsValidated] = useState(false);
   const [isCreatingBlock, setIsCreatingBlock] = useState(false);
-
-  const addAlert = useCallback(
-    (message) => {
-      alertId += 1;
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.set(alertId, message);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
-
-  const closeAlert = useCallback(
-    (alertId) => {
-      setAlerts((alerts) => {
-        const newAlerts = new Map(alerts);
-        newAlerts.delete(alertId);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
+  const creationAlerts = useAlerts();
 
   const createBlock = useCallback(() => {
     setIsCreatingBlock(true);
@@ -77,9 +53,9 @@ export default ({ astarte, history }) => {
       .then(() => history.push("/blocks"))
       .catch((err) => {
         setIsCreatingBlock(false);
-        addAlert(`Couldn't create block: ${err.message}`);
+        creationAlerts.showError(`Couldn't create block: ${err.message}`);
       });
-  }, [block, addAlert]);
+  }, [block, creationAlerts.showError]);
 
   const isValidBlockName =
     /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name) && block.name !== "new";
@@ -105,12 +81,8 @@ export default ({ astarte, history }) => {
 
   return (
     <React.Fragment>
-      <SingleCardPage
-        title="New Block"
-        backLink="/blocks"
-        errorMessages={alerts}
-        onAlertClose={closeAlert}
-      >
+      <SingleCardPage title="New Block" backLink="/blocks">
+        <creationAlerts.Alerts />
         <Form noValidate>
           <Form.Group controlId="block-name">
             <Form.Label>Name</Form.Label>

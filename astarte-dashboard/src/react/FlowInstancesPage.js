@@ -91,7 +91,9 @@ export default ({ astarte, history }) => {
       })
       .catch((err) => {
         setIsDeletingFlow(false);
-        deletionAlerts.showError(`Could not delete flow instance: ${err}`);
+        deletionAlerts.showError(
+          `Could not delete flow instance: ${err.message}`
+        );
       });
   }, [
     setIsModalVisible,

@@ -20,60 +20,44 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Button, Col, Row, Spinner } from "react-bootstrap";
 import SyntaxHighlighter from "react-syntax-highlighter";
 
+import { useAlerts } from "./AlertManager";
 import SingleCardPage from "./ui/SingleCardPage.js";
-
-let alertId = 0;
 
 const blockTypeToLabel = {
   consumer: "Consumer",
   producer: "Producer",
-  producer_consumer: "Producer & Consumer"
+  producer_consumer: "Producer & Consumer",
 };
 
 export default ({ astarte, history, blockId }) => {
-  const [alerts, setAlerts] = useState(new Map());
   const [phase, setPhase] = useState("loading");
   const [block, setBlock] = useState(null);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
-
-  const addAlert = useCallback(
-    message => {
-      alertId += 1;
-      setAlerts(alerts => {
-        const newAlerts = new Map(alerts);
-        newAlerts.set(alertId, message);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
-
-  const closeAlert = useCallback(
-    alertId => {
-      setAlerts(alerts => {
-        const newAlerts = new Map(alerts);
-        newAlerts.delete(alertId);
-        return newAlerts;
-      });
-    },
-    [setAlerts]
-  );
+  const deletionAlerts = useAlerts();
 
   const deleteBlock = useCallback(() => {
     setIsDeletingBlock(true);
     astarte
       .deleteBlock(blockId)
       .then(() => history.push(`/blocks`))
-      .catch(err => {
+      .catch((err) => {
         setIsDeletingBlock(false);
         addAlert(`Couldn't delete block: ${err.message}`);
+        deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
       });
-  }, [astarte, history, setIsDeletingBlock, addAlert, blockId]);
+  }, [
+    astarte,
+    history,
+    setIsDeletingBlock,
+    addAlert,
+    blockId,
+    deletionAlerts.showError,
+  ]);
 
   useEffect(() => {
     astarte
       .getBlock(blockId)
-      .then(block => {
+      .then((block) => {
         setBlock(block);
         setPhase("ok");
       })
@@ -81,12 +65,7 @@ export default ({ astarte, history, blockId }) => {
   }, [astarte, setBlock, setPhase]);
 
   const ContentCard = ({ children }) => (
-    <SingleCardPage
-      title="Block Details"
-      backLink="/blocks"
-      errorMessages={alerts}
-      onAlertClose={closeAlert}
-    >
+    <SingleCardPage title="Block Details" backLink="/blocks">
       {children}
     </SingleCardPage>
   );
@@ -96,6 +75,7 @@ export default ({ astarte, history, blockId }) => {
       return (
         <>
           <ContentCard>
+            <deletionAlerts.Alerts />
             <Row>
               <Col>
                 <h5 className="mt-2 mb-2">Name</h5>
