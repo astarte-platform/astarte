@@ -40,6 +40,9 @@ import FlowConfigurationPage from "./FlowConfigurationPage.js";
 import PipelinesPage from "./PipelinesPage.js";
 import PipelineSourcePage from "./PipelineSourcePage.js";
 import NewPipelinePage from "./NewPipelinePage.js";
+import BlocksPage from "./BlocksPage.js";
+import BlockSourcePage from "./BlockSourcePage.js";
+import NewBlockPage from "./NewBlockPage.js";
 import RealmSettingsPage from "./RealmSettingsPage.js";
 import DeviceInterfaceValues from "./DeviceInterfaceValues.js";
 
@@ -105,6 +108,15 @@ export default ({ reactHistory, astarteClient, config, fallback }) => {
         <Route exact path="/pipelines/:pipelineId">
           <PipelineSubPath {...pageProps} />
         </Route>
+        <Route exact path="/blocks">
+          <BlocksPage {...pageProps} />
+        </Route>
+        <Route exact path="/blocks/new">
+          <NewBlockPage {...pageProps} />
+        </Route>
+        <Route exact path="/blocks/:blockId">
+          <BlockSubPath {...pageProps} />
+        </Route>
         <Route exact path="/settings">
           <RealmSettingsPage {...pageProps} />
         </Route>
@@ -153,6 +165,14 @@ function PipelineSubPath(props) {
 
   return (
     <PipelineSourcePage pipelineId={pipelineId} {...props} />
+  );
+}
+
+function BlockSubPath(props) {
+  const { blockId } = useParams();
+
+  return (
+    <BlockSourcePage blockId={blockId} {...props} />
   );
 }
 

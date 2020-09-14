@@ -217,6 +217,7 @@ type ReactPageCategory
     | Groups
     | Flow
     | Pipelines
+    | Blocks
     | RealmSettings
 
 
@@ -522,6 +523,15 @@ pageInit realmRoute config session =
 
         Route.PipelineShowSource _ ->
             initReactPage session Pipelines "pipeline-show-source" realmRoute
+
+        Route.BlockList ->
+            initReactPage session Blocks "block-list" realmRoute
+
+        Route.NewBlock ->
+            initReactPage session Blocks "block-new" realmRoute
+
+        Route.BlockShowSource _ ->
+            initReactPage session Blocks "block-show-source" realmRoute
 
 
 initReactPage : Session -> ReactPageCategory -> String -> RealmRoute -> ( Page, Cmd Msg, Session )
@@ -898,6 +908,11 @@ standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHea
             Icons.Pipeline
             (isPipelinesRelated selectedPage)
             (Route.Realm Route.PipelineList)
+        , renderNavbarLink
+            "Blocks"
+            Icons.Block
+            (isBlocksRelated selectedPage)
+            (Route.Realm Route.BlockList)
         ]
 
       else
@@ -1084,6 +1099,14 @@ isPipelinesRelated page =
         _ ->
             False
 
+isBlocksRelated : Page -> Bool
+isBlocksRelated page =
+    case page of
+        Realm _ (ReactInitPage Blocks) ->
+            True
+
+        _ ->
+            False
 
 isReactBased : Page -> Bool
 isReactBased page =
