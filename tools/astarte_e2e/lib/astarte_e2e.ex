@@ -25,7 +25,7 @@ defmodule AstarteE2E do
   require Logger
 
   alias Astarte.Device
-  alias AstarteE2E.{Client, Config, Scheduler}
+  alias AstarteE2E.{Client, Config, Scheduler, Utils}
 
   @standard_interface_path "priv/interfaces"
 
@@ -83,9 +83,8 @@ defmodule AstarteE2E do
 
         case interface_name do
           "org.astarte-platform.e2etest.SimpleDatastream" ->
-            {value, path} =
-              {:crypto.strong_rand_bytes(10)
-               |> Base.encode16(), "/correlationId"}
+            value = Utils.random_string()
+            path = "/correlationId"
 
             Device.send_datastream(device_pid, interface_name, path, value)
             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
@@ -94,9 +93,8 @@ defmodule AstarteE2E do
             Client.verify_device_payload(interface_name, path, value, timestamp)
 
           "org.astarte-platform.e2etest.SimpleProperties" ->
-            {value, path} =
-              {:crypto.strong_rand_bytes(10)
-               |> Base.encode16(), "/correlationId"}
+            value = Utils.random_string()
+            path = "/correlationId"
 
             Device.set_property(device_pid, interface_name, path, value)
             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})

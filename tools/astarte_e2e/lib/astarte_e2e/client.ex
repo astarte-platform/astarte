@@ -19,6 +19,7 @@
 defmodule AstarteE2E.Client do
   alias Phoenix.Channels.GenSocketClient
   alias Phoenix.Channels.GenSocketClient.Transport.WebSocketClient
+  alias AstarteE2E.Utils
 
   require Logger
 
@@ -349,9 +350,7 @@ defmodule AstarteE2E.Client do
   end
 
   defp make_topic(realm, device_id) do
-    room_name =
-      :crypto.strong_rand_bytes(10)
-      |> Base.encode16()
+    room_name = Utils.random_string()
 
     "rooms:#{realm}:#{device_id}_#{room_name}"
   end
