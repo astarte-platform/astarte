@@ -47,6 +47,7 @@ type Icon
     | Interface
     | Logout
     | Pipeline
+    | Block
     | Reload
     | Settings
     | ToggleSidebar
@@ -136,6 +137,9 @@ className icon =
 
         Pipeline ->
             "fa-code-branch"
+
+        Block ->
+            "fa-shapes"
 
         Reload ->
             "fa-sync-alt"

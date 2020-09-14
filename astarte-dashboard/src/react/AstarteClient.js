@@ -20,6 +20,8 @@ import axios from "axios";
 import jwt from "jsonwebtoken";
 const { Socket } = require("phoenix");
 
+import Block from "./models/Block";
+
 class AstarteClient {
   constructor(config) {
     let internalConfig = {};
@@ -62,6 +64,8 @@ class AstarteClient {
       flowInstance:          astarteAPIurl`${ config.flowUrl }v1/${"realm"}/flows/${"instanceName"}`,
       pipelines:             astarteAPIurl`${ config.flowUrl }v1/${"realm"}/pipelines`,
       pipelineSource:        astarteAPIurl`${ config.flowUrl }v1/${"realm"}/pipelines/${"pipelineId"}`,
+      blocks:                astarteAPIurl`${ config.flowUrl }v1/${"realm"}/blocks`,
+      blockSource:           astarteAPIurl`${ config.flowUrl }v1/${"realm"}/blocks/${"blockId"}`,
     };
     this.apiConfig = apiConfig;
 
@@ -282,6 +286,28 @@ class AstarteClient {
 
   deletePipeline(pipelineId) {
     return this._delete(this.apiConfig["pipelineSource"]({...this.config, pipelineId: pipelineId}));
+  }
+
+  getBlocks() {
+    return this._get(this.apiConfig["blocks"](this.config)).then(response =>
+      response.data.map(block => new Block(block))
+    );
+  }
+
+  registerBlock(block) {
+    return this._post(this.apiConfig["blocks"](this.config), block);
+  }
+
+  getBlock(blockId) {
+    return this._get(
+      this.apiConfig["blockSource"]({ ...this.config, blockId })
+    ).then(response => new Block(response.data));
+  }
+
+  deleteBlock(blockId) {
+    return this._delete(
+      this.apiConfig["blockSource"]({ ...this.config, blockId })
+    );
   }
 
   getRealmManagementHealth() {
