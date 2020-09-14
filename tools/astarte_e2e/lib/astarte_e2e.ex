@@ -25,8 +25,9 @@ defmodule AstarteE2E do
   require Logger
 
   alias Astarte.Device
-  alias Astarte.Device.SimpleInterfaceProvider
-  alias AstarteE2E.{Client, Config, Scheduler, InterfaceProvider}
+  alias AstarteE2E.{Client, Config, Scheduler}
+
+  @standard_interface_path "priv/interfaces"
 
   @type device_option ::
           {:pairing_url, String.t()}
@@ -146,14 +147,24 @@ defmodule AstarteE2E do
   end
 
   defp fetch_interface_names do
-    {SimpleInterfaceProvider, interfaces: interfaces} =
-      InterfaceProvider.standard_interface_provider!()
+    with {:ok, interface_path} <- standard_interface_provider(),
+         {:ok, raw_interfaces_list} <- File.ls(interface_path) do
+      interface_names =
+        Enum.reduce(raw_interfaces_list, [], fn raw_interface, acc ->
+          interface_name =
+            raw_interface
+            |> String.trim(".json")
 
-    interface_names =
-      Enum.reduce(interfaces, [], fn interface, acc ->
-        [interface.interface_name | acc]
-      end)
+          [interface_name | acc]
+        end)
 
-    {:ok, interface_names}
+      {:ok, interface_names}
+    else
+      error ->
+        Logger.error("Interfaces names cannot be retrieved. Reason: #{inspect(error)}")
+    end
   end
+
+  def standard_interface_provider, do: {:ok, @standard_interface_path}
+  def standard_interface_provider!, do: @standard_interface_path
 end
