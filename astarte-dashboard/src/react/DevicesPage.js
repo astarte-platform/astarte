@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Row,
@@ -26,10 +26,9 @@ import {
   Pagination,
   Spinner,
   Table,
-  Tooltip
+  Tooltip,
 } from "react-bootstrap";
 
-import AstarteClient from "./AstarteClient.js";
 import Device from "./astarte/Device.js";
 import SingleCardPage from "./ui/SingleCardPage.js";
 import { Link } from "react-router-dom";
@@ -37,207 +36,160 @@ import { Link } from "react-router-dom";
 const DEVICES_PER_PAGE = 20;
 const MAX_SHOWN_PAGES = 10;
 
-export default class DevicesPage extends React.Component {
-  constructor(props) {
-    super(props);
+export default ({ astarte, history }) => {
+  const [phase, setPhase] = useState("loading");
+  const [totalDevices, setTotalDevices] = useState(null);
+  const [activePage, setActivePage] = useState(0);
+  const [maxPage, setMaxPage] = useState(0);
+  const [cachedPages, setCachedPages] = useState([]);
 
-    this.astarte = this.props.astarte;
-
-    this.handleStatsRequest = this.handleStatsRequest.bind(this);
-    this.handleDevicesRequest = this.handleDevicesRequest.bind(this);
-    this.cachePage = this.cachePage.bind(this);
-    this.loadPage = this.loadPage.bind(this);
-    this.handleError = this.handleError.bind(this);
-
-    this.state = {
-      phase: "loading",
-      devices: [],
-      totalDevices: null
+  const handleDevicesRequest = (pageIndex, response) => {
+    const token = new URLSearchParams(response.links.next).get("from_token");
+    const deviceList = response.data.map((value) => {
+      return Device.fromObject(value);
+    });
+    cachedPages[pageIndex] = {
+      devices: deviceList,
+      token,
     };
-
-    this.astarte
-      .getDevicesStats()
-      .then(this.handleStatsRequest)
-      .catch(this.handleError);
-  }
-
-  handleStatsRequest(response) {
-    const totalDevices = response.data.total_devices;
-
-    if (totalDevices > 0) {
-      this.setState({
-        totalDevices: totalDevices,
-        activePage: 0,
-        maxPage: Math.ceil(totalDevices / DEVICES_PER_PAGE),
-        cachedPages: []
-      });
-
-      this.cachePage(0);
-    } else {
-      this.setState({
-        phase: "ok",
-        totalDevices: 0
-      });
+    setCachedPages([...cachedPages]);
+    if (pageIndex === activePage) {
+      setPhase("ok");
     }
+    const pagesToCache = activePage + MAX_SHOWN_PAGES + 1;
+    if (pageIndex < pagesToCache) {
+      cachePage(pageIndex + 1);
+    }
+    return null;
+  };
 
-    return null; // handle promise async
-  }
-
-  cachePage(pageIndex) {
+  const cachePage = (pageIndex) => {
     if (pageIndex == 0) {
-      this.astarte
+      astarte
         .getDevices({
           details: true,
-          limit: DEVICES_PER_PAGE
+          limit: DEVICES_PER_PAGE,
         })
-        .then(response => {
-          return this.handleDevicesRequest(pageIndex, response);
+        .then((response) => {
+          return handleDevicesRequest(pageIndex, response);
         })
         .catch(console.log);
     } else {
-      const token = this.state.cachedPages[pageIndex - 1].token;
-
+      const token = cachedPages[pageIndex - 1].token;
       if (token) {
-        this.astarte
+        astarte
           .getDevices({
             details: true,
             from: token,
-            limit: DEVICES_PER_PAGE
+            limit: DEVICES_PER_PAGE,
           })
-          .then(response => {
-            return this.handleDevicesRequest(pageIndex, response);
+          .then((response) => {
+            return handleDevicesRequest(pageIndex, response);
           })
           .catch(console.log);
       }
     }
+    return null;
+  };
 
-    return null; // handle promise async
-  }
-
-  handleDevicesRequest(pageIndex, response) {
-    let token = new URLSearchParams(response.links.next).get("from_token");
-
-    let deviceList = response.data.map(value => {
-      return Device.fromObject(value);
-    });
-
-    let cachedPages = this.state.cachedPages;
-    cachedPages[pageIndex] = {
-      devices: deviceList,
-      token: token
-    };
-
-    this.setState({
-      cachedPages: cachedPages
-    });
-
-    const activePage = this.state.activePage;
-    if (pageIndex == this.state.activePage) {
-      this.setState({
-        phase: "ok",
-        activePage: pageIndex
-      });
-    }
-
-    const pagesToCache = activePage + MAX_SHOWN_PAGES + 1;
-    if (pageIndex < pagesToCache) {
-      this.cachePage(pageIndex + 1);
-    }
-
-    return null; // handle promise async
-  }
-
-  loadPage(pageIndex) {
-    const cachedPages = this.state.cachedPages;
-
+  const loadPage = (pageIndex) => {
     if (!cachedPages[pageIndex]) {
       console.log("Loading a page not ready to be shown");
       return;
     }
-
-    this.setState({
-      phase: "ok",
-      activePage: pageIndex
-    });
-
+    setActivePage(pageIndex);
+    setPhase("ok");
     const lastCachedPage = cachedPages.length - 1;
     const pagesToCache = pageIndex + MAX_SHOWN_PAGES + 1;
     if (lastCachedPage < pagesToCache) {
-      this.cachePage(lastCachedPage + 1);
+      cachePage(lastCachedPage + 1);
     }
-  }
+  };
 
-  handleError(err) {
-    this.setState({
-      phase: "err",
-      error: err
-    });
-    console.log(err);
-  }
+  useEffect(() => {
+    const handleStatsRequest = (response) => {
+      const totalDevices = response.data.total_devices;
+      if (totalDevices > 0) {
+        setTotalDevices(totalDevices);
+        setActivePage(0);
+        setMaxPage(Math.ceil(totalDevices / DEVICES_PER_PAGE));
+        setCachedPages([]);
+        cachePage(0);
+      } else {
+        setTotalDevices(0);
+        setPhase("ok");
+      }
+      return null;
+    };
+    const handleError = (err) => {
+      setPhase("err");
+    };
+    astarte
+      .getDevicesStats()
+      .then(handleStatsRequest)
+      .catch(handleError);
+  }, [astarte]);
 
-  render() {
-    let innerHTML;
+  let innerHTML;
 
-    switch (this.state.phase) {
-      case "ok":
-        if (this.state.totalDevices) {
-          const { activePage, cachedPages, maxPage } = this.state;
-          const viewAblePages = Math.min(cachedPages.length, maxPage);
-          const devices = cachedPages[activePage].devices;
+  switch (phase) {
+    case "ok":
+      if (totalDevices) {
+        const viewAblePages = Math.min(cachedPages.length, maxPage);
+        const devices = cachedPages[activePage].devices || [];
 
-          innerHTML = (
-            <>
-              <DeviceTable deviceList={devices} />
-              <Container fluid>
-                <Row>
-                  <Col></Col>
-                  <Col>
-                    <TablePagination
-                      active={activePage}
-                      max={viewAblePages}
-                      onPageChange={this.loadPage}
-                    />
-                  </Col>
-                  <Col></Col>
-                </Row>
-              </Container>
-            </>
-          );
-        } else {
-          innerHTML = <p>No registered devices</p>;
-        }
-        break;
-
-      case "err":
-        innerHTML = <p>Couldn't load the device list</p>;
-        break;
-
-      default:
         innerHTML = (
-          <div>
-            <Spinner animation="border" role="status" />
-          </div>
+          <>
+            <DeviceTable deviceList={devices} />
+            <Container fluid>
+              <Row>
+                <Col></Col>
+                <Col>
+                  <TablePagination
+                    active={activePage}
+                    max={viewAblePages}
+                    onPageChange={loadPage}
+                  />
+                </Col>
+                <Col></Col>
+              </Row>
+            </Container>
+          </>
         );
-        break;
-    }
+      } else {
+        innerHTML = <p>No registered devices</p>;
+      }
+      break;
 
-    return (
-      <SingleCardPage title="Devices">
-        {innerHTML}
-        <Button
-          variant="primary"
-          onClick={() => { this.props.history.push("/devices/register") }}
-        >
-          Register a new device
-        </Button>
-      </SingleCardPage>
-    );
+    case "err":
+      innerHTML = <p>Couldn't load the device list</p>;
+      break;
+
+    default:
+      innerHTML = (
+        <div>
+          <Spinner animation="border" role="status" />
+        </div>
+      );
+      break;
   }
-}
 
-function TablePagination(props) {
-  const { active, max } = props;
+  return (
+    <SingleCardPage title="Devices">
+      {innerHTML}
+      <Button
+        variant="primary"
+        onClick={() => {
+          history.push("/devices/register");
+        }}
+      >
+        Register a new device
+      </Button>
+    </SingleCardPage>
+  );
+};
 
+const TablePagination = ({ active, max, onPageChange }) => {
   if (max < 2) {
     return null;
   }
@@ -252,14 +204,14 @@ function TablePagination(props) {
     endPage = max;
   }
 
-  let items = [];
+  const items = [];
   for (let number = startingPage; number < endPage; number++) {
     items.push(
       <Pagination.Item
         key={number}
         active={number == active}
         onClick={() => {
-          props.onPageChange(number);
+          onPageChange(number);
         }}
       >
         {number + 1}
@@ -272,7 +224,7 @@ function TablePagination(props) {
       {startingPage > 0 && (
         <Pagination.Prev
           onClick={() => {
-            props.onPageChange(active - 1);
+            onPageChange(active - 1);
           }}
         />
       )}
@@ -280,15 +232,15 @@ function TablePagination(props) {
       {endPage < max && (
         <Pagination.Next
           onClick={() => {
-            props.onPageChange(active + 1);
+            onPageChange(active + 1);
           }}
         />
       )}
     </Pagination>
   );
-}
+};
 
-function DeviceTable(props) {
+const DeviceTable = ({ deviceList }) => {
   return (
     <Table responsive>
       <thead>
@@ -299,16 +251,15 @@ function DeviceTable(props) {
         </tr>
       </thead>
       <tbody>
-        {props.deviceList.map(device => (
+        {deviceList.map((device) => (
           <DeviceRow key={device.id} device={device} />
         ))}
       </tbody>
     </Table>
   );
-}
+};
 
-function DeviceRow(props) {
-  const { device } = props;
+const DeviceRow = ({ device }) => {
   let colorClass;
   let lastEvent;
   let tooltipText;
@@ -337,7 +288,7 @@ function DeviceRow(props) {
             backgroundColor: "rgba(255, 100, 100, 0.85)",
             padding: "2px 10px",
             color: "white",
-            borderRadius: 3
+            borderRadius: 3,
           }}
           overlay={<Tooltip>{tooltipText}</Tooltip>}
         >
@@ -350,10 +301,12 @@ function DeviceRow(props) {
       <td>{lastEvent}</td>
     </tr>
   );
-}
+};
 
-const CircleIcon = React.forwardRef((props, ref) => (
-  <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
-    {props.children}
-  </i>
-));
+const CircleIcon = React.forwardRef(
+  ({ children, className, ...props }, ref) => (
+    <i ref={ref} {...props} className={`fas fa-circle ${className}`}>
+      {children}
+    </i>
+  )
+);
