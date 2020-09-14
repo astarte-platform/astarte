@@ -178,7 +178,14 @@ toString route =
                     [ "groups" ]
 
                 Realm (GroupDevices groupName) ->
-                    [ "groups", groupName ]
+                    let
+                        -- Double encoding to preserve the URL format when groupName contains % and /
+                        encodedGroupName =
+                            groupName
+                            |> Url.percentEncode
+                            |> Url.percentEncode
+                    in
+                    [ "groups", encodedGroupName ]
 
                 Realm FlowInstances ->
                     [ "flows" ]

@@ -181,15 +181,16 @@ class AstarteClient {
     });
   }
 
-  getDevicesInGroup(params) {
-    let { groupName, details } = params;
-    let endpointUri = new URL(
-      this.apiConfig["groupDevices"]({ ...this.config, groupName: groupName })
-    );
-
+  getDevicesInGroup({ groupName, details }) {
     if (!groupName) {
       throw Error("Invalid group name");
     }
+
+    /* Double encoding to preserve the URL format when groupName contains % and / */
+    const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
+    const endpointUri = new URL(
+      this.apiConfig["groupDevices"]({ ...this.config, groupName: encodedGroupName })
+    );
 
     if (details) {
       endpointUri.search = new URLSearchParams({ details: true });
