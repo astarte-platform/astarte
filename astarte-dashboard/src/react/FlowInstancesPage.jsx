@@ -52,9 +52,9 @@ export default ({ astarte, history }) => {
       } else {
         setInstances([]);
         setPhase('loading');
-        for (const name of instanceNames) {
+        instanceNames.forEach((name) => {
           astarte.getFlowDetails(name).then(handleInstanceResponse);
-        }
+        });
       }
       return null;
     };

@@ -37,11 +37,11 @@ export default ({ astarte, history }) => {
         .map((pipelineName) => astarte.getPipelineInputConfig(pipelineName));
       Promise.allSettled(promiseList).then((result) => {
         const pipelineData = [];
-        for (const pipelineResult of result) {
+        result.forEach((pipelineResult) => {
           if (pipelineResult.status === 'fulfilled') {
             pipelineData.push(pipelineResult.value.data);
           }
-        }
+        });
         setPipelines(pipelineData);
         setPhase('ok');
       });

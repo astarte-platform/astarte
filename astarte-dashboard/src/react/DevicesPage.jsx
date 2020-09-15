@@ -56,6 +56,7 @@ export default ({ astarte, history }) => {
     }
     const pagesToCache = activePage + MAX_SHOWN_PAGES + 1;
     if (pageIndex < pagesToCache) {
+      // eslint-disable-next-line no-use-before-define
       cachePage(pageIndex + 1);
     }
     return null;

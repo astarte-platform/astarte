@@ -29,6 +29,22 @@ import { useAlerts } from './AlertManager';
 
 const MAX_SHOWN_VALUES = 20;
 
+function linearizePathTree(prefix, data) {
+  return Object.entries(data)
+    .map(([key, value]) => {
+      const newPrefix = `${prefix}/${key}`;
+      if (value.value && typeof value.value !== 'object') {
+        return {
+          path: newPrefix,
+          value: value.value,
+          timestamp: value.timestamp,
+        };
+      }
+      return linearizePathTree(newPrefix, value).flat();
+    })
+    .flat();
+}
+
 const DeviceInterfaceValues = ({
   astarte, deviceId, interfaceName,
 }) => {
@@ -180,11 +196,11 @@ const IndividualDatastreamRow = ({ path, value, timestamp }) => (
 const ObjectDatastreamTable = ({ data }) => {
   const labels = [];
 
-  for (const prop in data[0]) {
+  Object.keys(data[0]).forEach((prop) => {
     if (prop !== 'timestamp') {
       labels.push(prop);
     }
-  }
+  });
 
   return (
     <Table>
@@ -207,22 +223,5 @@ const ObjectDatastreamRow = ({ labels, obj }) => (
     <td>{new Date(obj.timestamp).toLocaleString()}</td>
   </tr>
 );
-
-function linearizePathTree(prefix, data) {
-  return Object.entries(data).map(([key, value]) => linearizeHelper(prefix, key, value)).flat();
-}
-
-function linearizeHelper(prefix, key, value) {
-  const newPrefix = `${prefix}/${key}`;
-
-  if (value.value && typeof value.value !== 'object') {
-    return {
-      path: newPrefix,
-      value: value.value,
-      timestamp: value.timestamp,
-    };
-  }
-  return linearizePathTree(newPrefix, value).flat();
-}
 
 export default DeviceInterfaceValues;

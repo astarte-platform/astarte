@@ -30,7 +30,87 @@ import { Link } from 'react-router-dom';
 import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
 
-export default ({ astarte, history, groupName }) => {
+const deviceTableRow = (device, index, showModal) => {
+  let colorClass;
+  let lastEvent;
+  let tooltipText;
+
+  if (device.connected) {
+    tooltipText = 'Connected';
+    colorClass = 'icon-connected';
+    lastEvent = `Connected on ${device.lastConnection.toLocaleString()}`;
+  } else if (device.lastConnection) {
+    tooltipText = 'Disconnected';
+    colorClass = 'icon-disconnected';
+    lastEvent = `Disconnected on ${device.lastDisconnection.toLocaleString()}`;
+  } else {
+    tooltipText = 'Never connected';
+    colorClass = 'icon-never-connected';
+    lastEvent = 'Never connected';
+  }
+
+  return (
+    <tr key={index}>
+      <td>
+        <OverlayTrigger
+          placement="right"
+          delay={{ show: 150, hide: 400 }}
+          style={{
+            backgroundColor: 'rgba(255, 100, 100, 0.85)',
+            padding: '2px 10px',
+            color: 'white',
+            borderRadius: 3,
+          }}
+          overlay={<Tooltip>{tooltipText}</Tooltip>}
+        >
+          <CircleIcon className={colorClass} />
+        </OverlayTrigger>
+      </td>
+      <td className={device.hasNameAlias ? '' : 'text-monospace'}>
+        <Link to={`/devices/${device.id}`}>{device.name}</Link>
+      </td>
+      <td>{lastEvent}</td>
+      <td>
+        <OverlayTrigger
+          placement="left"
+          delay={{ show: 150, hide: 400 }}
+          style={{
+            backgroundColor: 'rgba(255, 100, 100, 0.85)',
+            padding: '2px 10px',
+            color: 'white',
+            borderRadius: 3,
+          }}
+          overlay={<Tooltip>Remove from group</Tooltip>}
+        >
+          <Button
+            as="i"
+            variant="danger"
+            className="fas fa-times"
+            onClick={() => showModal(device)}
+          />
+        </OverlayTrigger>
+      </td>
+    </tr>
+  );
+};
+
+const deviceTable = (deviceList, showModal) => (
+  <Table responsive>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Device handle</th>
+        <th>Last connection event</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {deviceList.map((device, index) => deviceTableRow(device, index, showModal))}
+    </tbody>
+  </Table>
+);
+
+const GroupDevicesPage = ({ astarte, history, groupName }) => {
   const [phase, setPhase] = useState('loading');
   const [devices, setDevices] = useState(null);
   const [selectedDevice, setSelectedDevice] = useState(null);
@@ -138,86 +218,6 @@ export default ({ astarte, history, groupName }) => {
   );
 };
 
-const deviceTable = (deviceList, showModal) => (
-  <Table responsive>
-    <thead>
-      <tr>
-        <th>Status</th>
-        <th>Device handle</th>
-        <th>Last connection event</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {deviceList.map((device, index) => deviceTableRow(device, index, showModal))}
-    </tbody>
-  </Table>
-);
-
-const deviceTableRow = (device, index, showModal) => {
-  let colorClass;
-  let lastEvent;
-  let tooltipText;
-
-  if (device.connected) {
-    tooltipText = 'Connected';
-    colorClass = 'icon-connected';
-    lastEvent = `Connected on ${device.lastConnection.toLocaleString()}`;
-  } else if (device.lastConnection) {
-    tooltipText = 'Disconnected';
-    colorClass = 'icon-disconnected';
-    lastEvent = `Disconnected on ${device.lastDisconnection.toLocaleString()}`;
-  } else {
-    tooltipText = 'Never connected';
-    colorClass = 'icon-never-connected';
-    lastEvent = 'Never connected';
-  }
-
-  return (
-    <tr key={index}>
-      <td>
-        <OverlayTrigger
-          placement="right"
-          delay={{ show: 150, hide: 400 }}
-          style={{
-            backgroundColor: 'rgba(255, 100, 100, 0.85)',
-            padding: '2px 10px',
-            color: 'white',
-            borderRadius: 3,
-          }}
-          overlay={<Tooltip>{tooltipText}</Tooltip>}
-        >
-          <CircleIcon className={colorClass} />
-        </OverlayTrigger>
-      </td>
-      <td className={device.hasNameAlias ? '' : 'text-monospace'}>
-        <Link to={`/devices/${device.id}`}>{device.name}</Link>
-      </td>
-      <td>{lastEvent}</td>
-      <td>
-        <OverlayTrigger
-          placement="left"
-          delay={{ show: 150, hide: 400 }}
-          style={{
-            backgroundColor: 'rgba(255, 100, 100, 0.85)',
-            padding: '2px 10px',
-            color: 'white',
-            borderRadius: 3,
-          }}
-          overlay={<Tooltip>Remove from group</Tooltip>}
-        >
-          <Button
-            as="i"
-            variant="danger"
-            className="fas fa-times"
-            onClick={() => showModal(device)}
-          />
-        </OverlayTrigger>
-      </td>
-    </tr>
-  );
-};
-
 const CircleIcon = React.forwardRef((props, ref) => (
   <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
     {props.children}
@@ -270,3 +270,5 @@ const ConfirmDeviceRemovalModal = ({
     </Modal>
   </div>
 );
+
+export default GroupDevicesPage;

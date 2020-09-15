@@ -25,6 +25,10 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
 
+function isEmpty(obj) {
+  return !obj || Object.keys(obj).length === 0;
+}
+
 export default ({ astarte, history, pipelineId }) => {
   const [phase, setPhase] = useState('loading');
   const [pipeline, setPipeline] = useState(null);
@@ -122,7 +126,3 @@ export default ({ astarte, history, pipelineId }) => {
     </SingleCardPage>
   );
 };
-
-function isEmpty(obj) {
-  return !obj || Object.keys(obj).length === 0;
-}

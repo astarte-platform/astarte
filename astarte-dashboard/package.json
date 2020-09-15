@@ -22,7 +22,7 @@
     "build": "webpack --config webpack.prod.js",
     "deploy": "webpack --config webpack.prod.js",
     "reinstall": "npm i rimraf && rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install",
-    "lint": "eslint --fix src",
+    "lint": "eslint --fix src --ext .js,.jsx",
     "format-js": "prettier --write \"src/**/*.js\"",
     "check-format-js": "npx prettier --check \"src/**/*.js\""
   },

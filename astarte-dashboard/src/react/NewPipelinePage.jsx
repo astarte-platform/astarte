@@ -40,6 +40,18 @@ export default ({ astarte, history }) => {
   });
   const formAlerts = useAlerts();
 
+  const schemaObject = useMemo(() => {
+    if (pipeline.schema === '') {
+      return undefined;
+    }
+    try {
+      const schema = JSON.parse(pipeline.schema);
+      return schema;
+    } catch (e) {
+      return undefined;
+    }
+  }, [pipeline.schema]);
+
   const createPipeline = useCallback(() => {
     setIsCreatingPipeline(true);
 
@@ -61,18 +73,6 @@ export default ({ astarte, history }) => {
         formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
       });
   }, [astarte, history, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
-
-  const schemaObject = useMemo(() => {
-    if (pipeline.schema === '') {
-      return undefined;
-    }
-    try {
-      const schema = JSON.parse(pipeline.schema);
-      return schema;
-    } catch (e) {
-      return undefined;
-    }
-  }, [pipeline.schema]);
 
   const isValidSchema = useMemo(() => {
     if (!schemaObject) {

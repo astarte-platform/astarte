@@ -50,7 +50,7 @@ export default ({ astarte, history }) => {
         acc.set(groupName, { name: groupName, loading: true });
         return acc;
       }, new Map());
-      for (const groupName of groupMap.keys()) {
+      groupMap.keys().forEach((groupName) => {
         astarte
           .getDevicesInGroup({
             groupName,
@@ -58,7 +58,7 @@ export default ({ astarte, history }) => {
           })
           .then((res) => handleDeviceList(groupName, res))
           .catch((err) => handleDeviceError(groupName, err));
-      }
+      });
       setGroups(groupMap);
       setPhase('ok');
     };
