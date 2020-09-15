@@ -18,15 +18,7 @@
 
 import React, { useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Button,
-  Col,
-  Container,
-  Card,
-  Row,
-  Spinner,
-  Table,
-} from 'react-bootstrap';
+import { Button, Col, Container, Card, Row, Spinner, Table } from 'react-bootstrap';
 import useFetch from './hooks/useFetch';
 import DevicesPieChart from './ui/DevicesPieChart';
 import WaitForData from './components/WaitForData';
@@ -58,19 +50,18 @@ export default ({ astarte, history }) => {
     }, 30000);
     astarte.addListener('credentialsChange', refreshData);
 
-    return (() => {
+    return () => {
       clearTimeout(refreshTimer);
       astarte.removeListener('credentialsChange', refreshData);
-    });
+    };
   }, [astarte]);
 
   const redirectToLastInterface = useCallback((e, interfaceName) => {
     e.preventDefault();
-    astarte.getInterfaceMajors(interfaceName)
-      .then((response) => {
-        const latestMajor = Math.max(...response.data);
-        history.push(`/interfaces/${interfaceName}/${latestMajor}`);
-      });
+    astarte.getInterfaceMajors(interfaceName).then((response) => {
+      const latestMajor = Math.max(...response.data);
+      history.push(`/interfaces/${interfaceName}/${latestMajor}`);
+    });
   }, []);
 
   const cellSpacingClass = 'mb-3';
@@ -93,10 +84,7 @@ export default ({ astarte, history }) => {
         <WaitForData data={devicesStats.value} status={devicesStats.status}>
           {({ connected_devices: connectedDevices, total_devices: totalDevices }) => (
             <Col xs={6} className={cellSpacingClass}>
-              <DevicesCard
-                connectedDevices={connectedDevices}
-                totalDevices={totalDevices}
-              />
+              <DevicesCard connectedDevices={connectedDevices} totalDevices={totalDevices} />
             </Col>
           )}
         </WaitForData>
@@ -126,13 +114,9 @@ export default ({ astarte, history }) => {
   );
 };
 
-const ApiStatusCard = ({
-  appengine, realmManagement, pairing, showFlowStatus, flow,
-}) => (
+const ApiStatusCard = ({ appengine, realmManagement, pairing, showFlowStatus, flow }) => (
   <Card className="h-100">
-    <Card.Header as="h5">
-      API Status
-    </Card.Header>
+    <Card.Header as="h5">API Status</Card.Header>
     <Card.Body>
       <Table responsive>
         <thead>
@@ -142,25 +126,10 @@ const ApiStatusCard = ({
           </tr>
         </thead>
         <tbody>
-          <ServiceStatusRow
-            service="Realm Management"
-            status={realmManagement}
-          />
-          <ServiceStatusRow
-            service="AppEngine"
-            status={appengine}
-          />
-          <ServiceStatusRow
-            service="Pairing"
-            status={pairing}
-          />
-          { showFlowStatus
-              && (
-              <ServiceStatusRow
-                service="Flow"
-                status={flow}
-              />
-              )}
+          <ServiceStatusRow service="Realm Management" status={realmManagement} />
+          <ServiceStatusRow service="AppEngine" status={appengine} />
+          <ServiceStatusRow service="Pairing" status={pairing} />
+          {showFlowStatus && <ServiceStatusRow service="Flow" status={flow} />}
         </tbody>
       </Table>
     </Card.Body>
@@ -180,13 +149,12 @@ const DevicesCard = ({ connectedDevices, totalDevices }) => (
             <Card.Text>{totalDevices}</Card.Text>
           </Col>
           <Col xs={12} lg={6}>
-            { totalDevices > 0
-                && (
-                <DevicesPieChart
-                  connectedDevices={connectedDevices}
-                  disconnectedDevices={totalDevices - connectedDevices}
-                />
-                )}
+            {totalDevices > 0 && (
+              <DevicesPieChart
+                connectedDevices={connectedDevices}
+                disconnectedDevices={totalDevices - connectedDevices}
+              />
+            )}
           </Col>
         </Row>
       </Container>
@@ -196,34 +164,30 @@ const DevicesCard = ({ connectedDevices, totalDevices }) => (
 
 const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceClick }) => (
   <Card className="h-100">
-    <Card.Header as="h5">
-      Interfaces
-    </Card.Header>
+    <Card.Header as="h5">Interfaces</Card.Header>
     <Card.Body className="d-flex flex-column">
-      { interfaceList.length > 0
-        ? (
-          <InterfaceList
-            interfaces={interfaceList}
-            onInterfaceClick={onInterfaceClick}
-            maxShownInterfaces={4}
-          />
-        )
-        : (
-          <>
-            <Card.Text>
-              Interfaces defines how data is exchanged between Astarte and its peers.
-            </Card.Text>
-            <Card.Text>
-              <a
-                href="https://docs.astarte-platform.org/snapshot/030-interface.html"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Learn more...
-              </a>
-            </Card.Text>
-          </>
-        )}
+      {interfaceList.length > 0 ? (
+        <InterfaceList
+          interfaces={interfaceList}
+          onInterfaceClick={onInterfaceClick}
+          maxShownInterfaces={4}
+        />
+      ) : (
+        <>
+          <Card.Text>
+            Interfaces defines how data is exchanged between Astarte and its peers.
+          </Card.Text>
+          <Card.Text>
+            <a
+              href="https://docs.astarte-platform.org/snapshot/030-interface.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Learn more...
+            </a>
+          </Card.Text>
+        </>
+      )}
       <Button
         variant="primary"
         className="align-self-start mt-auto"
@@ -237,15 +201,10 @@ const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceCli
 
 const TriggersCard = ({ triggerList, onInstallTriggerClick }) => (
   <Card className="h-100">
-    <Card.Header as="h5">
-      Triggers
-    </Card.Header>
+    <Card.Header as="h5">Triggers</Card.Header>
     <Card.Body className="d-flex flex-column">
-      { triggerList.length > 0 ? (
-        <TriggerList
-          triggers={triggerList}
-          maxShownTriggers={4}
-        />
+      {triggerList.length > 0 ? (
+        <TriggerList triggers={triggerList} maxShownTriggers={4} />
       ) : (
         <>
           <Card.Text>
@@ -306,7 +265,7 @@ const ServiceStatusRow = ({ service, status }) => {
   return (
     <tr>
       <td>{service}</td>
-      { messageCell }
+      {messageCell}
     </tr>
   );
 };
@@ -317,32 +276,27 @@ const InterfaceList = ({ interfaces, onInterfaceClick, maxShownInterfaces }) => 
 
   return (
     <ul className="list-unstyled">
-      { shownInterfaces.map((interfaceName) => (
-        <li
-          key={interfaceName}
-          className="my-1"
-        >
+      {shownInterfaces.map((interfaceName) => (
+        <li key={interfaceName} className="my-1">
           <a
             href="/interfaces"
-            onClick={(e) => { onInterfaceClick(e, interfaceName); }}
+            onClick={(e) => {
+              onInterfaceClick(e, interfaceName);
+            }}
           >
             <i className="fas fa-stream mr-1" />
             {interfaceName}
           </a>
         </li>
       ))}
-      { remainingInterfaces > 0
-        && (
+      {remainingInterfaces > 0 && (
         <li>
           <Link to="/interfaces">
-            { remainingInterfaces }
-            {' '}
-            more installed
-            { remainingInterfaces > 1 ? 'interfaces' : 'interface' }
-            …
+            {remainingInterfaces} more installed
+            {remainingInterfaces > 1 ? 'interfaces' : 'interface'}…
           </Link>
         </li>
-        )}
+      )}
     </ul>
   );
 };
@@ -353,31 +307,22 @@ const TriggerList = ({ triggers, maxShownTriggers }) => {
 
   return (
     <ul className="list-unstyled">
-      { shownTriggers.map((triggerName) => (
-        <li
-          key={triggerName}
-          className="my-1"
-        >
-          <Link
-            to={`/triggers/${triggerName}`}
-          >
+      {shownTriggers.map((triggerName) => (
+        <li key={triggerName} className="my-1">
+          <Link to={`/triggers/${triggerName}`}>
             <i className="fas fa-bolt mr-1" />
             {triggerName}
           </Link>
         </li>
       ))}
-      { remainingTriggers > 0
-        && (
+      {remainingTriggers > 0 && (
         <li>
           <Link to="/triggers">
-            { remainingTriggers }
-            {' '}
-            more installed
-            { remainingTriggers > 1 ? 'triggers' : 'trigger' }
-            …
+            {remainingTriggers} more installed
+            {remainingTriggers > 1 ? 'triggers' : 'trigger'}…
           </Link>
         </li>
-        )}
+      )}
     </ul>
   );
 };

@@ -17,11 +17,7 @@
 */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Button,
-  Form,
-  Spinner,
-} from 'react-bootstrap';
+import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
 
 import { useAlerts } from './AlertManager';
@@ -91,10 +87,7 @@ export default ({ astarte, history }) => {
   const isValidForm = isValidPipelineName && isValidSource;
 
   return (
-    <SingleCardPage
-      title="New Pipeline"
-      backLink="/pipelines"
-    >
+    <SingleCardPage title="New Pipeline" backLink="/pipelines">
       <formAlerts.Alerts />
       <Form>
         <Form.Group controlId="pipeline-name">
@@ -140,13 +133,7 @@ export default ({ astarte, history }) => {
         disabled={!isValidForm || isCreatingPipeline}
       >
         {isCreatingPipeline && (
-          <Spinner
-            as="span"
-            size="sm"
-            animation="border"
-            role="status"
-            className="mr-2"
-          />
+          <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
         )}
         Create new pipeline
       </Button>

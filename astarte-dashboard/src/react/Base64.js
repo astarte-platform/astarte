@@ -57,10 +57,7 @@ export function byteArrayToUrlSafeBase64(bytes) {
 export function urlSafeBase64ToByteArray(base64string) {
   let binaryString = '';
   for (let i = 0; i < base64string.length; i += 1) {
-    binaryString += charset
-      .indexOf(base64string[i])
-      .toString(2)
-      .padStart(6, '0');
+    binaryString += charset.indexOf(base64string[i]).toString(2).padStart(6, '0');
   }
 
   const octects = binaryString.match(/.{1,8}/g);

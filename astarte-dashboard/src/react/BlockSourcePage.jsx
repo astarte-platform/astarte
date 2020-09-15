@@ -17,9 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Button, Col, Row, Spinner,
-} from 'react-bootstrap';
+import { Button, Col, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 
 import { useAlerts } from './AlertManager';
@@ -46,13 +44,7 @@ export default ({ astarte, history, blockId }) => {
         setIsDeletingBlock(false);
         deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
       });
-  }, [
-    astarte,
-    history,
-    setIsDeletingBlock,
-    blockId,
-    deletionAlerts.showError,
-  ]);
+  }, [astarte, history, setIsDeletingBlock, blockId, deletionAlerts.showError]);
 
   useEffect(() => {
     astarte
@@ -105,13 +97,7 @@ export default ({ astarte, history, blockId }) => {
                 disabled={isDeletingBlock}
               >
                 {isDeletingBlock && (
-                  <Spinner
-                    as="span"
-                    size="sm"
-                    animation="border"
-                    role="status"
-                    className="mr-2"
-                  />
+                  <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
                 )}
                 Delete block
               </Button>

@@ -21,10 +21,7 @@ import { Link } from 'react-router-dom';
 
 export default function BackButton({ href }) {
   return (
-    <Link
-      to={href}
-      className="align-bottom mr-2"
-    >
+    <Link to={href} className="align-bottom mr-2">
       <i className="fas fa-chevron-left align-text-bottom" />
     </Link>
   );

@@ -18,14 +18,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Button,
-  Modal,
-  OverlayTrigger,
-  Spinner,
-  Table,
-  Tooltip,
-} from 'react-bootstrap';
+import { Button, Modal, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
@@ -61,10 +54,7 @@ export default ({ astarte, history }) => {
     const handleFlowError = () => {
       setPhase('err');
     };
-    astarte
-      .getFlowInstances()
-      .then(handleFlowResponse)
-      .catch(handleFlowError);
+    astarte.getFlowInstances().then(handleFlowResponse).catch(handleFlowError);
   }, [astarte, setInstances, setPhase]);
 
   const confirmDeleteFlow = useCallback(
@@ -84,15 +74,14 @@ export default ({ astarte, history }) => {
         setIsModalVisible(false);
         setSelectedFlow(null);
         setIsDeletingFlow(false);
-        setInstances((oldInstances) => oldInstances
-          .filter((instance) => instance.name !== flowName));
+        setInstances((oldInstances) =>
+          oldInstances.filter((instance) => instance.name !== flowName),
+        );
         setPhase('ok');
       })
       .catch((err) => {
         setIsDeletingFlow(false);
-        deletionAlerts.showError(
-          `Could not delete flow instance: ${err.message}`,
-        );
+        deletionAlerts.showError(`Could not delete flow instance: ${err.message}`);
       });
   }, [
     selectedFlow,
@@ -128,8 +117,7 @@ export default ({ astarte, history }) => {
     default:
       innerHTML = (
         <div>
-          <Spinner animation="border" role="status" />
-          ;
+          <Spinner animation="border" role="status" />;
         </div>
       );
       break;
@@ -168,11 +156,7 @@ const InstancesTable = ({ instances, onDelete }) => {
       </thead>
       <tbody>
         {instances.map((instance) => (
-          <TableRow
-            key={instance.name}
-            instance={instance}
-            onDelete={onDelete}
-          />
+          <TableRow key={instance.name} instance={instance} onDelete={onDelete} />
         ))}
       </tbody>
     </Table>
@@ -250,13 +234,7 @@ const CircleIcon = React.forwardRef((props, ref) => (
   </i>
 ));
 
-const ConfirmDeletionModal = ({
-  show,
-  flowName,
-  isDeleting,
-  onCancel,
-  onDelete,
-}) => (
+const ConfirmDeletionModal = ({ show, flowName, isDeleting, onCancel, onDelete }) => (
   <div
     onKeyDown={(e) => {
       if (e.key === 'Enter' && !isDeleting) onDelete();
@@ -268,10 +246,7 @@ const ConfirmDeletionModal = ({
       </Modal.Header>
       <Modal.Body>
         <p>
-          Delete flow
-          {' '}
-          <b>{flowName}</b>
-          ?
+          Delete flow <b>{flowName}</b>?
         </p>
       </Modal.Body>
       <Modal.Footer>
@@ -280,14 +255,7 @@ const ConfirmDeletionModal = ({
         </Button>
         <Button variant="danger" onClick={onDelete} disabled={isDeleting}>
           <>
-            {isDeleting && (
-            <Spinner
-              className="mr-2"
-              size="sm"
-              animation="border"
-              role="status"
-            />
-            )}
+            {isDeleting && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
             Remove
           </>
         </Button>

@@ -17,13 +17,7 @@
 */
 
 import React from 'react';
-import {
-  Router,
-  Switch,
-  Route,
-  useParams,
-  useLocation,
-} from 'react-router-dom';
+import { Router, Switch, Route, useParams, useLocation } from 'react-router-dom';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -46,9 +40,7 @@ import NewBlockPage from './NewBlockPage';
 import RealmSettingsPage from './RealmSettingsPage';
 import DeviceInterfaceValues from './DeviceInterfaceValues';
 
-export default ({
-  reactHistory, astarteClient, config, fallback,
-}) => {
+export default ({ reactHistory, astarteClient, config, fallback }) => {
   const pageProps = {
     history: reactHistory,
     astarte: astarteClient,
@@ -134,12 +126,7 @@ function Login({ defaultLoginType, ...props }) {
   const { search } = useLocation();
   const loginType = new URLSearchParams(search).get('type') || defaultLoginType;
 
-  return (
-    <LoginPage
-      type={loginType}
-      {...props}
-    />
-  );
+  return <LoginPage type={loginType} {...props} />;
 }
 
 function GroupDevicesSubPath(props) {
@@ -158,37 +145,25 @@ function FlowDetails(props) {
 function FlowConfiguration(props) {
   const { pipelineId } = useParams();
 
-  return (
-    <FlowConfigurationPage pipelineId={pipelineId} {...props} />
-  );
+  return <FlowConfigurationPage pipelineId={pipelineId} {...props} />;
 }
 
 function PipelineSubPath(props) {
   const { pipelineId } = useParams();
 
-  return (
-    <PipelineSourcePage pipelineId={pipelineId} {...props} />
-  );
+  return <PipelineSourcePage pipelineId={pipelineId} {...props} />;
 }
 
 function BlockSubPath(props) {
   const { blockId } = useParams();
 
-  return (
-    <BlockSourcePage blockId={blockId} {...props} />
-  );
+  return <BlockSourcePage blockId={blockId} {...props} />;
 }
 
 function DeviceDataSubPath(props) {
   const { deviceId, interfaceName } = useParams();
 
-  return (
-    <DeviceInterfaceValues
-      deviceId={deviceId}
-      interfaceName={interfaceName}
-      {...props}
-    />
-  );
+  return <DeviceInterfaceValues deviceId={deviceId} interfaceName={interfaceName} {...props} />;
 }
 
 function NoMatch({ fallback }) {

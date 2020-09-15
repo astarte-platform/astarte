@@ -17,12 +17,7 @@
 */
 
 import React, { useEffect, useState } from 'react';
-import {
-  Button,
-  Form,
-  InputGroup,
-  Spinner,
-} from 'react-bootstrap';
+import { Button, Form, InputGroup, Spinner } from 'react-bootstrap';
 
 import { useAlerts } from './AlertManager';
 import Device from './astarte/Device';
@@ -47,10 +42,7 @@ export default ({ astarte, history }) => {
     const handleDevicesError = () => {
       setPhase('err');
     };
-    astarte
-      .getDevices({ details: true })
-      .then(handleDevicesRequest)
-      .catch(handleDevicesError);
+    astarte.getDevices({ details: true }).then(handleDevicesRequest).catch(handleDevicesError);
   }, [astarte]);
 
   const createGroup = (e) => {
@@ -85,30 +77,25 @@ export default ({ astarte, history }) => {
   };
 
   const selectedDeviceCount = selectedDevices.size;
-  const isValidGroupName = groupName !== '' && !groupName.startsWith('@') && !groupName.startsWith('~');
+  const isValidGroupName =
+    groupName !== '' && !groupName.startsWith('@') && !groupName.startsWith('~');
   const isValidForm = isValidGroupName && selectedDeviceCount > 0;
 
   return (
-    <NewGroupPageWrapper
-      phase={phase}
-    >
+    <NewGroupPageWrapper phase={phase}>
       <formAlerts.Alerts />
       <Form onSubmit={createGroup}>
-        <GroupNameFormGroup
-          groupName={groupName}
-          onGroupNameChange={setGroupName}
-        />
+        <GroupNameFormGroup groupName={groupName} onGroupNameChange={setGroupName} />
         <div className="table-toolbar p-1">
           <span>
-            { selectedDeviceCount > 0
-              ? `${selectedDeviceCount} ${selectedDeviceCount === 1 ? 'device' : 'devices'} selected.`
+            {selectedDeviceCount > 0
+              ? `${selectedDeviceCount} ${
+                  selectedDeviceCount === 1 ? 'device' : 'devices'
+                } selected.`
               : 'Please select at least one device.'}
           </span>
           <div className="float-right">
-            <FilterInputBox
-              filter={deviceFilter}
-              onFilterChange={setDeviceFilter}
-            />
+            <FilterInputBox filter={deviceFilter} onFilterChange={setDeviceFilter} />
           </div>
         </div>
         <CheckableDeviceTable
@@ -118,19 +105,9 @@ export default ({ astarte, history }) => {
           onToggleDevice={handleDeviceToggle}
         />
         <Form.Row className="flex-row-reverse pr-2">
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={!isValidForm || isCreatingGroup}
-          >
+          <Button variant="primary" type="submit" disabled={!isValidForm || isCreatingGroup}>
             {isCreatingGroup && (
-              <Spinner
-                as="span"
-                size="sm"
-                animation="border"
-                role="status"
-                className="mr-2"
-              />
+              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
             )}
             Create group
           </Button>
@@ -146,9 +123,9 @@ const NewGroupPageWrapper = ({ phase, children, ...props }) => {
   if (phase === 'ok') {
     innerHtml = children;
   } else if (phase === 'err') {
-    innerHtml = (<p>Couldn&apos;t load the device list</p>);
+    innerHtml = <p>Couldn&apos;t load the device list</p>;
   } else {
-    innerHtml = (<Spinner animation="border" role="status" />);
+    innerHtml = <Spinner animation="border" role="status" />;
   }
 
   return (
@@ -174,12 +151,11 @@ const GroupNameFormGroup = ({ groupName, onGroupNameChange }) => {
         isValid={groupName !== '' && isValidGroupName}
         isInvalid={groupName !== '' && !isValidGroupName}
       />
-      { !isValidGroupName
-        && (
+      {!isValidGroupName && (
         <Form.Control.Feedback type="invalid">
           The group name cannot start with ~ or @.
         </Form.Control.Feedback>
-        )}
+      )}
     </Form.Group>
   );
 };

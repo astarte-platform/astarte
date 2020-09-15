@@ -44,10 +44,7 @@ const useAlertsContext = ({ timeout } = {}) => {
       setAlerts((currentAlerts) => {
         const lengthBeforeRemove = currentAlerts.length;
         const filteredAlerts = currentAlerts.filter((a) => a.id !== alert.id);
-        if (
-          lengthBeforeRemove > filteredAlerts.length
-          && alert.options.onClose
-        ) {
+        if (lengthBeforeRemove > filteredAlerts.length && alert.options.onClose) {
           alert.options.onClose();
         }
         return filteredAlerts;

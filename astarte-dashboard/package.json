@@ -23,8 +23,9 @@
     "deploy": "webpack --config webpack.prod.js",
     "reinstall": "npm i rimraf && rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install",
     "lint": "eslint --fix src --ext .js,.jsx",
-    "format-js": "prettier --write \"src/**/*.js\"",
-    "check-format-js": "npx prettier --check \"src/**/*.js\""
+    "check-lint": "eslint src --ext .js,.jsx",
+    "format": "prettier --write src",
+    "check-format": "npx prettier --check src"
   },
   "devDependencies": {
     "@babel/core": "^7.10.2",
@@ -57,7 +58,7 @@
     "popper.js": "^1.16.0",
     "postcss-cssnext": "^3.1.0",
     "postcss-loader": "^3.0.0",
-    "prettier": "1.19.1",
+    "prettier": "^2.1.1",
     "rimraf": "^3.0.2",
     "sass-loader": "^8.0.2",
     "style-loader": "^1.2.1",

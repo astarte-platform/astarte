@@ -18,13 +18,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Button,
-  Card,
-  CardDeck,
-  Container,
-  Spinner,
-} from 'react-bootstrap';
+import { Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
 
 export default ({ astarte, history }) => {
   const [phase, setPhase] = useState('loading');
@@ -33,8 +27,9 @@ export default ({ astarte, history }) => {
   useEffect(() => {
     const handlePipelinesResponse = (response) => {
       const pipelineList = response.data;
-      const promiseList = pipelineList
-        .map((pipelineName) => astarte.getPipelineInputConfig(pipelineName));
+      const promiseList = pipelineList.map((pipelineName) =>
+        astarte.getPipelineInputConfig(pipelineName),
+      );
       Promise.allSettled(promiseList).then((result) => {
         const pipelineData = [];
         result.forEach((pipelineResult) => {
@@ -49,10 +44,7 @@ export default ({ astarte, history }) => {
     const handlePipelinesError = () => {
       setPhase('err');
     };
-    astarte
-      .getPipelineDefinitions()
-      .then(handlePipelinesResponse)
-      .catch(handlePipelinesError);
+    astarte.getPipelineDefinitions().then(handlePipelinesResponse).catch(handlePipelinesError);
   }, [astarte]);
 
   let innerHTML;

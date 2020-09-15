@@ -20,15 +20,10 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
-import {
-  Button, Col, Form, Modal, Spinner, Table,
-} from 'react-bootstrap';
+import { Button, Col, Form, Modal, Spinner, Table } from 'react-bootstrap';
 
 import SingleCardPage from './ui/SingleCardPage';
-import {
-  byteArrayToUrlSafeBase64,
-  urlSafeBase64ToByteArray,
-} from './Base64';
+import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
 import { useAlerts } from './AlertManager';
 
 /* TODO use clipboard API
@@ -66,7 +61,7 @@ const InstrospectionTable = ({ interfaces, onAddInterface, onRemoveInterface }) 
       </tr>
     </thead>
     <tbody>
-      { Array.from(interfaces).map(([key, interfaceDescriptor]) => (
+      {Array.from(interfaces).map(([key, interfaceDescriptor]) => (
         <InterfaceIntrospectionRow
           key={key}
           name={interfaceDescriptor.name}
@@ -75,16 +70,12 @@ const InstrospectionTable = ({ interfaces, onAddInterface, onRemoveInterface }) 
           onRemove={() => onRemoveInterface(interfaceDescriptor)}
         />
       ))}
-      <IntrospectionControlRow
-        onAddInterface={onAddInterface}
-      />
+      <IntrospectionControlRow onAddInterface={onAddInterface} />
     </tbody>
   </Table>
 );
 
-const InterfaceIntrospectionRow = ({
-  name, major, minor, onRemove,
-}) => (
+const InterfaceIntrospectionRow = ({ name, major, minor, onRemove }) => (
   <tr>
     <td>{name}</td>
     <td>{major}</td>
@@ -109,11 +100,17 @@ const IntrospectionControlRow = ({ onAddInterface }) => {
   };
 
   const handleMajorChange = ({ target: { value } }) => {
-    setInterfaceDescriptor((state) => ({ ...state, major: parseInt(value, 10) || 0 }));
+    setInterfaceDescriptor((state) => ({
+      ...state,
+      major: parseInt(value, 10) || 0,
+    }));
   };
 
   const handleMinorChange = ({ target: { value } }) => {
-    setInterfaceDescriptor((state) => ({ ...state, minor: parseInt(value, 10) || 0 }));
+    setInterfaceDescriptor((state) => ({
+      ...state,
+      minor: parseInt(value, 10) || 0,
+    }));
   };
 
   return (
@@ -159,45 +156,28 @@ const IntrospectionControlRow = ({ onAddInterface }) => {
 };
 
 const CredentialSecretModal = ({ show, secret, onConfirm }) => (
-  <Modal
-    size="lg"
-    show={show}
-    onHide={onConfirm}
-  >
+  <Modal size="lg" show={show} onHide={onConfirm}>
     <Modal.Header closeButton>
       <Modal.Title>Device Registered!</Modal.Title>
     </Modal.Header>
     <Modal.Body>
       <span>The device credential secret is</span>
       <pre className="my-2">
-        <code
-          id="secret-code"
-          className="m-1 p-2 bg-light"
-          style={{ fontSize: '1.2em' }}
-        >
+        <code id="secret-code" className="m-1 p-2 bg-light" style={{ fontSize: '1.2em' }}>
           {secret}
         </code>
-        <i
-          className="fas fa-paste"
-          onClick={pasteSecret}
-          style={{ cursor: 'copy' }}
-        />
+        <i className="fas fa-paste" onClick={pasteSecret} style={{ cursor: 'copy' }} />
       </pre>
       <span>
-        Please don&apos;t share the Credentials Secret, and ensure it is
-        transferred securely to your Device.
+        Please don&apos;t share the Credentials Secret, and ensure it is transferred securely to
+        your Device.
         <br />
-        Once the Device pairs for the first time, the Credentials Secret
-        will be associated permanently to the Device and it won&apos;t be
-        changeable anymore.
+        Once the Device pairs for the first time, the Credentials Secret will be associated
+        permanently to the Device and it won&apos;t be changeable anymore.
       </span>
     </Modal.Body>
     <Modal.Footer>
-      <Button
-        variant="primary"
-        onClick={onConfirm}
-        style={{ width: '8em' }}
-      >
+      <Button variant="primary" onClick={onConfirm} style={{ width: '8em' }}>
         Ok
       </Button>
     </Modal.Footer>
@@ -220,11 +200,7 @@ const NamespaceModal = ({ show, onCancel, onConfirm }) => {
   }, [customString, namespace]);
 
   return (
-    <Modal
-      size="lg"
-      show={show}
-      onHide={onCancel}
-    >
+    <Modal size="lg" show={show} onHide={onCancel}>
       <Modal.Header closeButton>
         <Modal.Title>Generate from name</Modal.Title>
       </Modal.Header>
@@ -353,11 +329,7 @@ const RegisterDevicePage = ({ astarte, history }) => {
             </Form.Control.Feedback>
           </Form.Group>
           <Form.Group as={ColNoLabel}>
-            <Button
-              variant="secondary"
-              className="mx-1"
-              onClick={generateRandomUUID}
-            >
+            <Button variant="secondary" className="mx-1" onClick={generateRandomUUID}>
               Generate random ID
             </Button>
             <Button
@@ -377,14 +349,13 @@ const RegisterDevicePage = ({ astarte, history }) => {
             onChange={(e) => setSendIntrospection(e.target.checked)}
           />
         </Form.Group>
-        { sendIntrospection
-          && (
+        {sendIntrospection && (
           <InstrospectionTable
             interfaces={introspectionInterfaces}
             onAddInterface={addInterfaceToIntrospection}
             onRemoveInterface={removeIntrospectionInterface}
           />
-          )}
+        )}
         <Form.Row className="flex-row-reverse pr-2">
           <Button
             variant="primary"
@@ -392,13 +363,7 @@ const RegisterDevicePage = ({ astarte, history }) => {
             disabled={!isValidDeviceId || isRegisteringDevice}
           >
             {isRegisteringDevice && (
-              <Spinner
-                as="span"
-                size="sm"
-                animation="border"
-                role="status"
-                className="mr-2"
-              />
+              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
             )}
             Register device
           </Button>

@@ -17,14 +17,7 @@
 */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  Button,
-  Modal,
-  OverlayTrigger,
-  Spinner,
-  Table,
-  Tooltip,
-} from 'react-bootstrap';
+import { Button, Modal, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 
 import { Link } from 'react-router-dom';
 import Device from './astarte/Device';
@@ -104,9 +97,7 @@ const deviceTable = (deviceList, showModal) => (
         <th>Actions</th>
       </tr>
     </thead>
-    <tbody>
-      {deviceList.map((device, index) => deviceTableRow(device, index, showModal))}
-    </tbody>
+    <tbody>{deviceList.map((device, index) => deviceTableRow(device, index, showModal))}</tbody>
   </Table>
 );
 
@@ -244,10 +235,7 @@ const ConfirmDeviceRemovalModal = ({
       </Modal.Header>
       <Modal.Body>
         {isLastDevice && (
-        <p>
-          This is the last device in the group. Removing this device will
-          delete the group
-        </p>
+          <p>This is the last device in the group. Removing this device will delete the group</p>
         )}
         <p>{`Remove device "${deviceName}" from group "${groupName}"?`}</p>
       </Modal.Body>
@@ -256,14 +244,7 @@ const ConfirmDeviceRemovalModal = ({
           Cancel
         </Button>
         <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
-          {isRemoving && (
-          <Spinner
-            className="mr-2"
-            size="sm"
-            animation="border"
-            role="status"
-          />
-          )}
+          {isRemoving && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
           Remove
         </Button>
       </Modal.Footer>

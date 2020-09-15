@@ -17,14 +17,7 @@
 */
 
 import React, { useEffect, useState } from 'react';
-import {
-  Button,
-  Col,
-  Container,
-  ListGroup,
-  Row,
-  Spinner,
-} from 'react-bootstrap';
+import { Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
 
 const TriggerRow = ({ name, onClick }) => (
   <ListGroup.Item>
@@ -62,11 +55,7 @@ export default ({ history, astarte }) => {
         <Col sm={12}>
           <ListGroup>
             <ListGroup.Item>
-              <Button
-                variant="link"
-                className="p-0"
-                onClick={() => history.push('/triggers/new')}
-              >
+              <Button variant="link" className="p-0" onClick={() => history.push('/triggers/new')}>
                 <i className="fas fa-plus mr-2" />
                 Install a new trigger...
               </Button>

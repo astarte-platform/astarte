@@ -57,7 +57,8 @@ function watchDeviceEvents(params) {
   const { deviceId } = params;
   const salt = Math.floor(Math.random() * 10000);
   const roomName = `dashboard_${deviceId}_${salt}`;
-  astarteClient.joinRoom(roomName)
+  astarteClient
+    .joinRoom(roomName)
     .then(() => {
       sendInfoMessage(`Joined room for device ${params.deviceId}`);
 
@@ -107,21 +108,41 @@ function watchDeviceEvents(params) {
         },
       };
 
-      astarteClient.registerVolatileTrigger(roomName, connectionTriggerPayload)
-        .then(() => { sendInfoMessage('Watching for device connection events'); })
-        .catch(() => { sendErrorMessage("Coulnd't watch for device connection events"); });
+      astarteClient
+        .registerVolatileTrigger(roomName, connectionTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device connection events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device connection events");
+        });
 
-      astarteClient.registerVolatileTrigger(roomName, disconnectionTriggerPayload)
-        .then(() => { sendInfoMessage('Watching for device disconnection events'); })
-        .catch(() => { sendErrorMessage("Coulnd't watch for device disconnection events"); });
+      astarteClient
+        .registerVolatileTrigger(roomName, disconnectionTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device disconnection events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device disconnection events");
+        });
 
-      astarteClient.registerVolatileTrigger(roomName, errorTriggerPayload)
-        .then(() => { sendInfoMessage('Watching for device error events'); })
-        .catch(() => { sendErrorMessage("Coulnd't watch for device error events"); });
+      astarteClient
+        .registerVolatileTrigger(roomName, errorTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device error events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device error events");
+        });
 
-      astarteClient.registerVolatileTrigger(roomName, dataTriggerPayload)
-        .then(() => { sendInfoMessage('Watching for device data events'); })
-        .catch(() => { sendErrorMessage("Coulnd't watch for device data events"); });
+      astarteClient
+        .registerVolatileTrigger(roomName, dataTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device data events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device data events");
+        });
     })
     .catch(() => {
       sendErrorMessage(`Couldn't join device ${deviceId} room`);
@@ -217,8 +238,12 @@ function getAstarteClient(config) {
     pairingUrl: pairingApiUrl,
     flowUrl: flowApiUrl,
     enableFlowPreview: Boolean(config.enable_flow_preview),
-    onSocketError: (() => { sendErrorMessage('Astarte channels communication error'); }),
-    onSocketClose: (() => { sendErrorMessage('Lost connection with the Astarte channel'); }),
+    onSocketError: () => {
+      sendErrorMessage('Astarte channels communication error');
+    },
+    onSocketClose: () => {
+      sendErrorMessage('Lost connection with the Astarte channel');
+    },
   });
 }
 
@@ -283,13 +308,16 @@ $.getJSON('/user-config/config.json', (result) => {
       }
     });
 
-    window.addEventListener('storage', (event) => {
-      if (event.storageArea === localStorage && event.key === 'session') {
-        console.log('local session changed');
-        app.ports.onSessionChange.send(event.newValue);
-        updateAstarteClientSession();
-      }
-    },
-    false);
+    window.addEventListener(
+      'storage',
+      (event) => {
+        if (event.storageArea === localStorage && event.key === 'session') {
+          console.log('local session changed');
+          app.ports.onSessionChange.send(event.newValue);
+          updateAstarteClientSession();
+        }
+      },
+      false,
+    );
     /* end Elm ports */
   });

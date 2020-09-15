@@ -119,10 +119,7 @@ export default ({ astarte, history }) => {
     const handleError = () => {
       setPhase('err');
     };
-    astarte
-      .getDevicesStats()
-      .then(handleStatsRequest)
-      .catch(handleError);
+    astarte.getDevicesStats().then(handleStatsRequest).catch(handleError);
   }, [astarte]);
 
   let innerHTML;
@@ -296,10 +293,8 @@ const DeviceRow = ({ device }) => {
   );
 };
 
-const CircleIcon = React.forwardRef(
-  ({ children, className, ...props }, ref) => (
-    <i ref={ref} {...props} className={`fas fa-circle ${className}`}>
-      {children}
-    </i>
-  ),
-);
+const CircleIcon = React.forwardRef(({ children, className, ...props }, ref) => (
+  <i ref={ref} {...props} className={`fas fa-circle ${className}`}>
+    {children}
+  </i>
+));

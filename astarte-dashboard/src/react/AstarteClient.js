@@ -36,7 +36,9 @@ function openNewSocketConnection(connectionParams, onErrorHanlder, onCloseHandle
     });
     phoenixSocket.onError((e) => onErrorHanlder(e));
     phoenixSocket.onClose((e) => onCloseHandler(e));
-    phoenixSocket.onOpen(() => { resolve(phoenixSocket); });
+    phoenixSocket.onOpen(() => {
+      resolve(phoenixSocket);
+    });
     phoenixSocket.connect();
   });
 }
@@ -46,8 +48,12 @@ function joinChannel(phoenixSocket, channelString) {
     const channel = phoenixSocket.channel(channelString, {});
     channel
       .join()
-      .receive('ok', () => { resolve(channel); })
-      .receive('error', (err) => { reject(err); });
+      .receive('ok', () => {
+        resolve(channel);
+      })
+      .receive('error', (err) => {
+        reject(err);
+      });
   });
 }
 
@@ -55,8 +61,12 @@ function leaveChannel(channel) {
   return new Promise((resolve, reject) => {
     channel
       .leave()
-      .receive('ok', () => { resolve(channel); })
-      .receive('error', (err) => { reject(err); });
+      .receive('ok', () => {
+        resolve(channel);
+      })
+      .receive('error', (err) => {
+        reject(err);
+      });
   });
 }
 
@@ -64,8 +74,12 @@ function registerTrigger(channel, triggerPayload) {
   return new Promise((resolve, reject) => {
     channel
       .push('watch', triggerPayload)
-      .receive('ok', () => { resolve(channel); })
-      .receive('error', (err) => { reject(err); });
+      .receive('ok', () => {
+        resolve(channel);
+      })
+      .receive('error', (err) => {
+        reject(err);
+      });
   });
 }
 
@@ -189,11 +203,13 @@ class AstarteClient {
   }
 
   getInterface({ interfaceName, interfaceMajor }) {
-    return this.$get(this.apiConfig.interfaceData({
-      interfaceName,
-      interfaceMajor,
-      ...this.config,
-    }));
+    return this.$get(
+      this.apiConfig.interfaceData({
+        interfaceName,
+        interfaceMajor,
+        ...this.config,
+      }),
+    );
   }
 
   getTriggerNames() {
@@ -233,11 +249,13 @@ class AstarteClient {
   }
 
   getDeviceData({ deviceId, interfaceName }) {
-    return this.$get(this.apiConfig.deviceData({
-      deviceId,
-      interfaceName,
-      ...this.config,
-    }));
+    return this.$get(
+      this.apiConfig.deviceData({
+        deviceId,
+        interfaceName,
+        ...this.config,
+      }),
+    );
   }
 
   getGroupList() {
@@ -260,7 +278,10 @@ class AstarteClient {
     /* Double encoding to preserve the URL format when groupName contains % and / */
     const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
     const endpointUri = new URL(
-      this.apiConfig.groupDevices({ ...this.config, groupName: encodedGroupName }),
+      this.apiConfig.groupDevices({
+        ...this.config,
+        groupName: encodedGroupName,
+      }),
     );
 
     if (details) {
@@ -314,9 +335,7 @@ class AstarteClient {
   }
 
   getFlowDetails(flowName) {
-    return this.$get(
-      this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }),
-    );
+    return this.$get(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
   }
 
   createNewFlowInstance(pipelineConfig) {
@@ -324,15 +343,11 @@ class AstarteClient {
   }
 
   deleteFlowInstance(flowName) {
-    return this.$delete(
-      this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }),
-    );
+    return this.$delete(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
   }
 
   getPipelineDefinitions() {
-    return this.$get(
-      this.apiConfig.pipelines(this.config),
-    );
+    return this.$get(this.apiConfig.pipelines(this.config));
   }
 
   registerPipeline(pipeline) {
@@ -340,9 +355,7 @@ class AstarteClient {
   }
 
   getPipelineInputConfig(pipelineId) {
-    return this.$get(
-      this.apiConfig.pipelineSource({ ...this.config, pipelineId }),
-    );
+    return this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
   }
 
   getPipelineSource(pipelineId) {
@@ -354,8 +367,9 @@ class AstarteClient {
   }
 
   getBlocks() {
-    return this.$get(this.apiConfig.blocks(this.config))
-      .then((response) => response.data.map((block) => new Block(block)));
+    return this.$get(this.apiConfig.blocks(this.config)).then((response) =>
+      response.data.map((block) => new Block(block)),
+    );
   }
 
   registerBlock(block) {
@@ -363,15 +377,13 @@ class AstarteClient {
   }
 
   getBlock(blockId) {
-    return this.$get(
-      this.apiConfig.blockSource({ ...this.config, blockId }),
-    ).then((response) => new Block(response.data));
+    return this.$get(this.apiConfig.blockSource({ ...this.config, blockId })).then(
+      (response) => new Block(response.data),
+    );
   }
 
   deleteBlock(blockId) {
-    return this.$delete(
-      this.apiConfig.blockSource({ ...this.config, blockId }),
-    );
+    return this.$delete(this.apiConfig.blockSource({ ...this.config, blockId }));
   }
 
   getRealmManagementHealth() {
@@ -398,8 +410,7 @@ class AstarteClient {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json;charset=UTF-8',
       },
-    })
-      .then((response) => response.data);
+    }).then((response) => response.data);
   }
 
   $post(url, data) {
@@ -413,8 +424,7 @@ class AstarteClient {
       data: {
         data,
       },
-    })
-      .then((response) => response.data);
+    }).then((response) => response.data);
   }
 
   $put(url, data) {
@@ -428,8 +438,7 @@ class AstarteClient {
       data: {
         data,
       },
-    })
-      .then((response) => response.data);
+    }).then((response) => response.data);
   }
 
   $delete(url) {
@@ -440,8 +449,7 @@ class AstarteClient {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json;charset=UTF-8',
       },
-    })
-      .then((response) => response.data);
+    }).then((response) => response.data);
   }
 
   openSocketConnection() {
@@ -450,28 +458,34 @@ class AstarteClient {
     }
 
     const socketUrl = new URL(this.apiConfig.phoenixSocket(this.config));
-    socketUrl.protocol = (socketUrl.protocol === 'https:' ? 'wss:' : 'ws:');
+    socketUrl.protocol = socketUrl.protocol === 'https:' ? 'wss:' : 'ws:';
 
     return new Promise((resolve) => {
-      openNewSocketConnection({
-        socketUrl,
-        realm: this.config.realm,
-        token: this.token,
-      },
-      () => { this.onSocketError(); },
-      () => { this.onSocketClose(); })
-        .then((socket) => {
-          this.phoenixSocket = socket;
-          resolve(socket);
-        });
+      openNewSocketConnection(
+        {
+          socketUrl,
+          realm: this.config.realm,
+          token: this.token,
+        },
+        () => {
+          this.onSocketError();
+        },
+        () => {
+          this.onSocketClose();
+        },
+      ).then((socket) => {
+        this.phoenixSocket = socket;
+        resolve(socket);
+      });
     });
   }
 
   joinRoom(roomName) {
     if (!this.phoenixSocket) {
       return new Promise((resolve) => {
-        this.openSocketConnection()
-          .then(() => { resolve(this.joinRoom(roomName)); });
+        this.openSocketConnection().then(() => {
+          resolve(this.joinRoom(roomName));
+        });
       });
     }
 
@@ -481,11 +495,12 @@ class AstarteClient {
     }
 
     return new Promise((resolve) => {
-      joinChannel(this.phoenixSocket, `rooms:${this.config.realm}:${roomName}`)
-        .then((joinedChannel) => {
+      joinChannel(this.phoenixSocket, `rooms:${this.config.realm}:${roomName}`).then(
+        (joinedChannel) => {
           this.joinedChannels[roomName] = joinedChannel;
           resolve(true);
-        });
+        },
+      );
     });
   }
 
@@ -514,10 +529,9 @@ class AstarteClient {
       return Promise.reject(new Error("Can't leave a room without joining it first"));
     }
 
-    return leaveChannel(channel)
-      .then(() => {
-        delete this.joinedChannels[roomName];
-      });
+    return leaveChannel(channel).then(() => {
+      delete this.joinedChannels[roomName];
+    });
   }
 
   joinedRooms() {
@@ -530,9 +544,11 @@ class AstarteClient {
 }
 
 function isValidRealmName(name) {
-  return RegExp('^[a-z][a-z0-9]{0,47}$').test(name)
-        && !name.startsWith('astarte')
-        && !name.startsWith('system');
+  return (
+    RegExp('^[a-z][a-z0-9]{0,47}$').test(name) &&
+    !name.startsWith('astarte') &&
+    !name.startsWith('system')
+  );
 }
 
 function isTokenExpired(decodedTokenObject) {
@@ -541,7 +557,7 @@ function isTokenExpired(decodedTokenObject) {
     const expiry = new Date(posix * 1000);
     const now = new Date();
 
-    return (expiry <= now);
+    return expiry <= now;
   }
   return false;
 }

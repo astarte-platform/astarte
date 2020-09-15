@@ -33,9 +33,7 @@ export default ({ astarte, history }) => {
         const newGroupState = groupMap.get(groupName);
         newGroupState.loading = false;
         newGroupState.totalDevices = deviceList.length;
-        const connectedDevices = deviceList.filter(
-          (device) => device.connected,
-        );
+        const connectedDevices = deviceList.filter((device) => device.connected);
         newGroupState.connectedDevices = connectedDevices.length;
         groupMap.set(groupName, newGroupState);
         return new Map(groupMap);
@@ -65,10 +63,7 @@ export default ({ astarte, history }) => {
     const handleGroupsError = () => {
       setPhase('err');
     };
-    astarte
-      .getGroupList()
-      .then(handleGroupsRequest)
-      .catch(handleGroupsError);
+    astarte.getGroupList().then(handleGroupsRequest).catch(handleGroupsError);
   }, [astarte, setGroups, setPhase]);
 
   let innerHTML;

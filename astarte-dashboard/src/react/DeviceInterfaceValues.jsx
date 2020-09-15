@@ -17,9 +17,7 @@
 */
 
 import React, { useEffect, useState } from 'react';
-import {
-  Card, Container, Spinner, Table,
-} from 'react-bootstrap';
+import { Card, Container, Spinner, Table } from 'react-bootstrap';
 
 import Device from './astarte/Device';
 import BackButton from './ui/BackButton';
@@ -45,21 +43,22 @@ function linearizePathTree(prefix, data) {
     .flat();
 }
 
-const DeviceInterfaceValues = ({
-  astarte, deviceId, interfaceName,
-}) => {
+const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
   const [interfaceType, setInterfaceType] = useState(null);
-  const deviceData = useFetch(() => astarte.getDeviceData({
-    deviceId,
-    interfaceName,
-  }));
+  const deviceData = useFetch(() =>
+    astarte.getDeviceData({
+      deviceId,
+      interfaceName,
+    }),
+  );
 
   const deviceAlerts = useAlerts();
 
   useEffect(() => {
     const getInterfaceType = async () => {
-      const deviceInfos = await astarte.getDeviceInfo(deviceId)
-        .catch(() => { throw new Error('Device not found.'); });
+      const deviceInfos = await astarte.getDeviceInfo(deviceId).catch(() => {
+        throw new Error('Device not found.');
+      });
       const device = Device.fromObject(deviceInfos.data);
       const interfaceIntrospection = device.introspection[interfaceName];
 
@@ -67,11 +66,14 @@ const DeviceInterfaceValues = ({
         throw new Error('Interface not found in device introspection.');
       }
 
-      const interfaceSrc = await astarte.getInterface({
-        interfaceName,
-        interfaceMajor: interfaceIntrospection.major,
-      })
-        .catch(() => { throw new Error('Could not retrieve interface properties.'); });
+      const interfaceSrc = await astarte
+        .getInterface({
+          interfaceName,
+          interfaceMajor: interfaceIntrospection.major,
+        })
+        .catch(() => {
+          throw new Error('Could not retrieve interface properties.');
+        });
 
       const interfaceData = interfaceSrc.data;
 
@@ -84,10 +86,9 @@ const DeviceInterfaceValues = ({
       }
     };
 
-    getInterfaceType()
-      .catch((err) => {
-        deviceAlerts.showError(err.message);
-      });
+    getInterfaceType().catch((err) => {
+      deviceAlerts.showError(err.message);
+    });
   }, []);
 
   return (
@@ -98,10 +99,7 @@ const DeviceInterfaceValues = ({
       </h2>
       <Card className="mt-4">
         <Card.Header>
-          <span className="text-monospace">{deviceId}</span>
-          {' '}
-          /
-          {interfaceName}
+          <span className="text-monospace">{deviceId}</span> /{interfaceName}
         </Card.Header>
         <Card.Body>
           <deviceAlerts.Alerts />
@@ -110,9 +108,7 @@ const DeviceInterfaceValues = ({
             status={deviceData.status}
             fallback={<Spinner animation="border" role="status" />}
           >
-            {(interfaceData) => (
-              <InterfaceData data={interfaceData} type={interfaceType} />
-            )}
+            {(interfaceData) => <InterfaceData data={interfaceData} type={interfaceType} />}
           </WaitForData>
         </Card.Body>
       </Card>
@@ -123,9 +119,7 @@ const DeviceInterfaceValues = ({
 const InterfaceData = ({ data, type }) => {
   switch (type) {
     case 'properties':
-      return (
-        <PropertyTree data={data} />
-      );
+      return <PropertyTree data={data} />;
 
     case 'datastream-object':
       if (data.length > 0) {
@@ -136,14 +130,10 @@ const InterfaceData = ({ data, type }) => {
           </>
         );
       }
-      return (
-        <p>No data sent by the device.</p>
-      );
+      return <p>No data sent by the device.</p>;
 
     case 'datastream-individual':
-      return (
-        <IndividualDatastreamTable data={data} />
-      );
+      return <IndividualDatastreamTable data={data} />;
 
     default:
       // TODO autodetect interface type from data structure
@@ -153,9 +143,7 @@ const InterfaceData = ({ data, type }) => {
 
 const PropertyTree = ({ data }) => (
   <pre>
-    <code>
-      {JSON.stringify(data, null, 2)}
-    </code>
+    <code>{JSON.stringify(data, null, 2)}</code>
   </pre>
 );
 
@@ -172,13 +160,8 @@ const IndividualDatastreamTable = ({ data }) => {
         </tr>
       </thead>
       <tbody>
-        { paths.map(({ path, value, timestamp }) => (
-          <IndividualDatastreamRow
-            key={path}
-            path={path}
-            value={value}
-            timestamp={timestamp}
-          />
+        {paths.map(({ path, value, timestamp }) => (
+          <IndividualDatastreamRow key={path} path={path} value={value} timestamp={timestamp} />
         ))}
       </tbody>
     </Table>
@@ -206,12 +189,16 @@ const ObjectDatastreamTable = ({ data }) => {
     <Table>
       <thead>
         <tr>
-          { labels.map((label) => <th key={label}>{label}</th>) }
+          {labels.map((label) => (
+            <th key={label}>{label}</th>
+          ))}
           <th>Timestamp</th>
         </tr>
       </thead>
       <tbody>
-        { data.map((obj) => <ObjectDatastreamRow key={obj.timestamp} labels={labels} obj={obj} />) }
+        {data.map((obj) => (
+          <ObjectDatastreamRow key={obj.timestamp} labels={labels} obj={obj} />
+        ))}
       </tbody>
     </Table>
   );
@@ -219,7 +206,9 @@ const ObjectDatastreamTable = ({ data }) => {
 
 const ObjectDatastreamRow = ({ labels, obj }) => (
   <tr>
-    { labels.map((label) => <td key={label}>{obj[label]}</td>) }
+    {labels.map((label) => (
+      <td key={label}>{obj[label]}</td>
+    ))}
     <td>{new Date(obj.timestamp).toLocaleString()}</td>
   </tr>
 );

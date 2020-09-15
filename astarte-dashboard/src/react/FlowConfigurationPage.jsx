@@ -92,29 +92,15 @@ export default ({ astarte, history, pipelineId }) => {
           onChange={(e) => setFlow({ ...flow, config: e.target.value })}
         />
       </Form.Group>
-      <Button
-        variant="primary"
-        disabled={!isValidForm || isCreatingFlow}
-        onClick={createFlow}
-      >
-        {isCreatingFlow && (
-          <Spinner
-            className="mr-2"
-            size="sm"
-            animation="border"
-            role="status"
-          />
-        )}
+      <Button variant="primary" disabled={!isValidForm || isCreatingFlow} onClick={createFlow}>
+        {isCreatingFlow && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
         Instantiate Flow
       </Button>
     </Form>
   );
 
   return (
-    <SingleCardPage
-      title="Flow Configuration"
-      backLink="/pipelines"
-    >
+    <SingleCardPage title="Flow Configuration" backLink="/pipelines">
       <formAlerts.Alerts />
       {innerHTML}
     </SingleCardPage>

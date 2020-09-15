@@ -17,9 +17,7 @@
 */
 
 import React, { useEffect, useState } from 'react';
-import {
-  Badge, Button, Card, CardDeck, Container, Spinner,
-} from 'react-bootstrap';
+import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
 
 export default ({ astarte, history }) => {
   const [phase, setPhase] = useState('loading');
@@ -45,10 +43,7 @@ export default ({ astarte, history }) => {
           {blocks.map((block, index) => (
             <React.Fragment key={`fragment-${index}`}>
               {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
-              <BlockCard
-                block={block}
-                onShow={() => history.push(`/blocks/${block.name}`)}
-              />
+              <BlockCard block={block} onShow={() => history.push(`/blocks/${block.name}`)} />
               {index === blocks.length - 1 && blocks.length % 2 === 0 ? (
                 <div className="w-50 d-none d-md-block" />
               ) : null}
@@ -98,18 +93,12 @@ const blockTypeToLabel = {
 function BlockCard({ block, onShow }) {
   return (
     <Card className="mb-4">
-      <Card.Header
-        as="h5"
-        className="d-flex justify-content-between align-items-center"
-      >
+      <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
         <Button variant="link" className="p-0" onClick={onShow}>
           {block.name}
         </Button>
         {block.isNative && (
-          <Badge
-            variant="secondary"
-            className="h6 text-light"
-          >
+          <Badge variant="secondary" className="h6 text-light">
             native
           </Badge>
         )}

@@ -17,9 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Button, Col, Row, Spinner,
-} from 'react-bootstrap';
+import { Button, Col, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 
 import { useAlerts } from './AlertManager';
@@ -43,10 +41,7 @@ export default ({ astarte, history, pipelineId }) => {
     const handlePipelineError = () => {
       setPhase('err');
     };
-    astarte
-      .getPipelineSource(pipelineId)
-      .then(handlePipelineResponse)
-      .catch(handlePipelineError);
+    astarte.getPipelineSource(pipelineId).then(handlePipelineResponse).catch(handlePipelineError);
   }, [astarte]);
 
   const deletePipeline = useCallback(() => {
@@ -91,19 +86,9 @@ export default ({ astarte, history, pipelineId }) => {
               )}
             </Col>
           </Row>
-          <Button
-            variant="danger"
-            onClick={deletePipeline}
-            disabled={isDeletingPipeline}
-          >
+          <Button variant="danger" onClick={deletePipeline} disabled={isDeletingPipeline}>
             {isDeletingPipeline && (
-              <Spinner
-                as="span"
-                size="sm"
-                animation="border"
-                role="status"
-                className="mr-2"
-              />
+              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
             )}
             Delete pipeline
           </Button>

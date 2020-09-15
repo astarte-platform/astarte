@@ -17,9 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Button, Form, Modal, Spinner,
-} from 'react-bootstrap';
+import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
@@ -32,13 +30,9 @@ export default ({ astarte, history }) => {
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const formAlerts = useAlerts();
 
-  const showModal = useCallback(() => setIsModalVisible(true), [
-    setIsModalVisible,
-  ]);
+  const showModal = useCallback(() => setIsModalVisible(true), [setIsModalVisible]);
 
-  const dismissModal = useCallback(() => setIsModalVisible(false), [
-    setIsModalVisible,
-  ]);
+  const dismissModal = useCallback(() => setIsModalVisible(false), [setIsModalVisible]);
 
   const applyNewSettings = useCallback(() => {
     setIsUpdatingSettings(true);
@@ -52,14 +46,7 @@ export default ({ astarte, history }) => {
         dismissModal();
         formAlerts.showError(err.message);
       });
-  }, [
-    setIsUpdatingSettings,
-    astarte,
-    draftPublicKey,
-    history,
-    dismissModal,
-    formAlerts.showError,
-  ]);
+  }, [setIsUpdatingSettings, astarte, draftPublicKey, history, dismissModal, formAlerts.showError]);
 
   useEffect(() => {
     astarte
@@ -118,9 +105,7 @@ export default ({ astarte, history }) => {
   }
 
   return (
-    <SingleCardPage
-      title="Realm Settings"
-    >
+    <SingleCardPage title="Realm Settings">
       {innerHTML}
       <ConfirmKeyChanges
         isUpdating={isUpdatingSettings}
@@ -132,26 +117,20 @@ export default ({ astarte, history }) => {
   );
 };
 
-const ConfirmKeyChanges = ({
-  show, isUpdating, onCancel, onConfirm,
-}) => (
+const ConfirmKeyChanges = ({ show, isUpdating, onCancel, onConfirm }) => (
   <div
     onKeyDown={(e) => {
       if (e.key === 'Enter' && !isUpdating) onConfirm();
     }}
   >
-    <Modal
-      size="lg"
-      show={show}
-      onHide={onCancel}
-    >
+    <Modal size="lg" show={show} onHide={onCancel}>
       <Modal.Header closeButton>
         <Modal.Title>Confirm Public Key Update</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <p>
-          Realm public key will be changed, users will not be able to make
-          further API calls using their current auth token. Confirm?
+          Realm public key will be changed, users will not be able to make further API calls using
+          their current auth token. Confirm?
         </p>
       </Modal.Body>
       <Modal.Footer>
@@ -159,14 +138,7 @@ const ConfirmKeyChanges = ({
           Cancel
         </Button>
         <Button variant="primary" onClick={onConfirm} disabled={isUpdating}>
-          {isUpdating && (
-          <Spinner
-            className="mr-2"
-            size="sm"
-            animation="border"
-            role="status"
-          />
-          )}
+          {isUpdating && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
           Update settings
         </Button>
       </Modal.Footer>

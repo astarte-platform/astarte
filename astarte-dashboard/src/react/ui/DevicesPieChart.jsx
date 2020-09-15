@@ -23,21 +23,17 @@ export default function DevicesPieChart(props) {
   const { connectedDevices, disconnectedDevices } = props;
 
   const data = {
-    labels: [
-      'Disconnected',
-      'Connected',
+    labels: ['Disconnected', 'Connected'],
+    datasets: [
+      {
+        data: [disconnectedDevices, connectedDevices],
+        backgroundColor: [
+          '#cc5b6d', // red
+          '#5bcc6c', // green
+        ],
+        label: 'Devices',
+      },
     ],
-    datasets: [{
-      data: [
-        disconnectedDevices,
-        connectedDevices,
-      ],
-      backgroundColor: [
-        '#cc5b6d', // red
-        '#5bcc6c', // green
-      ],
-      label: 'Devices',
-    }],
   };
 
   const options = {
@@ -51,10 +47,7 @@ export default function DevicesPieChart(props) {
 
   return (
     <div className="chart-container">
-      <Pie
-        data={data}
-        options={options}
-      />
+      <Pie data={data} options={options} />
     </div>
   );
 }

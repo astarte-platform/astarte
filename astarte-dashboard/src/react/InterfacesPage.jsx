@@ -14,15 +14,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Badge,
-  Button,
-  Col,
-  Container,
-  ListGroup,
-  Row,
-  Spinner,
-} from 'react-bootstrap';
+import { Badge, Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
 
 const InterfaceRow = ({ name, majors }) => (
   <ListGroup.Item>
@@ -37,12 +29,8 @@ const InterfaceRow = ({ name, majors }) => (
         <Col md="auto">
           {majors.map((major) => (
             <Link key={major} to={`/interfaces/${name}/${major}`}>
-              <Badge
-                variant={major > 0 ? 'primary' : 'secondary'}
-                className="mr-1 px-2 py-1"
-              >
-                v
-                {major}
+              <Badge variant={major > 0 ? 'primary' : 'secondary'} className="mr-1 px-2 py-1">
+                v{major}
               </Badge>
             </Link>
           ))}
@@ -60,19 +48,21 @@ const LoadingRow = () => (
 
 export default ({ history, astarte }) => {
   const [interfaces, setInterfaces] = useState(null);
-  const fetchInterfaces = () => astarte
-    .getInterfaceNames()
-    .then((result) => {
-      const interfaceNames = result.data.sort();
-      return Promise.all(
-        interfaceNames
-          .map((interfaceName) => astarte.getInterfaceMajors(interfaceName).then(({ data }) => ({
-            name: interfaceName,
-            majors: data.sort().reverse(),
-          }))),
-      );
-    })
-    .then(setInterfaces);
+  const fetchInterfaces = () =>
+    astarte
+      .getInterfaceNames()
+      .then((result) => {
+        const interfaceNames = result.data.sort();
+        return Promise.all(
+          interfaceNames.map((interfaceName) =>
+            astarte.getInterfaceMajors(interfaceName).then(({ data }) => ({
+              name: interfaceName,
+              majors: data.sort().reverse(),
+            })),
+          ),
+        );
+      })
+      .then(setInterfaces);
 
   useEffect(() => {
     fetchInterfaces();

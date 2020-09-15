@@ -17,9 +17,7 @@
 */
 
 import React, { useCallback, useState } from 'react';
-import {
-  Button, Form, Row, Spinner,
-} from 'react-bootstrap';
+import { Button, Form, Row, Spinner } from 'react-bootstrap';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
@@ -61,16 +59,10 @@ export default ({ astarte, history }) => {
 
   const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name) && block.name !== 'new';
   const isValidBlockSource = block.source !== '';
-  const isValidBlockType = [
-    'producer',
-    'consumer',
-    'producer_consumer',
-  ].includes(block.type);
+  const isValidBlockType = ['producer', 'consumer', 'producer_consumer'].includes(block.type);
   const isValidBlockSchema = isJSON(block.schema.trim());
-  const isValidBlock = isValidBlockName
-    && isValidBlockSource
-    && isValidBlockType
-    && isValidBlockSchema;
+  const isValidBlock =
+    isValidBlockName && isValidBlockSource && isValidBlockType && isValidBlockSchema;
 
   const handleSubmit = useCallback(() => {
     setIsValidated(true);
@@ -140,13 +132,7 @@ export default ({ astarte, history }) => {
           disabled={isCreatingBlock || !isValidBlock}
         >
           {isCreatingBlock && (
-            <Spinner
-              as="span"
-              size="sm"
-              animation="border"
-              role="status"
-              className="mr-2"
-            />
+            <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
           )}
           Create new block
         </Button>

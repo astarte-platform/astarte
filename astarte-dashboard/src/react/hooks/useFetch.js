@@ -16,9 +16,7 @@
    limitations under the License.
  */
 
-import {
-  useCallback, useEffect, useRef, useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const useFetch = (fetchData) => {
   if (!fetchData) {
@@ -47,9 +45,9 @@ const useFetch = (fetchData) => {
   useEffect(() => {
     isReady.current = true;
     getData();
-    return (() => {
+    return () => {
       isReady.current = false;
-    });
+    };
   }, []);
 
   return {

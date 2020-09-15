@@ -16,9 +16,7 @@
    limitations under the License.
 */
 
-const WaitForData = ({
-  data, status, showRefreshing = false, fallback, children,
-}) => {
+const WaitForData = ({ data, status, showRefreshing = false, fallback, children }) => {
   switch (status) {
     case 'ok':
       return children(data);
