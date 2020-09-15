@@ -31,63 +31,27 @@ const elmApp = require('../elm/Main').Elm.Main;
 let reactHistory = null;
 let dashboardConfig = null;
 let app;
-
 let astarteClient = null;
 
-$.getJSON('/user-config/config.json', (result) => {
-  dashboardConfig = result;
-})
-  .fail(() => {
-    console.log(
-      'Astarte dashboard configuration file (config.json) is missing. Starting in editor only mode',
-    );
-  })
-  .always(() => {
-    const parameters = {
-      config: dashboardConfig,
-      previousSession: localStorage.session || null,
-    };
-
-    // init app
-    app = elmApp.init({ flags: parameters });
-
-    astarteClient = getAstarteClient(dashboardConfig);
-    updateAstarteClientSession();
-
-    /* begin Elm ports */
-    app.ports.storeSession.subscribe((session) => {
-      console.log('storing session');
-      localStorage.session = session;
-
-      updateAstarteClientSession();
-    });
-
-    app.ports.loadReactPage.subscribe(loadPage);
-    app.ports.unloadReactPage.subscribe(clearReact);
-    app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
-
-    app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
-
-    app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
-      if (taggedDate.date) {
-        const convertedDate = new Date(taggedDate.date);
-        app.ports.onDateConverted.send({
-          name: taggedDate.name,
-          date: convertedDate.toLocaleString(),
-        });
-      }
-    });
-
-    window.addEventListener('storage', (event) => {
-      if (event.storageArea === localStorage && event.key === 'session') {
-        console.log('local session changed');
-        app.ports.onSessionChange.send(event.newValue);
-        updateAstarteClientSession();
-      }
-    },
-    false);
-    /* end Elm ports */
+function sendErrorMessage(errorMessage) {
+  app.ports.onDeviceEventReceived.send({
+    message: errorMessage,
+    level: 'error',
+    timestamp: Date.now(),
   });
+}
+
+function sendInfoMessage(infoMessage) {
+  app.ports.onDeviceEventReceived.send({
+    message: infoMessage,
+    level: 'info',
+    timestamp: Date.now(),
+  });
+}
+
+function noMatchFallback(url) {
+  app.ports.onPageRequested.send(url);
+}
 
 function watchDeviceEvents(params) {
   const { deviceId } = params;
@@ -171,22 +135,6 @@ function leaveDeviceRoom() {
   });
 }
 
-function sendErrorMessage(errorMessage) {
-  app.ports.onDeviceEventReceived.send({
-    message: errorMessage,
-    level: 'error',
-    timestamp: Date.now(),
-  });
-}
-
-function sendInfoMessage(infoMessage) {
-  app.ports.onDeviceEventReceived.send({
-    message: infoMessage,
-    level: 'info',
-    timestamp: Date.now(),
-  });
-}
-
 function loadPage(page) {
   const elem = document.getElementById('react-page');
   if (elem) {
@@ -220,10 +168,6 @@ function clearReact() {
   if (elem) {
     elem.remove();
   }
-}
-
-function noMatchFallback(url) {
-  app.ports.onPageRequested.send(url);
 }
 
 function getAstarteClient(config) {
@@ -294,3 +238,58 @@ function updateAstarteClientSession() {
     });
   }
 }
+
+$.getJSON('/user-config/config.json', (result) => {
+  dashboardConfig = result;
+})
+  .fail(() => {
+    console.log(
+      'Astarte dashboard configuration file (config.json) is missing. Starting in editor only mode',
+    );
+  })
+  .always(() => {
+    const parameters = {
+      config: dashboardConfig,
+      previousSession: localStorage.session || null,
+    };
+
+    // init app
+    app = elmApp.init({ flags: parameters });
+
+    astarteClient = getAstarteClient(dashboardConfig);
+    updateAstarteClientSession();
+
+    /* begin Elm ports */
+    app.ports.storeSession.subscribe((session) => {
+      console.log('storing session');
+      localStorage.session = session;
+
+      updateAstarteClientSession();
+    });
+
+    app.ports.loadReactPage.subscribe(loadPage);
+    app.ports.unloadReactPage.subscribe(clearReact);
+    app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
+
+    app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
+
+    app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
+      if (taggedDate.date) {
+        const convertedDate = new Date(taggedDate.date);
+        app.ports.onDateConverted.send({
+          name: taggedDate.name,
+          date: convertedDate.toLocaleString(),
+        });
+      }
+    });
+
+    window.addEventListener('storage', (event) => {
+      if (event.storageArea === localStorage && event.key === 'session') {
+        console.log('local session changed');
+        app.ports.onSessionChange.send(event.newValue);
+        updateAstarteClientSession();
+      }
+    },
+    false);
+    /* end Elm ports */
+  });

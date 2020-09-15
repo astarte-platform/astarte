@@ -23,6 +23,64 @@ import Block from './models/Block';
 
 const { Socket } = require('phoenix');
 
+// Wrap phoenix lib calls in promise for async handling
+function openNewSocketConnection(connectionParams, onErrorHanlder, onCloseHandler) {
+  const { socketUrl, realm, token } = connectionParams;
+
+  return new Promise((resolve) => {
+    const phoenixSocket = new Socket(socketUrl, {
+      params: {
+        realm,
+        token,
+      },
+    });
+    phoenixSocket.onError((e) => onErrorHanlder(e));
+    phoenixSocket.onClose((e) => onCloseHandler(e));
+    phoenixSocket.onOpen(() => { resolve(phoenixSocket); });
+    phoenixSocket.connect();
+  });
+}
+
+function joinChannel(phoenixSocket, channelString) {
+  return new Promise((resolve, reject) => {
+    const channel = phoenixSocket.channel(channelString, {});
+    channel
+      .join()
+      .receive('ok', () => { resolve(channel); })
+      .receive('error', (err) => { reject(err); });
+  });
+}
+
+function leaveChannel(channel) {
+  return new Promise((resolve, reject) => {
+    channel
+      .leave()
+      .receive('ok', () => { resolve(channel); })
+      .receive('error', (err) => { reject(err); });
+  });
+}
+
+function registerTrigger(channel, triggerPayload) {
+  return new Promise((resolve, reject) => {
+    channel
+      .push('watch', triggerPayload)
+      .receive('ok', () => { resolve(channel); })
+      .receive('error', (err) => { reject(err); });
+  });
+}
+
+function astarteAPIurl(strings, baseUrl, ...keys) {
+  return (...values) => {
+    const dict = values[values.length - 1] || {};
+    const result = [strings[1]];
+    keys.forEach((key, i) => {
+      const value = Number.isInteger(key) ? values[key] : dict[key];
+      result.push(value, strings[i + 2]);
+    });
+    return new URL(result.join(''), baseUrl);
+  };
+}
+
 class AstarteClient {
   constructor(config) {
     const internalConfig = {};
@@ -469,65 +527,6 @@ class AstarteClient {
     });
     return rooms;
   }
-}
-
-function astarteAPIurl(strings, baseUrl, ...keys) {
-  return (...values) => {
-    const dict = values[values.length - 1] || {};
-    const result = [strings[1]];
-    keys.forEach((key, i) => {
-      const value = Number.isInteger(key) ? values[key] : dict[key];
-      result.push(value, strings[i + 2]);
-    });
-    return new URL(result.join(''), baseUrl);
-  };
-}
-
-// Wrap phoenix lib calls in promise for async handling
-
-function openNewSocketConnection(connectionParams, onErrorHanlder, onCloseHandler) {
-  const { socketUrl, realm, token } = connectionParams;
-
-  return new Promise((resolve) => {
-    const phoenixSocket = new Socket(socketUrl, {
-      params: {
-        realm,
-        token,
-      },
-    });
-    phoenixSocket.onError((e) => onErrorHanlder(e));
-    phoenixSocket.onClose((e) => onCloseHandler(e));
-    phoenixSocket.onOpen(() => { resolve(phoenixSocket); });
-    phoenixSocket.connect();
-  });
-}
-
-function joinChannel(phoenixSocket, channelString) {
-  return new Promise((resolve, reject) => {
-    const channel = phoenixSocket.channel(channelString, {});
-    channel
-      .join()
-      .receive('ok', () => { resolve(channel); })
-      .receive('error', (err) => { reject(err); });
-  });
-}
-
-function leaveChannel(channel) {
-  return new Promise((resolve, reject) => {
-    channel
-      .leave()
-      .receive('ok', () => { resolve(channel); })
-      .receive('error', (err) => { reject(err); });
-  });
-}
-
-function registerTrigger(channel, triggerPayload) {
-  return new Promise((resolve, reject) => {
-    channel
-      .push('watch', triggerPayload)
-      .receive('ok', () => { resolve(channel); })
-      .receive('error', (err) => { reject(err); });
-  });
 }
 
 function isValidRealmName(name) {
