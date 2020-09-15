@@ -113,25 +113,25 @@ class AstarteClient {
   }
 
   getConfigAuth() {
-    return this._get(this.apiConfig.auth(this.config));
+    return this.$get(this.apiConfig.auth(this.config));
   }
 
   updateConfigAuth(publicKey) {
-    return this._put(this.apiConfig.auth(this.config), {
+    return this.$put(this.apiConfig.auth(this.config), {
       jwt_public_key_pem: publicKey,
     });
   }
 
   getInterfaceNames() {
-    return this._get(this.apiConfig.interfaces(this.config));
+    return this.$get(this.apiConfig.interfaces(this.config));
   }
 
   getInterfaceMajors(interfaceName) {
-    return this._get(this.apiConfig.interfaceMajors({ ...this.config, interfaceName }));
+    return this.$get(this.apiConfig.interfaceMajors({ ...this.config, interfaceName }));
   }
 
   getInterface({ interfaceName, interfaceMajor }) {
-    return this._get(this.apiConfig.interfaceData({
+    return this.$get(this.apiConfig.interfaceData({
       interfaceName,
       interfaceMajor,
       ...this.config,
@@ -139,11 +139,11 @@ class AstarteClient {
   }
 
   getTriggerNames() {
-    return this._get(this.apiConfig.triggers(this.config));
+    return this.$get(this.apiConfig.triggers(this.config));
   }
 
   getDevicesStats() {
-    return this._get(this.apiConfig.devicesStats(this.config));
+    return this.$get(this.apiConfig.devicesStats(this.config));
   }
 
   getDevices(params) {
@@ -167,15 +167,15 @@ class AstarteClient {
       endpointUri.search = new URLSearchParams(query);
     }
 
-    return this._get(endpointUri);
+    return this.$get(endpointUri);
   }
 
   getDeviceInfo(deviceId) {
-    return this._get(this.apiConfig.deviceInfo({ deviceId, ...this.config }));
+    return this.$get(this.apiConfig.deviceInfo({ deviceId, ...this.config }));
   }
 
   getDeviceData({ deviceId, interfaceName }) {
-    return this._get(this.apiConfig.deviceData({
+    return this.$get(this.apiConfig.deviceData({
       deviceId,
       interfaceName,
       ...this.config,
@@ -183,12 +183,12 @@ class AstarteClient {
   }
 
   getGroupList() {
-    return this._get(this.apiConfig.groups(this.config));
+    return this.$get(this.apiConfig.groups(this.config));
   }
 
   createGroup(params) {
     const { groupName, deviceList } = params;
-    return this._post(this.apiConfig.groups(this.config), {
+    return this.$post(this.apiConfig.groups(this.config), {
       group_name: groupName,
       devices: deviceList,
     });
@@ -209,7 +209,7 @@ class AstarteClient {
       endpointUri.search = new URLSearchParams({ details: true });
     }
 
-    return this._get(endpointUri);
+    return this.$get(endpointUri);
   }
 
   removeDeviceFromGroup(params) {
@@ -223,7 +223,7 @@ class AstarteClient {
       throw Error('Invalid device ID');
     }
 
-    return this._delete(
+    return this.$delete(
       this.apiConfig.deviceInGroup({
         ...this.config,
         groupName,
@@ -250,91 +250,91 @@ class AstarteClient {
       requestBody.initial_introspection = encodedintrospection;
     }
 
-    return this._post(this.apiConfig.registerDevice(this.config), requestBody);
+    return this.$post(this.apiConfig.registerDevice(this.config), requestBody);
   }
 
   getFlowInstances() {
-    return this._get(this.apiConfig.flows(this.config));
+    return this.$get(this.apiConfig.flows(this.config));
   }
 
   getFlowDetails(flowName) {
-    return this._get(
+    return this.$get(
       this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }),
     );
   }
 
   createNewFlowInstance(pipelineConfig) {
-    return this._post(this.apiConfig.flows(this.config), pipelineConfig);
+    return this.$post(this.apiConfig.flows(this.config), pipelineConfig);
   }
 
   deleteFlowInstance(flowName) {
-    return this._delete(
+    return this.$delete(
       this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }),
     );
   }
 
   getPipelineDefinitions() {
-    return this._get(
+    return this.$get(
       this.apiConfig.pipelines(this.config),
     );
   }
 
   registerPipeline(pipeline) {
-    return this._post(this.apiConfig.pipelines(this.config), pipeline);
+    return this.$post(this.apiConfig.pipelines(this.config), pipeline);
   }
 
   getPipelineInputConfig(pipelineId) {
-    return this._get(
+    return this.$get(
       this.apiConfig.pipelineSource({ ...this.config, pipelineId }),
     );
   }
 
   getPipelineSource(pipelineId) {
-    return this._get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+    return this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
   }
 
   deletePipeline(pipelineId) {
-    return this._delete(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+    return this.$delete(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
   }
 
   getBlocks() {
-    return this._get(this.apiConfig.blocks(this.config))
+    return this.$get(this.apiConfig.blocks(this.config))
       .then((response) => response.data.map((block) => new Block(block)));
   }
 
   registerBlock(block) {
-    return this._post(this.apiConfig.blocks(this.config), block);
+    return this.$post(this.apiConfig.blocks(this.config), block);
   }
 
   getBlock(blockId) {
-    return this._get(
+    return this.$get(
       this.apiConfig.blockSource({ ...this.config, blockId }),
     ).then((response) => new Block(response.data));
   }
 
   deleteBlock(blockId) {
-    return this._delete(
+    return this.$delete(
       this.apiConfig.blockSource({ ...this.config, blockId }),
     );
   }
 
   getRealmManagementHealth() {
-    return this._get(this.apiConfig.realmManagementHealth(this.config));
+    return this.$get(this.apiConfig.realmManagementHealth(this.config));
   }
 
   getAppengineHealth() {
-    return this._get(this.apiConfig.appengineHealth(this.config));
+    return this.$get(this.apiConfig.appengineHealth(this.config));
   }
 
   getPairingHealth() {
-    return this._get(this.apiConfig.pairingHealth(this.config));
+    return this.$get(this.apiConfig.pairingHealth(this.config));
   }
 
   getFlowHealth() {
-    return this._get(this.apiConfig.flowHealth(this.config));
+    return this.$get(this.apiConfig.flowHealth(this.config));
   }
 
-  _get(url) {
+  $get(url) {
     return axios({
       method: 'get',
       url,
@@ -346,7 +346,7 @@ class AstarteClient {
       .then((response) => response.data);
   }
 
-  _post(url, data) {
+  $post(url, data) {
     return axios({
       method: 'post',
       url,
@@ -361,7 +361,7 @@ class AstarteClient {
       .then((response) => response.data);
   }
 
-  _put(url, data) {
+  $put(url, data) {
     return axios({
       method: 'put',
       url,
@@ -376,7 +376,7 @@ class AstarteClient {
       .then((response) => response.data);
   }
 
-  _delete(url) {
+  $delete(url) {
     return axios({
       method: 'delete',
       url,

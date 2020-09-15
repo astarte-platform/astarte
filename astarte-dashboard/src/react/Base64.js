@@ -17,29 +17,29 @@
 */
 
 const charset = (() => {
-  const _charset = [];
+  const newCharset = [];
   let baseCode;
   let i;
 
   baseCode = 'A'.charCodeAt(0);
   for (i = 0; i < 26; i += 1) {
-    _charset.push(String.fromCharCode(baseCode + i));
+    newCharset.push(String.fromCharCode(baseCode + i));
   }
 
   baseCode = 'a'.charCodeAt(0);
   for (i = 0; i < 26; i += 1) {
-    _charset.push(String.fromCharCode(baseCode + i));
+    newCharset.push(String.fromCharCode(baseCode + i));
   }
 
   baseCode = '0'.charCodeAt(0);
   for (i = 0; i < 10; i += 1) {
-    _charset.push(String.fromCharCode(baseCode + i));
+    newCharset.push(String.fromCharCode(baseCode + i));
   }
 
-  _charset.push('-');
-  _charset.push('_');
+  newCharset.push('-');
+  newCharset.push('_');
 
-  return _charset;
+  return newCharset;
 })();
 
 export function byteArrayToUrlSafeBase64(bytes) {
