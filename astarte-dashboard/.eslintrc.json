@@ -13,7 +13,6 @@
     "no-restricted-syntax": "off",
     "no-underscore-dangle": "off",
     "no-use-before-define": "off",
-    "react/jsx-filename-extension": "off",
     "react/jsx-props-no-spreading": "off",
     "react/no-array-index-key": "off",
     "react/prop-types": "off"

@@ -16,7 +16,7 @@ module.exports = {
         publicPath: ASSET_PATH
     },
     resolve: {
-        extensions: ['.js', '.elm'],
+        extensions: ['.js', '.jsx', '.elm'],
         modules: ['node_modules']
     },
     module: {
