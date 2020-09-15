@@ -51,6 +51,8 @@ defmodule AstarteE2E.MixProject do
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
+      {:logfmt, "~> 3.3"},
+      {:pretty_log, "~> 0.1"},
       {:observer_cli, "~> 1.5"}
     ]
   end
