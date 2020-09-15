@@ -16,16 +16,16 @@
    limitations under the License.
 */
 
-import React from "react";
-import { Container, Toast } from "react-bootstrap";
+import React from 'react';
+import { Container, Toast } from 'react-bootstrap';
 
-import { useGlobalAlertsState } from "../AlertManager";
-import { useRelativeTime } from "../hooks/useRelativeTime";
+import { useGlobalAlertsState } from '../AlertManager';
+import useRelativeTime from '../hooks/useRelativeTime';
 
 const SnackbarAlert = ({ alert, ...props }) => {
   const alertRelativeTime = useRelativeTime(alert.timestamp);
   return (
-    <Toast {...props} onClose={alert.close} className={`mx-auto`}>
+    <Toast {...props} onClose={alert.close} className="mx-auto">
       <Toast.Header className={`bg-${alert.options.variant} text-light`}>
         <span className="mx-auto">{alertRelativeTime}</span>
       </Toast.Header>
@@ -41,7 +41,7 @@ export default () => {
   }
   return (
     <Container fluid className="fixed-bottom p-3">
-      {alerts.map(alert => (
+      {alerts.map((alert) => (
         <SnackbarAlert key={alert.id} alert={alert} />
       ))}
     </Container>

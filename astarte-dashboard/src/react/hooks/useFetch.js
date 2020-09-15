@@ -16,7 +16,9 @@
    limitations under the License.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback, useEffect, useRef, useState,
+} from 'react';
 
 const useFetch = (fetchData) => {
   if (!fetchData) {
@@ -24,21 +26,21 @@ const useFetch = (fetchData) => {
   }
 
   const [data, setData] = useState(null);
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState('loading');
   const [error, setError] = useState({});
   const isReady = useRef(false);
 
   const getData = useCallback(async () => {
-    setStatus("loading");
+    setStatus('loading');
     try {
       const response = await fetchData();
       if (isReady.current) {
         setData(response.data);
-        setStatus("ok");
+        setStatus('ok');
       }
     } catch (err) {
       setError(err);
-      setStatus("err");
+      setStatus('err');
     }
   }, [isReady]);
 
@@ -51,10 +53,10 @@ const useFetch = (fetchData) => {
   }, []);
 
   return {
-    status: status,
+    status,
     value: data,
-    error: error,
-    refresh: getData
+    error,
+    refresh: getData,
   };
 };
 

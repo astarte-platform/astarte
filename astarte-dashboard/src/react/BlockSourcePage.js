@@ -16,21 +16,23 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Button, Col, Row, Spinner } from "react-bootstrap";
-import SyntaxHighlighter from "react-syntax-highlighter";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Button, Col, Row, Spinner,
+} from 'react-bootstrap';
+import SyntaxHighlighter from 'react-syntax-highlighter';
 
-import { useAlerts } from "./AlertManager";
-import SingleCardPage from "./ui/SingleCardPage.js";
+import { useAlerts } from './AlertManager';
+import SingleCardPage from './ui/SingleCardPage';
 
 const blockTypeToLabel = {
-  consumer: "Consumer",
-  producer: "Producer",
-  producer_consumer: "Producer & Consumer",
+  consumer: 'Consumer',
+  producer: 'Producer',
+  producer_consumer: 'Producer & Consumer',
 };
 
 export default ({ astarte, history, blockId }) => {
-  const [phase, setPhase] = useState("loading");
+  const [phase, setPhase] = useState('loading');
   const [block, setBlock] = useState(null);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const deletionAlerts = useAlerts();
@@ -39,17 +41,15 @@ export default ({ astarte, history, blockId }) => {
     setIsDeletingBlock(true);
     astarte
       .deleteBlock(blockId)
-      .then(() => history.push(`/blocks`))
+      .then(() => history.push('/blocks'))
       .catch((err) => {
         setIsDeletingBlock(false);
-        addAlert(`Couldn't delete block: ${err.message}`);
         deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
       });
   }, [
     astarte,
     history,
     setIsDeletingBlock,
-    addAlert,
     blockId,
     deletionAlerts.showError,
   ]);
@@ -57,11 +57,11 @@ export default ({ astarte, history, blockId }) => {
   useEffect(() => {
     astarte
       .getBlock(blockId)
-      .then((block) => {
-        setBlock(block);
-        setPhase("ok");
+      .then((fetchedBlock) => {
+        setBlock(fetchedBlock);
+        setPhase('ok');
       })
-      .catch(() => setPhase("err"));
+      .catch(() => setPhase('err'));
   }, [astarte, setBlock, setPhase]);
 
   const ContentCard = ({ children }) => (
@@ -71,7 +71,7 @@ export default ({ astarte, history, blockId }) => {
   );
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       return (
         <>
           <ContentCard>
@@ -83,12 +83,12 @@ export default ({ astarte, history, blockId }) => {
                 <h5 className="mt-2 mb-2">Type</h5>
                 <p>{blockTypeToLabel[block.type]}</p>
                 {block.source && (
-                  <React.Fragment>
+                  <>
                     <h5 className="mt-2 mb-2">Source</h5>
                     <SyntaxHighlighter language="json" showLineNumbers="true">
                       {block.source}
                     </SyntaxHighlighter>
-                  </React.Fragment>
+                  </>
                 )}
                 <h5 className="mt-2 mb-2">Schema</h5>
                 <SyntaxHighlighter language="json" showLineNumbers="true">
@@ -110,7 +110,7 @@ export default ({ astarte, history, blockId }) => {
                     size="sm"
                     animation="border"
                     role="status"
-                    className={"mr-2"}
+                    className="mr-2"
                   />
                 )}
                 Delete block
@@ -120,10 +120,10 @@ export default ({ astarte, history, blockId }) => {
         </>
       );
 
-    case "err":
+    case 'err':
       return (
         <ContentCard>
-          <p>Couldn't load block source</p>
+          <p>Couldn&apos;t load block source</p>
         </ContentCard>
       );
 

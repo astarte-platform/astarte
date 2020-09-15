@@ -16,55 +16,57 @@
    limitations under the License.
 */
 
-import React from "react";
+import React from 'react';
 import {
   Router,
   Switch,
   Route,
   useParams,
   useLocation,
-} from "react-router-dom";
+} from 'react-router-dom';
 
-import LoginPage from "./LoginPage.js";
-import HomePage from "./HomePage.js";
-import GroupsPage from "./GroupsPage.js";
-import GroupDevicesPage from "./GroupDevicesPage.js";
-import NewGroupPage from "./NewGroupPage.js";
-import TriggersPage from "./TriggersPage.js";
-import InterfacesPage from "./InterfacesPage.js";
-import DevicesPage from "./DevicesPage.js";
-import RegisterDevicePage from "./RegisterDevicePage.js";
-import FlowInstancesPage from "./FlowInstancesPage.js";
-import FlowDetailsPage from "./FlowDetailsPage.js";
-import FlowConfigurationPage from "./FlowConfigurationPage.js";
-import PipelinesPage from "./PipelinesPage.js";
-import PipelineSourcePage from "./PipelineSourcePage.js";
-import NewPipelinePage from "./NewPipelinePage.js";
-import BlocksPage from "./BlocksPage.js";
-import BlockSourcePage from "./BlockSourcePage.js";
-import NewBlockPage from "./NewBlockPage.js";
-import RealmSettingsPage from "./RealmSettingsPage.js";
-import DeviceInterfaceValues from "./DeviceInterfaceValues.js";
+import LoginPage from './LoginPage';
+import HomePage from './HomePage';
+import GroupsPage from './GroupsPage';
+import GroupDevicesPage from './GroupDevicesPage';
+import NewGroupPage from './NewGroupPage';
+import TriggersPage from './TriggersPage';
+import InterfacesPage from './InterfacesPage';
+import DevicesPage from './DevicesPage';
+import RegisterDevicePage from './RegisterDevicePage';
+import FlowInstancesPage from './FlowInstancesPage';
+import FlowDetailsPage from './FlowDetailsPage';
+import FlowConfigurationPage from './FlowConfigurationPage';
+import PipelinesPage from './PipelinesPage';
+import PipelineSourcePage from './PipelineSourcePage';
+import NewPipelinePage from './NewPipelinePage';
+import BlocksPage from './BlocksPage';
+import BlockSourcePage from './BlockSourcePage';
+import NewBlockPage from './NewBlockPage';
+import RealmSettingsPage from './RealmSettingsPage';
+import DeviceInterfaceValues from './DeviceInterfaceValues';
 
-export default ({ reactHistory, astarteClient, config, fallback }) => {
+export default ({
+  reactHistory, astarteClient, config, fallback,
+}) => {
   const pageProps = {
-      history: reactHistory,
-      astarte: astarteClient
-  }
+    history: reactHistory,
+    astarte: astarteClient,
+  };
 
   return (
     <Router history={reactHistory}>
       <Switch>
-        <Route exact path={["/", "/home"]}>
+        <Route exact path={['/', '/home']}>
           <HomePage {...pageProps} />
         </Route>
         <Route path="/login">
           <Login
             allowSwitching={config.auth.length > 1}
-            defaultLoginType={config.default_auth || "token"}
-            defaultRealm={config.default_realm || ""}
+            defaultLoginType={config.default_auth || 'token'}
+            defaultRealm={config.default_realm || ''}
             {...pageProps}
-            />
+          />
         </Route>
         <Route exact path="/triggers">
           <TriggersPage {...pageProps} />
@@ -126,11 +128,11 @@ export default ({ reactHistory, astarteClient, config, fallback }) => {
       </Switch>
     </Router>
   );
-}
+};
 
-function Login(props) {
+function Login({ defaultLoginType, ...props }) {
   const { search } = useLocation();
-  const loginType = new URLSearchParams(search).get("type") || props.defaultLoginType;
+  const loginType = new URLSearchParams(search).get('type') || defaultLoginType;
 
   return (
     <LoginPage
@@ -189,10 +191,10 @@ function DeviceDataSubPath(props) {
   );
 }
 
-function NoMatch(props) {
-  const pageLocation = useLocation()
+function NoMatch({ fallback }) {
+  const pageLocation = useLocation();
   const relativeUrl = [pageLocation.pathname, pageLocation.search, pageLocation.hash].join('');
-  props.fallback(relativeUrl);
+  fallback(relativeUrl);
 
   return <p>Redirecting...</p>;
 }

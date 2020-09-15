@@ -12,8 +12,8 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Badge,
   Button,
@@ -22,7 +22,7 @@ import {
   ListGroup,
   Row,
   Spinner,
-} from "react-bootstrap";
+} from 'react-bootstrap';
 
 const InterfaceRow = ({ name, majors }) => (
   <ListGroup.Item>
@@ -30,18 +30,19 @@ const InterfaceRow = ({ name, majors }) => (
       <Row>
         <Col>
           <Link to={`/interfaces/${name}/${Math.max(...majors)}`}>
-            <i className="fas fa-stream mr-2"></i>
+            <i className="fas fa-stream mr-2" />
             {name}
           </Link>
         </Col>
-        <Col md={"auto"}>
+        <Col md="auto">
           {majors.map((major) => (
             <Link key={major} to={`/interfaces/${name}/${major}`}>
               <Badge
-                variant={major > 0 ? "primary" : "secondary"}
+                variant={major > 0 ? 'primary' : 'secondary'}
                 className="mr-1 px-2 py-1"
               >
-                v{major}
+                v
+                {major}
               </Badge>
             </Link>
           ))}
@@ -59,21 +60,19 @@ const LoadingRow = () => (
 
 export default ({ history, astarte }) => {
   const [interfaces, setInterfaces] = useState(null);
-  const fetchInterfaces = () =>
-    astarte
-      .getInterfaceNames()
-      .then((result) => {
-        const interfaceNames = result.data.sort();
-        return Promise.all(
-          interfaceNames.map((interfaceName) =>
-            astarte.getInterfaceMajors(interfaceName).then((result) => ({
-              name: interfaceName,
-              majors: result.data.sort().reverse(),
-            }))
-          )
-        );
-      })
-      .then(setInterfaces);
+  const fetchInterfaces = () => astarte
+    .getInterfaceNames()
+    .then((result) => {
+      const interfaceNames = result.data.sort();
+      return Promise.all(
+        interfaceNames
+          .map((interfaceName) => astarte.getInterfaceMajors(interfaceName).then(({ data }) => ({
+            name: interfaceName,
+            majors: data.sort().reverse(),
+          }))),
+      );
+    })
+    .then(setInterfaces);
 
   useEffect(() => {
     fetchInterfaces();
@@ -95,9 +94,10 @@ export default ({ history, astarte }) => {
               <Button
                 variant="link"
                 className="p-0"
-                onClick={() => history.push("/interfaces/new")}
+                onClick={() => history.push('/interfaces/new')}
               >
-                <i className="fas fa-plus mr-2"></i>Install a new interface...
+                <i className="fas fa-plus mr-2" />
+                Install a new interface...
               </Button>
             </ListGroup.Item>
             {interfaces ? (

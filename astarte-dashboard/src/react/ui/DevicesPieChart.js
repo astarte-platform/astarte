@@ -16,37 +16,37 @@
    limitations under the License.
 */
 
-import React from "react";
-import {Pie} from 'react-chartjs-2';
+import React from 'react';
+import { Pie } from 'react-chartjs-2';
 
 export default function DevicesPieChart(props) {
-  const {connectedDevices, disconnectedDevices} = props;
+  const { connectedDevices, disconnectedDevices } = props;
 
   const data = {
     labels: [
       'Disconnected',
-      'Connected'
+      'Connected',
     ],
     datasets: [{
       data: [
         disconnectedDevices,
-        connectedDevices
+        connectedDevices,
       ],
       backgroundColor: [
-        "#cc5b6d", // red
-        "#5bcc6c"  // green
+        '#cc5b6d', // red
+        '#5bcc6c', // green
       ],
-      label: 'Devices'
-    }]
+      label: 'Devices',
+    }],
   };
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     legend: {
-      position: "right",
-      align: "start"
-    }
+      position: 'right',
+      align: 'start',
+    },
   };
 
   return (

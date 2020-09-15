@@ -16,17 +16,17 @@
    limitations under the License.
 */
 
-import { useCallback, useState } from "react";
-import dayjs from "dayjs";
-import dayjsRelativeTime from "dayjs/plugin/relativeTime";
+import { useCallback, useState } from 'react';
+import dayjs from 'dayjs';
+import dayjsRelativeTime from 'dayjs/plugin/relativeTime';
 
-import { useInterval } from "./useInterval";
+import useInterval from './useInterval';
 
 dayjs.extend(dayjsRelativeTime);
 
-export const useRelativeTime = (dateTime) => {
+export default (dateTime) => {
   const [relativeTimeString, setRelativeTimeString] = useState(
-    dayjs(dateTime).fromNow()
+    dayjs(dateTime).fromNow(),
   );
   const refreshRelativeTimeString = useCallback(() => {
     setRelativeTimeString(dayjs(dateTime).fromNow());

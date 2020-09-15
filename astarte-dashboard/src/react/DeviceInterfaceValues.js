@@ -16,22 +16,26 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from "react";
-import { Card, Container, Spinner, Table } from "react-bootstrap";
+import React, { useEffect, useState } from 'react';
+import {
+  Card, Container, Spinner, Table,
+} from 'react-bootstrap';
 
-import Device from "./astarte/Device.js";
-import BackButton from "./ui/BackButton.js";
-import WaitForData from "./components/WaitForData.js";
-import useFetch from "./hooks/useFetch.js";
-import { useAlerts } from "./AlertManager";
+import Device from './astarte/Device';
+import BackButton from './ui/BackButton';
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
+import { useAlerts } from './AlertManager';
 
 const MAX_SHOWN_VALUES = 20;
 
-const DeviceInterfaceValues = ({ astarte, hisory, deviceId, interfaceName }) => {
-  const [ interfaceType, setInterfaceType ] = useState(null);
+const DeviceInterfaceValues = ({
+  astarte, deviceId, interfaceName,
+}) => {
+  const [interfaceType, setInterfaceType] = useState(null);
   const deviceData = useFetch(() => astarte.getDeviceData({
-    deviceId: deviceId,
-    interfaceName: interfaceName,
+    deviceId,
+    interfaceName,
   }));
 
   const deviceAlerts = useAlerts();
@@ -48,16 +52,16 @@ const DeviceInterfaceValues = ({ astarte, hisory, deviceId, interfaceName }) => 
       }
 
       const interfaceSrc = await astarte.getInterface({
-        interfaceName: interfaceName,
+        interfaceName,
         interfaceMajor: interfaceIntrospection.major,
       })
         .catch(() => { throw new Error('Could not retrieve interface properties.'); });
 
       const interfaceData = interfaceSrc.data;
 
-      if (interfaceData.type == 'properties') {
+      if (interfaceData.type === 'properties') {
         setInterfaceType('properties');
-      } else if (interfaceData.type == 'datastream' && interfaceData.aggregation == 'object') {
+      } else if (interfaceData.type === 'datastream' && interfaceData.aggregation === 'object') {
         setInterfaceType('datastream-object');
       } else {
         setInterfaceType('datastream-individual');
@@ -72,10 +76,16 @@ const DeviceInterfaceValues = ({ astarte, hisory, deviceId, interfaceName }) => 
 
   return (
     <Container fluid className="p-3">
-      <h2><BackButton href={`/devices/${deviceId}`} />Interface Data</h2>
+      <h2>
+        <BackButton href={`/devices/${deviceId}`} />
+        Interface Data
+      </h2>
       <Card className="mt-4">
         <Card.Header>
-          <span className="text-monospace">{deviceId}</span> / {interfaceName}
+          <span className="text-monospace">{deviceId}</span>
+          {' '}
+          /
+          {interfaceName}
         </Card.Header>
         <Card.Body>
           <deviceAlerts.Alerts />
@@ -94,38 +104,38 @@ const DeviceInterfaceValues = ({ astarte, hisory, deviceId, interfaceName }) => 
   );
 };
 
-const InterfaceData = ({data, type}) => {
+const InterfaceData = ({ data, type }) => {
   switch (type) {
-  case "properties":
-    return (
-      <PropertyTree data={data} />
-    );
-
-  case "datastream-object":
-    if (data.length > 0) {
+    case 'properties':
       return (
-        <>
-          <h5 className="mb-1">Latest sent objects</h5>
-          <ObjectDatastreamTable data={data.slice(0, MAX_SHOWN_VALUES)} />
-        </>
+        <PropertyTree data={data} />
       );
-    } else {
+
+    case 'datastream-object':
+      if (data.length > 0) {
+        return (
+          <>
+            <h5 className="mb-1">Latest sent objects</h5>
+            <ObjectDatastreamTable data={data.slice(0, MAX_SHOWN_VALUES)} />
+          </>
+        );
+      }
       return (
         <p>No data sent by the device.</p>
       );
-    }
 
-  case "datastream-individual":
-    return (
-      <IndividualDatastreamTable data={data} />
-    );
+    case 'datastream-individual':
+      return (
+        <IndividualDatastreamTable data={data} />
+      );
+
+    default:
+      // TODO autodetect interface type from data structure
+      return null;
   }
-
-  // TODO autodetect interface type from data structure
-  return null;
 };
 
-const PropertyTree = ({data}) => (
+const PropertyTree = ({ data }) => (
   <pre>
     <code>
       {JSON.stringify(data, null, 2)}
@@ -133,8 +143,8 @@ const PropertyTree = ({data}) => (
   </pre>
 );
 
-const IndividualDatastreamTable = ({data}) => {
-  const paths = linearizePathTree("", data);
+const IndividualDatastreamTable = ({ data }) => {
+  const paths = linearizePathTree('', data);
 
   return (
     <Table>
@@ -146,20 +156,20 @@ const IndividualDatastreamTable = ({data}) => {
         </tr>
       </thead>
       <tbody>
-        { paths.map(({path, value, timestamp}) =>
+        { paths.map(({ path, value, timestamp }) => (
           <IndividualDatastreamRow
             key={path}
             path={path}
             value={value}
             timestamp={timestamp}
           />
-        )}
+        ))}
       </tbody>
     </Table>
   );
 };
 
-const IndividualDatastreamRow = ({path, value, timestamp}) => (
+const IndividualDatastreamRow = ({ path, value, timestamp }) => (
   <tr>
     <td>{path}</td>
     <td>{value}</td>
@@ -167,11 +177,11 @@ const IndividualDatastreamRow = ({path, value, timestamp}) => (
   </tr>
 );
 
-const ObjectDatastreamTable = ({data}) => {
+const ObjectDatastreamTable = ({ data }) => {
   const labels = [];
 
-  for (let prop in data[0]) {
-    if (prop != "timestamp") {
+  for (const prop in data[0]) {
+    if (prop !== 'timestamp') {
       labels.push(prop);
     }
   }
@@ -191,7 +201,7 @@ const ObjectDatastreamTable = ({data}) => {
   );
 };
 
-const ObjectDatastreamRow = ({labels, obj}) => (
+const ObjectDatastreamRow = ({ labels, obj }) => (
   <tr>
     { labels.map((label) => <td key={label}>{obj[label]}</td>) }
     <td>{new Date(obj.timestamp).toLocaleString()}</td>
@@ -203,17 +213,16 @@ function linearizePathTree(prefix, data) {
 }
 
 function linearizeHelper(prefix, key, value) {
-  const newPrefix = prefix + "/" + key;
+  const newPrefix = `${prefix}/${key}`;
 
   if (value.value && typeof value.value !== 'object') {
     return {
       path: newPrefix,
       value: value.value,
-      timestamp: value.timestamp
+      timestamp: value.timestamp,
     };
-  } else {
-    return linearizePathTree(newPrefix, value).flat();
   }
+  return linearizePathTree(newPrefix, value).flat();
 }
 
 export default DeviceInterfaceValues;

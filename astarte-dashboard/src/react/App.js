@@ -16,22 +16,20 @@
    limitations under the License.
 */
 
-import React from "react";
+import React from 'react';
 
-import AlertsProvider from "./AlertManager";
-import Router from "./Router";
-import Snackbar from "./ui/Snackbar";
+import AlertsProvider from './AlertManager';
+import Router from './Router';
+import Snackbar from './ui/Snackbar';
 
-export default (reactHistory, astarteClient, config, fallback) => {
-  return (
-    <AlertsProvider>
-      <Router
-        reactHistory={reactHistory}
-        astarteClient={astarteClient}
-        config={config}
-        fallback={fallback}
-      />
-      <Snackbar />
-    </AlertsProvider>
-  );
-};
+export default (reactHistory, astarteClient, config, fallback) => (
+  <AlertsProvider>
+    <Router
+      reactHistory={reactHistory}
+      astarteClient={astarteClient}
+      config={config}
+      fallback={fallback}
+    />
+    <Snackbar />
+  </AlertsProvider>
+);

@@ -18,7 +18,7 @@
 
 export default class Device {
   constructor() {
-    this.id = "";
+    this.id = '';
     this.aliases = {};
     this.connected = false;
     this.introspection = [];
@@ -30,22 +30,21 @@ export default class Device {
   }
 
   get hasNameAlias() {
-    return this.aliases.has("name");
+    return this.aliases.has('name');
   }
 
   get name() {
     if (this.hasNameAlias) {
-      return this.aliases.get("name");
-    } else {
-      return this.id;
+      return this.aliases.get('name');
     }
+    return this.id;
   }
 
   static fromJSON(jsonValue) {
     let device;
     try {
       const obj = JSON.parse(jsonValue);
-      device = fromObject(obj);
+      device = Device.fromObject(obj);
     } catch (err) {
       return null;
     }
@@ -54,46 +53,46 @@ export default class Device {
   }
 
   static fromObject(obj) {
-    let device = new Device();
+    const device = new Device();
 
     if (obj.id) {
       device.id = obj.id;
     } else {
-      throw "Missing device id";
+      throw new Error('Missing device id');
     }
 
-    if ("connected" in obj) {
+    if ('connected' in obj) {
       device.connected = obj.connected;
     }
 
-    if ("credentials_inhibited" in obj) {
+    if ('credentials_inhibited' in obj) {
       device.credentialsInhibited = obj.credentials_inhibited;
     }
 
-    if ("aliases" in obj) {
+    if ('aliases' in obj) {
       device.aliases = new Map();
-      for (let [key, value] of Object.entries(obj.aliases)) {
+      for (const [key, value] of Object.entries(obj.aliases)) {
         device.aliases.set(key, value);
       }
     }
 
-    if ("groups" in obj) {
+    if ('groups' in obj) {
       device.groups = obj.groups;
     }
 
-    if ("introspection" in obj) {
+    if ('introspection' in obj) {
       device.introspection = obj.introspection;
     }
 
-    if ("previous_interfaces" in obj) {
+    if ('previous_interfaces' in obj) {
       device.previousInterfaces = obj.previous_interfaces;
     }
 
-    if ("total_received_msgs" in obj) {
+    if ('total_received_msgs' in obj) {
       device.totalReceivedMsgs = obj.total_received_msgs;
     }
 
-    if ("total_received_bytes" in obj) {
+    if ('total_received_bytes' in obj) {
       device.totalReceivedBytes = obj.total_received_msgs;
     }
 

@@ -16,11 +16,13 @@
    limitations under the License.
 */
 
-import React, { useCallback, useState } from "react";
-import { Button, Form, Row, Spinner } from "react-bootstrap";
+import React, { useCallback, useState } from 'react';
+import {
+  Button, Form, Row, Spinner,
+} from 'react-bootstrap';
 
-import { useAlerts } from "./AlertManager";
-import SingleCardPage from "./ui/SingleCardPage.js";
+import { useAlerts } from './AlertManager';
+import SingleCardPage from './ui/SingleCardPage';
 
 const isJSON = (string) => {
   try {
@@ -33,10 +35,10 @@ const isJSON = (string) => {
 
 export default ({ astarte, history }) => {
   const [block, setBlock] = useState({
-    name: "",
-    source: "",
-    type: "producer",
-    schema: "",
+    name: '',
+    source: '',
+    type: 'producer',
+    schema: '',
   });
   const [isValidated, setIsValidated] = useState(false);
   const [isCreatingBlock, setIsCreatingBlock] = useState(false);
@@ -50,27 +52,25 @@ export default ({ astarte, history }) => {
     };
     astarte
       .registerBlock(newBlock)
-      .then(() => history.push("/blocks"))
+      .then(() => history.push('/blocks'))
       .catch((err) => {
         setIsCreatingBlock(false);
         creationAlerts.showError(`Couldn't create block: ${err.message}`);
       });
   }, [block, creationAlerts.showError]);
 
-  const isValidBlockName =
-    /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name) && block.name !== "new";
-  const isValidBlockSource = block.source !== "";
+  const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name) && block.name !== 'new';
+  const isValidBlockSource = block.source !== '';
   const isValidBlockType = [
-    "producer",
-    "consumer",
-    "producer_consumer",
+    'producer',
+    'consumer',
+    'producer_consumer',
   ].includes(block.type);
   const isValidBlockSchema = isJSON(block.schema.trim());
-  const isValidBlock =
-    isValidBlockName &&
-    isValidBlockSource &&
-    isValidBlockType &&
-    isValidBlockSchema;
+  const isValidBlock = isValidBlockName
+    && isValidBlockSource
+    && isValidBlockType
+    && isValidBlockSchema;
 
   const handleSubmit = useCallback(() => {
     setIsValidated(true);
@@ -80,7 +80,7 @@ export default ({ astarte, history }) => {
   }, [setIsValidated, createBlock, isValidBlock]);
 
   return (
-    <React.Fragment>
+    <>
       <SingleCardPage title="New Block" backLink="/blocks">
         <creationAlerts.Alerts />
         <Form noValidate>
@@ -145,12 +145,12 @@ export default ({ astarte, history }) => {
               size="sm"
               animation="border"
               role="status"
-              className={"mr-2"}
+              className="mr-2"
             />
           )}
           Create new block
         </Button>
       </Row>
-    </React.Fragment>
+    </>
   );
 };

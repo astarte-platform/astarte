@@ -16,19 +16,19 @@
    limitations under the License.
 */
 
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from 'react';
 import {
   Button,
   Col,
   Container,
   Form,
-  Row
-} from "react-bootstrap";
-import { isValidRealmName, validateAstarteToken } from "./AstarteClient.js";
+  Row,
+} from 'react-bootstrap';
+import { isValidRealmName, validateAstarteToken } from './AstarteClient';
 
 function isValidUrl(urlString) {
   try {
+    // eslint-disable-next-line no-new
     new URL(urlString);
     return true;
   } catch (error) {
@@ -39,17 +39,17 @@ function isValidUrl(urlString) {
 function tokenValidationFeedback(tokenValidation) {
   let message = null;
 
-  switch(tokenValidation) {
-    case "expired":
-      message = "Provided token has expired."
+  switch (tokenValidation) {
+    case 'expired':
+      message = 'Provided token has expired.';
       break;
 
-    case "notAnAstarteToken":
-      message = "Provided JWT token has no usable Astarte claims."
+    case 'notAnAstarteToken':
+      message = 'Provided JWT token has no usable Astarte claims.';
       break;
 
-    case "invalid":
-      message = "Invalid JWT token.";
+    case 'invalid':
+      message = 'Invalid JWT token.';
       break;
 
     default:
@@ -63,9 +63,11 @@ function tokenValidationFeedback(tokenValidation) {
   );
 }
 
-const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => {
+const TokenForm = ({
+  allowSwitching, defaultRealm, onSwitchLogin, onLogin,
+}) => {
   const [realm, setRealm] = useState(defaultRealm);
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState('');
   const isValidRealm = isValidRealmName(realm);
   const tokenValidation = validateAstarteToken(token);
 
@@ -73,15 +75,15 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
     event.preventDefault();
     event.stopPropagation();
 
-    const searchParams = new URLSearchParams({realm});
-    const hashParams = new URLSearchParams({access_token: token});
+    const searchParams = new URLSearchParams({ realm });
+    const hashParams = new URLSearchParams({ access_token: token });
 
     onLogin(`/auth?${searchParams}#${hashParams}`);
   };
 
   const AstartectlLink = () => (
-    <a href="https://github.com/astarte-platform/astartectl#installation" target="_blank">astartectl</a>
-  )
+    <a href="https://github.com/astarte-platform/astartectl#installation" target="_blank" rel="noreferrer">astartectl</a>
+  );
 
   return (
     <Form className="login-form p-3 w-100" onSubmit={handleTokenLogin}>
@@ -91,9 +93,9 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
           type="text"
           placeholder="Astarte Realm"
           value={realm}
-          onChange={(e) => {setRealm(e.target.value)}}
-          isValid={realm !== "" && isValidRealm}
-          isInvalid={realm !== "" && !isValidRealm}
+          onChange={(e) => { setRealm(e.target.value); }}
+          isValid={realm !== '' && isValidRealm}
+          isInvalid={realm !== '' && !isValidRealm}
           required
         />
       </Form.Group>
@@ -104,9 +106,9 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
           rows={6}
           placeholder="Auth token"
           value={token}
-          onChange={(e) => {setToken(e.target.value.trim())}}
-          isValid={token !== "" && tokenValidation === "valid"}
-          isInvalid={token !== "" && tokenValidation !== "valid"}
+          onChange={(e) => { setToken(e.target.value.trim()); }}
+          isValid={token !== '' && tokenValidation === 'valid'}
+          isInvalid={token !== '' && tokenValidation !== 'valid'}
           required
         />
         { tokenValidationFeedback(tokenValidation) }
@@ -114,7 +116,7 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
       <Button
         type="submit"
         variant="primary"
-        disabled={!isValidRealm || tokenValidation !== "valid"}
+        disabled={!isValidRealm || tokenValidation !== 'valid'}
         className="w-100"
       >
         Login
@@ -123,23 +125,30 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
         <div className="d-flex flex-row-reverse mt-2">
           <Button
             variant="link"
-            onClick={() => onSwitchLogin("oauth")}
+            onClick={() => onSwitchLogin('oauth')}
           >
             Switch to OAuth login
           </Button>
         </div>
       )}
       <div className="container-fluid border rounded p-2 bg-light mt-3">
-        A valid JWT token should be used, you can use <AstartectlLink /> to generate one:<br />
+        A valid JWT token should be used, you can use
+        {' '}
+        <AstartectlLink />
+        {' '}
+        to generate one:
+        <br />
         <code>$ astartectl utils gen-jwt all-realm-apis -k your_key.pem</code>
       </div>
     </Form>
   );
-}
+};
 
-const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => {
+const OAuthForm = ({
+  allowSwitching, onSwitchLogin, defaultRealm, onLogin,
+}) => {
   const [realm, setRealm] = useState(defaultRealm);
-  const [providerUrl, setProviderUrl] = useState("");
+  const [providerUrl, setProviderUrl] = useState('');
   const isValidRealm = isValidRealmName(realm);
   const isValidProviderUrl = isValidUrl(providerUrl);
 
@@ -147,17 +156,17 @@ const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => 
     event.preventDefault();
     event.stopPropagation();
 
-    const dashboardLoginUrl = new URL('auth', location);
+    const dashboardLoginUrl = new URL('auth', window.location);
     dashboardLoginUrl.search = new URLSearchParams({
-      realm: realm,
-      authUrl: providerUrl
+      realm,
+      authUrl: providerUrl,
     });
 
     const oauthLoginUrl = new URL(providerUrl);
     oauthLoginUrl.search = new URLSearchParams({
-      client_id: "astarte-dashboard",
-      response_type: "token",
-      redirect_uri: dashboardLoginUrl
+      client_id: 'astarte-dashboard',
+      response_type: 'token',
+      redirect_uri: dashboardLoginUrl,
     });
 
     onLogin(oauthLoginUrl.toString());
@@ -171,9 +180,9 @@ const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => 
           type="text"
           placeholder="Astarte Realm"
           value={realm}
-          onChange={(e) => {setRealm(e.target.value)}}
-          isValid={realm !== "" && isValidRealm}
-          isInvalid={realm !== "" && !isValidRealm}
+          onChange={(e) => { setRealm(e.target.value); }}
+          isValid={realm !== '' && isValidRealm}
+          isInvalid={realm !== '' && !isValidRealm}
           required
         />
       </Form.Group>
@@ -183,9 +192,9 @@ const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => 
           type="text"
           placeholder="Astarte Realm"
           value={providerUrl}
-          onChange={(e) => {setProviderUrl(e.target.value)}}
-          isValid={providerUrl !== "" && isValidProviderUrl}
-          isInvalid={providerUrl !== "" && !isValidProviderUrl}
+          onChange={(e) => { setProviderUrl(e.target.value); }}
+          isValid={providerUrl !== '' && isValidProviderUrl}
+          isInvalid={providerUrl !== '' && !isValidProviderUrl}
           required
         />
       </Form.Group>
@@ -201,7 +210,7 @@ const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => 
         <div className="d-flex flex-row-reverse mt-2">
           <Button
             variant="link"
-            onClick={() => onSwitchLogin("token")}
+            onClick={() => onSwitchLogin('token')}
           >
             Switch to token login
           </Button>
@@ -209,41 +218,45 @@ const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => 
       )}
     </Form>
   );
-}
+};
 
-const LeftColumn = () => {
-  return (
-    <Col lg={6} sm={false} className="p-0 no-gutters">
-      <div className="d-flex flex-column align-items-center justify-content-center position-relative login-image-container">
-        <img
-          src="/static/img/background-login-top.svg"
-          className="w-100 position-absolute top-background-image"
-        />
-        <img
-          src="/static/img/background-login-bottom.svg"
-          className="w-100 position-absolute bottom-background-image"
-        />
-        <img
-          src="/static/img/logo-login.svg"
-          className="logo m-4"
-        />
-        <img
-          src="/static/img/mascotte-computer.svg"
-          className="mascotte m-4"
-        />
-      </div>
-    </Col>
-  );
-}
+const LeftColumn = () => (
+  <Col lg={6} sm={false} className="p-0 no-gutters">
+    <div className="d-flex flex-column align-items-center justify-content-center position-relative login-image-container">
+      <img
+        src="/static/img/background-login-top.svg"
+        alt="Background visual spacer"
+        className="w-100 position-absolute top-background-image"
+      />
+      <img
+        src="/static/img/background-login-bottom.svg"
+        alt="Background visual spacer"
+        className="w-100 position-absolute bottom-background-image"
+      />
+      <img
+        src="/static/img/logo-login.svg"
+        alt="Astarte logo"
+        className="logo m-4"
+      />
+      <img
+        src="/static/img/mascotte-computer.svg"
+        alt="Astarte mascotte"
+        className="mascotte m-4"
+      />
+    </div>
+  </Col>
+);
 
-const RightColumn = ({ allowSwitching, onSwitchLogin, defaultRealm, type, onLogin }) => {
+const RightColumn = ({
+  allowSwitching, defaultRealm, type, onLogin,
+}) => {
   const [loginType, setLoginType] = useState(type);
-  const handleLoginSwitch = (value) => { setLoginType(value) }
+  const handleLoginSwitch = (value) => { setLoginType(value); };
 
   return (
     <Col lg={6} sm={12} className="bg-white d-flex flex-column align-items-center justify-content-center">
       <h1>Sign In</h1>
-      { loginType == "oauth" ? (
+      { loginType === 'oauth' ? (
         <OAuthForm
           defaultRealm={defaultRealm}
           allowSwitching={allowSwitching}
@@ -260,20 +273,20 @@ const RightColumn = ({ allowSwitching, onSwitchLogin, defaultRealm, type, onLogi
       )}
     </Col>
   );
-}
+};
 
-export default ({ history, astarte, type, allowSwitching, defaultRealm }) => {
-  return (
-    <Container fluid>
-      <Row>
-        <LeftColumn />
-        <RightColumn
-          type={type}
-          allowSwitching={allowSwitching}
-          defaultRealm={defaultRealm}
-          onLogin={(url) => history.push(url)}
-        />
-      </Row>
-    </Container>
-  );
-}
+export default ({
+  history, type, allowSwitching, defaultRealm,
+}) => (
+  <Container fluid>
+    <Row>
+      <LeftColumn />
+      <RightColumn
+        type={type}
+        allowSwitching={allowSwitching}
+        defaultRealm={defaultRealm}
+        onLogin={(url) => history.push(url)}
+      />
+    </Row>
+  </Container>
+);

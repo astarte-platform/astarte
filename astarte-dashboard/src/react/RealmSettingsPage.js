@@ -16,16 +16,18 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Button, Form, Modal, Spinner } from "react-bootstrap";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Button, Form, Modal, Spinner,
+} from 'react-bootstrap';
 
-import SingleCardPage from "./ui/SingleCardPage.js";
-import { useAlerts } from "./AlertManager";
+import SingleCardPage from './ui/SingleCardPage';
+import { useAlerts } from './AlertManager';
 
 export default ({ astarte, history }) => {
-  const [phase, setPhase] = useState("loading");
-  const [userPublicKey, setUserPublicKey] = useState("");
-  const [draftPublicKey, setDraftPublicKey] = useState("");
+  const [phase, setPhase] = useState('loading');
+  const [userPublicKey, setUserPublicKey] = useState('');
+  const [draftPublicKey, setDraftPublicKey] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const formAlerts = useAlerts();
@@ -43,7 +45,7 @@ export default ({ astarte, history }) => {
     astarte
       .updateConfigAuth(draftPublicKey)
       .then(() => {
-        history.push("/logout");
+        history.push('/logout');
       })
       .catch((err) => {
         setIsUpdatingSettings(false);
@@ -66,15 +68,15 @@ export default ({ astarte, history }) => {
         const publicKey = response.data.jwt_public_key_pem;
         setUserPublicKey(publicKey);
         setDraftPublicKey(publicKey);
-        setPhase("ok");
+        setPhase('ok');
       })
-      .catch((err) => setPhase("err"));
+      .catch(() => setPhase('err'));
   }, [astarte, setUserPublicKey, setDraftPublicKey, setPhase]);
 
   let innerHTML;
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       innerHTML = (
         <>
           <formAlerts.Alerts />
@@ -102,8 +104,8 @@ export default ({ astarte, history }) => {
       );
       break;
 
-    case "err":
-      innerHTML = <p>Couldn't load realm settings</p>;
+    case 'err':
+      innerHTML = <p>Couldn&apos;t load realm settings</p>;
       break;
 
     default:
@@ -130,44 +132,44 @@ export default ({ astarte, history }) => {
   );
 };
 
-const ConfirmKeyChanges = ({ show, isUpdating, onCancel, onConfirm }) => {
-  return (
-    <div
-      onKeyDown={(e) => {
-        if (e.key == "Enter" && !isUpdating) onConfirm();
-      }}
+const ConfirmKeyChanges = ({
+  show, isUpdating, onCancel, onConfirm,
+}) => (
+  <div
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' && !isUpdating) onConfirm();
+    }}
+  >
+    <Modal
+      size="lg"
+      show={show}
+      onHide={onCancel}
     >
-      <Modal
-        size="lg"
-        show={show}
-        onHide={onCancel}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Public Key Update</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>
-            Realm public key will be changed, users will not be able to make
-            further API calls using their current auth token. Confirm?
-          </p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={onConfirm} disabled={isUpdating}>
-            {isUpdating && (
-              <Spinner
-                className="mr-2"
-                size="sm"
-                animation="border"
-                role="status"
-              />
-            )}
-            Update settings
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
-  );
-};
+      <Modal.Header closeButton>
+        <Modal.Title>Confirm Public Key Update</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>
+          Realm public key will be changed, users will not be able to make
+          further API calls using their current auth token. Confirm?
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={onConfirm} disabled={isUpdating}>
+          {isUpdating && (
+          <Spinner
+            className="mr-2"
+            size="sm"
+            animation="border"
+            role="status"
+          />
+          )}
+          Update settings
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  </div>
+);

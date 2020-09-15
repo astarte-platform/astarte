@@ -16,40 +16,38 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   Card,
   CardDeck,
   Container,
   Spinner,
-  Table,
-} from "react-bootstrap";
+} from 'react-bootstrap';
 
 export default ({ astarte, history }) => {
-  const [phase, setPhase] = useState("loading");
+  const [phase, setPhase] = useState('loading');
   const [pipelines, setPipelines] = useState(null);
 
   useEffect(() => {
     const handlePipelinesResponse = (response) => {
       const pipelineList = response.data;
-      const promiseList = pipelineList.map((pipelineName) =>
-        astarte.getPipelineInputConfig(pipelineName)
-      );
+      const promiseList = pipelineList
+        .map((pipelineName) => astarte.getPipelineInputConfig(pipelineName));
       Promise.allSettled(promiseList).then((result) => {
         const pipelineData = [];
         for (const pipelineResult of result) {
-          if (pipelineResult.status == "fulfilled") {
+          if (pipelineResult.status === 'fulfilled') {
             pipelineData.push(pipelineResult.value.data);
           }
         }
         setPipelines(pipelineData);
-        setPhase("ok");
+        setPhase('ok');
       });
     };
-    const handlePipelinesError = (err) => {
-      setPhase("err");
+    const handlePipelinesError = () => {
+      setPhase('err');
     };
     astarte
       .getPipelineDefinitions()
@@ -60,36 +58,32 @@ export default ({ astarte, history }) => {
   let innerHTML;
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       innerHTML = (
         <CardDeck className="mt-4">
-          <NewPipelineCard onCreate={() => history.push(`/pipelines/new`)} />
-          {pipelines.map((pipeline, index) => {
-            return (
-              <React.Fragment key={`fragment-${index}`}>
-                {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
-                <PipelineCard
-                  headless="true"
-                  pipelineName={pipeline.name}
-                  pipelineDescription={pipeline.description}
-                  pipelineLongDescription={pipeline.longDescription}
-                  configureCB={() =>
-                    history.push(`/flows/new/${pipeline.name}`)
-                  }
-                  onShow={() => history.push(`/pipelines/${pipeline.name}`)}
-                />
-                {index == pipelines.length - 1 && pipelines.length % 2 == 0 ? (
-                  <div className="w-50 d-none d-md-block" />
-                ) : null}
-              </React.Fragment>
-            );
-          })}
+          <NewPipelineCard onCreate={() => history.push('/pipelines/new')} />
+          {pipelines.map((pipeline, index) => (
+            <React.Fragment key={`fragment-${index}`}>
+              {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
+              <PipelineCard
+                headless="true"
+                pipelineName={pipeline.name}
+                pipelineDescription={pipeline.description}
+                pipelineLongDescription={pipeline.longDescription}
+                configureCB={() => history.push(`/flows/new/${pipeline.name}`)}
+                onShow={() => history.push(`/pipelines/${pipeline.name}`)}
+              />
+              {index === pipelines.length - 1 && pipelines.length % 2 === 0 ? (
+                <div className="w-50 d-none d-md-block" />
+              ) : null}
+            </React.Fragment>
+          ))}
         </CardDeck>
       );
       break;
 
-    case "err":
-      innerHTML = <p>Couldn't load avalilable pipelines</p>;
+    case 'err':
+      innerHTML = <p>Couldn&apos;t load avalilable pipelines</p>;
       break;
 
     default:
@@ -105,32 +99,28 @@ export default ({ astarte, history }) => {
   );
 };
 
-const NewPipelineCard = ({ onCreate }) => {
-  return (
-    <Card className="mb-4">
-      <Card.Header as="h5">New Pipeline</Card.Header>
-      <Card.Body>
-        <Card.Text>Create your custom pipeline</Card.Text>
-        <Button variant="secondary" onClick={onCreate}>
-          Create
-        </Button>
-      </Card.Body>
-    </Card>
-  );
-};
+const NewPipelineCard = ({ onCreate }) => (
+  <Card className="mb-4">
+    <Card.Header as="h5">New Pipeline</Card.Header>
+    <Card.Body>
+      <Card.Text>Create your custom pipeline</Card.Text>
+      <Button variant="secondary" onClick={onCreate}>
+        Create
+      </Button>
+    </Card.Body>
+  </Card>
+);
 
-const PipelineCard = ({ pipelineName, pipelineDescription, configureCB }) => {
-  return (
-    <Card className="mb-4">
-      <Card.Header as="h5">
-        <Link to={`/pipelines/${pipelineName}`}>{pipelineName}</Link>
-      </Card.Header>
-      <Card.Body>
-        <Card.Text>{pipelineDescription}</Card.Text>
-        <Button variant="primary" onClick={configureCB}>
-          Instantiate
-        </Button>
-      </Card.Body>
-    </Card>
-  );
-};
+const PipelineCard = ({ pipelineName, pipelineDescription, configureCB }) => (
+  <Card className="mb-4">
+    <Card.Header as="h5">
+      <Link to={`/pipelines/${pipelineName}`}>{pipelineName}</Link>
+    </Card.Header>
+    <Card.Body>
+      <Card.Text>{pipelineDescription}</Card.Text>
+      <Button variant="primary" onClick={configureCB}>
+        Instantiate
+      </Button>
+    </Card.Body>
+  </Card>
+);

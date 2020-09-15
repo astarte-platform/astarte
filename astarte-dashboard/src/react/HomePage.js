@@ -16,8 +16,8 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Button,
   Col,
@@ -25,11 +25,11 @@ import {
   Card,
   Row,
   Spinner,
-  Table
-} from "react-bootstrap";
-import useFetch from "./hooks/useFetch.js";
-import DevicesPieChart from "./ui/DevicesPieChart.js";
-import WaitForData from "./components/WaitForData.js";
+  Table,
+} from 'react-bootstrap';
+import useFetch from './hooks/useFetch';
+import DevicesPieChart from './ui/DevicesPieChart';
+import WaitForData from './components/WaitForData';
 
 export default ({ astarte, history }) => {
   const devicesStats = useFetch(astarte.getDevicesStats);
@@ -73,7 +73,7 @@ export default ({ astarte, history }) => {
       });
   }, []);
 
-  const cellSpacingClass = "mb-3";
+  const cellSpacingClass = 'mb-3';
 
   return (
     <Container fluid className="p-3">
@@ -91,11 +91,11 @@ export default ({ astarte, history }) => {
           />
         </Col>
         <WaitForData data={devicesStats.value} status={devicesStats.status}>
-          {({connected_devices, total_devices}) => (
+          {({ connected_devices: connectedDevices, total_devices: totalDevices }) => (
             <Col xs={6} className={cellSpacingClass}>
               <DevicesCard
-                connectedDevices={connected_devices}
-                totalDevices={total_devices}
+                connectedDevices={connectedDevices}
+                totalDevices={totalDevices}
               />
             </Col>
           )}
@@ -106,7 +106,7 @@ export default ({ astarte, history }) => {
               <InterfacesCard
                 interfaceList={interfaceList}
                 onInterfaceClick={redirectToLastInterface}
-                onInstallInterfaceClick={() => history.push("/interfaces/new")}
+                onInstallInterfaceClick={() => history.push('/interfaces/new')}
               />
             </Col>
           )}
@@ -116,7 +116,7 @@ export default ({ astarte, history }) => {
             <Col xs={6} className={cellSpacingClass}>
               <TriggersCard
                 triggerList={triggerList}
-                onInstallTriggerClick={() => history.push("/triggers/new")}
+                onInstallTriggerClick={() => history.push('/triggers/new')}
               />
             </Col>
           )}
@@ -126,88 +126,89 @@ export default ({ astarte, history }) => {
   );
 };
 
-const ApiStatusCard = ({appengine, realmManagement, pairing, showFlowStatus, flow}) => {
-  return (
-    <Card className="h-100">
-      <Card.Header as="h5">
-        API Status
-      </Card.Header>
-      <Card.Body>
-        <Table responsive>
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <ServiceStatusRow
-              service="Realm Management"
-              status={realmManagement}
-            />
-            <ServiceStatusRow
-              service="AppEngine"
-              status={appengine}
-            />
-            <ServiceStatusRow
-              service="Pairing"
-              status={pairing}
-            />
-            { showFlowStatus &&
+const ApiStatusCard = ({
+  appengine, realmManagement, pairing, showFlowStatus, flow,
+}) => (
+  <Card className="h-100">
+    <Card.Header as="h5">
+      API Status
+    </Card.Header>
+    <Card.Body>
+      <Table responsive>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ServiceStatusRow
+            service="Realm Management"
+            status={realmManagement}
+          />
+          <ServiceStatusRow
+            service="AppEngine"
+            status={appengine}
+          />
+          <ServiceStatusRow
+            service="Pairing"
+            status={pairing}
+          />
+          { showFlowStatus
+              && (
               <ServiceStatusRow
                 service="Flow"
                 status={flow}
               />
-            }
-          </tbody>
-        </Table>
-      </Card.Body>
-    </Card>
-  );
-};
+              )}
+        </tbody>
+      </Table>
+    </Card.Body>
+  </Card>
+);
 
-const DevicesCard = ({ connectedDevices, totalDevices }) => {
-  return (
-    <Card className="h-100">
-      <Card.Header as="h5">Devices</Card.Header>
-      <Card.Body>
-        <Container className="h-100 p-0" fluid>
-          <Row noGutters>
-            <Col xs={12} lg={6}>
-              <Card.Title>Connected devices</Card.Title>
-              <Card.Text>{connectedDevices}</Card.Text>
-              <Card.Title>Registered devices</Card.Title>
-              <Card.Text>{totalDevices}</Card.Text>
-            </Col>
-            <Col xs={12} lg={6}>
-              { totalDevices > 0 &&
+const DevicesCard = ({ connectedDevices, totalDevices }) => (
+  <Card className="h-100">
+    <Card.Header as="h5">Devices</Card.Header>
+    <Card.Body>
+      <Container className="h-100 p-0" fluid>
+        <Row noGutters>
+          <Col xs={12} lg={6}>
+            <Card.Title>Connected devices</Card.Title>
+            <Card.Text>{connectedDevices}</Card.Text>
+            <Card.Title>Registered devices</Card.Title>
+            <Card.Text>{totalDevices}</Card.Text>
+          </Col>
+          <Col xs={12} lg={6}>
+            { totalDevices > 0
+                && (
                 <DevicesPieChart
                   connectedDevices={connectedDevices}
                   disconnectedDevices={totalDevices - connectedDevices}
                 />
-              }
-            </Col>
-          </Row>
-        </Container>
-      </Card.Body>
-    </Card>
-  );
-};
+                )}
+          </Col>
+        </Row>
+      </Container>
+    </Card.Body>
+  </Card>
+);
 
-const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceClick }) => {
-  return (
-    <Card className="h-100">
-      <Card.Header as="h5">
-        Interfaces
-      </Card.Header>
-      <Card.Body className="d-flex flex-column">
-        { interfaceList.length > 0 ?
+const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceClick }) => (
+  <Card className="h-100">
+    <Card.Header as="h5">
+      Interfaces
+    </Card.Header>
+    <Card.Body className="d-flex flex-column">
+      { interfaceList.length > 0
+        ? (
           <InterfaceList
             interfaces={interfaceList}
             onInterfaceClick={onInterfaceClick}
             maxShownInterfaces={4}
           />
-        :
+        )
+        : (
           <>
             <Card.Text>
               Interfaces defines how data is exchanged between Astarte and its peers.
@@ -216,53 +217,55 @@ const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceCli
               <a
                 href="https://docs.astarte-platform.org/snapshot/030-interface.html"
                 target="_blank"
+                rel="noreferrer"
               >
                 Learn more...
               </a>
             </Card.Text>
           </>
-        }
-        <Button
-          variant="primary"
-          className="align-self-start mt-auto"
-          onClick={onInstallInterfaceClick}
-        >
-          Install a new interface
-        </Button>
-      </Card.Body>
-    </Card>
-  );
-}
+        )}
+      <Button
+        variant="primary"
+        className="align-self-start mt-auto"
+        onClick={onInstallInterfaceClick}
+      >
+        Install a new interface
+      </Button>
+    </Card.Body>
+  </Card>
+);
 
-const TriggersCard = ({ triggerList, onInstallTriggerClick }) => {
-  return (
-    <Card className="h-100">
-      <Card.Header as="h5">
-        Triggers
-      </Card.Header>
-      <Card.Body className="d-flex flex-column">
-        { triggerList.length > 0 ? (
-          <TriggerList
-            triggers={triggerList}
-            maxShownTriggers={4}
-          />
-        ) : (
-          <>
-            <Card.Text>
-              Triggers in Astarte are the go-to mechanism for generating push events.</Card.Text>
-            <Card.Text>
-              Triggers allow users to specify conditions upon which a custom payload is delivered to a recipient,
-              using a specific action, which usually maps to a specific transport/protocol, such as HTTP.
-            </Card.Text>
-            <Card.Text>
-              <a
-                href="https://docs.astarte-platform.org/snapshot/060-using_triggers.html"
-                target="_blank"
-              >
-                Learn more...
-              </a>
-            </Card.Text>
-          </>
+const TriggersCard = ({ triggerList, onInstallTriggerClick }) => (
+  <Card className="h-100">
+    <Card.Header as="h5">
+      Triggers
+    </Card.Header>
+    <Card.Body className="d-flex flex-column">
+      { triggerList.length > 0 ? (
+        <TriggerList
+          triggers={triggerList}
+          maxShownTriggers={4}
+        />
+      ) : (
+        <>
+          <Card.Text>
+            Triggers in Astarte are the go-to mechanism for generating push events.
+          </Card.Text>
+          <Card.Text>
+            Triggers allow users to specify conditions upon which a custom payload is delivered to a
+            recipient, using a specific action, which usually maps to a specific transport/protocol,
+            such as HTTP.
+          </Card.Text>
+          <Card.Text>
+            <a
+              href="https://docs.astarte-platform.org/snapshot/060-using_triggers.html"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Learn more...
+            </a>
+          </Card.Text>
+        </>
       )}
       <Button
         variant="primary"
@@ -271,33 +274,30 @@ const TriggersCard = ({ triggerList, onInstallTriggerClick }) => {
       >
         Install a new trigger
       </Button>
-      </Card.Body>
-    </Card>
-  );
-};
+    </Card.Body>
+  </Card>
+);
 
 const ServiceStatusRow = ({ service, status }) => {
   let messageCell;
 
-  if (status == "loading") {
+  if (status === 'loading') {
     messageCell = (
       <td>
         <Spinner animation="border" role="status" />
       </td>
     );
-
-  } else if (status == "ok") {
+  } else if (status === 'ok') {
     messageCell = (
       <td className="color-green">
-        <i className="fas fa-check-circle mr-1"></i>
+        <i className="fas fa-check-circle mr-1" />
         This service is operating normally
       </td>
     );
-
   } else {
     messageCell = (
       <td className="color-red">
-        <i className="fas fa-times-circle mr-1"></i>
+        <i className="fas fa-times-circle mr-1" />
         This service appears offline
       </td>
     );
@@ -317,26 +317,32 @@ const InterfaceList = ({ interfaces, onInterfaceClick, maxShownInterfaces }) => 
 
   return (
     <ul className="list-unstyled">
-      { shownInterfaces.map((interfaceName) =>
-          <li
-            key={interfaceName}
-            className="my-1"
+      { shownInterfaces.map((interfaceName) => (
+        <li
+          key={interfaceName}
+          className="my-1"
+        >
+          <a
+            href="/interfaces"
+            onClick={(e) => { onInterfaceClick(e, interfaceName); }}
           >
-            <a href="/interfaces"
-              onClick={(e) => { onInterfaceClick(e, interfaceName); }}
-            >
-              <i className="fas fa-stream mr-1" />
-              {interfaceName}
-            </a>
-          </li>)
-      }
-      { remainingInterfaces > 0 &&
+            <i className="fas fa-stream mr-1" />
+            {interfaceName}
+          </a>
+        </li>
+      ))}
+      { remainingInterfaces > 0
+        && (
         <li>
           <Link to="/interfaces">
-            { remainingInterfaces } more installed { remainingInterfaces > 1 ? "interfaces" : "interface" }…
+            { remainingInterfaces }
+            {' '}
+            more installed
+            { remainingInterfaces > 1 ? 'interfaces' : 'interface' }
+            …
           </Link>
         </li>
-      }
+        )}
     </ul>
   );
 };
@@ -347,26 +353,31 @@ const TriggerList = ({ triggers, maxShownTriggers }) => {
 
   return (
     <ul className="list-unstyled">
-      { shownTriggers.map((triggerName) =>
-          <li
-            key={triggerName}
-            className="my-1"
+      { shownTriggers.map((triggerName) => (
+        <li
+          key={triggerName}
+          className="my-1"
+        >
+          <Link
+            to={`/triggers/${triggerName}`}
           >
-            <Link
-              to={`/triggers/${triggerName}`}
-            >
-              <i className="fas fa-bolt mr-1" />
-              {triggerName}
-            </Link>
-          </li>)
-      }
-      { remainingTriggers > 0 &&
-        <li>
-          <Link to="/triggers">
-            { remainingTriggers } more installed { remainingTriggers > 1 ? "triggers" : "trigger" }…
+            <i className="fas fa-bolt mr-1" />
+            {triggerName}
           </Link>
         </li>
-      }
+      ))}
+      { remainingTriggers > 0
+        && (
+        <li>
+          <Link to="/triggers">
+            { remainingTriggers }
+            {' '}
+            more installed
+            { remainingTriggers > 1 ? 'triggers' : 'trigger' }
+            …
+          </Link>
+        </li>
+        )}
     </ul>
   );
 };

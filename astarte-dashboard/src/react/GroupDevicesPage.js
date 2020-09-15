@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Button,
   Modal,
@@ -24,14 +24,14 @@ import {
   Spinner,
   Table,
   Tooltip,
-} from "react-bootstrap";
+} from 'react-bootstrap';
 
-import Device from "./astarte/Device.js";
-import SingleCardPage from "./ui/SingleCardPage.js";
-import { Link } from "react-router-dom";
+import { Link } from 'react-router-dom';
+import Device from './astarte/Device';
+import SingleCardPage from './ui/SingleCardPage';
 
 export default ({ astarte, history, groupName }) => {
-  const [phase, setPhase] = useState("loading");
+  const [phase, setPhase] = useState('loading');
   const [devices, setDevices] = useState(null);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -39,14 +39,12 @@ export default ({ astarte, history, groupName }) => {
 
   const fetchDevices = useCallback(() => {
     const handleDevicesRequest = (response) => {
-      const devices = response.data.map((value) => {
-        return Device.fromObject(value);
-      });
-      setDevices(devices);
-      setPhase("ok");
+      const newDevices = response.data.map((value) => Device.fromObject(value));
+      setDevices(newDevices);
+      setPhase('ok');
     };
-    const handleDevicesError = (err) => {
-      setPhase("err");
+    const handleDevicesError = () => {
+      setPhase('err');
     };
     astarte
       .getDevicesInGroup({
@@ -62,7 +60,7 @@ export default ({ astarte, history, groupName }) => {
       setSelectedDevice(device);
       setIsModalVisible(true);
     },
-    [setSelectedDevice, setIsModalVisible]
+    [setSelectedDevice, setIsModalVisible],
   );
 
   const closeModal = useCallback(() => {
@@ -77,8 +75,8 @@ export default ({ astarte, history, groupName }) => {
         deviceId: selectedDevice.id,
       })
       .finally(() => {
-        if (devices?.length == 1) {
-          history.push({ pathname: "/groups" });
+        if (devices?.length === 1) {
+          history.push({ pathname: '/groups' });
         } else {
           setIsRemovingDevice(false);
           setIsModalVisible(false);
@@ -103,17 +101,20 @@ export default ({ astarte, history, groupName }) => {
   let innerHTML;
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       innerHTML = (
         <>
-          <h5 className="mt-1 mb-3">Devices in group {groupName}</h5>
+          <h5 className="mt-1 mb-3">
+            Devices in group
+            {groupName}
+          </h5>
           {deviceTable(devices, showModal)}
         </>
       );
       break;
 
-    case "err":
-      innerHTML = <p>Couldn't load devices in group</p>;
+    case 'err':
+      innerHTML = <p>Couldn&apos;t load devices in group</p>;
       break;
 
     default:
@@ -127,7 +128,7 @@ export default ({ astarte, history, groupName }) => {
       <ConfirmDeviceRemovalModal
         deviceName={selectedDevice?.name}
         groupName={groupName}
-        isLastDevice={devices?.length == 1}
+        isLastDevice={devices?.length === 1}
         isRemoving={isRemovingDevice}
         show={isModalVisible}
         onCancel={closeModal}
@@ -137,25 +138,21 @@ export default ({ astarte, history, groupName }) => {
   );
 };
 
-const deviceTable = (deviceList, showModal) => {
-  return (
-    <Table responsive>
-      <thead>
-        <tr>
-          <th>Status</th>
-          <th>Device handle</th>
-          <th>Last connection event</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {deviceList.map((device, index) =>
-          deviceTableRow(device, index, showModal)
-        )}
-      </tbody>
-    </Table>
-  );
-};
+const deviceTable = (deviceList, showModal) => (
+  <Table responsive>
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Device handle</th>
+        <th>Last connection event</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {deviceList.map((device, index) => deviceTableRow(device, index, showModal))}
+    </tbody>
+  </Table>
+);
 
 const deviceTableRow = (device, index, showModal) => {
   let colorClass;
@@ -163,17 +160,17 @@ const deviceTableRow = (device, index, showModal) => {
   let tooltipText;
 
   if (device.connected) {
-    tooltipText = "Connected";
-    colorClass = "icon-connected";
+    tooltipText = 'Connected';
+    colorClass = 'icon-connected';
     lastEvent = `Connected on ${device.lastConnection.toLocaleString()}`;
   } else if (device.lastConnection) {
-    tooltipText = "Disconnected";
-    colorClass = "icon-disconnected";
+    tooltipText = 'Disconnected';
+    colorClass = 'icon-disconnected';
     lastEvent = `Disconnected on ${device.lastDisconnection.toLocaleString()}`;
   } else {
-    tooltipText = "Never connected";
-    colorClass = "icon-never-connected";
-    lastEvent = `Never connected`;
+    tooltipText = 'Never connected';
+    colorClass = 'icon-never-connected';
+    lastEvent = 'Never connected';
   }
 
   return (
@@ -183,9 +180,9 @@ const deviceTableRow = (device, index, showModal) => {
           placement="right"
           delay={{ show: 150, hide: 400 }}
           style={{
-            backgroundColor: "rgba(255, 100, 100, 0.85)",
-            padding: "2px 10px",
-            color: "white",
+            backgroundColor: 'rgba(255, 100, 100, 0.85)',
+            padding: '2px 10px',
+            color: 'white',
             borderRadius: 3,
           }}
           overlay={<Tooltip>{tooltipText}</Tooltip>}
@@ -193,7 +190,7 @@ const deviceTableRow = (device, index, showModal) => {
           <CircleIcon className={colorClass} />
         </OverlayTrigger>
       </td>
-      <td className={device.hasNameAlias ? "" : "text-monospace"}>
+      <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}`}>{device.name}</Link>
       </td>
       <td>{lastEvent}</td>
@@ -202,9 +199,9 @@ const deviceTableRow = (device, index, showModal) => {
           placement="left"
           delay={{ show: 150, hide: 400 }}
           style={{
-            backgroundColor: "rgba(255, 100, 100, 0.85)",
-            padding: "2px 10px",
-            color: "white",
+            backgroundColor: 'rgba(255, 100, 100, 0.85)',
+            padding: '2px 10px',
+            color: 'white',
             borderRadius: 3,
           }}
           overlay={<Tooltip>Remove from group</Tooltip>}
@@ -214,7 +211,7 @@ const deviceTableRow = (device, index, showModal) => {
             variant="danger"
             className="fas fa-times"
             onClick={() => showModal(device)}
-          ></Button>
+          />
         </OverlayTrigger>
       </td>
     </tr>
@@ -235,43 +232,41 @@ const ConfirmDeviceRemovalModal = ({
   show,
   onCancel,
   onRemove,
-}) => {
-  return (
-    <div
-      onKeyDown={(e) => {
-        if (e.key == "Enter" && !isRemoving) onRemove();
-      }}
-    >
-      <Modal size="lg" show={show} onHide={onCancel}>
-        <Modal.Header closeButton>
-          <Modal.Title>Warning</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {isLastDevice && (
-            <p>
-              This is the last device in the group. Removing this device will
-              delete the group
-            </p>
+}) => (
+  <div
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' && !isRemoving) onRemove();
+    }}
+  >
+    <Modal size="lg" show={show} onHide={onCancel}>
+      <Modal.Header closeButton>
+        <Modal.Title>Warning</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {isLastDevice && (
+        <p>
+          This is the last device in the group. Removing this device will
+          delete the group
+        </p>
+        )}
+        <p>{`Remove device "${deviceName}" from group "${groupName}"?`}</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
+          {isRemoving && (
+          <Spinner
+            className="mr-2"
+            size="sm"
+            animation="border"
+            role="status"
+          />
           )}
-          <p>{`Remove device "${deviceName}" from group "${groupName}"?`}</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
-            {isRemoving && (
-              <Spinner
-                className="mr-2"
-                size="sm"
-                animation="border"
-                role="status"
-              />
-            )}
-            Remove
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
-  );
-};
+          Remove
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  </div>
+);

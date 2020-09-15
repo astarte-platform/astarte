@@ -16,15 +16,17 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Button, Col, Row, Spinner } from "react-bootstrap";
-import SyntaxHighlighter from "react-syntax-highlighter";
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Button, Col, Row, Spinner,
+} from 'react-bootstrap';
+import SyntaxHighlighter from 'react-syntax-highlighter';
 
-import { useAlerts } from "./AlertManager";
-import SingleCardPage from "./ui/SingleCardPage.js";
+import { useAlerts } from './AlertManager';
+import SingleCardPage from './ui/SingleCardPage';
 
 export default ({ astarte, history, pipelineId }) => {
-  const [phase, setPhase] = useState("loading");
+  const [phase, setPhase] = useState('loading');
   const [pipeline, setPipeline] = useState(null);
   const [isDeletingPipeline, setIsDeletingPipeline] = useState(false);
   const deletionAlerts = useAlerts();
@@ -32,10 +34,10 @@ export default ({ astarte, history, pipelineId }) => {
   useEffect(() => {
     const handlePipelineResponse = (response) => {
       setPipeline(response.data);
-      setPhase("ok");
+      setPhase('ok');
     };
-    const handlePipelineError = (err) => {
-      setPhase("err");
+    const handlePipelineError = () => {
+      setPhase('err');
     };
     astarte
       .getPipelineSource(pipelineId)
@@ -47,7 +49,7 @@ export default ({ astarte, history, pipelineId }) => {
     setIsDeletingPipeline(true);
     astarte
       .deletePipeline(pipelineId)
-      .then(() => history.push(`/pipelines`))
+      .then(() => history.push('/pipelines'))
       .catch((err) => {
         deletionAlerts.showError(`Couldn't delete pipeline: ${err.message}`);
         setIsDeletingPipeline(false);
@@ -57,7 +59,7 @@ export default ({ astarte, history, pipelineId }) => {
   let innerHTML;
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       innerHTML = (
         <>
           <deletionAlerts.Alerts />
@@ -96,7 +98,7 @@ export default ({ astarte, history, pipelineId }) => {
                 size="sm"
                 animation="border"
                 role="status"
-                className={"mr-2"}
+                className="mr-2"
               />
             )}
             Delete pipeline
@@ -105,8 +107,8 @@ export default ({ astarte, history, pipelineId }) => {
       );
       break;
 
-    case "err":
-      innerHTML = <p>Couldn't load pipeline source</p>;
+    case 'err':
+      innerHTML = <p>Couldn&apos;t load pipeline source</p>;
       break;
 
     default:
