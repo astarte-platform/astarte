@@ -466,7 +466,7 @@ class AstarteClient {
 
   joinedRooms() {
     const rooms = [];
-    for (const roomName in this.joinedChannels) {
+    for (const roomName of Object.keys(this.joinedChannels)) {
       rooms.push(roomName);
     }
     return rooms;
