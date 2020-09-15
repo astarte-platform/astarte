@@ -238,16 +238,14 @@ class AstarteClient {
     };
 
     if (introspection) {
-      const encodedintrospection = {};
-
-      for (const [key, interfaceId] of introspection) {
-        encodedintrospection[key] = {
-          major: interfaceId.major,
-          minor: interfaceId.minor,
+      const encodedIntrospection = {};
+      Array.from(introspection).forEach(([key, interfaceDescriptor]) => {
+        encodedIntrospection[key] = {
+          major: interfaceDescriptor.major,
+          minor: interfaceDescriptor.minor,
         };
-      }
-
-      requestBody.initial_introspection = encodedintrospection;
+      });
+      requestBody.initial_introspection = encodedIntrospection;
     }
 
     return this.$post(this.apiConfig.registerDevice(this.config), requestBody);
@@ -466,9 +464,9 @@ class AstarteClient {
 
   joinedRooms() {
     const rooms = [];
-    for (const roomName of Object.keys(this.joinedChannels)) {
+    Object.keys(this.joinedChannels).forEach((roomName) => {
       rooms.push(roomName);
-    }
+    });
     return rooms;
   }
 }

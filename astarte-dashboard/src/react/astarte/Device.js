@@ -71,9 +71,9 @@ export default class Device {
 
     if ('aliases' in obj) {
       device.aliases = new Map();
-      for (const [key, value] of Object.entries(obj.aliases)) {
+      Object.entries(obj.aliases).forEach(([key, value]) => {
         device.aliases.set(key, value);
-      }
+      });
     }
 
     if ('groups' in obj) {

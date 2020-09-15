@@ -165,10 +165,10 @@ function watchDeviceEvents(params) {
 }
 
 function leaveDeviceRoom() {
-  for (const room of astarteClient.joinedRooms()) {
+  astarteClient.joinedRooms().forEach((room) => {
     console.log(`leaving room ${room}`);
     astarteClient.leaveRoom(room);
-  }
+  });
 }
 
 function sendErrorMessage(errorMessage) {

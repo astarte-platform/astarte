@@ -9,7 +9,6 @@
     "jsx-a11y/label-has-associated-control": "off",
     "jsx-a11y/no-static-element-interactions": "off",
     "no-console": "off",
-    "no-restricted-syntax": "off",
     "no-use-before-define": "off",
     "react/jsx-props-no-spreading": "off",
     "react/no-array-index-key": "off",
