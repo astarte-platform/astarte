@@ -62,6 +62,9 @@ type RealmRoute
     | PipelineList
     | PipelineShowSource String
     | NewPipeline
+    | BlockList
+    | BlockShowSource String
+    | NewBlock
 
 
 routeParser : Parser (Route -> a) a
@@ -98,6 +101,9 @@ realmRouteParser =
         , map PipelineList (s "pipelines")
         , map NewPipeline (s "pipelines" </> s "new")
         , map PipelineShowSource (s "pipelines" </> string)
+        , map BlockList (s "blocks")
+        , map NewBlock (s "blocks" </> s "new")
+        , map BlockShowSource (s "blocks" </> string)
         ]
 
 
@@ -178,7 +184,14 @@ toString route =
                     [ "groups" ]
 
                 Realm (GroupDevices groupName) ->
-                    [ "groups", groupName ]
+                    let
+                        -- Double encoding to preserve the URL format when groupName contains % and /
+                        encodedGroupName =
+                            groupName
+                            |> Url.percentEncode
+                            |> Url.percentEncode
+                    in
+                    [ "groups", encodedGroupName ]
 
                 Realm FlowInstances ->
                     [ "flows" ]
@@ -197,6 +210,15 @@ toString route =
 
                 Realm (PipelineShowSource pipelineName) ->
                     [ "pipelines", pipelineName ]
+
+                Realm BlockList ->
+                    [ "blocks" ]
+
+                Realm NewBlock ->
+                    [ "blocks", "new" ]
+
+                Realm (BlockShowSource blockName) ->
+                    [ "blocks", blockName ]
     in
     "/" ++ String.join "/" pieces
 

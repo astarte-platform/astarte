@@ -16,21 +16,10 @@
    limitations under the License.
 */
 
-import { useCallback, useState } from "react";
-import dayjs from "dayjs";
-import dayjsRelativeTime from "dayjs/plugin/relativeTime";
+import Model from "./Model";
 
-import { useInterval } from "./useInterval";
-
-dayjs.extend(dayjsRelativeTime);
-
-export const useRelativeTime = (dateTime) => {
-  const [relativeTimeString, setRelativeTimeString] = useState(
-    dayjs(dateTime).fromNow()
-  );
-  const refreshRelativeTimeString = useCallback(() => {
-    setRelativeTimeString(dayjs(dateTime).fromNow());
-  }, [dateTime]);
-  useInterval(refreshRelativeTimeString, 1000);
-  return relativeTimeString;
-};
+export default class Block extends Model {
+  get isNative() {
+    return !!this.beam_module;
+  }
+}

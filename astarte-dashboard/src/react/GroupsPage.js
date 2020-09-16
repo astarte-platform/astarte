@@ -91,10 +91,11 @@ export default ({ astarte, history }) => {
             </thead>
             <tbody>
               {Array.from(groups.values()).map((group, index) => {
+                const encodedGroupName = encodeURIComponent(encodeURIComponent(group.name));
                 return (
                   <tr key={group.name}>
                     <td>
-                      <Link to={`/groups/${group.name}`}>{group.name}</Link>
+                      <Link to={`/groups/${encodedGroupName}/`}>{group.name}</Link>
                     </td>
                     <td>{group.connectedDevices}</td>
                     <td>{group.totalDevices}</td>

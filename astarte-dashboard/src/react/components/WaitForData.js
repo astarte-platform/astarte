@@ -16,21 +16,23 @@
    limitations under the License.
 */
 
-import { useCallback, useState } from "react";
-import dayjs from "dayjs";
-import dayjsRelativeTime from "dayjs/plugin/relativeTime";
+const WaitForData = ({data, status, showRefreshing = false, fallback, children}) => {
+  switch (status) {
+    case "ok":
+      return children(data);
 
-import { useInterval } from "./useInterval";
+    case "loading":
+      if (!showRefreshing && data)
+        return children(data);
+      else
+        return fallback || null;
 
-dayjs.extend(dayjsRelativeTime);
+    case "err":
+      return fallback || null;
 
-export const useRelativeTime = (dateTime) => {
-  const [relativeTimeString, setRelativeTimeString] = useState(
-    dayjs(dateTime).fromNow()
-  );
-  const refreshRelativeTimeString = useCallback(() => {
-    setRelativeTimeString(dayjs(dateTime).fromNow());
-  }, [dateTime]);
-  useInterval(refreshRelativeTimeString, 1000);
-  return relativeTimeString;
+    default:
+      return null;
+  }
 };
+
+export default WaitForData;

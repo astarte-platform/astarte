@@ -20,6 +20,8 @@ import axios from "axios";
 import jwt from "jsonwebtoken";
 const { Socket } = require("phoenix");
 
+import Block from "./models/Block";
+
 class AstarteClient {
   constructor(config) {
     let internalConfig = {};
@@ -37,6 +39,14 @@ class AstarteClient {
 
     internalConfig.enableFlowPreview = config.enableFlowPreview || false;
     this.config = internalConfig;
+
+    this.getDevicesStats = this.getDevicesStats.bind(this);
+    this.getInterfaceNames = this.getInterfaceNames.bind(this);
+    this.getTriggerNames = this.getTriggerNames.bind(this);
+    this.getAppengineHealth = this.getAppengineHealth.bind(this);
+    this.getRealmManagementHealth = this.getRealmManagementHealth.bind(this);
+    this.getPairingHealth = this.getPairingHealth.bind(this);
+    this.getFlowHealth = this.getFlowHealth.bind(this);
 
     // prettier-ignore
     let apiConfig = {
@@ -62,6 +72,8 @@ class AstarteClient {
       flowInstance:          astarteAPIurl`${ config.flowUrl }v1/${"realm"}/flows/${"instanceName"}`,
       pipelines:             astarteAPIurl`${ config.flowUrl }v1/${"realm"}/pipelines`,
       pipelineSource:        astarteAPIurl`${ config.flowUrl }v1/${"realm"}/pipelines/${"pipelineId"}`,
+      blocks:                astarteAPIurl`${ config.flowUrl }v1/${"realm"}/blocks`,
+      blockSource:           astarteAPIurl`${ config.flowUrl }v1/${"realm"}/blocks/${"blockId"}`,
     };
     this.apiConfig = apiConfig;
 
@@ -181,15 +193,16 @@ class AstarteClient {
     });
   }
 
-  getDevicesInGroup(params) {
-    let { groupName, details } = params;
-    let endpointUri = new URL(
-      this.apiConfig["groupDevices"]({ ...this.config, groupName: groupName })
-    );
-
+  getDevicesInGroup({ groupName, details }) {
     if (!groupName) {
       throw Error("Invalid group name");
     }
+
+    /* Double encoding to preserve the URL format when groupName contains % and / */
+    const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
+    const endpointUri = new URL(
+      this.apiConfig["groupDevices"]({ ...this.config, groupName: encodedGroupName })
+    );
 
     if (details) {
       endpointUri.search = new URLSearchParams({ details: true });
@@ -281,6 +294,28 @@ class AstarteClient {
 
   deletePipeline(pipelineId) {
     return this._delete(this.apiConfig["pipelineSource"]({...this.config, pipelineId: pipelineId}));
+  }
+
+  getBlocks() {
+    return this._get(this.apiConfig["blocks"](this.config)).then(response =>
+      response.data.map(block => new Block(block))
+    );
+  }
+
+  registerBlock(block) {
+    return this._post(this.apiConfig["blocks"](this.config), block);
+  }
+
+  getBlock(blockId) {
+    return this._get(
+      this.apiConfig["blockSource"]({ ...this.config, blockId })
+    ).then(response => new Block(response.data));
+  }
+
+  deleteBlock(blockId) {
+    return this._delete(
+      this.apiConfig["blockSource"]({ ...this.config, blockId })
+    );
   }
 
   getRealmManagementHealth() {

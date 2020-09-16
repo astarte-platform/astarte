@@ -165,22 +165,16 @@ update message model =
                     )
 
         UpdateMappingExpiry newMappingExpiry ->
-            case String.toInt newMappingExpiry of
-                Just expiry ->
-                    if expiry >= 0 then
-                        ( { model | interfaceMapping = InterfaceMapping.setExpiry expiry model.interfaceMapping }
-                        , Noop
-                        )
-
-                    else
-                        ( model
-                        , Noop
-                        )
-
-                Nothing ->
-                    ( model
-                    , Noop
-                    )
+            let
+                expiry =
+                  newMappingExpiry
+                  |> String.toInt
+                  |> Maybe.withDefault 0
+                  |> max 0
+            in
+            ( { model | interfaceMapping = InterfaceMapping.setExpiry expiry model.interfaceMapping }
+            , Noop
+            )
 
         UpdateMappingDatabaseRetention newDatabaseRetention ->
             case InterfaceMapping.stringToDatabaseRetention newDatabaseRetention of
@@ -198,22 +192,16 @@ update message model =
                     )
 
         UpdateMappingTTL stringTTL ->
-            case String.toInt stringTTL of
-                Just ttl ->
-                    if ttl >= 60 then
-                        ( { model | interfaceMapping = InterfaceMapping.setTTL ttl model.interfaceMapping }
-                        , Noop
-                        )
-
-                    else
-                        ( model
-                        , Noop
-                        )
-
-                Nothing ->
-                    ( model
-                    , Noop
-                    )
+            let
+                ttl =
+                  stringTTL
+                  |> String.toInt
+                  |> Maybe.withDefault 0
+                  |> max 0
+            in
+            ( { model | interfaceMapping = InterfaceMapping.setTTL ttl model.interfaceMapping }
+            , Noop
+            )
 
         UpdateMappingAllowUnset allowUnset ->
             ( { model | interfaceMapping = InterfaceMapping.setAllowUnset allowUnset model.interfaceMapping }
