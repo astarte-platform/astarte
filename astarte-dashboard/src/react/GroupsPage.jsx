@@ -48,7 +48,7 @@ export default ({ astarte, history }) => {
         acc.set(groupName, { name: groupName, loading: true });
         return acc;
       }, new Map());
-      groupMap.keys().forEach((groupName) => {
+      groupMap.forEach((value, groupName) => {
         astarte
           .getDevicesInGroup({
             groupName,
