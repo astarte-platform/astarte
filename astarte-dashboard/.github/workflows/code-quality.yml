@@ -4,10 +4,8 @@ on:
     branches:
       - master
       - 'release-*'
+  create:
   pull_request:
-    branches:
-      - master
-      - 'release-*'
 
 jobs:
   build:
