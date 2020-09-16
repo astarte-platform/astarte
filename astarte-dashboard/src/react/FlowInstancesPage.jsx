@@ -237,7 +237,9 @@ const CircleIcon = React.forwardRef((props, ref) => (
 const ConfirmDeletionModal = ({ show, flowName, isDeleting, onCancel, onDelete }) => (
   <div
     onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isDeleting) onDelete();
+      if (e.key === 'Enter' && !isDeleting) {
+        onDelete();
+      }
     }}
   >
     <Modal size="sm" show={show} onHide={onCancel}>

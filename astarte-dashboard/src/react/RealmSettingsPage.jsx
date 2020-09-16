@@ -120,7 +120,9 @@ export default ({ astarte, history }) => {
 const ConfirmKeyChanges = ({ show, isUpdating, onCancel, onConfirm }) => (
   <div
     onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isUpdating) onConfirm();
+      if (e.key === 'Enter' && !isUpdating) {
+        onConfirm();
+      }
     }}
   >
     <Modal size="lg" show={show} onHide={onCancel}>

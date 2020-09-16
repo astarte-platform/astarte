@@ -22,7 +22,9 @@ const WaitForData = ({ data, status, showRefreshing = false, fallback, children 
       return children(data);
 
     case 'loading':
-      if (!showRefreshing && data) return children(data);
+      if (!showRefreshing && data) {
+        return children(data);
+      }
       return fallback || null;
 
     case 'err':

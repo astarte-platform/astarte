@@ -226,7 +226,9 @@ const ConfirmDeviceRemovalModal = ({
 }) => (
   <div
     onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isRemoving) onRemove();
+      if (e.key === 'Enter' && !isRemoving) {
+        onRemove();
+      }
     }}
   >
     <Modal size="lg" show={show} onHide={onCancel}>
