@@ -16,23 +16,24 @@
    limitations under the License.
 */
 
-import React, { useMemo } from "react";
-import { Form, Table } from "react-bootstrap";
+import React, { useMemo } from 'react';
+import { Form, Table } from 'react-bootstrap';
 
-const Highlight = ({text, word}) => {
+const Highlight = ({ text, word }) => {
   if (!word) {
     return text;
   }
 
-  return text.split(word)
-    .reduce((prev, current, index) => [
-      prev,
-      <span key={index} className="bg-warning text-dark">{word}</span>,
-      current,
-    ]);
+  return text.split(word).reduce((prev, current, index) => [
+    prev,
+    <span key={index} className="bg-warning text-dark">
+      {word}
+    </span>,
+    current,
+  ]);
 };
 
-const DeviceTableRow = ({deviceId, deviceAliases, filter, selected, onToggleDevice}) => (
+const DeviceTableRow = ({ deviceId, deviceAliases, filter, selected, onToggleDevice }) => (
   <tr>
     <td>
       <Form.Check
@@ -44,19 +45,13 @@ const DeviceTableRow = ({deviceId, deviceAliases, filter, selected, onToggleDevi
       />
     </td>
     <td className="text-monospace">
-      <Highlight
-        text={deviceId}
-        word={filter}
-      />
+      <Highlight text={deviceId} word={filter} />
     </td>
     <td>
       <ul className="list-unstyled">
         {deviceAliases.map(([aliasTag, alias]) => (
           <li key={aliasTag}>
-            <Highlight
-              text={alias}
-              word={filter}
-            />
+            <Highlight text={alias} word={filter} />
           </li>
         ))}
       </ul>
@@ -64,21 +59,21 @@ const DeviceTableRow = ({deviceId, deviceAliases, filter, selected, onToggleDevi
   </tr>
 );
 
-const CheckableDeviceTable = ({devices, filter, selectedDevices, onToggleDevice}) => {
+const CheckableDeviceTable = ({ devices, filter, selectedDevices, onToggleDevice }) => {
   const filteredDevices = useMemo(() => {
     if (filter) {
-      return devices.filter(device => {
+      return devices.filter((device) => {
         const aliases = Array.from(device.aliases.values());
-        return device.id.includes(filter) ||
-          aliases.filter(alias => alias.includes(filter)).length > 0;
+        return (
+          device.id.includes(filter) || aliases.filter((alias) => alias.includes(filter)).length > 0
+        );
       });
-    } else {
-      return devices;
     }
+    return devices;
   }, [devices, filter]);
 
   if (!filteredDevices.length) {
-    return (<p>No device matched the current filter</p>);
+    return <p>No device matched the current filter</p>;
   }
 
   return (

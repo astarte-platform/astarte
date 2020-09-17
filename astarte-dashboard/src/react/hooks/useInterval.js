@@ -16,12 +16,12 @@
    limitations under the License.
 */
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
-export const useInterval = (callback, delay) => {
+export default (callback, delay) => {
   useEffect(() => {
     if (delay == null) {
-      return;
+      return () => {};
     }
     const intervalId = setInterval(callback, delay);
     return () => clearInterval(intervalId);

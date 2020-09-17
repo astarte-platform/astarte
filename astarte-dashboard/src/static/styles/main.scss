@@ -16,264 +16,281 @@
    limitations under the License.
 */
 
-$body-bg:               #f1f1f1;
+$body-bg: #f1f1f1;
 
-$font-weight-light:     300;
-$font-weight-normal:    400;
-$font-weight-bold:      700;
-$small-font-size:       70%;
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-bold: 700;
+$small-font-size: 70%;
 
-$green:                 #5bcc6c;
-$red:                   #cc5b6d;
-$dark-blue:             #27303d;
-$grey:                  #7f7f7e;
-$black:                 #000;
+$green: #5bcc6c;
+$red: #cc5b6d;
+$dark-blue: #27303d;
+$grey: #7f7f7e;
+$black: #000;
 
-$primary:               #487fc7;
-$inactive:              #676e6e;
-$input-disabled-bg:     #fafafa;
+$primary: #487fc7;
+$inactive: #676e6e;
+$input-disabled-bg: #fafafa;
 
-$body-color:            lighten($black, 20%);
+$body-color: lighten($black, 20%);
 
-$navbar-width:          13em;
-$navbar-color:          $dark-blue;
-$navbar-padding-y:      0rem;
-$navbar-padding-x:      0rem;
-$nav-link-padding-y:    1.0rem;
-$nav-link-padding-x:    1.5rem;
-$code-color:            $dark-blue;
+$navbar-width: 13em;
+$navbar-color: $dark-blue;
+$navbar-padding-y: 0rem;
+$navbar-padding-x: 0rem;
+$nav-link-padding-y: 1rem;
+$nav-link-padding-x: 1.5rem;
+$code-color: $dark-blue;
 
 $form-feedback-icon-valid: none;
 
-@import "./node_modules/bootstrap/scss/bootstrap";
+@import './node_modules/bootstrap/scss/bootstrap';
 
-$fa-font-path:        "../../../node_modules/@fortawesome/fontawesome-free/webfonts";
+$fa-font-path: '../../../node_modules/@fortawesome/fontawesome-free/webfonts';
 
-@import "./node_modules/@fortawesome/fontawesome-free/scss/fontawesome";
-@import "./node_modules/@fortawesome/fontawesome-free/scss/solid";
-@import "./node_modules/@fortawesome/fontawesome-free/scss/regular";
+@import './node_modules/@fortawesome/fontawesome-free/scss/fontawesome';
+@import './node_modules/@fortawesome/fontawesome-free/scss/solid';
+@import './node_modules/@fortawesome/fontawesome-free/scss/regular';
 
 // Custom components
 
-$connected-color:       $green;
-$disconnected-color:    $red;
+$connected-color: $green;
+$disconnected-color: $red;
 $never-connected-color: $grey;
 
-
-h1, h2, h3, h4, h5, h6,
-.h1, .h2, .h3, .h4, .h5, .h6 {
-    color: $black;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+  color: $black;
 }
 
-h1, h2, h3, h4, h5,
-.h1, .h2, .h3, .h4, .h5 {
-    margin-bottom: 0.75rem;
+h1,
+h2,
+h3,
+h4,
+h5,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5 {
+  margin-bottom: 0.75rem;
 }
 
 h6,
 .h6 {
-    margin-bottom: 0.1em;
+  margin-bottom: 0.1em;
 }
 
 .form-control-label {
-    color: $black;
+  color: $black;
 }
 
 .form-row .col-no-label {
-    padding-top: 2em;
+  padding-top: 2em;
 }
 
 .color-green {
-    color: $green;
+  color: $green;
 }
 
 .color-grey {
-    color: $grey;
+  color: $grey;
 }
 
 .color-red {
-    color: $red;
+  color: $red;
 }
 
 .login-form {
-    max-width: 50rem;
+  max-width: 50rem;
 }
 
 .login-image-container {
-    height: 100vh;
-    background-color: $dark-blue;
+  height: 100vh;
+  background-color: $dark-blue;
 
-    .top-background-image {
-        top: 0;
-    }
+  .top-background-image {
+    top: 0;
+  }
 
-    .bottom-background-image {
-        bottom: 0;
-    }
+  .bottom-background-image {
+    bottom: 0;
+  }
 
-    .logo {
-        width: 26rem;
-    }
+  .logo {
+    width: 26rem;
+  }
 
-    .mascotte {
-        width: 19rem;
-    }
+  .mascotte {
+    width: 19rem;
+  }
 }
 
 .nav-col {
-    width: $navbar-width;
-    background-color: $navbar-color;
-    min-height: 100vh;
+  width: $navbar-width;
+  background-color: $navbar-color;
+  min-height: 100vh;
 }
 
 .nav-brand {
-    width: 100%;
-    padding: 0.7rem 1rem;
-    margin: 0;
-    text-align: center;
-    background-color: darken($navbar-color, 5%);
+  width: 100%;
+  padding: 0.7rem 1rem;
+  margin: 0;
+  text-align: center;
+  background-color: darken($navbar-color, 5%);
 }
 
 .brand-logo {
-    height: 4rem;
-    margin: auto;
+  height: 4rem;
+  margin: auto;
 }
 
 .nav-link {
-    color: $navbar-dark-color;
+  color: $navbar-dark-color;
 
-    &.active {
-        color: $navbar-dark-active-color;
-        background-color: lighten($navbar-color, 25%);
-    }
+  &.active {
+    color: $navbar-dark-active-color;
+    background-color: lighten($navbar-color, 25%);
+  }
 
-    &:hover {
-        color: $navbar-dark-active-color;
-    }
+  &:hover {
+    color: $navbar-dark-active-color;
+  }
 }
 
 .nav-item {
-    color: $navbar-dark-color;
+  color: $navbar-dark-color;
 
-    hr {
-        margin: 1rem 0.5rem;
-        border-color: rgba($navbar-dark-color, 0.2);
-    }
+  hr {
+    margin: 1rem 0.5rem;
+    border-color: rgba($navbar-dark-color, 0.2);
+  }
 }
 
 .nav-status {
-    font-size: 0.9rem;
+  font-size: 0.9rem;
 
-    b {
-        color: rgba($navbar-dark-active-color, 0.7);
-    }
+  b {
+    color: rgba($navbar-dark-active-color, 0.7);
+  }
 
-    p {
-        margin-bottom: 0.5rem;
-    }
+  p {
+    margin-bottom: 0.5rem;
+  }
 }
 
 .icon-spacer {
-    width: 1.7rem;
-    display: inline-block;
-    text-align: center;
+  width: 1.7rem;
+  display: inline-block;
+  text-align: center;
 }
 
 .login-logo {
-    position: relative;
-    top: 10px;
-    z-index: 2;
+  position: relative;
+  top: 10px;
+  z-index: 2;
 }
 
 .suggestion {
-    position: absolute;
-    top: 2.4rem;
-    right: 1.4rem;
+  position: absolute;
+  top: 2.4rem;
+  right: 1.4rem;
 }
 
 .suggestion-icon {
-    color: $warning;
+  color: $warning;
 }
 
 .suggestion-bubble {
-    position: absolute;
-    top: 2.2rem;
-    right: -1.5rem;
-    background-color: white;
-    border: 1px solid $warning;
-    border-radius: 3px;
-    padding: 0.6rem;
-    max-width: 20rem;
-    min-width: 14rem;
-    z-index: $zindex-popover;
+  position: absolute;
+  top: 2.2rem;
+  right: -1.5rem;
+  background-color: white;
+  border: 1px solid $warning;
+  border-radius: 3px;
+  padding: 0.6rem;
+  max-width: 20rem;
+  min-width: 14rem;
+  z-index: $zindex-popover;
 
-    &::before {
-        content: ' ';
-        position: absolute;
-        top: -0.5rem;
-        right: 1.4rem;
-        width: 1rem;
-        height: 1rem;
-        background-color: white;
-        border-top: 1.4px solid $warning;
-        border-left: 1.4px solid $warning;
-        transform: rotate(45deg);
-    }
+  &::before {
+    content: ' ';
+    position: absolute;
+    top: -0.5rem;
+    right: 1.4rem;
+    width: 1rem;
+    height: 1rem;
+    background-color: white;
+    border-top: 1.4px solid $warning;
+    border-left: 1.4px solid $warning;
+    transform: rotate(45deg);
+  }
 }
 
 .accordion-button {
-    padding: 1em 2em;
-    border: 1px solid rgba(0, 0, 0, .125);
-    border-radius: 0.25rem;
-    background-color: rgba(0, 0, 0, .03);
-    color: $primary;
-    text-align: left;
+  padding: 1em 2em;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  border-radius: 0.25rem;
+  background-color: rgba(0, 0, 0, 0.03);
+  color: $primary;
+  text-align: left;
 }
 
 .icon-connected {
-    color: $connected-color;
+  color: $connected-color;
 }
 
 .icon-disconnected {
-    color: $disconnected-color;
+  color: $disconnected-color;
 }
 
 .icon-never-connected {
-    color: $never-connected-color
+  color: $never-connected-color;
 }
 
 .device-data-piechart {
-    max-height: 20em;
+  max-height: 20em;
 }
 
 .square {
-    display: inline-block;
-    width: 1em;
-    height: 1em;
-    vertical-align: middle;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
 }
 
 .device-event-container {
-    height: 50em;
-    overflow-y: scroll;
-    background-color: #fbfbfb;
+  height: 50em;
+  overflow-y: scroll;
+  background-color: #fbfbfb;
 }
 
 .status-column,
 .action-column {
-    width: 4em;
+  width: 4em;
 }
 
 .action-icon {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .chart-container {
-    position: relative;
+  position: relative;
 }
 
 /* Bootstrap overwrite */
 
 .table th {
-    border-top: 0;
+  border-top: 0;
 }

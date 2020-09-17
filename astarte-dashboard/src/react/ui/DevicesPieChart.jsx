@@ -16,45 +16,38 @@
    limitations under the License.
 */
 
-import React from "react";
-import {Pie} from 'react-chartjs-2';
+import React from 'react';
+import { Pie } from 'react-chartjs-2';
 
 export default function DevicesPieChart(props) {
-  const {connectedDevices, disconnectedDevices} = props;
+  const { connectedDevices, disconnectedDevices } = props;
 
   const data = {
-    labels: [
-      'Disconnected',
-      'Connected'
+    labels: ['Disconnected', 'Connected'],
+    datasets: [
+      {
+        data: [disconnectedDevices, connectedDevices],
+        backgroundColor: [
+          '#cc5b6d', // red
+          '#5bcc6c', // green
+        ],
+        label: 'Devices',
+      },
     ],
-    datasets: [{
-      data: [
-        disconnectedDevices,
-        connectedDevices
-      ],
-      backgroundColor: [
-        "#cc5b6d", // red
-        "#5bcc6c"  // green
-      ],
-      label: 'Devices'
-    }]
   };
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     legend: {
-      position: "right",
-      align: "start"
-    }
+      position: 'right',
+      align: 'start',
+    },
   };
 
   return (
     <div className="chart-container">
-      <Pie
-        data={data}
-        options={options}
-      />
+      <Pie data={data} options={options} />
     </div>
   );
 }

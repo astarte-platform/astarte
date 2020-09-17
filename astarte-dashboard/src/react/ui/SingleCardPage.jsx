@@ -16,9 +16,9 @@
    limitations under the License.
 */
 
-import React from "react";
-import { Container } from "react-bootstrap";
-import BackButton from "./BackButton.js";
+import React from 'react';
+import { Container } from 'react-bootstrap';
+import BackButton from './BackButton';
 
 export default function SingleCardPage(props) {
   const { backLink, children, title } = props;

@@ -26,9 +26,7 @@ export default class Model {
   }
 
   fromJSON(json) {
-    try {
-      const obj = JSON.parse(json);
-      this.fromObject(obj);
-    } catch {}
+    const obj = JSON.parse(json);
+    this.fromObject(obj);
   }
 }

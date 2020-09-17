@@ -1,7 +1,7 @@
 {-
    This file is part of Astarte.
 
-   Copyright 2019 Ispirata Srl
+   Copyright 2019-2020 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ type Event
     | DeviceDisconnected
     | DeviceError ErrorParams
     | IncomingData ValueParams
+    | UnsetProperty PathParams
     | ValueStored ValueParams
     | ValueChanged ValueChangeParams
     | ValueChangeApplied ValueChangeParams
@@ -140,7 +141,15 @@ knownEventsDecoderHelper eventType =
             Decode.map DeviceError errorParamsDecoder
 
         "incoming_data" ->
-            Decode.map IncomingData valueParamsDecoder
+            Decode.field "value" (Decode.nullable Decode.value)
+            |> Decode.andThen (\val ->
+                case val of
+                    Nothing ->
+                        Decode.map UnsetProperty pathParamsDecoder
+
+                    _ ->
+                        Decode.map IncomingData valueParamsDecoder
+                )
 
         "value_stored" ->
             Decode.map ValueStored valueParamsDecoder

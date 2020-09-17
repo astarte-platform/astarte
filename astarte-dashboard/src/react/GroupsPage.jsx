@@ -16,28 +16,24 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Button, Spinner, Table } from "react-bootstrap";
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Button, Spinner, Table } from 'react-bootstrap';
 
-import Device from "./astarte/Device.js";
-import SingleCardPage from "./ui/SingleCardPage.js";
+import Device from './astarte/Device';
+import SingleCardPage from './ui/SingleCardPage';
 
 export default ({ astarte, history }) => {
-  const [phase, setPhase] = useState("loading");
+  const [phase, setPhase] = useState('loading');
   const [groups, setGroups] = useState(null);
   useEffect(() => {
     const handleDeviceList = (groupName, response) => {
       setGroups((groupMap) => {
-        const deviceList = response.data.map((value) => {
-          return Device.fromObject(value);
-        });
+        const deviceList = response.data.map((value) => Device.fromObject(value));
         const newGroupState = groupMap.get(groupName);
         newGroupState.loading = false;
         newGroupState.totalDevices = deviceList.length;
-        const connectedDevices = deviceList.filter(
-          (device) => device.connected
-        );
+        const connectedDevices = deviceList.filter((device) => device.connected);
         newGroupState.connectedDevices = connectedDevices.length;
         groupMap.set(groupName, newGroupState);
         return new Map(groupMap);
@@ -52,31 +48,28 @@ export default ({ astarte, history }) => {
         acc.set(groupName, { name: groupName, loading: true });
         return acc;
       }, new Map());
-      for (const groupName of groupMap.keys()) {
+      groupMap.forEach((value, groupName) => {
         astarte
           .getDevicesInGroup({
             groupName,
             details: true,
           })
-          .then((response) => handleDeviceList(groupName, response))
+          .then((res) => handleDeviceList(groupName, res))
           .catch((err) => handleDeviceError(groupName, err));
-      }
+      });
       setGroups(groupMap);
-      setPhase("ok");
+      setPhase('ok');
     };
-    const handleGroupsError = (err) => {
-      setPhase("err");
+    const handleGroupsError = () => {
+      setPhase('err');
     };
-    astarte
-      .getGroupList()
-      .then(handleGroupsRequest)
-      .catch(handleGroupsError);
+    astarte.getGroupList().then(handleGroupsRequest).catch(handleGroupsError);
   }, [astarte, setGroups, setPhase]);
 
   let innerHTML;
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       if (groups.size === 0) {
         innerHTML = <p>No registered group</p>;
       } else {
@@ -90,7 +83,7 @@ export default ({ astarte, history }) => {
               </tr>
             </thead>
             <tbody>
-              {Array.from(groups.values()).map((group, index) => {
+              {Array.from(groups.values()).map((group) => {
                 const encodedGroupName = encodeURIComponent(encodeURIComponent(group.name));
                 return (
                   <tr key={group.name}>
@@ -108,8 +101,8 @@ export default ({ astarte, history }) => {
       }
       break;
 
-    case "err":
-      innerHTML = <p>Couldn't load groups</p>;
+    case 'err':
+      innerHTML = <p>Couldn&apos;t load groups</p>;
       break;
 
     default:
@@ -127,7 +120,7 @@ export default ({ astarte, history }) => {
       <Button
         variant="primary"
         onClick={() => {
-          history.push("/groups/new/");
+          history.push('/groups/new/');
         }}
       >
         Create new group

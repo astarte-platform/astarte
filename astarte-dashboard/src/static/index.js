@@ -16,84 +16,49 @@
    limitations under the License.
 */
 
-import ReactDOM from "react-dom";
-import { createBrowserHistory } from "history";
-import getReactApp from "../react/App.js";
-import AstarteClient from "../react/AstarteClient.js";
+import ReactDOM from 'react-dom';
+import { createBrowserHistory } from 'history';
+import getReactApp from '../react/App';
+import AstarteClient from '../react/AstarteClient';
 
-require("./styles/main.scss");
+require('./styles/main.scss');
 
-const $ = require("jquery");
+const $ = require('jquery');
+
+// eslint-disable-next-line import/no-unresolved
+const elmApp = require('../elm/Main').Elm.Main;
 
 let reactHistory = null;
 let dashboardConfig = null;
-let phoenixSocket = null;
-let channel = null;
 let app;
-
 let astarteClient = null;
 
-$.getJSON("/user-config/config.json", function(result) {
-  dashboardConfig = result;
-})
-  .fail(function(jqXHR, textStatus, errorThrown) {
-    console.log(
-      "Astarte dashboard configuration file (config.json) is missing. Starting in editor only mode"
-    );
-  })
-  .always(function() {
-    let parameters = {
-      config: dashboardConfig,
-      previousSession: localStorage.session || null
-    };
-
-    //init app
-    app = require("../elm/Main").Elm.Main.init({ flags: parameters });
-
-    astarteClient = getAstarteClient(dashboardConfig);
-    updateAstarteClientSession();
-
-    /* begin Elm ports */
-    app.ports.storeSession.subscribe(function(session) {
-      console.log("storing session");
-      localStorage.session = session;
-
-      updateAstarteClientSession();
-    });
-
-    app.ports.loadReactPage.subscribe(loadPage);
-    app.ports.unloadReactPage.subscribe(clearReact);
-    app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
-
-    app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
-
-    app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
-      if (taggedDate.date) {
-        const convertedDate = new Date(taggedDate.date);
-        app.ports.onDateConverted.send({
-          name: taggedDate.name,
-          date: convertedDate.toLocaleString()
-        });
-      }
-    });
-
-    window.addEventListener("storage", (event) => {
-        if (event.storageArea === localStorage && event.key === "session") {
-          console.log("local session changed");
-          app.ports.onSessionChange.send(event.newValue);
-          updateAstarteClientSession();
-        }
-      },
-      false
-    );
-    /* end Elm ports */
+function sendErrorMessage(errorMessage) {
+  app.ports.onDeviceEventReceived.send({
+    message: errorMessage,
+    level: 'error',
+    timestamp: Date.now(),
   });
+}
+
+function sendInfoMessage(infoMessage) {
+  app.ports.onDeviceEventReceived.send({
+    message: infoMessage,
+    level: 'info',
+    timestamp: Date.now(),
+  });
+}
+
+function noMatchFallback(url) {
+  app.ports.onPageRequested.send(url);
+}
 
 function watchDeviceEvents(params) {
   const { deviceId } = params;
   const salt = Math.floor(Math.random() * 10000);
   const roomName = `dashboard_${deviceId}_${salt}`;
-  astarteClient.joinRoom(roomName)
+  astarteClient
+    .joinRoom(roomName)
     .then(() => {
       sendInfoMessage(`Joined room for device ${params.deviceId}`);
 
@@ -105,150 +70,149 @@ function watchDeviceEvents(params) {
         name: `connectiontrigger-${deviceId}`,
         device_id: deviceId,
         simple_trigger: {
-          type: "device_trigger",
-          on: "device_connected",
-          device_id: deviceId
-        }
+          type: 'device_trigger',
+          on: 'device_connected',
+          device_id: deviceId,
+        },
       };
 
       const disconnectionTriggerPayload = {
         name: `disconnectiontrigger-${deviceId}`,
         device_id: deviceId,
         simple_trigger: {
-          type: "device_trigger",
-          on: "device_disconnected",
-          device_id: deviceId
-        }
+          type: 'device_trigger',
+          on: 'device_disconnected',
+          device_id: deviceId,
+        },
       };
 
       const errorTriggerPayload = {
-          name: `errortrigger-${deviceId}`,
+        name: `errortrigger-${deviceId}`,
+        device_id: deviceId,
+        simple_trigger: {
+          type: 'device_trigger',
+          on: 'device_error',
           device_id: deviceId,
-          simple_trigger: {
-              type: "device_trigger",
-              on: "device_error",
-              device_id: deviceId
-          }
-     };
+        },
+      };
 
       const dataTriggerPayload = {
         name: `datatrigger-${deviceId}`,
         device_id: deviceId,
         simple_trigger: {
-          type: "data_trigger",
-          on: "incoming_data",
-          interface_name: "*",
-          value_match_operator: "*",
-          match_path: "/*"
-        }
+          type: 'data_trigger',
+          on: 'incoming_data',
+          interface_name: '*',
+          value_match_operator: '*',
+          match_path: '/*',
+        },
       };
 
-      astarteClient.registerVolatileTrigger(roomName, connectionTriggerPayload)
-        .then(() => { sendInfoMessage("Watching for device connection events") })
-        .catch((err) => { sendErrorMessage("Coulnd't watch for device connection events") });
+      astarteClient
+        .registerVolatileTrigger(roomName, connectionTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device connection events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device connection events");
+        });
 
-      astarteClient.registerVolatileTrigger(roomName, disconnectionTriggerPayload)
-        .then(() => { sendInfoMessage("Watching for device disconnection events") })
-        .catch((err) => { sendErrorMessage("Coulnd't watch for device disconnection events") });
+      astarteClient
+        .registerVolatileTrigger(roomName, disconnectionTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device disconnection events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device disconnection events");
+        });
 
-      astarteClient.registerVolatileTrigger(roomName, errorTriggerPayload)
-        .then(() => { sendInfoMessage("Watching for device error events") })
-        .catch((err) => { sendErrorMessage("Coulnd't watch for device error events") });
+      astarteClient
+        .registerVolatileTrigger(roomName, errorTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device error events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device error events");
+        });
 
-      astarteClient.registerVolatileTrigger(roomName, dataTriggerPayload)
-        .then(() => { sendInfoMessage("Watching for device data events") })
-        .catch((err) => { sendErrorMessage("Coulnd't watch for device data events") });
+      astarteClient
+        .registerVolatileTrigger(roomName, dataTriggerPayload)
+        .then(() => {
+          sendInfoMessage('Watching for device data events');
+        })
+        .catch(() => {
+          sendErrorMessage("Coulnd't watch for device data events");
+        });
     })
-    .catch((err) => {
+    .catch(() => {
       sendErrorMessage(`Couldn't join device ${deviceId} room`);
     });
 }
 
 function leaveDeviceRoom() {
-  for (let room of astarteClient.joinedRooms()) {
-    console.log("leaving room " + room);
+  astarteClient.joinedRooms().forEach((room) => {
+    console.log(`leaving room ${room}`);
     astarteClient.leaveRoom(room);
-  }
-}
-
-function sendErrorMessage(errorMessage) {
-  app.ports.onDeviceEventReceived.send({
-    message: errorMessage,
-    level: "error",
-    timestamp: Date.now()
-  });
-}
-
-function sendInfoMessage(infoMessage) {
-  app.ports.onDeviceEventReceived.send({
-    message: infoMessage,
-    level: "info",
-    timestamp: Date.now()
   });
 }
 
 function loadPage(page) {
-  let elem = document.getElementById("react-page");
+  const elem = document.getElementById('react-page');
   if (elem) {
-    console.log("React already initialized, skipping");
+    console.log('React already initialized, skipping');
     reactHistory.push({ pathname: page.url });
     return;
   }
 
-  let pageNode = document.getElementById("inner-page");
+  const pageNode = document.getElementById('inner-page');
 
   if (!pageNode) {
-    console.log("Elm side is not ready yet. retry later...");
-    setTimeout(function() {
+    console.log('Elm side is not ready yet. retry later...');
+    setTimeout(() => {
       loadPage(page);
     }, 100);
     return;
   }
 
-  let node = document.createElement("div");
-  node.id = "react-page";
+  const node = document.createElement('div');
+  node.id = 'react-page';
   pageNode.appendChild(node);
 
   reactHistory = createBrowserHistory();
 
   const reactApp = getReactApp(reactHistory, astarteClient, dashboardConfig, noMatchFallback);
-  ReactDOM.render(reactApp, document.getElementById("react-page"));
+  ReactDOM.render(reactApp, document.getElementById('react-page'));
 }
 
 function clearReact() {
-  let elem = document.getElementById("react-page");
+  const elem = document.getElementById('react-page');
   if (elem) {
     elem.remove();
   }
 }
 
-function noMatchFallback(url) {
-  app.ports.onPageRequested.send(url);
-}
-
 function getAstarteClient(config) {
-  if (!config || config == "null") {
+  if (!config || config === 'null') {
     return null;
   }
 
   // base API URL
   const astarteApiUrl = config.astarte_api_url;
-  let appEngineApiUrl = "";
-  let realmManagementApiUrl = "";
-  let pairingApiUrl = "";
-  let flowApiUrl = "";
+  let appEngineApiUrl = '';
+  let realmManagementApiUrl = '';
+  let pairingApiUrl = '';
+  let flowApiUrl = '';
 
-  if (astarteApiUrl === "localhost") {
-    appEngineApiUrl = new URL("http://localhost:4002");
-    realmManagementApiUrl = new URL("http://localhost:4000");
-    pairingApiUrl = new URL("http://localhost:4003");
-    flowApiUrl = new URL("http://localhost:4009");
-
-  } else if (typeof astarteApiUrl === "string") {
-    appEngineApiUrl = new URL("appengine/", astarteApiUrl);
-    realmManagementApiUrl = new URL("realmmanagement/", astarteApiUrl);
-    pairingApiUrl = new URL("pairing/", astarteApiUrl);
-    flowApiUrl = new URL("flow/", astarteApiUrl);
+  if (astarteApiUrl === 'localhost') {
+    appEngineApiUrl = new URL('http://localhost:4002');
+    realmManagementApiUrl = new URL('http://localhost:4000');
+    pairingApiUrl = new URL('http://localhost:4003');
+    flowApiUrl = new URL('http://localhost:4009');
+  } else if (typeof astarteApiUrl === 'string') {
+    appEngineApiUrl = new URL('appengine/', astarteApiUrl);
+    realmManagementApiUrl = new URL('realmmanagement/', astarteApiUrl);
+    pairingApiUrl = new URL('pairing/', astarteApiUrl);
+    flowApiUrl = new URL('flow/', astarteApiUrl);
   }
 
   // API URL overwrite
@@ -274,24 +238,86 @@ function getAstarteClient(config) {
     pairingUrl: pairingApiUrl,
     flowUrl: flowApiUrl,
     enableFlowPreview: Boolean(config.enable_flow_preview),
-    onSocketError: (() => { sendErrorError("Astarte channels communication error") }),
-    onSocketClose: (() => { sendErrorError("Lost connection with the Astarte channel") })
+    onSocketError: () => {
+      sendErrorMessage('Astarte channels communication error');
+    },
+    onSocketClose: () => {
+      sendErrorMessage('Lost connection with the Astarte channel');
+    },
   });
 }
 
 function updateAstarteClientSession() {
-  console.log("updating client")
-  if (localStorage.session && localStorage.session !== "null") {
+  console.log('updating client');
+  if (localStorage.session && localStorage.session !== 'null') {
     const config = JSON.parse(localStorage.session).api_config;
     astarteClient.setCredentials({
       token: config.token,
-      realm: config.realm
+      realm: config.realm,
     });
   } else {
-    console.log("null session")
+    console.log('null session');
     astarteClient.setCredentials({
-      token: "",
-      realm: ""
+      token: '',
+      realm: '',
     });
   }
 }
+
+$.getJSON('/user-config/config.json', (result) => {
+  dashboardConfig = result;
+})
+  .fail(() => {
+    console.log(
+      'Astarte dashboard configuration file (config.json) is missing. Starting in editor only mode',
+    );
+  })
+  .always(() => {
+    const parameters = {
+      config: dashboardConfig,
+      previousSession: localStorage.session || null,
+    };
+
+    // init app
+    app = elmApp.init({ flags: parameters });
+
+    astarteClient = getAstarteClient(dashboardConfig);
+    updateAstarteClientSession();
+
+    /* begin Elm ports */
+    app.ports.storeSession.subscribe((session) => {
+      console.log('storing session');
+      localStorage.session = session;
+
+      updateAstarteClientSession();
+    });
+
+    app.ports.loadReactPage.subscribe(loadPage);
+    app.ports.unloadReactPage.subscribe(clearReact);
+    app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
+
+    app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
+
+    app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
+      if (taggedDate.date) {
+        const convertedDate = new Date(taggedDate.date);
+        app.ports.onDateConverted.send({
+          name: taggedDate.name,
+          date: convertedDate.toLocaleString(),
+        });
+      }
+    });
+
+    window.addEventListener(
+      'storage',
+      (event) => {
+        if (event.storageArea === localStorage && event.key === 'session') {
+          console.log('local session changed');
+          app.ports.onSessionChange.send(event.newValue);
+          updateAstarteClientSession();
+        }
+      },
+      false,
+    );
+    /* end Elm ports */
+  });

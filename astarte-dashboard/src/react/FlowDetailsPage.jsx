@@ -16,14 +16,14 @@
    limitations under the License.
 */
 
-import React from "react";
-import { Spinner } from "react-bootstrap";
-import SyntaxHighlighter from "react-syntax-highlighter";
+import React, { useEffect, useState } from 'react';
+import { Spinner } from 'react-bootstrap';
+import SyntaxHighlighter from 'react-syntax-highlighter';
 
-import SingleCardPage from "./ui/SingleCardPage.js";
+import SingleCardPage from './ui/SingleCardPage';
 
-export default ({ astarte, history, flowName }) => {
-  const [phase, setPhase] = useState("loading");
+export default ({ astarte, flowName }) => {
+  const [phase, setPhase] = useState('loading');
   const [flow, setFlow] = useState(null);
 
   useEffect(() => {
@@ -31,17 +31,17 @@ export default ({ astarte, history, flowName }) => {
       .getFlowDetails(flowName)
       .then((response) => {
         setFlow(response.data);
-        setPhase("ok");
+        setPhase('ok');
       })
-      .catch((err) => {
-        setPhase("err");
+      .catch(() => {
+        setPhase('err');
       });
   }, [astarte, setFlow, setPhase]);
 
   let innerHTML;
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       innerHTML = (
         <>
           <h5>Flow configuration</h5>
@@ -52,8 +52,8 @@ export default ({ astarte, history, flowName }) => {
       );
       break;
 
-    case "err":
-      innerHTML = <p>Couldn't load flow description</p>;
+    case 'err':
+      innerHTML = <p>Couldn&apos;t load flow description</p>;
       break;
 
     default:

@@ -16,22 +16,13 @@
    limitations under the License.
 */
 
-import React from "react";
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-import AlertsProvider from "./AlertManager";
-import Router from "./Router";
-import Snackbar from "./ui/Snackbar";
-
-export default (reactHistory, astarteClient, config, fallback) => {
+export default function BackButton({ href }) {
   return (
-    <AlertsProvider>
-      <Router
-        reactHistory={reactHistory}
-        astarteClient={astarteClient}
-        config={config}
-        fallback={fallback}
-      />
-      <Snackbar />
-    </AlertsProvider>
+    <Link to={href} className="align-bottom mr-2">
+      <i className="fas fa-chevron-left align-text-bottom" />
+    </Link>
   );
-};
+}

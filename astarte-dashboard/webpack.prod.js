@@ -47,12 +47,14 @@ module.exports = merge(common, {
         ]
     },
     plugins: [
-        new CopyWebpackPlugin([{
-            from: 'src/static/img/',
-            to: 'static/img/'
-        }, {
-            from: 'src/favicon.ico'
-        }]),
+        new CopyWebpackPlugin({
+            patterns: [{
+                from: 'src/static/img/',
+                to: 'static/img/'
+            }, {
+                from: 'src/favicon.ico'
+            }]
+        }),
         new MiniCssExtractPlugin({
             filename: "[name].css",
             chunkFilename: "[id].css"
