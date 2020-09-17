@@ -16,15 +16,19 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Button, Col, Row, Spinner } from "react-bootstrap";
-import SyntaxHighlighter from "react-syntax-highlighter";
+import React, { useCallback, useEffect, useState } from 'react';
+import { Button, Col, Row, Spinner } from 'react-bootstrap';
+import SyntaxHighlighter from 'react-syntax-highlighter';
 
-import { useAlerts } from "./AlertManager";
-import SingleCardPage from "./ui/SingleCardPage.js";
+import { useAlerts } from './AlertManager';
+import SingleCardPage from './ui/SingleCardPage';
+
+function isEmpty(obj) {
+  return !obj || Object.keys(obj).length === 0;
+}
 
 export default ({ astarte, history, pipelineId }) => {
-  const [phase, setPhase] = useState("loading");
+  const [phase, setPhase] = useState('loading');
   const [pipeline, setPipeline] = useState(null);
   const [isDeletingPipeline, setIsDeletingPipeline] = useState(false);
   const deletionAlerts = useAlerts();
@@ -32,22 +36,19 @@ export default ({ astarte, history, pipelineId }) => {
   useEffect(() => {
     const handlePipelineResponse = (response) => {
       setPipeline(response.data);
-      setPhase("ok");
+      setPhase('ok');
     };
-    const handlePipelineError = (err) => {
-      setPhase("err");
+    const handlePipelineError = () => {
+      setPhase('err');
     };
-    astarte
-      .getPipelineSource(pipelineId)
-      .then(handlePipelineResponse)
-      .catch(handlePipelineError);
+    astarte.getPipelineSource(pipelineId).then(handlePipelineResponse).catch(handlePipelineError);
   }, [astarte]);
 
   const deletePipeline = useCallback(() => {
     setIsDeletingPipeline(true);
     astarte
       .deletePipeline(pipelineId)
-      .then(() => history.push(`/pipelines`))
+      .then(() => history.push('/pipelines'))
       .catch((err) => {
         deletionAlerts.showError(`Couldn't delete pipeline: ${err.message}`);
         setIsDeletingPipeline(false);
@@ -57,7 +58,7 @@ export default ({ astarte, history, pipelineId }) => {
   let innerHTML;
 
   switch (phase) {
-    case "ok":
+    case 'ok':
       innerHTML = (
         <>
           <deletionAlerts.Alerts />
@@ -85,19 +86,9 @@ export default ({ astarte, history, pipelineId }) => {
               )}
             </Col>
           </Row>
-          <Button
-            variant="danger"
-            onClick={deletePipeline}
-            disabled={isDeletingPipeline}
-          >
+          <Button variant="danger" onClick={deletePipeline} disabled={isDeletingPipeline}>
             {isDeletingPipeline && (
-              <Spinner
-                as="span"
-                size="sm"
-                animation="border"
-                role="status"
-                className={"mr-2"}
-              />
+              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
             )}
             Delete pipeline
           </Button>
@@ -105,8 +96,8 @@ export default ({ astarte, history, pipelineId }) => {
       );
       break;
 
-    case "err":
-      innerHTML = <p>Couldn't load pipeline source</p>;
+    case 'err':
+      innerHTML = <p>Couldn&apos;t load pipeline source</p>;
       break;
 
     default:
@@ -120,7 +111,3 @@ export default ({ astarte, history, pipelineId }) => {
     </SingleCardPage>
   );
 };
-
-function isEmpty(obj) {
-  return !obj || Object.keys(obj).length === 0;
-}

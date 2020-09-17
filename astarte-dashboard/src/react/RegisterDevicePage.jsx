@@ -16,17 +16,15 @@
    limitations under the License.
 */
 
-import React, { useCallback, useMemo, useState } from "react";
-import { v4 as uuidv4, v5 as uuidv5 } from "uuid";
-import { Button, Col, Form, Modal, Spinner, Table } from "react-bootstrap";
+/* @global document */
 
-import AstarteClient from "./AstarteClient.js";
-import SingleCardPage from "./ui/SingleCardPage.js";
-import {
-  byteArrayToUrlSafeBase64,
-  urlSafeBase64ToByteArray
-} from "./Base64.js";
-import { useAlerts } from "./AlertManager";
+import React, { useCallback, useMemo, useState } from 'react';
+import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
+import { Button, Col, Form, Modal, Spinner, Table } from 'react-bootstrap';
+
+import SingleCardPage from './ui/SingleCardPage';
+import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
+import { useAlerts } from './AlertManager';
 
 /* TODO use clipboard API
  * Right now the 'clipboard-write' is supported
@@ -35,86 +33,84 @@ import { useAlerts } from "./AlertManager";
  * for now it's the only reliable way to copy to clipboard
  */
 function pasteSecret() {
-  let secretCode = document.querySelector("#secret-code");
-  let selection = window.getSelection();
+  const secretCode = document.querySelector('#secret-code');
+  const selection = window.getSelection();
 
   if (selection.rangeCount > 0) {
     selection.removeAllRanges();
   }
 
-  let range = document.createRange();
+  const range = document.createRange();
   range.selectNode(secretCode);
   selection.addRange(range);
-  document.execCommand("copy");
+  document.execCommand('copy');
 }
 
-const ColNoLabel = ({ sm, className, ...otherProps }) => {
-  return (
-    <Col sm="auto" className={"col-no-label ".concat(className)} {...otherProps} />
-  );
-};
+const ColNoLabel = ({ sm, className, ...otherProps }) => (
+  <Col sm="auto" className={'col-no-label '.concat(className)} {...otherProps} />
+);
 
-const InstrospectionTable = ({interfaces, onAddInterface, onRemoveInterface}) => {
-  return (
-    <Table className="mb-4" responsive>
-      <thead>
-        <tr>
-          <th>Interface name</th>
-          <th>Major</th>
-          <th>Minor</th>
-          <th className="action-column"></th>
-        </tr>
-      </thead>
-      <tbody>
-        { Array.from(interfaces).map(([key, interfaceDescriptor]) =>
-          <InterfaceIntrospectionRow
-            key={key}
-            name={interfaceDescriptor.name}
-            major={interfaceDescriptor.major}
-            minor={interfaceDescriptor.minor}
-            onRemove={() => onRemoveInterface(interfaceDescriptor)}
-          />
-        )}
-        <IntrospectionControlRow
-          onAddInterface={onAddInterface}
+const InstrospectionTable = ({ interfaces, onAddInterface, onRemoveInterface }) => (
+  <Table className="mb-4" responsive>
+    <thead>
+      <tr>
+        <th>Interface name</th>
+        <th>Major</th>
+        <th>Minor</th>
+        <th className="action-column"> </th>
+      </tr>
+    </thead>
+    <tbody>
+      {Array.from(interfaces).map(([key, interfaceDescriptor]) => (
+        <InterfaceIntrospectionRow
+          key={key}
+          name={interfaceDescriptor.name}
+          major={interfaceDescriptor.major}
+          minor={interfaceDescriptor.minor}
+          onRemove={() => onRemoveInterface(interfaceDescriptor)}
         />
-      </tbody>
-    </Table>
-  );
-};
+      ))}
+      <IntrospectionControlRow onAddInterface={onAddInterface} />
+    </tbody>
+  </Table>
+);
 
-const InterfaceIntrospectionRow = ({name, major, minor, onRemove}) => {
-  return (
-    <tr>
-      <td>{name}</td>
-      <td>{major}</td>
-      <td>{minor}</td>
-      <td>
-        <i className="fas fa-eraser color-red action-icon" onClick={onRemove} />
-      </td>
-    </tr>
-  );
-};
+const InterfaceIntrospectionRow = ({ name, major, minor, onRemove }) => (
+  <tr>
+    <td>{name}</td>
+    <td>{major}</td>
+    <td>{minor}</td>
+    <td>
+      <i className="fas fa-eraser color-red action-icon" onClick={onRemove} />
+    </td>
+  </tr>
+);
 
-const IntrospectionControlRow = ({onAddInterface}) => {
+const IntrospectionControlRow = ({ onAddInterface }) => {
   const initialState = {
-    name: "",
+    name: '',
     major: 0,
-    minor: 1
+    minor: 1,
   };
 
   const [interfaceDescriptor, setInterfaceDescriptor] = useState(initialState);
 
-  const handleNameChange = ({ target: {value} }) => {
+  const handleNameChange = ({ target: { value } }) => {
     setInterfaceDescriptor((state) => ({ ...state, name: value }));
   };
 
-  const handleMajorChange = ({ target: {value} }) => {
-    setInterfaceDescriptor((state) => ({ ...state, major: parseInt(value, 10) || 0 }));
+  const handleMajorChange = ({ target: { value } }) => {
+    setInterfaceDescriptor((state) => ({
+      ...state,
+      major: parseInt(value, 10) || 0,
+    }));
   };
 
-  const handleMinorChange = ({ target: {value} }) => {
-    setInterfaceDescriptor((state) => ({ ...state, minor: parseInt(value, 10) || 0 }));
+  const handleMinorChange = ({ target: { value } }) => {
+    setInterfaceDescriptor((state) => ({
+      ...state,
+      minor: parseInt(value, 10) || 0,
+    }));
   };
 
   return (
@@ -159,53 +155,34 @@ const IntrospectionControlRow = ({onAddInterface}) => {
   );
 };
 
-const CredentialSecretModal = ({ show, secret, onConfirm }) => {
-  return (
-    <Modal
-      size="lg"
-      show={show}
-      onHide={onConfirm}
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Device Registered!</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <span>The device credential secret is</span>
-        <pre className="my-2">
-          <code
-            id="secret-code"
-            className="m-1 p-2 bg-light"
-            style={{ fontSize: "1.2em" }}
-          >
-            {secret}
-          </code>
-          <i
-            className="fas fa-paste"
-            onClick={pasteSecret}
-            style={{ cursor: "copy" }}
-          />
-        </pre>
-        <span>
-          Please don't share the Credentials Secret, and ensure it is
-          transferred securely to your Device.
-          <br />
-          Once the Device pairs for the first time, the Credentials Secret
-          will be associated permanently to the Device and it won't be
-          changeable anymore.
-        </span>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button
-          variant="primary"
-          onClick={onConfirm}
-          style={{ width: "8em" }}
-        >
-          Ok
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  );
-};
+const CredentialSecretModal = ({ show, secret, onConfirm }) => (
+  <Modal size="lg" show={show} onHide={onConfirm}>
+    <Modal.Header closeButton>
+      <Modal.Title>Device Registered!</Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+      <span>The device credential secret is</span>
+      <pre className="my-2">
+        <code id="secret-code" className="m-1 p-2 bg-light" style={{ fontSize: '1.2em' }}>
+          {secret}
+        </code>
+        <i className="fas fa-paste" onClick={pasteSecret} style={{ cursor: 'copy' }} />
+      </pre>
+      <span>
+        Please don&apos;t share the Credentials Secret, and ensure it is transferred securely to
+        your Device.
+        <br />
+        Once the Device pairs for the first time, the Credentials Secret will be associated
+        permanently to the Device and it won&apos;t be changeable anymore.
+      </span>
+    </Modal.Body>
+    <Modal.Footer>
+      <Button variant="primary" onClick={onConfirm} style={{ width: '8em' }}>
+        Ok
+      </Button>
+    </Modal.Footer>
+  </Modal>
+);
 
 const NamespaceModal = ({ show, onCancel, onConfirm }) => {
   const [namespace, setNamespace] = useState('');
@@ -213,21 +190,17 @@ const NamespaceModal = ({ show, onCancel, onConfirm }) => {
 
   const newDeviceId = useMemo(() => {
     try {
-      const newUUID = uuidv5(customString, namespace).replace(/-/g, "");
-      const bytes = newUUID.match(/.{2}/g).map(b => parseInt(b, 16));
+      const newUUID = uuidv5(customString, namespace).replace(/-/g, '');
+      const bytes = newUUID.match(/.{2}/g).map((b) => parseInt(b, 16));
       return byteArrayToUrlSafeBase64(bytes);
     } catch (e) {
       // namespace is not a UUID
-      return "";
+      return '';
     }
   }, [customString, namespace]);
 
   return (
-    <Modal
-      size="lg"
-      show={show}
-      onHide={onCancel}
-    >
+    <Modal size="lg" show={show} onHide={onCancel}>
       <Modal.Header closeButton>
         <Modal.Title>Generate from name</Modal.Title>
       </Modal.Header>
@@ -240,8 +213,8 @@ const NamespaceModal = ({ show, onCancel, onConfirm }) => {
               placeholder="e.g.: 753ffc99-dd9d-4a08-a07e-9b0d6ce0bc82"
               value={namespace}
               onChange={(e) => setNamespace(e.target.value)}
-              isValid={namespace !== "" && newDeviceId !== ""}
-              isInvalid={namespace !== "" && newDeviceId === ""}
+              isValid={namespace !== '' && newDeviceId !== ''}
+              isInvalid={namespace !== '' && newDeviceId === ''}
               required
             />
             <Form.Control.Feedback type="invalid">
@@ -266,7 +239,7 @@ const NamespaceModal = ({ show, onCancel, onConfirm }) => {
         <Button
           variant="primary"
           onClick={() => onConfirm(newDeviceId)}
-          disabled={newDeviceId === ""}
+          disabled={newDeviceId === ''}
         >
           Generate ID
         </Button>
@@ -275,7 +248,7 @@ const NamespaceModal = ({ show, onCancel, onConfirm }) => {
   );
 };
 
-const RegisterDevicePage = ({ astarte, history}) => {
+const RegisterDevicePage = ({ astarte, history }) => {
   const [deviceId, setDeviceId] = useState('');
   const [deviceSecret, setDeviceSecret] = useState('');
   const [sendIntrospection, setSendIntrospection] = useState(false);
@@ -290,8 +263,8 @@ const RegisterDevicePage = ({ astarte, history}) => {
   const isValidDeviceId = byteArray.length === 17 && byteArray[16] === 0;
 
   const generateRandomUUID = useCallback(() => {
-    const newUUID = uuidv4().replace(/-/g, "");
-    const bytes = newUUID.match(/.{2}/g).map(b => parseInt(b, 16));
+    const newUUID = uuidv4().replace(/-/g, '');
+    const bytes = newUUID.match(/.{2}/g).map((b) => parseInt(b, 16));
     const newDeviceID = byteArrayToUrlSafeBase64(bytes);
 
     setDeviceId(newDeviceID);
@@ -310,7 +283,7 @@ const RegisterDevicePage = ({ astarte, history}) => {
     astarte
       .registerDevice(params)
       .then((response) => {
-        const secret = response.data["credentials_secret"];
+        const secret = response.data.credentials_secret;
         setRegisteringDevice(false);
         setDeviceSecret(secret);
         setShowCredentialSecretModal(true);
@@ -356,11 +329,7 @@ const RegisterDevicePage = ({ astarte, history}) => {
             </Form.Control.Feedback>
           </Form.Group>
           <Form.Group as={ColNoLabel}>
-            <Button
-              variant="secondary"
-              className="mx-1"
-              onClick={generateRandomUUID}
-            >
+            <Button variant="secondary" className="mx-1" onClick={generateRandomUUID}>
               Generate random ID
             </Button>
             <Button
@@ -372,7 +341,7 @@ const RegisterDevicePage = ({ astarte, history}) => {
             </Button>
           </Form.Group>
         </Form.Row>
-        <Form.Group controlId="sendIntrospectionInput" className={sendIntrospection && "mb-0"}>
+        <Form.Group controlId="sendIntrospectionInput" className={sendIntrospection && 'mb-0'}>
           <Form.Check
             type="checkbox"
             label="Declare initial introspection"
@@ -380,13 +349,13 @@ const RegisterDevicePage = ({ astarte, history}) => {
             onChange={(e) => setSendIntrospection(e.target.checked)}
           />
         </Form.Group>
-        { sendIntrospection &&
+        {sendIntrospection && (
           <InstrospectionTable
             interfaces={introspectionInterfaces}
             onAddInterface={addInterfaceToIntrospection}
             onRemoveInterface={removeIntrospectionInterface}
           />
-        }
+        )}
         <Form.Row className="flex-row-reverse pr-2">
           <Button
             variant="primary"
@@ -394,13 +363,7 @@ const RegisterDevicePage = ({ astarte, history}) => {
             disabled={!isValidDeviceId || isRegisteringDevice}
           >
             {isRegisteringDevice && (
-              <Spinner
-                as="span"
-                size="sm"
-                animation="border"
-                role="status"
-                className={"mr-2"}
-              />
+              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
             )}
             Register device
           </Button>

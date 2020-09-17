@@ -16,18 +16,18 @@
    limitations under the License.
 */
 
-const WaitForData = ({data, status, showRefreshing = false, fallback, children}) => {
+const WaitForData = ({ data, status, showRefreshing = false, fallback, children }) => {
   switch (status) {
-    case "ok":
+    case 'ok':
       return children(data);
 
-    case "loading":
-      if (!showRefreshing && data)
+    case 'loading':
+      if (!showRefreshing && data) {
         return children(data);
-      else
-        return fallback || null;
+      }
+      return fallback || null;
 
-    case "err":
+    case 'err':
       return fallback || null;
 
     default:

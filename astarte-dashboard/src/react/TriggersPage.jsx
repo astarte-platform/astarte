@@ -16,20 +16,13 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from "react";
-import {
-  Button,
-  Col,
-  Container,
-  ListGroup,
-  Row,
-  Spinner,
-} from "react-bootstrap";
+import React, { useEffect, useState } from 'react';
+import { Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
 
 const TriggerRow = ({ name, onClick }) => (
   <ListGroup.Item>
     <Button variant="link" className="p-0" onClick={onClick}>
-      <i className="fas fa-bolt mr-2"></i>
+      <i className="fas fa-bolt mr-2" />
       {name}
     </Button>
   </ListGroup.Item>
@@ -43,8 +36,7 @@ const LoadingRow = () => (
 
 export default ({ history, astarte }) => {
   const [triggers, setTriggers] = useState(null);
-  const fetchTriggers = () =>
-    astarte.getTriggerNames().then((result) => setTriggers(result.data));
+  const fetchTriggers = () => astarte.getTriggerNames().then((result) => setTriggers(result.data));
 
   useEffect(() => {
     fetchTriggers();
@@ -63,12 +55,9 @@ export default ({ history, astarte }) => {
         <Col sm={12}>
           <ListGroup>
             <ListGroup.Item>
-              <Button
-                variant="link"
-                className="p-0"
-                onClick={() => history.push("/triggers/new")}
-              >
-                <i className="fas fa-plus mr-2"></i>Install a new trigger...
+              <Button variant="link" className="p-0" onClick={() => history.push('/triggers/new')}>
+                <i className="fas fa-plus mr-2" />
+                Install a new trigger...
               </Button>
             </ListGroup.Item>
             {triggers ? (

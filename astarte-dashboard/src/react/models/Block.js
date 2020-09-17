@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import Model from "./Model";
+import Model from './Model';
 
 export default class Block extends Model {
   get isNative() {

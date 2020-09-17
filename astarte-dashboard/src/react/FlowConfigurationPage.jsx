@@ -16,16 +16,16 @@
    limitations under the License.
 */
 
-import React, { useCallback, useMemo, useState } from "react";
-import { Button, Form, Spinner } from "react-bootstrap";
+import React, { useCallback, useMemo, useState } from 'react';
+import { Button, Form, Spinner } from 'react-bootstrap';
 
-import { useAlerts } from "./AlertManager";
-import SingleCardPage from "./ui/SingleCardPage.js";
+import { useAlerts } from './AlertManager';
+import SingleCardPage from './ui/SingleCardPage';
 
 export default ({ astarte, history, pipelineId }) => {
   const [flow, setFlow] = useState({
-    name: "",
-    config: "{}",
+    name: '',
+    config: '{}',
   });
   const [isCreatingFlow, setIsCreatingFlow] = useState(false);
 
@@ -48,7 +48,7 @@ export default ({ astarte, history, pipelineId }) => {
         pipeline: pipelineId,
       })
       .then(() => {
-        history.push("/flows");
+        history.push('/flows');
       })
       .catch((err) => {
         setIsCreatingFlow(false);
@@ -64,11 +64,11 @@ export default ({ astarte, history, pipelineId }) => {
     formAlerts.showError,
   ]);
 
-  const isValidFlowName = flow.name !== "";
+  const isValidFlowName = flow.name !== '';
   const isValidFlowConfig = parsedFlowConfig != null;
   const isValidForm = isValidFlowName && isValidFlowConfig;
 
-  let innerHTML = (
+  const innerHTML = (
     <Form>
       <Form.Group controlId="flow.name">
         <Form.Label>Name</Form.Label>
@@ -92,29 +92,15 @@ export default ({ astarte, history, pipelineId }) => {
           onChange={(e) => setFlow({ ...flow, config: e.target.value })}
         />
       </Form.Group>
-      <Button
-        variant="primary"
-        disabled={!isValidForm || isCreatingFlow}
-        onClick={createFlow}
-      >
-        {isCreatingFlow && (
-          <Spinner
-            className="mr-2"
-            size="sm"
-            animation="border"
-            role="status"
-          />
-        )}
+      <Button variant="primary" disabled={!isValidForm || isCreatingFlow} onClick={createFlow}>
+        {isCreatingFlow && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
         Instantiate Flow
       </Button>
     </Form>
   );
 
   return (
-    <SingleCardPage
-      title="Flow Configuration"
-      backLink="/pipelines"
-    >
+    <SingleCardPage title="Flow Configuration" backLink="/pipelines">
       <formAlerts.Alerts />
       {innerHTML}
     </SingleCardPage>

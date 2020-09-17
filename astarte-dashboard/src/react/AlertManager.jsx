@@ -24,11 +24,11 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from "react";
-import { v4 as uuidv4 } from "uuid";
-import { Alert, Row, Col } from "react-bootstrap";
+} from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { Alert, Row, Col } from 'react-bootstrap';
 
-import { useRelativeTime } from "./hooks/useRelativeTime";
+import useRelativeTime from './hooks/useRelativeTime';
 
 const useAlertsContext = ({ timeout } = {}) => {
   const timersId = useRef([]);
@@ -44,16 +44,13 @@ const useAlertsContext = ({ timeout } = {}) => {
       setAlerts((currentAlerts) => {
         const lengthBeforeRemove = currentAlerts.length;
         const filteredAlerts = currentAlerts.filter((a) => a.id !== alert.id);
-        if (
-          lengthBeforeRemove > filteredAlerts.length &&
-          alert.options.onClose
-        ) {
+        if (lengthBeforeRemove > filteredAlerts.length && alert.options.onClose) {
           alert.options.onClose();
         }
         return filteredAlerts;
       });
     },
-    [setAlerts]
+    [setAlerts],
   );
 
   const closeAll = useCallback(() => {
@@ -61,7 +58,7 @@ const useAlertsContext = ({ timeout } = {}) => {
   }, [alerts, close]);
 
   const show = useCallback(
-    (message = "", options = {}) => {
+    (message = '', options = {}) => {
       const alert = {
         id: uuidv4(),
         message,
@@ -84,43 +81,55 @@ const useAlertsContext = ({ timeout } = {}) => {
       }
       return alert;
     },
-    [close, setAlerts]
+    [close, setAlerts],
   );
 
   const showSuccess = useCallback(
-    (message = "", options = {}) => {
-      options.variant = "success";
-      options.timeout = timeout || 0;
-      return show(message, options);
+    (message = '', options = {}) => {
+      const opts = {
+        ...options,
+        variant: 'success',
+        timeout: timeout || 0,
+      };
+      return show(message, opts);
     },
-    [show]
+    [show],
   );
 
   const showWarning = useCallback(
-    (message = "", options = {}) => {
-      options.variant = "warning";
-      options.timeout = 0;
-      return show(message, options);
+    (message = '', options = {}) => {
+      const opts = {
+        ...options,
+        variant: 'warning',
+        timeout: timeout || 0,
+      };
+      return show(message, opts);
     },
-    [show]
+    [show],
   );
 
   const showError = useCallback(
-    (message = "", options = {}) => {
-      options.variant = "danger";
-      options.timeout = 0;
-      return show(message, options);
+    (message = '', options = {}) => {
+      const opts = {
+        ...options,
+        variant: 'danger',
+        timeout: timeout || 0,
+      };
+      return show(message, opts);
     },
-    [show]
+    [show],
   );
 
   const showInfo = useCallback(
-    (message = "", options = {}) => {
-      options.variant = "info";
-      options.timeout = timeout || 0;
-      return show(message, options);
+    (message = '', options = {}) => {
+      const opts = {
+        ...options,
+        variant: 'info',
+        timeout: timeout || 0,
+      };
+      return show(message, opts);
     },
-    [show]
+    [show],
   );
 
   return {
@@ -184,15 +193,13 @@ const AlertBanner = ({ alert }) => {
   );
 };
 
-const AlertsBanner = ({ alerts }) => {
-  return (
-    <Row>
-      {alerts.map((alert) => (
-        <AlertBanner key={alert.id} alert={alert} />
-      ))}
-    </Row>
-  );
-};
+const AlertsBanner = ({ alerts }) => (
+  <Row>
+    {alerts.map((alert) => (
+      <AlertBanner key={alert.id} alert={alert} />
+    ))}
+  </Row>
+);
 
 export const useAlerts = () => {
   const alertsContext = useAlertsContext();
@@ -202,13 +209,9 @@ export const useAlerts = () => {
 
 export const useGlobalAlerts = () => {
   const alertContext = useContext(GlobalAlertsUtilsContext);
-  return useMemo(() => {
-    return alertContext.current;
-  }, [alertContext]);
+  return useMemo(() => alertContext.current, [alertContext]);
 };
 
-export const useGlobalAlertsState = () => {
-  return useContext(GlobalAlertsStateContext);
-};
+export const useGlobalAlertsState = () => useContext(GlobalAlertsStateContext);
 
 export default GlobalAlertsProvider;

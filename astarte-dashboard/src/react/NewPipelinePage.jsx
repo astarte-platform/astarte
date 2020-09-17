@@ -16,29 +16,37 @@
    limitations under the License.
 */
 
-import React, { useCallback, useMemo, useState } from "react";
-import {
-  Button,
-  Form,
-  Spinner
-} from "react-bootstrap";
+import React, { useCallback, useMemo, useState } from 'react';
+import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
 
-import { useAlerts } from "./AlertManager";
-import SingleCardPage from "./ui/SingleCardPage.js";
+import { useAlerts } from './AlertManager';
+import SingleCardPage from './ui/SingleCardPage';
 
-const ajv = new Ajv({schemaId: 'id'});
+const ajv = new Ajv({ schemaId: 'id' });
 ajv.addMetaSchema(require('ajv/lib/refs/json-schema-draft-04.json'));
 
 export default ({ astarte, history }) => {
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [pipeline, setPipeline] = useState({
-    name: "",
-    description: "",
-    source: "",
-    schema: ""
+    name: '',
+    description: '',
+    source: '',
+    schema: '',
   });
   const formAlerts = useAlerts();
+
+  const schemaObject = useMemo(() => {
+    if (pipeline.schema === '') {
+      return undefined;
+    }
+    try {
+      const schema = JSON.parse(pipeline.schema);
+      return schema;
+    } catch (e) {
+      return undefined;
+    }
+  }, [pipeline.schema]);
 
   const createPipeline = useCallback(() => {
     setIsCreatingPipeline(true);
@@ -46,7 +54,7 @@ export default ({ astarte, history }) => {
     const pipelineParams = {
       name: pipeline.name,
       source: pipeline.source,
-      description: pipeline.description
+      description: pipeline.description,
     };
 
     if (schemaObject) {
@@ -61,18 +69,6 @@ export default ({ astarte, history }) => {
         formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
       });
   }, [astarte, history, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
-
-  const schemaObject = useMemo(() => {
-    if (pipeline.schema === '') {
-      return undefined;
-    }
-    try {
-      const schema = JSON.parse(pipeline.schema);
-      return schema;
-    } catch (e) {
-      return undefined;
-    }
-  }, [pipeline.schema]);
 
   const isValidSchema = useMemo(() => {
     if (!schemaObject) {
@@ -91,10 +87,7 @@ export default ({ astarte, history }) => {
   const isValidForm = isValidPipelineName && isValidSource;
 
   return (
-    <SingleCardPage
-      title="New Pipeline"
-      backLink="/pipelines"
-    >
+    <SingleCardPage title="New Pipeline" backLink="/pipelines">
       <formAlerts.Alerts />
       <Form>
         <Form.Group controlId="pipeline-name">
@@ -102,7 +95,7 @@ export default ({ astarte, history }) => {
           <Form.Control
             type="text"
             value={pipeline.name}
-            onChange={(e) => setPipeline({ ...pipeline, name: e.target.value})}
+            onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })}
           />
         </Form.Group>
         <Form.Group controlId="pipeline-description">
@@ -110,7 +103,7 @@ export default ({ astarte, history }) => {
           <Form.Control
             as="textarea"
             value={pipeline.description}
-            onChange={(e) => setPipeline({ ...pipeline, description: e.target.value})}
+            onChange={(e) => setPipeline({ ...pipeline, description: e.target.value })}
           />
         </Form.Group>
         <Form.Group controlId="pipeline-source">
@@ -119,7 +112,7 @@ export default ({ astarte, history }) => {
             as="textarea"
             rows={8}
             value={pipeline.source}
-            onChange={(e) => setPipeline({ ...pipeline, source: e.target.value})}
+            onChange={(e) => setPipeline({ ...pipeline, source: e.target.value })}
           />
         </Form.Group>
         <Form.Group controlId="pipeline-schema">
@@ -130,7 +123,7 @@ export default ({ astarte, history }) => {
             value={pipeline.schema}
             isValid={pipeline.schema !== '' && isValidSchema}
             isInvalid={pipeline.schema !== '' && !isValidSchema}
-            onChange={(e) => setPipeline({ ...pipeline, schema: e.target.value})}
+            onChange={(e) => setPipeline({ ...pipeline, schema: e.target.value })}
           />
         </Form.Group>
       </Form>
@@ -140,16 +133,10 @@ export default ({ astarte, history }) => {
         disabled={!isValidForm || isCreatingPipeline}
       >
         {isCreatingPipeline && (
-          <Spinner
-            as="span"
-            size="sm"
-            animation="border"
-            role="status"
-            className={"mr-2"}
-          />
+          <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
         )}
         Create new pipeline
       </Button>
     </SingleCardPage>
   );
-}
+};

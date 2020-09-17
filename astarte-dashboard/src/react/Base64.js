@@ -17,57 +17,52 @@
 */
 
 const charset = (() => {
-  let charset = [];
+  const newCharset = [];
   let baseCode;
   let i;
 
-  baseCode = "A".charCodeAt(0);
-  for (i = 0; i < 26; i++) {
-    charset.push(String.fromCharCode(baseCode + i));
+  baseCode = 'A'.charCodeAt(0);
+  for (i = 0; i < 26; i += 1) {
+    newCharset.push(String.fromCharCode(baseCode + i));
   }
 
-  baseCode = "a".charCodeAt(0);
-  for (i = 0; i < 26; i++) {
-    charset.push(String.fromCharCode(baseCode + i));
+  baseCode = 'a'.charCodeAt(0);
+  for (i = 0; i < 26; i += 1) {
+    newCharset.push(String.fromCharCode(baseCode + i));
   }
 
-  baseCode = "0".charCodeAt(0);
-  for (i = 0; i < 10; i++) {
-    charset.push(String.fromCharCode(baseCode + i));
+  baseCode = '0'.charCodeAt(0);
+  for (i = 0; i < 10; i += 1) {
+    newCharset.push(String.fromCharCode(baseCode + i));
   }
 
-  charset.push("-");
-  charset.push("_");
+  newCharset.push('-');
+  newCharset.push('_');
 
-  return charset;
+  return newCharset;
 })();
 
 export function byteArrayToUrlSafeBase64(bytes) {
-  let binaryArray = bytes.map(b => b.toString(2));
+  const binaryArray = bytes.map((b) => b.toString(2));
 
-  const padding = "0".padEnd(6 - ((bytes.length * 8) % 6), "0");
-  const binaryString =
-    binaryArray.map(b => b.padStart(8, "0")).join("") + padding;
+  const padding = '0'.padEnd(6 - ((bytes.length * 8) % 6), '0');
+  const binaryString = binaryArray.map((b) => b.padStart(8, '0')).join('') + padding;
 
   return binaryString
     .match(/.{6}/g)
-    .map(b => charset[parseInt(b, 2)])
-    .join("");
+    .map((b) => charset[parseInt(b, 2)])
+    .join('');
 }
 
 export function urlSafeBase64ToByteArray(base64string) {
-  let binaryString = "";
-  for (let i = 0; i < base64string.length; i++) {
-    binaryString += charset
-      .indexOf(base64string[i])
-      .toString(2)
-      .padStart(6, "0");
+  let binaryString = '';
+  for (let i = 0; i < base64string.length; i += 1) {
+    binaryString += charset.indexOf(base64string[i]).toString(2).padStart(6, '0');
   }
 
   const octects = binaryString.match(/.{1,8}/g);
   if (octects) {
-    return octects.map(b => parseInt(b, 2));
-  } else {
-    return [];
+    return octects.map((b) => parseInt(b, 2));
   }
+  return [];
 }
