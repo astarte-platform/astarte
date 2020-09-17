@@ -1275,6 +1275,7 @@ type LabelType
     | DeviceDisconnectedLabel
     | DeviceErrorLabel
     | IncommingDataLabel
+    | UnsetPropertyLabel
 
 
 renderLabel : LabelType -> Html Msg
@@ -1294,6 +1295,9 @@ renderLabel labelType =
 
         IncommingDataLabel ->
             Badge.badgeInfo [ Spacing.mr2 ] [ Html.text "incoming data" ]
+
+        UnsetPropertyLabel ->
+            Badge.badgeInfo [ Spacing.mr2 ] [ Html.text "unset property" ]
 
 
 renderEvent : JSEvent -> Html Msg
@@ -1341,6 +1345,14 @@ renderDeviceEvent event =
                         (Html.span [ Spacing.mr2 ] [ Html.text data.interface ]
                             :: pathValueToHtml data.path data.value
                         )
+                    )
+
+                DeviceEvent.UnsetProperty data ->
+                    ( UnsetPropertyLabel
+                    , Html.span []
+                        [ Html.span [ Spacing.mr2 ] [ Html.text data.interface ]
+                        , Html.span [] [ Html.text data.path ]
+                        ]
                     )
 
                 DeviceEvent.Other eventType ->

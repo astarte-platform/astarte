@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   datastream.
 
 ## [0.11.3] - Unreleased
+### Added
+- Label for property unset in device live events page.
+
 ### Fixed
 - Fix wrong measurement unit used for mapping expiry.
 
