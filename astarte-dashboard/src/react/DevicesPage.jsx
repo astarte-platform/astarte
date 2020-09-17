@@ -32,6 +32,7 @@ import {
 import { Link } from 'react-router-dom';
 import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
+import { useAlerts } from './AlertManager';
 
 const DEVICES_PER_PAGE = 20;
 const MAX_SHOWN_PAGES = 10;
@@ -42,6 +43,7 @@ export default ({ astarte, history }) => {
   const [activePage, setActivePage] = useState(0);
   const [maxPage, setMaxPage] = useState(0);
   const [cachedPages, setCachedPages] = useState([]);
+  const pageAlerts = useAlerts();
 
   const handleDevicesRequest = (pageIndex, response) => {
     const token = new URLSearchParams(response.links.next).get('from_token');
@@ -70,7 +72,9 @@ export default ({ astarte, history }) => {
           limit: DEVICES_PER_PAGE,
         })
         .then((response) => handleDevicesRequest(pageIndex, response))
-        .catch(console.log);
+        .catch((err) =>
+          pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`),
+        );
     } else {
       const { token } = cachedPages[pageIndex - 1];
       if (token) {
@@ -81,7 +85,9 @@ export default ({ astarte, history }) => {
             limit: DEVICES_PER_PAGE,
           })
           .then((response) => handleDevicesRequest(pageIndex, response))
-          .catch(console.log);
+          .catch((err) =>
+            pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`),
+          );
       }
     }
     return null;
@@ -89,7 +95,6 @@ export default ({ astarte, history }) => {
 
   const loadPage = (pageIndex) => {
     if (!cachedPages[pageIndex]) {
-      console.log('Loading a page not ready to be shown');
       return;
     }
     setActivePage(pageIndex);
@@ -168,6 +173,7 @@ export default ({ astarte, history }) => {
 
   return (
     <SingleCardPage title="Devices">
+      <pageAlerts.Alerts />
       {innerHTML}
       <Button
         variant="primary"
