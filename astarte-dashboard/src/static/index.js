@@ -151,7 +151,6 @@ function watchDeviceEvents(params) {
 
 function leaveDeviceRoom() {
   astarteClient.joinedRooms().forEach((room) => {
-    console.log(`leaving room ${room}`);
     astarteClient.leaveRoom(room);
   });
 }
@@ -159,7 +158,6 @@ function leaveDeviceRoom() {
 function loadPage(page) {
   const elem = document.getElementById('react-page');
   if (elem) {
-    console.log('React already initialized, skipping');
     reactHistory.push({ pathname: page.url });
     return;
   }
@@ -167,7 +165,6 @@ function loadPage(page) {
   const pageNode = document.getElementById('inner-page');
 
   if (!pageNode) {
-    console.log('Elm side is not ready yet. retry later...');
     setTimeout(() => {
       loadPage(page);
     }, 100);
@@ -248,7 +245,6 @@ function getAstarteClient(config) {
 }
 
 function updateAstarteClientSession() {
-  console.log('updating client');
   if (localStorage.session && localStorage.session !== 'null') {
     const config = JSON.parse(localStorage.session).api_config;
     astarteClient.setCredentials({
@@ -256,7 +252,6 @@ function updateAstarteClientSession() {
       realm: config.realm,
     });
   } else {
-    console.log('null session');
     astarteClient.setCredentials({
       token: '',
       realm: '',
@@ -266,58 +261,50 @@ function updateAstarteClientSession() {
 
 $.getJSON('/user-config/config.json', (result) => {
   dashboardConfig = result;
-})
-  .fail(() => {
-    console.log(
-      'Astarte dashboard configuration file (config.json) is missing. Starting in editor only mode',
-    );
-  })
-  .always(() => {
-    const parameters = {
-      config: dashboardConfig,
-      previousSession: localStorage.session || null,
-    };
+}).always(() => {
+  const parameters = {
+    config: dashboardConfig,
+    previousSession: localStorage.session || null,
+  };
 
-    // init app
-    app = elmApp.init({ flags: parameters });
+  // init app
+  app = elmApp.init({ flags: parameters });
 
-    astarteClient = getAstarteClient(dashboardConfig);
+  astarteClient = getAstarteClient(dashboardConfig);
+  updateAstarteClientSession();
+
+  /* begin Elm ports */
+  app.ports.storeSession.subscribe((session) => {
+    localStorage.session = session;
+
     updateAstarteClientSession();
-
-    /* begin Elm ports */
-    app.ports.storeSession.subscribe((session) => {
-      console.log('storing session');
-      localStorage.session = session;
-
-      updateAstarteClientSession();
-    });
-
-    app.ports.loadReactPage.subscribe(loadPage);
-    app.ports.unloadReactPage.subscribe(clearReact);
-    app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
-
-    app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
-
-    app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
-      if (taggedDate.date) {
-        const convertedDate = new Date(taggedDate.date);
-        app.ports.onDateConverted.send({
-          name: taggedDate.name,
-          date: convertedDate.toLocaleString(),
-        });
-      }
-    });
-
-    window.addEventListener(
-      'storage',
-      (event) => {
-        if (event.storageArea === localStorage && event.key === 'session') {
-          console.log('local session changed');
-          app.ports.onSessionChange.send(event.newValue);
-          updateAstarteClientSession();
-        }
-      },
-      false,
-    );
-    /* end Elm ports */
   });
+
+  app.ports.loadReactPage.subscribe(loadPage);
+  app.ports.unloadReactPage.subscribe(clearReact);
+  app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
+
+  app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
+
+  app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
+    if (taggedDate.date) {
+      const convertedDate = new Date(taggedDate.date);
+      app.ports.onDateConverted.send({
+        name: taggedDate.name,
+        date: convertedDate.toLocaleString(),
+      });
+    }
+  });
+
+  window.addEventListener(
+    'storage',
+    (event) => {
+      if (event.storageArea === localStorage && event.key === 'session') {
+        app.ports.onSessionChange.send(event.newValue);
+        updateAstarteClientSession();
+      }
+    },
+    false,
+  );
+  /* end Elm ports */
+});

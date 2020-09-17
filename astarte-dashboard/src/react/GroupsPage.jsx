@@ -22,10 +22,13 @@ import { Button, Spinner, Table } from 'react-bootstrap';
 
 import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
+import { useAlerts } from './AlertManager';
 
 export default ({ astarte, history }) => {
   const [phase, setPhase] = useState('loading');
   const [groups, setGroups] = useState(null);
+  const pageAlerts = useAlerts();
+
   useEffect(() => {
     const handleDeviceList = (groupName, response) => {
       setGroups((groupMap) => {
@@ -39,10 +42,6 @@ export default ({ astarte, history }) => {
         return new Map(groupMap);
       });
     };
-    const handleDeviceError = (groupName, err) => {
-      console.log(`Couldn't get the device list for group ${groupName}`);
-      console.log(err);
-    };
     const handleGroupsRequest = (response) => {
       const groupMap = response.data.reduce((acc, groupName) => {
         acc.set(groupName, { name: groupName, loading: true });
@@ -55,7 +54,9 @@ export default ({ astarte, history }) => {
             details: true,
           })
           .then((res) => handleDeviceList(groupName, res))
-          .catch((err) => handleDeviceError(groupName, err));
+          .catch(() => {
+            pageAlerts.showError(`Couldn't get the device list for group ${groupName}`);
+          });
       });
       setGroups(groupMap);
       setPhase('ok');
@@ -116,6 +117,7 @@ export default ({ astarte, history }) => {
 
   return (
     <SingleCardPage title="Groups">
+      <pageAlerts.Alerts />
       {innerHTML}
       <Button
         variant="primary"
