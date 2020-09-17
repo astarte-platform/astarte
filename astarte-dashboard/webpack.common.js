@@ -16,16 +16,15 @@ module.exports = {
         publicPath: ASSET_PATH
     },
     resolve: {
-        extensions: ['.js', '.jsx', '.elm'],
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.elm'],
         modules: ['node_modules']
     },
     module: {
         //noParse: /\.elm$/,
         rules: [{
-            test: /\.(js|jsx)$/,
+            test: /\.(ts|js)x?$/,
             exclude: /(node_modules|bower_components)/,
             loader: "babel-loader",
-            options: { presets: ["@babel/env"] }
         },
         {
             test: /\.(eot|ttf|woff|woff2|svg)$/,
