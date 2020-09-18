@@ -37,12 +37,6 @@ module.exports = merge(common, {
     },
     optimization: {
         minimizer: [
-            new TerserPlugin({
-                parallel: true,
-                terserOptions: {
-                    ecma: 6,
-                },
-            }),
             new OptimizeCSSAssetsPlugin({})
         ]
     },
