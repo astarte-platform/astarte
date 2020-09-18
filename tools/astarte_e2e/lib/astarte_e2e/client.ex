@@ -23,6 +23,9 @@ defmodule AstarteE2E.Client do
 
   require Logger
 
+  @connection_backoff_ms 10_000
+  @connection_attempts 10
+
   @doc "Starts the client process."
   @spec start_link(AstarteE2E.client_options()) :: GenSocketClient.on_start()
   def start_link(opts) do
@@ -61,13 +64,20 @@ defmodule AstarteE2E.Client do
 
   def init({url, realm, token, device_id}) do
     topic = make_topic(realm, device_id)
-    callback_state = %{device_id: device_id, topic: topic}
+
+    callback_state = %{
+      device_id: device_id,
+      topic: topic
+    }
+
     query_params = [realm: realm, token: token]
 
     state = %{
       callback_state: callback_state,
       pending_requests: %{},
-      pending_messages: %{}
+      pending_messages: %{},
+      connection_attempts: @connection_attempts,
+      connected: false
     }
 
     {:connect, url, query_params, state}
@@ -78,7 +88,7 @@ defmodule AstarteE2E.Client do
       id: __MODULE__,
       start: {__MODULE__, :start_link, [opts]},
       type: :worker,
-      restart: :permanent,
+      restart: :transient,
       shutdown: 500
     }
   end
@@ -93,6 +103,8 @@ defmodule AstarteE2E.Client do
 
   def handle_connected(transport, state) do
     Logger.info("Connected.", tag: "astarte_e2e_client_connected")
+    state = %{state | connection_attempts: @connection_attempts, connected: true}
+
     join_topic(transport, state)
     {:ok, state}
   end
@@ -107,7 +119,9 @@ defmodule AstarteE2E.Client do
       tag: "astarte_e2e_client_disconnected"
     )
 
-    {:ok, state}
+    Process.send_after(self(), :try_connect, @connection_backoff_ms)
+
+    {:ok, %{state | connected: false}}
   end
 
   def handle_joined(topic, _payload, transport, state) do
@@ -201,6 +215,33 @@ defmodule AstarteE2E.Client do
     {:error, reason}
   end
 
+  def handle_info(:try_connect, _transport, state) do
+    if state.connection_attempts > 0 do
+      updated_attempts = state.connection_attempts - 1
+      updated_state = %{state | connection_attempts: updated_attempts}
+      {:connect, updated_state}
+    else
+      Logger.warn(
+        "Cannot establish a connection after #{inspect(@connection_attempts)} attempts. Closing application.",
+        tag: "astarte_e2e_client_connection_failed"
+      )
+
+      System.stop(1)
+      {:stop, :connection_failed, state}
+    end
+  end
+
+  def handle_call(
+        {:verify_payload, _interface_name, _path, _value, _timestamp},
+        _from,
+        _transport,
+        %{connected: false} = state
+      ) do
+    :telemetry.execute([:astarte_end_to_end, :messages, :failed], %{})
+
+    {:reply, {:error, :not_connected}, state}
+  end
+
   def handle_call(
         {:verify_payload, interface_name, path, value, timestamp},
         from,
@@ -247,7 +288,8 @@ defmodule AstarteE2E.Client do
     with {:ok, client_pid} <- fetch_pid() do
       GenSocketClient.call(
         client_pid,
-        {:verify_payload, interface_name, path, value, timestamp}
+        {:verify_payload, interface_name, path, value, timestamp},
+        :infinity
       )
     end
   end

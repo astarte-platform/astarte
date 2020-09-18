@@ -75,7 +75,7 @@ defmodule AstarteE2E.Config do
     type: :integer,
     default: 4010
 
-  @envdoc "Overall number of consistency checks repetitions. Defaults to 0, corresponding to endless checks."
+  @envdoc "Overall number of consistency checks repetitions. Defaults to 0, corresponding to infinite checks."
   app_env :check_repetitions, :astarte_e2e, :check_repetitions,
     os_env: "ASTARTE_E2E_CHECK_REPETITIONS",
     type: PositiveIntegerOrInfinity,

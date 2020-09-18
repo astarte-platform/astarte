@@ -74,7 +74,7 @@ defmodule AstarteE2E do
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  def test do
+  def work do
     with {:ok, device_pid} <- fetch_device_pid(Config.realm!(), Config.device_id!()),
          {:ok, interface_names} <- fetch_interface_names(),
          :ok <- Device.wait_for_connection(device_pid) do

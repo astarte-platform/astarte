@@ -22,15 +22,18 @@ defmodule AstarteE2E.Config.PositiveIntegerOrInfinity do
   @impl Skogsra.Type
   def cast(value)
 
-  def cast(0) do
-    {:ok, :endless}
-  end
+  def cast(repetitions) do
+    value = String.to_integer(repetitions)
 
-  def cast(repetitions) when is_integer(repetitions) do
-    {:ok, repetitions}
-  end
+    cond do
+      value == 0 ->
+        {:ok, :infinity}
 
-  def cast(_) do
-    :error
+      value > 0 ->
+        {:ok, value}
+
+      true ->
+        :error
+    end
   end
 end

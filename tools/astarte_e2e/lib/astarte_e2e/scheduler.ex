@@ -17,10 +17,12 @@
 #
 
 defmodule AstarteE2E.Scheduler do
-  use Supervisor
+  require Logger
+
+  use GenServer, restart: :transient
 
   def start_link(opts) do
-    Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   @impl true
@@ -29,14 +31,36 @@ defmodule AstarteE2E.Scheduler do
       Keyword.fetch!(opts, :check_interval_s)
       |> to_ms()
 
-    children = [
-      %{
-        id: :scheduled_task,
-        start: {SchedEx, :run_in, [AstarteE2E, :test, [], check_interval_ms]}
-      }
-    ]
+    check_repetitions = Keyword.fetch!(opts, :check_repetitions)
 
-    Supervisor.init(children, strategy: :one_for_one)
+    state = %{check_repetitions: check_repetitions, check_interval_ms: check_interval_ms}
+    :timer.send_interval(check_interval_ms, :do_work)
+
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_info(:do_work, %{check_repetitions: 0} = state) do
+    Logger.info("Terminating application successfully.",
+      tag: "astarte_e2e_scheduler_termination_success"
+    )
+
+    System.stop(0)
+    {:stop, :normal, state}
+  end
+
+  @impl true
+  def handle_info(:do_work, state) do
+    AstarteE2E.work()
+
+    case state.check_repetitions do
+      :infinity ->
+        {:noreply, state}
+
+      _ ->
+        updated_count = state.check_repetitions - 1
+        {:noreply, %{state | check_repetitions: updated_count}}
+    end
   end
 
   defp to_ms(seconds), do: seconds * 1_000
