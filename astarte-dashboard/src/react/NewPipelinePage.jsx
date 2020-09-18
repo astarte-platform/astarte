@@ -16,18 +16,56 @@
    limitations under the License.
 */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { Button, Form, Spinner } from 'react-bootstrap';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
 
+import JsonSchemaForm from '@rjsf/bootstrap-4';
+
 import { useAlerts } from './AlertManager';
+import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/VisualFlowEditor';
 import SingleCardPage from './ui/SingleCardPage';
 
 const ajv = new Ajv({ schemaId: 'id' });
-ajv.addMetaSchema(require('ajv/lib/refs/json-schema-draft-04.json'));
+const metaSchemaDraft04 = require('ajv/lib/refs/json-schema-draft-04.json');
+
+ajv.addMetaSchema(metaSchemaDraft04);
+
+const NodeSettingsModal = ({ node, schema, initialData, onCancel, onConfirm }) => (
+  <Modal size="lg" show onHide={onCancel}>
+    <Modal.Header closeButton>
+      <Modal.Title>Settings for {node.name}</Modal.Title>
+    </Modal.Header>
+    <Modal.Body>
+      <JsonSchemaForm
+        schema={schema}
+        additionalMetaSchemas={[metaSchemaDraft04]}
+        formData={initialData}
+        onSubmit={(params) => onConfirm(params.formData)}
+      >
+        <div className="form-footer">
+          <Button type="submit" variant="primary">
+            Apply settings
+          </Button>
+          <Button variant="secondary mr-2" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+      </JsonSchemaForm>
+    </Modal.Body>
+  </Modal>
+);
+
+const CommandRow = ({ className = '', children }) => (
+  <div className={['d-flex flex-row-reverse', className].join(' ')}>{children}</div>
+);
 
 export default ({ astarte, history }) => {
+  const [editorModel] = useState(getNewModel());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
+  const [blocks, setBlocks] = useState([]);
+  const [activeModal, setActiveModal] = useState(null);
   const [pipeline, setPipeline] = useState({
     name: '',
     description: '',
@@ -35,6 +73,17 @@ export default ({ astarte, history }) => {
     schema: '',
   });
   const formAlerts = useAlerts();
+
+  useEffect(() => {
+    astarte
+      .getBlocks()
+      .then((astarteBlocks) => {
+        setBlocks(astarteBlocks);
+      })
+      .catch((error) => {
+        formAlerts.showError(`Couldn't retrieve block descriptions: ${error.message}`);
+      });
+  }, [astarte]);
 
   const schemaObject = useMemo(() => {
     if (pipeline.schema === '') {
@@ -82,6 +131,41 @@ export default ({ astarte, history }) => {
     }
   }, [schemaObject, ajv]);
 
+  const blockSettingsClickHandler = useCallback(
+    (e, node) => {
+      const blockDefinition = blocks.find((block) => node.name === block.name);
+
+      editorModel.setLocked(true);
+
+      setActiveModal(
+        <NodeSettingsModal
+          node={node}
+          schema={blockDefinition.schema}
+          initialData={node.getProperties()}
+          onCancel={() => {
+            setActiveModal(null);
+            editorModel.setLocked(false);
+          }}
+          onConfirm={(props) => {
+            node.setProperties(props);
+            setActiveModal(null);
+            editorModel.setLocked(false);
+          }}
+        />,
+      );
+    },
+    [blocks],
+  );
+
+  const sourceConversionHandler = () => {
+    try {
+      const pipelineSource = nodeModelToSource(editorModel);
+      setPipeline({ ...pipeline, source: pipelineSource });
+    } catch (error) {
+      formAlerts.showError(error.message);
+    }
+  };
+
   const isValidPipelineName = pipeline.name !== '' && pipeline.name !== 'new';
   const isValidSource = pipeline.source !== '';
   const isValidForm = isValidPipelineName && isValidSource;
@@ -98,45 +182,68 @@ export default ({ astarte, history }) => {
             onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })}
           />
         </Form.Group>
-        <Form.Group controlId="pipeline-description">
-          <Form.Label>Description</Form.Label>
-          <Form.Control
-            as="textarea"
-            value={pipeline.description}
-            onChange={(e) => setPipeline({ ...pipeline, description: e.target.value })}
-          />
-        </Form.Group>
-        <Form.Group controlId="pipeline-source">
-          <Form.Label>Source</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={8}
-            value={pipeline.source}
-            onChange={(e) => setPipeline({ ...pipeline, source: e.target.value })}
-          />
-        </Form.Group>
-        <Form.Group controlId="pipeline-schema">
-          <Form.Label>Schema</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={8}
-            value={pipeline.schema}
-            isValid={pipeline.schema !== '' && isValidSchema}
-            isInvalid={pipeline.schema !== '' && !isValidSchema}
-            onChange={(e) => setPipeline({ ...pipeline, schema: e.target.value })}
-          />
-        </Form.Group>
-      </Form>
-      <Button
-        variant="primary"
-        onClick={createPipeline}
-        disabled={!isValidForm || isCreatingPipeline}
-      >
-        {isCreatingPipeline && (
-          <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+        {pipeline.source === '' ? (
+          <>
+            <Form.Group controlId="pipeline-source">
+              <VisualFlowEditor
+                className="mb-2"
+                blocks={blocks}
+                model={editorModel}
+                onNodeSettingsClick={blockSettingsClickHandler}
+              />
+            </Form.Group>
+            <CommandRow>
+              <Button variant="primary" onClick={sourceConversionHandler}>
+                Generate pipeline source
+              </Button>
+            </CommandRow>
+          </>
+        ) : (
+          <>
+            <Form.Group controlId="pipeline-source">
+              <Form.Label>Source</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={8}
+                value={pipeline.source}
+                onChange={(e) => setPipeline({ ...pipeline, source: e.target.value })}
+              />
+            </Form.Group>
+            <Form.Group controlId="pipeline-schema">
+              <Form.Label>Schema</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={8}
+                value={pipeline.schema}
+                isValid={pipeline.schema !== '' && isValidSchema}
+                isInvalid={pipeline.schema !== '' && !isValidSchema}
+                onChange={(e) => setPipeline({ ...pipeline, schema: e.target.value })}
+              />
+            </Form.Group>
+            <Form.Group controlId="pipeline-description">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                value={pipeline.description}
+                onChange={(e) => setPipeline({ ...pipeline, description: e.target.value })}
+              />
+            </Form.Group>
+            <CommandRow>
+              <Button
+                variant="primary"
+                onClick={createPipeline}
+                disabled={!isValidForm || isCreatingPipeline}
+              >
+                {isCreatingPipeline && (
+                  <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+                )}
+                Create new pipeline
+              </Button>
+            </CommandRow>
+          </>
         )}
-        Create new pipeline
-      </Button>
+      </Form>
+      {activeModal}
     </SingleCardPage>
   );
 };

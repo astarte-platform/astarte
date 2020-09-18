@@ -80,13 +80,25 @@
     "webpack-merge": "^4.2.2"
   },
   "dependencies": {
+    "@emotion/core": "^10.0.35",
+    "@emotion/styled": "^10.0.27",
+    "@projectstorm/react-canvas-core": "^6.2.0",
+    "@projectstorm/react-diagrams": "^6.2.0",
+    "@rjsf/bootstrap-4": "^2.3.0",
+    "@rjsf/core": "^2.3.0",
     "ajv": "^6.12.3",
     "axios": "^0.19.2",
     "chart.js": "^2.9.3",
+    "closest": "0.0.1",
+    "dagre": "^0.8.5",
     "dayjs": "^1.8.34",
     "history": "^4.10.1",
     "jquery": "^3.5.1",
     "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.20",
+    "ml-matrix": "^6.5.1",
+    "pathfinding": "^0.4.18",
+    "paths-js": "^0.4.11",
     "phoenix": "^1.5.3",
     "react": "^16.13.1",
     "react-bootstrap": "^1.0.1",
@@ -95,6 +107,7 @@
     "react-router-dom": "^5.2.0",
     "react-syntax-highlighter": "^13.5.3",
     "request": "^2.88.0",
+    "resize-observer-polyfill": "^1.5.1",
     "uuid": "^7.0.2"
   }
 }
