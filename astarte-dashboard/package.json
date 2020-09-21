@@ -2,7 +2,7 @@
   "name": "astarte-dashboard",
   "version": "1.0.0-alpha.1",
   "description": "Astarte dashboard",
-  "main": "public/index.html",
+  "main": "dist/index.html",
   "keywords": [
     "astarte",
     "dashboard",
@@ -13,15 +13,23 @@
       "name": "Mattia Pavinati",
       "email": "mattia.pavinati@ispirata.com",
       "url": "https://ispirata.com/"
+    },
+    {
+      "name": "Davide Briani",
+      "email": "davide.briani@ispirata.com",
+      "url": "https://ispirata.com/"
     }
   ],
   "license": "Apache-2.0",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/astarte-platform/astarte-dashboard"
+  },
   "scripts": {
     "start": "webpack-dev-server --hot --inline --config webpack.dev.js",
     "prebuild": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
     "deploy": "webpack --config webpack.prod.js",
-    "reinstall": "npm i rimraf && rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install",
     "lint": "eslint --fix src --ext .js,.jsx,.ts,.tsx",
     "check-lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write src",
@@ -71,7 +79,7 @@
     "rimraf": "^3.0.2",
     "sass-loader": "^8.0.2",
     "style-loader": "^1.2.1",
-    "terser-webpack-plugin": "^2.3.7",
+    "terser-webpack-plugin": "^2.3.8",
     "typescript": "^4.0.2",
     "url-loader": "^4.1.0",
     "webpack": "^4.43.0",
