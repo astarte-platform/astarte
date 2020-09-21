@@ -13,9 +13,18 @@
       "name": "Mattia Pavinati",
       "email": "mattia.pavinati@ispirata.com",
       "url": "https://ispirata.com/"
+    },
+    {
+      "name": "Davide Briani",
+      "email": "davide.briani@ispirata.com",
+      "url": "https://ispirata.com/"
     }
   ],
   "license": "Apache-2.0",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/astarte-platform/astarte-dashboard"
+  },
   "scripts": {
     "start": "webpack-dev-server --hot --inline --config webpack.dev.js",
     "prebuild": "rimraf dist",
