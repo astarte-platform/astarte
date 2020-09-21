@@ -21,7 +21,6 @@
     "prebuild": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
     "deploy": "webpack --config webpack.prod.js",
-    "reinstall": "npm i rimraf && rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install",
     "lint": "eslint --fix src --ext .js,.jsx,.ts,.tsx",
     "check-lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write src",
