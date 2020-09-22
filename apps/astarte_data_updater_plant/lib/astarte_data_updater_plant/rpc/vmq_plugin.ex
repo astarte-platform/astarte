@@ -94,6 +94,10 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
     {:ok, %{local_matches: reply.local_matches, remote_matches: reply.remote_matches}}
   end
 
+  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "not_found"}}) do
+    {:error, :not_found}
+  end
+
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 

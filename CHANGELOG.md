@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_realm_management] Fix a bug that prevented AMQP triggers to be correctly installed.
 - [astarte_data_updater_plant] Mark device as offline and send device_disconnected event when
   forcing a device disconnection.
+- [astarte_data_updater_plant] Fix bug that blocked queues when trying to disconnect an already
+  disconnected device.
 
 ### Added
 - [astarte_housekeeping] Allow deleting a realm. The feature can be enabled with an environment
