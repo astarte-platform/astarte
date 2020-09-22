@@ -1995,7 +1995,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     with :ok <- Queries.set_pending_empty_cache(db_client, device_id, true),
-         :ok <- VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
+         :ok <- force_disconnection(realm, encoded_device_id) do
       new_state = set_device_disconnected(state, db_client, timestamp)
 
       Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
@@ -2012,6 +2012,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Logger.warn("Disconnect failed due to error: #{inspect(reason)}")
         # TODO: die gracefully here
         {:error, :clean_session_failed}
+    end
+  end
+
+  defp force_disconnection(realm, encoded_device_id) do
+    case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
+      # Successfully disconnected
+      :ok ->
+        :ok
+
+      # Not found means it was already disconnected, succeed anyway
+      {:error, :not_found} ->
+        :ok
+
+      # Some other error, return it
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
