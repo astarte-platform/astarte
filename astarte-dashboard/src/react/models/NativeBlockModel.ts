@@ -18,8 +18,9 @@
 
 import { DefaultPortModel, NodeModel, PortModelAlignment } from '@projectstorm/react-diagrams';
 import _ from 'lodash';
+import type { AstarteBlock } from 'astarte-client';
 
-function isEmptyValue(value) {
+function isEmptyValue(value: unknown): boolean {
   if (Array.isArray(value)) {
     return value.length === 0;
   }
@@ -32,13 +33,13 @@ function isEmptyValue(value) {
   return !value;
 }
 
-function encodeValue(value) {
+function encodeValue(value: unknown): any {
   if (Array.isArray(value)) {
-    const encodedValues = value.map((v) => encodeValue(v));
+    const encodedValues: any[] = value.map((v) => encodeValue(v));
     return `[${encodedValues.join(',')}]`;
   }
-  if (typeof value === 'object') {
-    const encodedValues = Object.entries(value).map(
+  if (typeof value === 'object' && value != null) {
+    const encodedValues: any[] = Object.entries(value).map(
       ([key, innerValue]) => `${key}: ${encodeValue(innerValue)}`,
     );
     return `{${encodedValues.join(',')}}`;
@@ -49,12 +50,28 @@ function encodeValue(value) {
   return value;
 }
 
+interface NativeBlockModelConfig {
+  name: AstarteBlock['name'];
+  blockType: AstarteBlock['type'];
+  onSettingsClick?: (...args: any[]) => void;
+}
+
 class NativeBlockModel extends NodeModel {
-  constructor({ name, blockType, onSettingsClick = () => {} }) {
+  name: AstarteBlock['name'];
+
+  blockType: AstarteBlock['type'];
+
+  onSettingsClick: (...args: any[]) => void;
+
+  properties: Record<string, unknown>;
+
+  inPorts: DefaultPortModel[];
+
+  outPorts: DefaultPortModel[];
+
+  constructor({ name, blockType, onSettingsClick = () => {} }: NativeBlockModelConfig) {
     super({
       type: 'astarte-native',
-      name,
-      blockType,
     });
 
     this.outPorts = [];
@@ -87,23 +104,23 @@ class NativeBlockModel extends NodeModel {
     this.onSettingsClick = onSettingsClick;
   }
 
-  getInPorts() {
+  getInPorts(): DefaultPortModel[] {
     return this.inPorts;
   }
 
-  getOutPorts() {
+  getOutPorts(): DefaultPortModel[] {
     return this.outPorts;
   }
 
-  getProperties() {
+  getProperties(): Record<string, unknown> {
     return this.properties;
   }
 
-  setProperties(properties) {
+  setProperties(properties: Record<string, unknown>): void {
     this.properties = properties;
   }
 
-  toScript() {
+  toScript(): string {
     const params = Object.entries(this.properties)
       .filter(([, value]) => !isEmptyValue(value))
       .map(([key, value]) => `\n    .${key}(${encodeValue(value)})`);

@@ -19,19 +19,25 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CanvasWidget } from '@projectstorm/react-canvas-core';
 import createEngine, { DiagramModel } from '@projectstorm/react-diagrams';
-import NativeBlockFactory from './NativeBlockFactory';
+import type { AstarteBlock } from 'astarte-client';
 
-const filterSortBlocks = (blocks, type) => {
+import NativeBlockFactory from './NativeBlockFactory';
+import NativeBlockModel from '../models/NativeBlockModel';
+
+const filterSortBlocks = (blocks: AstarteBlock[], type: AstarteBlock['type']) => {
   if (!blocks || blocks.length === 0) {
     return [];
   }
-
   return blocks
     .filter((block) => block.type === type)
-    .sort((block1, block2) => block1.name > block2.name);
+    .sort((block1, block2) => (block1.name > block2.name ? 1 : -1));
 };
 
-const BlockMenuItem = ({ block }) => (
+interface BlockMenuItem {
+  block: AstarteBlock;
+}
+
+const BlockMenuItem = ({ block }: BlockMenuItem) => (
   <div
     className={`block-item ${block.type}`}
     onDragStart={(e) => e.dataTransfer.setData('block-name', block.name)}
@@ -41,7 +47,11 @@ const BlockMenuItem = ({ block }) => (
   </div>
 );
 
-const EditorSidebar = ({ blocks }) => (
+interface EditorSidebarProps {
+  blocks: AstarteBlock[];
+}
+
+const EditorSidebar = ({ blocks }: EditorSidebarProps) => (
   <div className="flow-editor-sidebar">
     <div className="block-label">Producer</div>
     {filterSortBlocks(blocks, 'producer').map((block) => (
@@ -58,15 +68,26 @@ const EditorSidebar = ({ blocks }) => (
   </div>
 );
 
-function getEngine(model, nodeFactory) {
+const getEngine = (model: DiagramModel, nodeFactory: NativeBlockFactory) => {
   const engine = createEngine();
   engine.getNodeFactories().registerFactory(nodeFactory);
   engine.setModel(model);
-
   return engine;
+};
+
+interface VisualFlowEditorProps {
+  className?: string;
+  blocks: AstarteBlock[];
+  model: DiagramModel;
+  onNodeSettingsClick?: (...args: any[]) => void;
 }
 
-const VisualFlowEditor = ({ className = '', blocks, model, onNodeSettingsClick }) => {
+const VisualFlowEditor = ({
+  className = '',
+  blocks,
+  model,
+  onNodeSettingsClick,
+}: VisualFlowEditorProps): React.ReactElement => {
   const [nodeFactory] = useState(new NativeBlockFactory(blocks));
   const [engine] = useState(getEngine(model, nodeFactory));
 
@@ -104,14 +125,14 @@ const VisualFlowEditor = ({ className = '', blocks, model, onNodeSettingsClick }
   );
 };
 
-function getNewModel() {
+function getNewModel(): DiagramModel {
   return new DiagramModel();
 }
 
-function nodeModelToSource(model) {
+function nodeModelToSource(model: DiagramModel): string {
   const seenIds = new Set();
   const chain = [];
-  const pipelineBlocks = model.getNodes();
+  const pipelineBlocks = model.getNodes() as NativeBlockModel[];
 
   const sources = pipelineBlocks.filter((b) => b.blockType === 'producer');
   if (sources.length === 0) {
@@ -124,7 +145,7 @@ function nodeModelToSource(model) {
 
   const sourceBlock = sources[0];
   chain.push(sourceBlock);
-  seenIds.add(sourceBlock.options.id);
+  seenIds.add(sourceBlock.getOptions().id);
 
   let prevBlock = sourceBlock;
   let nextBlock;
@@ -141,14 +162,14 @@ function nodeModelToSource(model) {
       throw new Error('Multiple out connections are not supported');
     }
 
-    nextBlock = nextLinks[0].targetPort.parent;
+    nextBlock = nextLinks[0].getTargetPort().getParent() as NativeBlockModel;
 
-    if (seenIds.has(nextBlock.options.id)) {
+    if (seenIds.has(nextBlock.getOptions().id)) {
       throw new Error('Pipelines cannot form a loop');
     }
 
     chain.push(nextBlock);
-    seenIds.add(nextBlock.options.id);
+    seenIds.add(nextBlock.getOptions().id);
     prevBlock = nextBlock;
 
     loopCounter += 1;

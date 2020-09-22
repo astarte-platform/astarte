@@ -74,7 +74,7 @@
     "react/jsx-props-no-spreading": "off",
     "react/no-array-index-key": "off",
     "react/prop-types": "off",
-    "react/require-default-props": 1
+    "react/require-default-props": "off"
   },
   "overrides": [
     {
@@ -142,7 +142,7 @@
         "react/jsx-props-no-spreading": "off",
         "react/no-array-index-key": "off",
         "react/prop-types": "off",
-        "react/require-default-props": 1,
+        "react/require-default-props": "off",
         "no-use-before-define": "off",
         "@typescript-eslint/no-empty-function": "off",
         "@typescript-eslint/no-use-before-define": [
