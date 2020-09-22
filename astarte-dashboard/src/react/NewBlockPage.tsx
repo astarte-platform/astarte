@@ -18,11 +18,12 @@
 
 import React, { useCallback, useState } from 'react';
 import { Button, Form, Row, Spinner } from 'react-bootstrap';
+import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
 
-const isJSON = (string) => {
+const isJSON = (string: string) => {
   try {
     JSON.parse(string);
     return true;
@@ -31,8 +32,20 @@ const isJSON = (string) => {
   }
 };
 
-export default ({ astarte, history }) => {
-  const [block, setBlock] = useState({
+interface BlockState {
+  name: AstarteCustomBlock['name'];
+  source: AstarteCustomBlock['source'];
+  type: AstarteCustomBlock['type'];
+  schema: string;
+}
+
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+export default ({ astarte, history }: Props): React.ReactElement => {
+  const [block, setBlock] = useState<BlockState>({
     name: '',
     source: '',
     type: 'producer',
@@ -92,7 +105,9 @@ export default ({ astarte, history }) => {
               as="select"
               custom
               value={block.type}
-              onChange={(e) => setBlock({ ...block, type: e.target.value })}
+              onChange={(e) =>
+                setBlock({ ...block, type: e.target.value as AstarteCustomBlock['type'] })
+              }
               isValid={isValidated && isValidBlockType}
               isInvalid={isValidated && !isValidBlockType}
             >

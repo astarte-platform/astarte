@@ -30,9 +30,30 @@ import { Alert, Row, Col } from 'react-bootstrap';
 
 import useRelativeTime from './hooks/useRelativeTime';
 
-const useAlertsContext = ({ timeout } = {}) => {
-  const timersId = useRef([]);
-  const [alerts, setAlerts] = useState([]);
+import type { TimestampMilliseconds, UUIDv4 } from './types';
+
+interface HookConfig {
+  timeout?: number;
+}
+
+interface IAlertOptions {
+  onClose?: () => void;
+  onOpen?: () => void;
+  timeout?: number;
+  variant?: 'info' | 'danger' | 'warning' | 'success';
+}
+
+export interface IAlert {
+  id: UUIDv4;
+  message: string;
+  options: IAlertOptions;
+  timestamp: TimestampMilliseconds;
+  close: () => void;
+}
+
+const useAlertsContext = ({ timeout }: HookConfig = {}) => {
+  const timersId = useRef<number[]>([]);
+  const [alerts, setAlerts] = useState<IAlert[]>([]);
 
   useEffect(() => {
     const timersIdRef = timersId.current;
@@ -40,7 +61,7 @@ const useAlertsContext = ({ timeout } = {}) => {
   }, []);
 
   const close = useCallback(
-    (alert) => {
+    (alert: IAlert) => {
       setAlerts((currentAlerts) => {
         const lengthBeforeRemove = currentAlerts.length;
         const filteredAlerts = currentAlerts.filter((a) => a.id !== alert.id);
@@ -58,8 +79,8 @@ const useAlertsContext = ({ timeout } = {}) => {
   }, [alerts, close]);
 
   const show = useCallback(
-    (message = '', options = {}) => {
-      const alert = {
+    (message: string, options: IAlertOptions) => {
+      const alert: IAlert = {
         id: uuidv4(),
         message,
         options: {
@@ -69,7 +90,7 @@ const useAlertsContext = ({ timeout } = {}) => {
         close: () => close(alert),
       };
       if (alert.options.timeout) {
-        const timerId = setTimeout(() => {
+        const timerId = window.setTimeout(() => {
           close(alert);
           timersId.current.splice(timersId.current.indexOf(timerId), 1);
         }, alert.options.timeout);
@@ -85,8 +106,8 @@ const useAlertsContext = ({ timeout } = {}) => {
   );
 
   const showSuccess = useCallback(
-    (message = '', options = {}) => {
-      const opts = {
+    (message: string, options: IAlertOptions = {}) => {
+      const opts: IAlertOptions = {
         ...options,
         variant: 'success',
         timeout: timeout || 0,
@@ -97,8 +118,8 @@ const useAlertsContext = ({ timeout } = {}) => {
   );
 
   const showWarning = useCallback(
-    (message = '', options = {}) => {
-      const opts = {
+    (message: string, options: IAlertOptions = {}) => {
+      const opts: IAlertOptions = {
         ...options,
         variant: 'warning',
         timeout: timeout || 0,
@@ -109,8 +130,8 @@ const useAlertsContext = ({ timeout } = {}) => {
   );
 
   const showError = useCallback(
-    (message = '', options = {}) => {
-      const opts = {
+    (message: string, options: IAlertOptions = {}) => {
+      const opts: IAlertOptions = {
         ...options,
         variant: 'danger',
         timeout: timeout || 0,
@@ -121,8 +142,8 @@ const useAlertsContext = ({ timeout } = {}) => {
   );
 
   const showInfo = useCallback(
-    (message = '', options = {}) => {
-      const opts = {
+    (message: string, options: IAlertOptions = {}) => {
+      const opts: IAlertOptions = {
         ...options,
         variant: 'info',
         timeout: timeout || 0,
@@ -143,11 +164,23 @@ const useAlertsContext = ({ timeout } = {}) => {
   };
 };
 
-const GlobalAlertsUtilsContext = createContext();
-const GlobalAlertsStateContext = createContext();
+type IAlertsContext = ReturnType<typeof useAlertsContext>;
 
-const GlobalAlertsProvider = ({ children, ...props }) => {
-  const alertUtilsContext = useRef(null);
+type IAlertsUtils = Omit<IAlertsContext, 'alerts'>;
+type IAlertsState = IAlertsContext['alerts'];
+
+const GlobalAlertsUtilsContext = createContext<React.RefObject<IAlertsUtils> | null>(null);
+const GlobalAlertsStateContext = createContext<IAlertsState>([]);
+
+interface GlobalAlertsProviderProps {
+  children: React.ReactNode;
+}
+
+const GlobalAlertsProvider = ({
+  children,
+  ...props
+}: GlobalAlertsProviderProps): React.ReactElement => {
+  const alertUtilsContext = useRef<IAlertsUtils | null>(null);
   const {
     alerts,
     close,
@@ -176,7 +209,11 @@ const GlobalAlertsProvider = ({ children, ...props }) => {
   );
 };
 
-const AlertBanner = ({ alert }) => {
+interface AlertBannerProps {
+  alert: IAlert;
+}
+
+const AlertBanner = ({ alert }: AlertBannerProps) => {
   const alertRelativeTime = useRelativeTime(alert.timestamp);
   return (
     <Col xs={12}>
@@ -193,7 +230,11 @@ const AlertBanner = ({ alert }) => {
   );
 };
 
-const AlertsBanner = ({ alerts }) => (
+interface AlertsBannerProps {
+  alerts: IAlert[];
+}
+
+const AlertsBanner = ({ alerts }: AlertsBannerProps) => (
   <Row>
     {alerts.map((alert) => (
       <AlertBanner key={alert.id} alert={alert} />
@@ -201,17 +242,17 @@ const AlertsBanner = ({ alerts }) => (
   </Row>
 );
 
-export const useAlerts = () => {
+export const useAlerts = (): IAlertsContext & { Alerts: React.FC } => {
   const alertsContext = useAlertsContext();
-  alertsContext.Alerts = () => <AlertsBanner alerts={alertsContext.alerts} />;
-  return alertsContext;
+  const Alerts = () => <AlertsBanner alerts={alertsContext.alerts} />;
+  return { ...alertsContext, Alerts };
 };
 
-export const useGlobalAlerts = () => {
-  const alertContext = useContext(GlobalAlertsUtilsContext);
-  return useMemo(() => alertContext.current, [alertContext]);
+export const useGlobalAlerts = (): IAlertsUtils => {
+  const alertContext = useContext(GlobalAlertsUtilsContext) as React.RefObject<IAlertsUtils>;
+  return useMemo(() => alertContext.current, [alertContext]) as IAlertsUtils;
 };
 
-export const useGlobalAlertsState = () => useContext(GlobalAlertsStateContext);
+export const useGlobalAlertsState = (): IAlertsState => useContext(GlobalAlertsStateContext);
 
 export default GlobalAlertsProvider;

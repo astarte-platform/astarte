@@ -18,11 +18,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
-import { AstarteNativeBlock } from 'astarte-client';
+import AstarteClient, { AstarteNativeBlock } from 'astarte-client';
+import type { AstarteBlock } from 'astarte-client';
 
-export default ({ astarte, history }) => {
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+export default ({ astarte, history }: Props): React.ReactElement => {
   const [phase, setPhase] = useState('loading');
-  const [blocks, setBlocks] = useState([]);
+  const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
 
   useEffect(() => {
     astarte
@@ -71,7 +77,11 @@ export default ({ astarte, history }) => {
   );
 };
 
-function NewBlockCard({ onCreate }) {
+interface NewBlockCardProps {
+  onCreate: () => void;
+}
+
+function NewBlockCard({ onCreate }: NewBlockCardProps) {
   return (
     <Card className="mb-4">
       <Card.Header as="h5">New Block</Card.Header>
@@ -91,7 +101,12 @@ const blockTypeToLabel = {
   producer_consumer: 'Producer & Consumer',
 };
 
-function BlockCard({ block, onShow }) {
+interface BlockCardProps {
+  block: AstarteBlock;
+  onShow: () => void;
+}
+
+function BlockCard({ block, onShow }: BlockCardProps) {
   return (
     <Card className="mb-4">
       <Card.Header as="h5" className="d-flex justify-content-between align-items-center">

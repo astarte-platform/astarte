@@ -16,13 +16,8 @@
    limitations under the License.
 */
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+export type TimestampMilliseconds = number;
 
-export default function BackButton({ href }) {
-  return (
-    <Link to={href} className="align-bottom mr-2">
-      <i className="fas fa-chevron-left align-text-bottom" />
-    </Link>
-  );
-}
+export type TimestampUTC = string;
+
+export type Timestamp = TimestampMilliseconds | TimestampUTC;
