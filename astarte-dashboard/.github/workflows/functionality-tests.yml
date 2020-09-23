@@ -1,0 +1,38 @@
+name: Functionality tests
+on:
+  push:
+    branches:
+      - master
+      - 'release-*'
+  create:
+  pull_request:
+
+jobs:
+  build:
+    name: Run funcionality tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm install
+      - name: Create test config
+        run: 'npm run generate-demo-config -- --url=src/user-config/ --enable-flow=true'
+      - name: Start dev server
+        run: npm run start & npx wait-on http://localhost:8080
+      - name: Run tests
+        run: npm run test
