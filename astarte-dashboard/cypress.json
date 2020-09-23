@@ -1,5 +1,6 @@
 {
   "baseUrl": "http://localhost:8080",
   "pluginsFile": false,
-  "nodeVersion": "system"
+  "nodeVersion": "system",
+  "video": false
 }
