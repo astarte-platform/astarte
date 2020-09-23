@@ -76,7 +76,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   @non_existing_realm_name "nonexistingrealm"
 
   def fixture(:realm) do
-    {:ok, realm} = Realms.create_realm(@create_attrs)
+    {:ok, realm} = Realms.create_realm(@create_attrs["data"])
     realm
   end
 
@@ -202,14 +202,12 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     assert json_response(conn, 422)["errors"] != %{}
   end
 
-  @tag :wip
   test "deletes chosen realm", %{conn: conn} do
     realm = fixture(:realm)
     conn = delete(conn, realm_path(conn, :delete, realm))
     assert response(conn, 204)
 
-    assert_error_sent(404, fn ->
-      get(conn, realm_path(conn, :show, realm))
-    end)
+    conn = get(conn, realm_path(conn, :show, realm))
+    assert json_response(conn, 404)
   end
 end

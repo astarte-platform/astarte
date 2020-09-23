@@ -22,7 +22,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      version: "1.0.0-dev",
+      version: "1.0.0-alpha.1",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -59,8 +59,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"}
+      {:astarte_core, "~> 1.0.0-alpha.1"},
+      {:astarte_data_access, "~> 1.0.0-alpha.1"}
     ]
   end
 
@@ -81,9 +81,9 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:jason, "~> 1.2"},
       {:excoveralls, "~> 0.12", only: :test},
       {:plug_cowboy, "~> 2.1"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:prometheus_ex, "~> 3.0"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"},
       {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},

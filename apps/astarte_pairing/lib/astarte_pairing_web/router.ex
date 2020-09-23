@@ -21,30 +21,11 @@ defmodule Astarte.PairingWeb.Router do
 
   use Plug.Router
 
-  alias Astarte.Pairing.Engine
-
-  plug Astarte.PairingWeb.Metrics.PrometheusExporter
+  plug Astarte.PairingWeb.HealthPlug
+  plug Astarte.PairingWeb.MetricsPlug
 
   plug :match
   plug :dispatch
-
-  get "/health" do
-    try do
-      case Engine.get_health() do
-        {:ok, %{status: :ready}} ->
-          send_resp(conn, 200, "")
-
-        {:ok, %{status: :degraded}} ->
-          send_resp(conn, 200, "")
-
-        _ ->
-          send_resp(conn, 503, "")
-      end
-    rescue
-      e ->
-        send_resp(conn, 500, "")
-    end
-  end
 
   match _ do
     send_resp(conn, 404, "Not found")

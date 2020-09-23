@@ -211,17 +211,22 @@ This is the configuration object representing a minimal default action:
 
 The default action sends an HTTP request to the specified `http_url` using `http_method` method (e.g. `POST`).
 
-Further options might be used, such as "http_headers", enabling auth to remote services:
+Further options might be used, such as "http_static_headers", enabling auth to remote services:
 
 ```json
 {
   "http_url": "<http_url>",
   "http_method": "<method>",
-  "http_headers": {
+  "http_static_headers": {
     "Authorization": "Bearer <token>"
-  }
+  },
+  "ignore_ssl_errors": <true|false>
 }
 ```
+
+The `ignore_ssl_errors` key is optional and defaults to `false`. If set to `true`, any SSL error
+encountered while doing the HTTP request will be ignored. This can be useful if the trigger must
+ignore self-signed or expired certificates.
 
 Please, beware that some http headers might be not allowed or reserved for http connection signaling.
 
@@ -411,6 +416,7 @@ This is the configuration object representing a Mustache action:
   "http_method": "<http_method>",
   "template_type": "mustache",
   "template": "<template>"
+  "ignore_ssl_errors": <true|false>
 }
 ```
 
@@ -424,6 +430,10 @@ The basic keys that can be use to populate the template are:
 - `{{ realm }}`: the realm the trigger belongs to.
 - `{{ device_id }}`: the device that originated the trigger.
 - `{{ event_type }}`: the type of the received event.
+
+The `ignore_ssl_errors` key is optional and defaults to `false`. If set to `true`, any SSL error
+encountered while doing the HTTP request will be ignored. This can be useful if the trigger must
+ignore self-signed or expired certificates.
 
 Moreover, depending on the event type, all keys that are contained in the events [described in the
 previous section](#event-objects) are available, always by wrapping them in `{{ }}`.

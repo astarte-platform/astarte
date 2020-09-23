@@ -31,6 +31,10 @@ defmodule Astarte.Housekeeping.Mock.DB do
     Agent.get(__MODULE__, &Map.get(&1, realm_name))
   end
 
+  def delete_realm(realm_name) do
+    Agent.update(__MODULE__, &Map.delete(&1, realm_name))
+  end
+
   def realm_exists?(realm_name) do
     Agent.get(__MODULE__, &Map.has_key?(&1, realm_name))
   end

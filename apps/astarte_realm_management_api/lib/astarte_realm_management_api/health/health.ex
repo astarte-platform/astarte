@@ -29,9 +29,19 @@ defmodule Astarte.RealmManagement.API.Health do
   """
   def get_backend_health do
     with {:ok, %{status: status}} <- RealmManagement.get_health() do
+      :telemetry.execute(
+        [:astarte, :realm_management, :service],
+        %{health: 1}
+      )
+
       {:ok, %BackendHealth{status: status}}
     else
       _ ->
+        :telemetry.execute(
+          [:astarte, :realm_management, :service],
+          %{health: 0}
+        )
+
         {:ok, %BackendHealth{status: :error}}
     end
   end

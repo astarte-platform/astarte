@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def project do
     [
       app: :astarte_appengine_api,
-      version: "1.0.0-dev",
+      version: "1.0.0-alpha.1",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -70,9 +70,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, "~> 1.0.0-alpha.1"},
+      {:astarte_data_access, "~> 1.0.0-alpha.1"},
+      {:astarte_rpc, "~> 1.0.0-alpha.1"}
     ]
   end
 
@@ -81,11 +81,10 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.4.16"},
-      {:phoenix_pubsub, "~> 1.1"},
+      {:phoenix, "~> 1.5"},
       {:phoenix_ecto, "~> 4.0"},
       {:gettext, "~> 0.11"},
-      {:plug_cowboy, "~> 2.0"},
+      {:plug_cowboy, "~> 2.1"},
       {:jason, "~> 1.2"},
       {:cors_plug, "~> 2.0"},
       {:ex_lttb, "~> 0.3"},
@@ -93,15 +92,14 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:guardian, "~> 2.1"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.13"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_phoenix, "~> 1.3"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:prometheus_ex, "~> 3.0"},
       {:excoveralls, "~> 0.12", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:telemetry, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:skogsra, "~> 2.2"},
       {:castore, "~> 0.1.0"},
       {:observer_cli, "~> 1.5"},

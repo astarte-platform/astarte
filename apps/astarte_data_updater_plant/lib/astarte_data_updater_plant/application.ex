@@ -44,9 +44,9 @@ defmodule Astarte.DataUpdaterPlant.Application do
       |> Keyword.put(:name, :xandra)
 
     children = [
+      Astarte.DataUpdaterPlantWeb.Telemetry,
       {Xandra.Cluster, xandra_options},
-      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
-      Astarte.DataUpdaterPlantWeb.Metrics.Supervisor
+      Astarte.DataUpdaterPlant.DataPipelineSupervisor
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]

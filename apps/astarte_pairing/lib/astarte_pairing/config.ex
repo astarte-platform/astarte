@@ -30,7 +30,7 @@ defmodule Astarte.Pairing.Config do
   app_env :port, :astarte_pairing, :port,
     os_env: "PAIRING_PORT",
     type: :integer,
-    default: 4005
+    default: 4000
 
   @envdoc "The external broker URL which should be used by devices."
   app_env :broker_url, :astarte_pairing, :broker_url,

@@ -19,6 +19,7 @@
 defmodule Astarte.Housekeeping.Engine do
   require Logger
 
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Queries
 
   def create_realm(realm, public_key_pem, replication_factor, opts \\ []) do
@@ -57,6 +58,22 @@ defmodule Astarte.Housekeeping.Engine do
 
   def get_realm(realm) do
     Queries.get_realm(realm)
+  end
+
+  def delete_realm(realm, opts \\ []) do
+    if Config.enable_realm_deletion!() do
+      _ = Logger.info("Deleting realm", tag: "delete_realm", realm: realm)
+
+      Queries.delete_realm(realm, opts)
+    else
+      _ =
+        Logger.info("HOUSEKEEPING_ENABLE_REALM_DELETION is disabled, realm will not be deleted.",
+          tag: "realm_deletion_disabled",
+          realm: realm
+        )
+
+      {:error, :realm_deletion_disabled}
+    end
   end
 
   def is_realm_existing(realm) do

@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   def project do
     [
       app: :astarte_realm_management_api,
-      version: "1.0.0-dev",
+      version: "1.0.0-alpha.1",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
@@ -74,16 +74,15 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, "~> 1.0.0-alpha.1"},
+      {:astarte_rpc, "~> 1.0.0-alpha.1"}
     ]
   end
 
   defp deps do
     [
-      {:phoenix, "~> 1.4.16"},
-      {:plug_cowboy, "~> 2.0"},
-      {:phoenix_pubsub, "~> 1.1"},
+      {:phoenix, "~> 1.5"},
+      {:plug_cowboy, "~> 2.1"},
       {:gettext, "~> 0.11"},
       {:phoenix_ecto, "~> 4.0"},
       {:cors_plug, "~> 2.0"},
@@ -92,11 +91,11 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:excoveralls, "~> 0.12", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_phoenix, "~> 1.3"},
-      {:prometheus_plugs, "~> 1.1"},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end

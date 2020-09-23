@@ -34,8 +34,8 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
     children = [
       {Registry, [keys: :unique, name: Registry.MessageTracker]},
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
-      ConsumersSupervisor,
       AMQPEventsProducer,
+      ConsumersSupervisor,
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.RPC.AMQP.Client
     ]

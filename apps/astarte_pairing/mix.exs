@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.Mixfile do
   def project do
     [
       app: :astarte_pairing,
-      version: "1.0.0-dev",
+      version: "1.0.0-alpha.1",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -67,9 +67,9 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, "~> 1.0.0-alpha.1"},
+      {:astarte_data_access, "~> 1.0.0-alpha.1"},
+      {:astarte_rpc, "~> 1.0.0-alpha.1"}
     ]
   end
 
@@ -80,9 +80,9 @@ defmodule Astarte.Pairing.Mixfile do
       {:bcrypt_elixir, "~> 2.2"},
       {:excoveralls, "~> 0.12", only: :test},
       {:plug_cowboy, "~> 2.1"},
-      {:prometheus_process_collector, "~> 1.4"},
-      {:prometheus_plugs, "~> 1.1"},
-      {:prometheus_ex, "~> 3.0"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.4"},
+      {:telemetry_poller, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},

@@ -19,10 +19,6 @@
 defmodule Astarte.Pairing.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_pairing_api
 
-  alias Astarte.Pairing.APIWeb.Metrics
-
-  plug Metrics.PrometheusExporter
-  plug Metrics.PipelineInstrumenter
   plug RemoteIp
 
   socket "/socket", Astarte.Pairing.APIWeb.UserSocket, websocket: true
@@ -44,7 +40,11 @@ defmodule Astarte.Pairing.APIWeb.Endpoint do
   end
 
   plug Plug.RequestId
+  plug CORSPlug
+  plug Astarte.Pairing.APIWeb.HealthPlug
+  plug Astarte.Pairing.APIWeb.MetricsPlug
   plug PlugLoggerWithMeta
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -62,6 +62,5 @@ defmodule Astarte.Pairing.APIWeb.Endpoint do
     key: "_astarte_pairing_api_key",
     signing_salt: "M/HFhRJn"
 
-  plug CORSPlug
   plug Astarte.Pairing.APIWeb.Router
 end

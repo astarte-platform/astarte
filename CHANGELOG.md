@@ -4,7 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0-beta.1] - Unreleased
+### Fixed
+- [astarte_appengine_api] Fix regression that made it impossible to use Astarte Channels.
+- [astarte_appengine_api] Fix bug that prevented data publishing in object aggregated interfaces.
+- [astarte_appengine_api] Fix regression that prevented properties to be set before the first
+  connection of a device.
+- [astarte_realm_management] Fix a bug that prevented AMQP triggers to be correctly installed.
+- [astarte_data_updater_plant] Mark device as offline and send device_disconnected event when
+  forcing a device disconnection.
+- [astarte_data_updater_plant] Fix bug that blocked queues when trying to disconnect an already
+  disconnected device.
+
+### Added
+- [astarte_housekeeping] Allow deleting a realm. The feature can be enabled with an environment
+  variable (defaults to disabled).
+- [astarte_data_updater_plant] Declare custom exchanges when an AMQP trigger is loaded.
+
+### Changed
+- [astarte_housekeeping_api] Remove format check on Cassandra datacenter name when a realm is
+  created, the datacenter is just verified against the one present in the database.
+- [housekeeping] Increase the delay between connection attempts to 1000 ms, for an overall number
+  of 60 attempts.
+- [data_updater_plant] Default the total queue count to 128, de facto exploiting multiqueue support.
+- [data_updater_plant] Default the queue range end to 127.
+- Update Phoenix to version 1.5.
+- Rework metrics to reduce the clutter while monitoring astarte services.
+- [realm_management] Allow updating doc, description and explicit_timestamp within mappings when
+  bumping an interface minor.
+
+## [1.0.0-alpha.1] - 2020-06-19
 ### Fixed
 - Make sure devices are eventually marked as disconnected even if they disconnect while VerneMQ is
   temporarily down (see [#305](https://github.com/astarte-platform/astarte/issues/305)).
@@ -39,6 +68,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
+
+## [0.11.2] - 2020-08-14
+### Added
+- [trigger_engine] Add `ignore_ssl_errors` key in trigger actions, allowing to ignore SSL actions
+  when delivering an HTTP trigger action.
+- [trigger_engine] Update certifi to 2.5.2
+- Update Elixir to 1.8.2
+
+### Changed
+- [appengine_api] Remove `topic` from channel metrics.
 
 ## [0.11.1] - 2020-05-18
 ### Added

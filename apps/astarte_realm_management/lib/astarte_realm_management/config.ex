@@ -28,7 +28,7 @@ defmodule Astarte.RealmManagement.Config do
   app_env :port, :astarte_realm_management, :port,
     os_env: "REALM_MANAGEMENT_PORT",
     type: :integer,
-    default: 4006
+    default: 4000
 
   def cassandra_node!, do: Enum.random(cqex_nodes!())
 

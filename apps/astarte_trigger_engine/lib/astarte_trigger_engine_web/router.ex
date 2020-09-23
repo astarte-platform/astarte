@@ -21,30 +21,11 @@ defmodule Astarte.TriggerEngineWeb.Router do
 
   use Plug.Router
 
-  alias Astarte.TriggerEngine.Health
-
-  plug Astarte.TriggerEngineWeb.Metrics.PrometheusExporter
+  plug Astarte.TriggerEngineWeb.HealthPlug
+  plug Astarte.TriggerEngineWeb.MetricsPlug
 
   plug :match
   plug :dispatch
-
-  get "/health" do
-    try do
-      case Health.get_health() do
-        {:ok, %{status: :ready}} ->
-          send_resp(conn, 200, "")
-
-        {:ok, %{status: :degraded}} ->
-          send_resp(conn, 200, "")
-
-        _ ->
-          send_resp(conn, 503, "")
-      end
-    rescue
-      e ->
-        send_resp(conn, 500, "")
-    end
-  end
 
   match _ do
     send_resp(conn, 404, "Not found")

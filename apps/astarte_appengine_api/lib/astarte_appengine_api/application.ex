@@ -19,16 +19,12 @@ defmodule Astarte.AppEngine.API.Application do
   use Application
   require Logger
 
-  alias Astarte.AppEngine.APIWeb.Metrics
-
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
     alias Astarte.AppEngine.API.Config
     alias Astarte.DataAccess.Config, as: DataAccessConfig
     alias Astarte.RPC.Config, as: RPCConfig
-
-    import Supervisor.Spec
 
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
@@ -42,22 +38,18 @@ defmodule Astarte.AppEngine.API.Application do
     RPCConfig.validate!()
     Config.validate!()
 
-    Metrics.HealthStatus.setup()
-    Metrics.PhoenixInstrumenter.setup()
-    Metrics.PipelineInstrumenter.setup()
-    Metrics.PrometheusExporter.setup()
-    Metrics.AppEngineInstrumenter.setup()
-
     xandra_options =
       Config.xandra_options!()
       |> Keyword.put(:name, :xandra)
 
     # Define workers and child supervisors to be supervised
     children = [
-      supervisor(Astarte.RPC.AMQP.Client, []),
-      supervisor(Astarte.AppEngine.API.Rooms.MasterSupervisor, []),
-      supervisor(Astarte.AppEngine.API.Rooms.AMQPClient, []),
-      supervisor(Astarte.AppEngine.APIWeb.Endpoint, []),
+      Astarte.AppEngine.APIWeb.Telemetry,
+      {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
+      Astarte.RPC.AMQP.Client,
+      Astarte.AppEngine.API.Rooms.MasterSupervisor,
+      Astarte.AppEngine.API.Rooms.AMQPClient,
+      Astarte.AppEngine.APIWeb.Endpoint,
       {Xandra.Cluster, xandra_options}
     ]
 

@@ -1,7 +1,7 @@
 {
     "interface_name": "org.astarte-platform.genericsensors.Values",
-    "version_major": 0,
-    "version_minor": 1,
+    "version_major": 1,
+    "version_minor": 0,
     "type": "datastream",
     "ownership": "device",
     "description": "Generic sensors sampled data.",

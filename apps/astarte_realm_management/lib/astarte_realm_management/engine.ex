@@ -138,7 +138,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, installed_interface} <- Interface.fetch_interface_descriptor(client, name, major),
          :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
-         {:ok, new_mappings} <- extract_new_mappings(client, interface_doc),
+         {:ok, new_mappings} <- extract_updated_mappings(client, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
       new_mappings_list = Map.values(new_mappings)
 
@@ -273,44 +273,61 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  # TODO: Mappings documentation changes are discarded
-  defp extract_new_mappings(db_client, %{mappings: upd_mappings} = interface_doc) do
+  defp extract_updated_mappings(db_client, %{mappings: upd_mappings} = interface_doc) do
     descriptor = InterfaceDescriptor.from_interface(interface_doc)
 
-    with {:ok, mappings} <- Mappings.fetch_interface_mappings(db_client, descriptor.interface_id) do
+    with {:ok, mappings_map} <-
+           Mappings.fetch_interface_mappings_map(db_client, descriptor.interface_id,
+             include_docs: true
+           ) do
       upd_mappings_map =
         Enum.into(upd_mappings, %{}, fn mapping ->
           {mapping.endpoint_id, mapping}
         end)
 
-      maybe_new_mappings =
-        Enum.reduce_while(mappings, upd_mappings_map, fn mapping, acc ->
-          case drop_mapping_doc(Map.get(upd_mappings_map, mapping.endpoint_id)) do
-            nil ->
-              {:halt, {:error, :missing_endpoints}}
+      existing_endpoints = Map.keys(mappings_map)
+      {existing_mappings, new_mappings} = Map.split(upd_mappings_map, existing_endpoints)
 
-            ^mapping ->
-              {:cont, Map.delete(acc, mapping.endpoint_id)}
-
-            _ ->
-              {:halt, {:error, :incompatible_endpoint_change}}
-          end
-        end)
-
-      if is_map(maybe_new_mappings) do
-        {:ok, maybe_new_mappings}
-      else
-        maybe_new_mappings
+      with {:ok, changed_mappings} <- extract_changed_mappings(mappings_map, existing_mappings) do
+        {:ok, Map.merge(new_mappings, changed_mappings)}
       end
     end
   end
 
-  defp drop_mapping_doc(%Mapping{} = mapping) do
-    %{mapping | description: nil, doc: nil}
+  defp extract_changed_mappings(old_mappings, existing_mappings) do
+    Enum.reduce_while(old_mappings, {:ok, %{}}, fn {mapping_id, old_mapping}, {:ok, acc} ->
+      with {:ok, updated_mapping} <- Map.fetch(existing_mappings, mapping_id),
+           {:allowed, true} <- {:allowed, allowed_mapping_update?(old_mapping, updated_mapping)},
+           {:updated, true} <- {:updated, is_mapping_updated?(old_mapping, updated_mapping)} do
+        {:cont, {:ok, Map.put(acc, mapping_id, updated_mapping)}}
+      else
+        :error ->
+          {:halt, {:error, :missing_endpoints}}
+
+        {:allowed, false} ->
+          {:halt, {:error, :incompatible_endpoint_change}}
+
+        {:updated, false} ->
+          {:cont, {:ok, acc}}
+      end
+    end)
   end
 
-  defp drop_mapping_doc(nil) do
-    nil
+  defp allowed_mapping_update?(mapping, upd_mapping) do
+    new_mapping = drop_mapping_negligible_fields(upd_mapping)
+    old_mapping = drop_mapping_negligible_fields(mapping)
+
+    new_mapping == old_mapping
+  end
+
+  defp is_mapping_updated?(mapping, upd_mapping) do
+    mapping.explicit_timestamp != upd_mapping.explicit_timestamp or
+      mapping.doc != upd_mapping.doc or
+      mapping.description != upd_mapping.description
+  end
+
+  defp drop_mapping_negligible_fields(%Mapping{} = mapping) do
+    %{mapping | doc: nil, description: nil, explicit_timestamp: false}
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do
@@ -466,7 +483,8 @@ defmodule Astarte.RealmManagement.Engine do
          simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
          trigger = build_trigger(trigger_name, simple_trigger_maps, action),
          %Trigger{trigger_uuid: trigger_uuid} = trigger,
-         trigger_target = target_from_action(action, trigger_uuid),
+         {:ok, action_map} <- Jason.decode(action),
+         trigger_target = target_from_action(action_map, trigger_uuid),
          t_container = build_trigger_target_container(trigger_target),
          :ok <- validate_simple_triggers(client, simple_trigger_maps),
          # TODO: these should be batched together
@@ -491,11 +509,15 @@ defmodule Astarte.RealmManagement.Engine do
          %{"amqp_exchange" => exchange, "amqp_routing_key" => key} = action,
          parent_uuid
        ) do
+    static_headers =
+      Map.get(action, "amqp_static_headers", %{})
+      |> Enum.to_list()
+
     %AMQPTriggerTarget{
       exchange: exchange,
       routing_key: key,
       parent_trigger_id: parent_uuid,
-      static_headers: Map.get(action, "amqp_static_headers"),
+      static_headers: static_headers,
       message_expiration_ms: Map.get(action, "amqp_message_expiration_ms"),
       message_priority: Map.get(action, "amqp_message_priority"),
       message_persistent: Map.get(action, "amqp_message_persistent")

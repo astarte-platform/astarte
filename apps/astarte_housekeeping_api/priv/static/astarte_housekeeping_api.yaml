@@ -16,7 +16,7 @@ info:
     configuration. This API is usually accessible only to system administrators,
     and is not meant for the average user of Astarte, which should refer to
     Realm Management API instead.
-  version: 1.0.0-dev
+  version: 1.0.0-alpha.1
   title: Astarte Housekeeping API
   contact:
     email: info@ispirata.com
@@ -118,6 +118,28 @@ paths:
           description: Success
       requestBody:
         $ref: '#/components/requestBodies/createRealmBody'
+    delete:
+      tags:
+        - realm
+      summary: Delete realm
+      description: >
+        Deletes a realm from Astarte. This feature must be explicitly enabled
+        in the cluster, if it's disabled a 405 status code will be returned.
+      operationId: deleteRealm
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Success
+        '405':
+          description: Realm deletion disabled
 components:
   securitySchemes:
     JWT:

@@ -38,6 +38,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     GenServer.call(__MODULE__, {:publish, exchange, routing_key, payload, opts})
   end
 
+  def declare_exchange(exchange) do
+    GenServer.call(__MODULE__, {:declare_exchange, exchange})
+  end
+
   # Server callbacks
 
   def init(_args) do
@@ -55,7 +59,15 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
     {:reply, reply, chan}
   end
 
-  def handle_info({:try_to_connect}, _state) do
+  def handle_call({:declare_exchange, exchange}, _from, chan) do
+    # TODO: we need to decide who is responsible of deleting the exchange once it is
+    # no longer needed
+    reply = Exchange.declare(chan, exchange, :direct, durable: true)
+
+    {:reply, reply, chan}
+  end
+
+  def handle_info(:try_to_connect, _state) do
     {:ok, new_state} = rabbitmq_connect()
     {:noreply, new_state}
   end
@@ -71,10 +83,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   defp rabbitmq_connect(retry \\ true) do
     with {:ok, conn} <- Connection.open(Config.amqp_producer_options!()),
-         # Get notifications when the connection goes down
-         Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
-         :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true) do
+         :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true),
+         # Get notifications when the chan or connection goes down
+         Process.monitor(chan.pid) do
       {:ok, chan}
     else
       {:error, reason} ->
@@ -93,7 +105,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   defp maybe_retry(retry) do
     if retry do
       Logger.warn("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), {:try_to_connect})
+      :erlang.send_after(@connection_backoff, :erlang.self(), :try_to_connect)
       {:ok, :not_connected}
     else
       {:stop, :connection_failed}

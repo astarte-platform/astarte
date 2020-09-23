@@ -19,9 +19,7 @@ config :astarte_housekeeping_api,
 config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "Nxme5JSsvLykfa6sSoC+7cy9f3ycI8No2T1pwqFpB47KAt6tK/61jGpB+TIhNdjl",
-  render_errors: [view: Astarte.Housekeeping.APIWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Astarte.Housekeeping.API.PubSub, adapter: Phoenix.PubSub.PG2],
-  instrumenters: [Astarte.Housekeeping.APIWeb.Metrics.PhoenixInstrumenter]
+  render_errors: [view: Astarte.Housekeeping.APIWeb.ErrorView, accepts: ~w(json)]
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -33,51 +31,6 @@ config :astarte_housekeeping_api, Astarte.Housekeeping.APIWeb.AuthGuardian,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
-
-config :prometheus, Astarte.Housekeeping.APIWeb.Metrics.PhoenixInstrumenter,
-  controller_call_labels: [:controller, :action],
-  duration_buckets: [
-    10,
-    25,
-    50,
-    100,
-    250,
-    500,
-    1000,
-    2500,
-    5000,
-    10_000,
-    25_000,
-    50_000,
-    100_000,
-    250_000,
-    500_000,
-    1_000_000,
-    2_500_000,
-    5_000_000,
-    10_000_000
-  ],
-  registry: :default,
-  duration_unit: :microseconds
-
-config :prometheus, Astarte.Housekeeping.APIWeb.Metrics.PipelineInstrumenter,
-  labels: [:status_class, :method, :host, :scheme],
-  duration_buckets: [
-    10,
-    100,
-    1_000,
-    10_000,
-    100_000,
-    300_000,
-    500_000,
-    750_000,
-    1_000_000,
-    1_500_000,
-    2_000_000,
-    3_000_000
-  ],
-  registry: :default,
-  duration_unit: :microseconds
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

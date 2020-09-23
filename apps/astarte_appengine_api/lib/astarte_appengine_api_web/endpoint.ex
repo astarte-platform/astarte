@@ -18,11 +18,6 @@
 defmodule Astarte.AppEngine.APIWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :astarte_appengine_api
 
-  alias Astarte.AppEngine.APIWeb.Metrics
-
-  plug Metrics.PrometheusExporter
-  plug Metrics.PipelineInstrumenter
-
   socket "/v1/socket", Astarte.AppEngine.APIWeb.UserSocket, websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -42,7 +37,11 @@ defmodule Astarte.AppEngine.APIWeb.Endpoint do
   end
 
   plug Plug.RequestId
+  plug CORSPlug
+  plug Astarte.AppEngine.APIWeb.HealthPlug
+  plug Astarte.AppEngine.APIWeb.MetricsPlug
   plug PlugLoggerWithMeta
+  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
@@ -60,6 +59,5 @@ defmodule Astarte.AppEngine.APIWeb.Endpoint do
     key: "_astarte_appengine_api_key",
     signing_salt: "V7l/jiVr"
 
-  plug CORSPlug
   plug Astarte.AppEngine.APIWeb.Router
 end
