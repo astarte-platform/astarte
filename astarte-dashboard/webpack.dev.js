@@ -7,6 +7,7 @@ const entryPath = path.join(__dirname, 'src/static/index.js');
 module.exports = merge(common, {
   mode: 'development',
   entry: ['webpack-dev-server/client?http://localhost:8080', entryPath],
+  devtool: 'source-map',
   devServer: {
     // serve index.html in place of 404 responses
     historyApiFallback: {
