@@ -21,7 +21,7 @@ defmodule AstarteE2E.Config do
 
   alias AstarteE2E.Config.PositiveIntegerOrInfinity
 
-  @envdoc "Astarte Pairing URL."
+  @envdoc "Astarte Pairing URL (e.g. https://api.astarte.example.com/pairing/v1)."
   app_env :pairing_url, :astarte_e2e, :pairing_url,
     os_env: "ASTARTE_E2E_PAIRING_URL",
     type: :binary,
@@ -39,15 +39,15 @@ defmodule AstarteE2E.Config do
     type: :binary,
     required: true
 
-  @envdoc "Ignore SSL errors."
+  @envdoc "Ignore SSL errors. Defaults to false. Changing the value to true is not advised for production environments unless you're aware of what you're doing."
   app_env :ignore_ssl_errors, :astarte_e2e, :ignore_ssl_errors,
     os_env: "ASTARTE_E2E_IGNORE_SSL_ERRORS",
     type: :boolean,
     default: false
 
-  @envdoc "Websocket URL."
-  app_env :websocket_url, :astarte_e2e, :websocket_url,
-    os_env: "ASTARTE_E2E_WEBSOCKET_URL",
+  @envdoc "Astarte AppEngine URL (e.g. https://api.astarte.example.com/appengine/v1)."
+  app_env :appengine_url, :astarte_e2e, :appengine_url,
+    os_env: "ASTARTE_E2E_APPENGINE_URL",
     type: :binary,
     required: true
 
@@ -57,9 +57,9 @@ defmodule AstarteE2E.Config do
     type: :binary,
     required: true
 
-  @envdoc "Token."
-  app_env :token, :astarte_e2e, :token,
-    os_env: "ASTARTE_E2E_TOKEN",
+  @envdoc "The Astarte JWT employed to access Astarte APIs. The token can be generated with: `$ astartectl utils gen-jwt <service> -k <your-private-key>.pem`."
+  app_env :jwt, :astarte_e2e, :jwt,
+    os_env: "ASTARTE_E2E_JWT",
     type: :binary,
     required: true
 
@@ -89,9 +89,36 @@ defmodule AstarteE2E.Config do
       ignore_ssl_errors: ignore_ssl_errors!(),
       url: websocket_url!(),
       realm: realm!(),
-      token: token!(),
+      jwt: jwt!(),
       check_interval_s: check_interval_s!(),
       check_repetitions: check_repetitions!()
     ]
+  end
+
+  def websocket_url do
+    {:ok, websocket_url!()}
+  end
+
+  def websocket_url! do
+    url =
+      appengine_url!()
+      |> generate_websocket_url()
+
+    "#{url}/socket/websocket"
+  end
+
+  defp generate_websocket_url(appengine_url) do
+    ws_url =
+      cond do
+        String.starts_with?(appengine_url, "https://") ->
+          String.replace_prefix(appengine_url, "https://", "wss://")
+
+        String.starts_with?(appengine_url, "http://") ->
+          String.replace_prefix(appengine_url, "http://", "ws://")
+
+        true ->
+          ""
+      end
+      |> String.trim("/")
   end
 end

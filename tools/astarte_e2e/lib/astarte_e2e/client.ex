@@ -30,7 +30,7 @@ defmodule AstarteE2E.Client do
   @spec start_link(AstarteE2E.client_options()) :: GenSocketClient.on_start()
   def start_link(opts) do
     url = Keyword.fetch!(opts, :url)
-    token = Keyword.fetch!(opts, :token)
+    jwt = Keyword.fetch!(opts, :jwt)
     realm = Keyword.fetch!(opts, :realm)
     device_id = Keyword.fetch!(opts, :device_id)
 
@@ -41,7 +41,7 @@ defmodule AstarteE2E.Client do
         :verify_peer
       end
 
-    remote_device = {url, realm, token, device_id}
+    remote_device = {url, realm, jwt, device_id}
 
     with {:ok, pid} <-
            GenSocketClient.start_link(
@@ -62,7 +62,7 @@ defmodule AstarteE2E.Client do
     end
   end
 
-  def init({url, realm, token, device_id}) do
+  def init({url, realm, jwt, device_id}) do
     topic = make_topic(realm, device_id)
 
     callback_state = %{
@@ -70,7 +70,7 @@ defmodule AstarteE2E.Client do
       topic: topic
     }
 
-    query_params = [realm: realm, token: token]
+    query_params = [realm: realm, token: jwt]
 
     state = %{
       callback_state: callback_state,

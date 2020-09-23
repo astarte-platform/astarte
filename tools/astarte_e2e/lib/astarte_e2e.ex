@@ -42,7 +42,7 @@ defmodule AstarteE2E do
   @type client_option ::
           {:url, String.t()}
           | {:realm, String.t()}
-          | {:token, String.t()}
+          | {:jwt, String.t()}
           | {:device_id, String.t()}
           | {:ignore_ssl_errors, boolean()}
 
@@ -124,7 +124,7 @@ defmodule AstarteE2E do
     [
       url: Keyword.fetch!(opts, :url),
       realm: Keyword.fetch!(opts, :realm),
-      token: Keyword.fetch!(opts, :token),
+      jwt: Keyword.fetch!(opts, :jwt),
       device_id: Keyword.fetch!(opts, :device_id),
       ignore_ssl_errors: Keyword.fetch!(opts, :ignore_ssl_errors)
     ]
