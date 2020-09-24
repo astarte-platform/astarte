@@ -30,7 +30,7 @@ astartectl 0.11.x is recommended:
 
 ```sh
 $ astartectl version
-astartectl 0.11.2
+astartectl 0.11.0
 ```
 
 This procedure has been tested on several systems, and is validated and maintained against
@@ -41,7 +41,7 @@ Ubuntu 18.04 and macOS 10.15 Catalina, but any other modern operating system sho
 To get our Astarte instance running as fast as possible, we will install Astarte's standalone distribution. It includes a tunable Docker Compose which brings up Astarte and every companion service needed for it to work. To do so, simply clone Astarte's main repository and use its scripts to bring it up:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git -b v0.11.2 && cd astarte
+$ git clone https://github.com/astarte-platform/astarte.git -b v0.11.3 && cd astarte
 $ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
 $ docker-compose up -d
 ```
@@ -151,18 +151,18 @@ Depending on what your client supports, you can either compile `stream-qt5-test`
 Astarte's `stream-qt5-test` can be pulled from Docker Hub with:
 
 ```sh
-$ docker pull astarte/astarte-stream-qt5-test:0.11.2
+$ docker pull astarte/astarte-stream-qt5-test:0.11.3
 ```
 
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:0.11.2
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:0.11.3
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
 
-Refer to `stream-qt5-test` [README](https://github.com/astarte-platform/stream-qt5-test/blob/v0.11.2/README.md) for more details on which variables can be passed to the container.
+Refer to `stream-qt5-test` [README](https://github.com/astarte-platform/stream-qt5-test/blob/v0.11.3/README.md) for more details on which variables can be passed to the container.
 
 Also, please note that the `--net="host"` parameter is required to make `localhost` work. If this is not desirable, you can change `PAIRING_HOST` to an host reachable from within the container network. Obviously, that parameter isn't required if you're running the container on a different machine and `PAIRING_HOST` is pointing to a different URL.
 
@@ -177,7 +177,7 @@ If your target platform does not support running containers, you can build `stre
 Once your dependencies are installed, compile your components:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte-device-sdk-qt5.git -b v0.11.2
+$ git clone https://github.com/astarte-platform/astarte-device-sdk-qt5.git -b v0.11.3
 $ cd astarte-device-sdk-qt5
 $ mkdir build
 $ cd build
@@ -185,13 +185,13 @@ $ cmake -DCMAKE_INSTALL_PREFIX=/usr ..
 $ make
 $ make install
 $ cd -
-$ git clone https://github.com/astarte-platform/stream-qt5-test.git -b v0.11.2
+$ git clone https://github.com/astarte-platform/stream-qt5-test.git -b v0.11.3
 $ cd stream-qt5-test
 $ qmake .
 $ make
 ```
 
-You can now run `stream-qt5-test` from your last build directory. Refer to its [README](https://github.com/astarte-platform/stream-qt5-test/blob/v0.11.2/README.md) (or to its sources) to learn about how to use it and which options are available.
+You can now run `stream-qt5-test` from your last build directory. Refer to its [README](https://github.com/astarte-platform/stream-qt5-test/blob/v0.11.3/README.md) (or to its sources) to learn about how to use it and which options are available.
 
 ## Grab your tea
 
