@@ -1,0 +1,27 @@
+{
+    "data": {
+        "interface_name": "test.astarte.ParametricObjectInterface",
+        "version_major": 1,
+        "version_minor": 0,
+        "type": "datastream",
+        "ownership": "device",
+        "aggregation": "object",
+        "mappings": [
+            {
+                "endpoint": "/%{sensor_id}/x",
+                "type": "double",
+                "explicit_timestamp": true
+            },
+            {
+                "endpoint": "/%{sensor_id}/y",
+                "type": "double",
+                "explicit_timestamp": true
+            },
+            {
+                "endpoint": "/%{sensor_id}/z",
+                "type": "double",
+                "explicit_timestamp": true
+            }
+        ]
+    }
+}

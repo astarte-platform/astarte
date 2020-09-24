@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Fix bug which caused marking triggers as invalid on parametric endpoints containing an underscore.
+- Fix interface value page when displaying data from a parametric object datastream interface.
 
 ## [1.0.0-alpha.1] - 2020-06-18
 ### Added
