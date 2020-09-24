@@ -27,35 +27,9 @@ defmodule AstarteE2E do
   alias Astarte.Device
   alias AstarteE2E.{Client, Config, Scheduler, Utils}
 
-  @standard_interface_path "priv/interfaces"
-
-  @type device_option ::
-          {:pairing_url, String.t()}
-          | {:realm, String.t()}
-          | {:device_id, String.t()}
-          | {:credentials_secret, String.t()}
-          | {:credential_storage, {module(), term()}}
-          | {:interface_provider, {module(), interfaces: list()}}
-          | {:handler, {module(), term()}}
-          | {:ignore_ssl_errors, boolean()}
-
-  @type client_option ::
-          {:url, String.t()}
-          | {:realm, String.t()}
-          | {:jwt, String.t()}
-          | {:device_id, String.t()}
-          | {:ignore_ssl_errors, boolean()}
-
-  @type device_options :: [device_option()]
-  @type client_options :: [client_option()]
-
-  @type interface_provider :: {module(), keyword()}
-
   def start(_type, _args) do
     with :ok <- Config.validate() do
-      opts = Config.astarte_e2e_opts!()
-
-      Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
+      Supervisor.start_link(__MODULE__, [], name: __MODULE__)
     else
       {:error, reason} ->
         Logger.warn("Configuration incomplete. Unable to start process with reason: #{reason}.")
@@ -63,12 +37,12 @@ defmodule AstarteE2E do
     end
   end
 
-  def init(opts) do
+  def init(_opts) do
     children = [
       AstarteE2EWeb.Telemetry,
-      {Device, device_opts(opts)},
-      {Client, client_opts(opts)},
-      {Scheduler, scheduler_opts(opts)}
+      {Device, Config.device_opts()},
+      {Client, Config.client_opts()},
+      {Scheduler, Config.scheduler_opts()}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -106,37 +80,6 @@ defmodule AstarteE2E do
     end
   end
 
-  defp device_opts(opts) do
-    [
-      pairing_url: Keyword.fetch!(opts, :pairing_url),
-      realm: Keyword.fetch!(opts, :realm),
-      device_id: Keyword.fetch!(opts, :device_id),
-      credentials_secret: Keyword.fetch!(opts, :credentials_secret),
-      credential_storage: Keyword.get(opts, :credential_storage, nil),
-      interface_provider: standard_interface_provider!(),
-      handler: Keyword.get(opts, :handler, nil),
-      ignore_ssl_errors: Keyword.fetch!(opts, :ignore_ssl_errors)
-    ]
-    |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-  end
-
-  defp client_opts(opts) do
-    [
-      url: Keyword.fetch!(opts, :url),
-      realm: Keyword.fetch!(opts, :realm),
-      jwt: Keyword.fetch!(opts, :jwt),
-      device_id: Keyword.fetch!(opts, :device_id),
-      ignore_ssl_errors: Keyword.fetch!(opts, :ignore_ssl_errors)
-    ]
-  end
-
-  defp scheduler_opts(opts) do
-    [
-      check_interval_s: Keyword.fetch!(opts, :check_interval_s),
-      check_repetitions: Keyword.fetch!(opts, :check_repetitions)
-    ]
-  end
-
   defp fetch_device_pid(realm, device_id) do
     case Device.get_pid(realm, device_id) do
       nil -> {:error, :unregistered_device}
@@ -145,7 +88,7 @@ defmodule AstarteE2E do
   end
 
   defp fetch_interface_names do
-    with {:ok, interface_path} <- standard_interface_provider(),
+    with {:ok, interface_path} <- Config.standard_interface_provider(),
          {:ok, raw_interfaces_list} <- File.ls(interface_path) do
       interface_names =
         Enum.reduce(raw_interfaces_list, [], fn raw_interface, acc ->
@@ -162,7 +105,4 @@ defmodule AstarteE2E do
         Logger.error("Interfaces names cannot be retrieved. Reason: #{inspect(error)}")
     end
   end
-
-  def standard_interface_provider, do: {:ok, @standard_interface_path}
-  def standard_interface_provider!, do: @standard_interface_path
 end

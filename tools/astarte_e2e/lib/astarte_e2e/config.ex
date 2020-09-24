@@ -21,6 +21,8 @@ defmodule AstarteE2E.Config do
 
   alias AstarteE2E.Config.PositiveIntegerOrInfinity
 
+  @standard_interface_path "priv/interfaces"
+
   @envdoc "Astarte Pairing URL (e.g. https://api.astarte.example.com/pairing/v1)."
   app_env :pairing_url, :astarte_e2e, :pairing_url,
     os_env: "ASTARTE_E2E_PAIRING_URL",
@@ -81,20 +83,6 @@ defmodule AstarteE2E.Config do
     type: PositiveIntegerOrInfinity,
     default: :infinity
 
-  def astarte_e2e_opts! do
-    [
-      pairing_url: pairing_url!(),
-      device_id: device_id!(),
-      credentials_secret: credentials_secret!(),
-      ignore_ssl_errors: ignore_ssl_errors!(),
-      url: websocket_url!(),
-      realm: realm!(),
-      jwt: jwt!(),
-      check_interval_s: check_interval_s!(),
-      check_repetitions: check_repetitions!()
-    ]
-  end
-
   def websocket_url do
     {:ok, websocket_url!()}
   end
@@ -108,17 +96,47 @@ defmodule AstarteE2E.Config do
   end
 
   defp generate_websocket_url(appengine_url) do
-    ws_url =
-      cond do
-        String.starts_with?(appengine_url, "https://") ->
-          String.replace_prefix(appengine_url, "https://", "wss://")
+    cond do
+      String.starts_with?(appengine_url, "https://") ->
+        String.replace_prefix(appengine_url, "https://", "wss://")
 
-        String.starts_with?(appengine_url, "http://") ->
-          String.replace_prefix(appengine_url, "http://", "ws://")
+      String.starts_with?(appengine_url, "http://") ->
+        String.replace_prefix(appengine_url, "http://", "ws://")
 
-        true ->
-          ""
-      end
-      |> String.trim("/")
+      true ->
+        ""
+    end
+    |> String.trim("/")
   end
+
+  def device_opts do
+    [
+      pairing_url: pairing_url!(),
+      realm: realm!(),
+      device_id: device_id!(),
+      credentials_secret: credentials_secret!(),
+      interface_provider: standard_interface_provider!(),
+      ignore_ssl_errors: ignore_ssl_errors!()
+    ]
+  end
+
+  def client_opts do
+    [
+      url: websocket_url!(),
+      realm: realm!(),
+      jwt: jwt!(),
+      device_id: device_id!(),
+      ignore_ssl_errors: ignore_ssl_errors!()
+    ]
+  end
+
+  def scheduler_opts do
+    [
+      check_interval_s: check_interval_s!(),
+      check_repetitions: check_repetitions!()
+    ]
+  end
+
+  def standard_interface_provider, do: {:ok, @standard_interface_path}
+  def standard_interface_provider!, do: @standard_interface_path
 end
