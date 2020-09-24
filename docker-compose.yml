@@ -1,4 +1,4 @@
-version: '2'
+version: '2.3'
 services:
   astarte-housekeeping:
     image: astarte/astarte_housekeeping:0.11.3
@@ -20,7 +20,9 @@ services:
     ports:
       - "4001:4001"
     volumes:
-      - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem
+      - type: bind
+        source: ./compose/astarte-keys/housekeeping_public.pem
+        target: /keys/housekeeping_public.pem
     restart: on-failure
     depends_on:
       - "rabbitmq"
