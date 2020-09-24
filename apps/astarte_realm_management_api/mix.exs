@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   def project do
     [
       app: :astarte_realm_management_api,
-      version: "0.11.2",
+      version: "0.11.3",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
@@ -74,8 +74,8 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.2"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.3"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.3"}
     ]
   end
 
