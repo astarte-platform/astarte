@@ -9,6 +9,12 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./",
+    "paths": {
+      "astarte-client": [
+        "./src/astarte-client/index.ts"
+      ]
+    }
   }
 }

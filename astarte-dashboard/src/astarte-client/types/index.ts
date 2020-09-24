@@ -16,17 +16,6 @@
    limitations under the License.
 */
 
-export default class Model {
-  constructor(obj) {
-    this.fromObject(obj);
-  }
-
-  fromObject(obj) {
-    Object.assign(this, obj);
-  }
-
-  fromJSON(json) {
-    const obj = JSON.parse(json);
-    this.fromObject(obj);
-  }
-}
+export * from './dto';
+export * from './block';
+export * from './token';

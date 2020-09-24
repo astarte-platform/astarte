@@ -16,10 +16,25 @@
    limitations under the License.
 */
 
-import Model from './Model';
+import type { AstarteBlockType, AstarteNativeBlockDTO } from '../../types';
 
-export default class Block extends Model {
-  get isNative() {
-    return !!this.beam_module;
+export class AstarteNativeBlock {
+  name: string;
+
+  type: AstarteBlockType;
+
+  schema: Record<string, unknown>;
+
+  beamModule: string;
+
+  constructor(block: AstarteNativeBlockDTO) {
+    this.name = block.name;
+    this.type = block.type;
+    this.schema = block.schema;
+    this.beamModule = block.beam_module;
+  }
+
+  static fromObject(dto: AstarteNativeBlockDTO): AstarteNativeBlock {
+    return new AstarteNativeBlock(dto);
   }
 }

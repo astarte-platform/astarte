@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Col, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
+import { AstarteCustomBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
@@ -74,7 +75,7 @@ export default ({ astarte, history, blockId }) => {
                 <p>{block.name}</p>
                 <h5 className="mt-2 mb-2">Type</h5>
                 <p>{blockTypeToLabel[block.type]}</p>
-                {block.source && (
+                {block instanceof AstarteCustomBlock && (
                   <>
                     <h5 className="mt-2 mb-2">Source</h5>
                     <SyntaxHighlighter language="json" showLineNumbers="true">
@@ -90,7 +91,7 @@ export default ({ astarte, history, blockId }) => {
             </Row>
           </ContentCard>
           <Row className="justify-content-end m-3">
-            {!block.isNative && (
+            {block instanceof AstarteCustomBlock && (
               <Button
                 variant="danger"
                 onClick={isDeletingBlock ? undefined : deleteBlock}

@@ -18,8 +18,9 @@
 
 import ReactDOM from 'react-dom';
 import { createBrowserHistory } from 'history';
+import AstarteClient from 'astarte-client';
+
 import getReactApp from '../react/App';
-import AstarteClient from '../react/AstarteClient';
 
 require('./styles/main.scss');
 
@@ -150,7 +151,7 @@ function watchDeviceEvents(params) {
 }
 
 function leaveDeviceRoom() {
-  astarteClient.joinedRooms().forEach((room) => {
+  astarteClient.joinedRooms.forEach((room) => {
     astarteClient.leaveRoom(room);
   });
 }

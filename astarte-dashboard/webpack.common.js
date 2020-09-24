@@ -12,6 +12,9 @@ module.exports = {
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.elm', '.scss'],
     modules: [path.resolve(__dirname, 'src'), 'node_modules'],
+    alias: {
+      "astarte-client": path.resolve(__dirname, 'src/astarte-client/')
+    }
   },
   module: {
     rules: [

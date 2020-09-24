@@ -42,7 +42,7 @@ const charset = (() => {
   return newCharset;
 })();
 
-export function byteArrayToUrlSafeBase64(bytes: number[]) {
+export function byteArrayToUrlSafeBase64(bytes: number[]): string {
   const binaryArray = bytes.map((b) => b.toString(2));
 
   const padding = '0'.padEnd(6 - ((bytes.length * 8) % 6), '0');
@@ -52,7 +52,7 @@ export function byteArrayToUrlSafeBase64(bytes: number[]) {
   return octects.map((b) => charset[parseInt(b, 2)]).join('');
 }
 
-export function urlSafeBase64ToByteArray(base64string: string) {
+export function urlSafeBase64ToByteArray(base64string: string): number[] {
   let binaryString = '';
   for (let i = 0; i < base64string.length; i += 1) {
     binaryString += charset.indexOf(base64string[i]).toString(2).padStart(6, '0');

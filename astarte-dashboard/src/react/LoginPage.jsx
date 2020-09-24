@@ -18,7 +18,7 @@
 
 import React, { useState } from 'react';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
-import { isValidRealmName, validateAstarteToken } from './AstarteClient';
+import { AstarteRealm, AstarteToken } from 'astarte-client';
 
 function isValidUrl(urlString) {
   try {
@@ -56,8 +56,8 @@ function tokenValidationFeedback(tokenValidation) {
 const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => {
   const [realm, setRealm] = useState(defaultRealm);
   const [token, setToken] = useState('');
-  const isValidRealm = isValidRealmName(realm);
-  const tokenValidation = validateAstarteToken(token);
+  const isValidRealm = AstarteRealm.isValidName(realm);
+  const tokenValidation = AstarteToken.validate(token);
 
   const handleTokenLogin = (event) => {
     event.preventDefault();
@@ -138,7 +138,7 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
 const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => {
   const [realm, setRealm] = useState(defaultRealm);
   const [providerUrl, setProviderUrl] = useState('');
-  const isValidRealm = isValidRealmName(realm);
+  const isValidRealm = AstarteRealm.isValidName(realm);
   const isValidProviderUrl = isValidUrl(providerUrl);
 
   const oauthLogin = (event) => {
