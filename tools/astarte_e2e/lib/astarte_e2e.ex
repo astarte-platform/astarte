@@ -63,7 +63,6 @@ defmodule AstarteE2E do
             Device.send_datastream(device_pid, interface_name, path, value)
             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
 
-            :timer.sleep(1000)
             Client.verify_device_payload(interface_name, path, value, timestamp)
 
           "org.astarte-platform.e2etest.SimpleProperties" ->
@@ -73,7 +72,6 @@ defmodule AstarteE2E do
             Device.set_property(device_pid, interface_name, path, value)
             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
 
-            :timer.sleep(1000)
             Client.verify_device_payload(interface_name, path, value, timestamp)
         end
       end)
