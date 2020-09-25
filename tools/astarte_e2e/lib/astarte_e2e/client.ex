@@ -23,22 +23,13 @@ defmodule AstarteE2E.Client do
 
   require Logger
 
-  @type client_option ::
-          {:url, String.t()}
-          | {:realm, String.t()}
-          | {:jwt, String.t()}
-          | {:device_id, String.t()}
-          | {:ignore_ssl_errors, boolean()}
-
-  @type client_options :: [client_option()]
-
   @connection_backoff_ms 10_000
   @connection_attempts 10
 
   # API
 
   @doc "Starts the client process."
-  @spec start_link(client_options()) :: GenSocketClient.on_start()
+  @spec start_link(Config.client_options()) :: GenServer.on_start()
   def start_link(opts) do
     url = Keyword.fetch!(opts, :url)
     jwt = Keyword.fetch!(opts, :jwt)

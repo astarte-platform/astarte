@@ -23,6 +23,21 @@ defmodule AstarteE2E.Config do
 
   @standard_interface_path "priv/interfaces"
 
+  @type client_option ::
+          {:url, String.t()}
+          | {:realm, String.t()}
+          | {:jwt, String.t()}
+          | {:device_id, String.t()}
+          | {:ignore_ssl_errors, boolean()}
+
+  @type scheduler_option ::
+          {:check_interval_s, integer()}
+          | {:check_repetitions, integer() | :infinity}
+
+  @type client_options :: [client_option()]
+  @type device_options :: Astarte.Device.device_options()
+  @type scheduler_options :: [scheduler_option()]
+
   @envdoc "Astarte Pairing URL (e.g. https://api.astarte.example.com/pairing/v1)."
   app_env :pairing_url, :astarte_e2e, :pairing_url,
     os_env: "ASTARTE_E2E_PAIRING_URL",
@@ -83,10 +98,12 @@ defmodule AstarteE2E.Config do
     type: PositiveIntegerOrInfinity,
     default: :infinity
 
+  @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do
     {:ok, websocket_url!()}
   end
 
+  @spec websocket_url!() :: String.t()
   def websocket_url! do
     url =
       appengine_url!()
@@ -109,6 +126,7 @@ defmodule AstarteE2E.Config do
     |> String.trim("/")
   end
 
+  @spec device_opts() :: device_options()
   def device_opts do
     [
       pairing_url: pairing_url!(),
@@ -120,6 +138,7 @@ defmodule AstarteE2E.Config do
     ]
   end
 
+  @spec client_opts() :: client_options()
   def client_opts do
     [
       url: websocket_url!(),
@@ -130,6 +149,7 @@ defmodule AstarteE2E.Config do
     ]
   end
 
+  @spec scheduler_opts() :: scheduler_options()
   def scheduler_opts do
     [
       check_interval_s: check_interval_s!(),
@@ -137,6 +157,8 @@ defmodule AstarteE2E.Config do
     ]
   end
 
+  @spec standard_interface_provider() :: {:ok, String.t()}
   def standard_interface_provider, do: {:ok, @standard_interface_path}
+  @spec standard_interface_provider!() :: String.t()
   def standard_interface_provider!, do: @standard_interface_path
 end
