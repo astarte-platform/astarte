@@ -56,30 +56,47 @@ defmodule AstarteE2E do
       realm = Config.realm!()
       device_id = Config.device_id!()
 
-      Enum.each(interface_names, fn interface_name ->
+      Enum.reduce_while(interface_names, [], fn interface_name, _acc ->
         timestamp = :erlang.monotonic_time(:millisecond)
+        value = Utils.random_string()
+        path = "/correlationId"
 
-        case interface_name do
-          "org.astarte-platform.e2etest.SimpleDatastream" ->
-            value = Utils.random_string()
-            path = "/correlationId"
-
-            Device.send_datastream(device_pid, interface_name, path, value)
-            :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
-
-            Client.verify_device_payload(realm, device_id, interface_name, path, value, timestamp)
-
-          "org.astarte-platform.e2etest.SimpleProperties" ->
-            value = Utils.random_string()
-            path = "/correlationId"
-
-            Device.set_property(device_pid, interface_name, path, value)
-            :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
-
-            Client.verify_device_payload(realm, device_id, interface_name, path, value, timestamp)
+        with :ok <- push_data(device_pid, interface_name, path, value),
+             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{}),
+             :ok <-
+               Client.verify_device_payload(
+                 realm,
+                 device_id,
+                 interface_name,
+                 path,
+                 value,
+                 timestamp
+               ) do
+          {:cont, :ok}
+        else
+          {:error, reason} ->
+            {:halt, {:error, reason}}
         end
       end)
     end
+  end
+
+  defp push_data(
+         device_pid,
+         "org.astarte-platform.e2etest.SimpleDatastream" = interface_name,
+         path,
+         value
+       ) do
+    Device.send_datastream(device_pid, interface_name, path, value)
+  end
+
+  defp push_data(
+         device_pid,
+         "org.astarte-platform.e2etest.SimpleProperties" = interface_name,
+         path,
+         value
+       ) do
+    Device.set_property(device_pid, interface_name, path, value)
   end
 
   defp fetch_device_pid(realm, device_id) do

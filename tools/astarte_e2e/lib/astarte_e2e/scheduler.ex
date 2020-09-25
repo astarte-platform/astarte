@@ -54,8 +54,20 @@ defmodule AstarteE2E.Scheduler do
 
   @impl true
   def handle_info(:do_work, state) do
-    AstarteE2E.work()
+    case AstarteE2E.work() do
+      :ok ->
+        handle_successful_job(state)
 
+      {:error, :timeout} ->
+        handle_timed_out_job(state)
+
+      e ->
+        Logger.warn("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
+        {:noreply, state}
+    end
+  end
+
+  defp handle_successful_job(state) do
     case state.check_repetitions do
       :infinity ->
         {:noreply, state}
@@ -63,6 +75,25 @@ defmodule AstarteE2E.Scheduler do
       _ ->
         updated_count = state.check_repetitions - 1
         {:noreply, %{state | check_repetitions: updated_count}}
+    end
+  end
+
+  defp handle_timed_out_job(state) do
+    case state.check_repetitions do
+      :infinity ->
+        Logger.warn("Request timed out. This event affects the service metrics.",
+          tag: "astarte_e2e_scheduler_request_timeout"
+        )
+
+        {:noreply, state}
+
+      _ ->
+        Logger.warn("Request timed out. This is a critical event. Terminating the application.",
+          tag: "astarte_e2e_scheduler_critical_request_timeout"
+        )
+
+        System.stop(1)
+        {:stop, :timeout, state}
     end
   end
 

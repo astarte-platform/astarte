@@ -25,6 +25,7 @@ defmodule AstarteE2E.Client do
 
   @connection_backoff_ms 10_000
   @connection_attempts 10
+  @standard_timeout_ms 10_000
 
   # API
 
@@ -78,18 +79,11 @@ defmodule AstarteE2E.Client do
           :ok
           | {:error, :not_connected | :timeout}
   def verify_device_payload(realm, device_id, interface_name, path, value, timestamp) do
-    with {:ok, _} <-
-           GenSocketClient.call(
-             via_tuple(realm, device_id),
-             {:verify_payload, interface_name, path, value, timestamp},
-             :infinity
-           ) do
-      :ok
-    else
-      {:error, :timeout} ->
-        # TODO send this to the scheduler process
-        :todo
-    end
+    GenSocketClient.call(
+      via_tuple(realm, device_id),
+      {:verify_payload, interface_name, path, value, timestamp},
+      :infinity
+    )
   end
 
   defp join_topic(transport, state) do
@@ -285,33 +279,41 @@ defmodule AstarteE2E.Client do
       pending_requests: pending_requests
     } = state
 
-    case Map.pop(pending_requests, {interface_name, path, value}) do
-      {{timestamp, from}, new_pending_requests} ->
-        dt_ms = reception_timestamp - timestamp
-        new_state = Map.put(state, :pending_requests, new_pending_requests)
+    if Map.has_key?(pending_requests, {interface_name, path, value}) do
+      {{timestamp, from, tref}, new_pending_requests} =
+        Map.pop(pending_requests, {interface_name, path, value})
 
-        Logger.info("Message verified. Round trip time = #{inspect(dt_ms)} ms.")
+      :ok = Process.cancel_timer(tref, async: false, info: false)
 
-        :telemetry.execute(
-          [:astarte_end_to_end, :messages, :round_trip_time],
-          %{duration_seconds: dt_ms / 1_000}
-        )
+      Logger.info("Timeout timer canceled successfully in handle_message.",
+        tag: "astarte_e2e_client_timeout_cancel_timer_success"
+      )
 
-        :telemetry.execute(
-          [:astarte_end_to_end, :astarte_platform, :status],
-          %{health: 1}
-        )
+      dt_ms = reception_timestamp - timestamp
+      new_state = Map.put(state, :pending_requests, new_pending_requests)
 
-        GenSocketClient.reply(from, {:ok, {:round_trip_time_ms, dt_ms}})
+      Logger.info("Message verified. Round trip time = #{inspect(dt_ms)} ms.")
 
-        {:ok, new_state}
+      :telemetry.execute(
+        [:astarte_end_to_end, :messages, :round_trip_time],
+        %{duration_seconds: dt_ms / 1_000}
+      )
 
-      _ ->
-        new_pending_messages =
-          Map.put(pending_messages, {interface_name, path, value}, reception_timestamp)
+      :telemetry.execute(
+        [:astarte_end_to_end, :astarte_platform, :status],
+        %{health: 1}
+      )
 
-        new_state = Map.put(state, :pending_messages, new_pending_messages)
-        {:ok, new_state}
+      GenSocketClient.reply(from, :ok)
+      {:ok, new_state}
+    else
+      key = {interface_name, path, value}
+      tref = Process.send_after(self(), {:message_timeout, key}, @standard_timeout_ms)
+
+      new_pending_messages = Map.put(pending_messages, key, {reception_timestamp, tref})
+
+      new_state = Map.put(state, :pending_messages, new_pending_messages)
+      {:ok, new_state}
     end
   end
 
@@ -332,18 +334,41 @@ defmodule AstarteE2E.Client do
     {:stop, {:error, {:join_failed, topic}}, state}
   end
 
-  def handle_info(:timeout, _transport, state) do
+  def handle_info(
+        {:message_timeout, key},
+        _transport,
+        %{pending_messages: pending_messages} = state
+      ) do
     :telemetry.execute(
       [:astarte_end_to_end, :astarte_platform, :status],
       %{health: 0}
     )
 
-    Logger.error("Request timed out.", tag: "astarte_e2e_request_timeout")
-    {:stop, :timeout, state}
+    Logger.warn("Incoming message timeout. Key = #{inspect(key)}",
+      tag: "astarte_e2e_message_timeout"
+    )
+
+    {{_ts, _tref}, new_pending_messages} = Map.pop(pending_messages, key)
+    {:ok, %{state | pending_messages: new_pending_messages}}
   end
 
-  def handle_info({:watch_error, reason}, _transport, _state) do
-    {:error, reason}
+  def handle_info(
+        {:request_timeout, key},
+        _transport,
+        %{pending_requests: pending_requests} = state
+      ) do
+    :telemetry.execute(
+      [:astarte_end_to_end, :astarte_platform, :status],
+      %{health: 0}
+    )
+
+    Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "astarte_e2e_request_timeout")
+
+    {{_ts, from, _tref}, new_pending_requests} = Map.pop(pending_requests, key)
+
+    :ok = GenSocketClient.reply(from, {:error, :timeout})
+
+    {:ok, %{state | pending_requests: new_pending_requests}}
   end
 
   def handle_info(:try_connect, _transport, state) do
@@ -370,6 +395,8 @@ defmodule AstarteE2E.Client do
       ) do
     :telemetry.execute([:astarte_end_to_end, :messages, :failed], %{})
 
+    Logger.warn("Cannot verify the payload.", tag: "astarte_e2e_client_verify_not_possible")
+
     {:reply, {:error, :not_connected}, state}
   end
 
@@ -385,8 +412,14 @@ defmodule AstarteE2E.Client do
     } = state
 
     if Map.has_key?(pending_messages, {interface_name, path, value}) do
-      {reception_timestamp, new_pending_messages} =
+      {{reception_timestamp, tref}, new_pending_messages} =
         Map.pop(pending_messages, {interface_name, path, value})
+
+      :ok = Process.cancel_timer(tref, async: false, info: false)
+
+      Logger.info("Timeout timer canceled successfully in handle_call.",
+        tag: "astarte_e2e_client_timeout_cancel_timer_success"
+      )
 
       dt_ms = reception_timestamp - timestamp
       new_state = Map.put(state, :pending_messages, new_pending_messages)
@@ -403,11 +436,12 @@ defmodule AstarteE2E.Client do
 
       Logger.info("Round trip time = #{inspect(dt_ms)} ms.")
 
-      {:reply, {:ok, {:round_trip_time_ms, dt_ms}}, new_state}
+      {:reply, :ok, new_state}
     else
-      new_pending_requests =
-        Map.put(pending_requests, {interface_name, path, value}, {timestamp, from})
+      key = {interface_name, path, value}
+      tref = Process.send_after(self(), {:request_timeout, key}, @standard_timeout_ms)
 
+      new_pending_requests = Map.put(pending_requests, key, {timestamp, from, tref})
       new_state = Map.put(state, :pending_requests, new_pending_requests)
 
       {:noreply, new_state}
