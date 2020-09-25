@@ -35,6 +35,8 @@ defmodule AstarteE2E.Client do
   @connection_backoff_ms 10_000
   @connection_attempts 10
 
+  # API
+
   @doc "Starts the client process."
   @spec start_link(client_options()) :: GenSocketClient.on_start()
   def start_link(opts) do
@@ -71,6 +73,150 @@ defmodule AstarteE2E.Client do
     end
   end
 
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :worker,
+      restart: :transient,
+      shutdown: 500
+    }
+  end
+
+  @spec fetch_pid() :: {:ok, pid()} | {:error, :unregistered_process}
+  def fetch_pid do
+    case Process.whereis(:astarte_ws_client) do
+      nil -> {:error, :unregistered_process}
+      pid -> {:ok, pid}
+    end
+  end
+
+  @spec verify_device_payload(String.t(), String.t(), any(), integer()) :: any()
+  def verify_device_payload(interface_name, path, value, timestamp) do
+    with {:ok, client_pid} <- fetch_pid() do
+      GenSocketClient.call(
+        client_pid,
+        {:verify_payload, interface_name, path, value, timestamp},
+        :infinity
+      )
+    end
+  end
+
+  defp join_topic(transport, state) do
+    topic =
+      state
+      |> Map.fetch!(:callback_state)
+      |> Map.fetch!(:topic)
+
+    Logger.info("Asking to join topic #{inspect(topic)}.", tag: "astarte_e2e_client_join_request")
+
+    case GenSocketClient.join(transport, topic) do
+      {:error, reason} ->
+        Logger.error("Cannot join topic #{inspect(topic)}. Reason: #{inspect(reason)}",
+          tag: "astarte_e2e_client_join_failed"
+        )
+
+        {:error, :join_failed}
+
+      {:ok, _ref} ->
+        Logger.info("Joined join topic #{inspect(topic)}.", tag: "astarte_e2e_client_join_success")
+
+        {:ok, state}
+    end
+  end
+
+  defp setup_watches(transport, state) do
+    callback_state =
+      state
+      |> Map.fetch!(:callback_state)
+
+    device_id = Map.fetch!(callback_state, :device_id)
+
+    device_triggers = [
+      %{
+        name: "connectiontrigger-#{device_id}",
+        device_id: device_id,
+        simple_trigger: %{
+          type: "device_trigger",
+          on: "device_connected",
+          device_id: device_id
+        }
+      },
+      %{
+        name: "disconnectiontrigger-#{device_id}",
+        device_id: device_id,
+        simple_trigger: %{
+          type: "device_trigger",
+          on: "device_disconnected",
+          device_id: device_id
+        }
+      }
+    ]
+
+    data_triggers = [
+      %{
+        name: "valuetrigger-#{device_id}",
+        device_id: device_id,
+        simple_trigger: %{
+          type: "data_trigger",
+          on: "incoming_data",
+          interface_name: "*",
+          interface_major: 1,
+          match_path: "/*",
+          value_match_operator: "*"
+        }
+      }
+    ]
+
+    with :ok <- install_device_triggers(device_triggers, transport, state),
+         :ok <- install_data_triggers(data_triggers, transport, state) do
+      Logger.info("Triggers installed.", tag: "astarte_e2e_client_triggers_installed")
+      {:ok, state}
+    else
+      {:error, reason} ->
+        Logger.warn("Failed to install triggers with reason: #{inspect(reason)}.",
+          tag: "astarte_e2e_client_triggers_install_failed"
+        )
+
+        {:stop, reason, state}
+    end
+  end
+
+  defp install_data_triggers(triggers, transport, state) do
+    case install_device_triggers(triggers, transport, state) do
+      :ok -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp install_device_triggers(triggers, transport, %{callback_state: %{topic: topic}} = _state) do
+    Enum.reduce_while(triggers, :ok, fn trigger, _acc ->
+      case GenSocketClient.push(transport, topic, "watch", trigger) do
+        {:error, reason} ->
+          Logger.warn("Watch failed with reason: #{inspect(reason)}.",
+            tag: "astarte_e2e_client_watch_failed"
+          )
+
+          {:halt, {:error, reason}}
+
+        {:ok, _ref} ->
+          Logger.info("Successful watch request.",
+            tag: "astarte_e2e_client_watch_success"
+          )
+
+          {:cont, :ok}
+      end
+    end)
+  end
+
+  defp make_topic(realm, device_id) do
+    room_name = Utils.random_string()
+
+    "rooms:#{realm}:#{device_id}_#{room_name}"
+  end
+
+  # Callbacks
+
   def init({url, realm, jwt, device_id}) do
     topic = make_topic(realm, device_id)
 
@@ -90,24 +236,6 @@ defmodule AstarteE2E.Client do
     }
 
     {:connect, url, query_params, state}
-  end
-
-  def child_spec(opts) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
-      type: :worker,
-      restart: :transient,
-      shutdown: 500
-    }
-  end
-
-  @spec fetch_pid() :: {:ok, pid()} | {:error, :unregistered_process}
-  def fetch_pid do
-    case Process.whereis(:astarte_ws_client) do
-      nil -> {:error, :unregistered_process}
-      pid -> {:ok, pid}
-    end
   end
 
   def handle_connected(transport, state) do
@@ -290,129 +418,5 @@ defmodule AstarteE2E.Client do
 
       {:noreply, new_state}
     end
-  end
-
-  @spec verify_device_payload(String.t(), String.t(), any(), integer()) :: any()
-  def verify_device_payload(interface_name, path, value, timestamp) do
-    with {:ok, client_pid} <- fetch_pid() do
-      GenSocketClient.call(
-        client_pid,
-        {:verify_payload, interface_name, path, value, timestamp},
-        :infinity
-      )
-    end
-  end
-
-  defp join_topic(transport, state) do
-    topic =
-      state
-      |> Map.fetch!(:callback_state)
-      |> Map.fetch!(:topic)
-
-    Logger.info("Asking to join topic #{inspect(topic)}.", tag: "astarte_e2e_client_join_request")
-
-    case GenSocketClient.join(transport, topic) do
-      {:error, reason} ->
-        Logger.error("Cannot join topic #{inspect(topic)}. Reason: #{inspect(reason)}",
-          tag: "astarte_e2e_client_join_failed"
-        )
-
-        {:error, :join_failed}
-
-      {:ok, _ref} ->
-        Logger.info("Joined join topic #{inspect(topic)}.", tag: "astarte_e2e_client_join_success")
-
-        {:ok, state}
-    end
-  end
-
-  defp setup_watches(transport, state) do
-    callback_state =
-      state
-      |> Map.fetch!(:callback_state)
-
-    device_id = Map.fetch!(callback_state, :device_id)
-
-    device_triggers = [
-      %{
-        name: "connectiontrigger-#{device_id}",
-        device_id: device_id,
-        simple_trigger: %{
-          type: "device_trigger",
-          on: "device_connected",
-          device_id: device_id
-        }
-      },
-      %{
-        name: "disconnectiontrigger-#{device_id}",
-        device_id: device_id,
-        simple_trigger: %{
-          type: "device_trigger",
-          on: "device_disconnected",
-          device_id: device_id
-        }
-      }
-    ]
-
-    data_triggers = [
-      %{
-        name: "valuetrigger-#{device_id}",
-        device_id: device_id,
-        simple_trigger: %{
-          type: "data_trigger",
-          on: "incoming_data",
-          interface_name: "*",
-          interface_major: 1,
-          match_path: "/*",
-          value_match_operator: "*"
-        }
-      }
-    ]
-
-    with :ok <- install_device_triggers(device_triggers, transport, state),
-         :ok <- install_data_triggers(data_triggers, transport, state) do
-      Logger.info("Triggers installed.", tag: "astarte_e2e_client_triggers_installed")
-      {:ok, state}
-    else
-      {:error, reason} ->
-        Logger.warn("Failed to install triggers with reason: #{inspect(reason)}.",
-          tag: "astarte_e2e_client_triggers_install_failed"
-        )
-
-        {:stop, reason, state}
-    end
-  end
-
-  defp install_data_triggers(triggers, transport, state) do
-    case install_device_triggers(triggers, transport, state) do
-      :ok -> :ok
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp install_device_triggers(triggers, transport, %{callback_state: %{topic: topic}} = _state) do
-    Enum.reduce_while(triggers, :ok, fn trigger, _acc ->
-      case GenSocketClient.push(transport, topic, "watch", trigger) do
-        {:error, reason} ->
-          Logger.warn("Watch failed with reason: #{inspect(reason)}.",
-            tag: "astarte_e2e_client_watch_failed"
-          )
-
-          {:halt, {:error, reason}}
-
-        {:ok, _ref} ->
-          Logger.info("Successful watch request.",
-            tag: "astarte_e2e_client_watch_success"
-          )
-
-          {:cont, :ok}
-      end
-    end)
-  end
-
-  defp make_topic(realm, device_id) do
-    room_name = Utils.random_string()
-
-    "rooms:#{realm}:#{device_id}_#{room_name}"
   end
 end
