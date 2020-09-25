@@ -1,0 +1,21 @@
+{
+    "data": {
+        "name": "Test trigger",
+        "action": {
+            "http_url": "http://www.example.com",
+            "ignore_ssl_errors": false,
+            "http_method": "post",
+            "http_static_headers": {}
+        },
+        "simple_triggers": [
+            {
+                "type": "data_trigger",
+                "interface_name": "test.astarte.SecondInterface",
+                "interface_major": 0,
+                "on": "incoming_data",
+                "match_path": "/*",
+                "value_match_operator": "*"
+            }
+        ]
+    }
+}
