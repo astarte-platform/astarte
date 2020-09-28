@@ -1,4 +1,4 @@
-describe('Login tests', () => {
+describe('Interfaces page tests', () => {
   context('no access before login', () => {
     it('redirects to home', () => {
       cy.visit('/interfaces');
