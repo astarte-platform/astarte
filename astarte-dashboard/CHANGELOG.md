@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Explicit timestamp is enabled by default for all mappings when interface type is changed to
   datastream.
 
-## [0.11.3] - Unreleased
+## [0.11.3] - 2020-09-24
 ### Added
 - Label for property unset in device live events page.
 
