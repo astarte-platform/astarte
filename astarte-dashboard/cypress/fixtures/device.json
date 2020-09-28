@@ -1,0 +1,20 @@
+{
+  "data": {
+    "aliases": {},
+    "connected": false,
+    "credentials_inhibited": false,
+    "first_credentials_request": null,
+    "first_registration": "2020-01-01T12:00:00.000Z",
+    "groups": [],
+    "id": "PO6RuqIXQuysOCAJrcedqA",
+    "introspection": {},
+    "last_connection": null,
+    "last_credentials_request_ip": null,
+    "last_disconnection": null,
+    "last_seen_ip": null,
+    "metadata": {},
+    "previous_interfaces": [],
+    "total_received_bytes": 0,
+    "total_received_msgs": 0
+  }
+}
