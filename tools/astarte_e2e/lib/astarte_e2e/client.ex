@@ -19,7 +19,7 @@
 defmodule AstarteE2E.Client do
   alias Phoenix.Channels.GenSocketClient
   alias Phoenix.Channels.GenSocketClient.Transport.WebSocketClient
-  alias AstarteE2E.Utils
+  alias AstarteE2E.{Utils, Config}
 
   require Logger
 
@@ -51,7 +51,7 @@ defmodule AstarteE2E.Client do
              WebSocketClient,
              remote_device,
              [transport_opts: [ssl_verify: verify_option]],
-             name: :astarte_ws_client
+             name: via_tuple(realm, device_id)
            ) do
       :telemetry.execute(
         [:astarte_end_to_end, :astarte_platform, :status],
@@ -74,22 +74,21 @@ defmodule AstarteE2E.Client do
     }
   end
 
-  @spec fetch_pid() :: {:ok, pid()} | {:error, :unregistered_process}
-  def fetch_pid do
-    case Process.whereis(:astarte_ws_client) do
-      nil -> {:error, :unregistered_process}
-      pid -> {:ok, pid}
-    end
-  end
-
-  @spec verify_device_payload(String.t(), String.t(), any(), integer()) :: any()
-  def verify_device_payload(interface_name, path, value, timestamp) do
-    with {:ok, client_pid} <- fetch_pid() do
-      GenSocketClient.call(
-        client_pid,
-        {:verify_payload, interface_name, path, value, timestamp},
-        :infinity
-      )
+  @spec verify_device_payload(String.t(), String.t(), String.t(), String.t(), any(), integer()) ::
+          :ok
+          | {:error, :not_connected | :timeout}
+  def verify_device_payload(realm, device_id, interface_name, path, value, timestamp) do
+    with {:ok, _} <-
+           GenSocketClient.call(
+             via_tuple(realm, device_id),
+             {:verify_payload, interface_name, path, value, timestamp},
+             :infinity
+           ) do
+      :ok
+    else
+      {:error, :timeout} ->
+        # TODO send this to the scheduler process
+        :todo
     end
   end
 
@@ -204,6 +203,10 @@ defmodule AstarteE2E.Client do
     room_name = Utils.random_string()
 
     "rooms:#{realm}:#{device_id}_#{room_name}"
+  end
+
+  defp via_tuple(realm, device_id) do
+    {:via, Registry, {Registry.AstarteE2E, {:client, realm, device_id}}}
   end
 
   # Callbacks

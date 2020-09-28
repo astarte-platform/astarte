@@ -22,7 +22,10 @@ defmodule AstarteE2E.Scheduler do
   use GenServer, restart: :transient
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    realm = Keyword.fetch!(opts, :realm)
+    device_id = Keyword.fetch!(opts, :device_id)
+
+    GenServer.start_link(__MODULE__, opts, name: via_tuple(realm, device_id))
   end
 
   @impl true
@@ -64,4 +67,8 @@ defmodule AstarteE2E.Scheduler do
   end
 
   defp to_ms(seconds), do: seconds * 1_000
+
+  defp via_tuple(realm, device_id) do
+    {:via, Registry, {Registry.AstarteE2E, {:scheduler, realm, device_id}}}
+  end
 end

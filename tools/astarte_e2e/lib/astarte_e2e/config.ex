@@ -33,6 +33,8 @@ defmodule AstarteE2E.Config do
   @type scheduler_option ::
           {:check_interval_s, integer()}
           | {:check_repetitions, integer() | :infinity}
+          | {:realm, String.t()}
+          | {:device_id, String.t()}
 
   @type client_options :: [client_option()]
   @type device_options :: Astarte.Device.device_options()
@@ -153,7 +155,9 @@ defmodule AstarteE2E.Config do
   def scheduler_opts do
     [
       check_interval_s: check_interval_s!(),
-      check_repetitions: check_repetitions!()
+      check_repetitions: check_repetitions!(),
+      realm: realm!(),
+      device_id: device_id!()
     ]
   end
 

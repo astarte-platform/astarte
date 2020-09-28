@@ -39,6 +39,7 @@ defmodule AstarteE2E do
 
   def init(_opts) do
     children = [
+      {Registry, keys: :unique, name: Registry.AstarteE2E},
       AstarteE2EWeb.Telemetry,
       {Device, Config.device_opts()},
       {Client, Config.client_opts()},
@@ -52,6 +53,9 @@ defmodule AstarteE2E do
     with {:ok, device_pid} <- fetch_device_pid(Config.realm!(), Config.device_id!()),
          {:ok, interface_names} <- fetch_interface_names(),
          :ok <- Device.wait_for_connection(device_pid) do
+      realm = Config.realm!()
+      device_id = Config.device_id!()
+
       Enum.each(interface_names, fn interface_name ->
         timestamp = :erlang.monotonic_time(:millisecond)
 
@@ -63,7 +67,7 @@ defmodule AstarteE2E do
             Device.send_datastream(device_pid, interface_name, path, value)
             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
 
-            Client.verify_device_payload(interface_name, path, value, timestamp)
+            Client.verify_device_payload(realm, device_id, interface_name, path, value, timestamp)
 
           "org.astarte-platform.e2etest.SimpleProperties" ->
             value = Utils.random_string()
@@ -72,7 +76,7 @@ defmodule AstarteE2E do
             Device.set_property(device_pid, interface_name, path, value)
             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{})
 
-            Client.verify_device_payload(interface_name, path, value, timestamp)
+            Client.verify_device_payload(realm, device_id, interface_name, path, value, timestamp)
         end
       end)
     end
