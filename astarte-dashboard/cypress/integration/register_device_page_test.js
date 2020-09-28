@@ -11,6 +11,7 @@ describe('Register device page tests', () => {
   context('authenticated', () => {
     beforeEach(() => {
       cy.login();
+      cy.wait(200);
       cy.visit('/devices/register');
     });
 
