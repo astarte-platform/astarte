@@ -69,6 +69,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 
+## [0.11.4] - Unreleased
+### Fixed
+- Avoid creating an `housekeeping_public.pem` directory if `docker-compose up` doesn't find the
+  housekeeping keypair.
+
+## [0.11.3] - 2020-09-24
+
 ## [0.11.2] - 2020-08-14
 ### Added
 - [trigger_engine] Add `ignore_ssl_errors` key in trigger actions, allowing to ignore SSL actions
