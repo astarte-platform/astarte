@@ -1,4 +1,4 @@
-# Using Astarte Channels
+# Using Astarte Channels (WebSockets)
 
 Especially when building Frontend applications, it is useful to receive real-time updates about data
 sent from Devices. Astarte leverages [Phoenix Channels](https://hexdocs.pm/phoenix/channels.html) to
