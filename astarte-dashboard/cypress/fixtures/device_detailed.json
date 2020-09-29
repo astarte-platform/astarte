@@ -15,9 +15,9 @@
         "exchanged_msgs": 20,
         "exchanged_bytes": 200
       },
-      "com.example.HelloWorldInterface": {
+      "test.astarte.ParametricObjectInterface": {
         "major": 1,
-        "minor": 1,
+        "minor": 0,
         "exchanged_msgs": 3,
         "exchanged_bytes": 42
       }

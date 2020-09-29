@@ -31,6 +31,13 @@ function linearizePathTree(prefix, data) {
   return Object.entries(data)
     .map(([key, value]) => {
       const newPrefix = `${prefix}/${key}`;
+
+      if (Array.isArray(value)) {
+        return {
+          path: newPrefix,
+          value,
+        };
+      }
       if (value.value && typeof value.value !== 'object') {
         return {
           path: newPrefix,
@@ -122,15 +129,7 @@ const InterfaceData = ({ data, type }) => {
       return <PropertyTree data={data} />;
 
     case 'datastream-object':
-      if (data.length > 0) {
-        return (
-          <>
-            <h5 className="mb-1">Latest sent objects</h5>
-            <ObjectDatastreamTable data={data.slice(0, MAX_SHOWN_VALUES)} />
-          </>
-        );
-      }
-      return <p>No data sent by the device.</p>;
+      return <ObjectTableList data={data} />;
 
     case 'datastream-individual':
       return <IndividualDatastreamTable data={data} />;
@@ -176,31 +175,36 @@ const IndividualDatastreamRow = ({ path, value, timestamp }) => (
   </tr>
 );
 
-const ObjectDatastreamTable = ({ data }) => {
+const ObjectDatastreamTable = ({ path, values }) => {
   const labels = [];
+  const latestValues = values.slice(0, MAX_SHOWN_VALUES);
 
-  Object.keys(data[0]).forEach((prop) => {
+  Object.keys(values[0]).forEach((prop) => {
     if (prop !== 'timestamp') {
       labels.push(prop);
     }
   });
 
   return (
-    <Table>
-      <thead>
-        <tr>
-          {labels.map((label) => (
-            <th key={label}>{label}</th>
+    <>
+      <h5 className="mb-1">Path</h5>
+      <p>{path}</p>
+      <Table>
+        <thead>
+          <tr>
+            {labels.map((label) => (
+              <th key={label}>{label}</th>
+            ))}
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {latestValues.map((obj) => (
+            <ObjectDatastreamRow key={obj.timestamp} labels={labels} obj={obj} />
           ))}
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((obj) => (
-          <ObjectDatastreamRow key={obj.timestamp} labels={labels} obj={obj} />
-        ))}
-      </tbody>
-    </Table>
+        </tbody>
+      </Table>
+    </>
   );
 };
 
@@ -212,5 +216,17 @@ const ObjectDatastreamRow = ({ labels, obj }) => (
     <td>{new Date(obj.timestamp).toLocaleString()}</td>
   </tr>
 );
+
+const ObjectTableList = ({ data }) => {
+  const linearizedData = linearizePathTree('', data);
+
+  if (linearizedData.length === 0) {
+    return <p>No data sent by the device.</p>;
+  }
+
+  return linearizedData.map((obj) => (
+    <ObjectDatastreamTable key={obj.path} path={obj.path} values={obj.value} />
+  ));
+};
 
 export default DeviceInterfaceValues;
