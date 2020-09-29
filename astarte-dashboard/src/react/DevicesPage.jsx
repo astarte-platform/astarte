@@ -16,18 +16,20 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Container,
-  Row,
-  Col,
   Button,
+  Col,
+  Container,
+  Form,
   OverlayTrigger,
   Pagination,
+  Row,
   Spinner,
   Table,
   Tooltip,
 } from 'react-bootstrap';
+import _ from 'lodash';
 
 import { Link } from 'react-router-dom';
 import Device from './astarte/Device';
@@ -35,117 +37,137 @@ import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 
 const DEVICES_PER_PAGE = 20;
+const DEVICES_PER_REQUEST = 100;
 const MAX_SHOWN_PAGES = 10;
+
+const matchFilters = (device, filters) => {
+  const {
+    deviceId = '',
+    showConnected = true,
+    showDisconnected = true,
+    showNeverConnected = true,
+  } = filters;
+
+  if (!showConnected && device.connected) {
+    return false;
+  }
+  if (!showDisconnected && !device.connected && device.lastConnection) {
+    return false;
+  }
+  if (!showNeverConnected && !device.connected && !device.lastConnection) {
+    return false;
+  }
+  if (deviceId === '') {
+    return true;
+  }
+
+  const aliases = Array.from(device.aliases.values());
+  return device.id.includes(deviceId) || aliases.some((alias) => alias.includes(deviceId));
+};
 
 export default ({ astarte, history }) => {
   const [phase, setPhase] = useState('loading');
-  const [totalDevices, setTotalDevices] = useState(null);
   const [activePage, setActivePage] = useState(0);
-  const [maxPage, setMaxPage] = useState(0);
-  const [cachedPages, setCachedPages] = useState([]);
+  const [deviceList, setDeviceList] = useState([]);
+  const [requestToken, setRequestToken] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [filters, setFilters] = useState({});
+
   const pageAlerts = useAlerts();
+  const pagedDevices = useMemo(() => {
+    const devices = deviceList.filter((device) => matchFilters(device, filters));
+    return _.chunk(devices, DEVICES_PER_PAGE);
+  }, [deviceList, filters]);
 
-  const handleDevicesRequest = (pageIndex, response) => {
-    const token = new URLSearchParams(response.links.next).get('from_token');
-    const deviceList = response.data.map((value) => Device.fromObject(value));
-    cachedPages[pageIndex] = {
-      devices: deviceList,
-      token,
-    };
-    setCachedPages([...cachedPages]);
-    if (pageIndex === activePage) {
-      setPhase('ok');
-    }
-    const pagesToCache = activePage + MAX_SHOWN_PAGES + 1;
-    if (pageIndex < pagesToCache) {
-      // eslint-disable-next-line no-use-before-define
-      cachePage(pageIndex + 1);
-    }
-    return null;
-  };
+  const loadMoreDevices = async (fromToken, loadAllDevices = false) =>
+    astarte
+      .getDevices({
+        details: true,
+        from: fromToken,
+        limit: DEVICES_PER_REQUEST,
+      })
+      .then((resp) => {
+        const nextToken = new URLSearchParams(resp.links.next).get('from_token');
+        const devices = resp.data.map((value) => Device.fromObject(value));
+        setRequestToken(nextToken);
 
-  const cachePage = (pageIndex) => {
-    if (pageIndex === 0) {
-      astarte
-        .getDevices({
-          details: true,
-          limit: DEVICES_PER_PAGE,
-        })
-        .then((response) => handleDevicesRequest(pageIndex, response))
-        .catch((err) =>
-          pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`),
-        );
-    } else {
-      const { token } = cachedPages[pageIndex - 1];
-      if (token) {
-        astarte
-          .getDevices({
-            details: true,
-            from: token,
-            limit: DEVICES_PER_PAGE,
-          })
-          .then((response) => handleDevicesRequest(pageIndex, response))
-          .catch((err) =>
-            pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`),
-          );
-      }
-    }
-    return null;
-  };
+        setDeviceList((previousList) => {
+          const updatedDeviceList = previousList.concat(devices);
 
-  const loadPage = (pageIndex) => {
-    if (!cachedPages[pageIndex]) {
-      return;
+          const pageCount = Math.ceil(updatedDeviceList.length / DEVICES_PER_PAGE);
+          const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || loadAllDevices;
+          if (shouldLoadMore && nextToken) {
+            loadMoreDevices(nextToken, loadAllDevices);
+          } else {
+            setPhase('ok');
+          }
+
+          return updatedDeviceList;
+        });
+      })
+      .catch((err) => {
+        pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`);
+      });
+
+  const handlePageChange = (pageIndex) => {
+    if (pageIndex > pagedDevices.length - MAX_SHOWN_PAGES && requestToken) {
+      loadMoreDevices(requestToken);
     }
     setActivePage(pageIndex);
-    setPhase('ok');
-    const lastCachedPage = cachedPages.length - 1;
-    const pagesToCache = pageIndex + MAX_SHOWN_PAGES + 1;
-    if (lastCachedPage < pagesToCache) {
-      cachePage(lastCachedPage + 1);
+  };
+
+  const handleFilterUpdate = (newFilters) => {
+    if (activePage !== 0) {
+      setActivePage(0);
     }
+    if (requestToken) {
+      loadMoreDevices(requestToken, true);
+    }
+    setFilters(newFilters);
   };
 
   useEffect(() => {
-    const handleStatsRequest = (response) => {
-      const newTotalDevices = response.data.total_devices;
-      if (newTotalDevices > 0) {
-        setTotalDevices(newTotalDevices);
-        setActivePage(0);
-        setMaxPage(Math.ceil(newTotalDevices / DEVICES_PER_PAGE));
-        setCachedPages([]);
-        cachePage(0);
-      } else {
-        setTotalDevices(0);
-        setPhase('ok');
-      }
-      return null;
-    };
-    const handleError = () => {
-      setPhase('err');
-    };
-    astarte.getDevicesStats().then(handleStatsRequest).catch(handleError);
-  }, [astarte]);
+    loadMoreDevices();
+  }, []);
 
   let innerHTML;
 
   switch (phase) {
     case 'ok':
-      if (totalDevices) {
-        const viewAblePages = Math.min(cachedPages.length, maxPage);
-        const devices = cachedPages[activePage].devices || [];
+      if (deviceList.length === 0) {
+        innerHTML = <p>No registered devices</p>;
+      } else {
+        const devices = pagedDevices[activePage] || [];
 
         innerHTML = (
           <>
-            <DeviceTable deviceList={devices} />
             <Container fluid>
+              <Row>
+                <Col>
+                  {devices.length === 0 ? (
+                    <p>No device matches current filters</p>
+                  ) : (
+                    <DeviceTable deviceList={devices} />
+                  )}
+                </Col>
+                <Col xs="auto" className="p-1">
+                  <div className="p-2 mb-2" onClick={() => setShowSidebar(!showSidebar)}>
+                    <i className="fas fa-filter mr-1" />
+                    {showSidebar && <b>Filters</b>}
+                  </div>
+                  {showSidebar && (
+                    <FilterForm filters={filters} onUpdateFilters={handleFilterUpdate} />
+                  )}
+                </Col>
+              </Row>
               <Row>
                 <Col />
                 <Col>
                   <TablePagination
-                    active={activePage}
-                    max={viewAblePages}
-                    onPageChange={loadPage}
+                    activePage={activePage}
+                    canLoadMorePages={!!requestToken}
+                    lastPage={pagedDevices.length}
+                    onPageChange={handlePageChange}
                   />
                 </Col>
                 <Col />
@@ -153,8 +175,6 @@ export default ({ astarte, history }) => {
             </Container>
           </>
         );
-      } else {
-        innerHTML = <p>No registered devices</p>;
       }
       break;
 
@@ -187,19 +207,22 @@ export default ({ astarte, history }) => {
   );
 };
 
-const TablePagination = ({ active, max, onPageChange }) => {
-  if (max < 2) {
+const TablePagination = ({ activePage, canLoadMorePages, lastPage, onPageChange }) => {
+  if (lastPage < 2) {
     return null;
   }
 
-  let startingPage = active - Math.floor((MAX_SHOWN_PAGES - 1) / 2);
-  if (startingPage < 0) {
-    startingPage = 0;
+  let endPage = activePage + Math.floor((MAX_SHOWN_PAGES + 1) / 2);
+  if (endPage < MAX_SHOWN_PAGES) {
+    endPage = MAX_SHOWN_PAGES;
+  }
+  if (endPage > lastPage) {
+    endPage = lastPage;
   }
 
-  let endPage = startingPage + MAX_SHOWN_PAGES;
-  if (endPage > max) {
-    endPage = max;
+  let startingPage = endPage - MAX_SHOWN_PAGES;
+  if (startingPage < 0) {
+    startingPage = 0;
   }
 
   const items = [];
@@ -207,7 +230,7 @@ const TablePagination = ({ active, max, onPageChange }) => {
     items.push(
       <Pagination.Item
         key={number}
-        active={number === active}
+        active={number === activePage}
         onClick={() => {
           onPageChange(number);
         }}
@@ -222,15 +245,15 @@ const TablePagination = ({ active, max, onPageChange }) => {
       {startingPage > 0 && (
         <Pagination.Prev
           onClick={() => {
-            onPageChange(active - 1);
+            onPageChange(activePage - 1);
           }}
         />
       )}
       {items}
-      {endPage < max && (
+      {(endPage < lastPage || canLoadMorePages) && (
         <Pagination.Next
           onClick={() => {
-            onPageChange(active + 1);
+            onPageChange(activePage + 1);
           }}
         />
       )}
@@ -304,3 +327,53 @@ const CircleIcon = React.forwardRef(({ children, className, ...props }, ref) => 
     {children}
   </i>
 ));
+
+const FilterForm = ({ filters, onUpdateFilters }) => {
+  const {
+    deviceId = '',
+    showConnected = true,
+    showDisconnected = true,
+    showNeverConnected = true,
+  } = filters;
+
+  return (
+    <Form className="p-2">
+      <Form.Group controlId="filterId" className="mb-3">
+        <Form.Label>
+          <b>Device ID/name</b>
+        </Form.Label>
+        <Form.Control
+          type="text"
+          value={deviceId}
+          onChange={(e) => onUpdateFilters({ ...filters, deviceId: e.target.value })}
+        />
+      </Form.Group>
+      <Form.Group controlId="filterStatus" className="mb-3">
+        <Form.Label>
+          <b>Device status</b>
+        </Form.Label>
+        <Form.Check
+          type="checkbox"
+          id="checkbox-connected"
+          label="Connected"
+          checked={showConnected}
+          onChange={(e) => onUpdateFilters({ ...filters, showConnected: e.target.checked })}
+        />
+        <Form.Check
+          type="checkbox"
+          id="checkbox-disconnected"
+          label="Disconnected"
+          checked={showDisconnected}
+          onChange={(e) => onUpdateFilters({ ...filters, showDisconnected: e.target.checked })}
+        />
+        <Form.Check
+          type="checkbox"
+          id="checkbox-never-connected"
+          label="Never connected"
+          checked={showNeverConnected}
+          onChange={(e) => onUpdateFilters({ ...filters, showNeverConnected: e.target.checked })}
+        />
+      </Form.Group>
+    </Form>
+  );
+};

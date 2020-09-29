@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support device groups in device triggers.
 - Initial device introspection during device registration.
 - Pipeline source visual editor.
+- Search filters for devices page.
 
 ### Fixed
 - Fix bug which caused marking triggers as invalid on parametric endpoints containing an underscore.
