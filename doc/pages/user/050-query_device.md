@@ -182,6 +182,12 @@ Astarte is also capable of downsampling aggregated interfaces, as long as a `dow
 
 If there is no way an interface can be downsampled (this is true, for example, if no `downsample_key` has been specified for `aggregations`, or for types such as `strings`), AppEngine API will return a `4xx` error. In general, downsampling is a powerful mechanism with a lot of limitations which really shines when plotting. Once again, this is a fundamental factor to consider when [designing your interfaces](029-interface_design_guide.html).
 
+## Real-Time Updates
+
+The http REST API returns a static result, therefore API clients should either poll the REST API when displaying real-time changes or use a WebSocket.
+WebSockets are called [Astarte Channels](052-using_channels.md) in Astarte jargon, and they should be considered as a more efficient alternative to polling.
+When [using Astarte Channels](052-using_channels.md) the REST API should be used to retrieve the initial status.
+
 ## astartectl-specific features
 
 `astartectl` implements some convenience methods that make navigation easier. In particular, `astartectl` allows for any of the AppEngine API query parameters/mechanisms, but also implements automated pagination, snapshots and more.
