@@ -25,6 +25,7 @@ defmodule AstarteE2E.MixProject do
       version: "0.1.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
+      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps()
     ]
   end
@@ -35,6 +36,14 @@ defmodule AstarteE2E.MixProject do
       mod: {AstarteE2E, []},
       extra_applications: [:logger]
     ]
+  end
+
+  defp dialyzer_cache_directory(:ci) do
+    "dialyzer_cache"
+  end
+
+  defp dialyzer_cache_directory(_) do
+    nil
   end
 
   # Run "mix help deps" to learn about dependencies.
@@ -52,7 +61,8 @@ defmodule AstarteE2E.MixProject do
       {:telemetry_poller, "~> 0.4"},
       {:logfmt, "~> 3.3"},
       {:pretty_log, "~> 0.1"},
-      {:observer_cli, "~> 1.5"}
+      {:observer_cli, "~> 1.5"},
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
 end
