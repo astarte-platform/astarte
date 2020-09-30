@@ -122,7 +122,7 @@ export default ({ astarte, history }) => {
       <Button
         variant="primary"
         onClick={() => {
-          history.push('/groups/new/');
+          history.push('/groups/new');
         }}
       >
         Create new group
