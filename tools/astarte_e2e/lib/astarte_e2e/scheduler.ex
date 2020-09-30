@@ -37,13 +37,13 @@ defmodule AstarteE2E.Scheduler do
     check_repetitions = Keyword.fetch!(opts, :check_repetitions)
 
     state = %{check_repetitions: check_repetitions, check_interval_ms: check_interval_ms}
-    :timer.send_interval(check_interval_ms, :do_work)
+    :timer.send_interval(check_interval_ms, :do_perform_check)
 
     {:ok, state}
   end
 
   @impl true
-  def handle_info(:do_work, %{check_repetitions: 0} = state) do
+  def handle_info(:do_perform_check, %{check_repetitions: 0} = state) do
     Logger.info("Terminating application successfully.",
       tag: "astarte_e2e_scheduler_termination_success"
     )
@@ -53,8 +53,8 @@ defmodule AstarteE2E.Scheduler do
   end
 
   @impl true
-  def handle_info(:do_work, state) do
-    case AstarteE2E.work() do
+  def handle_info(:do_perform_check, state) do
+    case AstarteE2E.perform_check() do
       :ok ->
         handle_successful_job(state)
 
