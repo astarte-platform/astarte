@@ -33,7 +33,7 @@ defmodule AstarteE2E.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      mod: {AstarteE2E, []},
+      mod: {AstarteE2E.Application, []},
       extra_applications: [:logger]
     ]
   end

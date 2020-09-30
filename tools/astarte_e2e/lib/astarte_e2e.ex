@@ -21,33 +21,10 @@ defmodule AstarteE2E do
   Documentation for `AstarteE2E`.
   """
 
-  use Application
   require Logger
 
   alias Astarte.Device
-  alias AstarteE2E.{Client, Config, Scheduler, Utils}
-
-  def start(_type, _args) do
-    with :ok <- Config.validate() do
-      Supervisor.start_link(__MODULE__, [], name: __MODULE__)
-    else
-      {:error, reason} ->
-        Logger.warn("Configuration incomplete. Unable to start process with reason: #{reason}.")
-        {:shutdown, reason}
-    end
-  end
-
-  def init(_opts) do
-    children = [
-      {Registry, keys: :unique, name: Registry.AstarteE2E},
-      AstarteE2EWeb.Telemetry,
-      {Device, Config.device_opts()},
-      {Client, Config.client_opts()},
-      {Scheduler, Config.scheduler_opts()}
-    ]
-
-    Supervisor.init(children, strategy: :one_for_one)
-  end
+  alias AstarteE2E.{Client, Config, Utils}
 
   def work do
     with {:ok, device_pid} <- fetch_device_pid(Config.realm!(), Config.device_id!()),
