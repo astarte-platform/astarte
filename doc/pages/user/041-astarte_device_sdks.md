@@ -111,6 +111,46 @@ with constrained resources.
 
 ## Streaming data
 
+All Astarte Device SDKs have a primitive for sending data to a remote Astarte instance.
+
+Following examples show how to send a value that will be inserted into "/test0/value" time series
+which is defined by "/%{sensor_id}/value" parametric endpoint (that is part of
+"org.astarte-platform.genericsensors.Values" interface).
+
+C (ESP32):
+```c
+struct timeval tv;
+gettimeofday(&tv, NULL);
+uint64_t ts = tv->tv_sec * 1000 + tv->tv_usec / 1000;
+
+astarte_err_t err = astarte_device_stream_double_with_timestamp(device, "org.astarte-platform.genericsensors.Values", "/test0/value", value, ts, 0);
+```
+
+C++ (Qt5):
+```c++
+m_sdk->sendData("org.astarte-platform.genericsensors.Values", "/test0/value", value, QDateTime::currentDateTime());
+```
+
+Elixir:
+```elixir
+Device.send_datastream(pid, "org.astarte-platform.genericsensors.Values", "/test0/value", value, timestamp: DateTime.utc_now())
+```
+
+Go:
+```go
+d.SendIndividualMessageWithTimestamp("org.astarte-platform.genericsensors.Values", "/test0/value", value, time.Now())
+```
+
+Java:
+```java
+valuesInterface.streamData("/test0/value", value, DateTime.now());
+```
+
+Python:
+```python
+device.send("org.astarte-platform.genericsensors.Values", "/test0/value", value, timestamp=datetime.now())
+```
+
 ### Using Object Aggregated Interfaces
 
 ## Setting and Unsetting Properties
