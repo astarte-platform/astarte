@@ -152,8 +152,8 @@ defmodule AstarteE2E.Client do
       }
     ]
 
-    with :ok <- install_device_triggers(device_triggers, transport, state),
-         :ok <- install_data_triggers(data_triggers, transport, state) do
+    with :ok <- install_triggers(device_triggers, transport, state),
+         :ok <- install_triggers(data_triggers, transport, state) do
       Logger.info("Triggers installed.", tag: "astarte_e2e_client_triggers_installed")
       {:ok, state}
     else
@@ -166,14 +166,7 @@ defmodule AstarteE2E.Client do
     end
   end
 
-  defp install_data_triggers(triggers, transport, state) do
-    case install_device_triggers(triggers, transport, state) do
-      :ok -> :ok
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp install_device_triggers(triggers, transport, %{callback_state: %{topic: topic}} = _state) do
+  defp install_triggers(triggers, transport, %{callback_state: %{topic: topic}} = _state) do
     Enum.reduce_while(triggers, :ok, fn trigger, _acc ->
       case GenSocketClient.push(transport, topic, "watch", trigger) do
         {:error, reason} ->
