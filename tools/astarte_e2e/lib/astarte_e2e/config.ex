@@ -100,6 +100,12 @@ defmodule AstarteE2E.Config do
     type: PositiveIntegerOrInfinity,
     default: :infinity
 
+  @envdoc "The amount of time (in seconds) the websocket client is allowed to wait for an incoming message. Defaults to 10 seconds."
+  app_env :client_timeout_s, :astarte_e2e, :client_timeout_s,
+    os_env: "ASTARTE_E2E_CLIENT_TIMEOUT_SECONDS",
+    type: :pos_integer,
+    default: 10
+
   @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do
     {:ok, websocket_url!()}

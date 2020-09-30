@@ -17,6 +17,7 @@
 #
 
 defmodule AstarteE2E.Scheduler do
+  alias AstarteE2E.Utils
   require Logger
 
   use GenServer, restart: :transient
@@ -32,7 +33,7 @@ defmodule AstarteE2E.Scheduler do
   def init(opts) do
     check_interval_ms =
       Keyword.fetch!(opts, :check_interval_s)
-      |> to_ms()
+      |> Utils.to_ms()
 
     check_repetitions = Keyword.fetch!(opts, :check_repetitions)
 
@@ -96,8 +97,6 @@ defmodule AstarteE2E.Scheduler do
         {:stop, :timeout, state}
     end
   end
-
-  defp to_ms(seconds), do: seconds * 1_000
 
   defp via_tuple(realm, device_id) do
     {:via, Registry, {Registry.AstarteE2E, {:scheduler, realm, device_id}}}

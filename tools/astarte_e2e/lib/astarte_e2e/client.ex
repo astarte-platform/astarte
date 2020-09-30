@@ -25,7 +25,6 @@ defmodule AstarteE2E.Client do
 
   @connection_backoff_ms 10_000
   @connection_attempts 10
-  @standard_timeout_ms 10_000
 
   # API
 
@@ -300,8 +299,12 @@ defmodule AstarteE2E.Client do
       GenSocketClient.reply(from, :ok)
       {:ok, new_state}
     else
+      timeout_ms =
+        Config.client_timeout_s!()
+        |> Utils.to_ms()
+
       key = {interface_name, path, value}
-      tref = Process.send_after(self(), {:message_timeout, key}, @standard_timeout_ms)
+      tref = Process.send_after(self(), {:message_timeout, key}, timeout_ms)
 
       new_pending_messages = Map.put(pending_messages, key, {reception_timestamp, tref})
 
@@ -431,8 +434,12 @@ defmodule AstarteE2E.Client do
 
       {:reply, :ok, new_state}
     else
+      timeout_ms =
+        Config.client_timeout_s!()
+        |> Utils.to_ms()
+
       key = {interface_name, path, value}
-      tref = Process.send_after(self(), {:request_timeout, key}, @standard_timeout_ms)
+      tref = Process.send_after(self(), {:request_timeout, key}, timeout_ms)
 
       new_pending_requests = Map.put(pending_requests, key, {timestamp, from, tref})
       new_state = Map.put(state, :pending_requests, new_pending_requests)

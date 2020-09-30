@@ -21,4 +21,6 @@ defmodule AstarteE2E.Utils do
     :crypto.strong_rand_bytes(10)
     |> Base.encode16()
   end
+
+  def to_ms(seconds), do: seconds * 1000
 end
