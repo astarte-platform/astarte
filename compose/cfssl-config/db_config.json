@@ -1,4 +1,0 @@
-{
-    "driver":"postgres",
-    "data_source":"postgres://astarte:astarte@postgresql/astarte?sslmode=disable"
-}
