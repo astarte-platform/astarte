@@ -402,7 +402,9 @@ defmodule AstarteE2E.Client do
       ) do
     :telemetry.execute([:astarte_end_to_end, :messages, :failed], %{})
 
-    Logger.warn("Cannot verify the payload.", tag: "astarte_e2e_client_verify_not_possible")
+    Logger.warn("Cannot verify the payload: the client is not connected.",
+      tag: "astarte_e2e_client_verify_not_possible"
+    )
 
     {:reply, {:error, :not_connected}, state}
   end
