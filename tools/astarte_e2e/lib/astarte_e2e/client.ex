@@ -222,7 +222,7 @@ defmodule AstarteE2E.Client do
     Logger.info("Connected.", tag: "astarte_e2e_client_connected")
     state = %{state | connection_attempts: @connection_attempts, connected: true}
 
-    join_topic(transport, state)
+    {:ok, state} = join_topic(transport, state)
     {:ok, state}
   end
 
@@ -326,8 +326,13 @@ defmodule AstarteE2E.Client do
   end
 
   def handle_join_error(topic, _payload, _transport, state) do
-    Logger.warn("Stopping process.", tag: "astarte_e2e_join_error")
-    {:stop, {:error, {:join_failed, topic}}, state}
+    Logger.error(
+      "Join topic #{inspect(topic)} failed. Please, check the realm and the claims you used to generate the token.",
+      tag: "astarte_e2e_client_join_error_failed"
+    )
+
+    System.stop(1)
+    {:stop, :join_error, state}
   end
 
   def handle_info(
