@@ -1,6 +1,6 @@
 describe('Devices page tests', () => {
   context('no access before login', () => {
-    it('redirects to home', function () {
+    it('redirects to login', function () {
       cy.visit('/devices');
       cy.location('pathname').should('eq', '/login');
     });

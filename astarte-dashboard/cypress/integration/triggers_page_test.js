@@ -1,6 +1,6 @@
 describe('Triggers page tests', () => {
   context('no access before login', () => {
-    it('redirects to home', () => {
+    it('redirects to login', () => {
       cy.visit('/triggers');
       cy.location('pathname').should('eq', '/login');
     });

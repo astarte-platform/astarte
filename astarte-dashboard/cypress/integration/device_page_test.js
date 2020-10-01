@@ -4,7 +4,7 @@ describe('Device page tests', () => {
       cy.fixture('device').as('device');
     });
 
-    it('redirects to home', function () {
+    it('redirects to login', function () {
       cy.visit(`/devices/${this.device.data.id}`);
       cy.location('pathname').should('eq', '/login');
     });

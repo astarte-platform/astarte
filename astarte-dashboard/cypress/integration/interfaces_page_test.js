@@ -1,6 +1,6 @@
 describe('Interfaces page tests', () => {
   context('no access before login', () => {
-    it('redirects to home', () => {
+    it('redirects to login', () => {
       cy.visit('/interfaces');
       cy.location('pathname').should('eq', '/login');
     });
