@@ -2,6 +2,9 @@
   "data": [
     "test.astarte.FirstInterface",
     "test.astarte.SecondInterface",
-    "test.astarte.ThirdInterface"
+    "test.astarte.ThirdInterface",
+    "test.astarte.ParametricObjectInterface",
+    "com.example.ExampleInterface",
+    "com.test.TestInterface"
   ]
 }
