@@ -27,12 +27,14 @@ defmodule AstarteE2E do
   alias AstarteE2E.{Client, Config, Utils}
 
   def perform_check do
-    with {:ok, device_pid} <- fetch_device_pid(Config.realm!(), Config.device_id!()),
-         {:ok, interface_names} <- fetch_interface_names(),
-         :ok <- Device.wait_for_connection(device_pid) do
-      realm = Config.realm!()
-      device_id = Config.device_id!()
+    realm = Config.realm!()
+    device_id = Config.device_id!()
 
+    with {:ok, device_pid} <- fetch_device_pid(realm, device_id),
+         {:ok, client_pid} <- fetch_client_pid(realm, device_id),
+         {:ok, interface_names} <- fetch_interface_names(),
+         :ok <- Device.wait_for_connection(device_pid),
+         :ok <- Client.wait_for_connection(client_pid) do
       Enum.reduce_while(interface_names, [], fn interface_name, _acc ->
         timestamp = :erlang.monotonic_time(:millisecond)
         value = Utils.random_string()
@@ -79,6 +81,13 @@ defmodule AstarteE2E do
   defp fetch_device_pid(realm, device_id) do
     case Device.get_pid(realm, device_id) do
       nil -> {:error, :unregistered_device}
+      pid -> {:ok, pid}
+    end
+  end
+
+  defp fetch_client_pid(realm, device_id) do
+    case Client.get_pid(realm, device_id) do
+      nil -> {:error, :unregistered_client}
       pid -> {:ok, pid}
     end
   end

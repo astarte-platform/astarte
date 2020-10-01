@@ -86,6 +86,23 @@ defmodule AstarteE2E.Client do
     )
   end
 
+  def wait_for_connection(client_pid) do
+    GenSocketClient.call(client_pid, :wait_for_connection, :infinity)
+  end
+
+  @spec get_pid(String.t(), String.t()) :: pid() | nil
+  def get_pid(realm, device_id) do
+    case Registry.lookup(Registry.AstarteE2E, {:client, realm, device_id}) do
+      [{pid, _}] ->
+        pid
+
+      _ ->
+        Logger.warn("Unregistered client process.", tag: "astarte_e2e_client_unregistered_process")
+
+        nil
+    end
+  end
+
   defp join_topic(transport, state) do
     topic =
       state
@@ -214,6 +231,7 @@ defmodule AstarteE2E.Client do
       pending_messages: %{},
       connection_attempts: @connection_attempts,
       check_repetitions: check_repetitions,
+      waiting_for_connection: %{},
       connected: false
     }
 
@@ -224,8 +242,20 @@ defmodule AstarteE2E.Client do
     Logger.info("Connected.", tag: "astarte_e2e_client_connected")
     state = %{state | connection_attempts: @connection_attempts, connected: true}
 
-    {:ok, state} = join_topic(transport, state)
-    {:ok, state}
+    waiting_for_connection = state.waiting_for_connection
+
+    new_waiting =
+      if Map.has_key?(waiting_for_connection, self()) do
+        {tref, new_waiting} = Map.pop!(waiting_for_connection, self())
+        :ok = Process.cancel_timer(tref, async: false, info: false)
+        new_waiting
+      else
+        waiting_for_connection
+      end
+
+    new_state = %{state | waiting_for_connection: new_waiting}
+    {:ok, updated_state} = join_topic(transport, new_state)
+    {:ok, updated_state}
   end
 
   def handle_disconnected(reason, state) do
@@ -392,6 +422,30 @@ defmodule AstarteE2E.Client do
       System.stop(1)
       {:stop, :connection_failed, state}
     end
+  end
+
+  def handle_info({:wait_for_connection_expired, from}, _transport, state) do
+    {_tref, new_waiting} = Map.pop!(state.waiting_for_connection, from)
+    :ok = GenSocketClient.reply(from, {:error, :not_connected})
+
+    {:ok, %{state | waiting_for_connection: new_waiting}}
+  end
+
+  def handle_call(:wait_for_connection, _from, _transport, %{connected: true} = state) do
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:wait_for_connection, from, _transport, %{connected: false} = state) do
+    tref =
+      Process.send_after(self(), {:wait_for_connection_expired, from}, @connection_backoff_ms)
+
+    waiting_for_connection =
+      state.waiting_for_connection
+      |> Map.put(from, tref)
+
+    updated_state = %{state | waiting_for_connection: waiting_for_connection}
+
+    {:noreply, updated_state, @connection_backoff_ms}
   end
 
   def handle_call(
