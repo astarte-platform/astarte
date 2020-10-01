@@ -30,8 +30,6 @@ jobs:
             ${{ runner.os }}-node-
       - name: Install dependencies
         run: npm install
-      - name: Create test config
-        run: 'npm run generate-demo-config -- --url=src/user-config/ --enable-flow=true'
       - name: Start dev server
         run: npm run start & npx wait-on http://localhost:8080
       - name: Run tests
