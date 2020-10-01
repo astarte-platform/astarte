@@ -143,22 +143,12 @@ services:
       - rabbitmq-data:/var/lib/rabbitmq
 
   # CFSSL
-  postgresql:
-    image: postgres:9.6
-    environment:
-      POSTGRES_USER: "astarte"
-      POSTGRES_PASSWORD: "astarte"
-    volumes:
-      - postgresql-data:/var/lib/postgresql/data
   cfssl:
     image: astarte/cfssl
-    depends_on:
-      - "postgresql"
     volumes:
       - ./compose/cfssl-config:/config
       - cfssl-data:/data
-    # Ensure we wait for pg
-    command: wait-for postgresql:5432 -t 90 -- cfssl serve -address=0.0.0.0 -ca=/data/ca.pem -ca-key=/data/ca-key.pem -port=8080 -config=/etc/cfssl/ca_root_config.json -db-config=/etc/cfssl/db_config.json
+    command: cfssl serve -address=0.0.0.0 -ca=/data/ca.pem -ca-key=/data/ca-key.pem -port=8080 -config=/etc/cfssl/ca_root_config.json
     # Restart if we fail
     restart: on-failure
 
@@ -202,7 +192,6 @@ services:
     restart: on-failure
 volumes:
   rabbitmq-data:
-  postgresql-data:
   scylla-data:
   vernemq-data:
   cfssl-data:
