@@ -35,6 +35,7 @@ defmodule AstarteE2E.Client do
     jwt = Keyword.fetch!(opts, :jwt)
     realm = Keyword.fetch!(opts, :realm)
     device_id = Keyword.fetch!(opts, :device_id)
+    check_repetitions = Keyword.fetch!(opts, :check_repetitions)
 
     verify_option =
       if Keyword.get(opts, :ignore_ssl_errors, false) do
@@ -43,7 +44,7 @@ defmodule AstarteE2E.Client do
         :verify_peer
       end
 
-    remote_device = {url, realm, jwt, device_id}
+    remote_device = {url, realm, jwt, device_id, check_repetitions}
 
     with {:ok, pid} <-
            GenSocketClient.start_link(
@@ -197,7 +198,7 @@ defmodule AstarteE2E.Client do
 
   # Callbacks
 
-  def init({url, realm, jwt, device_id}) do
+  def init({url, realm, jwt, device_id, check_repetitions}) do
     topic = make_topic(realm, device_id)
 
     callback_state = %{
@@ -212,6 +213,7 @@ defmodule AstarteE2E.Client do
       pending_requests: %{},
       pending_messages: %{},
       connection_attempts: @connection_attempts,
+      check_repetitions: check_repetitions,
       connected: false
     }
 
@@ -370,6 +372,10 @@ defmodule AstarteE2E.Client do
     :ok = GenSocketClient.reply(from, {:error, :timeout})
 
     {:ok, %{state | pending_requests: new_pending_requests}}
+  end
+
+  def handle_info(:try_connect, _transport, %{check_repetitions: :infinity} = state) do
+    {:connect, state}
   end
 
   def handle_info(:try_connect, _transport, state) do

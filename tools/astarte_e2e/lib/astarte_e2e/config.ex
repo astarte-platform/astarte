@@ -29,6 +29,7 @@ defmodule AstarteE2E.Config do
           | {:jwt, String.t()}
           | {:device_id, String.t()}
           | {:ignore_ssl_errors, boolean()}
+          | {:check_repetitions, integer() | :infinity}
 
   @type scheduler_option ::
           {:check_interval_s, integer()}
@@ -153,6 +154,7 @@ defmodule AstarteE2E.Config do
       realm: realm!(),
       jwt: jwt!(),
       device_id: device_id!(),
+      check_repetitions: check_repetitions!(),
       ignore_ssl_errors: ignore_ssl_errors!()
     ]
   end
