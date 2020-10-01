@@ -62,6 +62,9 @@ defmodule AstarteE2E.Scheduler do
       {:error, :timeout} ->
         handle_timed_out_job(state)
 
+      {:error, :not_connected} ->
+        {:noreply, state}
+
       e ->
         Logger.warn("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
         {:noreply, state}
