@@ -1,0 +1,5 @@
+{
+  "data": {
+    "jwt_public_key_pem": "-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAMNV2kf6Xkh6O3HfDTXXC1O5YWA7v+dd\n4BdlYn5cwk/X5D/TLnWRSwAhhyoyjNM5293idDmpVp62+nZnUS3RVe0CAwEAAQ==\n-----END PUBLIC KEY-----\n"
+  }
+}

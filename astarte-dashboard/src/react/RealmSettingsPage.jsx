@@ -60,6 +60,7 @@ export default ({ astarte, history }) => {
       .catch(() => setPhase('err'));
   }, [astarte, setUserPublicKey, setDraftPublicKey, setPhase]);
 
+  const canUpdatePublicKey = draftPublicKey !== userPublicKey && draftPublicKey.trim() !== '';
   let innerHTML;
 
   switch (phase) {
@@ -79,11 +80,7 @@ export default ({ astarte, history }) => {
               />
             </Form.Group>
             {/* TODO: this action is destructive, maybe we should use danger/warning variants */}
-            <Button
-              variant="primary"
-              disabled={draftPublicKey === userPublicKey}
-              onClick={showModal}
-            >
+            <Button variant="primary" disabled={!canUpdatePublicKey} onClick={showModal}>
               Apply
             </Button>
           </Form>
