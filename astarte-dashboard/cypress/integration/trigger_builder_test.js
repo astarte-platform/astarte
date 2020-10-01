@@ -1,11 +1,11 @@
 describe('Trigger builder tests', () => {
   context('no access before login', () => {
-    it('redirects to home', () => {
+    it('redirects to login', () => {
       cy.visit('/triggers/new');
       cy.location('pathname').should('eq', '/login');
     });
 
-    it('redirects to home', () => {
+    it('redirects to login', () => {
       cy.visit('/triggers/testTrigger');
       cy.location('pathname').should('eq', '/login');
     });
