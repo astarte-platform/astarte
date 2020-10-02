@@ -38,7 +38,7 @@ defmodule AstarteE2E.Scheduler do
     check_repetitions = Keyword.fetch!(opts, :check_repetitions)
 
     state = %{check_repetitions: check_repetitions, check_interval_ms: check_interval_ms}
-    :timer.send_interval(check_interval_ms, :do_perform_check)
+    Process.send_after(self(), :do_perform_check, check_interval_ms)
 
     {:ok, state}
   end
@@ -55,20 +55,24 @@ defmodule AstarteE2E.Scheduler do
 
   @impl true
   def handle_info(:do_perform_check, state) do
-    case AstarteE2E.perform_check() do
-      :ok ->
-        handle_successful_job(state)
+    return_val =
+      case AstarteE2E.perform_check() do
+        :ok ->
+          handle_successful_job(state)
 
-      {:error, :timeout} ->
-        handle_timed_out_job(state)
+        {:error, :timeout} ->
+          handle_timed_out_job(state)
 
-      {:error, :not_connected} ->
-        {:noreply, state}
+        {:error, :not_connected} ->
+          {:noreply, state}
 
-      e ->
-        Logger.warn("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
-        {:noreply, state}
-    end
+        e ->
+          Logger.warn("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
+          {:noreply, state}
+      end
+
+    Process.send_after(self(), :do_perform_check, state.check_interval_ms)
+    return_val
   end
 
   defp handle_successful_job(state) do
