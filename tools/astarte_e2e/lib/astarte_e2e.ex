@@ -35,28 +35,67 @@ defmodule AstarteE2E do
          {:ok, interface_names} <- fetch_interface_names(),
          :ok <- Device.wait_for_connection(device_pid),
          :ok <- Client.wait_for_connection(client_pid) do
-      Enum.reduce_while(interface_names, [], fn interface_name, _acc ->
-        timestamp = :erlang.monotonic_time(:millisecond)
-        value = Utils.random_string()
-        path = "/correlationId"
+      timestamp = :erlang.monotonic_time(:millisecond)
+      path = "/correlationId"
 
-        with :ok <- push_data(device_pid, interface_name, path, value),
-             :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{}),
-             :ok <-
-               Client.verify_device_payload(
-                 realm,
-                 device_id,
-                 interface_name,
-                 path,
-                 value,
-                 timestamp
-               ) do
-          {:cont, :ok}
-        else
-          {:error, reason} ->
+      task_list =
+        Enum.map(interface_names, fn interface_name ->
+          value = Utils.random_string()
+
+          args = [
+            interface_name: interface_name,
+            device_id: device_id,
+            device_pid: device_pid,
+            path: path,
+            value: value,
+            timestamp: timestamp,
+            realm: realm
+          ]
+
+          Task.async(AstarteE2E, :push_and_verify, [args])
+        end)
+
+      tasks_with_results = Task.yield_many(task_list, :infinity)
+
+      Enum.reduce_while(tasks_with_results, :ok, fn {_task, result}, _acc ->
+        case result do
+          {:ok, :ok} ->
+            {:cont, :ok}
+
+          {:ok, {:error, reason}} ->
             {:halt, {:error, reason}}
+
+          {:exit, reason} ->
+            {:halt, {:error, reason}}
+
+          nil ->
+            {:halt, {:error, :timeout}}
         end
       end)
+    end
+  end
+
+  def push_and_verify(args) do
+    interface_name = Keyword.fetch!(args, :interface_name)
+    device_id = Keyword.fetch!(args, :device_id)
+    device_pid = Keyword.fetch!(args, :device_pid)
+    path = Keyword.fetch!(args, :path)
+    value = Keyword.fetch!(args, :value)
+    timestamp = Keyword.fetch!(args, :timestamp)
+    realm = Keyword.fetch!(args, :realm)
+
+    with :ok <- push_data(device_pid, interface_name, path, value),
+         :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{}),
+         :ok <-
+           Client.verify_device_payload(
+             realm,
+             device_id,
+             interface_name,
+             path,
+             value,
+             timestamp
+           ) do
+      :ok
     end
   end
 
