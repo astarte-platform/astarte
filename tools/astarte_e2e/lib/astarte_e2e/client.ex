@@ -282,6 +282,14 @@ defmodule AstarteE2E.Client do
     end
   end
 
+  def handle_channel_closed(topic, _payload, _transport, state) do
+    Logger.warn("Channel closed for #{inspect(topic)}.",
+      tag: "astarte_e2e_client_channel_closed"
+    )
+
+    {:ok, state}
+  end
+
   def handle_message(
         _topic,
         _event,
