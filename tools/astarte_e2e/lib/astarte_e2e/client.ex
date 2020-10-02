@@ -232,6 +232,7 @@ defmodule AstarteE2E.Client do
       connection_attempts: @connection_attempts,
       check_repetitions: check_repetitions,
       waiting_for_connection: %{},
+      timeouts_to_crash: Config.client_max_timeouts!(),
       connected: false
     }
 
@@ -400,6 +401,27 @@ defmodule AstarteE2E.Client do
   def handle_info(
         {:request_timeout, key},
         _transport,
+        %{pending_requests: pending_requests, timeouts_to_crash: 0} = state
+      ) do
+    :telemetry.execute(
+      [:astarte_end_to_end, :astarte_platform, :status],
+      %{health: 0}
+    )
+
+    Logger.warn(
+      "Maximum number of requests timeout reached. The websocket client is going to crash.",
+      tag: "astarte_e2e_maximum_timeout_number_reached"
+    )
+
+    {{_ts, from, _tref}, _new_pending_requests} = Map.pop(pending_requests, key)
+
+    :ok = GenSocketClient.reply(from, {:error, :timeout})
+    {:stop, :maximum_timeout_number_reached, state}
+  end
+
+  def handle_info(
+        {:request_timeout, key},
+        _transport,
         %{pending_requests: pending_requests} = state
       ) do
     :telemetry.execute(
@@ -410,10 +432,16 @@ defmodule AstarteE2E.Client do
     Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "astarte_e2e_request_timeout")
 
     {{_ts, from, _tref}, new_pending_requests} = Map.pop(pending_requests, key)
+    remaining_timeouts_to_crash = state.timeouts_to_crash - 1
 
     :ok = GenSocketClient.reply(from, {:error, :timeout})
 
-    {:ok, %{state | pending_requests: new_pending_requests}}
+    {:ok,
+     %{
+       state
+       | pending_requests: new_pending_requests,
+         timeouts_to_crash: remaining_timeouts_to_crash
+     }}
   end
 
   def handle_info(:try_connect, _transport, %{check_repetitions: :infinity} = state) do
@@ -497,7 +525,12 @@ defmodule AstarteE2E.Client do
       )
 
       dt_ms = reception_timestamp - timestamp
-      new_state = Map.put(state, :pending_messages, new_pending_messages)
+
+      new_state = %{
+        state
+        | pending_messages: new_pending_messages,
+          timeouts_to_crash: Config.client_max_timeouts!()
+      }
 
       :telemetry.execute(
         [:astarte_end_to_end, :messages, :round_trip_time],

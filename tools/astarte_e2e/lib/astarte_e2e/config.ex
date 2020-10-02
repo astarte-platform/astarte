@@ -107,6 +107,12 @@ defmodule AstarteE2E.Config do
     type: :pos_integer,
     default: 10
 
+  @envdoc "The maximum number of consecutive timeouts before the websocket client is allowed to crash. Defaults to 10."
+  app_env :client_max_timeouts, :astarte_e2e, :client_max_timeouts,
+    os_env: "ASTARTE_E2E_CLIENT_MAX_TIMEOUTS",
+    type: :pos_integer,
+    default: 10
+
   @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do
     {:ok, websocket_url!()}
