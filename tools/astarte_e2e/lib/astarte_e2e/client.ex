@@ -172,14 +172,14 @@ defmodule AstarteE2E.Client do
     with :ok <- install_triggers(device_triggers, transport, state),
          :ok <- install_triggers(data_triggers, transport, state) do
       Logger.info("Triggers installed.", tag: "astarte_e2e_client_triggers_installed")
-      {:ok, state}
+      :ok
     else
       {:error, reason} ->
         Logger.warn("Failed to install triggers with reason: #{inspect(reason)}.",
           tag: "astarte_e2e_client_triggers_install_failed"
         )
 
-        {:stop, reason, state}
+        {:error, reason}
     end
   end
 
@@ -275,7 +275,11 @@ defmodule AstarteE2E.Client do
 
   def handle_joined(topic, _payload, transport, state) do
     Logger.info("Joined topic #{inspect(topic)}.", tag: "astarte_e2e_client_topic_joined")
-    setup_watches(transport, state)
+
+    case setup_watches(transport, state) do
+      :ok -> {:ok, state}
+      {:error, reason} -> {:stop, reason, state}
+    end
   end
 
   def handle_message(
