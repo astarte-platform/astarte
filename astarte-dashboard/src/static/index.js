@@ -33,6 +33,7 @@ let reactHistory = null;
 let dashboardConfig = null;
 let app;
 let astarteClient = null;
+let updateElmSessionCallback;
 
 function sendErrorMessage(errorMessage) {
   app.ports.onDeviceEventReceived.send({
@@ -178,7 +179,13 @@ function loadPage(page) {
 
   reactHistory = createBrowserHistory();
 
-  const reactApp = getReactApp(reactHistory, astarteClient, dashboardConfig, noMatchFallback);
+  const reactApp = getReactApp(
+    reactHistory,
+    astarteClient,
+    dashboardConfig,
+    noMatchFallback,
+    updateElmSessionCallback,
+  );
   ReactDOM.render(reactApp, document.getElementById('react-page'));
 }
 
@@ -275,12 +282,6 @@ $.getJSON('/user-config/config.json', (result) => {
   updateAstarteClientSession();
 
   /* begin Elm ports */
-  app.ports.storeSession.subscribe((session) => {
-    localStorage.session = session;
-
-    updateAstarteClientSession();
-  });
-
   app.ports.loadReactPage.subscribe(loadPage);
   app.ports.unloadReactPage.subscribe(clearReact);
   app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
@@ -297,15 +298,8 @@ $.getJSON('/user-config/config.json', (result) => {
     }
   });
 
-  window.addEventListener(
-    'storage',
-    (event) => {
-      if (event.storageArea === localStorage && event.key === 'session') {
-        app.ports.onSessionChange.send(event.newValue);
-        updateAstarteClientSession();
-      }
-    },
-    false,
-  );
+  updateElmSessionCallback = (newSession) => {
+    app.ports.onSessionChange.send(newSession);
+  };
   /* end Elm ports */
 });

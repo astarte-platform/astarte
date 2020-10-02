@@ -22,13 +22,14 @@ import AlertsProvider from './AlertManager';
 import Router from './Router';
 import Snackbar from './ui/Snackbar';
 
-export default (reactHistory, astarteClient, config, fallback) => (
+export default (reactHistory, astarteClient, config, fallback, updateElmSessionCallback) => (
   <AlertsProvider>
     <Router
       reactHistory={reactHistory}
       astarteClient={astarteClient}
       config={config}
       fallback={fallback}
+      onSessionChange={updateElmSessionCallback}
     />
     <Snackbar />
   </AlertsProvider>
