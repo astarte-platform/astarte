@@ -50,7 +50,7 @@ defmodule AstarteE2E.MixProject do
   defp deps do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir", branch: "master"},
-      {:phoenix_gen_socket_client, "~> 3.0.0"},
+      {:phoenix_gen_socket_client, "~> 3.0"},
       {:websocket_client, "~> 1.2"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
