@@ -44,7 +44,13 @@ defmodule AstarteE2E.Client do
         :verify_peer
       end
 
-    remote_device = {url, realm, jwt, device_id, check_repetitions}
+    remote_device = [
+      url: url,
+      realm: realm,
+      jwt: jwt,
+      device_id: device_id,
+      check_repetitions: check_repetitions
+    ]
 
     with {:ok, pid} <-
            GenSocketClient.start_link(
@@ -215,7 +221,13 @@ defmodule AstarteE2E.Client do
 
   # Callbacks
 
-  def init({url, realm, jwt, device_id, check_repetitions}) do
+  def init(opts) do
+    url = Keyword.fetch!(opts, :url)
+    realm = Keyword.fetch!(opts, :realm)
+    jwt = Keyword.fetch!(opts, :jwt)
+    device_id = Keyword.fetch!(opts, :device_id)
+    check_repetitions = Keyword.fetch!(opts, :check_repetitions)
+
     topic = make_topic(realm, device_id)
 
     callback_state = %{
