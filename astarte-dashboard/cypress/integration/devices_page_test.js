@@ -50,5 +50,24 @@ describe('Devices page tests', () => {
       });
       cy.location('pathname').should('eq', '/devices/register');
     });
+
+    it('correctly filters by connection status', () => {
+      cy.get('#checkbox-connected').check();
+      cy.get('#checkbox-disconnected').uncheck();
+      cy.get('#checkbox-never-connected').uncheck();
+      cy.get('table tbody tr i')
+        .should('have.length', 1)
+        .each(($icon) => {
+          expect($icon).to.have.class('icon-connected');
+        });
+    });
+
+    it('correctly filters by device handle', function () {
+      const deviceName = this.devices.data[0].aliases.name;
+      const filter = deviceName.substring(2, 7);
+      cy.get('#filterId').type(filter);
+      cy.get('table tbody tr').should('have.length', 1);
+      cy.get('table tbody tr td:nth-child(2)').should('contain', deviceName);
+    });
   });
 });
