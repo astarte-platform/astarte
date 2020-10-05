@@ -70,7 +70,7 @@ export default ({ astarte, history, pipelineId }) => {
 
   const innerHTML = (
     <Form>
-      <Form.Group controlId="flow.name">
+      <Form.Group controlId="flowNameInput">
         <Form.Label>Name</Form.Label>
         <Form.Control
           type="text"
@@ -83,7 +83,7 @@ export default ({ astarte, history, pipelineId }) => {
       <p>
         <i>{pipelineId}</i>
       </p>
-      <Form.Group controlId="flow.config">
+      <Form.Group controlId="flowConfigInput">
         <Form.Label>Flow config</Form.Label>
         <Form.Control
           as="textarea"
