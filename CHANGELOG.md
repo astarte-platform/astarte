@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Rework metrics to reduce the clutter while monitoring astarte services.
 - [realm_management] Allow updating doc, description and explicit_timestamp within mappings when
   bumping an interface minor.
+- Remove postgresql dependency in `docker-compose`, make CFSSL stateless.
 
 ## [1.0.0-alpha.1] - 2020-06-19
 ### Fixed
@@ -68,6 +69,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
+
+## [0.11.4] - Unreleased
+### Fixed
+- Avoid creating an `housekeeping_public.pem` directory if `docker-compose up` doesn't find the
+  housekeeping keypair.
+
+## [0.11.3] - 2020-09-24
 
 ## [0.11.2] - 2020-08-14
 ### Added

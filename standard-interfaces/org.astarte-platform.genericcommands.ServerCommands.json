@@ -1,0 +1,19 @@
+{
+    "interface_name": "org.astarte-platform.genericcommands.ServerCommands",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "server",
+    "description": "Generic server commands interface.",
+    "doc": "This interface allows sending strings representing a command to a device. This allows to build simple applications that interact with the device to, e.g., turn on or off a switch.",
+    "mappings": [
+        {
+            "endpoint": "/command",
+            "type": "string",
+            "explicit_timestamp": true,
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 86400,
+            "doc": "A string representing a command. The command is deleted from Astarte after 24 hours."
+        }
+    ]
+}
