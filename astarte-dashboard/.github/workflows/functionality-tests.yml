@@ -31,6 +31,6 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Start dev server
-        run: npm run start & npx wait-on http://localhost:8080
+        run: npm run start-ci & npx wait-on http://localhost:8080
       - name: Run tests
         run: npm run test

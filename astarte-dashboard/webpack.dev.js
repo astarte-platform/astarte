@@ -26,7 +26,7 @@ module.exports = merge(common, {
             loader: 'elm-webpack-loader',
             options: {
               verbose: true,
-              debug: true,
+              debug: !process.env.CI_RUN,
             },
           },
         ],

@@ -27,6 +27,7 @@
   },
   "scripts": {
     "start": "webpack-dev-server --hot --inline --config webpack.dev.js",
+    "start-ci": "CI_RUN=true npm run start",
     "prebuild": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
     "deploy": "webpack --config webpack.prod.js",
