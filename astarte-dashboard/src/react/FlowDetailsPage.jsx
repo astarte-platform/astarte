@@ -29,8 +29,8 @@ export default ({ astarte, flowName }) => {
   useEffect(() => {
     astarte
       .getFlowDetails(flowName)
-      .then((response) => {
-        setFlow(response.data);
+      .then((flowDetails) => {
+        setFlow(flowDetails);
         setPhase('ok');
       })
       .catch(() => {

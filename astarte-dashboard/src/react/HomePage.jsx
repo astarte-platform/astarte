@@ -58,8 +58,8 @@ export default ({ astarte, history }) => {
 
   const redirectToLastInterface = useCallback((e, interfaceName) => {
     e.preventDefault();
-    astarte.getInterfaceMajors(interfaceName).then((response) => {
-      const latestMajor = Math.max(...response.data);
+    astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => {
+      const latestMajor = Math.max(...interfaceMajors);
       history.push(`/interfaces/${interfaceName}/${latestMajor}`);
     });
   }, []);

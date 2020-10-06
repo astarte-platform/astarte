@@ -32,13 +32,11 @@ export default ({ astarte, history }) => {
   const deletionAlerts = useAlerts();
 
   useEffect(() => {
-    const handleInstanceResponse = (response) => {
-      const instance = response.data;
+    const handleInstanceResponse = (instance) => {
       setInstances((oldInstances) => oldInstances.concat(instance));
       setPhase('ok');
     };
-    const handleFlowResponse = (response) => {
-      const instanceNames = response.data;
+    const handleFlowResponse = (instanceNames) => {
       if (instanceNames.length === 0) {
         setInstances([]);
         setPhase('ok');

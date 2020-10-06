@@ -51,8 +51,8 @@ export default ({ astarte, history }) => {
   useEffect(() => {
     astarte
       .getConfigAuth()
-      .then((response) => {
-        const publicKey = response.data.jwt_public_key_pem;
+      .then((config) => {
+        const publicKey = config.jwt_public_key_pem;
         setUserPublicKey(publicKey);
         setDraftPublicKey(publicKey);
         setPhase('ok');

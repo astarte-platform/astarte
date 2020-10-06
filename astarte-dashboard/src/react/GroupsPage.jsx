@@ -19,7 +19,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Spinner, Table } from 'react-bootstrap';
-import { AstarteDevice } from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
@@ -30,20 +29,19 @@ export default ({ astarte, history }) => {
   const pageAlerts = useAlerts();
 
   useEffect(() => {
-    const handleDeviceList = (groupName, response) => {
+    const handleDeviceList = (groupName, devices) => {
       setGroups((groupMap) => {
-        const deviceList = response.data.map((value) => AstarteDevice.fromObject(value));
         const newGroupState = groupMap.get(groupName);
         newGroupState.loading = false;
-        newGroupState.totalDevices = deviceList.length;
-        const connectedDevices = deviceList.filter((device) => device.isConnected);
+        newGroupState.totalDevices = devices.length;
+        const connectedDevices = devices.filter((device) => device.isConnected);
         newGroupState.connectedDevices = connectedDevices.length;
         groupMap.set(groupName, newGroupState);
         return new Map(groupMap);
       });
     };
-    const handleGroupsRequest = (response) => {
-      const groupMap = response.data.reduce((acc, groupName) => {
+    const handleGroupsRequest = (groupNames) => {
+      const groupMap = groupNames.reduce((acc, groupName) => {
         acc.set(groupName, { name: groupName, loading: true });
         return acc;
       }, new Map());
@@ -53,7 +51,7 @@ export default ({ astarte, history }) => {
             groupName,
             details: true,
           })
-          .then((res) => handleDeviceList(groupName, res))
+          .then((devices) => handleDeviceList(groupName, devices))
           .catch(() => {
             pageAlerts.showError(`Couldn't get the device list for group ${groupName}`);
           });

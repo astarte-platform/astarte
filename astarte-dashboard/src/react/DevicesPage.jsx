@@ -30,7 +30,6 @@ import {
   Tooltip,
 } from 'react-bootstrap';
 import _ from 'lodash';
-import { AstarteDevice } from 'astarte-client';
 
 import { Link } from 'react-router-dom';
 import SingleCardPage from './ui/SingleCardPage';
@@ -109,14 +108,10 @@ export default ({ astarte, history }) => {
         from: fromToken,
         limit: DEVICES_PER_REQUEST,
       })
-      .then((resp) => {
-        const nextToken = new URLSearchParams(resp.links.next).get('from_token');
-        const devices = resp.data.map((value) => AstarteDevice.fromObject(value));
+      .then(({ devices, nextToken }) => {
         setRequestToken(nextToken);
-
         setDeviceList((previousList) => {
           const updatedDeviceList = previousList.concat(devices);
-
           const pageCount = Math.ceil(updatedDeviceList.length / DEVICES_PER_PAGE);
           const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || loadAllDevices;
           if (shouldLoadMore && nextToken) {
@@ -124,7 +119,6 @@ export default ({ astarte, history }) => {
           } else {
             setPhase('ok');
           }
-
           return updatedDeviceList;
         });
       })

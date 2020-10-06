@@ -25,8 +25,7 @@ export default ({ astarte, history }) => {
   const [pipelines, setPipelines] = useState(null);
 
   useEffect(() => {
-    const handlePipelinesResponse = (response) => {
-      const pipelineList = response.data;
+    const handlePipelinesResponse = (pipelineList) => {
       const promiseList = pipelineList.map((pipelineName) =>
         astarte.getPipelineInputConfig(pipelineName),
       );
@@ -34,7 +33,7 @@ export default ({ astarte, history }) => {
         const pipelineData = [];
         result.forEach((pipelineResult) => {
           if (pipelineResult.status === 'fulfilled') {
-            pipelineData.push(pipelineResult.value.data);
+            pipelineData.push(pipelineResult.value);
           }
         });
         setPipelines(pipelineData);

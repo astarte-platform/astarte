@@ -18,7 +18,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
-import { AstarteDevice } from 'astarte-client';
 
 import BackButton from './ui/BackButton';
 import WaitForData from './components/WaitForData';
@@ -63,17 +62,16 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
 
   useEffect(() => {
     const getInterfaceType = async () => {
-      const deviceInfos = await astarte.getDeviceInfo(deviceId).catch(() => {
+      const device = await astarte.getDeviceInfo(deviceId).catch(() => {
         throw new Error('Device not found.');
       });
-      const device = AstarteDevice.fromObject(deviceInfos.data);
       const interfaceIntrospection = device.introspection[interfaceName];
 
       if (!interfaceIntrospection) {
         throw new Error('Interface not found in device introspection.');
       }
 
-      const interfaceSrc = await astarte
+      const interface = await astarte
         .getInterface({
           interfaceName,
           interfaceMajor: interfaceIntrospection.major,
@@ -82,11 +80,9 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
           throw new Error('Could not retrieve interface properties.');
         });
 
-      const interfaceData = interfaceSrc.data;
-
-      if (interfaceData.type === 'properties') {
+      if (interface.type === 'properties') {
         setInterfaceType('properties');
-      } else if (interfaceData.type === 'datastream' && interfaceData.aggregation === 'object') {
+      } else if (interface.type === 'datastream' && interface.aggregation === 'object') {
         setInterfaceType('datastream-object');
       } else {
         setInterfaceType('datastream-individual');

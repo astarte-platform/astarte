@@ -18,22 +18,44 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const useFetch = (fetchData) => {
+type Status = 'loading' | 'ok' | 'err';
+
+type FetchState<Data> =
+  | {
+      status: 'loading';
+      value: Data | null;
+      error: Error | null;
+      refresh: () => Promise<void>;
+    }
+  | {
+      status: 'ok';
+      value: Data;
+      error: Error | null;
+      refresh: () => Promise<void>;
+    }
+  | {
+      status: 'err';
+      value: Data | null;
+      error: Error;
+      refresh: () => Promise<void>;
+    };
+
+const useFetch = <Data = any>(fetchData: () => Promise<Data>): FetchState<Data> => {
   if (!fetchData) {
     throw new Error('Invalid fetch method');
   }
 
-  const [data, setData] = useState(null);
-  const [status, setStatus] = useState('loading');
-  const [error, setError] = useState({});
+  const [status, setStatus] = useState<Status>('loading');
+  const [data, setData] = useState<Data | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const isReady = useRef(false);
 
   const getData = useCallback(async () => {
     setStatus('loading');
     try {
-      const response = await fetchData();
+      const fetchedData = await fetchData();
       if (isReady.current) {
-        setData(response.data);
+        setData(fetchedData);
         setStatus('ok');
       }
     } catch (err) {
@@ -50,6 +72,22 @@ const useFetch = (fetchData) => {
     };
   }, []);
 
+  if (status === 'err') {
+    return {
+      status,
+      value: data,
+      error: error as Error,
+      refresh: getData,
+    };
+  }
+  if (status === 'ok') {
+    return {
+      status,
+      value: data as Data,
+      error,
+      refresh: getData,
+    };
+  }
   return {
     status,
     value: data,

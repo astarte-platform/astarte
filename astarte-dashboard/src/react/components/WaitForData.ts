@@ -16,7 +16,21 @@
    limitations under the License.
 */
 
-const WaitForData = ({ data, status, showRefreshing = false, fallback, children }) => {
+interface Props<Data> {
+  data: Data;
+  status: 'loading' | 'ok' | 'err';
+  showRefreshing?: boolean;
+  fallback?: React.ReactElement;
+  children: (data: Data) => React.ReactElement;
+}
+
+const WaitForData = <Data = any>({
+  data,
+  status,
+  showRefreshing = false,
+  fallback,
+  children,
+}: Props<Data>): React.ReactElement | null => {
   switch (status) {
     case 'ok':
       return children(data);
