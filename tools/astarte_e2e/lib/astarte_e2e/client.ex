@@ -61,8 +61,8 @@ defmodule AstarteE2E.Client do
              name: via_tuple(realm, device_id)
            ) do
       :telemetry.execute(
-        [:astarte_end_to_end, :astarte_platform, :status],
-        %{health: 0}
+        [:astarte_end_to_end, :astarte_platform],
+        %{status: 0}
       )
 
       Logger.info("Started process with pid #{inspect(pid)}.", tag: "client_started")
@@ -273,8 +273,8 @@ defmodule AstarteE2E.Client do
 
   def handle_disconnected(reason, state) do
     :telemetry.execute(
-      [:astarte_end_to_end, :astarte_platform, :status],
-      %{health: 0}
+      [:astarte_end_to_end, :astarte_platform],
+      %{status: 0}
     )
 
     Logger.info("Disconnected with reason: #{inspect(reason)}.",
@@ -349,8 +349,8 @@ defmodule AstarteE2E.Client do
       )
 
       :telemetry.execute(
-        [:astarte_end_to_end, :astarte_platform, :status],
-        %{health: 1}
+        [:astarte_end_to_end, :astarte_platform],
+        %{status: 1}
       )
 
       GenSocketClient.reply(from, :ok)
@@ -398,8 +398,8 @@ defmodule AstarteE2E.Client do
         %{pending_messages: pending_messages} = state
       ) do
     :telemetry.execute(
-      [:astarte_end_to_end, :astarte_platform, :status],
-      %{health: 0}
+      [:astarte_end_to_end, :astarte_platform],
+      %{status: 0}
     )
 
     Logger.warn("Incoming message timeout. Key = #{inspect(key)}",
@@ -416,8 +416,8 @@ defmodule AstarteE2E.Client do
         %{pending_requests: pending_requests, timeouts_to_crash: 0} = state
       ) do
     :telemetry.execute(
-      [:astarte_end_to_end, :astarte_platform, :status],
-      %{health: 0}
+      [:astarte_end_to_end, :astarte_platform],
+      %{status: 0}
     )
 
     Logger.warn(
@@ -437,8 +437,8 @@ defmodule AstarteE2E.Client do
         %{pending_requests: pending_requests} = state
       ) do
     :telemetry.execute(
-      [:astarte_end_to_end, :astarte_platform, :status],
-      %{health: 0}
+      [:astarte_end_to_end, :astarte_platform],
+      %{status: 0}
     )
 
     Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "request_timeout")
@@ -550,8 +550,8 @@ defmodule AstarteE2E.Client do
       )
 
       :telemetry.execute(
-        [:astarte_end_to_end, :astarte_platform, :status],
-        %{health: 1}
+        [:astarte_end_to_end, :astarte_platform],
+        %{status: 1}
       )
 
       Logger.info("Round trip time = #{inspect(dt_ms)} ms.")

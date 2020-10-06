@@ -67,7 +67,7 @@ defmodule AstarteE2EWeb.Telemetry do
       last_value("astarte_end_to_end.messages.round_trip_time.duration_seconds",
         description: "Message round trip time (seconds)."
       ),
-      last_value("astarte_end_to_end.astarte_platform.status.health",
+      last_value("astarte_end_to_end.astarte_platform.status",
         description: "Astarte platform status assessed by AstarteE2E application."
       )
     ]
