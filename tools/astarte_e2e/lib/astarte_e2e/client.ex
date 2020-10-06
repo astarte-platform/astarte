@@ -65,7 +65,7 @@ defmodule AstarteE2E.Client do
         %{health: 0}
       )
 
-      Logger.info("Started process with pid #{inspect(pid)}.", tag: "astarte_e2e_client_started")
+      Logger.info("Started process with pid #{inspect(pid)}.", tag: "client_started")
 
       {:ok, pid}
     end
@@ -103,7 +103,7 @@ defmodule AstarteE2E.Client do
         pid
 
       _ ->
-        Logger.warn("Unregistered client process.", tag: "astarte_e2e_client_unregistered_process")
+        Logger.warn("Unregistered client process.", tag: "unregistered_process")
 
         nil
     end
@@ -115,18 +115,18 @@ defmodule AstarteE2E.Client do
       |> Map.fetch!(:callback_state)
       |> Map.fetch!(:topic)
 
-    Logger.info("Asking to join topic #{inspect(topic)}.", tag: "astarte_e2e_client_join_request")
+    Logger.info("Asking to join topic #{inspect(topic)}.", tag: "join_request")
 
     case GenSocketClient.join(transport, topic) do
       {:error, reason} ->
         Logger.error("Cannot join topic #{inspect(topic)}. Reason: #{inspect(reason)}",
-          tag: "astarte_e2e_client_join_failed"
+          tag: "join_failed"
         )
 
         {:error, :join_failed}
 
       {:ok, _ref} ->
-        Logger.info("Joined join topic #{inspect(topic)}.", tag: "astarte_e2e_client_join_success")
+        Logger.info("Joined topic #{inspect(topic)}.", tag: "join_success")
 
         {:ok, state}
     end
@@ -177,12 +177,12 @@ defmodule AstarteE2E.Client do
 
     with :ok <- install_triggers(device_triggers, transport, state),
          :ok <- install_triggers(data_triggers, transport, state) do
-      Logger.info("Triggers installed.", tag: "astarte_e2e_client_triggers_installed")
+      Logger.info("Triggers installed.", tag: "triggers_installed")
       :ok
     else
       {:error, reason} ->
         Logger.warn("Failed to install triggers with reason: #{inspect(reason)}.",
-          tag: "astarte_e2e_client_triggers_install_failed"
+          tag: "install_triggers_failed"
         )
 
         {:error, reason}
@@ -194,14 +194,14 @@ defmodule AstarteE2E.Client do
       case GenSocketClient.push(transport, topic, "watch", trigger) do
         {:error, reason} ->
           Logger.warn("Watch failed with reason: #{inspect(reason)}.",
-            tag: "astarte_e2e_client_watch_failed"
+            tag: "watch_failed"
           )
 
           {:halt, {:error, reason}}
 
         {:ok, _ref} ->
           Logger.info("Successful watch request.",
-            tag: "astarte_e2e_client_watch_success"
+            tag: "watch_success"
           )
 
           {:cont, :ok}
@@ -252,7 +252,7 @@ defmodule AstarteE2E.Client do
   end
 
   def handle_connected(transport, state) do
-    Logger.info("Connected.", tag: "astarte_e2e_client_connected")
+    Logger.info("Connected.", tag: "client_connected")
     state = %{state | connection_attempts: @connection_attempts, connected: true}
 
     waiting_for_connection = state.waiting_for_connection
@@ -278,7 +278,7 @@ defmodule AstarteE2E.Client do
     )
 
     Logger.info("Disconnected with reason: #{inspect(reason)}.",
-      tag: "astarte_e2e_client_disconnected"
+      tag: "client_disconnected"
     )
 
     Process.send_after(self(), :try_connect, @connection_backoff_ms)
@@ -287,7 +287,7 @@ defmodule AstarteE2E.Client do
   end
 
   def handle_joined(topic, _payload, transport, state) do
-    Logger.info("Joined topic #{inspect(topic)}.", tag: "astarte_e2e_client_topic_joined")
+    Logger.info("Joined topic #{inspect(topic)}.", tag: "topic_joined")
 
     case setup_watches(transport, state) do
       :ok -> {:ok, state}
@@ -297,7 +297,7 @@ defmodule AstarteE2E.Client do
 
   def handle_channel_closed(topic, _payload, _transport, state) do
     Logger.warn("Channel closed for #{inspect(topic)}.",
-      tag: "astarte_e2e_client_channel_closed"
+      tag: "channel_closed"
     )
 
     {:ok, state}
@@ -317,7 +317,7 @@ defmodule AstarteE2E.Client do
         _transport,
         state
       ) do
-    Logger.info("Handling incoming data message.", tag: "astarte_e2e_handle_incoming_message")
+    Logger.info("Handling incoming data message.", tag: "handle_incoming_message")
 
     :telemetry.execute([:astarte_end_to_end, :messages, :received], %{})
 
@@ -335,7 +335,7 @@ defmodule AstarteE2E.Client do
       :ok = Process.cancel_timer(tref, async: false, info: false)
 
       Logger.info("Timeout timer canceled successfully in handle_message.",
-        tag: "astarte_e2e_client_timeout_cancel_timer_success"
+        tag: "cancel_timer_success"
       )
 
       dt_ms = reception_timestamp - timestamp
@@ -385,7 +385,7 @@ defmodule AstarteE2E.Client do
   def handle_join_error(topic, _payload, _transport, state) do
     Logger.error(
       "Join topic #{inspect(topic)} failed. Please, check the realm and the claims you used to generate the token.",
-      tag: "astarte_e2e_client_join_error_failed"
+      tag: "join_error"
     )
 
     System.stop(1)
@@ -403,7 +403,7 @@ defmodule AstarteE2E.Client do
     )
 
     Logger.warn("Incoming message timeout. Key = #{inspect(key)}",
-      tag: "astarte_e2e_message_timeout"
+      tag: "message_timeout"
     )
 
     {{_ts, _tref}, new_pending_messages} = Map.pop(pending_messages, key)
@@ -422,7 +422,7 @@ defmodule AstarteE2E.Client do
 
     Logger.warn(
       "Maximum number of requests timeout reached. The websocket client is going to crash.",
-      tag: "astarte_e2e_maximum_timeout_number_reached"
+      tag: "maximum_timeout_number_reached"
     )
 
     {{_ts, from, _tref}, _new_pending_requests} = Map.pop(pending_requests, key)
@@ -441,7 +441,7 @@ defmodule AstarteE2E.Client do
       %{health: 0}
     )
 
-    Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "astarte_e2e_request_timeout")
+    Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "request_timeout")
 
     {{_ts, from, _tref}, new_pending_requests} = Map.pop(pending_requests, key)
     remaining_timeouts_to_crash = state.timeouts_to_crash - 1
@@ -468,7 +468,7 @@ defmodule AstarteE2E.Client do
     else
       Logger.warn(
         "Cannot establish a connection after #{inspect(@connection_attempts)} attempts. Closing application.",
-        tag: "astarte_e2e_client_connection_failed"
+        tag: "connection_failed"
       )
 
       System.stop(1)
@@ -509,7 +509,7 @@ defmodule AstarteE2E.Client do
     :telemetry.execute([:astarte_end_to_end, :messages, :failed], %{})
 
     Logger.warn("Cannot verify the payload: the client is not connected.",
-      tag: "astarte_e2e_client_verify_not_possible"
+      tag: "verify_not_possible"
     )
 
     {:reply, {:error, :not_connected}, state}
@@ -533,7 +533,7 @@ defmodule AstarteE2E.Client do
       :ok = Process.cancel_timer(tref, async: false, info: false)
 
       Logger.info("Timeout timer canceled successfully in handle_call.",
-        tag: "astarte_e2e_client_timeout_cancel_timer_success"
+        tag: "cancel_timer_success"
       )
 
       dt_ms = reception_timestamp - timestamp

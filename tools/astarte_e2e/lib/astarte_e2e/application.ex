@@ -25,7 +25,7 @@ defmodule AstarteE2E.Application do
 
   @impl true
   def start(_type, _args) do
-    Logger.info("Starting AstarteE2E application.", tag: "astarte_e2e_app_start")
+    Logger.info("Starting AstarteE2E application.", tag: "application_start")
 
     with :ok <- Config.validate() do
       children = [

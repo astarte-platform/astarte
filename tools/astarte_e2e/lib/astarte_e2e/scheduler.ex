@@ -46,7 +46,7 @@ defmodule AstarteE2E.Scheduler do
   @impl true
   def handle_info(:do_perform_check, %{check_repetitions: 0} = state) do
     Logger.info("Terminating application successfully.",
-      tag: "astarte_e2e_scheduler_termination_success"
+      tag: "termination_success"
     )
 
     System.stop(0)
@@ -90,14 +90,14 @@ defmodule AstarteE2E.Scheduler do
     case state.check_repetitions do
       :infinity ->
         Logger.warn("Request timed out. This event affects the service metrics.",
-          tag: "astarte_e2e_scheduler_request_timeout"
+          tag: "request_timeout"
         )
 
         {:noreply, state}
 
       _ ->
         Logger.warn("Request timed out. This is a critical event. Terminating the application.",
-          tag: "astarte_e2e_scheduler_critical_request_timeout"
+          tag: "critical_request_timeout"
         )
 
         System.stop(1)

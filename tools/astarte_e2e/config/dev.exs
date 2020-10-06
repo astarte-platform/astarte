@@ -20,4 +20,4 @@ use Mix.Config
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:tag]
+  metadata: [:module, :function, :tag]
