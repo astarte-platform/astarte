@@ -1,0 +1,24 @@
+{
+  "data": {
+    "config": {
+      "amqp_exchange": "astarte_events_testrealm_room1_occupation",
+      "devices": ["0ma4SioESHKk28VhYGcW1w", "PO6RuqIXQuysOCAJrcedqA"],
+      "interfaces": [
+        {
+          "interface_name": "com.astarte-platform.examples.RoomOccupation",
+          "mappings": [{ "endpoint": "/estimated", "type": "integer" }],
+          "ownership": "device",
+          "type": "datastream",
+          "version_major": 0,
+          "version_minor": 1
+        }
+      ],
+      "pairing_jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1OTI4MjkwMjAsImFfcGEiOlsiLio6Oi4qIl19.tZtMfABhuRXr9z5XBd_BFzFtz-QD60QiKTM5hRRZ3x0",
+      "realm": "testrealm",
+      "room_id": "q4zjsC7GSqmrQzhHIsAUMQ",
+      "room_size": 42.3
+    },
+    "name": "room1-occupation",
+    "pipeline": "room-occupation"
+  }
+}
