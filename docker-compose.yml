@@ -190,6 +190,8 @@ services:
       - "8883:8883"
       # You can comment this out if you don't need Let's Encrypt
       - "80:80"
+      # HTTP Listener for health check
+      - "8888:8888"
     volumes:
       - vernemq-data:/opt/vernemq/data
       - ./compose/vernemq-certs:/etc/ssl/vernemq-certs
