@@ -18,8 +18,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
+import { AstarteDevice } from 'astarte-client';
 
-import Device from './astarte/Device';
 import BackButton from './ui/BackButton';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -66,7 +66,7 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
       const deviceInfos = await astarte.getDeviceInfo(deviceId).catch(() => {
         throw new Error('Device not found.');
       });
-      const device = Device.fromObject(deviceInfos.data);
+      const device = AstarteDevice.fromObject(deviceInfos.data);
       const interfaceIntrospection = device.introspection[interfaceName];
 
       if (!interfaceIntrospection) {

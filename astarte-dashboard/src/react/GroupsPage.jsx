@@ -19,8 +19,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Spinner, Table } from 'react-bootstrap';
+import { AstarteDevice } from 'astarte-client';
 
-import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 
@@ -32,11 +32,11 @@ export default ({ astarte, history }) => {
   useEffect(() => {
     const handleDeviceList = (groupName, response) => {
       setGroups((groupMap) => {
-        const deviceList = response.data.map((value) => Device.fromObject(value));
+        const deviceList = response.data.map((value) => AstarteDevice.fromObject(value));
         const newGroupState = groupMap.get(groupName);
         newGroupState.loading = false;
         newGroupState.totalDevices = deviceList.length;
-        const connectedDevices = deviceList.filter((device) => device.connected);
+        const connectedDevices = deviceList.filter((device) => device.isConnected);
         newGroupState.connectedDevices = connectedDevices.length;
         groupMap.set(groupName, newGroupState);
         return new Map(groupMap);
