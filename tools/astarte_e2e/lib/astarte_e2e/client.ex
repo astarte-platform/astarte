@@ -241,7 +241,6 @@ defmodule AstarteE2E.Client do
 
   def handle_connected(transport, state) do
     Logger.info("Connected.", tag: "client_connected")
-    state = %{state | connection_attempts: @connection_attempts, connected: true}
 
     waiting_for_connection = state.waiting_for_connection
 
@@ -254,7 +253,13 @@ defmodule AstarteE2E.Client do
         waiting_for_connection
       end
 
-    new_state = %{state | waiting_for_connection: new_waiting}
+    new_state = %{
+      state
+      | waiting_for_connection: new_waiting,
+        connection_attempts: @connection_attempts,
+        connected: true
+    }
+
     {:ok, updated_state} = join_topic(transport, new_state)
     {:ok, updated_state}
   end
