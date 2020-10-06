@@ -19,7 +19,9 @@
 defmodule AstarteE2E.Config do
   use Skogsra
 
+  alias Astarte.Core.Device
   alias AstarteE2E.Config.PositiveIntegerOrInfinity
+  alias AstarteE2E.Config.AstarteDeviceID
 
   @standard_interface_path "priv/interfaces"
 
@@ -27,7 +29,7 @@ defmodule AstarteE2E.Config do
           {:url, String.t()}
           | {:realm, String.t()}
           | {:jwt, String.t()}
-          | {:device_id, String.t()}
+          | {:device_id, Device.encoded_device_id()}
           | {:ignore_ssl_errors, boolean()}
           | {:check_repetitions, integer() | :infinity}
 
@@ -35,7 +37,7 @@ defmodule AstarteE2E.Config do
           {:check_interval_s, integer()}
           | {:check_repetitions, integer() | :infinity}
           | {:realm, String.t()}
-          | {:device_id, String.t()}
+          | {:device_id, Device.encoded_device_id()}
 
   @type client_options :: [client_option()]
   @type device_options :: Astarte.Device.device_options()
@@ -47,10 +49,10 @@ defmodule AstarteE2E.Config do
     type: :binary,
     required: true
 
-  @envdoc "Device ID."
+  @envdoc "An Astarte device ID, which is a valid UUID encoded with standard Astarte device_id encoding (Base64 url encoding, no padding)."
   app_env :device_id, :astarte_e2e, :device_id,
     os_env: "ASTARTE_E2E_DEVICE_ID",
-    type: :binary,
+    type: AstarteDeviceID,
     required: true
 
   @envdoc "Credentials secret."
