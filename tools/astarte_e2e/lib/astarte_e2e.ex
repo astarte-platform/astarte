@@ -31,10 +31,9 @@ defmodule AstarteE2E do
     device_id = Config.device_id!()
 
     with {:ok, device_pid} <- fetch_device_pid(realm, device_id),
-         {:ok, client_pid} <- fetch_client_pid(realm, device_id),
          {:ok, interface_names} <- fetch_interface_names(),
          :ok <- Device.wait_for_connection(device_pid),
-         :ok <- Client.wait_for_connection(client_pid) do
+         :ok <- Client.wait_for_connection(realm, device_id) do
       timestamp = :erlang.monotonic_time(:millisecond)
       path = "/correlationId"
 
@@ -120,13 +119,6 @@ defmodule AstarteE2E do
   defp fetch_device_pid(realm, device_id) do
     case Device.get_pid(realm, device_id) do
       nil -> {:error, :unregistered_device}
-      pid -> {:ok, pid}
-    end
-  end
-
-  defp fetch_client_pid(realm, device_id) do
-    case Client.get_pid(realm, device_id) do
-      nil -> {:error, :unregistered_client}
       pid -> {:ok, pid}
     end
   end

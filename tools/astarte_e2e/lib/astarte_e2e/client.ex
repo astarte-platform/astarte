@@ -85,28 +85,16 @@ defmodule AstarteE2E.Client do
           :ok
           | {:error, :not_connected | :timeout}
   def verify_device_payload(realm, device_id, interface_name, path, value, timestamp) do
-    GenSocketClient.call(
-      via_tuple(realm, device_id),
+    via_tuple(realm, device_id)
+    |> GenSocketClient.call(
       {:verify_payload, interface_name, path, value, timestamp},
       :infinity
     )
   end
 
-  def wait_for_connection(client_pid) do
-    GenSocketClient.call(client_pid, :wait_for_connection, :infinity)
-  end
-
-  @spec get_pid(String.t(), String.t()) :: pid() | nil
-  def get_pid(realm, device_id) do
-    case Registry.lookup(Registry.AstarteE2E, {:client, realm, device_id}) do
-      [{pid, _}] ->
-        pid
-
-      _ ->
-        Logger.warn("Unregistered client process.", tag: "unregistered_process")
-
-        nil
-    end
+  def wait_for_connection(realm, device_id) do
+    via_tuple(realm, device_id)
+    |> GenSocketClient.call(:wait_for_connection, :infinity)
   end
 
   defp join_topic(transport, state) do
