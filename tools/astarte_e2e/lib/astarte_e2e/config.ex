@@ -23,8 +23,6 @@ defmodule AstarteE2E.Config do
   alias AstarteE2E.Config.PositiveIntegerOrInfinity
   alias AstarteE2E.Config.AstarteDeviceID
 
-  @standard_interface_path "priv/interfaces"
-
   @type client_option ::
           {:url, String.t()}
           | {:realm, String.t()}
@@ -178,7 +176,13 @@ defmodule AstarteE2E.Config do
   end
 
   @spec standard_interface_provider() :: {:ok, String.t()}
-  def standard_interface_provider, do: {:ok, @standard_interface_path}
+  def standard_interface_provider do
+    {:ok, standard_interface_provider!()}
+  end
+
   @spec standard_interface_provider!() :: String.t()
-  def standard_interface_provider!, do: @standard_interface_path
+  def standard_interface_provider! do
+    :code.priv_dir(:astarte_e2e)
+    |> Path.join("interfaces")
+  end
 end
