@@ -69,5 +69,12 @@ describe('Devices page tests', () => {
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', deviceName);
     });
+
+    it('correctly filters by metadata', function () {
+      const metadata = Object.values(this.devices.data[0].metadata)[0];
+      cy.get('#filterMetadata').type(metadata);
+      cy.get('table tbody tr').should('have.length', 1);
+      cy.get('table tbody tr td:nth-child(2)').should('contain', metadata);
+    });
   });
 });

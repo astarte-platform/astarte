@@ -35,6 +35,7 @@ import { Link } from 'react-router-dom';
 import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
+import Highlight from './components/Highlight';
 
 const DEVICES_PER_PAGE = 20;
 const DEVICES_PER_REQUEST = 100;
@@ -161,7 +162,7 @@ export default ({ astarte, history }) => {
                   {devices.length === 0 ? (
                     <p>No device matches current filters</p>
                   ) : (
-                    <DeviceTable deviceList={devices} />
+                    <DeviceTable deviceList={devices} filters={filters} />
                   )}
                 </Col>
                 <Col xs="auto" className="p-1">
@@ -275,7 +276,7 @@ const TablePagination = ({ activePage, canLoadMorePages, lastPage, onPageChange 
   );
 };
 
-const DeviceTable = ({ deviceList }) => (
+const DeviceTable = ({ deviceList, filters }) => (
   <Table responsive>
     <thead>
       <tr>
@@ -286,13 +287,13 @@ const DeviceTable = ({ deviceList }) => (
     </thead>
     <tbody>
       {deviceList.map((device) => (
-        <DeviceRow key={device.id} device={device} />
+        <DeviceRow key={device.id} device={device} filters={filters} />
       ))}
     </tbody>
   </Table>
 );
 
-const DeviceRow = ({ device }) => {
+const DeviceRow = ({ device, filters }) => {
   let colorClass;
   let lastEvent;
   let tooltipText;
@@ -330,9 +331,32 @@ const DeviceRow = ({ device }) => {
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}`}>{device.name}</Link>
+        {filters.metadata !== '' &&
+          Array.from(device.metadata)
+            .filter(
+              ([key, value]) => key.includes(filters.metadata) || value.includes(filters.metadata),
+            )
+            .map(([key, value]) => (
+              <HightlightMetadata
+                key={key}
+                field={key}
+                value={value}
+                highlight={filters.metadata}
+              />
+            ))}
       </td>
       <td>{lastEvent}</td>
     </tr>
+  );
+};
+
+const HightlightMetadata = ({ field, value, highlight }) => {
+  return (
+    <div className="" style={{ wordWrap: 'anywhere' }}>
+      <Highlight text={field} word={highlight} />
+      {': '}
+      <Highlight text={value} word={highlight} />
+    </div>
   );
 };
 
