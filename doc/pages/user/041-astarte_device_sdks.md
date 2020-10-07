@@ -153,6 +153,67 @@ device.send("org.astarte-platform.genericsensors.Values", "/test0/value", value,
 
 ### Using Object Aggregated Interfaces
 
+Following example shows how to send a value for an object aggregated interface.
+In this example lat and long will be sent together and they will accessible using the REST API as a
+JSON object.
+
+C (ESP32):
+```c
+astarte_bson_serializer_init(&bs);
+astarte_bson_serializer_append_double(&bs, "lat", 45.409627);
+astarte_bson_serializer_append_double(&bs, "long", 11.8765254);
+astarte_bson_serializer_append_end_of_document(&bs);
+int size;
+const void *coord = astarte_bson_serializer_get_document(&bs, &size);
+
+struct timeval tv;
+gettimeofday(&tv, NULL);
+uint64_t ts = tv->tv_sec * 1000 + tv->tv_usec / 1000;
+
+astarte_device_stream_aggregate_with_timestamp(device, "com.example.GPS", "/coords", coords, ts, 0);
+```
+
+C++ (Qt5):
+```c++
+QVariantHash coords;
+coords.insert(QStringLiteral("lat"), 45.409627);
+coords.insert(QStringLiteral("long"), 11.8765254);
+m_sdk->sendData("com.example.GPS", "/coords", coords, QDateTime::currentDateTime());
+```
+
+Elixir:
+```elixir
+
+coords = %{lat: 45.409627, long: 11.8765254}
+Device.send_datastream(pid, "com.example.GPS", "/coords", coords, timestamp: DateTime.utc_now())
+```
+
+Go:
+```go
+coords := map[string]double{"lat": 45.409627, "long": 11.8765254}
+d.SendAggregateMessageWithTimestamp("com.example.GPS", "/coords", coords, time.Now())
+```
+
+Java:
+```java
+
+Map<String, Double> coords = new HashMap<String, Double>()
+{
+    {
+        put("lat", 45.409627);
+        put("long", 11.8765254);
+    }
+};
+
+valuesInterface.streamData("/coords", coords, DateTime.now());
+```
+
+Python:
+```python
+coords = {'lat': 45.409627, 'long': 11.8765254}
+device.send_aggregate("com.example.GPS", "/coords", coords, timestamp=datetime.now())
+```
+
 ## Setting and Unsetting Properties
 
 ## Receiving data
