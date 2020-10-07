@@ -40,9 +40,20 @@ const DEVICES_PER_PAGE = 20;
 const DEVICES_PER_REQUEST = 100;
 const MAX_SHOWN_PAGES = 10;
 
+const hasMetadata = (metadata, filter) => {
+  let found = false;
+  metadata.forEach((value, key) => {
+    if (key.includes(filter) || value.includes(filter)) {
+      found = true;
+    }
+  });
+  return found;
+};
+
 const matchFilters = (device, filters) => {
   const {
     deviceId = '',
+    metadata = '',
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
@@ -55,6 +66,9 @@ const matchFilters = (device, filters) => {
     return false;
   }
   if (!showNeverConnected && !device.connected && !device.lastConnection) {
+    return false;
+  }
+  if (metadata !== '' && !hasMetadata(device.metadata, metadata)) {
     return false;
   }
   if (deviceId === '') {
@@ -334,6 +348,7 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
+    metadata = '',
   } = filters;
 
   return (
@@ -372,6 +387,16 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
           label="Never connected"
           checked={showNeverConnected}
           onChange={(e) => onUpdateFilters({ ...filters, showNeverConnected: e.target.checked })}
+        />
+      </Form.Group>
+      <Form.Group controlId="filterMetadata" className="mb-3">
+        <Form.Label>
+          <b>Metadata</b>
+        </Form.Label>
+        <Form.Control
+          type="text"
+          value={metadata}
+          onChange={(e) => onUpdateFilters({ ...filters, metadata: e.target.value })}
         />
       </Form.Group>
     </Form>
