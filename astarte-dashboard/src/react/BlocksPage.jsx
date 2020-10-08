@@ -18,6 +18,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
+import { AstarteNativeBlock } from 'astarte-client';
 
 export default ({ astarte, history }) => {
   const [phase, setPhase] = useState('loading');
@@ -97,7 +98,7 @@ function BlockCard({ block, onShow }) {
         <Button variant="link" className="p-0" onClick={onShow}>
           {block.name}
         </Button>
-        {block.isNative && (
+        {block instanceof AstarteNativeBlock && (
           <Badge variant="secondary" className="h6 text-light">
             native
           </Badge>
