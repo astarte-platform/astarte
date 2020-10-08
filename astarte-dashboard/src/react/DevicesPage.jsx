@@ -41,20 +41,21 @@ const DEVICES_PER_PAGE = 20;
 const DEVICES_PER_REQUEST = 100;
 const MAX_SHOWN_PAGES = 10;
 
-const hasMetadata = (metadata, filter) => {
-  let found = false;
-  metadata.forEach((value, key) => {
-    if (key.includes(filter) || value.includes(filter)) {
-      found = true;
-    }
-  });
-  return found;
+const matchMetadata = (key, value, filterKey, filterValue) => {
+  if (filterKey !== '' && !key.includes(filterKey)) {
+    return false;
+  }
+  if (filterValue !== '' && !value.includes(filterValue)) {
+    return false;
+  }
+  return true;
 };
 
 const matchFilters = (device, filters) => {
   const {
     deviceId = '',
-    metadata = '',
+    metadataKey = '',
+    metadataValue = '',
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
@@ -69,9 +70,16 @@ const matchFilters = (device, filters) => {
   if (!showNeverConnected && !device.connected && !device.lastConnection) {
     return false;
   }
-  if (metadata !== '' && !hasMetadata(device.metadata, metadata)) {
+
+  if (
+    (metadataKey !== '' || metadataValue !== '') &&
+    !Array.from(device.metadata).some(([key, value]) =>
+      matchMetadata(key, value, metadataKey, metadataValue),
+    )
+  ) {
     return false;
   }
+
   if (deviceId === '') {
     return true;
   }
@@ -331,33 +339,29 @@ const DeviceRow = ({ device, filters }) => {
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}`}>{device.name}</Link>
-        {filters.metadata !== '' &&
-          Array.from(device.metadata)
-            .filter(
-              ([key, value]) => key.includes(filters.metadata) || value.includes(filters.metadata),
-            )
-            .map(([key, value]) => (
-              <HightlightMetadata
-                key={key}
-                field={key}
-                value={value}
-                highlight={filters.metadata}
-              />
-            ))}
+        <MatchedMetadata filters={filters} metadata={device.metadata} />
       </td>
       <td>{lastEvent}</td>
     </tr>
   );
 };
 
-const HightlightMetadata = ({ field, value, highlight }) => {
-  return (
-    <div className="" style={{ wordWrap: 'anywhere' }}>
-      <Highlight text={field} word={highlight} />
-      {': '}
-      <Highlight text={value} word={highlight} />
-    </div>
-  );
+const MatchedMetadata = ({ filters, metadata }) => {
+  const { metadataKey = '', metadataValue = '' } = filters;
+
+  if (metadataKey === '' && metadataValue === '') {
+    return null;
+  }
+
+  return Array.from(metadata)
+    .filter(([key, value]) => matchMetadata(key, value, metadataKey, metadataValue))
+    .map(([key, value]) => (
+      <div key={key} className="" style={{ wordWrap: 'anywhere' }}>
+        <Highlight word={metadataKey}>{key}</Highlight>
+        {': '}
+        <Highlight word={metadataValue}>{value}</Highlight>
+      </div>
+    ));
 };
 
 const CircleIcon = React.forwardRef(({ children, className, ...props }, ref) => (
@@ -372,12 +376,13 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
-    metadata = '',
+    metadataKey = '',
+    metadataValue = '',
   } = filters;
 
   return (
     <Form className="p-2">
-      <Form.Group controlId="filterId" className="mb-3">
+      <Form.Group controlId="filterId" className="mb-4">
         <Form.Label>
           <b>Device ID/name</b>
         </Form.Label>
@@ -387,7 +392,7 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
           onChange={(e) => onUpdateFilters({ ...filters, deviceId: e.target.value })}
         />
       </Form.Group>
-      <Form.Group controlId="filterStatus" className="mb-3">
+      <Form.Group controlId="filterStatus" className="mb-4">
         <Form.Label>
           <b>Device status</b>
         </Form.Label>
@@ -413,14 +418,23 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
           onChange={(e) => onUpdateFilters({ ...filters, showNeverConnected: e.target.checked })}
         />
       </Form.Group>
-      <Form.Group controlId="filterMetadata" className="mb-3">
-        <Form.Label>
-          <b>Metadata</b>
-        </Form.Label>
+      <div className="mb-2">
+        <b>Metadata</b>
+      </div>
+      <Form.Group controlId="filterMetadataKey" className="mb-2">
+        <Form.Label>Key</Form.Label>
         <Form.Control
           type="text"
-          value={metadata}
-          onChange={(e) => onUpdateFilters({ ...filters, metadata: e.target.value })}
+          value={metadataKey}
+          onChange={(e) => onUpdateFilters({ ...filters, metadataKey: e.target.value })}
+        />
+      </Form.Group>
+      <Form.Group controlId="filterMetadataValue" className="mb-4">
+        <Form.Label>Value</Form.Label>
+        <Form.Control
+          type="text"
+          value={metadataValue}
+          onChange={(e) => onUpdateFilters({ ...filters, metadataValue: e.target.value })}
         />
       </Form.Group>
     </Form>

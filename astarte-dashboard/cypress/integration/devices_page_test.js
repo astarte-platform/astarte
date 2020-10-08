@@ -70,11 +70,36 @@ describe('Devices page tests', () => {
       cy.get('table tbody tr td:nth-child(2)').should('contain', deviceName);
     });
 
-    it('correctly filters by metadata', function () {
-      const metadata = Object.values(this.devices.data[0].metadata)[0];
-      cy.get('#filterMetadata').type(metadata);
+    it('correctly filters by metadata key', function () {
+      const metadata = this.devices.data[0].metadata
+      const key = Object.keys(metadata)[0];
+
+      cy.get('#filterMetadataKey').type(key);
       cy.get('table tbody tr').should('have.length', 1);
-      cy.get('table tbody tr td:nth-child(2)').should('contain', metadata);
+      cy.get('table tbody tr td:nth-child(2)').should('contain', key);
+    });
+
+    it('correctly filters by metadata value', function () {
+      const metadata = this.devices.data[0].metadata
+      const value = Object.values(metadata)[0];
+
+      cy.get('#filterMetadataValue').type(value);
+      cy.get('table tbody tr').should('have.length', 1);
+      cy.get('table tbody tr td:nth-child(2)').should('contain', value);
+    });
+
+    it('correctly filters by both metadata key and value', function () {
+      const metadata = this.devices.data[0].metadata
+      const key = Object.keys(metadata)[0];
+      const value = metadata[key];
+
+      cy.get('#filterMetadataKey').type(key);
+      cy.get('table tbody tr').should('have.length', 1);
+      cy.get('table tbody tr td:nth-child(2)').should('contain', key);
+
+      cy.get('#filterMetadataValue').type(value);
+      cy.get('table tbody tr').should('have.length', 1);
+      cy.get('table tbody tr td:nth-child(2)').should('contain', value);
     });
   });
 });

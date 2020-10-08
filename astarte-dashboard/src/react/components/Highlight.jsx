@@ -18,12 +18,12 @@
 
 import React from 'react';
 
-const Highlight = ({ text, word }) => {
+const Highlight = ({ children, word }) => {
   if (!word) {
-    return text;
+    return children;
   }
 
-  return text.split(word).reduce((prev, current, index) => [
+  return children.split(word).reduce((prev, current, index) => [
     prev,
     <span key={index} className="bg-warning text-dark">
       {word}
