@@ -96,7 +96,7 @@ paths:
                   $ref: '#/components/schemas/DeviceRegistrationRequest'
               example:
                 data:
-                  hw_id: YHjKs3SMTgqq09eD7fzm6wY25SWGI5RCyD48hqywwznQ
+                  hw_id: YHjKs3SMTgqq09eD7fzm6w
                   initial_introspection:
                     org.astarte-platform.genericsensors.Values:
                       major: 0
