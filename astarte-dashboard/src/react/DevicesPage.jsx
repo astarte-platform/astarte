@@ -35,14 +35,27 @@ import { Link } from 'react-router-dom';
 import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
+import Highlight from './components/Highlight';
 
 const DEVICES_PER_PAGE = 20;
 const DEVICES_PER_REQUEST = 100;
 const MAX_SHOWN_PAGES = 10;
 
+const matchMetadata = (key, value, filterKey, filterValue) => {
+  if (filterKey !== '' && !key.includes(filterKey)) {
+    return false;
+  }
+  if (filterValue !== '' && !value.includes(filterValue)) {
+    return false;
+  }
+  return true;
+};
+
 const matchFilters = (device, filters) => {
   const {
     deviceId = '',
+    metadataKey = '',
+    metadataValue = '',
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
@@ -57,6 +70,16 @@ const matchFilters = (device, filters) => {
   if (!showNeverConnected && !device.connected && !device.lastConnection) {
     return false;
   }
+
+  if (
+    (metadataKey !== '' || metadataValue !== '') &&
+    !Array.from(device.metadata).some(([key, value]) =>
+      matchMetadata(key, value, metadataKey, metadataValue),
+    )
+  ) {
+    return false;
+  }
+
   if (deviceId === '') {
     return true;
   }
@@ -147,7 +170,7 @@ export default ({ astarte, history }) => {
                   {devices.length === 0 ? (
                     <p>No device matches current filters</p>
                   ) : (
-                    <DeviceTable deviceList={devices} />
+                    <DeviceTable deviceList={devices} filters={filters} />
                   )}
                 </Col>
                 <Col xs="auto" className="p-1">
@@ -261,7 +284,7 @@ const TablePagination = ({ activePage, canLoadMorePages, lastPage, onPageChange 
   );
 };
 
-const DeviceTable = ({ deviceList }) => (
+const DeviceTable = ({ deviceList, filters }) => (
   <Table responsive>
     <thead>
       <tr>
@@ -272,13 +295,13 @@ const DeviceTable = ({ deviceList }) => (
     </thead>
     <tbody>
       {deviceList.map((device) => (
-        <DeviceRow key={device.id} device={device} />
+        <DeviceRow key={device.id} device={device} filters={filters} />
       ))}
     </tbody>
   </Table>
 );
 
-const DeviceRow = ({ device }) => {
+const DeviceRow = ({ device, filters }) => {
   let colorClass;
   let lastEvent;
   let tooltipText;
@@ -316,10 +339,29 @@ const DeviceRow = ({ device }) => {
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}`}>{device.name}</Link>
+        <MatchedMetadata filters={filters} metadata={device.metadata} />
       </td>
       <td>{lastEvent}</td>
     </tr>
   );
+};
+
+const MatchedMetadata = ({ filters, metadata }) => {
+  const { metadataKey = '', metadataValue = '' } = filters;
+
+  if (metadataKey === '' && metadataValue === '') {
+    return null;
+  }
+
+  return Array.from(metadata)
+    .filter(([key, value]) => matchMetadata(key, value, metadataKey, metadataValue))
+    .map(([key, value]) => (
+      <div key={key} className="" style={{ wordWrap: 'anywhere' }}>
+        <Highlight word={metadataKey}>{key}</Highlight>
+        {': '}
+        <Highlight word={metadataValue}>{value}</Highlight>
+      </div>
+    ));
 };
 
 const CircleIcon = React.forwardRef(({ children, className, ...props }, ref) => (
@@ -334,11 +376,13 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
+    metadataKey = '',
+    metadataValue = '',
   } = filters;
 
   return (
     <Form className="p-2">
-      <Form.Group controlId="filterId" className="mb-3">
+      <Form.Group controlId="filterId" className="mb-4">
         <Form.Label>
           <b>Device ID/name</b>
         </Form.Label>
@@ -348,7 +392,7 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
           onChange={(e) => onUpdateFilters({ ...filters, deviceId: e.target.value })}
         />
       </Form.Group>
-      <Form.Group controlId="filterStatus" className="mb-3">
+      <Form.Group controlId="filterStatus" className="mb-4">
         <Form.Label>
           <b>Device status</b>
         </Form.Label>
@@ -372,6 +416,25 @@ const FilterForm = ({ filters, onUpdateFilters }) => {
           label="Never connected"
           checked={showNeverConnected}
           onChange={(e) => onUpdateFilters({ ...filters, showNeverConnected: e.target.checked })}
+        />
+      </Form.Group>
+      <div className="mb-2">
+        <b>Metadata</b>
+      </div>
+      <Form.Group controlId="filterMetadataKey" className="mb-2">
+        <Form.Label>Key</Form.Label>
+        <Form.Control
+          type="text"
+          value={metadataKey}
+          onChange={(e) => onUpdateFilters({ ...filters, metadataKey: e.target.value })}
+        />
+      </Form.Group>
+      <Form.Group controlId="filterMetadataValue" className="mb-4">
+        <Form.Label>Value</Form.Label>
+        <Form.Control
+          type="text"
+          value={metadataValue}
+          onChange={(e) => onUpdateFilters({ ...filters, metadataValue: e.target.value })}
         />
       </Form.Group>
     </Form>

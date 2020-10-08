@@ -76,6 +76,13 @@ export default class Device {
       });
     }
 
+    if ('metadata' in obj) {
+      device.metadata = new Map();
+      Object.entries(obj.metadata).forEach(([key, value]) => {
+        device.metadata.set(key, value);
+      });
+    }
+
     if ('groups' in obj) {
       device.groups = obj.groups;
     }
