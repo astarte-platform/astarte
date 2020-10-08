@@ -41,7 +41,7 @@ defmodule AstarteE2E.Config do
   @type device_options :: Astarte.Device.device_options()
   @type scheduler_options :: [scheduler_option()]
 
-  @envdoc "Astarte Pairing URL (e.g. https://api.astarte.example.com/pairing/v1)."
+  @envdoc "Astarte Pairing URL (e.g. https://api.astarte.example.com/pairing)."
   app_env :pairing_url, :astarte_e2e, :pairing_url,
     os_env: "ASTARTE_E2E_PAIRING_URL",
     type: :binary,
@@ -65,7 +65,7 @@ defmodule AstarteE2E.Config do
     type: :boolean,
     default: false
 
-  @envdoc "Astarte AppEngine URL (e.g. https://api.astarte.example.com/appengine/v1)."
+  @envdoc "Astarte AppEngine URL (e.g. https://api.astarte.example.com/appengine)."
   app_env :appengine_url, :astarte_e2e, :appengine_url,
     os_env: "ASTARTE_E2E_APPENGINE_URL",
     type: :binary,
@@ -124,7 +124,7 @@ defmodule AstarteE2E.Config do
       appengine_url!()
       |> generate_websocket_url()
 
-    "#{url}/socket/websocket"
+    Path.join([url, "v1", "socket", "websocket"])
   end
 
   defp generate_websocket_url(appengine_url) do
