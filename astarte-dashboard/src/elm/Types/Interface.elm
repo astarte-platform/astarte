@@ -450,7 +450,12 @@ isGoodInterfaceName interfaceName =
 
 isLowerCase : String -> Bool
 isLowerCase str =
-    String.all Char.isLower str
+    String.all isLowerOrSymbol str
+
+
+isLowerOrSymbol : Char -> Bool
+isLowerOrSymbol c =
+    Char.isLower c || (not <| Char.isAlpha c)
 
 
 isTitleCase : String -> Bool
