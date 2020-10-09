@@ -1,0 +1,105 @@
+name: Astarte end-to-end test
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+    - 'apps/**'
+    - 'tools/astarte_e2e/**'
+    - '.github/workflows/astarte-end-to-end-test-workflow.yaml'
+    branches:
+    - 'master'
+    - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests matching apps
+  pull_request:
+    paths:
+    - 'apps/**'
+    - 'tools/astarte_e2e/**'
+    - '.github/workflows/astarte-end-to-end-test-workflow.yaml'
+
+env:
+  elixir_version: "1.10.3"
+  otp_version: "23.0"
+
+jobs:
+  end-to-end-test:
+    name: End-to-end Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Initialize docker-compose files
+      run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
+    - name: Build Astarte containers
+      run: docker-compose build --parallel
+    - name: Start all Astarte services
+      run: docker-compose up -d
+    - name: Wait for Astarte to come up
+      run: |
+        wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.0.0-alpha.1/wait-for-astarte-docker-compose_1.0.0-alpha.1_linux_amd64.tar.gz
+        tar xf wait-for-astarte-docker-compose_1.0.0-alpha.1_linux_amd64.tar.gz
+        ./wait-for-astarte-docker-compose
+    - name: Install astartectl
+      run: |
+        wget https://github.com/astarte-platform/astartectl/releases/download/v0.11.1/astartectl_linux_amd64 -O astartectl
+        chmod +x astartectl
+    - name: Create realm
+      run: |
+        ./astartectl utils gen-keypair test
+        ./astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_public.pem -k compose/astarte-keys/housekeeping_private.pem
+        echo "ASTARTE_E2E_REALM=test" >> $GITHUB_ENV
+        sleep 5
+    - name: Install e2e test interfaces
+      run: |
+        for i in $(ls tools/astarte_e2e/priv/interfaces/); do
+          echo "Installing $i"
+          ./astartectl realm-management interfaces install tools/astarte_e2e/priv/interfaces/$i --realm-management-url http://localhost:4000 -k test_private.pem -r $ASTARTE_E2E_REALM
+          sleep 2
+        done
+    - name: Register device
+      run: |
+        DEVICE_ID=$(./astartectl utils device-id generate-random)
+        echo "ASTARTE_E2E_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+        CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID --pairing-url http://localhost:4003 -k test_private.pem -r $ASTARTE_E2E_REALM | grep "Credentials Secret is" | cut -d '"' -f 2)
+        echo "ASTARTE_E2E_CREDENTIALS_SECRET=$CREDENTIALS_SECRET" >> $GITHUB_ENV
+    - name: Generate AppEngine JWT
+      run: |
+        JWT=$(./astartectl utils gen-jwt appengine channels -k test_private.pem)
+        echo "ASTARTE_E2E_JWT=$JWT" >> $GITHUB_ENV
+    - uses: actions/cache@v1
+      with:
+        path: tools/astarte_e2e/deps
+        key: deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
+    - uses: actions/cache@v1
+      with:
+        path: tools/astarte_e2e/_build
+        key: build-${{ env.otp_version }}-${{ env.elixir_version }}
+    - uses: actions/setup-elixir@v1.3.0
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Build Astarte E2E
+      working-directory: tools/astarte_e2e
+      env:
+        MIX_ENV: prod
+      run: |
+        mix deps.get
+        mix compile
+        mix release --overwrite
+    - name: Run Astarte E2E
+      working-directory: tools/astarte_e2e
+      env:
+        ASTARTE_E2E_PAIRING_URL: http://localhost:4003
+        ASTARTE_E2E_APPENGINE_URL: http://localhost:4002
+        ASTARTE_E2E_IGNORE_SSL_ERRORS: true
+        ASTARTE_E2E_CHECK_INTERVAL_SECONDS: 5
+        ASTARTE_E2E_CHECK_REPETITIONS: 5
+      run: |
+        _build/prod/rel/astarte_e2e/bin/astarte_e2e start
+    - name: Check Docker
+      if: ${{ failure() }}
+      run: |
+        docker-compose logs
+    - name: Bring down Astarte docker-compose
+      run: docker-compose down
