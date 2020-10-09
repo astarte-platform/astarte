@@ -40,7 +40,7 @@ import NewBlockPage from './NewBlockPage';
 import RealmSettingsPage from './RealmSettingsPage';
 import DeviceInterfaceValues from './DeviceInterfaceValues';
 
-export default ({ reactHistory, astarteClient, config, fallback, onSessionChange }) => {
+export default ({ reactHistory, astarteClient, sessionManager, config, fallback }) => {
   const pageProps = {
     history: reactHistory,
     astarte: astarteClient,
@@ -53,14 +53,10 @@ export default ({ reactHistory, astarteClient, config, fallback, onSessionChange
           <HomePage {...pageProps} />
         </Route>
         <Route path="/auth">
-          <AttemptLogin
-            appConfig={config}
-            astarte={astarteClient}
-            onSessionChange={onSessionChange}
-          />
+          <AttemptLogin sessionManager={sessionManager} />
         </Route>
         <Route path="/logout">
-          <Logout astarte={astarteClient} onSessionChange={onSessionChange} />
+          <Logout sessionManager={sessionManager} />
         </Route>
         <Route path="/login">
           <Login
@@ -132,105 +128,25 @@ export default ({ reactHistory, astarteClient, config, fallback, onSessionChange
   );
 };
 
-function urlToSchemalessString(url) {
-  return url.toString().split(/https?:\/\//)[1];
-}
-
-function AttemptLogin({ appConfig, astarte, onSessionChange }) {
+function AttemptLogin({ sessionManager }) {
   const { search, hash } = useLocation();
   const searchParams = new URLSearchParams(search);
   const hashParams = new URLSearchParams(hash.slice(1));
 
-  if (!searchParams.has('realm') || !hashParams.has('access_token')) {
-    if (localStorage.session && localStorage.session !== '') {
-      return <Redirect to="/" />;
-    }
-    return <Redirect to="/login" />;
-  }
-
-  // base API URL
-  const astarteApiUrl = appConfig.astarte_api_url;
-  let appEngineApiUrl = '';
-  let realmManagementApiUrl = '';
-  let pairingApiUrl = '';
-  let flowApiUrl = '';
-
-  if (astarteApiUrl === 'localhost') {
-    appEngineApiUrl = new URL('http://localhost:4002');
-    realmManagementApiUrl = new URL('http://localhost:4000');
-    pairingApiUrl = new URL('http://localhost:4003');
-    flowApiUrl = new URL('http://localhost:4009');
-  } else {
-    appEngineApiUrl = new URL('appengine/', astarteApiUrl);
-    realmManagementApiUrl = new URL('realmmanagement/', astarteApiUrl);
-    pairingApiUrl = new URL('pairing/', astarteApiUrl);
-    flowApiUrl = new URL('flow/', astarteApiUrl);
-  }
-
-  // API URL overwrite
-  if (appConfig.appengine_api_url) {
-    appEngineApiUrl = new URL(appConfig.appengine_api_url);
-  }
-
-  if (appConfig.realm_management_api_url) {
-    realmManagementApiUrl = new URL(appConfig.realm_management_api_url);
-  }
-
-  if (appConfig.pairing_api_url) {
-    pairingApiUrl = new URL(appConfig.pairing_api_url);
-  }
-
-  if (appConfig.flow_api_url) {
-    flowApiUrl = new URL(appConfig.appConfig);
-  }
-
   const realm = searchParams.get('realm');
   const token = hashParams.get('access_token');
+  const authUrl = searchParams.get('authUrl');
 
-  const apiConfig = {
-    secure_connection: appEngineApiUrl.schema === 'https:',
-    realm_management_url: urlToSchemalessString(realmManagementApiUrl),
-    appengine_url: urlToSchemalessString(appEngineApiUrl),
-    pairing_url: urlToSchemalessString(pairingApiUrl),
-    enable_flow_preview: appConfig.enable_flow_preview,
-    realm,
-    token,
-  };
-
-  if (appConfig.enable_flow_preview) {
-    apiConfig.flow_url = urlToSchemalessString(flowApiUrl);
+  const succesfulLogin = sessionManager.login(realm, token, authUrl);
+  if (!succesfulLogin) {
+    return <Redirect to="/login" />;
   }
-
-  const session = {
-    api_config: apiConfig,
-  };
-
-  if (searchParams.has('authUrl')) {
-    const authUrl = searchParams.get('authUrl');
-    session.login_type = authUrl;
-  } else {
-    session.login_type = 'TokenLogin';
-  }
-
-  astarte.setCredentials({
-    token,
-    realm,
-  });
-
-  localStorage.session = JSON.stringify(session);
-  onSessionChange(session);
 
   return <Redirect to="/" />;
 }
 
-function Logout({ astarte, onSessionChange }) {
-  astarte.setCredentials({
-    token: '',
-    realm: '',
-  });
-
-  delete localStorage.session;
-  onSessionChange(null);
+function Logout({ sessionManager }) {
+  sessionManager.logout();
 
   return <Redirect to="/login" />;
 }

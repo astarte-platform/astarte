@@ -21,6 +21,7 @@ import { createBrowserHistory } from 'history';
 import AstarteClient from 'astarte-client';
 
 import getReactApp from '../react/App';
+import SessionManager from '../react/SessionManager';
 
 require('./styles/main.scss');
 
@@ -33,7 +34,7 @@ let reactHistory = null;
 let dashboardConfig = null;
 let app;
 let astarteClient = null;
-let updateElmSessionCallback;
+let sessionManager = null;
 
 function sendErrorMessage(errorMessage) {
   app.ports.onDeviceEventReceived.send({
@@ -182,9 +183,9 @@ function loadPage(page) {
   const reactApp = getReactApp(
     reactHistory,
     astarteClient,
+    sessionManager,
     dashboardConfig,
     noMatchFallback,
-    updateElmSessionCallback,
   );
   ReactDOM.render(reactApp, document.getElementById('react-page'));
 }
@@ -196,53 +197,26 @@ function clearReact() {
   }
 }
 
-function getAstarteClient(config) {
-  if (!config || config === 'null') {
-    return null;
-  }
+$.getJSON('/user-config/config.json', (result) => {
+  dashboardConfig = result;
+}).always(() => {
+  sessionManager = new SessionManager(dashboardConfig);
 
-  // base API URL
-  const astarteApiUrl = config.astarte_api_url;
-  let appEngineApiUrl = '';
-  let realmManagementApiUrl = '';
-  let pairingApiUrl = '';
-  let flowApiUrl = '';
+  const parameters = {
+    config: dashboardConfig,
+    previousSession: JSON.stringify(sessionManager.getSession()),
+  };
 
-  if (astarteApiUrl === 'localhost') {
-    appEngineApiUrl = new URL('http://localhost:4002');
-    realmManagementApiUrl = new URL('http://localhost:4000');
-    pairingApiUrl = new URL('http://localhost:4003');
-    flowApiUrl = new URL('http://localhost:4009');
-  } else if (typeof astarteApiUrl === 'string') {
-    appEngineApiUrl = new URL('appengine/', astarteApiUrl);
-    realmManagementApiUrl = new URL('realmmanagement/', astarteApiUrl);
-    pairingApiUrl = new URL('pairing/', astarteApiUrl);
-    flowApiUrl = new URL('flow/', astarteApiUrl);
-  }
+  // init app
+  app = elmApp.init({ flags: parameters });
 
-  // API URL overwrite
-  if (config.appengine_api_url) {
-    appEngineApiUrl = new URL(config.appengine_api_url);
-  }
-
-  if (config.realm_management_api_url) {
-    realmManagementApiUrl = new URL(config.realm_management_api_url);
-  }
-
-  if (config.pairing_api_url) {
-    pairingApiUrl = new URL(config.pairing_api_url);
-  }
-
-  if (config.flow_api_url) {
-    flowApiUrl = new URL(config.flow_api_url);
-  }
-
-  return new AstarteClient({
-    realmManagementUrl: realmManagementApiUrl,
-    appengineUrl: appEngineApiUrl,
-    pairingUrl: pairingApiUrl,
-    flowUrl: flowApiUrl,
-    enableFlowPreview: Boolean(config.enable_flow_preview),
+  const conf = sessionManager.getConfig();
+  astarteClient = new AstarteClient({
+    realmManagementUrl: conf.realmManagementApiUrl,
+    appengineUrl: conf.appEngineApiUrl,
+    pairingUrl: conf.pairingApiUrl,
+    flowUrl: conf.flowApiUrl,
+    enableFlowPreview: conf.enableFlowPreview,
     onSocketError: () => {
       sendErrorMessage('Astarte channels communication error');
     },
@@ -250,36 +224,21 @@ function getAstarteClient(config) {
       sendErrorMessage('Lost connection with the Astarte channel');
     },
   });
-}
 
-function updateAstarteClientSession() {
-  if (localStorage.session && localStorage.session !== 'null') {
-    const config = JSON.parse(localStorage.session).api_config;
-    astarteClient.setCredentials({
-      token: config.token,
-      realm: config.realm,
-    });
-  } else {
-    astarteClient.setCredentials({
-      token: '',
-      realm: '',
-    });
+  if (sessionManager.isUserLoggedIn) {
+    astarteClient.setCredentials(sessionManager.getCredentials());
   }
-}
 
-$.getJSON('/user-config/config.json', (result) => {
-  dashboardConfig = result;
-}).always(() => {
-  const parameters = {
-    config: dashboardConfig,
-    previousSession: localStorage.session || null,
+  // TODO use TargetEvent API or custom
+  // events library
+  sessionManager.onSessionChange = (newSession) => {
+    app.ports.onSessionChange.send(newSession);
+
+    astarteClient.setCredentials({
+      token: newSession ? newSession.api_config.token : '',
+      realm: newSession ? newSession.api_config.realm : '',
+    });
   };
-
-  // init app
-  app = elmApp.init({ flags: parameters });
-
-  astarteClient = getAstarteClient(dashboardConfig);
-  updateAstarteClientSession();
 
   /* begin Elm ports */
   app.ports.loadReactPage.subscribe(loadPage);
@@ -297,9 +256,5 @@ $.getJSON('/user-config/config.json', (result) => {
       });
     }
   });
-
-  updateElmSessionCallback = (newSession) => {
-    app.ports.onSessionChange.send(newSession);
-  };
   /* end Elm ports */
 });
