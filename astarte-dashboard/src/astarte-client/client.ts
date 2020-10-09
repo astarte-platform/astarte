@@ -252,7 +252,7 @@ class AstarteClient {
     return response.data;
   }
 
-  async getTriggerNames(): Promise<any> {
+  async getTriggerNames(): Promise<string[]> {
     const response = await this.$get(this.apiConfig.triggers(this.config));
     return response.data;
   }

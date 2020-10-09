@@ -16,10 +16,18 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
+import AstarteClient from 'astarte-client';
 
-const TriggerRow = ({ name, onClick }) => (
+import useFetch from './hooks/useFetch';
+
+interface TriggerRowProps {
+  name: string;
+  onClick: () => void;
+}
+
+const TriggerRow = ({ name, onClick }: TriggerRowProps): React.ReactElement => (
   <ListGroup.Item>
     <Button variant="link" className="p-0" onClick={onClick}>
       <i className="fas fa-bolt mr-2" />
@@ -28,19 +36,22 @@ const TriggerRow = ({ name, onClick }) => (
   </ListGroup.Item>
 );
 
-const LoadingRow = () => (
+const LoadingRow = (): React.ReactElement => (
   <ListGroup.Item>
     <Spinner animation="border" role="status" />
   </ListGroup.Item>
 );
 
-export default ({ history, astarte }) => {
-  const [triggers, setTriggers] = useState(null);
-  const fetchTriggers = () => astarte.getTriggerNames().then(setTriggers);
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+export default ({ history, astarte }: Props): React.ReactElement => {
+  const triggers = useFetch(astarte.getTriggerNames);
 
   useEffect(() => {
-    fetchTriggers();
-    const intervalId = setInterval(fetchTriggers, 30000);
+    const intervalId = setInterval(triggers.refresh, 30000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -55,17 +66,25 @@ export default ({ history, astarte }) => {
         <Col sm={12}>
           <ListGroup>
             <ListGroup.Item>
-              <Button variant="link" className="p-0" onClick={() => history.push('/triggers/new')}>
+              <Button
+                variant="link"
+                className="p-0"
+                onClick={() => {
+                  history.push('/triggers/new');
+                }}
+              >
                 <i className="fas fa-plus mr-2" />
                 Install a new trigger...
               </Button>
             </ListGroup.Item>
-            {triggers ? (
-              triggers.map((trigger) => (
+            {triggers.status === 'ok' ? (
+              triggers.value.map((trigger) => (
                 <TriggerRow
                   key={trigger}
                   name={trigger}
-                  onClick={() => history.push(`/triggers/${trigger}`)}
+                  onClick={() => {
+                    history.push(`/triggers/${trigger}`);
+                  }}
                 />
               ))
             ) : (
