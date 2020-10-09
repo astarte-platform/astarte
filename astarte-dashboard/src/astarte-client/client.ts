@@ -346,7 +346,7 @@ class AstarteClient {
     return response.data.map((device: AstarteDeviceDTO) => AstarteDevice.fromObject(device));
   }
 
-  async removeDeviceFromGroup(params: any): Promise<void> {
+  async removeDeviceFromGroup(params: { groupName: string; deviceId: string }): Promise<void> {
     const { groupName, deviceId } = params;
 
     if (!groupName) {

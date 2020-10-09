@@ -18,11 +18,71 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Button, Modal, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import AstarteClient, { AstarteDevice } from 'astarte-client';
 
 import { Link } from 'react-router-dom';
 import SingleCardPage from './ui/SingleCardPage';
 
-const deviceTableRow = (device, index, showModal) => {
+const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
+  <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
+    {props.children}
+  </i>
+));
+
+interface ConfirmDeviceRemovalModal {
+  deviceName: string;
+  groupName: string;
+  isLastDevice: boolean;
+  isRemoving: boolean;
+  show: boolean;
+  onCancel: () => void;
+  onRemove: () => void;
+}
+
+const ConfirmDeviceRemovalModal = ({
+  deviceName,
+  groupName,
+  isLastDevice,
+  isRemoving,
+  show,
+  onCancel,
+  onRemove,
+}: ConfirmDeviceRemovalModal): React.ReactElement => (
+  <div
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' && !isRemoving) {
+        onRemove();
+      }
+    }}
+  >
+    <Modal size="lg" show={show} onHide={onCancel}>
+      <Modal.Header closeButton>
+        <Modal.Title>Warning</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {isLastDevice && (
+          <p>This is the last device in the group. Removing this device will delete the group</p>
+        )}
+        <p>{`Remove device "${deviceName}" from group "${groupName}"?`}</p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
+          {isRemoving && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
+          Remove
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  </div>
+);
+
+const deviceTableRow = (
+  device: AstarteDevice,
+  index: number,
+  showModal: (d: AstarteDevice) => void,
+) => {
   let colorClass;
   let lastEvent;
   let tooltipText;
@@ -30,11 +90,11 @@ const deviceTableRow = (device, index, showModal) => {
   if (device.isConnected) {
     tooltipText = 'Connected';
     colorClass = 'icon-connected';
-    lastEvent = `Connected on ${device.lastConnection.toLocaleString()}`;
+    lastEvent = `Connected on ${(device.lastConnection as Date).toLocaleString()}`;
   } else if (device.lastConnection) {
     tooltipText = 'Disconnected';
     colorClass = 'icon-disconnected';
-    lastEvent = `Disconnected on ${device.lastDisconnection.toLocaleString()}`;
+    lastEvent = `Disconnected on ${(device.lastDisconnection as Date).toLocaleString()}`;
   } else {
     tooltipText = 'Never connected';
     colorClass = 'icon-never-connected';
@@ -47,13 +107,7 @@ const deviceTableRow = (device, index, showModal) => {
         <OverlayTrigger
           placement="right"
           delay={{ show: 150, hide: 400 }}
-          style={{
-            backgroundColor: 'rgba(255, 100, 100, 0.85)',
-            padding: '2px 10px',
-            color: 'white',
-            borderRadius: 3,
-          }}
-          overlay={<Tooltip>{tooltipText}</Tooltip>}
+          overlay={<Tooltip id={`tooltip-icon-${index}`}>{tooltipText}</Tooltip>}
         >
           <CircleIcon className={colorClass} />
         </OverlayTrigger>
@@ -66,13 +120,7 @@ const deviceTableRow = (device, index, showModal) => {
         <OverlayTrigger
           placement="left"
           delay={{ show: 150, hide: 400 }}
-          style={{
-            backgroundColor: 'rgba(255, 100, 100, 0.85)',
-            padding: '2px 10px',
-            color: 'white',
-            borderRadius: 3,
-          }}
-          overlay={<Tooltip>Remove from group</Tooltip>}
+          overlay={<Tooltip id={`tooltip-remove-button-${index}`}>Remove from group</Tooltip>}
         >
           <Button
             as="i"
@@ -86,7 +134,7 @@ const deviceTableRow = (device, index, showModal) => {
   );
 };
 
-const deviceTable = (deviceList, showModal) => (
+const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) => void) => (
   <Table responsive>
     <thead>
       <tr>
@@ -100,15 +148,21 @@ const deviceTable = (deviceList, showModal) => (
   </Table>
 );
 
-const GroupDevicesPage = ({ astarte, history, groupName }) => {
-  const [phase, setPhase] = useState('loading');
-  const [devices, setDevices] = useState(null);
-  const [selectedDevice, setSelectedDevice] = useState(null);
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+  groupName: string;
+}
+
+const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactElement => {
+  const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
+  const [devices, setDevices] = useState<AstarteDevice[] | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<AstarteDevice | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);
 
   const fetchDevices = useCallback(() => {
-    const handleDevicesRequest = (newDevices) => {
+    const handleDevicesRequest = (newDevices: AstarteDevice[]) => {
       setDevices(newDevices);
       setPhase('ok');
     };
@@ -125,7 +179,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }) => {
   }, [astarte, groupName, setPhase, setDevices]);
 
   const showModal = useCallback(
-    (device) => {
+    (device: AstarteDevice) => {
       setSelectedDevice(device);
       setIsModalVisible(true);
     },
@@ -137,6 +191,9 @@ const GroupDevicesPage = ({ astarte, history, groupName }) => {
   }, [setIsModalVisible]);
 
   const removeDevice = useCallback(() => {
+    if (!selectedDevice) {
+      return;
+    }
     setIsRemovingDevice(true);
     astarte
       .removeDeviceFromGroup({
@@ -171,13 +228,14 @@ const GroupDevicesPage = ({ astarte, history, groupName }) => {
 
   switch (phase) {
     case 'ok':
+      const deviceList = devices as AstarteDevice[];
       innerHTML = (
         <>
           <h5 className="mt-1 mb-3">
             Devices in group
             {groupName}
           </h5>
-          {deviceTable(devices, showModal)}
+          {deviceTable(deviceList, showModal)}
         </>
       );
       break;
@@ -191,11 +249,12 @@ const GroupDevicesPage = ({ astarte, history, groupName }) => {
       break;
   }
 
+  const selectedDeviceName = selectedDevice?.name as string;
   return (
     <SingleCardPage title="Group Devices" backLink="/groups">
       {innerHTML}
       <ConfirmDeviceRemovalModal
-        deviceName={selectedDevice?.name}
+        deviceName={selectedDeviceName}
         groupName={groupName}
         isLastDevice={devices?.length === 1}
         isRemoving={isRemovingDevice}
@@ -206,50 +265,5 @@ const GroupDevicesPage = ({ astarte, history, groupName }) => {
     </SingleCardPage>
   );
 };
-
-const CircleIcon = React.forwardRef((props, ref) => (
-  <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
-    {props.children}
-  </i>
-));
-
-const ConfirmDeviceRemovalModal = ({
-  deviceName,
-  groupName,
-  isLastDevice,
-  isRemoving,
-  show,
-  onCancel,
-  onRemove,
-}) => (
-  <div
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isRemoving) {
-        onRemove();
-      }
-    }}
-  >
-    <Modal size="lg" show={show} onHide={onCancel}>
-      <Modal.Header closeButton>
-        <Modal.Title>Warning</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {isLastDevice && (
-          <p>This is the last device in the group. Removing this device will delete the group</p>
-        )}
-        <p>{`Remove device "${deviceName}" from group "${groupName}"?`}</p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
-          {isRemoving && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
-          Remove
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  </div>
-);
 
 export default GroupDevicesPage;
