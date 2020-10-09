@@ -54,7 +54,7 @@ export default ({ reactHistory, astarteClient, config, fallback }) => {
         </Route>
         <Route path="/login">
           <Login
-            allowSwitching={config.auth.length > 1}
+            canSwitchLoginType={config.auth.length > 1}
             defaultLoginType={config.default_auth || 'token'}
             defaultRealm={config.default_realm || ''}
             {...pageProps}
