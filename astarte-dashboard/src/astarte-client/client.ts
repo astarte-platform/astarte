@@ -310,7 +310,7 @@ class AstarteClient {
     return response.data;
   }
 
-  async getGroupList(): Promise<any> {
+  async getGroupList(): Promise<string[]> {
     const response = await this.$get(this.apiConfig.groups(this.config));
     return response.data;
   }
@@ -323,11 +323,14 @@ class AstarteClient {
     });
   }
 
-  async getDevicesInGroup({ groupName, details }: any): Promise<AstarteDevice[]> {
+  async getDevicesInGroup(params: {
+    groupName: string;
+    details?: boolean;
+  }): Promise<AstarteDevice[]> {
+    const { groupName, details } = params;
     if (!groupName) {
       throw Error('Invalid group name');
     }
-
     /* Double encoding to preserve the URL format when groupName contains % and / */
     const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
     const endpointUri = new URL(
@@ -336,11 +339,9 @@ class AstarteClient {
         groupName: encodedGroupName,
       }),
     );
-
     if (details) {
-      endpointUri.search = new URLSearchParams({ details: true } as any).toString();
+      endpointUri.search = new URLSearchParams({ details: 'true' }).toString();
     }
-
     const response = await this.$get(endpointUri.toString());
     return response.data.map((device: AstarteDeviceDTO) => AstarteDevice.fromObject(device));
   }
