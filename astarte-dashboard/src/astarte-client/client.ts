@@ -262,30 +262,23 @@ class AstarteClient {
     return response.data;
   }
 
-  async getDevices({
-    details,
-    from,
-    limit,
-  }: any): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> {
+  async getDevices(params: {
+    details?: boolean;
+    from?: string;
+    limit?: number;
+  }): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> {
     const endpointUri = new URL(this.apiConfig.devices(this.config));
     const query: any = {};
-
-    if (details) {
+    if (params.details) {
       query.details = true;
     }
-
-    if (limit) {
-      query.limit = limit;
+    if (params.limit) {
+      query.limit = params.limit;
     }
-
-    if (from) {
-      query.from_token = from;
+    if (params.from) {
+      query.from_token = params.from;
     }
-
-    if (query) {
-      endpointUri.search = new URLSearchParams(query).toString();
-    }
-
+    endpointUri.search = new URLSearchParams(query).toString();
     const response = await this.$get(endpointUri.toString());
     const devices = response.data.map((device: AstarteDeviceDTO) =>
       AstarteDevice.fromObject(device),
@@ -315,11 +308,14 @@ class AstarteClient {
     return response.data;
   }
 
-  async createGroup(params: any): Promise<void> {
-    const { groupName, deviceList } = params;
+  async createGroup(params: {
+    groupName: string;
+    deviceIds: AstarteDevice['id'][];
+  }): Promise<void> {
+    const { groupName, deviceIds } = params;
     await this.$post(this.apiConfig.groups(this.config), {
       group_name: groupName,
-      devices: deviceList,
+      devices: deviceIds,
     });
   }
 

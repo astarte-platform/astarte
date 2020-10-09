@@ -18,38 +18,122 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button, Form, InputGroup, Spinner } from 'react-bootstrap';
+import AstarteClient, { AstarteDevice } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
 import CheckableDeviceTable from './ui/CheckableDeviceTable';
 
-export default ({ astarte, history }) => {
-  const [phase, setPhase] = useState('loading');
+interface NewGroupPageWrapperProps {
+  phase: 'ok' | 'loading' | 'err';
+  children: React.ReactNode;
+}
+
+const NewGroupPageWrapper = ({ phase, children }: NewGroupPageWrapperProps): React.ReactElement => {
+  let innerHtml;
+  if (phase === 'ok') {
+    innerHtml = children;
+  } else if (phase === 'err') {
+    innerHtml = <p>Couldn&apos;t load the device list</p>;
+  } else {
+    innerHtml = <Spinner animation="border" role="status" />;
+  }
+  return (
+    <SingleCardPage title="Create a New Group" backLink="/groups">
+      {innerHtml}
+    </SingleCardPage>
+  );
+};
+
+interface GroupNameFormGroupProps {
+  groupName: string;
+  onGroupNameChange: (groupName: string) => void;
+}
+
+const GroupNameFormGroup = ({
+  groupName,
+  onGroupNameChange,
+}: GroupNameFormGroupProps): React.ReactElement => {
+  const isValidGroupName = !groupName.startsWith('@') && !groupName.startsWith('~');
+  return (
+    <Form.Group controlId="groupNameInput">
+      <Form.Label>Group name</Form.Label>
+      <Form.Control
+        type="text"
+        placeholder="Your group name"
+        value={groupName}
+        onChange={(e) => onGroupNameChange(e.target.value.trim())}
+        autoComplete="off"
+        required
+        isValid={groupName !== '' && isValidGroupName}
+        isInvalid={groupName !== '' && !isValidGroupName}
+      />
+      {!isValidGroupName && (
+        <Form.Control.Feedback type="invalid">
+          The group name cannot start with ~ or @.
+        </Form.Control.Feedback>
+      )}
+    </Form.Group>
+  );
+};
+
+interface FilterInputBoxProps {
+  filter: string;
+  onFilterChange: (filter: string) => void;
+}
+
+const FilterInputBox = ({ filter, onFilterChange }: FilterInputBoxProps): React.ReactElement => (
+  <Form.Group>
+    <Form.Label srOnly>Table filter</Form.Label>
+    <InputGroup>
+      <InputGroup.Prepend>
+        <InputGroup.Text>
+          <i className="fas fa-filter" />
+        </InputGroup.Text>
+      </InputGroup.Prepend>
+      <Form.Control
+        type="text"
+        value={filter}
+        onChange={(e) => onFilterChange(e.target.value)}
+        placeholder="Device ID/alias"
+      />
+    </InputGroup>
+  </Form.Group>
+);
+
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+export default ({ astarte, history }: Props): React.ReactElement => {
+  const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
   const [groupName, setGroupName] = useState('');
   const [deviceFilter, setDeviceFilter] = useState('');
-  const [devices, setDevices] = useState([]);
-  const [selectedDevices, setSelectedDevices] = useState(new Set());
+  const [devices, setDevices] = useState<AstarteDevice[]>([]);
+  const [selectedDevices, setSelectedDevices] = useState<Set<AstarteDevice['id']>>(new Set());
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const formAlerts = useAlerts();
 
   useEffect(() => {
-    const handleDevicesRequest = (response) => {
-      setDevices(response.devices);
-      setPhase('ok');
-    };
-    const handleDevicesError = () => {
-      setPhase('err');
-    };
-    astarte.getDevices({ details: true }).then(handleDevicesRequest).catch(handleDevicesError);
+    astarte
+      .getDevices({ details: true })
+      .then((response) => {
+        setDevices(response.devices);
+        setPhase('ok');
+      })
+      .catch(() => {
+        setPhase('err');
+      });
   }, [astarte]);
 
-  const createGroup = (e) => {
-    e.preventDefault();
+  const createGroup = (event: React.FormEvent<HTMLElement>) => {
+    event.preventDefault();
     setIsCreatingGroup(true);
     astarte
       .createGroup({
         groupName,
-        deviceList: Array.from(selectedDevices),
+        deviceIds: Array.from(selectedDevices),
       })
       .then(() => {
         history.push({ pathname: '/groups' });
@@ -60,12 +144,10 @@ export default ({ astarte, history }) => {
       });
   };
 
-  const handleDeviceToggle = (e) => {
-    const senderItem = e.target;
-    const { deviceId } = senderItem.dataset;
+  const handleDeviceToggle = (deviceId: string, checked: boolean) => {
     setSelectedDevices((previousSelection) => {
       const newSelection = new Set(previousSelection);
-      if (senderItem.checked) {
+      if (checked) {
         newSelection.add(deviceId);
       } else {
         newSelection.delete(deviceId);
@@ -114,65 +196,3 @@ export default ({ astarte, history }) => {
     </NewGroupPageWrapper>
   );
 };
-
-const NewGroupPageWrapper = ({ phase, children, ...props }) => {
-  let innerHtml;
-
-  if (phase === 'ok') {
-    innerHtml = children;
-  } else if (phase === 'err') {
-    innerHtml = <p>Couldn&apos;t load the device list</p>;
-  } else {
-    innerHtml = <Spinner animation="border" role="status" />;
-  }
-
-  return (
-    <SingleCardPage title="Create a New Group" backLink="/groups" {...props}>
-      {innerHtml}
-    </SingleCardPage>
-  );
-};
-
-const GroupNameFormGroup = ({ groupName, onGroupNameChange }) => {
-  const isValidGroupName = !groupName.startsWith('@') && !groupName.startsWith('~');
-
-  return (
-    <Form.Group controlId="groupNameInput">
-      <Form.Label>Group name</Form.Label>
-      <Form.Control
-        type="text"
-        placeholder="Your group name"
-        value={groupName}
-        onChange={(e) => onGroupNameChange(e.target.value.trim())}
-        autoComplete="off"
-        required
-        isValid={groupName !== '' && isValidGroupName}
-        isInvalid={groupName !== '' && !isValidGroupName}
-      />
-      {!isValidGroupName && (
-        <Form.Control.Feedback type="invalid">
-          The group name cannot start with ~ or @.
-        </Form.Control.Feedback>
-      )}
-    </Form.Group>
-  );
-};
-
-const FilterInputBox = ({ filter, onFilterChange }) => (
-  <Form.Group>
-    <Form.Label srOnly>Table filter</Form.Label>
-    <InputGroup>
-      <InputGroup.Prepend>
-        <InputGroup.Text>
-          <i className="fas fa-filter" />
-        </InputGroup.Text>
-      </InputGroup.Prepend>
-      <Form.Control
-        type="text"
-        value={filter}
-        onChange={(e) => onFilterChange(e.target.value)}
-        placeholder="Device ID/alias"
-      />
-    </InputGroup>
-  </Form.Group>
-);
