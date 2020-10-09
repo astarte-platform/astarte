@@ -19,7 +19,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Col, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { AstarteCustomBlock } from 'astarte-client';
+import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
+import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
@@ -30,9 +31,15 @@ const blockTypeToLabel = {
   producer_consumer: 'Producer & Consumer',
 };
 
-export default ({ astarte, history, blockId }) => {
+interface Props {
+  astarte: AstarteClient;
+  blockId: AstarteBlock['name'];
+  history: any;
+}
+
+export default ({ astarte, history, blockId }: Props): React.ReactElement => {
   const [phase, setPhase] = useState('loading');
-  const [block, setBlock] = useState(null);
+  const [block, setBlock] = useState<AstarteBlock | null>(null);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const deletionAlerts = useAlerts();
 
@@ -41,7 +48,7 @@ export default ({ astarte, history, blockId }) => {
     astarte
       .deleteBlock(blockId)
       .then(() => history.push('/blocks'))
-      .catch((err) => {
+      .catch((err: Error) => {
         setIsDeletingBlock(false);
         deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
       });
@@ -57,7 +64,7 @@ export default ({ astarte, history, blockId }) => {
       .catch(() => setPhase('err'));
   }, [astarte, setBlock, setPhase]);
 
-  const ContentCard = ({ children }) => (
+  const ContentCard = ({ children }: { children: React.ReactNode }): React.ReactElement => (
     <SingleCardPage title="Block Details" backLink="/blocks">
       {children}
     </SingleCardPage>
@@ -65,6 +72,7 @@ export default ({ astarte, history, blockId }) => {
 
   switch (phase) {
     case 'ok':
+      const blockObj = block as AstarteBlock;
       return (
         <>
           <ContentCard>
@@ -72,26 +80,26 @@ export default ({ astarte, history, blockId }) => {
             <Row>
               <Col>
                 <h5 className="mt-2 mb-2">Name</h5>
-                <p>{block.name}</p>
+                <p>{blockObj.name}</p>
                 <h5 className="mt-2 mb-2">Type</h5>
-                <p>{blockTypeToLabel[block.type]}</p>
-                {block instanceof AstarteCustomBlock && (
+                <p>{blockTypeToLabel[blockObj.type]}</p>
+                {blockObj instanceof AstarteCustomBlock && (
                   <>
                     <h5 className="mt-2 mb-2">Source</h5>
-                    <SyntaxHighlighter language="json" showLineNumbers="true">
-                      {block.source}
+                    <SyntaxHighlighter language="json" showLineNumbers>
+                      {blockObj.source}
                     </SyntaxHighlighter>
                   </>
                 )}
                 <h5 className="mt-2 mb-2">Schema</h5>
-                <SyntaxHighlighter language="json" showLineNumbers="true">
-                  {JSON.stringify(block.schema, null, 2)}
+                <SyntaxHighlighter language="json" showLineNumbers>
+                  {JSON.stringify(blockObj.schema, null, 2)}
                 </SyntaxHighlighter>
               </Col>
             </Row>
           </ContentCard>
           <Row className="justify-content-end m-3">
-            {block instanceof AstarteCustomBlock && (
+            {blockObj instanceof AstarteCustomBlock && (
               <Button
                 variant="danger"
                 onClick={isDeletingBlock ? undefined : deleteBlock}
