@@ -218,14 +218,14 @@ class AstarteClient {
     this.dispatch('credentialsChange');
   }
 
-  async getConfigAuth(): Promise<any> {
+  async getConfigAuth(): Promise<{ publicKey: string }> {
     const response = await this.$get(this.apiConfig.auth(this.config));
-    return response.data;
+    return { publicKey: response.data.jwt_public_key_pem };
   }
 
-  async updateConfigAuth(publicKey: any): Promise<void> {
+  async updateConfigAuth(params: { publicKey: string }): Promise<void> {
     await this.$put(this.apiConfig.auth(this.config), {
-      jwt_public_key_pem: publicKey,
+      jwt_public_key_pem: params.publicKey,
     });
   }
 
