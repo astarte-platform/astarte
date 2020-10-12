@@ -21,6 +21,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import { Button, Col, Form, Modal, Spinner, Table } from 'react-bootstrap';
+import AstarteClient from 'astarte-client';
+import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
@@ -34,79 +36,80 @@ import { useAlerts } from './AlertManager';
  */
 function pasteSecret() {
   const secretCode = document.querySelector('#secret-code');
+  if (secretCode == null) {
+    return;
+  }
   const selection = window.getSelection();
-
+  if (selection == null) {
+    return;
+  }
   if (selection.rangeCount > 0) {
     selection.removeAllRanges();
   }
-
   const range = document.createRange();
   range.selectNode(secretCode);
   selection.addRange(range);
   document.execCommand('copy');
 }
 
-const ColNoLabel = ({ sm, className, ...otherProps }) => (
+type ColNoLabelProps = React.ComponentProps<typeof Col>;
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const ColNoLabel = ({ sm, className = '', ...otherProps }: ColNoLabelProps): React.ReactElement => (
   <Col sm="auto" className={'col-no-label '.concat(className)} {...otherProps} />
 );
 
-const InstrospectionTable = ({ interfaces, onAddInterface, onRemoveInterface }) => (
-  <Table className="mb-4" responsive>
-    <thead>
-      <tr>
-        <th>Interface name</th>
-        <th>Major</th>
-        <th>Minor</th>
-        <th className="action-column"> </th>
-      </tr>
-    </thead>
-    <tbody>
-      {Array.from(interfaces).map(([key, interfaceDescriptor]) => (
-        <InterfaceIntrospectionRow
-          key={key}
-          name={interfaceDescriptor.name}
-          major={interfaceDescriptor.major}
-          minor={interfaceDescriptor.minor}
-          onRemove={() => onRemoveInterface(interfaceDescriptor)}
-        />
-      ))}
-      <IntrospectionControlRow onAddInterface={onAddInterface} />
-    </tbody>
-  </Table>
-);
+interface InterfaceIntrospectionRowProps {
+  interfaceDescriptor: AstarteInterfaceDescriptor;
+  onRemove: () => void;
+}
 
-const InterfaceIntrospectionRow = ({ name, major, minor, onRemove }) => (
+const InterfaceIntrospectionRow = ({
+  interfaceDescriptor,
+  onRemove,
+}: InterfaceIntrospectionRowProps): React.ReactElement => (
   <tr>
-    <td>{name}</td>
-    <td>{major}</td>
-    <td>{minor}</td>
+    <td>{interfaceDescriptor.name}</td>
+    <td>{interfaceDescriptor.major}</td>
+    <td>{interfaceDescriptor.minor}</td>
     <td>
       <i className="fas fa-eraser color-red action-icon" onClick={onRemove} />
     </td>
   </tr>
 );
 
-const IntrospectionControlRow = ({ onAddInterface }) => {
-  const initialState = {
+interface IntrospectionControlRowProps {
+  onAddInterface: (interfaceDescriptor: AstarteInterfaceDescriptor) => void;
+}
+
+const IntrospectionControlRow = ({
+  onAddInterface,
+}: IntrospectionControlRowProps): React.ReactElement => {
+  const initialState: AstarteInterfaceDescriptor = {
     name: '',
     major: 0,
     minor: 1,
   };
 
-  const [interfaceDescriptor, setInterfaceDescriptor] = useState(initialState);
+  const [interfaceDescriptor, setInterfaceDescriptor] = useState<AstarteInterfaceDescriptor>(
+    initialState,
+  );
 
-  const handleNameChange = ({ target: { value } }) => {
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
     setInterfaceDescriptor((state) => ({ ...state, name: value }));
   };
 
-  const handleMajorChange = ({ target: { value } }) => {
+  const handleMajorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
     setInterfaceDescriptor((state) => ({
       ...state,
       major: parseInt(value, 10) || 0,
     }));
   };
 
-  const handleMinorChange = ({ target: { value } }) => {
+  const handleMinorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
     setInterfaceDescriptor((state) => ({
       ...state,
       minor: parseInt(value, 10) || 0,
@@ -155,7 +158,50 @@ const IntrospectionControlRow = ({ onAddInterface }) => {
   );
 };
 
-const CredentialSecretModal = ({ show, secret, onConfirm }) => (
+interface InstrospectionTableProps {
+  interfaces: Map<AstarteInterfaceDescriptor['name'], AstarteInterfaceDescriptor>;
+  onAddInterface: (interfaceDescriptor: AstarteInterfaceDescriptor) => void;
+  onRemoveInterface: (interfaceDescriptor: AstarteInterfaceDescriptor) => void;
+}
+
+const InstrospectionTable = ({
+  interfaces,
+  onAddInterface,
+  onRemoveInterface,
+}: InstrospectionTableProps): React.ReactElement => (
+  <Table className="mb-4" responsive>
+    <thead>
+      <tr>
+        <th>Interface name</th>
+        <th>Major</th>
+        <th>Minor</th>
+        <th className="action-column"> </th>
+      </tr>
+    </thead>
+    <tbody>
+      {Array.from(interfaces).map(([key, interfaceDescriptor]) => (
+        <InterfaceIntrospectionRow
+          key={key}
+          interfaceDescriptor={interfaceDescriptor}
+          onRemove={() => onRemoveInterface(interfaceDescriptor)}
+        />
+      ))}
+      <IntrospectionControlRow onAddInterface={onAddInterface} />
+    </tbody>
+  </Table>
+);
+
+interface CredentialSecretModalProps {
+  show: boolean;
+  secret: string;
+  onConfirm: () => void;
+}
+
+const CredentialSecretModal = ({
+  show,
+  secret,
+  onConfirm,
+}: CredentialSecretModalProps): React.ReactElement => (
   <Modal size="lg" show={show} onHide={onConfirm}>
     <Modal.Header closeButton>
       <Modal.Title>Device Registered!</Modal.Title>
@@ -184,14 +230,20 @@ const CredentialSecretModal = ({ show, secret, onConfirm }) => (
   </Modal>
 );
 
-const NamespaceModal = ({ show, onCancel, onConfirm }) => {
+interface NamespaceModalProps {
+  show: boolean;
+  onCancel: () => void;
+  onConfirm: (deviceId: string) => void;
+}
+
+const NamespaceModal = ({ show, onCancel, onConfirm }: NamespaceModalProps): React.ReactElement => {
   const [namespace, setNamespace] = useState('');
   const [customString, setCustomString] = useState('');
 
   const newDeviceId = useMemo(() => {
     try {
       const newUUID = uuidv5(customString, namespace).replace(/-/g, '');
-      const bytes = newUUID.match(/.{2}/g).map((b) => parseInt(b, 16));
+      const bytes = (newUUID.match(/.{2}/g) as RegExpMatchArray).map((b) => parseInt(b, 16));
       return byteArrayToUrlSafeBase64(bytes);
     } catch (e) {
       // namespace is not a UUID
@@ -248,11 +300,18 @@ const NamespaceModal = ({ show, onCancel, onConfirm }) => {
   );
 };
 
-const RegisterDevicePage = ({ astarte, history }) => {
-  const [deviceId, setDeviceId] = useState('');
-  const [deviceSecret, setDeviceSecret] = useState('');
-  const [sendIntrospection, setSendIntrospection] = useState(false);
-  const [introspectionInterfaces, setIntrospectionInterfaces] = useState(new Map());
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+export default ({ astarte, history }: Props): React.ReactElement => {
+  const [deviceId, setDeviceId] = useState<AstarteDevice['id']>('');
+  const [deviceSecret, setDeviceSecret] = useState<string>('');
+  const [shouldSendIntrospection, setShouldSendIntrospection] = useState(false);
+  const [introspectionInterfaces, setIntrospectionInterfaces] = useState<
+    Map<AstarteInterfaceDescriptor['name'], AstarteInterfaceDescriptor>
+  >(new Map());
   const [isRegisteringDevice, setRegisteringDevice] = useState(false);
   const [showNamespaceModal, setShowNamespaceModal] = useState(false);
   const [showCredentialSecretModal, setShowCredentialSecretModal] = useState(false);
@@ -264,28 +323,24 @@ const RegisterDevicePage = ({ astarte, history }) => {
 
   const generateRandomUUID = useCallback(() => {
     const newUUID = uuidv4().replace(/-/g, '');
-    const bytes = newUUID.match(/.{2}/g).map((b) => parseInt(b, 16));
+    const bytes = (newUUID.match(/.{2}/g) as RegExpMatchArray).map((b) => parseInt(b, 16));
     const newDeviceID = byteArrayToUrlSafeBase64(bytes);
-
     setDeviceId(newDeviceID);
   }, []);
 
-  const registerDevice = (e) => {
+  const registerDevice = (e: React.FormEvent<HTMLElement>) => {
     e.preventDefault();
-
-    const params = { deviceId };
-    if (sendIntrospection) {
-      params.introspection = introspectionInterfaces;
-    }
-
+    const deviceIntrospection = Object.fromEntries(introspectionInterfaces);
+    const params = {
+      deviceId,
+      introspection: shouldSendIntrospection ? deviceIntrospection : undefined,
+    };
     setRegisteringDevice(true);
-
     astarte
       .registerDevice(params)
-      .then((registeredDevice) => {
-        const secret = registeredDevice.credentials_secret;
+      .then(({ credentialsSecret }) => {
         setRegisteringDevice(false);
-        setDeviceSecret(secret);
+        setDeviceSecret(credentialsSecret);
         setShowCredentialSecretModal(true);
       })
       .catch((err) => {
@@ -294,13 +349,13 @@ const RegisterDevicePage = ({ astarte, history }) => {
       });
   };
 
-  const addInterfaceToIntrospection = (interfaceDescriptor) => {
+  const addInterfaceToIntrospection = (interfaceDescriptor: AstarteInterfaceDescriptor) => {
     const introspection = new Map(introspectionInterfaces);
     introspection.set(interfaceDescriptor.name, interfaceDescriptor);
     setIntrospectionInterfaces(introspection);
   };
 
-  const removeIntrospectionInterface = (interfaceDescriptor) => {
+  const removeIntrospectionInterface = (interfaceDescriptor: AstarteInterfaceDescriptor) => {
     const introspection = new Map(introspectionInterfaces);
     introspection.delete(interfaceDescriptor.name);
     setIntrospectionInterfaces(introspection);
@@ -318,7 +373,7 @@ const RegisterDevicePage = ({ astarte, history }) => {
               className="text-monospace"
               placeholder="Your device ID"
               value={deviceId}
-              onChange={(e) => setDeviceId(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceId(e.target.value)}
               autoComplete="off"
               required
               isValid={deviceId !== '' && isValidDeviceId}
@@ -341,15 +396,20 @@ const RegisterDevicePage = ({ astarte, history }) => {
             </Button>
           </Form.Group>
         </Form.Row>
-        <Form.Group controlId="sendIntrospectionInput" className={sendIntrospection && 'mb-0'}>
+        <Form.Group
+          controlId="sendIntrospectionInput"
+          className={shouldSendIntrospection ? 'mb-0' : ''}
+        >
           <Form.Check
             type="checkbox"
             label="Declare initial introspection"
-            checked={sendIntrospection}
-            onChange={(e) => setSendIntrospection(e.target.checked)}
+            checked={shouldSendIntrospection}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setShouldSendIntrospection(e.target.checked)
+            }
           />
         </Form.Group>
-        {sendIntrospection && (
+        {shouldSendIntrospection && (
           <InstrospectionTable
             interfaces={introspectionInterfaces}
             onAddInterface={addInterfaceToIntrospection}
@@ -372,7 +432,7 @@ const RegisterDevicePage = ({ astarte, history }) => {
       <NamespaceModal
         show={showNamespaceModal}
         onCancel={() => setShowNamespaceModal(false)}
-        onConfirm={(newDeviceId) => {
+        onConfirm={(newDeviceId: string) => {
           setShowNamespaceModal(false);
           setDeviceId(newDeviceId);
         }}
@@ -385,5 +445,3 @@ const RegisterDevicePage = ({ astarte, history }) => {
     </SingleCardPage>
   );
 };
-
-export default RegisterDevicePage;

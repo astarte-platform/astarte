@@ -18,6 +18,7 @@
 
 import axios from 'axios';
 import { Socket as PhoenixSocket } from 'phoenix';
+import _ from 'lodash';
 
 import { fromAstartePipelineDTO, toAstartePipelineDTO } from './transforms';
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
@@ -27,6 +28,11 @@ import { AstartePipeline } from './models/Pipeline';
 import type { AstarteBlock } from './models/Block';
 import type { AstarteBlockDTO, AstarteDeviceDTO, AstarteJWT } from './types';
 
+export interface AstarteInterfaceDescriptor {
+  name: string;
+  major: number;
+  minor: number;
+}
 type Channel = any;
 type Trigger = any;
 
@@ -366,24 +372,22 @@ class AstarteClient {
     );
   }
 
-  async registerDevice({ deviceId, introspection }: any): Promise<any> {
+  async registerDevice(params: {
+    deviceId: AstarteDevice['id'];
+    introspection?: { [interfaceName: string]: AstarteInterfaceDescriptor };
+  }): Promise<{ credentialsSecret: string }> {
+    const { deviceId, introspection } = params;
     const requestBody: any = {
       hw_id: deviceId,
     };
-
     if (introspection) {
-      const encodedIntrospection: any = {};
-      Array.from(introspection).forEach(([key, interfaceDescriptor]: any) => {
-        encodedIntrospection[key] = {
-          major: interfaceDescriptor.major,
-          minor: interfaceDescriptor.minor,
-        };
-      });
-      requestBody.initial_introspection = encodedIntrospection;
+      const initialIntrospection = _.mapValues(introspection, (interfaceDescriptor) =>
+        _.pick(interfaceDescriptor, ['minor', 'major']),
+      );
+      requestBody.initial_introspection = initialIntrospection;
     }
-
     const response = await this.$post(this.apiConfig.registerDevice(this.config), requestBody);
-    return response.data;
+    return { credentialsSecret: response.data.credentials_secret };
   }
 
   async getFlowInstances(): Promise<Array<AstarteFlow['name']>> {
