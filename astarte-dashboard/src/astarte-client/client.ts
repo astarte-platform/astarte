@@ -398,8 +398,12 @@ class AstarteClient {
     return AstarteFlow.fromObject(response.data);
   }
 
-  async createNewFlowInstance(pipelineConfig: any): Promise<void> {
-    await this.$post(this.apiConfig.flows(this.config), pipelineConfig);
+  async createNewFlowInstance(params: {
+    name: AstarteFlow['name'];
+    pipeline: string;
+    config: { [key: string]: any };
+  }): Promise<void> {
+    await this.$post(this.apiConfig.flows(this.config), params);
   }
 
   async deleteFlowInstance(flowName: any): Promise<void> {
