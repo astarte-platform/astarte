@@ -386,7 +386,7 @@ class AstarteClient {
     return response.data;
   }
 
-  async getFlowInstances(): Promise<any> {
+  async getFlowInstances(): Promise<Array<AstarteFlow['name']>> {
     const response = await this.$get(this.apiConfig.flows(this.config));
     return response.data;
   }
@@ -406,7 +406,7 @@ class AstarteClient {
     await this.$post(this.apiConfig.flows(this.config), params);
   }
 
-  async deleteFlowInstance(flowName: any): Promise<void> {
+  async deleteFlowInstance(flowName: AstarteFlow['name']): Promise<void> {
     await this.$delete(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
   }
 
