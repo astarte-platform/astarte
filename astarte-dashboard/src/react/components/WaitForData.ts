@@ -17,10 +17,11 @@
 */
 
 interface Props<Data> {
-  data: Data;
+  data: Data | null;
   status: 'loading' | 'ok' | 'err';
   showRefreshing?: boolean;
   fallback?: React.ReactElement;
+  errorFallback?: React.ReactElement;
   children: (data: Data) => React.ReactElement;
 }
 
@@ -29,11 +30,12 @@ const WaitForData = <Data = any>({
   status,
   showRefreshing = false,
   fallback,
+  errorFallback,
   children,
 }: Props<Data>): React.ReactElement | null => {
   switch (status) {
     case 'ok':
-      return children(data);
+      return children(data as Data);
 
     case 'loading':
       if (!showRefreshing && data) {
@@ -42,7 +44,7 @@ const WaitForData = <Data = any>({
       return fallback || null;
 
     case 'err':
-      return fallback || null;
+      return errorFallback || null;
 
     default:
       return null;

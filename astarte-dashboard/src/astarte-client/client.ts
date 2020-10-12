@@ -19,11 +19,11 @@
 import axios from 'axios';
 import { Socket as PhoenixSocket } from 'phoenix';
 
-import { toAstartePipelineDTO } from './transforms';
+import { fromAstartePipelineDTO, toAstartePipelineDTO } from './transforms';
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
 import { AstarteDevice } from './models/Device';
 import { AstarteFlow } from './models/Flow';
-
+import { AstartePipeline } from './models/Pipeline';
 import type { AstarteBlock } from './models/Block';
 import type { AstarteBlockDTO, AstarteDeviceDTO, AstarteJWT } from './types';
 
@@ -161,6 +161,7 @@ class AstarteClient {
     this.getRealmManagementHealth = this.getRealmManagementHealth.bind(this);
     this.getPairingHealth = this.getPairingHealth.bind(this);
     this.getFlowHealth = this.getFlowHealth.bind(this);
+    this.getPipeline = this.getPipeline.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
@@ -413,9 +414,14 @@ class AstarteClient {
     return response.data;
   }
 
-  async getPipelineInputConfig(pipelineId: any): Promise<any> {
+  async getPipelineInputConfig(pipelineId: AstartePipeline['name']): Promise<AstartePipeline> {
     const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
-    return response.data;
+    return AstartePipeline.fromObject(response.data);
+  }
+
+  async getPipeline(pipelineId: AstartePipeline['name']): Promise<AstartePipeline> {
+    const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+    return new AstartePipeline(fromAstartePipelineDTO(response.data));
   }
 
   async getPipelineSource(pipelineId: any): Promise<any> {
