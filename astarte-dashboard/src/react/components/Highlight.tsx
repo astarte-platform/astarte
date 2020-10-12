@@ -18,18 +18,30 @@
 
 import React from 'react';
 
-const Highlight = ({ children, word }) => {
+interface Props {
+  children: string;
+  word?: string;
+}
+
+const Highlight = ({ children, word }: Props): React.ReactElement => {
   if (!word) {
-    return children;
+    return <>{children}</>;
   }
 
-  return children.split(word).reduce((prev, current, index) => [
-    prev,
-    <span key={index} className="bg-warning text-dark">
-      {word}
-    </span>,
-    current,
-  ]);
+  return (
+    <>
+      {children.split(word).map((chunk, index) => (
+        <React.Fragment key={index}>
+          {index !== 0 && (
+            <span key={`word-${index}`} className="bg-warning text-dark">
+              {word}
+            </span>
+          )}
+          {chunk}
+        </React.Fragment>
+      ))}
+    </>
+  );
 };
 
 export default Highlight;
