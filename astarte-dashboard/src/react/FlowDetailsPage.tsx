@@ -16,37 +16,31 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
+import AstarteClient from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
+import useFetch from './hooks/useFetch';
 
-export default ({ astarte, flowName }) => {
-  const [phase, setPhase] = useState('loading');
-  const [flow, setFlow] = useState(null);
+interface Props {
+  astarte: AstarteClient;
+  flowName: string;
+}
 
-  useEffect(() => {
-    astarte
-      .getFlowDetails(flowName)
-      .then((flowDetails) => {
-        setFlow(flowDetails);
-        setPhase('ok');
-      })
-      .catch(() => {
-        setPhase('err');
-      });
-  }, [astarte, setFlow, setPhase]);
+export default ({ astarte, flowName }: Props): React.ReactElement => {
+  const flow = useFetch(() => astarte.getFlowDetails(flowName));
 
   let innerHTML;
 
-  switch (phase) {
+  switch (flow.status) {
     case 'ok':
       innerHTML = (
         <>
           <h5>Flow configuration</h5>
-          <SyntaxHighlighter language="json" showLineNumbers="true">
-            {JSON.stringify(flow, null, 4)}
+          <SyntaxHighlighter language="json" showLineNumbers>
+            {JSON.stringify(flow.value, null, 4)}
           </SyntaxHighlighter>
         </>
       );

@@ -21,6 +21,7 @@ import { Socket as PhoenixSocket } from 'phoenix';
 
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
 import { AstarteDevice } from './models/Device';
+import { AstarteFlow } from './models/Flow';
 
 import type { AstarteBlock } from './models/Block';
 import type { AstarteBlockDTO, AstarteDeviceDTO, AstarteJWT } from './types';
@@ -390,11 +391,11 @@ class AstarteClient {
     return response.data;
   }
 
-  async getFlowDetails(flowName: any): Promise<any> {
+  async getFlowDetails(flowName: AstarteFlow['name']): Promise<AstarteFlow> {
     const response = await this.$get(
       this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }),
     );
-    return response.data;
+    return AstarteFlow.fromObject(response.data);
   }
 
   async createNewFlowInstance(pipelineConfig: any): Promise<void> {
