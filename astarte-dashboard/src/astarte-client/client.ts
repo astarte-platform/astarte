@@ -162,6 +162,7 @@ class AstarteClient {
     this.getPairingHealth = this.getPairingHealth.bind(this);
     this.getFlowHealth = this.getFlowHealth.bind(this);
     this.getPipeline = this.getPipeline.bind(this);
+    this.getPipelines = this.getPipelines.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
@@ -409,14 +410,22 @@ class AstarteClient {
     await this.$delete(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
   }
 
-  async getPipelineDefinitions(): Promise<any> {
+  async getPipelineNames(): Promise<Array<AstartePipeline['name']>> {
     const response = await this.$get(this.apiConfig.pipelines(this.config));
     return response.data;
   }
 
-  async getPipelineInputConfig(pipelineId: AstartePipeline['name']): Promise<AstartePipeline> {
-    const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
-    return AstartePipeline.fromObject(response.data);
+  async getPipelines(): Promise<AstartePipeline[]> {
+    const pipelineNames = await this.getPipelineNames();
+    const response = await Promise.allSettled(pipelineNames.map(this.getPipeline));
+    const pipelines: AstartePipeline[] = [];
+    response.forEach((r) => {
+      if (r.status === 'fulfilled') {
+        const pipeline = new AstartePipeline(fromAstartePipelineDTO(r.value));
+        pipelines.push(pipeline);
+      }
+    });
+    return pipelines;
   }
 
   async getPipeline(pipelineId: AstartePipeline['name']): Promise<AstartePipeline> {
