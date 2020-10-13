@@ -16,11 +16,13 @@
    limitations under the License.
 */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { AstarteRealm, AstarteToken } from 'astarte-client';
 
-function isValidUrl(urlString) {
+type LoginType = 'oauth' | 'token';
+
+function isValidUrl(urlString: string): boolean {
   try {
     // eslint-disable-next-line no-new
     new URL(urlString);
@@ -30,42 +32,48 @@ function isValidUrl(urlString) {
   }
 }
 
-function tokenValidationFeedback(tokenValidation) {
-  let message = null;
-
-  switch (tokenValidation) {
-    case 'expired':
-      message = 'Provided token has expired.';
-      break;
-
-    case 'notAnAstarteToken':
-      message = 'Provided JWT token has no usable Astarte claims.';
-      break;
-
-    case 'invalid':
-      message = 'Invalid JWT token.';
-      break;
-
-    default:
-      return null;
+function tokenValidationFeedback(token: AstarteToken): React.ReactElement {
+  if (token.isValid) {
+    return <></>;
   }
-
+  let message = null;
+  if (token.isExpired) {
+    message = 'Provided token has expired.';
+  } else if (!token.hasAstarteClaims) {
+    message = 'Provided JWT token has no usable Astarte claims.';
+  } else {
+    message = 'Invalid JWT token.';
+  }
   return <Form.Control.Feedback type="invalid">{message}</Form.Control.Feedback>;
 }
 
-const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => {
-  const [realm, setRealm] = useState(defaultRealm);
-  const [token, setToken] = useState('');
-  const isValidRealm = AstarteRealm.isValidName(realm);
-  const tokenValidation = AstarteToken.validate(token);
+interface TokenFormProps {
+  canSwitchLoginType: boolean;
+  defaultRealm: string;
+  onSwitchLoginType: (loginType: LoginType) => void;
+  onLogin: (authUrl: string) => void;
+}
 
-  const handleTokenLogin = (event) => {
+const TokenForm = ({
+  canSwitchLoginType,
+  defaultRealm,
+  onSwitchLoginType,
+  onLogin,
+}: TokenFormProps): React.ReactElement => {
+  const [realm, setRealm] = useState(defaultRealm);
+  const [jwt, setJwt] = useState('');
+
+  const isValidRealm = AstarteRealm.isValidName(realm);
+
+  const token = useMemo(() => new AstarteToken(jwt), [jwt]);
+
+  const canSubmitForm = isValidRealm && token.isValid;
+
+  const handleTokenLogin = (event: React.FormEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
-
     const searchParams = new URLSearchParams({ realm });
-    const hashParams = new URLSearchParams({ access_token: token });
-
+    const hashParams = new URLSearchParams({ access_token: jwt });
     onLogin(`/auth?${searchParams}#${hashParams}`);
   };
 
@@ -101,27 +109,22 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
           as="textarea"
           rows={6}
           placeholder="Auth token"
-          value={token}
+          value={jwt}
           onChange={(e) => {
-            setToken(e.target.value.trim());
+            setJwt(e.target.value.trim());
           }}
-          isValid={token !== '' && tokenValidation === 'valid'}
-          isInvalid={token !== '' && tokenValidation !== 'valid'}
+          isValid={jwt !== '' && token.isValid}
+          isInvalid={jwt !== '' && !token.isValid}
           required
         />
-        {tokenValidationFeedback(tokenValidation)}
+        {tokenValidationFeedback(token)}
       </Form.Group>
-      <Button
-        type="submit"
-        variant="primary"
-        disabled={!isValidRealm || tokenValidation !== 'valid'}
-        className="w-100"
-      >
+      <Button type="submit" variant="primary" disabled={!canSubmitForm} className="w-100">
         Login
       </Button>
-      {allowSwitching && (
+      {canSwitchLoginType && (
         <div className="d-flex flex-row-reverse mt-2">
-          <Button variant="link" onClick={() => onSwitchLogin('oauth')}>
+          <Button variant="link" onClick={() => onSwitchLoginType('oauth')}>
             Switch to OAuth login
           </Button>
         </div>
@@ -135,34 +138,44 @@ const TokenForm = ({ allowSwitching, defaultRealm, onSwitchLogin, onLogin }) => 
   );
 };
 
-const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => {
+interface OAuthFormProps {
+  canSwitchLoginType: boolean;
+  defaultRealm: string;
+  onSwitchLoginType: (loginType: LoginType) => void;
+  onLogin: (authUrl: string) => void;
+}
+
+const OAuthForm = ({
+  canSwitchLoginType,
+  onSwitchLoginType,
+  defaultRealm,
+  onLogin,
+}: OAuthFormProps): React.ReactElement => {
   const [realm, setRealm] = useState(defaultRealm);
   const [providerUrl, setProviderUrl] = useState('');
   const isValidRealm = AstarteRealm.isValidName(realm);
   const isValidProviderUrl = isValidUrl(providerUrl);
 
-  const oauthLogin = (event) => {
+  const handleOAuthLogin = (event: React.FormEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const dashboardLoginUrl = new URL('auth', window.location);
+    const dashboardLoginUrl = new URL('auth', window.location.toString());
     dashboardLoginUrl.search = new URLSearchParams({
       realm,
       authUrl: providerUrl,
-    });
-
+    }).toString();
     const oauthLoginUrl = new URL(providerUrl);
     oauthLoginUrl.search = new URLSearchParams({
       client_id: 'astarte-dashboard',
       response_type: 'token',
-      redirect_uri: dashboardLoginUrl,
-    });
-
+      redirect_uri: dashboardLoginUrl.toString(),
+    }).toString();
     onLogin(oauthLoginUrl.toString());
   };
 
   return (
-    <Form className="login-form p-3 w-100" onSubmit={oauthLogin}>
+    <Form className="login-form p-3 w-100" onSubmit={handleOAuthLogin}>
       <Form.Group controlId="astarteRealm">
         <Form.Label>Realm</Form.Label>
         <Form.Control
@@ -199,9 +212,9 @@ const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => 
       >
         Login
       </Button>
-      {allowSwitching && (
+      {canSwitchLoginType && (
         <div className="d-flex flex-row-reverse mt-2">
-          <Button variant="link" onClick={() => onSwitchLogin('token')}>
+          <Button variant="link" onClick={() => onSwitchLoginType('token')}>
             Switch to token login
           </Button>
         </div>
@@ -210,7 +223,7 @@ const OAuthForm = ({ allowSwitching, onSwitchLogin, defaultRealm, onLogin }) => 
   );
 };
 
-const LeftColumn = () => (
+const LeftColumn = (): React.ReactElement => (
   <Col lg={6} sm={false} className="p-0 no-gutters">
     <div className="d-flex flex-column align-items-center justify-content-center position-relative login-image-container">
       <img
@@ -233,10 +246,22 @@ const LeftColumn = () => (
   </Col>
 );
 
-const RightColumn = ({ allowSwitching, defaultRealm, type, onLogin }) => {
+interface RightColumnProps {
+  canSwitchLoginType: boolean;
+  defaultRealm: string;
+  type: LoginType;
+  onLogin: (authUrl: string) => void;
+}
+
+const RightColumn = ({
+  canSwitchLoginType,
+  defaultRealm,
+  type,
+  onLogin,
+}: RightColumnProps): React.ReactElement => {
   const [loginType, setLoginType] = useState(type);
-  const handleLoginSwitch = (value) => {
-    setLoginType(value);
+  const handleLoginTypeSwitch = (newLoginType: LoginType) => {
+    setLoginType(newLoginType);
   };
 
   return (
@@ -249,15 +274,15 @@ const RightColumn = ({ allowSwitching, defaultRealm, type, onLogin }) => {
       {loginType === 'oauth' ? (
         <OAuthForm
           defaultRealm={defaultRealm}
-          allowSwitching={allowSwitching}
-          onSwitchLogin={handleLoginSwitch}
+          canSwitchLoginType={canSwitchLoginType}
+          onSwitchLoginType={handleLoginTypeSwitch}
           onLogin={onLogin}
         />
       ) : (
         <TokenForm
           defaultRealm={defaultRealm}
-          allowSwitching={allowSwitching}
-          onSwitchLogin={handleLoginSwitch}
+          canSwitchLoginType={canSwitchLoginType}
+          onSwitchLoginType={handleLoginTypeSwitch}
           onLogin={onLogin}
         />
       )}
@@ -265,15 +290,24 @@ const RightColumn = ({ allowSwitching, defaultRealm, type, onLogin }) => {
   );
 };
 
-export default ({ history, type, allowSwitching, defaultRealm }) => (
+interface Props {
+  canSwitchLoginType: boolean;
+  defaultRealm: string;
+  history: any;
+  type: LoginType;
+}
+
+export default ({ history, type, canSwitchLoginType, defaultRealm }: Props): React.ReactElement => (
   <Container fluid>
     <Row>
       <LeftColumn />
       <RightColumn
         type={type}
-        allowSwitching={allowSwitching}
+        canSwitchLoginType={canSwitchLoginType}
         defaultRealm={defaultRealm}
-        onLogin={(url) => history.push(url)}
+        onLogin={(url) => {
+          history.push(url);
+        }}
       />
     </Row>
   </Container>
