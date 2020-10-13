@@ -18,35 +18,51 @@
 
 import React from 'react';
 import _ from 'lodash';
-import { AbstractReactFactory } from '@projectstorm/react-canvas-core';
+import {
+  AbstractReactFactory,
+  BaseModel,
+  GenerateWidgetEvent,
+} from '@projectstorm/react-canvas-core';
+import { DiagramEngine } from '@projectstorm/react-diagrams';
+import type { AstarteBlock } from 'astarte-client';
+
 import NativeBlockModel from '../models/NativeBlockModel';
 import NativeBlockWidget from './NativeBlockWidget';
 
-class NativeBlockFactory extends AbstractReactFactory {
-  constructor(blockDefinitions) {
-    super('astarte-native');
+type GenerateModelEvent = Parameters<AbstractReactFactory['generateModel']>['0'] & {
+  name: AstarteBlock['name'];
+  onSettingsClick?: (...args: any[]) => void;
+};
 
+class NativeBlockFactory extends AbstractReactFactory<BaseModel, DiagramEngine> {
+  blockDefinitions: Map<AstarteBlock['name'], AstarteBlock>;
+
+  constructor(blockDefinitions: AstarteBlock[]) {
+    super('astarte-native');
+    this.blockDefinitions = new Map();
     this.updateDefinitions(blockDefinitions);
   }
 
-  generateReactWidget(event) {
-    const node = event.model;
-    const { schema } = this.blockDefinitions.get(node.options.name);
-    const hasSettings = !_.isEmpty(schema) && !_.isEmpty(schema.properties);
-
+  generateReactWidget(event: GenerateWidgetEvent<NativeBlockModel>): React.ReactElement {
+    const node = event.model as NativeBlockModel;
+    const block = this.blockDefinitions.get(node.name);
+    if (!block) {
+      return <></>;
+    }
+    const hasSettings = !_.isEmpty(block.schema) && !_.isEmpty(block.schema.properties);
     return <NativeBlockWidget engine={this.engine} node={node} hasSettings={hasSettings} />;
   }
 
-  generateModel({ name, onSettingsClick }) {
-    const blockType = this.blockDefinitions.get(name).type;
+  generateModel({ name, onSettingsClick }: GenerateModelEvent): NativeBlockModel {
+    const block = this.blockDefinitions.get(name);
     return new NativeBlockModel({
       name,
-      blockType,
+      blockType: block ? block.type : 'producer',
       onSettingsClick,
     });
   }
 
-  updateDefinitions(blocks) {
+  updateDefinitions(blocks: AstarteBlock[]): void {
     if (blocks && blocks.length > 0) {
       this.blockDefinitions = new Map(blocks.map((b) => [b.name, b]));
     } else {

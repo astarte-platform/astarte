@@ -17,9 +17,17 @@
 */
 
 import React from 'react';
-import { DefaultPortLabel } from '@projectstorm/react-diagrams';
+import { DefaultPortLabel, DiagramEngine } from '@projectstorm/react-diagrams';
 
-const NativeBlockWidget = ({ engine, node, hasSettings }) => {
+import NativeBlockModel from '../models/NativeBlockModel';
+
+interface Props {
+  engine: DiagramEngine;
+  node: NativeBlockModel;
+  hasSettings: boolean;
+}
+
+const NativeBlockWidget = ({ engine, node, hasSettings }: Props): React.ReactElement => {
   const { name } = node;
   const inPorts = node.getInPorts();
   const outPorts = node.getOutPorts();
@@ -42,12 +50,12 @@ const NativeBlockWidget = ({ engine, node, hasSettings }) => {
       <div className="ports">
         <div className="port-container">
           {inPorts.map((port) => (
-            <DefaultPortLabel engine={engine} port={port} key={port.options.id} />
+            <DefaultPortLabel engine={engine} port={port} key={port.getOptions().id} />
           ))}
         </div>
         <div className="port-container">
           {outPorts.map((port) => (
-            <DefaultPortLabel engine={engine} port={port} key={port.options.id} />
+            <DefaultPortLabel engine={engine} port={port} key={port.getOptions().id} />
           ))}
         </div>
       </div>
