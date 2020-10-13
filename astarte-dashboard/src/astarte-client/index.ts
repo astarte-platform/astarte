@@ -18,7 +18,13 @@
 
 import AstarteClient from './client';
 
-export { AstarteCustomBlock, AstarteNativeBlock, AstarteRealm, AstarteToken } from './models';
+export {
+  AstarteCustomBlock,
+  AstarteNativeBlock,
+  AstarteDevice,
+  AstarteRealm,
+  AstarteToken,
+} from './models';
 
 export type { AstarteBlock } from './models';
 

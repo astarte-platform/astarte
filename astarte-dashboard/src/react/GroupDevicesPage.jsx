@@ -18,9 +18,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Button, Modal, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import { AstarteDevice } from 'astarte-client';
 
 import { Link } from 'react-router-dom';
-import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
 
 const deviceTableRow = (device, index, showModal) => {
@@ -28,7 +28,7 @@ const deviceTableRow = (device, index, showModal) => {
   let lastEvent;
   let tooltipText;
 
-  if (device.connected) {
+  if (device.isConnected) {
     tooltipText = 'Connected';
     colorClass = 'icon-connected';
     lastEvent = `Connected on ${device.lastConnection.toLocaleString()}`;
@@ -110,7 +110,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }) => {
 
   const fetchDevices = useCallback(() => {
     const handleDevicesRequest = (response) => {
-      const newDevices = response.data.map((value) => Device.fromObject(value));
+      const newDevices = response.data.map((device) => AstarteDevice.fromObject(device));
       setDevices(newDevices);
       setPhase('ok');
     };

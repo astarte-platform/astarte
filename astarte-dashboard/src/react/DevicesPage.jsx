@@ -30,9 +30,9 @@ import {
   Tooltip,
 } from 'react-bootstrap';
 import _ from 'lodash';
+import { AstarteDevice } from 'astarte-client';
 
 import { Link } from 'react-router-dom';
-import Device from './astarte/Device';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 import Highlight from './components/Highlight';
@@ -61,13 +61,13 @@ const matchFilters = (device, filters) => {
     showNeverConnected = true,
   } = filters;
 
-  if (!showConnected && device.connected) {
+  if (!showConnected && device.isConnected) {
     return false;
   }
-  if (!showDisconnected && !device.connected && device.lastConnection) {
+  if (!showDisconnected && !device.isConnected && device.lastConnection) {
     return false;
   }
-  if (!showNeverConnected && !device.connected && !device.lastConnection) {
+  if (!showNeverConnected && !device.isConnected && !device.lastConnection) {
     return false;
   }
 
@@ -111,7 +111,7 @@ export default ({ astarte, history }) => {
       })
       .then((resp) => {
         const nextToken = new URLSearchParams(resp.links.next).get('from_token');
-        const devices = resp.data.map((value) => Device.fromObject(value));
+        const devices = resp.data.map((value) => AstarteDevice.fromObject(value));
         setRequestToken(nextToken);
 
         setDeviceList((previousList) => {
@@ -306,7 +306,7 @@ const DeviceRow = ({ device, filters }) => {
   let lastEvent;
   let tooltipText;
 
-  if (device.connected) {
+  if (device.isConnected) {
     tooltipText = 'Connected';
     colorClass = 'icon-connected';
     lastEvent = `Connected on ${device.lastConnection.toLocaleString()}`;

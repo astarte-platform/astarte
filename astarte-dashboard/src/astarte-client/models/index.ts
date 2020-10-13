@@ -19,3 +19,4 @@
 export * from './Block';
 export * from './Realm';
 export * from './Token';
+export * from './Device';
