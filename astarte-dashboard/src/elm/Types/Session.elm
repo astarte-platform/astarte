@@ -22,7 +22,6 @@ module Types.Session exposing
     , LoginType(..)
     , Session
     , decoder
-    , encode
     , isLoggedIn
     , setToken
     )
@@ -30,7 +29,6 @@ module Types.Session exposing
 import AstarteApi
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (hardcoded, required)
-import Json.Encode as Encode exposing (Value)
 import JsonHelpers as JsonHelpers
 import Types.Config as Config
 
@@ -73,31 +71,6 @@ setToken token session =
             { config | token = token }
     in
     { session | apiConfig = updatedConfig }
-
-
-
--- Encoding
-
-
-encode : Session -> Value
-encode session =
-    Encode.object
-        [ ( "login_type", encodeLoginStatus session.loginStatus )
-        , ( "api_config", AstarteApi.encodeConfig session.apiConfig )
-        ]
-
-
-encodeLoginStatus : LoginStatus -> Value
-encodeLoginStatus loginStatus =
-    case loginStatus of
-        LoggedIn TokenLogin ->
-            Encode.string "TokenLogin"
-
-        LoggedIn (OAuthLogin oauthUrl) ->
-            Encode.string oauthUrl
-
-        _ ->
-            Encode.string ""
 
 
 
