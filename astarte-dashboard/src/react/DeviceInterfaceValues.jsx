@@ -18,6 +18,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
+import _ from 'lodash';
 
 import BackButton from './ui/BackButton';
 import WaitForData from './components/WaitForData';
@@ -59,6 +60,12 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
   );
 
   const deviceAlerts = useAlerts();
+
+  useEffect(() => {
+    if (!_.isEmpty(deviceData.error)) {
+      deviceAlerts.showError('Could not retrieve interface data.');
+    }
+  }, [deviceData.error]);
 
   useEffect(() => {
     const getInterfaceType = async () => {
@@ -109,7 +116,9 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
           <WaitForData
             data={deviceData.value}
             status={deviceData.status}
-            fallback={<Spinner animation="border" role="status" />}
+            fallback={
+              _.isEmpty(deviceData.error) ? <Spinner animation="border" role="status" /> : <></>
+            }
           >
             {(interfaceData) => <InterfaceData data={interfaceData} type={interfaceType} />}
           </WaitForData>
