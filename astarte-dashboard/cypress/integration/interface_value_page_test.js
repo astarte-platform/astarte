@@ -9,27 +9,105 @@ describe('Interface values page tests', () => {
   context('authenticated', () => {
     beforeEach(() => {
       cy.login();
-      cy.fixture('test.astarte.ParametricObjectInterface').as('interface');
-      cy.fixture('test_parametric_object_aggregated_values').as('interface_data');
-      cy.fixture('device_detailed').as('device');
-
-      cy.server();
-      cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface');
-      cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-      cy.route('GET', '/appengine/v1/*/devices/*/interfaces/*', '@interface_data');
     });
 
-    it('shows correct object aggregated data', function() {
-      const deviceId = this.device.data.id;
-      const interfaceName = this.interface.data.interface_name;
-      cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+    it('correctly loads the page', () => {
+      cy.visit('/devices/deviceId/interfaces/interfaceName');
+      cy.location('pathname').should('eq', '/devices/deviceId/interfaces/interfaceName');
+      cy.get('.main-content').within(() => {
+        cy.get('h2').contains('Interface Data');
+        cy.get('.card-header').contains('deviceId /interfaceName');
+      });
+    });
 
-      cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}`);
+    context('aggregated datastream interface', () => {
+      beforeEach(() => {
+        cy.fixture('test.astarte.AggregatedObjectInterface').as('interface');
+        cy.fixture('test_aggregated_object_interface_values').as('interface_data');
+        cy.fixture('device_detailed').as('device');
+        cy.server();
+        cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface');
+        cy.route('GET', '/appengine/v1/*/devices/*', '@device');
+        cy.route('GET', '/appengine/v1/*/devices/*/interfaces/*', '@interface_data');
+      });
 
-      cy.get('h2').contains('Interface Data');
-      cy.get('.card-header').contains(interfaceName);
-      Object.keys(this.interface_data.data).forEach((sensorId) => {
-        cy.get('.card-body p').contains(sensorId);
+      it('shows correct aggregated datastream data', function () {
+        const deviceId = this.device.data.id;
+        const interfaceName = this.interface.data.interface_name;
+        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}`);
+        cy.get('.main-content').within(() => {
+          cy.get('.card-header').contains(`${deviceId} /${interfaceName}`);
+          Object.keys(this.interface_data.data.sensors).forEach((sensorId) => {
+            const sensorData = this.interface_data.data.sensors[sensorId].value;
+            cy.get('.card-body p')
+              .contains(`/sensors/${sensorId}/value`)
+              .next('table')
+              .within(() => {
+                cy.get('tbody tr').should('have.length', sensorData.length);
+                cy.get('thead th').should('have.length', Object.keys(sensorData[0]).length);
+                Object.keys(sensorData[0]).forEach((valueLabel) => {
+                  cy.get('thead th').contains(
+                    valueLabel === 'timestamp' ? 'Timestamp' : valueLabel,
+                  );
+                });
+              });
+          });
+        });
+      });
+    });
+
+    context('individual datastream interface', () => {
+      beforeEach(() => {
+        cy.fixture('test.astarte.IndividualObjectInterface').as('interface');
+        cy.fixture('test_individual_object_interface_values').as('interface_data');
+        cy.fixture('device_detailed').as('device');
+        cy.server();
+        cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface');
+        cy.route('GET', '/appengine/v1/*/devices/*', '@device');
+        cy.route('GET', '/appengine/v1/*/devices/*/interfaces/*', '@interface_data');
+      });
+
+      it('shows correct individual datastream data', function () {
+        const deviceId = this.device.data.id;
+        const interfaceName = this.interface.data.interface_name;
+        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}`);
+        cy.get('.main-content').within(() => {
+          cy.get('.card-header').contains(`${deviceId} /${interfaceName}`);
+          cy.get('.card-body table').within(() => {
+            cy.get('tbody tr').should('have.length', 5);
+            cy.get('thead th').should('have.length', 3);
+            cy.get('thead th').contains('Path');
+            cy.get('thead th').contains('Last value');
+            cy.get('thead th').contains('Last timestamp');
+          });
+        });
+      });
+    });
+
+    context('properties interface', () => {
+      beforeEach(() => {
+        cy.fixture('test.astarte.PropertiesInterface').as('interface');
+        cy.fixture('test_properties_interface_values').as('interface_data');
+        cy.fixture('device_detailed').as('device');
+        cy.server();
+        cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface');
+        cy.route('GET', '/appengine/v1/*/devices/*', '@device');
+        cy.route('GET', '/appengine/v1/*/devices/*/interfaces/*', '@interface_data');
+      });
+
+      it('shows correct properties data', function () {
+        const deviceId = this.device.data.id;
+        const interfaceName = this.interface.data.interface_name;
+        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}`);
+        cy.get('.main-content').within(() => {
+          cy.get('.card-header').contains(`${deviceId} /${interfaceName}`);
+          Object.keys(this.interface_data.data).forEach((key) => {
+            cy.get('.card-body pre code').contains(key);
+          });
+        });
       });
     });
   });

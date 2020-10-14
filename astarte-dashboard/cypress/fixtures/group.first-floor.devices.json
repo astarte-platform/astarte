@@ -16,7 +16,19 @@
           "exchanged_msgs": 20,
           "exchanged_bytes": 200
         },
-        "test.astarte.ParametricObjectInterface": {
+        "test.astarte.AggregatedObjectInterface": {
+          "major": 1,
+          "minor": 0,
+          "exchanged_msgs": 3,
+          "exchanged_bytes": 42
+        },
+        "test.astarte.IndividualObjectInterface": {
+          "major": 1,
+          "minor": 0,
+          "exchanged_msgs": 3,
+          "exchanged_bytes": 42
+        },
+        "test.astarte.PropertiesInterface": {
           "major": 1,
           "minor": 0,
           "exchanged_msgs": 3,

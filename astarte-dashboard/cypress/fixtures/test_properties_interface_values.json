@@ -1,0 +1,8 @@
+{
+  "data": {
+    "bathroom": { "heating": { "active": false } },
+    "bedroom": { "heating": { "active": true } },
+    "kitchen": { "heating": { "active": true } },
+    "lights": { "bath": [false, false], "kitchen": false }
+  }
+}
