@@ -592,6 +592,7 @@ deviceStatsCard device width =
                     [ Flex.block
                     , Flex.justifyCenter
                     , Flex.wrapReverse
+                    , class "align-content-end"
                     ]
                 ]
                 [ PieChart.view chartParams
