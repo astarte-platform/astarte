@@ -783,8 +783,16 @@ buildUrl secure host path query =
 
             else
                 "http://"
+
+        -- crossOrigin always add a / after the host name
+        baseUrl =
+            if String.endsWith "/" host then
+                protocol ++ String.dropRight 1 host
+
+            else
+                protocol ++ host
     in
-    crossOrigin (protocol ++ host) path query
+    crossOrigin baseUrl path query
 
 
 encodeConfig : Config -> Value
