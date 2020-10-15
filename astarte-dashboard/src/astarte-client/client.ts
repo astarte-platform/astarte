@@ -20,8 +20,10 @@ import axios from 'axios';
 import { Socket as PhoenixSocket } from 'phoenix';
 
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
+import { AstarteDevice } from './models/Device';
+
 import type { AstarteBlock } from './models/Block';
-import type { AstarteBlockDTO, AstarteJWT } from './types';
+import type { AstarteBlockDTO, AstarteDeviceDTO, AstarteJWT } from './types';
 
 type Channel = any;
 type Trigger = any;
@@ -217,44 +219,55 @@ class AstarteClient {
   }
 
   async getConfigAuth(): Promise<any> {
-    return this.$get(this.apiConfig.auth(this.config));
+    const response = await this.$get(this.apiConfig.auth(this.config));
+    return response.data;
   }
 
-  async updateConfigAuth(publicKey: any): Promise<any> {
-    return this.$put(this.apiConfig.auth(this.config), {
+  async updateConfigAuth(publicKey: any): Promise<void> {
+    await this.$put(this.apiConfig.auth(this.config), {
       jwt_public_key_pem: publicKey,
     });
   }
 
   async getInterfaceNames(): Promise<any> {
-    return this.$get(this.apiConfig.interfaces(this.config));
+    const response = await this.$get(this.apiConfig.interfaces(this.config));
+    return response.data;
   }
 
   async getInterfaceMajors(interfaceName: any): Promise<any> {
-    return this.$get(this.apiConfig.interfaceMajors({ ...this.config, interfaceName }));
+    const response = await this.$get(
+      this.apiConfig.interfaceMajors({ ...this.config, interfaceName }),
+    );
+    return response.data;
   }
 
   async getInterface({ interfaceName, interfaceMajor }: any): Promise<any> {
-    return this.$get(
+    const response = await this.$get(
       this.apiConfig.interfaceData({
         interfaceName,
         interfaceMajor,
         ...this.config,
       }),
     );
+    return response.data;
   }
 
   async getTriggerNames(): Promise<any> {
-    return this.$get(this.apiConfig.triggers(this.config));
+    const response = await this.$get(this.apiConfig.triggers(this.config));
+    return response.data;
   }
 
   async getDevicesStats(): Promise<any> {
-    return this.$get(this.apiConfig.devicesStats(this.config));
+    const response = await this.$get(this.apiConfig.devicesStats(this.config));
+    return response.data;
   }
 
-  async getDevices(params: any): Promise<any> {
+  async getDevices({
+    details,
+    from,
+    limit,
+  }: any): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> {
     const endpointUri = new URL(this.apiConfig.devices(this.config));
-    const { details, limit, from } = params;
     const query: any = {};
 
     if (details) {
@@ -273,36 +286,44 @@ class AstarteClient {
       endpointUri.search = new URLSearchParams(query).toString();
     }
 
-    return this.$get(endpointUri.toString());
+    const response = await this.$get(endpointUri.toString());
+    const devices = response.data.map((device: AstarteDeviceDTO) =>
+      AstarteDevice.fromObject(device),
+    );
+    const nextToken = new URLSearchParams(response.links.next).get('from_token');
+    return { devices, nextToken };
   }
 
-  async getDeviceInfo(deviceId: any): Promise<any> {
-    return this.$get(this.apiConfig.deviceInfo({ deviceId, ...this.config }));
+  async getDeviceInfo(deviceId: any): Promise<AstarteDevice> {
+    const response = await this.$get(this.apiConfig.deviceInfo({ deviceId, ...this.config }));
+    return AstarteDevice.fromObject(response.data);
   }
 
   async getDeviceData({ deviceId, interfaceName }: any): Promise<any> {
-    return this.$get(
+    const response = await this.$get(
       this.apiConfig.deviceData({
         deviceId,
         interfaceName,
         ...this.config,
       }),
     );
+    return response.data;
   }
 
   async getGroupList(): Promise<any> {
-    return this.$get(this.apiConfig.groups(this.config));
+    const response = await this.$get(this.apiConfig.groups(this.config));
+    return response.data;
   }
 
-  async createGroup(params: any): Promise<any> {
+  async createGroup(params: any): Promise<void> {
     const { groupName, deviceList } = params;
-    return this.$post(this.apiConfig.groups(this.config), {
+    await this.$post(this.apiConfig.groups(this.config), {
       group_name: groupName,
       devices: deviceList,
     });
   }
 
-  async getDevicesInGroup({ groupName, details }: any): Promise<any> {
+  async getDevicesInGroup({ groupName, details }: any): Promise<AstarteDevice[]> {
     if (!groupName) {
       throw Error('Invalid group name');
     }
@@ -320,10 +341,11 @@ class AstarteClient {
       endpointUri.search = new URLSearchParams({ details: true } as any).toString();
     }
 
-    return this.$get(endpointUri.toString());
+    const response = await this.$get(endpointUri.toString());
+    return response.data.map((device: AstarteDeviceDTO) => AstarteDevice.fromObject(device));
   }
 
-  async removeDeviceFromGroup(params: any): Promise<any> {
+  async removeDeviceFromGroup(params: any): Promise<void> {
     const { groupName, deviceId } = params;
 
     if (!groupName) {
@@ -334,7 +356,7 @@ class AstarteClient {
       throw Error('Invalid device ID');
     }
 
-    return this.$delete(
+    await this.$delete(
       this.apiConfig.deviceInGroup({
         ...this.config,
         groupName,
@@ -359,49 +381,56 @@ class AstarteClient {
       requestBody.initial_introspection = encodedIntrospection;
     }
 
-    return this.$post(this.apiConfig.registerDevice(this.config), requestBody);
+    const response = await this.$post(this.apiConfig.registerDevice(this.config), requestBody);
+    return response.data;
   }
 
   async getFlowInstances(): Promise<any> {
-    return this.$get(this.apiConfig.flows(this.config));
+    const response = await this.$get(this.apiConfig.flows(this.config));
+    return response.data;
   }
 
   async getFlowDetails(flowName: any): Promise<any> {
-    return this.$get(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
+    const response = await this.$get(
+      this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }),
+    );
+    return response.data;
   }
 
-  async createNewFlowInstance(pipelineConfig: any): Promise<any> {
-    return this.$post(this.apiConfig.flows(this.config), pipelineConfig);
+  async createNewFlowInstance(pipelineConfig: any): Promise<void> {
+    await this.$post(this.apiConfig.flows(this.config), pipelineConfig);
   }
 
-  async deleteFlowInstance(flowName: any): Promise<any> {
-    return this.$delete(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
+  async deleteFlowInstance(flowName: any): Promise<void> {
+    await this.$delete(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
   }
 
   async getPipelineDefinitions(): Promise<any> {
-    return this.$get(this.apiConfig.pipelines(this.config));
+    const response = await this.$get(this.apiConfig.pipelines(this.config));
+    return response.data;
   }
 
-  async registerPipeline(pipeline: any): Promise<any> {
-    return this.$post(this.apiConfig.pipelines(this.config), pipeline);
+  async registerPipeline(pipeline: any): Promise<void> {
+    await this.$post(this.apiConfig.pipelines(this.config), pipeline);
   }
 
   async getPipelineInputConfig(pipelineId: any): Promise<any> {
-    return this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+    const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+    return response.data;
   }
 
   async getPipelineSource(pipelineId: any): Promise<any> {
-    return this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+    const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+    return response.data;
   }
 
-  async deletePipeline(pipelineId: any): Promise<any> {
-    return this.$delete(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
+  async deletePipeline(pipelineId: any): Promise<void> {
+    await this.$delete(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
   }
 
   async getBlocks(): Promise<AstarteBlock[]> {
-    return this.$get(this.apiConfig.blocks(this.config)).then((response) =>
-      response.data.map((block: AstarteBlockDTO) => toAstarteBlock(block)),
-    );
+    const response = await this.$get(this.apiConfig.blocks(this.config));
+    return response.data.map((block: AstarteBlockDTO) => toAstarteBlock(block));
   }
 
   async registerBlock(block: AstarteCustomBlock): Promise<void> {
@@ -418,19 +447,23 @@ class AstarteClient {
   }
 
   async getRealmManagementHealth(): Promise<any> {
-    return this.$get(this.apiConfig.realmManagementHealth(this.config));
+    const response = await this.$get(this.apiConfig.realmManagementHealth(this.config));
+    return response.data;
   }
 
   async getAppengineHealth(): Promise<any> {
-    return this.$get(this.apiConfig.appengineHealth(this.config));
+    const response = await this.$get(this.apiConfig.appengineHealth(this.config));
+    return response.data;
   }
 
   async getPairingHealth(): Promise<any> {
-    return this.$get(this.apiConfig.pairingHealth(this.config));
+    const response = await this.$get(this.apiConfig.pairingHealth(this.config));
+    return response.data;
   }
 
   async getFlowHealth(): Promise<any> {
-    return this.$get(this.apiConfig.flowHealth(this.config));
+    const response = await this.$get(this.apiConfig.flowHealth(this.config));
+    return response.data;
   }
 
   private async $get(url: string): Promise<any> {

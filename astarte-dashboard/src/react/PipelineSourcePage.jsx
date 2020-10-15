@@ -34,8 +34,8 @@ export default ({ astarte, history, pipelineId }) => {
   const deletionAlerts = useAlerts();
 
   useEffect(() => {
-    const handlePipelineResponse = (response) => {
-      setPipeline(response.data);
+    const handlePipelineResponse = (pipelineDetails) => {
+      setPipeline(pipelineDetails);
       setPhase('ok');
     };
     const handlePipelineError = () => {

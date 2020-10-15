@@ -18,7 +18,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Button, Form, InputGroup, Spinner } from 'react-bootstrap';
-import { AstarteDevice } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
@@ -35,8 +34,7 @@ export default ({ astarte, history }) => {
 
   useEffect(() => {
     const handleDevicesRequest = (response) => {
-      const deviceList = response.data.map((value) => AstarteDevice.fromObject(value));
-      setDevices(deviceList);
+      setDevices(response.devices);
       setPhase('ok');
     };
     const handleDevicesError = () => {

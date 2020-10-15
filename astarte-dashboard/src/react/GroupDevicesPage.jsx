@@ -18,7 +18,6 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Button, Modal, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
-import { AstarteDevice } from 'astarte-client';
 
 import { Link } from 'react-router-dom';
 import SingleCardPage from './ui/SingleCardPage';
@@ -109,8 +108,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }) => {
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);
 
   const fetchDevices = useCallback(() => {
-    const handleDevicesRequest = (response) => {
-      const newDevices = response.data.map((device) => AstarteDevice.fromObject(device));
+    const handleDevicesRequest = (newDevices) => {
       setDevices(newDevices);
       setPhase('ok');
     };

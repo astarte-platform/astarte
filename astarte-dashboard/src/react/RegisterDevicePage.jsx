@@ -282,8 +282,8 @@ const RegisterDevicePage = ({ astarte, history }) => {
 
     astarte
       .registerDevice(params)
-      .then((response) => {
-        const secret = response.data.credentials_secret;
+      .then((registeredDevice) => {
+        const secret = registeredDevice.credentials_secret;
         setRegisteringDevice(false);
         setDeviceSecret(secret);
         setShowCredentialSecretModal(true);

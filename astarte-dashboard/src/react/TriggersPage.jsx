@@ -36,7 +36,7 @@ const LoadingRow = () => (
 
 export default ({ history, astarte }) => {
   const [triggers, setTriggers] = useState(null);
-  const fetchTriggers = () => astarte.getTriggerNames().then((result) => setTriggers(result.data));
+  const fetchTriggers = () => astarte.getTriggerNames().then(setTriggers);
 
   useEffect(() => {
     fetchTriggers();

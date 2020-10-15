@@ -52,12 +52,12 @@ export default ({ history, astarte }) => {
     astarte
       .getInterfaceNames()
       .then((result) => {
-        const interfaceNames = result.data.sort();
+        const interfaceNames = result.sort();
         return Promise.all(
           interfaceNames.map((interfaceName) =>
-            astarte.getInterfaceMajors(interfaceName).then(({ data }) => ({
+            astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => ({
               name: interfaceName,
-              majors: data.sort().reverse(),
+              majors: interfaceMajors.sort().reverse(),
             })),
           ),
         );
