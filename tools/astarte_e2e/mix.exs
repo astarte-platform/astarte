@@ -62,6 +62,7 @@ defmodule AstarteE2E.MixProject do
       {:logfmt, "~> 3.3"},
       {:pretty_log, "~> 0.1"},
       {:observer_cli, "~> 1.5"},
+      {:bamboo, "~> 1.6"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
