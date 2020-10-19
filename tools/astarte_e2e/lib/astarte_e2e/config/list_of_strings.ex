@@ -16,10 +16,19 @@
 # limitations under the License.
 #
 
-use Mix.Config
+defmodule AstarteE2E.Config.ListOfStrings do
+  use Skogsra.Type
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag]
+  def cast(value) when is_binary(value) do
+    list =
+      value
+      |> String.split(~r/,/)
+      |> Enum.map(&String.trim/1)
 
-config :astarte_e2e, AstarteE2EWeb.Mailer, adapter: Bamboo.LocalAdapter
+    {:ok, list}
+  end
+
+  def cast(_) do
+    :error
+  end
+end

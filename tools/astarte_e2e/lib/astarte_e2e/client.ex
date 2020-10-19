@@ -19,7 +19,7 @@
 defmodule AstarteE2E.Client do
   alias Phoenix.Channels.GenSocketClient
   alias Phoenix.Channels.GenSocketClient.Transport.WebSocketClient
-  alias AstarteE2E.{Utils, Config}
+  alias AstarteE2E.{Utils, Config, ServiceDownNotifier}
 
   require Logger
 
@@ -207,6 +207,15 @@ defmodule AstarteE2E.Client do
     {:via, Registry, {Registry.AstarteE2E, {:client, realm, device_id}}}
   end
 
+  defp notify_service_down(reason) do
+    with {:ok, _sent_mail} <- ServiceDownNotifier.notify_service_down(reason) do
+      Logger.info("Service down. The user has been notified.", tag: "mail_sent")
+    else
+      e ->
+        Logger.warn("Cannot notify users by mail. Reason #{inspect(e)}.")
+    end
+  end
+
   # Callbacks
 
   def init(opts) do
@@ -269,6 +278,8 @@ defmodule AstarteE2E.Client do
       [:astarte_end_to_end, :astarte_platform],
       %{status: 0}
     )
+
+    notify_service_down("Client disconnected")
 
     Logger.info("Disconnected with reason: #{inspect(reason)}.",
       tag: "client_disconnected"
@@ -395,6 +406,8 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
+    notify_service_down("Message timeout")
+
     Logger.warn("Incoming message timeout. Key = #{inspect(key)}",
       tag: "message_timeout"
     )
@@ -412,6 +425,8 @@ defmodule AstarteE2E.Client do
       [:astarte_end_to_end, :astarte_platform],
       %{status: 0}
     )
+
+    notify_service_down("Maximum number of request timeout reached")
 
     Logger.warn(
       "Maximum number of requests timeout reached. The websocket client is going to crash.",
@@ -433,6 +448,8 @@ defmodule AstarteE2E.Client do
       [:astarte_end_to_end, :astarte_platform],
       %{status: 0}
     )
+
+    notify_service_down("Request timeout")
 
     Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "request_timeout")
 

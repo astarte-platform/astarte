@@ -22,6 +22,7 @@ defmodule AstarteE2E.Config do
   alias Astarte.Core.Device
   alias AstarteE2E.Config.PositiveIntegerOrInfinity
   alias AstarteE2E.Config.AstarteDeviceID
+  alias AstarteE2E.Config.ListOfStrings
 
   @type client_option ::
           {:url, String.t()}
@@ -112,6 +113,18 @@ defmodule AstarteE2E.Config do
     os_env: "ASTARTE_E2E_CLIENT_MAX_TIMEOUTS",
     type: :pos_integer,
     default: 10
+
+  @envdoc "The comma-separated email recipients. The default value is not a valid address and it must be overridden."
+  app_env :mailer_to_address, :astarte_e2e, :mailer_to_address,
+    os_env: "ASTARTE_E2E_MAILER_TO_ADDRESS",
+    type: ListOfStrings,
+    default: "test@mail-example.com"
+
+  @envdoc "The notification email sender."
+  app_env :mailer_from_address, :astarte_e2e, :mailer_from_address,
+    os_env: "ASTARTE_E2E_MAILER_FROM_ADDRESS",
+    type: :binary,
+    default: "no-reply@astarte.cloud"
 
   @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do

@@ -16,10 +16,18 @@
 # limitations under the License.
 #
 
-use Mix.Config
+defmodule AstarteE2E.ServiceDownNotifier do
+  alias AstarteE2EWeb.{Email, Mailer}
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag]
+  def notify_service_down(reason) do
+    reason
+    |> Email.service_down_email()
+    |> deliver()
+  end
 
-config :astarte_e2e, AstarteE2EWeb.Mailer, adapter: Bamboo.LocalAdapter
+  defp deliver(%Bamboo.Email{} = email) do
+    with %Bamboo.Email{} = sent_email <- Mailer.deliver_later(email) do
+      {:ok, sent_email}
+    end
+  end
+end

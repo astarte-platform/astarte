@@ -16,10 +16,27 @@
 # limitations under the License.
 #
 
-use Mix.Config
+defmodule AstarteE2EWeb.Email do
+  import Bamboo.Email
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag]
+  alias AstarteE2E.Config
 
-config :astarte_e2e, AstarteE2EWeb.Mailer, adapter: Bamboo.LocalAdapter
+  def service_down_email(reason) do
+    from = Config.mailer_from_address!()
+    to = Config.mailer_to_address!()
+
+    text = """
+    AstarteE2E detected a service malfunction.
+
+    Reason: #{reason}.
+
+    Please take actions to prevent further issues.
+    """
+
+    new_email()
+    |> to(to)
+    |> from(from)
+    |> subject("Astarte Warning! Service is down")
+    |> text_body(text)
+  end
+end

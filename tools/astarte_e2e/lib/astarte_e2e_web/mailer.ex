@@ -16,10 +16,6 @@
 # limitations under the License.
 #
 
-use Mix.Config
-
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag]
-
-config :astarte_e2e, AstarteE2EWeb.Mailer, adapter: Bamboo.LocalAdapter
+defmodule AstarteE2EWeb.Mailer do
+  use Bamboo.Mailer, otp_app: :astarte_e2e
+end
