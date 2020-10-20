@@ -19,33 +19,51 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Spinner, Table } from 'react-bootstrap';
+import AstarteClient, { AstarteDevice } from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 
-export default ({ astarte, history }) => {
-  const [phase, setPhase] = useState('loading');
-  const [groups, setGroups] = useState(null);
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+interface GroupState {
+  name: string;
+  loading: boolean;
+  totalDevices: number;
+  connectedDevices: number;
+}
+
+type GroupMap = Map<string, GroupState>;
+
+export default ({ astarte, history }: Props): React.ReactElement => {
+  const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
+  const [groups, setGroups] = useState<GroupMap | null>(null);
   const pageAlerts = useAlerts();
 
   useEffect(() => {
-    const handleDeviceList = (groupName, devices) => {
-      setGroups((groupMap) => {
-        const newGroupState = groupMap.get(groupName);
+    const handleDeviceList = (groupName: string, devices: AstarteDevice[]) => {
+      setGroups((groupMap: GroupMap | null) => {
+        const newGroupMap = groupMap ? new Map(groupMap) : new Map();
+        const newGroupState = newGroupMap.get(groupName);
         newGroupState.loading = false;
         newGroupState.totalDevices = devices.length;
         const connectedDevices = devices.filter((device) => device.isConnected);
         newGroupState.connectedDevices = connectedDevices.length;
-        groupMap.set(groupName, newGroupState);
-        return new Map(groupMap);
+        newGroupMap.set(groupName, newGroupState);
+        return newGroupMap;
       });
     };
-    const handleGroupsRequest = (groupNames) => {
-      const groupMap = groupNames.reduce((acc, groupName) => {
+    const handleGroupsRequest = (groupNames: string[]) => {
+      const groupMap: GroupMap = groupNames.reduce((acc, groupName) => {
         acc.set(groupName, { name: groupName, loading: true });
         return acc;
       }, new Map());
-      groupMap.forEach((value, groupName) => {
+      setGroups(groupMap);
+      setPhase('ok');
+      groupMap.forEach((groupState, groupName) => {
         astarte
           .getDevicesInGroup({
             groupName,
@@ -56,8 +74,6 @@ export default ({ astarte, history }) => {
             pageAlerts.showError(`Couldn't get the device list for group ${groupName}`);
           });
       });
-      setGroups(groupMap);
-      setPhase('ok');
     };
     const handleGroupsError = () => {
       setPhase('err');
@@ -69,7 +85,8 @@ export default ({ astarte, history }) => {
 
   switch (phase) {
     case 'ok':
-      if (groups.size === 0) {
+      const groupMap = groups as GroupMap;
+      if (groupMap.size === 0) {
         innerHTML = <p>No registered group</p>;
       } else {
         innerHTML = (
@@ -82,7 +99,7 @@ export default ({ astarte, history }) => {
               </tr>
             </thead>
             <tbody>
-              {Array.from(groups.values()).map((group) => {
+              {Array.from(groupMap.values()).map((group) => {
                 const encodedGroupName = encodeURIComponent(encodeURIComponent(group.name));
                 return (
                   <tr key={group.name}>

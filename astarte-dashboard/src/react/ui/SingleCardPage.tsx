@@ -21,7 +21,7 @@ import { Container } from 'react-bootstrap';
 import BackButton from './BackButton';
 
 interface Props {
-  backLink: string;
+  backLink?: string;
   children: React.ReactNode;
   title: string;
 }

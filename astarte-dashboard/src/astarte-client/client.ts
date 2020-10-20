@@ -262,30 +262,23 @@ class AstarteClient {
     return response.data;
   }
 
-  async getDevices({
-    details,
-    from,
-    limit,
-  }: any): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> {
+  async getDevices(params: {
+    details?: boolean;
+    from?: string;
+    limit?: number;
+  }): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> {
     const endpointUri = new URL(this.apiConfig.devices(this.config));
     const query: any = {};
-
-    if (details) {
+    if (params.details) {
       query.details = true;
     }
-
-    if (limit) {
-      query.limit = limit;
+    if (params.limit) {
+      query.limit = params.limit;
     }
-
-    if (from) {
-      query.from_token = from;
+    if (params.from) {
+      query.from_token = params.from;
     }
-
-    if (query) {
-      endpointUri.search = new URLSearchParams(query).toString();
-    }
-
+    endpointUri.search = new URLSearchParams(query).toString();
     const response = await this.$get(endpointUri.toString());
     const devices = response.data.map((device: AstarteDeviceDTO) =>
       AstarteDevice.fromObject(device),
@@ -310,24 +303,30 @@ class AstarteClient {
     return response.data;
   }
 
-  async getGroupList(): Promise<any> {
+  async getGroupList(): Promise<string[]> {
     const response = await this.$get(this.apiConfig.groups(this.config));
     return response.data;
   }
 
-  async createGroup(params: any): Promise<void> {
-    const { groupName, deviceList } = params;
+  async createGroup(params: {
+    groupName: string;
+    deviceIds: AstarteDevice['id'][];
+  }): Promise<void> {
+    const { groupName, deviceIds } = params;
     await this.$post(this.apiConfig.groups(this.config), {
       group_name: groupName,
-      devices: deviceList,
+      devices: deviceIds,
     });
   }
 
-  async getDevicesInGroup({ groupName, details }: any): Promise<AstarteDevice[]> {
+  async getDevicesInGroup(params: {
+    groupName: string;
+    details?: boolean;
+  }): Promise<AstarteDevice[]> {
+    const { groupName, details } = params;
     if (!groupName) {
       throw Error('Invalid group name');
     }
-
     /* Double encoding to preserve the URL format when groupName contains % and / */
     const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
     const endpointUri = new URL(
@@ -336,16 +335,14 @@ class AstarteClient {
         groupName: encodedGroupName,
       }),
     );
-
     if (details) {
-      endpointUri.search = new URLSearchParams({ details: true } as any).toString();
+      endpointUri.search = new URLSearchParams({ details: 'true' }).toString();
     }
-
     const response = await this.$get(endpointUri.toString());
     return response.data.map((device: AstarteDeviceDTO) => AstarteDevice.fromObject(device));
   }
 
-  async removeDeviceFromGroup(params: any): Promise<void> {
+  async removeDeviceFromGroup(params: { groupName: string; deviceId: string }): Promise<void> {
     const { groupName, deviceId } = params;
 
     if (!groupName) {
