@@ -19,7 +19,7 @@
 defmodule AstarteE2E.Client do
   alias Phoenix.Channels.GenSocketClient
   alias Phoenix.Channels.GenSocketClient.Transport.WebSocketClient
-  alias AstarteE2E.{Utils, Config, ServiceDownNotifier}
+  alias AstarteE2E.{Utils, Config, ServiceNotifier}
 
   require Logger
 
@@ -208,11 +208,25 @@ defmodule AstarteE2E.Client do
   end
 
   defp notify_service_down(reason) do
-    with {:ok, _sent_mail} <- ServiceDownNotifier.notify_service_down(reason) do
-      Logger.info("Service down. The user has been notified.", tag: "mail_sent")
-    else
+    case ServiceNotifier.notify_service_down(reason) do
+      :mail_sent ->
+        Logger.info("Service down. The user has been notified.", tag: "mail_sent")
+
+      :already_notified ->
+        Logger.info("Service down. The issue was already reported.", tag: "issue_already_reported")
+
       e ->
-        Logger.warn("Cannot notify users by mail. Reason #{inspect(e)}.")
+        Logger.warn("Cannot notify users by mail. Reason: #{inspect(e)}.")
+    end
+  end
+
+  defp notify_service_up do
+    case ServiceNotifier.notify_service_up() do
+      :ok ->
+        Logger.info("Astarte in its nominal state.", tag: "nominal_state")
+
+      e ->
+        Logger.warn("Unexpected return value: #{inspect(e)}")
     end
   end
 
@@ -356,6 +370,8 @@ defmodule AstarteE2E.Client do
         [:astarte_end_to_end, :astarte_platform],
         %{status: 1}
       )
+
+      notify_service_up()
 
       GenSocketClient.reply(from, :ok)
       {:ok, new_state}
@@ -563,6 +579,8 @@ defmodule AstarteE2E.Client do
         [:astarte_end_to_end, :astarte_platform],
         %{status: 1}
       )
+
+      notify_service_up()
 
       Logger.info("Round trip time = #{inspect(dt_ms)} ms.")
 
