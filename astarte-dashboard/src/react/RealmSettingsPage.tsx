@@ -18,12 +18,61 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Button, Form, Modal, Spinner } from 'react-bootstrap';
+import AstarteClient from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 
-export default ({ astarte, history }) => {
-  const [phase, setPhase] = useState('loading');
+interface ConfirmKeyChangesProps {
+  show: boolean;
+  isUpdating: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+const ConfirmKeyChanges = ({
+  show,
+  isUpdating,
+  onCancel,
+  onConfirm,
+}: ConfirmKeyChangesProps): React.ReactElement => (
+  <div
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' && !isUpdating) {
+        onConfirm();
+      }
+    }}
+  >
+    <Modal size="lg" show={show} onHide={onCancel}>
+      <Modal.Header closeButton>
+        <Modal.Title>Confirm Public Key Update</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <p>
+          Realm public key will be changed, users will not be able to make further API calls using
+          their current auth token. Confirm?
+        </p>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={onConfirm} disabled={isUpdating}>
+          {isUpdating && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
+          Update settings
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  </div>
+);
+
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+export default ({ astarte, history }: Props): React.ReactElement => {
+  const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
   const [userPublicKey, setUserPublicKey] = useState('');
   const [draftPublicKey, setDraftPublicKey] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -37,7 +86,7 @@ export default ({ astarte, history }) => {
   const applyNewSettings = useCallback(() => {
     setIsUpdatingSettings(true);
     astarte
-      .updateConfigAuth(draftPublicKey)
+      .updateConfigAuth({ publicKey: draftPublicKey })
       .then(() => {
         history.push('/logout');
       })
@@ -51,8 +100,7 @@ export default ({ astarte, history }) => {
   useEffect(() => {
     astarte
       .getConfigAuth()
-      .then((config) => {
-        const publicKey = config.jwt_public_key_pem;
+      .then(({ publicKey }) => {
         setUserPublicKey(publicKey);
         setDraftPublicKey(publicKey);
         setPhase('ok');
@@ -74,7 +122,7 @@ export default ({ astarte, history }) => {
               <Form.Control
                 as="textarea"
                 className="text-monospace"
-                rows="16"
+                rows={16}
                 value={draftPublicKey}
                 onChange={(e) => setDraftPublicKey(e.target.value)}
               />
@@ -113,34 +161,3 @@ export default ({ astarte, history }) => {
     </SingleCardPage>
   );
 };
-
-const ConfirmKeyChanges = ({ show, isUpdating, onCancel, onConfirm }) => (
-  <div
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isUpdating) {
-        onConfirm();
-      }
-    }}
-  >
-    <Modal size="lg" show={show} onHide={onCancel}>
-      <Modal.Header closeButton>
-        <Modal.Title>Confirm Public Key Update</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <p>
-          Realm public key will be changed, users will not be able to make further API calls using
-          their current auth token. Confirm?
-        </p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="primary" onClick={onConfirm} disabled={isUpdating}>
-          {isUpdating && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
-          Update settings
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  </div>
-);
