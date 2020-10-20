@@ -115,7 +115,7 @@ class SessionManager {
     const { realm, token } = this.credentials;
 
     const apiConfig = {
-      secure_connection: appEngineApiUrl.schema === 'https:',
+      secure_connection: appEngineApiUrl.protocol === 'https:',
       realm_management_url: urlToSchemalessString(realmManagementApiUrl),
       appengine_url: urlToSchemalessString(appEngineApiUrl),
       pairing_url: urlToSchemalessString(pairingApiUrl),
