@@ -82,7 +82,7 @@ jobs:
     - name: Build Astarte E2E
       working-directory: tools/astarte_e2e
       env:
-        MIX_ENV: prod
+        MIX_ENV: ci
       run: |
         mix deps.get
         mix compile
@@ -96,7 +96,7 @@ jobs:
         ASTARTE_E2E_CHECK_INTERVAL_SECONDS: 5
         ASTARTE_E2E_CHECK_REPETITIONS: 5
       run: |
-        _build/prod/rel/astarte_e2e/bin/astarte_e2e start
+        _build/ci/rel/astarte_e2e/bin/astarte_e2e start
     - name: Check Docker
       if: ${{ failure() }}
       run: |
