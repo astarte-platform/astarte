@@ -16,17 +16,26 @@
    limitations under the License.
 */
 
-import AstarteClient from './client';
+import { AstarteFlowDTO } from '../../types';
 
-export {
-  AstarteCustomBlock,
-  AstarteNativeBlock,
-  AstarteDevice,
-  AstarteFlow,
-  AstarteRealm,
-  AstarteToken,
-} from './models';
+export class AstarteFlow {
+  name: string;
 
-export type { AstarteBlock } from './models';
+  pipeline: string;
 
-export default AstarteClient;
+  config?: {
+    [key: string]: any;
+  };
+
+  constructor(flow: AstarteFlowDTO) {
+    this.name = flow.name;
+    this.pipeline = flow.pipeline;
+    if (flow.config != null) {
+      this.config = flow.config;
+    }
+  }
+
+  static fromObject(dto: AstarteFlowDTO): AstarteFlow {
+    return new AstarteFlow(dto);
+  }
+}

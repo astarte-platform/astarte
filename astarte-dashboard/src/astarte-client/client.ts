@@ -21,6 +21,7 @@ import { Socket as PhoenixSocket } from 'phoenix';
 
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
 import { AstarteDevice } from './models/Device';
+import { AstarteFlow } from './models/Flow';
 
 import type { AstarteBlock } from './models/Block';
 import type { AstarteBlockDTO, AstarteDeviceDTO, AstarteJWT } from './types';
@@ -382,23 +383,27 @@ class AstarteClient {
     return response.data;
   }
 
-  async getFlowInstances(): Promise<any> {
+  async getFlowInstances(): Promise<Array<AstarteFlow['name']>> {
     const response = await this.$get(this.apiConfig.flows(this.config));
     return response.data;
   }
 
-  async getFlowDetails(flowName: any): Promise<any> {
+  async getFlowDetails(flowName: AstarteFlow['name']): Promise<AstarteFlow> {
     const response = await this.$get(
       this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }),
     );
-    return response.data;
+    return AstarteFlow.fromObject(response.data);
   }
 
-  async createNewFlowInstance(pipelineConfig: any): Promise<void> {
-    await this.$post(this.apiConfig.flows(this.config), pipelineConfig);
+  async createNewFlowInstance(params: {
+    name: AstarteFlow['name'];
+    pipeline: string;
+    config: { [key: string]: any };
+  }): Promise<void> {
+    await this.$post(this.apiConfig.flows(this.config), params);
   }
 
-  async deleteFlowInstance(flowName: any): Promise<void> {
+  async deleteFlowInstance(flowName: AstarteFlow['name']): Promise<void> {
     await this.$delete(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
   }
 

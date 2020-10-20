@@ -18,11 +18,18 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Button, Form, Spinner } from 'react-bootstrap';
+import AstarteClient from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
 
-export default ({ astarte, history, pipelineId }) => {
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+  pipelineId: string;
+}
+
+export default ({ astarte, history, pipelineId }: Props): React.ReactElement => {
   const [flow, setFlow] = useState({
     name: '',
     config: '{}',
@@ -87,7 +94,7 @@ export default ({ astarte, history, pipelineId }) => {
         <Form.Label>Flow config</Form.Label>
         <Form.Control
           as="textarea"
-          rows="12"
+          rows={12}
           value={flow.config}
           onChange={(e) => setFlow({ ...flow, config: e.target.value })}
         />
