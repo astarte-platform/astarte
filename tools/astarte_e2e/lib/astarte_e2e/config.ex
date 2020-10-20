@@ -124,7 +124,7 @@ defmodule AstarteE2E.Config do
   app_env :mailer_from_address, :astarte_e2e, :mailer_from_address,
     os_env: "ASTARTE_E2E_MAILER_FROM_ADDRESS",
     type: :binary,
-    default: "no-reply@astarte.cloud"
+    default: "monitoring@mg.astarte.cloud"
 
   @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do
