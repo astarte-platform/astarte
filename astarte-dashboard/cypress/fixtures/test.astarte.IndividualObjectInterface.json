@@ -1,0 +1,31 @@
+{
+  "data": {
+    "interface_name": "test.astarte.IndividualObjectInterface",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "mappings": [
+      {
+        "endpoint": "/humidity/value/current",
+        "type": "double",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor}/estimated",
+        "type": "double",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/temperature",
+        "type": "double",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/weekend/time",
+        "type": "boolean",
+        "explicit_timestamp": true
+      }
+    ]
+  }
+}
