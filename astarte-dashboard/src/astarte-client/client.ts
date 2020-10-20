@@ -229,12 +229,12 @@ class AstarteClient {
     });
   }
 
-  async getInterfaceNames(): Promise<any> {
+  async getInterfaceNames(): Promise<string[]> {
     const response = await this.$get(this.apiConfig.interfaces(this.config));
     return response.data;
   }
 
-  async getInterfaceMajors(interfaceName: any): Promise<any> {
+  async getInterfaceMajors(interfaceName: string): Promise<number[]> {
     const response = await this.$get(
       this.apiConfig.interfaceMajors({ ...this.config, interfaceName }),
     );

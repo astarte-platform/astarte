@@ -15,8 +15,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge, Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
+import AstarteClient from 'astarte-client';
+import _ from 'lodash';
 
-const InterfaceRow = ({ name, majors }) => (
+interface InterfaceRowProps {
+  name: string;
+  majors: number[];
+}
+
+const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement => (
   <ListGroup.Item>
     <Container className="p-0" fluid>
       <Row>
@@ -40,29 +47,37 @@ const InterfaceRow = ({ name, majors }) => (
   </ListGroup.Item>
 );
 
-const LoadingRow = () => (
+const LoadingRow = (): React.ReactElement => (
   <ListGroup.Item>
     <Spinner animation="border" role="status" />
   </ListGroup.Item>
 );
 
-export default ({ history, astarte }) => {
-  const [interfaces, setInterfaces] = useState(null);
-  const fetchInterfaces = () =>
-    astarte
-      .getInterfaceNames()
-      .then((result) => {
-        const interfaceNames = result.sort();
-        return Promise.all(
-          interfaceNames.map((interfaceName) =>
-            astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => ({
-              name: interfaceName,
-              majors: interfaceMajors.sort().reverse(),
-            })),
-          ),
-        );
-      })
-      .then(setInterfaces);
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+interface InterfaceInfo {
+  name: string;
+  majors: number[];
+}
+
+export default ({ history, astarte }: Props): React.ReactElement => {
+  const [interfaces, setInterfaces] = useState<InterfaceInfo[] | null>(null);
+  const fetchInterfaces = async () => {
+    const interfaceNames = await astarte.getInterfaceNames();
+    const fetchedInterfaces = await Promise.all(
+      interfaceNames.map((interfaceName) =>
+        astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => ({
+          name: interfaceName,
+          majors: interfaceMajors.sort().reverse(),
+        })),
+      ),
+    );
+    const sortedInterfaces = _.sortBy(fetchedInterfaces, ['name']);
+    setInterfaces(sortedInterfaces);
+  };
 
   useEffect(() => {
     fetchInterfaces();
