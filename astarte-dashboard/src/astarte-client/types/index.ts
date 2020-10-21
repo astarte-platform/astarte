@@ -19,3 +19,4 @@
 export * from './dto';
 export * from './block';
 export * from './token';
+export * from './validation';

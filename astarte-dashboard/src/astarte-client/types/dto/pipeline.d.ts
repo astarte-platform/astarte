@@ -16,18 +16,11 @@
    limitations under the License.
 */
 
-import AstarteClient from './client';
-
-export {
-  AstarteCustomBlock,
-  AstarteNativeBlock,
-  AstarteDevice,
-  AstarteFlow,
-  AstartePipeline,
-  AstarteRealm,
-  AstarteToken,
-} from './models';
-
-export type { AstarteBlock } from './models';
-
-export default AstarteClient;
+export interface AstartePipelineDTO {
+  name: string;
+  description: string;
+  schema?: {
+    [key: string]: unknown;
+  };
+  source: string;
+}

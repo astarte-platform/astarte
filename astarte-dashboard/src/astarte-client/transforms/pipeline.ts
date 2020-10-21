@@ -16,18 +16,25 @@
    limitations under the License.
 */
 
-import AstarteClient from './client';
+import _ from 'lodash';
 
-export {
-  AstarteCustomBlock,
-  AstarteNativeBlock,
-  AstarteDevice,
-  AstarteFlow,
-  AstartePipeline,
-  AstarteRealm,
-  AstarteToken,
-} from './models';
+import type { AstartePipeline } from '../models/Pipeline';
+import type { AstartePipelineDTO } from '../types';
 
-export type { AstarteBlock } from './models';
+export const fromAstartePipelineDTO = (dto: AstartePipelineDTO): AstartePipeline => {
+  return {
+    name: dto.name,
+    description: dto.description,
+    schema: dto.schema || {},
+    source: dto.source,
+  };
+};
 
-export default AstarteClient;
+export const toAstartePipelineDTO = (obj: AstartePipeline): AstartePipelineDTO => {
+  return {
+    name: obj.name,
+    description: obj.description,
+    schema: _.isEmpty(obj.schema) ? undefined : obj.schema,
+    source: obj.source,
+  };
+};
