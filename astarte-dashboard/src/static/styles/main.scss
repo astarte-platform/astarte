@@ -204,6 +204,14 @@ h6,
   z-index: 2;
 }
 
+.warning-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 70%;
+  color: $warning;
+}
+
 .suggestion {
   position: absolute;
   top: 2.4rem;
