@@ -563,15 +563,16 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceName').should('not.have.class', 'is-invalid');
         cy.get('#interfaceName')
           .parents('.form-group')
-          .get('i.fa-exclamation-circle')
-          .should('be.visible');
+          .get('.warning-feedback')
+          .should('be.visible')
+          .and('not.empty');
 
         // Valid name
         cy.get('#interfaceName').clear().type('com.sample.Name');
         cy.get('#interfaceName').should('not.have.class', 'is-invalid');
         cy.get('#interfaceName')
           .parents('.form-group')
-          .get('i.fa-exclamation-circle')
+          .get('.warning-feedback')
           .should('not.be.visible');
       });
 

@@ -489,7 +489,7 @@ pageInit realmRoute config session =
             initReactPage session Interfaces "interfaces" realmRoute
 
         Route.NewInterface ->
-            initInterfaceBuilderPage Nothing session session.apiConfig.realm
+            initReactPage session Interfaces "interface-new" realmRoute
 
         Route.ShowInterface name major ->
             initInterfaceBuilderPage (Just ( name, major )) session session.apiConfig.realm

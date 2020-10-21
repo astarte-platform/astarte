@@ -26,6 +26,7 @@ import GroupDevicesPage from './GroupDevicesPage';
 import NewGroupPage from './NewGroupPage';
 import TriggersPage from './TriggersPage';
 import InterfacesPage from './InterfacesPage';
+import NewInterfacePage from './NewInterfacePage';
 import DevicesPage from './DevicesPage';
 import RegisterDevicePage from './RegisterDevicePage';
 import FlowInstancesPage from './FlowInstancesPage';
@@ -71,6 +72,7 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
         />
         <Route path="triggers" element={<TriggersPage {...pageProps} />} />
         <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
+        <Route path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
         <Route path="devices" element={<DevicesPage {...pageProps} />} />
         <Route path="devices/register" element={<RegisterDevicePage {...pageProps} />} />
         <Route
