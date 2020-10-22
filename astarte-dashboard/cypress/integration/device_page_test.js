@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 describe('Device page tests', () => {
   context('no access before login', () => {
     before(() => {
@@ -184,6 +186,88 @@ describe('Device page tests', () => {
             cy.contains('Add to existing group').click();
           });
         cy.get('.modal').contains('Select Existing Group');
+      });
+    });
+
+    it('correctly inhibit credentials request', function () {
+      cy.server();
+      const deviceWithInhibitedCredentials = _.merge({}, this.device, {
+        data: { credentials_inhibited: true },
+      });
+      const deviceWithoutInhibitedCredentials = _.merge({}, this.device, {
+        data: { credentials_inhibited: false },
+      });
+      cy.route('GET', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials);
+      cy.visit(`/devices/${this.device.data.id}`);
+      cy.get('.main-content .card-header')
+        .contains('Device Info')
+        .parents('.card')
+        .within(() => {
+          cy.contains('Credentials inhibited').next().contains('False');
+          cy.contains('Enable credentials request').should('not.exist');
+          cy.contains('Inhibit credentials').should('exist').and('not.be.disabled');
+          cy.route('PATCH', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials).as(
+            'updateDeviceRequest',
+          );
+          cy.route('GET', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials);
+          cy.contains('Inhibit credentials').click();
+          cy.wait('@updateDeviceRequest')
+            .its('requestBody.data.credentials_inhibited')
+            .should('deep.eq', true);
+          cy.contains('Credentials inhibited').next().contains('True');
+          cy.contains('Enable credentials request').should('exist').and('not.be.disabled');
+          cy.contains('Inhibit credentials').should('not.exist');
+        });
+    });
+
+    it('correctly enable credentials request', function () {
+      cy.server();
+      const deviceWithInhibitedCredentials = _.merge({}, this.device, {
+        data: { credentials_inhibited: true },
+      });
+      const deviceWithoutInhibitedCredentials = _.merge({}, this.device, {
+        data: { credentials_inhibited: false },
+      });
+      cy.route('GET', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials);
+      cy.visit(`/devices/${this.device.data.id}`);
+      cy.get('.main-content .card-header')
+        .contains('Device Info')
+        .parents('.card')
+        .within(() => {
+          cy.contains('Credentials inhibited').next().contains('True');
+          cy.contains('Enable credentials request').should('exist').and('not.be.disabled');
+          cy.contains('Inhibit credentials').should('not.exist');
+          cy.route('PATCH', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials).as(
+            'updateDeviceRequest',
+          );
+          cy.route('GET', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials);
+          cy.contains('Enable credentials request').click();
+          cy.wait('@updateDeviceRequest')
+            .its('requestBody.data.credentials_inhibited')
+            .should('deep.eq', false);
+          cy.contains('Credentials inhibited').next().contains('False');
+          cy.contains('Enable credentials request').should('not.exist');
+          cy.contains('Inhibit credentials').should('exist').and('not.be.disabled');
+        });
+    });
+
+    it('asks confirmation before wiping credentials secret', function () {
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', '@device');
+      cy.route({
+        method: 'DELETE',
+        url: `/pairing/v1/*/agent/devices/${this.device.data.id}`,
+        status: 204,
+        response: '',
+      }).as('wipeCredentialsSecretRequest');
+      cy.visit(`/devices/${this.device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.contains('Wipe credential secret').should('exist').and('not.be.disabled').click();
+        cy.get('.modal').contains(
+          'This will remove the current device credential secret from Astarte, forcing the device to register again and store its new credentials secret. Continue?',
+        );
+        cy.get('.modal').contains('Wipe credentials secret').click();
+        cy.wait('@wipeCredentialsSecretRequest');
       });
     });
   });
