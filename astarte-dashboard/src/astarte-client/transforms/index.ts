@@ -16,6 +16,7 @@
    limitations under the License.
 */
 
+export * from './device';
 export * from './pipeline';
 export * from './interface';
 export * from './mapping';

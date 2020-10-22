@@ -21,6 +21,7 @@ import { Socket as PhoenixSocket } from 'phoenix';
 import _ from 'lodash';
 
 import {
+  fromAstarteDeviceDTO,
   fromAstarteInterfaceDTO,
   fromAstartePipelineDTO,
   toAstartePipelineDTO,
@@ -304,16 +305,14 @@ class AstarteClient {
     }
     endpointUri.search = new URLSearchParams(query).toString();
     const response = await this.$get(endpointUri.toString());
-    const devices = response.data.map((device: AstarteDeviceDTO) =>
-      AstarteDevice.fromObject(device),
-    );
+    const devices = response.data.map((device: AstarteDeviceDTO) => fromAstarteDeviceDTO(device));
     const nextToken = new URLSearchParams(response.links.next).get('from_token');
     return { devices, nextToken };
   }
 
   async getDeviceInfo(deviceId: AstarteDevice['id']): Promise<AstarteDevice> {
     const response = await this.$get(this.apiConfig.deviceInfo({ deviceId, ...this.config }));
-    return AstarteDevice.fromObject(response.data);
+    return fromAstarteDeviceDTO(response.data);
   }
 
   async getDeviceData(params: {
@@ -367,7 +366,7 @@ class AstarteClient {
       endpointUri.search = new URLSearchParams({ details: 'true' }).toString();
     }
     const response = await this.$get(endpointUri.toString());
-    return response.data.map((device: AstarteDeviceDTO) => AstarteDevice.fromObject(device));
+    return response.data.map((device: AstarteDeviceDTO) => fromAstarteDeviceDTO(device));
   }
 
   async removeDeviceFromGroup(params: { groupName: string; deviceId: string }): Promise<void> {
