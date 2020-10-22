@@ -14,18 +14,21 @@ describe('Device page tests', () => {
     beforeEach(() => {
       cy.fixture('device').as('device');
       cy.fixture('device_detailed').as('deviceDetailed');
+      cy.login();
     });
 
     it('successfully loads Device page', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-      cy.login();
       cy.visit(`/devices/${this.device.data.id}`);
       cy.location('pathname').should('eq', `/devices/${this.device.data.id}`);
       cy.get('h2').contains('Device');
     });
 
     it('displays correct properties for a device', function () {
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', '@device');
+      cy.visit(`/devices/${this.device.data.id}`);
       cy.get('.main-content').within(() => {
         cy.contains('Device Info')
           .next()
@@ -34,30 +37,30 @@ describe('Device page tests', () => {
             cy.contains('Device name').next().contains('No name alias set');
             cy.contains('Status').next().contains('Never connected');
             cy.contains('Credentials inhibited').next().contains('False');
-            cy.contains('Inhibit credentials').should('not.be.disabled');
+            cy.contains('Inhibit credentials').should('exist').and('not.be.disabled');
             cy.contains('Enable credentials request').should('not.exist');
-            cy.contains('Wipe credential secret').should('not.be.disabled');
+            cy.contains('Wipe credential secret').should('exist').and('not.be.disabled');
           });
 
         cy.contains('Aliases')
           .next()
           .within(() => {
             cy.contains('Device has no aliases');
-            cy.contains('Add new alias').should('not.be.disabled');
+            cy.contains('Add new alias').should('exist').and('not.be.disabled');
           });
 
         cy.contains('Metadata')
           .next()
           .within(() => {
             cy.contains('Device has no metadata');
-            cy.contains('Add new item').should('not.be.disabled');
+            cy.contains('Add new item').should('exist').and('not.be.disabled');
           });
 
         cy.contains('Groups')
           .next()
           .within(() => {
             cy.contains('Device does not belong to any group');
-            cy.contains('Add to existing group').should('not.be.disabled');
+            cy.contains('Add to existing group').should('exist').and('not.be.disabled');
           });
 
         cy.contains('Interfaces')
@@ -83,13 +86,15 @@ describe('Device page tests', () => {
     it('successfully loads Device page for a detailed device', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
-      cy.login();
       cy.visit(`/devices/${this.deviceDetailed.data.id}`);
       cy.location('pathname').should('eq', `/devices/${this.deviceDetailed.data.id}`);
       cy.get('h2').contains('Device');
     });
 
     it('displays correct properties for a detailed device', function () {
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
+      cy.visit(`/devices/${this.deviceDetailed.data.id}`);
       cy.get('.main-content').within(() => {
         cy.contains('Device Info')
           .next()
@@ -127,7 +132,7 @@ describe('Device page tests', () => {
           .next()
           .within(() => {
             this.deviceDetailed.data.groups.forEach((group) => {
-              cy.contains(group);
+              cy.contains(group).should('have.attr', 'href', `/groups/${group}`);
             });
             cy.contains('Add to existing group').should('not.be.disabled');
           });
@@ -168,6 +173,9 @@ describe('Device page tests', () => {
     });
 
     it('correctly opens the groups modal when adding to new group', function () {
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
+      cy.visit(`/devices/${this.deviceDetailed.data.id}`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Groups')
