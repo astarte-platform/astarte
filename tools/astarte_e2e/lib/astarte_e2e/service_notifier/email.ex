@@ -16,6 +16,27 @@
 # limitations under the License.
 #
 
-defmodule AstarteE2EWeb.Mailer do
-  use Bamboo.Mailer, otp_app: :astarte_e2e
+defmodule AstarteE2E.ServiceNotifier.Email do
+  import Bamboo.Email
+
+  alias AstarteE2E.Config
+
+  def service_down_email(reason) do
+    from = Config.mailer_from_address!()
+    to = Config.mailer_to_address!()
+
+    text = """
+    AstarteE2E detected a service malfunction.
+
+    Reason: #{reason}.
+
+    Please take actions to prevent further issues.
+    """
+
+    new_email()
+    |> to(to)
+    |> from(from)
+    |> subject("Astarte Warning! Service is down")
+    |> text_body(text)
+  end
 end

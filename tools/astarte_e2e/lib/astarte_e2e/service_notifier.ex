@@ -20,7 +20,7 @@ defmodule AstarteE2E.ServiceNotifier do
   @behaviour :gen_statem
 
   require Logger
-  alias AstarteE2EWeb.{Email, Mailer}
+  alias AstarteE2E.ServiceNotifier.{Email, Mailer}
 
   # API
 

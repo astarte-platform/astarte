@@ -32,7 +32,7 @@ mailgun_domain =
 
 mailgun_base_uri = System.get_env("MAILGUN_BASE_URI") || "https://api.mailgun.net/v3"
 
-config :astarte_e2e, AstarteE2EWeb.Mailer,
+config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer,
   adapter: Bamboo.MailgunAdapter,
   api_key: mailgun_api_key,
   domain: mailgun_domain,

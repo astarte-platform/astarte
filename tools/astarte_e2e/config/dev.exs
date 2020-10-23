@@ -22,4 +22,4 @@ config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [:module, :function, :tag]
 
-config :astarte_e2e, AstarteE2EWeb.Mailer, adapter: Bamboo.LocalAdapter
+config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer, adapter: Bamboo.LocalAdapter
