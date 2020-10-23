@@ -18,6 +18,25 @@
 
 use Mix.Config
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag]
+mailgun_api_key =
+  System.get_env("MAILGUN_API_KEY") ||
+    raise """
+    environment variable MAILGUN_API_KEY is missing.
+    """
+
+mailgun_domain =
+  System.get_env("MAILGUN_DOMAIN") ||
+    raise """
+    environment variable MAILGUN_DOMAIN is missing.
+    """
+
+mailgun_base_uri = System.get_env("MAILGUN_BASE_URI") || "https://api.mailgun.net/v3"
+
+config :astarte_e2e, AstarteE2EWeb.Mailer,
+  adapter: Bamboo.MailgunAdapter,
+  api_key: mailgun_api_key,
+  domain: mailgun_domain,
+  base_uri: mailgun_base_uri,
+  hackney_opts: [
+    recv_timeout: :timer.minutes(1)
+  ]
