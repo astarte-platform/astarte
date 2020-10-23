@@ -16,9 +16,4 @@
    limitations under the License.
 */
 
-export * from './dto';
-export * from './block';
-export * from './dataType';
-export * from './interfaceValues';
-export * from './token';
-export * from './validation';
+export type AstarteDataType = number | boolean | string | number[] | boolean[] | string[];
