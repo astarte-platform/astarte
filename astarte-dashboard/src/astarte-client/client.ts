@@ -417,14 +417,7 @@ class AstarteClient {
 
   async getPipelines(): Promise<AstartePipeline[]> {
     const pipelineNames = await this.getPipelineNames();
-    const response = await Promise.allSettled(pipelineNames.map(this.getPipeline));
-    const pipelines: AstartePipeline[] = [];
-    response.forEach((r) => {
-      if (r.status === 'fulfilled') {
-        const pipeline = new AstartePipeline(fromAstartePipelineDTO(r.value));
-        pipelines.push(pipeline);
-      }
-    });
+    const pipelines = await Promise.all(pipelineNames.map(this.getPipeline));
     return pipelines;
   }
 
