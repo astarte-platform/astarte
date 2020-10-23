@@ -52,6 +52,7 @@ defmodule AstarteE2E.ServiceNotifier do
 
   defp deliver(%Bamboo.Email{} = email) do
     with %Bamboo.Email{} = sent_email <- Mailer.deliver_later(email) do
+      Logger.info("Service down. The user has been notified.", tag: "mail_sent")
       {:ok, sent_email}
     end
   end

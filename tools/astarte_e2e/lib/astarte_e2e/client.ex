@@ -207,29 +207,6 @@ defmodule AstarteE2E.Client do
     {:via, Registry, {Registry.AstarteE2E, {:client, realm, device_id}}}
   end
 
-  defp notify_service_down(reason) do
-    case ServiceNotifier.notify_service_down(reason) do
-      :mail_sent ->
-        Logger.info("Service down. The user has been notified.", tag: "mail_sent")
-
-      :already_notified ->
-        Logger.info("Service down. The issue was already reported.", tag: "issue_already_reported")
-
-      e ->
-        Logger.warn("Cannot notify users by mail. Reason: #{inspect(e)}.")
-    end
-  end
-
-  defp notify_service_up do
-    case ServiceNotifier.notify_service_up() do
-      :ok ->
-        Logger.info("Astarte in its nominal state.", tag: "nominal_state")
-
-      e ->
-        Logger.warn("Unexpected return value: #{inspect(e)}")
-    end
-  end
-
   # Callbacks
 
   def init(opts) do
@@ -293,7 +270,7 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
-    notify_service_down("Client disconnected")
+    ServiceNotifier.notify_service_down("Client disconnected")
 
     Logger.info("Disconnected with reason: #{inspect(reason)}.",
       tag: "client_disconnected"
@@ -371,7 +348,7 @@ defmodule AstarteE2E.Client do
         %{status: 1}
       )
 
-      notify_service_up()
+      ServiceNotifier.notify_service_up()
 
       GenSocketClient.reply(from, :ok)
       {:ok, new_state}
@@ -422,7 +399,7 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
-    notify_service_down("Message timeout")
+    ServiceNotifier.notify_service_down("Message timeout")
 
     Logger.warn("Incoming message timeout. Key = #{inspect(key)}",
       tag: "message_timeout"
@@ -442,7 +419,7 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
-    notify_service_down("Maximum number of request timeout reached")
+    ServiceNotifier.notify_service_down("Maximum number of request timeout reached")
 
     Logger.warn(
       "Maximum number of requests timeout reached. The websocket client is going to crash.",
@@ -465,7 +442,7 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
-    notify_service_down("Request timeout")
+    ServiceNotifier.notify_service_down("Request timeout")
 
     Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "request_timeout")
 
@@ -580,7 +557,7 @@ defmodule AstarteE2E.Client do
         %{status: 1}
       )
 
-      notify_service_up()
+      ServiceNotifier.notify_service_up()
 
       Logger.info("Round trip time = #{inspect(dt_ms)} ms.")
 
