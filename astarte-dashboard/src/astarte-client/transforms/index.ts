@@ -17,3 +17,4 @@
 */
 
 export * from './pipeline';
+export * from './mapping';

@@ -22,3 +22,4 @@ export * from './Token';
 export * from './Device';
 export * from './Flow';
 export * from './Pipeline';
+export * from './Mapping';
