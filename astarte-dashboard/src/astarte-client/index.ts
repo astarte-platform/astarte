@@ -26,6 +26,7 @@ export {
   AstarteDevice,
   AstarteFlow,
   AstartePipeline,
+  AstarteInterface,
   AstarteMapping,
   AstarteRealm,
   AstarteToken,

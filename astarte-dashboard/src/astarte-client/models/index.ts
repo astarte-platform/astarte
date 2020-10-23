@@ -23,3 +23,4 @@ export * from './Device';
 export * from './Flow';
 export * from './Pipeline';
 export * from './Mapping';
+export * from './Interface';
