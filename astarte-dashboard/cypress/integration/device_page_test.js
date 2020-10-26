@@ -166,5 +166,17 @@ describe('Device page tests', () => {
         cy.contains('Device Live Events');
       });
     });
+
+    it('correctly opens the groups modal when adding to new group', function () {
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Groups')
+          .parents('.card')
+          .within(() => {
+            cy.contains('Add to existing group').click();
+          });
+        cy.get('.modal').contains('Select Existing Group');
+      });
+    });
   });
 });
