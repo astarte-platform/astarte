@@ -396,5 +396,132 @@ describe('Device page tests', () => {
           });
       });
     });
+
+    it('correctly adds a device metadata', function () {
+      const device = _.merge({}, this.device);
+      device.data.metadata = {};
+      const updatedDevice = _.merge({}, this.device);
+      updatedDevice.data.metadata = { metadata_key: 'metadata_value' };
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Metadata')
+          .parents('.card')
+          .within(() => {
+            cy.contains('Add new item').should('exist').and('not.be.disabled').click();
+          });
+        cy.get('.modal-header')
+          .contains('Add New Item')
+          .parents('.modal')
+          .within(() => {
+            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('input#key').type('metadata_key');
+            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('input#value').type('metadata_value');
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+          });
+        cy.wait('@updateDeviceRequest')
+          .its('requestBody.data')
+          .should('deep.eq', { metadata: { metadata_key: 'metadata_value' } });
+        cy.get('.card-header')
+          .contains('Metadata')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('metadata_key');
+            cy.contains('metadata_value');
+          });
+      });
+    });
+
+    it('correctly removes a device metadata', function () {
+      const device = _.merge({}, this.device);
+      device.data.metadata = { metadata_key1: 'metadata_value1', metadata_key2: 'metadata_value2' };
+      const updatedDevice = _.merge({}, this.device);
+      updatedDevice.data.metadata = { metadata_key1: 'metadata_value1' };
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Metadata')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 2);
+            cy.contains('metadata_key1');
+            cy.contains('metadata_value1');
+            cy.contains('metadata_key2');
+            cy.contains('metadata_value2');
+            cy.get('table tbody tr:nth(1) i.fa-eraser').click();
+          });
+        cy.get('.modal-header')
+          .contains('Delete Item')
+          .parents('.modal')
+          .within(() => {
+            cy.contains('Do you want to delete metadata_key2 from metadata?');
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.get('button').contains('Delete').click();
+          });
+        cy.wait('@updateDeviceRequest')
+          .its('requestBody.data')
+          .should('deep.eq', { metadata: { metadata_key2: null } });
+        cy.get('.card-header')
+          .contains('Metadata')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('metadata_key1');
+            cy.contains('metadata_value1');
+          });
+      });
+    });
+
+    it('correctly edits a device metadata', function () {
+      const device = _.merge({}, this.device);
+      device.data.metadata = { metadata_key: 'metadata_value' };
+      const updatedDevice = _.merge({}, this.device);
+      updatedDevice.data.metadata = { metadata_key: 'metadata_new_value' };
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Metadata')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('metadata_key');
+            cy.contains('metadata_value');
+            cy.get('table tbody tr:nth(0) i.fa-pencil-alt').click();
+          });
+        cy.get('.modal-header')
+          .contains('Edit "metadata_key"')
+          .parents('.modal')
+          .within(() => {
+            cy.get('input#value').clear();
+            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('input#value').type('metadata_new_value');
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.get('button').contains('Confirm').click();
+          });
+        cy.wait('@updateDeviceRequest')
+          .its('requestBody.data')
+          .should('deep.eq', { metadata: { metadata_key: 'metadata_new_value' } });
+        cy.get('.card-header')
+          .contains('Metadata')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('metadata_key');
+            cy.contains('metadata_new_value');
+          });
+      });
+    });
   });
 });
