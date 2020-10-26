@@ -270,5 +270,131 @@ describe('Device page tests', () => {
         cy.wait('@wipeCredentialsSecretRequest');
       });
     });
+
+    it('correctly adds a device alias', function () {
+      const device = _.merge({}, this.device);
+      device.data.aliases = {};
+      const updatedDevice = _.merge({}, this.device);
+      updatedDevice.data.aliases = { alias_key: 'alias_value' };
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Aliases')
+          .parents('.card')
+          .within(() => {
+            cy.contains('Add new alias').should('exist').and('not.be.disabled').click();
+          });
+        cy.get('.modal-header')
+          .contains('Add New Alias')
+          .parents('.modal')
+          .within(() => {
+            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('input#key').type('alias_key');
+            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('input#value').type('alias_value');
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+          });
+        cy.wait('@updateDeviceRequest')
+          .its('requestBody.data')
+          .should('deep.eq', { aliases: { alias_key: 'alias_value' } });
+        cy.get('.card-header')
+          .contains('Aliases')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('alias_key');
+            cy.contains('alias_value');
+          });
+      });
+    });
+
+    it('correctly removes a device alias', function () {
+      const device = _.merge({}, this.device);
+      device.data.aliases = { alias_key1: 'alias_value1', alias_key2: 'alias_value2' };
+      const updatedDevice = _.merge({}, this.device);
+      updatedDevice.data.aliases = { alias_key1: 'alias_value1' };
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Aliases')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 2);
+            cy.contains('alias_key1');
+            cy.contains('alias_value1');
+            cy.contains('alias_key2');
+            cy.contains('alias_value2');
+            cy.get('table tbody tr:nth(1) i.fa-eraser').click();
+          });
+        cy.get('.modal-header')
+          .contains('Delete Alias')
+          .parents('.modal')
+          .within(() => {
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.get('button').contains('Delete').click();
+          });
+        cy.wait('@updateDeviceRequest')
+          .its('requestBody.data')
+          .should('deep.eq', { aliases: { alias_key2: null } });
+        cy.get('.card-header')
+          .contains('Aliases')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('alias_key1');
+            cy.contains('alias_value1');
+          });
+      });
+    });
+
+    it('correctly edits a device alias', function () {
+      const device = _.merge({}, this.device);
+      device.data.aliases = { alias_key: 'alias_value' };
+      const updatedDevice = _.merge({}, this.device);
+      updatedDevice.data.aliases = { alias_key: 'alias_new_value' };
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Aliases')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('alias_key');
+            cy.contains('alias_value');
+            cy.get('table tbody tr:nth(0) i.fa-pencil-alt').click();
+          });
+        cy.get('.modal-header')
+          .contains('Edit "alias_key"')
+          .parents('.modal')
+          .within(() => {
+            cy.get('input#value').clear();
+            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('input#value').type('alias_new_value');
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.get('button').contains('Confirm').click();
+          });
+        cy.wait('@updateDeviceRequest')
+          .its('requestBody.data')
+          .should('deep.eq', { aliases: { alias_key: 'alias_new_value' } });
+        cy.get('.card-header')
+          .contains('Aliases')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody').find('tr').should('have.length', 1);
+            cy.contains('alias_key');
+            cy.contains('alias_new_value');
+          });
+      });
+    });
   });
 });
