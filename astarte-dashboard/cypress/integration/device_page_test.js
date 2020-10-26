@@ -174,21 +174,6 @@ describe('Device page tests', () => {
       });
     });
 
-    it('correctly opens the groups modal when adding to new group', function () {
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
-      cy.visit(`/devices/${this.deviceDetailed.data.id}`);
-      cy.get('.main-content').within(() => {
-        cy.get('.card-header')
-          .contains('Groups')
-          .parents('.card')
-          .within(() => {
-            cy.contains('Add to existing group').click();
-          });
-        cy.get('.modal').contains('Select Existing Group');
-      });
-    });
-
     it('correctly inhibit credentials request', function () {
       cy.server();
       const deviceWithInhibitedCredentials = _.merge({}, this.device, {
@@ -520,6 +505,51 @@ describe('Device page tests', () => {
             cy.get('table tbody').find('tr').should('have.length', 1);
             cy.contains('metadata_key');
             cy.contains('metadata_new_value');
+          });
+      });
+    });
+
+    it('correctly adds to new group', function () {
+      const deviceGroups = ['group1', 'group2'];
+      const allGroups = ['group1', 'group2', 'group3', 'group4'];
+      const device = _.merge({}, this.deviceDetailed);
+      device.data.groups = deviceGroups;
+      const updatedDevice = _.merge({}, this.deviceDetailed);
+      updatedDevice.data.groups = deviceGroups.concat('group3');
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/groups', { data: allGroups });
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Groups')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody tr').should('have.length', deviceGroups.length);
+            cy.contains('Add to existing group').click();
+          });
+        cy.get('.modal-header')
+          .contains('Select Existing Group')
+          .parents('.modal')
+          .within(() => {
+            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.contains('group3').click();
+            cy.route({
+              method: 'POST',
+              url: '/appengine/v1/*/groups/group3/devices',
+              status: 201,
+              response: '',
+            }).as('updateGroupRequest');
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice).as('getDeviceRequest');
+            cy.get('button').contains('Confirm').click();
+          });
+        cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
+        cy.get('.card-header')
+          .contains('Groups')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody tr').should('have.length', deviceGroups.length + 1);
+            cy.contains('group3');
           });
       });
     });
