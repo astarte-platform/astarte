@@ -553,5 +553,58 @@ describe('Device page tests', () => {
           });
       });
     });
+
+    it('correctly renders Device Stats', function () {
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
+      cy.visit(`/devices/${this.deviceDetailed.data.id}`);
+
+      const formatBytes = (bytes) => {
+        if (bytes < 1024) {
+          return bytes + 'B';
+        }
+        if (bytes < 1024 * 1024) {
+          return (bytes / 1024).toFixed(2) + 'KiB';
+        }
+        return (bytes / (1024 * 1024)).toFixed(2) + 'MiB';
+      };
+
+      cy.get('.card-header')
+        .contains('Device Stats')
+        .parents('.card')
+        .within(() => {
+          const currentInterfaces = Object.entries(
+            this.deviceDetailed.data.introspection,
+          ).map(([name, interface]) => ({ name, ...interface }));
+          const previousInterfaces = this.deviceDetailed.data.previous_interfaces;
+          const interfaces = [...currentInterfaces, ...previousInterfaces];
+          cy.get('table tbody tr').should('have.length', interfaces.length + 2);
+          interfaces.forEach((interface) => {
+            cy.contains(`${interface.name} v${interface.major}.${interface.minor}`)
+              .parents('tr')
+              .within(() => {
+                cy.contains(formatBytes(interface.exchanged_bytes));
+                cy.contains(interface.exchanged_msgs);
+              });
+          });
+          const totalBytes = this.deviceDetailed.data.total_received_bytes;
+          const totalMessages = this.deviceDetailed.data.total_received_msgs;
+          const interfacesBytes = _.sumBy(interfaces, 'exchanged_bytes');
+          const interfacesMessages = _.sumBy(interfaces, 'exchanged_msgs');
+          const otherBytes = totalBytes - interfacesBytes;
+          const otherMessages = totalMessages - interfacesMessages;
+          cy.get(`table tbody tr:nth-child(${interfaces.length + 1})`).within(() => {
+            cy.contains('Other');
+            cy.contains(formatBytes(otherBytes));
+            cy.contains(otherMessages);
+          });
+          cy.get(`table tbody tr:nth-child(${interfaces.length + 2})`).within(() => {
+            cy.contains('Total');
+            cy.contains(formatBytes(totalBytes));
+            cy.contains(totalMessages);
+          });
+          cy.get('svg.device-data-piechart').should('be.visible');
+        });
+    });
   });
 });
