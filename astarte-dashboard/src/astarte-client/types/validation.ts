@@ -16,18 +16,17 @@
    limitations under the License.
 */
 
-import AstarteClient from './client';
+export interface AstarteValidationResult {
+  isValid: boolean;
+  error?: string;
+  warning?: string;
+}
 
-export {
-  AstarteCustomBlock,
-  AstarteNativeBlock,
-  AstarteDevice,
-  AstarteFlow,
-  AstartePipeline,
-  AstarteRealm,
-  AstarteToken,
-} from './models';
-
-export type { AstarteBlock } from './models';
-
-export default AstarteClient;
+export interface AstarteValidationResults {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  properties: {
+    [property: string]: AstarteValidationResult;
+  };
+}

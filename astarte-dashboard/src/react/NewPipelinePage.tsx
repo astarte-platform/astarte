@@ -20,19 +20,34 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
-
+import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
 import JsonSchemaForm from '@rjsf/bootstrap-4';
+import AstarteClient, { AstartePipeline } from 'astarte-client';
+import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/VisualFlowEditor';
+import type NativeBlockModel from './models/NativeBlockModel';
 import SingleCardPage from './ui/SingleCardPage';
 
 const ajv = new Ajv({ schemaId: 'id' });
-const metaSchemaDraft04 = require('ajv/lib/refs/json-schema-draft-04.json');
-
 ajv.addMetaSchema(metaSchemaDraft04);
 
-const NodeSettingsModal = ({ node, schema, initialData, onCancel, onConfirm }) => (
+interface NodeSettingsModalProps {
+  node: NativeBlockModel;
+  schema: AstarteBlock['schema'];
+  initialData: { [key: string]: any };
+  onCancel: () => void;
+  onConfirm: (formData: { [key: string]: any }) => void;
+}
+
+const NodeSettingsModal = ({
+  node,
+  schema,
+  initialData,
+  onCancel,
+  onConfirm,
+}: NodeSettingsModalProps): React.ReactElement => (
   <Modal size="lg" show onHide={onCancel}>
     <Modal.Header closeButton>
       <Modal.Title>Settings for {node.name}</Modal.Title>
@@ -57,15 +72,25 @@ const NodeSettingsModal = ({ node, schema, initialData, onCancel, onConfirm }) =
   </Modal>
 );
 
-const CommandRow = ({ className = '', children }) => (
+interface CommandRowProps {
+  className?: string;
+  children: React.ReactNode;
+}
+
+const CommandRow = ({ className = '', children }: CommandRowProps): React.ReactElement => (
   <div className={['d-flex flex-row-reverse', className].join(' ')}>{children}</div>
 );
 
-export default ({ astarte, history }) => {
+interface Props {
+  astarte: AstarteClient;
+  history: any;
+}
+
+export default ({ astarte, history }: Props): React.ReactElement => {
   const [editorModel] = useState(getNewModel());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
-  const [blocks, setBlocks] = useState([]);
-  const [activeModal, setActiveModal] = useState(null);
+  const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
+  const [activeModal, setActiveModal] = useState<React.ReactElement | null>(null);
   const [pipeline, setPipeline] = useState({
     name: '',
     description: '',
@@ -99,19 +124,15 @@ export default ({ astarte, history }) => {
 
   const createPipeline = useCallback(() => {
     setIsCreatingPipeline(true);
-
-    const pipelineParams = {
-      name: pipeline.name,
-      source: pipeline.source,
-      description: pipeline.description,
-    };
-
-    if (schemaObject) {
-      pipelineParams.schema = schemaObject;
-    }
-
     astarte
-      .registerPipeline(pipelineParams)
+      .registerPipeline(
+        new AstartePipeline({
+          name: pipeline.name,
+          source: pipeline.source,
+          description: pipeline.description,
+          schema: schemaObject || {},
+        }),
+      )
       .then(() => history.push('/pipelines'))
       .catch((err) => {
         setIsCreatingPipeline(false);
@@ -132,8 +153,11 @@ export default ({ astarte, history }) => {
   }, [schemaObject, ajv]);
 
   const blockSettingsClickHandler = useCallback(
-    (e, node) => {
+    (e, node: NativeBlockModel) => {
       const blockDefinition = blocks.find((block) => node.name === block.name);
+      if (!blockDefinition) {
+        return;
+      }
 
       editorModel.setLocked(true);
 

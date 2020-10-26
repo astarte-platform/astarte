@@ -19,10 +19,11 @@
 import axios from 'axios';
 import { Socket as PhoenixSocket } from 'phoenix';
 
+import { fromAstartePipelineDTO, toAstartePipelineDTO } from './transforms';
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
 import { AstarteDevice } from './models/Device';
 import { AstarteFlow } from './models/Flow';
-
+import { AstartePipeline } from './models/Pipeline';
 import type { AstarteBlock } from './models/Block';
 import type { AstarteBlockDTO, AstarteDeviceDTO, AstarteJWT } from './types';
 
@@ -160,6 +161,8 @@ class AstarteClient {
     this.getRealmManagementHealth = this.getRealmManagementHealth.bind(this);
     this.getPairingHealth = this.getPairingHealth.bind(this);
     this.getFlowHealth = this.getFlowHealth.bind(this);
+    this.getPipeline = this.getPipeline.bind(this);
+    this.getPipelines = this.getPipelines.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
@@ -407,23 +410,29 @@ class AstarteClient {
     await this.$delete(this.apiConfig.flowInstance({ ...this.config, instanceName: flowName }));
   }
 
-  async getPipelineDefinitions(): Promise<any> {
+  async getPipelineNames(): Promise<Array<AstartePipeline['name']>> {
     const response = await this.$get(this.apiConfig.pipelines(this.config));
     return response.data;
   }
 
-  async registerPipeline(pipeline: any): Promise<void> {
-    await this.$post(this.apiConfig.pipelines(this.config), pipeline);
+  async getPipelines(): Promise<AstartePipeline[]> {
+    const pipelineNames = await this.getPipelineNames();
+    const pipelines = await Promise.all(pipelineNames.map(this.getPipeline));
+    return pipelines;
   }
 
-  async getPipelineInputConfig(pipelineId: any): Promise<any> {
+  async getPipeline(pipelineId: AstartePipeline['name']): Promise<AstartePipeline> {
     const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
-    return response.data;
+    return new AstartePipeline(fromAstartePipelineDTO(response.data));
   }
 
   async getPipelineSource(pipelineId: any): Promise<any> {
     const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
     return response.data;
+  }
+
+  async registerPipeline(pipeline: AstartePipeline): Promise<void> {
+    await this.$post(this.apiConfig.pipelines(this.config), toAstartePipelineDTO(pipeline));
   }
 
   async deletePipeline(pipelineId: any): Promise<void> {
