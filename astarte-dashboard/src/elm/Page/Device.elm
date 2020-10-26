@@ -1214,7 +1214,7 @@ deviceGroupsCard device showAddToGroup width =
         [ renderGroups device.groups ]
         [ Button.button
             [ Button.primary
-            , Button.onClick OpenNewMetadataPopup
+            , Button.onClick OpenGroupsPopup
             ]
             [ Html.text "Add to existing group" ]
         ]
