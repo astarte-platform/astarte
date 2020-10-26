@@ -118,7 +118,7 @@ defmodule AstarteE2E.Config do
   app_env :mailer_to_address, :astarte_e2e, :mailer_to_address,
     os_env: "ASTARTE_E2E_MAILER_TO_ADDRESS",
     type: ListOfStrings,
-    default: "test@mail-example.com"
+    required: true
 
   @envdoc "The notification email sender."
   app_env :mailer_from_address, :astarte_e2e, :mailer_from_address,

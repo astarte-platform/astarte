@@ -81,12 +81,9 @@ jobs:
         elixir-version: ${{ env.elixir_version }}
     - name: Build Astarte E2E
       working-directory: tools/astarte_e2e
-      env:
-        MIX_ENV: ci
       run: |
         mix deps.get
         mix compile
-        mix release --overwrite
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:
@@ -95,8 +92,9 @@ jobs:
         ASTARTE_E2E_IGNORE_SSL_ERRORS: true
         ASTARTE_E2E_CHECK_INTERVAL_SECONDS: 5
         ASTARTE_E2E_CHECK_REPETITIONS: 5
+        ASTARTE_E2E_MAILER_TO_ADDRESS: mail@example.com
       run: |
-        _build/ci/rel/astarte_e2e/bin/astarte_e2e start
+        mix run --no-halt
     - name: Check Docker
       if: ${{ failure() }}
       run: |
