@@ -21,5 +21,3 @@ use Mix.Config
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [:module, :function, :tag]
-
-config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer, adapter: Bamboo.LocalAdapter

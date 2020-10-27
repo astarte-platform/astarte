@@ -16,27 +16,20 @@
 # limitations under the License.
 #
 
-use Mix.Config
+defmodule AstarteE2E.Config.BambooMailAdapter do
+  use Skogsra.Type
 
-mailgun_api_key =
-  System.get_env("MAILGUN_API_KEY") ||
-    raise """
-    environment variable MAILGUN_API_KEY is missing.
-    """
+  def cast(value) when is_binary(value) do
+    case value do
+      "mailgun" ->
+        {:ok, Bamboo.MailgunAdapter}
 
-mailgun_domain =
-  System.get_env("MAILGUN_DOMAIN") ||
-    raise """
-    environment variable MAILGUN_DOMAIN is missing.
-    """
+      _ ->
+        :error
+    end
+  end
 
-mailgun_base_uri = System.get_env("MAILGUN_BASE_URI") || "https://api.mailgun.net/v3"
-
-config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer,
-  adapter: Bamboo.MailgunAdapter,
-  api_key: mailgun_api_key,
-  domain: mailgun_domain,
-  base_uri: mailgun_base_uri,
-  hackney_opts: [
-    recv_timeout: :timer.minutes(1)
-  ]
+  def cast(_) do
+    :error
+  end
+end

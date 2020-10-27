@@ -21,6 +21,7 @@ defmodule AstarteE2E.ServiceNotifier do
 
   require Logger
   alias AstarteE2E.ServiceNotifier.{Email, Mailer}
+  alias AstarteE2E.Config
 
   # API
 
@@ -51,7 +52,13 @@ defmodule AstarteE2E.ServiceNotifier do
   end
 
   defp deliver(%Bamboo.Email{} = email) do
-    with %Bamboo.Email{} = sent_email <- Mailer.deliver_later(email) do
+    service_notifier_config = Config.service_notifier_config()
+
+    configured_email =
+      email
+      |> Bamboo.ConfigAdapter.Email.put_config(service_notifier_config)
+
+    with %Bamboo.Email{} = sent_email <- Mailer.deliver_later(configured_email) do
       Logger.info("Service down. The user has been notified.", tag: "mail_sent")
       {:ok, sent_email}
     end
