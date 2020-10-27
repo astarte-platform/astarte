@@ -606,5 +606,48 @@ describe('Device page tests', () => {
           cy.get('svg.device-data-piechart').should('be.visible');
         });
     });
+
+    it('correctly displays live messages', function () {
+      cy.fixture('config/https').then((config) => {
+        const wssUrl =
+          config.astarte_api_url.replace('https://', 'wss://') + '/appengine/v1/socket/websocket';
+        cy.mockWebSocket({ url: wssUrl });
+        cy.server();
+        cy.route('GET', '/appengine/v1/*/devices/*', this.device);
+        cy.visit(`/devices/${this.device.data.id}`);
+        cy.get('.main-content .card-header')
+          .contains('Device Live Events')
+          .parents('.card')
+          .within(() => {
+            cy.contains(`Joined room for device ${this.device.data.id}`);
+            cy.contains('Watching for device connection events');
+            cy.contains('Watching for device disconnection events');
+            cy.contains('Watching for device error events');
+            cy.contains('Watching for device data events');
+            cy.sendWebSocketDeviceConnected({
+              deviceId: this.device.data.id,
+              deviceIpAddress: '1.2.3.4',
+            });
+            cy.contains('device connected');
+            cy.contains('IP : 1.2.3.4');
+            cy.sendWebSocketDeviceEvent({
+              deviceId: this.device.data.id,
+              event: {
+                interface: 'com.domain.InterfaceName',
+                path: '/some/endpoint',
+                type: 'incoming_data',
+                value: 42,
+              },
+            });
+            cy.contains('incoming data');
+            cy.contains('com.domain.InterfaceName');
+            cy.contains('/some/endpoint');
+            cy.contains('42');
+            cy.sendWebSocketDeviceDisconnected({ deviceId: this.device.data.id });
+            cy.contains('device disconnected');
+            cy.contains('Device disconnected');
+          });
+      });
+    });
   });
 });
