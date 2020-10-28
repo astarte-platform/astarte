@@ -1214,7 +1214,7 @@ deviceGroupsCard device showAddToGroup width =
         [ renderGroups device.groups ]
         [ Button.button
             [ Button.primary
-            , Button.onClick OpenNewMetadataPopup
+            , Button.onClick OpenGroupsPopup
             ]
             [ Html.text "Add to existing group" ]
         ]
@@ -1383,7 +1383,7 @@ pathValueToHtml path value =
 
 objectValueMapHelper : String -> ( String, AstarteValue ) -> List (Html Msg)
 objectValueMapHelper path ( subPath, value ) =
-    renderPathValue (path ++ subPath) (AstarteValue.toString value)
+    renderPathValue (path ++ "/" ++ subPath) (AstarteValue.toString value)
 
 
 renderPathValue : String -> String -> List (Html Msg)

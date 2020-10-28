@@ -22,11 +22,12 @@ import AlertsProvider from './AlertManager';
 import Router from './Router';
 import Snackbar from './ui/Snackbar';
 
-export default (reactHistory, astarteClient, config, fallback) => (
+export default (reactHistory, astarteClient, sessionManager, config, fallback) => (
   <AlertsProvider>
     <Router
       reactHistory={reactHistory}
       astarteClient={astarteClient}
+      sessionManager={sessionManager}
       config={config}
       fallback={fallback}
     />

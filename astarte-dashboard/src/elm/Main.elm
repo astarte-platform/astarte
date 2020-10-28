@@ -291,8 +291,26 @@ update msg model =
             )
 
         UpdateSession (Just session) ->
+            let
+                apiConfig =
+                    session.apiConfig
+
+                healthChecks =
+                    if apiConfig.enableFlowPreview then
+                        [ AstarteApi.appEngineApiHealth apiConfig AppEngineHealthCheckDone
+                        , AstarteApi.realmManagementApiHealth apiConfig RealmManagementHealthCheckDone
+                        , AstarteApi.pairingApiHealth apiConfig PairingHealthCheckDone
+                        , AstarteApi.flowApiHealth apiConfig FlowHealthCheckDone
+                        ]
+
+                    else
+                        [ AstarteApi.appEngineApiHealth apiConfig AppEngineHealthCheckDone
+                        , AstarteApi.realmManagementApiHealth apiConfig RealmManagementHealthCheckDone
+                        , AstarteApi.pairingApiHealth apiConfig PairingHealthCheckDone
+                        ]
+            in
             ( { model | session = session }
-            , Cmd.none
+            , Cmd.batch healthChecks
             )
 
         NewFlashMessage severity message details createdAt ->
@@ -458,14 +476,13 @@ pageInit : RealmRoute -> Config.Params -> Session -> ( Page, Cmd Msg, Session )
 pageInit realmRoute config session =
     case realmRoute of
         Route.Auth _ _ ->
-            -- already logged in
-            initReactPage session Home "home" realmRoute
+            initReactPage session Home "auth" realmRoute
 
         Route.Home ->
             initReactPage session Home "home" realmRoute
 
         Route.Logout ->
-            initLoginPage session
+            initReactPage session Home "logout" realmRoute
 
         Route.RealmSettings ->
             initReactPage session RealmSettings "realm-settings" realmRoute
@@ -674,33 +691,7 @@ handleKnownRoute key params session route maybeToken =
             Route.Root ->
                 initReactPage session Home "home" Route.Home
 
-            Route.Realm Route.Logout ->
-                let
-                    logoutPath =
-                        case session.loginStatus of
-                            LoggedIn (OAuthLogin authUrl) ->
-                                Url.Builder.custom (Url.Builder.CrossOrigin authUrl) [] [] Nothing
-
-                            _ ->
-                                Route.toString <| Route.RealmSelection (Just "token")
-
-                    logoutCmd =
-                        Cmd.batch
-                            [ Ports.storeSession Nothing
-                            , Browser.Navigation.load <| logoutPath
-                            ]
-                in
-                initLoginPage session
-                    |> attachCommand logoutCmd
-
             Route.RealmSelection loginTypeString ->
-                initReactPage session Home "home" Route.Home
-                    |> attachCommand (replaceWithHomeUrlCmd key)
-
-            Route.Realm (Route.Auth (Just realm) maybeOauthUrl) ->
-                attemptLogin realm maybeToken maybeOauthUrl key session
-
-            Route.Realm (Route.Auth Nothing maybeOauthUrl) ->
                 initReactPage session Home "home" Route.Home
                     |> attachCommand (replaceWithHomeUrlCmd key)
 
@@ -709,57 +700,15 @@ handleKnownRoute key params session route maybeToken =
 
     else
         case route of
-            Route.Realm (Route.Auth (Just realm) maybeOauthUrl) ->
-                attemptLogin realm maybeToken maybeOauthUrl key session
-
             Route.RealmSelection loginTypeString ->
                 initLoginPage session
+
+            Route.Realm (Route.Auth a b) ->
+                pageInit (Route.Auth a b) params session
 
             _ ->
                 initLoginPage session
                     |> attachCommand (replaceWithLoginUrlCmd key)
-
-
-attemptLogin : String -> Maybe String -> Maybe String -> Browser.Navigation.Key -> Session -> ( Page, Cmd Msg, Session )
-attemptLogin realm maybeToken maybeOauthUrl key session =
-    case maybeToken of
-        Just token ->
-            let
-                apiConfig =
-                    session.apiConfig
-
-                updatedApiConfig =
-                    { apiConfig
-                        | realm = realm
-                        , token = token
-                    }
-
-                loginType =
-                    case maybeOauthUrl of
-                        Nothing ->
-                            Session.TokenLogin
-
-                        Just url ->
-                            Session.OAuthLogin url
-
-                loggedInSession =
-                    { session
-                        | loginStatus = LoggedIn loginType
-                        , apiConfig = updatedApiConfig
-                    }
-
-                loginCmd =
-                    Cmd.batch
-                        [ storeSession loggedInSession
-                        , replaceWithHomeUrlCmd key
-                        ]
-            in
-            initReactPage loggedInSession Home "home" Route.Home
-                |> attachCommand loginCmd
-
-        Nothing ->
-            initLoginPage session
-                |> attachCommand (replaceWithLoginUrlCmd key)
 
 
 replaceWithHomeUrlCmd : Browser.Navigation.Key -> Cmd Msg
@@ -790,13 +739,11 @@ attachCommand newCmd ( page, cmd, session ) =
 view : Model -> Browser.Document Msg
 view model =
     let
-        ( showNavbar, realmName ) =
-            case model.selectedPage of
-                LoginPage ->
-                    ( False, "" )
+        realmName =
+            model.session.apiConfig.realm
 
-                Realm realm _ ->
-                    ( True, realm )
+        showNavbar =
+            Session.isLoggedIn model.session
     in
     { title = "Astarte - Dashboard"
     , body =
@@ -1099,6 +1046,7 @@ isPipelinesRelated page =
         _ ->
             False
 
+
 isBlocksRelated : Page -> Bool
 isBlocksRelated page =
     case page of
@@ -1107,6 +1055,7 @@ isBlocksRelated page =
 
         _ ->
             False
+
 
 isReactBased : Page -> Bool
 isReactBased page =

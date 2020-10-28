@@ -58,8 +58,8 @@ export default ({ astarte, history }) => {
 
   const redirectToLastInterface = useCallback((e, interfaceName) => {
     e.preventDefault();
-    astarte.getInterfaceMajors(interfaceName).then((response) => {
-      const latestMajor = Math.max(...response.data);
+    astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => {
+      const latestMajor = Math.max(...interfaceMajors);
       history.push(`/interfaces/${interfaceName}/${latestMajor}`);
     });
   }, []);
@@ -115,7 +115,7 @@ export default ({ astarte, history }) => {
 };
 
 const ApiStatusCard = ({ appengine, realmManagement, pairing, showFlowStatus, flow }) => (
-  <Card className="h-100">
+  <Card id="status-card" className="h-100">
     <Card.Header as="h5">API Status</Card.Header>
     <Card.Body>
       <Table responsive>
@@ -137,7 +137,7 @@ const ApiStatusCard = ({ appengine, realmManagement, pairing, showFlowStatus, fl
 );
 
 const DevicesCard = ({ connectedDevices, totalDevices }) => (
-  <Card className="h-100">
+  <Card id="devices-card" className="h-100">
     <Card.Header as="h5">Devices</Card.Header>
     <Card.Body>
       <Container className="h-100 p-0" fluid>
@@ -163,7 +163,7 @@ const DevicesCard = ({ connectedDevices, totalDevices }) => (
 );
 
 const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceClick }) => (
-  <Card className="h-100">
+  <Card id="interfaces-card" className="h-100">
     <Card.Header as="h5">Interfaces</Card.Header>
     <Card.Body className="d-flex flex-column">
       {interfaceList.length > 0 ? (
@@ -200,7 +200,7 @@ const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceCli
 );
 
 const TriggersCard = ({ triggerList, onInstallTriggerClick }) => (
-  <Card className="h-100">
+  <Card id="triggers-card" className="h-100">
     <Card.Header as="h5">Triggers</Card.Header>
     <Card.Body className="d-flex flex-column">
       {triggerList.length > 0 ? (
@@ -292,8 +292,9 @@ const InterfaceList = ({ interfaces, onInterfaceClick, maxShownInterfaces }) => 
       {remainingInterfaces > 0 && (
         <li>
           <Link to="/interfaces">
-            {remainingInterfaces} more installed
-            {remainingInterfaces > 1 ? 'interfaces' : 'interface'}…
+            {`${remainingInterfaces} more installed ${
+              remainingInterfaces > 1 ? 'interfaces' : 'interface'
+            }…`}
           </Link>
         </li>
       )}
@@ -318,8 +319,9 @@ const TriggerList = ({ triggers, maxShownTriggers }) => {
       {remainingTriggers > 0 && (
         <li>
           <Link to="/triggers">
-            {remainingTriggers} more installed
-            {remainingTriggers > 1 ? 'triggers' : 'trigger'}…
+            {`${remainingTriggers} more installed ${
+              remainingTriggers > 1 ? 'triggers' : 'trigger'
+            }…`}
           </Link>
         </li>
       )}

@@ -18,8 +18,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
+import _ from 'lodash';
 
-import Device from './astarte/Device';
 import BackButton from './ui/BackButton';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -31,6 +31,13 @@ function linearizePathTree(prefix, data) {
   return Object.entries(data)
     .map(([key, value]) => {
       const newPrefix = `${prefix}/${key}`;
+
+      if (Array.isArray(value)) {
+        return {
+          path: newPrefix,
+          value,
+        };
+      }
       if (value.value && typeof value.value !== 'object') {
         return {
           path: newPrefix,
@@ -55,18 +62,23 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
   const deviceAlerts = useAlerts();
 
   useEffect(() => {
+    if (!_.isEmpty(deviceData.error)) {
+      deviceAlerts.showError('Could not retrieve interface data.');
+    }
+  }, [deviceData.error]);
+
+  useEffect(() => {
     const getInterfaceType = async () => {
-      const deviceInfos = await astarte.getDeviceInfo(deviceId).catch(() => {
+      const device = await astarte.getDeviceInfo(deviceId).catch(() => {
         throw new Error('Device not found.');
       });
-      const device = Device.fromObject(deviceInfos.data);
       const interfaceIntrospection = device.introspection[interfaceName];
 
       if (!interfaceIntrospection) {
         throw new Error('Interface not found in device introspection.');
       }
 
-      const interfaceSrc = await astarte
+      const interface = await astarte
         .getInterface({
           interfaceName,
           interfaceMajor: interfaceIntrospection.major,
@@ -75,11 +87,9 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
           throw new Error('Could not retrieve interface properties.');
         });
 
-      const interfaceData = interfaceSrc.data;
-
-      if (interfaceData.type === 'properties') {
+      if (interface.type === 'properties') {
         setInterfaceType('properties');
-      } else if (interfaceData.type === 'datastream' && interfaceData.aggregation === 'object') {
+      } else if (interface.type === 'datastream' && interface.aggregation === 'object') {
         setInterfaceType('datastream-object');
       } else {
         setInterfaceType('datastream-individual');
@@ -106,7 +116,9 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
           <WaitForData
             data={deviceData.value}
             status={deviceData.status}
-            fallback={<Spinner animation="border" role="status" />}
+            fallback={
+              _.isEmpty(deviceData.error) ? <Spinner animation="border" role="status" /> : <></>
+            }
           >
             {(interfaceData) => <InterfaceData data={interfaceData} type={interfaceType} />}
           </WaitForData>
@@ -122,15 +134,7 @@ const InterfaceData = ({ data, type }) => {
       return <PropertyTree data={data} />;
 
     case 'datastream-object':
-      if (data.length > 0) {
-        return (
-          <>
-            <h5 className="mb-1">Latest sent objects</h5>
-            <ObjectDatastreamTable data={data.slice(0, MAX_SHOWN_VALUES)} />
-          </>
-        );
-      }
-      return <p>No data sent by the device.</p>;
+      return <ObjectTableList data={data} />;
 
     case 'datastream-individual':
       return <IndividualDatastreamTable data={data} />;
@@ -176,31 +180,36 @@ const IndividualDatastreamRow = ({ path, value, timestamp }) => (
   </tr>
 );
 
-const ObjectDatastreamTable = ({ data }) => {
+const ObjectDatastreamTable = ({ path, values }) => {
   const labels = [];
+  const latestValues = values.slice(0, MAX_SHOWN_VALUES);
 
-  Object.keys(data[0]).forEach((prop) => {
+  Object.keys(values[0]).forEach((prop) => {
     if (prop !== 'timestamp') {
       labels.push(prop);
     }
   });
 
   return (
-    <Table>
-      <thead>
-        <tr>
-          {labels.map((label) => (
-            <th key={label}>{label}</th>
+    <>
+      <h5 className="mb-1">Path</h5>
+      <p>{path}</p>
+      <Table>
+        <thead>
+          <tr>
+            {labels.map((label) => (
+              <th key={label}>{label}</th>
+            ))}
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {latestValues.map((obj) => (
+            <ObjectDatastreamRow key={obj.timestamp} labels={labels} obj={obj} />
           ))}
-          <th>Timestamp</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((obj) => (
-          <ObjectDatastreamRow key={obj.timestamp} labels={labels} obj={obj} />
-        ))}
-      </tbody>
-    </Table>
+        </tbody>
+      </Table>
+    </>
   );
 };
 
@@ -212,5 +221,17 @@ const ObjectDatastreamRow = ({ labels, obj }) => (
     <td>{new Date(obj.timestamp).toLocaleString()}</td>
   </tr>
 );
+
+const ObjectTableList = ({ data }) => {
+  const linearizedData = linearizePathTree('', data);
+
+  if (linearizedData.length === 0) {
+    return <p>No data sent by the device.</p>;
+  }
+
+  return linearizedData.map((obj) => (
+    <ObjectDatastreamTable key={obj.path} path={obj.path} values={obj.value} />
+  ));
+};
 
 export default DeviceInterfaceValues;

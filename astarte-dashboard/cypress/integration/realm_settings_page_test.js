@@ -1,0 +1,52 @@
+describe('Realm Settings page tests', () => {
+  context('no access before login', () => {
+    it('redirects to home', () => {
+      cy.visit('/settings');
+      cy.location('pathname').should('eq', '/login');
+    });
+  });
+
+  context('authenticated', () => {
+    beforeEach(() => {
+      cy.fixture('config_auth').as('configAuth');
+      cy.server();
+      cy.route('GET', '/realmmanagement/v1/*/config/auth', '@configAuth');
+      cy.login();
+      cy.visit('/settings');
+    });
+
+    it('successfully loads Realm Settings page', function () {
+      cy.location('pathname').should('eq', '/settings');
+      cy.get('h2').contains('Realm Settings');
+    });
+
+    it('displays current public key', function () {
+      cy.get('.main-content').within(() => {
+        cy.contains('Public key')
+          .next()
+          .contains(this.configAuth.data.jwt_public_key_pem)
+          .should('not.be.disabled');
+        cy.contains('Apply').should('be.disabled');
+      });
+    });
+
+    it('cannot update current public key with an empty string', function () {
+      cy.get('.main-content').within(() => {
+        cy.contains('Public key').next().clear();
+        cy.contains('Apply').should('be.disabled');
+      });
+    });
+
+    it('can update current public key with a proper value', function () {
+      cy.get('.main-content').within(() => {
+        cy.contains('Public key')
+          .next()
+          .clear()
+          .type(this.configAuth.data.jwt_public_key_pem + '\n');
+        cy.contains('Apply').should('not.be.disabled').click();
+      });
+      cy.get('[role="dialog"]').contains('Confirm Public Key Update');
+      cy.get('[role="dialog"]').contains('Update settings').click();
+    });
+  });
+});

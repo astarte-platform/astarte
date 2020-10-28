@@ -10,9 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Support device groups in device triggers.
 - Initial device introspection during device registration.
+- Pipeline source visual editor.
+- Search filters for devices page.
 
 ### Fixed
 - Fix bug which caused marking triggers as invalid on parametric endpoints containing an underscore.
+- Fix interface value page when displaying data from a parametric object datastream interface.
 
 ## [1.0.0-alpha.1] - 2020-06-18
 ### Added
@@ -34,7 +37,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Explicit timestamp is enabled by default for all mappings when interface type is changed to
   datastream.
 
-## [0.11.3] - Unreleased
+## [0.11.3] - 2020-09-24
 ### Added
 - Label for property unset in device live events page.
 

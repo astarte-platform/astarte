@@ -1,0 +1,79 @@
+{
+  "data": [
+    {
+      "id": "0ma4SioESHKk28VhYGcW1w",
+      "aliases": {
+        "name": "my_device_name",
+        "serial_number": "1234567"
+      },
+      "metadata": {
+        "metadata_key": "metadata_value"
+      },
+      "introspection": {
+        "com.example.ExampleInterface": {
+          "major": 2,
+          "minor": 0,
+          "exchanged_msgs": 20,
+          "exchanged_bytes": 200
+        },
+        "test.astarte.AggregatedObjectInterface": {
+          "major": 1,
+          "minor": 0,
+          "exchanged_msgs": 3,
+          "exchanged_bytes": 42
+        },
+        "test.astarte.IndividualObjectInterface": {
+          "major": 1,
+          "minor": 0,
+          "exchanged_msgs": 3,
+          "exchanged_bytes": 42
+        },
+        "test.astarte.PropertiesInterface": {
+          "major": 1,
+          "minor": 0,
+          "exchanged_msgs": 3,
+          "exchanged_bytes": 42
+        }
+      },
+      "connected": true,
+      "last_connection": "2017-09-28T03:45:00.000Z",
+      "last_disconnection": "2017-09-29T18:25:00.000Z",
+      "first_registration": "2016-07-08T09:44:00.000Z",
+      "first_credentials_request": "2016-08-20T09:44:00.000Z",
+      "last_seen_ip": "198.51.100.81",
+      "credentials_inhibited": true,
+      "last_credentials_request_ip": "98.51.100.89",
+      "total_received_bytes": 10240,
+      "total_received_msgs": 10,
+      "groups": ["test-devices", "first-floor"],
+      "previous_interfaces": [
+        {
+          "name": "com.example.ExampleInterface",
+          "major": 1,
+          "minor": 1,
+          "exchanged_msgs": 5,
+          "exchanged_bytes": 102
+        }
+      ]
+    },
+    {
+      "aliases": {},
+      "connected": false,
+      "credentials_inhibited": false,
+      "first_credentials_request": null,
+      "first_registration": "2019-01-01T12:00:00.000Z",
+      "groups": [],
+      "id": "qI9KQ3KfSyGPKEA6evGgXQ",
+      "introspection": {},
+      "last_connection": null,
+      "last_credentials_request_ip": null,
+      "last_disconnection": null,
+      "last_seen_ip": null,
+      "metadata": {},
+      "previous_interfaces": [],
+      "total_received_bytes": 0,
+      "total_received_msgs": 0
+    }
+  ],
+  "links": { "self": "/v1/testrealm/groups/test-devices/devices?details=true" }
+}

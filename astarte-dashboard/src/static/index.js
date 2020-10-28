@@ -18,8 +18,10 @@
 
 import ReactDOM from 'react-dom';
 import { createBrowserHistory } from 'history';
+import AstarteClient from 'astarte-client';
+
 import getReactApp from '../react/App';
-import AstarteClient from '../react/AstarteClient';
+import SessionManager from '../react/SessionManager';
 
 require('./styles/main.scss');
 
@@ -32,6 +34,7 @@ let reactHistory = null;
 let dashboardConfig = null;
 let app;
 let astarteClient = null;
+let sessionManager = null;
 
 function sendErrorMessage(errorMessage) {
   app.ports.onDeviceEventReceived.send({
@@ -150,8 +153,7 @@ function watchDeviceEvents(params) {
 }
 
 function leaveDeviceRoom() {
-  astarteClient.joinedRooms().forEach((room) => {
-    console.log(`leaving room ${room}`);
+  astarteClient.joinedRooms.forEach((room) => {
     astarteClient.leaveRoom(room);
   });
 }
@@ -159,7 +161,6 @@ function leaveDeviceRoom() {
 function loadPage(page) {
   const elem = document.getElementById('react-page');
   if (elem) {
-    console.log('React already initialized, skipping');
     reactHistory.push({ pathname: page.url });
     return;
   }
@@ -167,7 +168,6 @@ function loadPage(page) {
   const pageNode = document.getElementById('inner-page');
 
   if (!pageNode) {
-    console.log('Elm side is not ready yet. retry later...');
     setTimeout(() => {
       loadPage(page);
     }, 100);
@@ -180,7 +180,13 @@ function loadPage(page) {
 
   reactHistory = createBrowserHistory();
 
-  const reactApp = getReactApp(reactHistory, astarteClient, dashboardConfig, noMatchFallback);
+  const reactApp = getReactApp(
+    reactHistory,
+    astarteClient,
+    sessionManager,
+    dashboardConfig,
+    noMatchFallback,
+  );
   ReactDOM.render(reactApp, document.getElementById('react-page'));
 }
 
@@ -191,53 +197,26 @@ function clearReact() {
   }
 }
 
-function getAstarteClient(config) {
-  if (!config || config === 'null') {
-    return null;
-  }
+$.getJSON('/user-config/config.json', (result) => {
+  dashboardConfig = result;
+}).always(() => {
+  sessionManager = new SessionManager(dashboardConfig);
 
-  // base API URL
-  const astarteApiUrl = config.astarte_api_url;
-  let appEngineApiUrl = '';
-  let realmManagementApiUrl = '';
-  let pairingApiUrl = '';
-  let flowApiUrl = '';
+  const parameters = {
+    config: dashboardConfig,
+    previousSession: JSON.stringify(sessionManager.getSession()),
+  };
 
-  if (astarteApiUrl === 'localhost') {
-    appEngineApiUrl = new URL('http://localhost:4002');
-    realmManagementApiUrl = new URL('http://localhost:4000');
-    pairingApiUrl = new URL('http://localhost:4003');
-    flowApiUrl = new URL('http://localhost:4009');
-  } else if (typeof astarteApiUrl === 'string') {
-    appEngineApiUrl = new URL('appengine/', astarteApiUrl);
-    realmManagementApiUrl = new URL('realmmanagement/', astarteApiUrl);
-    pairingApiUrl = new URL('pairing/', astarteApiUrl);
-    flowApiUrl = new URL('flow/', astarteApiUrl);
-  }
+  // init app
+  app = elmApp.init({ flags: parameters });
 
-  // API URL overwrite
-  if (config.appengine_api_url) {
-    appEngineApiUrl = new URL(config.appengine_api_url);
-  }
-
-  if (config.realm_management_api_url) {
-    realmManagementApiUrl = new URL(config.realm_management_api_url);
-  }
-
-  if (config.pairing_api_url) {
-    pairingApiUrl = new URL(config.pairing_api_url);
-  }
-
-  if (config.flow_api_url) {
-    flowApiUrl = new URL(config.flow_api_url);
-  }
-
-  return new AstarteClient({
-    realmManagementUrl: realmManagementApiUrl,
-    appengineUrl: appEngineApiUrl,
-    pairingUrl: pairingApiUrl,
-    flowUrl: flowApiUrl,
-    enableFlowPreview: Boolean(config.enable_flow_preview),
+  const conf = sessionManager.getConfig();
+  astarteClient = new AstarteClient({
+    realmManagementUrl: conf.realmManagementApiUrl,
+    appengineUrl: conf.appEngineApiUrl,
+    pairingUrl: conf.pairingApiUrl,
+    flowUrl: conf.flowApiUrl,
+    enableFlowPreview: conf.enableFlowPreview,
     onSocketError: () => {
       sendErrorMessage('Astarte channels communication error');
     },
@@ -245,79 +224,37 @@ function getAstarteClient(config) {
       sendErrorMessage('Lost connection with the Astarte channel');
     },
   });
-}
 
-function updateAstarteClientSession() {
-  console.log('updating client');
-  if (localStorage.session && localStorage.session !== 'null') {
-    const config = JSON.parse(localStorage.session).api_config;
-    astarteClient.setCredentials({
-      token: config.token,
-      realm: config.realm,
-    });
-  } else {
-    console.log('null session');
-    astarteClient.setCredentials({
-      token: '',
-      realm: '',
-    });
+  if (sessionManager.isUserLoggedIn) {
+    astarteClient.setCredentials(sessionManager.getCredentials());
   }
-}
 
-$.getJSON('/user-config/config.json', (result) => {
-  dashboardConfig = result;
-})
-  .fail(() => {
-    console.log(
-      'Astarte dashboard configuration file (config.json) is missing. Starting in editor only mode',
-    );
-  })
-  .always(() => {
-    const parameters = {
-      config: dashboardConfig,
-      previousSession: localStorage.session || null,
-    };
+  // TODO use TargetEvent API or custom
+  // events library
+  sessionManager.onSessionChange = (newSession) => {
+    app.ports.onSessionChange.send(newSession);
 
-    // init app
-    app = elmApp.init({ flags: parameters });
-
-    astarteClient = getAstarteClient(dashboardConfig);
-    updateAstarteClientSession();
-
-    /* begin Elm ports */
-    app.ports.storeSession.subscribe((session) => {
-      console.log('storing session');
-      localStorage.session = session;
-
-      updateAstarteClientSession();
+    astarteClient.setCredentials({
+      token: newSession ? newSession.api_config.token : '',
+      realm: newSession ? newSession.api_config.realm : '',
     });
+  };
 
-    app.ports.loadReactPage.subscribe(loadPage);
-    app.ports.unloadReactPage.subscribe(clearReact);
-    app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
+  /* begin Elm ports */
+  app.ports.loadReactPage.subscribe(loadPage);
+  app.ports.unloadReactPage.subscribe(clearReact);
+  app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
 
-    app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
+  app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
 
-    app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
-      if (taggedDate.date) {
-        const convertedDate = new Date(taggedDate.date);
-        app.ports.onDateConverted.send({
-          name: taggedDate.name,
-          date: convertedDate.toLocaleString(),
-        });
-      }
-    });
-
-    window.addEventListener(
-      'storage',
-      (event) => {
-        if (event.storageArea === localStorage && event.key === 'session') {
-          console.log('local session changed');
-          app.ports.onSessionChange.send(event.newValue);
-          updateAstarteClientSession();
-        }
-      },
-      false,
-    );
-    /* end Elm ports */
+  app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
+    if (taggedDate.date) {
+      const convertedDate = new Date(taggedDate.date);
+      app.ports.onDateConverted.send({
+        name: taggedDate.name,
+        date: convertedDate.toLocaleString(),
+      });
+    }
   });
+  /* end Elm ports */
+});

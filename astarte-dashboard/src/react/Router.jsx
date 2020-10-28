@@ -17,7 +17,7 @@
 */
 
 import React from 'react';
-import { Router, Switch, Route, useParams, useLocation } from 'react-router-dom';
+import { Redirect, Router, Switch, Route, useParams, useLocation } from 'react-router-dom';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -40,7 +40,7 @@ import NewBlockPage from './NewBlockPage';
 import RealmSettingsPage from './RealmSettingsPage';
 import DeviceInterfaceValues from './DeviceInterfaceValues';
 
-export default ({ reactHistory, astarteClient, config, fallback }) => {
+export default ({ reactHistory, astarteClient, sessionManager, config, fallback }) => {
   const pageProps = {
     history: reactHistory,
     astarte: astarteClient,
@@ -52,9 +52,15 @@ export default ({ reactHistory, astarteClient, config, fallback }) => {
         <Route exact path={['/', '/home']}>
           <HomePage {...pageProps} />
         </Route>
+        <Route path="/auth">
+          <AttemptLogin sessionManager={sessionManager} />
+        </Route>
+        <Route path="/logout">
+          <Logout sessionManager={sessionManager} />
+        </Route>
         <Route path="/login">
           <Login
-            allowSwitching={config.auth.length > 1}
+            canSwitchLoginType={config.auth.length > 1}
             defaultLoginType={config.default_auth || 'token'}
             defaultRealm={config.default_realm || ''}
             {...pageProps}
@@ -121,6 +127,29 @@ export default ({ reactHistory, astarteClient, config, fallback }) => {
     </Router>
   );
 };
+
+function AttemptLogin({ sessionManager }) {
+  const { search, hash } = useLocation();
+  const searchParams = new URLSearchParams(search);
+  const hashParams = new URLSearchParams(hash.slice(1));
+
+  const realm = searchParams.get('realm');
+  const token = hashParams.get('access_token');
+  const authUrl = searchParams.get('authUrl');
+
+  const succesfulLogin = sessionManager.login(realm, token, authUrl);
+  if (!succesfulLogin) {
+    return <Redirect to="/login" />;
+  }
+
+  return <Redirect to="/" />;
+}
+
+function Logout({ sessionManager }) {
+  sessionManager.logout();
+
+  return <Redirect to="/login" />;
+}
 
 function Login({ defaultLoginType, ...props }) {
   const { search } = useLocation();
