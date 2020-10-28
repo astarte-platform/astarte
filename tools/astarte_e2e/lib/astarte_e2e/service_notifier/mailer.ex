@@ -16,17 +16,6 @@
 # limitations under the License.
 #
 
-# This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
-#
-# This configuration file is loaded before any dependency and
-# is restricted to this project.
-use Mix.Config
-
-config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer,
-  adapter: Bamboo.ConfigAdapter,
-  chained_adapter: Bamboo.LocalAdapter
-
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
-import_config "#{Mix.env()}.exs"
+defmodule AstarteE2E.ServiceNotifier.Mailer do
+  use Bamboo.Mailer, otp_app: :astarte_e2e
+end

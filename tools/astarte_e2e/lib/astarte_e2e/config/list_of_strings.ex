@@ -16,17 +16,19 @@
 # limitations under the License.
 #
 
-# This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
-#
-# This configuration file is loaded before any dependency and
-# is restricted to this project.
-use Mix.Config
+defmodule AstarteE2E.Config.ListOfStrings do
+  use Skogsra.Type
 
-config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer,
-  adapter: Bamboo.ConfigAdapter,
-  chained_adapter: Bamboo.LocalAdapter
+  def cast(value) when is_binary(value) do
+    list =
+      value
+      |> String.split(~r/,/)
+      |> Enum.map(&String.trim/1)
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
-import_config "#{Mix.env()}.exs"
+    {:ok, list}
+  end
+
+  def cast(_) do
+    :error
+  end
+end

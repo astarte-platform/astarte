@@ -18,10 +18,13 @@
 
 defmodule AstarteE2E.Config do
   use Skogsra
+  require Logger
 
   alias Astarte.Core.Device
   alias AstarteE2E.Config.PositiveIntegerOrInfinity
   alias AstarteE2E.Config.AstarteDeviceID
+  alias AstarteE2E.Config.ListOfStrings
+  alias AstarteE2E.Config.BambooMailAdapter
 
   @type client_option ::
           {:url, String.t()}
@@ -113,6 +116,48 @@ defmodule AstarteE2E.Config do
     type: :pos_integer,
     default: 10
 
+  @envdoc "The comma-separated email recipients."
+  app_env :mailer_to_address, :astarte_e2e, :mailer_to_address,
+    os_env: "ASTARTE_E2E_MAILER_TO_ADDRESS",
+    type: ListOfStrings,
+    default: ""
+
+  @envdoc "The notification email sender."
+  app_env :mailer_from_address, :astarte_e2e, :mailer_from_address,
+    os_env: "ASTARTE_E2E_MAILER_FROM_ADDRESS",
+    type: :binary,
+    default: ""
+
+  @envdoc """
+  The mail service's API key. This env var must be set and valid to use the mail
+  service.
+  """
+  app_env :mail_api_key, :astarte_e2e, :mail_api_key,
+    os_env: "ASTARTE_E2E_MAIL_API_KEY",
+    type: :binary
+
+  @envdoc """
+  The mail domain. This env var must be set and valid to use the mail service.
+  """
+  app_env :mail_domain, :astarte_e2e, :mail_domain,
+    os_env: "ASTARTE_E2E_MAIL_DOMAIN",
+    type: :binary
+
+  @envdoc """
+  The mail API base URI. This env var must be set and valid to use the mail service.
+  """
+  app_env :mail_api_base_uri, :astarte_e2e, :mail_api_base_uri,
+    os_env: "ASTARTE_E2E_MAIL_API_BASE_URI",
+    type: :binary
+
+  @envdoc """
+  The mail service. Currently only Mailgun is supported. This env var must be set and
+  valid to use the mail service.
+  """
+  app_env :mail_service, :astarte_e2e, :mail_service,
+    os_env: "ASTARTE_E2E_MAIL_SERVICE",
+    type: BambooMailAdapter
+
   @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do
     {:ok, websocket_url!()}
@@ -173,6 +218,36 @@ defmodule AstarteE2E.Config do
       realm: realm!(),
       device_id: device_id!()
     ]
+  end
+
+  def service_notifier_config do
+    with {:mail_adapter, {:ok, mail_adapter}} when not is_nil(mail_adapter) <-
+           {:mail_adapter, mail_service()},
+         {:ok, base_uri} when not is_nil(base_uri) <- mail_api_base_uri(),
+         {:ok, domain} when not is_nil(domain) <- mail_domain(),
+         {:ok, api_key} when not is_nil(api_key) <- mail_api_key(),
+         {:ok, from} when from != "" <- mailer_from_address(),
+         {:ok, to} when to != "" <- mailer_to_address() do
+      %{
+        chained_adapter: mail_adapter,
+        api_key: api_key,
+        domain: domain,
+        base_uri: base_uri,
+        hackney_opts: [
+          recv_timeout: :timer.minutes(1)
+        ]
+      }
+    else
+      {:mail_adapter, {:ok, nil}} ->
+        %{chained_adapter: Bamboo.LocalAdapter}
+
+      _ ->
+        Logger.warn("Incomplete mail configuration. The Local Adapter will be used.",
+          tag: "local_adapter_fallback"
+        )
+
+        %{chained_adapter: Bamboo.LocalAdapter}
+    end
   end
 
   @spec standard_interface_provider() :: {:ok, String.t()}

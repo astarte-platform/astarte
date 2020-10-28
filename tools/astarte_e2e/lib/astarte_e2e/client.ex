@@ -19,7 +19,7 @@
 defmodule AstarteE2E.Client do
   alias Phoenix.Channels.GenSocketClient
   alias Phoenix.Channels.GenSocketClient.Transport.WebSocketClient
-  alias AstarteE2E.{Utils, Config}
+  alias AstarteE2E.{Utils, Config, ServiceNotifier}
 
   require Logger
 
@@ -270,6 +270,8 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
+    ServiceNotifier.notify_service_down("Client disconnected")
+
     Logger.info("Disconnected with reason: #{inspect(reason)}.",
       tag: "client_disconnected"
     )
@@ -346,6 +348,8 @@ defmodule AstarteE2E.Client do
         %{status: 1}
       )
 
+      ServiceNotifier.notify_service_up()
+
       GenSocketClient.reply(from, :ok)
       {:ok, new_state}
     else
@@ -395,6 +399,8 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
+    ServiceNotifier.notify_service_down("Message timeout")
+
     Logger.warn("Incoming message timeout. Key = #{inspect(key)}",
       tag: "message_timeout"
     )
@@ -412,6 +418,8 @@ defmodule AstarteE2E.Client do
       [:astarte_end_to_end, :astarte_platform],
       %{status: 0}
     )
+
+    ServiceNotifier.notify_service_down("Maximum number of request timeout reached")
 
     Logger.warn(
       "Maximum number of requests timeout reached. The websocket client is going to crash.",
@@ -433,6 +441,8 @@ defmodule AstarteE2E.Client do
       [:astarte_end_to_end, :astarte_platform],
       %{status: 0}
     )
+
+    ServiceNotifier.notify_service_down("Request timeout")
 
     Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "request_timeout")
 
@@ -546,6 +556,8 @@ defmodule AstarteE2E.Client do
         [:astarte_end_to_end, :astarte_platform],
         %{status: 1}
       )
+
+      ServiceNotifier.notify_service_up()
 
       Logger.info("Round trip time = #{inspect(dt_ms)} ms.")
 

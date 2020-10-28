@@ -21,6 +21,10 @@ defmodule AstarteE2EWeb.Router do
 
   use Plug.Router
 
+  if Mix.env() == :dev do
+    forward "/sent_emails", to: Bamboo.SentEmailViewerPlug
+  end
+
   plug AstarteE2EWeb.MetricsPlug
 
   plug :match

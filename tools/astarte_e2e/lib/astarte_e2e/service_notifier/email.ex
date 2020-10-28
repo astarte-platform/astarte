@@ -16,17 +16,27 @@
 # limitations under the License.
 #
 
-# This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
-#
-# This configuration file is loaded before any dependency and
-# is restricted to this project.
-use Mix.Config
+defmodule AstarteE2E.ServiceNotifier.Email do
+  import Bamboo.Email
 
-config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer,
-  adapter: Bamboo.ConfigAdapter,
-  chained_adapter: Bamboo.LocalAdapter
+  alias AstarteE2E.Config
 
-# Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
-import_config "#{Mix.env()}.exs"
+  def service_down_email(reason) do
+    from = Config.mailer_from_address!()
+    to = Config.mailer_to_address!()
+
+    text = """
+    AstarteE2E detected a service malfunction.
+
+    Reason: #{reason}.
+
+    Please take actions to prevent further issues.
+    """
+
+    new_email()
+    |> to(to)
+    |> from(from)
+    |> subject("Astarte Warning! Service is down")
+    |> text_body(text)
+  end
+end
