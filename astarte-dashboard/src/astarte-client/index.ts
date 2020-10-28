@@ -18,6 +18,8 @@
 
 import AstarteClient from './client';
 
+export type { AstarteInterfaceDescriptor } from './client';
+
 export {
   AstarteCustomBlock,
   AstarteNativeBlock,
