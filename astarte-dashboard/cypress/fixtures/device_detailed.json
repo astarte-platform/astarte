@@ -12,26 +12,26 @@
       "com.example.ExampleInterface": {
         "major": 2,
         "minor": 0,
-        "exchanged_msgs": 20,
-        "exchanged_bytes": 200
+        "exchanged_msgs": 3,
+        "exchanged_bytes": 42
       },
       "test.astarte.AggregatedObjectInterface": {
         "major": 1,
         "minor": 0,
-        "exchanged_msgs": 3,
-        "exchanged_bytes": 42
+        "exchanged_msgs": 3000,
+        "exchanged_bytes": 42000
       },
       "test.astarte.IndividualObjectInterface": {
         "major": 1,
         "minor": 0,
-        "exchanged_msgs": 3,
-        "exchanged_bytes": 42
+        "exchanged_msgs": 3000000,
+        "exchanged_bytes": 42000000
       },
       "test.astarte.PropertiesInterface": {
         "major": 1,
         "minor": 0,
-        "exchanged_msgs": 3,
-        "exchanged_bytes": 42
+        "exchanged_msgs": 3000000000,
+        "exchanged_bytes": 42000000000
       }
     },
     "connected": true,
@@ -42,8 +42,8 @@
     "last_seen_ip": "198.51.100.81",
     "credentials_inhibited": true,
     "last_credentials_request_ip": "98.51.100.89",
-    "total_received_bytes": 10240,
-    "total_received_msgs": 10,
+    "total_received_bytes": 45000000000,
+    "total_received_msgs": 4000000000,
     "groups": ["test-devices", "first-floor"],
     "previous_interfaces": [
       {

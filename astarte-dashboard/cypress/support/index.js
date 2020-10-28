@@ -1,3 +1,5 @@
+import websocketMock from './websocket';
+
 // This hook runs before each test of every test suite
 // So this query will be already mocked in every test
 beforeEach(() => {
@@ -56,5 +58,29 @@ Cypress.Commands.add('moveOnto', { prevSubject: 'element' }, (subject, targetSel
       .trigger('mousedown', { button: 0 }, { force: true })
       .trigger('mousemove', diffX, diffY, { force: true });
     cy.wrap(target.get(0)).trigger('mouseup', { force: true });
+  });
+});
+
+Cypress.Commands.add('mockWebSocket', ({ url }) => {
+  cy.on('window:before:load', (win) => {
+    websocketMock.injectMock(win, url);
+  });
+});
+
+Cypress.Commands.add('sendWebSocketDeviceConnected', ({ deviceId, deviceIpAddress }) => {
+  cy.window().then((win) => {
+    websocketMock.sendDeviceConnected(win, { deviceId, deviceIpAddress });
+  });
+});
+
+Cypress.Commands.add('sendWebSocketDeviceDisconnected', ({ deviceId }) => {
+  cy.window().then((win) => {
+    websocketMock.sendDeviceDisconnected(win, { deviceId });
+  });
+});
+
+Cypress.Commands.add('sendWebSocketDeviceEvent', ({ deviceId, event }) => {
+  cy.window().then((win) => {
+    websocketMock.sendDeviceEvent(win, { deviceId, event });
   });
 });
