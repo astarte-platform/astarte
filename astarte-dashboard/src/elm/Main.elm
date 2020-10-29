@@ -487,7 +487,7 @@ pageInit realmRoute config session =
             initReactPage session Interfaces "interface-new" realmRoute
 
         Route.ShowInterface name major ->
-            initInterfaceBuilderPage (Just ( name, major )) session session.apiConfig.realm
+            initReactPage session Interfaces "interface-edit" realmRoute
 
         Route.ListTriggers ->
             initReactPage session Triggers "trigger-list" realmRoute

@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import GroupDevicesPage from './GroupDevicesPage';
 import NewGroupPage from './NewGroupPage';
 import TriggersPage from './TriggersPage';
 import InterfacesPage from './InterfacesPage';
+import InterfacePage from './InterfacePage';
 import NewInterfacePage from './NewInterfacePage';
 import DevicesPage from './DevicesPage';
 import RegisterDevicePage from './RegisterDevicePage';
@@ -74,6 +75,10 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
         <Route path="triggers" element={<TriggersPage {...pageProps} />} />
         <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
         <Route path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
+        <Route
+          path="interfaces/:interfaceName/:interfaceMajor"
+          element={<InterfaceEdit {...pageProps} />}
+        />
         <Route path="devices" element={<DevicesPage {...pageProps} />} />
         <Route path="devices/register" element={<RegisterDevicePage {...pageProps} />} />
         <Route path="/devices/:deviceId" element={<DeviceStatusSubPath {...pageProps} />} />
@@ -128,6 +133,17 @@ function Login({ defaultLoginType, ...props }) {
   const loginType = new URLSearchParams(search).get('type') || defaultLoginType;
 
   return <LoginPage type={loginType} {...props} />;
+}
+
+function InterfaceEdit(props) {
+  const { interfaceName, interfaceMajor } = useParams();
+  return (
+    <InterfacePage
+      interfaceName={interfaceName}
+      interfaceMajor={parseInt(interfaceMajor, 10)}
+      {...props}
+    />
+  );
 }
 
 function GroupDevicesSubPath(props) {

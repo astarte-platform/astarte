@@ -780,7 +780,7 @@ describe('Interface builder tests', () => {
           { data: majorInterface },
         );
         cy.visit(`/interfaces/${majorInterface.interface_name}/${majorInterface.version_major}`);
-        cy.get('button').contains('Delete interface').scrollIntoView().should('not.be.visible');
+        cy.contains('Delete interface').should('not.exist');
 
         cy.route(
           'GET',
@@ -794,7 +794,7 @@ describe('Interface builder tests', () => {
           response: '',
         }).as('deleteInterfaceRequest');
         cy.visit(`/interfaces/${draftInterface.interface_name}/${draftInterface.version_major}`);
-        cy.get('button').contains('Delete interface').scrollIntoView().click();
+        cy.contains('Delete interface').scrollIntoView().click();
         cy.get('.modal.show').within(() => {
           cy.contains(
             `You are going to remove ${draftInterface.interface_name} v${draftInterface.version_major}. This might cause data loss, removed interfaces cannot be restored. Are you sure?`,

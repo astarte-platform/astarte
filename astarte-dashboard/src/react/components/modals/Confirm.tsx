@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ interface Props {
   confirmLabel?: string;
   confirmOnEnter?: boolean;
   confirmVariant?: BoostrapVariant;
+  disabled?: boolean;
   isConfirming?: boolean;
   onCancel?: () => void;
   onConfirm: () => void;
@@ -50,6 +51,7 @@ const ConfirmModal = ({
   confirmLabel = 'Confirm',
   confirmOnEnter = true,
   confirmVariant = 'primary',
+  disabled = false,
   isConfirming = false,
   onCancel,
   onConfirm,
@@ -77,7 +79,7 @@ const ConfirmModal = ({
           )}
           <Button
             variant={confirmVariant}
-            disabled={isConfirming}
+            disabled={disabled || isConfirming}
             onClick={onConfirm}
             style={{ minWidth: '5em' }}
           >
