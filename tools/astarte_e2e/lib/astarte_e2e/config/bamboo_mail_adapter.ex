@@ -24,6 +24,9 @@ defmodule AstarteE2E.Config.BambooMailAdapter do
       "mailgun" ->
         {:ok, Bamboo.MailgunAdapter}
 
+      "sendgrid" ->
+        {:ok, Bamboo.SendGridAdapter}
+
       _ ->
         :error
     end
