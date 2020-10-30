@@ -16,11 +16,4 @@
    limitations under the License.
 */
 
-export * from './Block';
-export * from './Realm';
-export * from './Token';
-export * from './Device';
-export * from './Flow';
-export * from './Pipeline';
-export * from './Mapping';
-export * from './Interface';
+export type AstarteDataType = number | boolean | string | number[] | boolean[] | string[];

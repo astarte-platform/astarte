@@ -17,3 +17,5 @@
 */
 
 export * from './pipeline';
+export * from './interface';
+export * from './mapping';

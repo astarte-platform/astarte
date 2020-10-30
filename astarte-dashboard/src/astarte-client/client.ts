@@ -20,13 +20,23 @@ import axios from 'axios';
 import { Socket as PhoenixSocket } from 'phoenix';
 import _ from 'lodash';
 
-import { fromAstartePipelineDTO, toAstartePipelineDTO } from './transforms';
+import {
+  fromAstarteInterfaceDTO,
+  fromAstartePipelineDTO,
+  toAstartePipelineDTO,
+} from './transforms';
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
 import { AstarteDevice } from './models/Device';
 import { AstarteFlow } from './models/Flow';
 import { AstartePipeline } from './models/Pipeline';
+import type { AstarteInterface } from './models/Interface';
 import type { AstarteBlock } from './models/Block';
-import type { AstarteBlockDTO, AstarteDeviceDTO, AstarteJWT } from './types';
+import type {
+  AstarteBlockDTO,
+  AstarteDeviceDTO,
+  AstarteJWT,
+  AstarteInterfaceValues,
+} from './types';
 
 export interface AstarteInterfaceDescriptor {
   name: string;
@@ -251,7 +261,11 @@ class AstarteClient {
     return response.data;
   }
 
-  async getInterface({ interfaceName, interfaceMajor }: any): Promise<any> {
+  async getInterface(params: {
+    interfaceName: AstarteDevice['name'];
+    interfaceMajor: AstarteInterface['major'];
+  }): Promise<AstarteInterface> {
+    const { interfaceName, interfaceMajor } = params;
     const response = await this.$get(
       this.apiConfig.interfaceData({
         interfaceName,
@@ -259,7 +273,7 @@ class AstarteClient {
         ...this.config,
       }),
     );
-    return response.data;
+    return fromAstarteInterfaceDTO(response.data);
   }
 
   async getTriggerNames(): Promise<string[]> {
@@ -297,12 +311,16 @@ class AstarteClient {
     return { devices, nextToken };
   }
 
-  async getDeviceInfo(deviceId: any): Promise<AstarteDevice> {
+  async getDeviceInfo(deviceId: AstarteDevice['id']): Promise<AstarteDevice> {
     const response = await this.$get(this.apiConfig.deviceInfo({ deviceId, ...this.config }));
     return AstarteDevice.fromObject(response.data);
   }
 
-  async getDeviceData({ deviceId, interfaceName }: any): Promise<any> {
+  async getDeviceData(params: {
+    deviceId: AstarteDevice['id'];
+    interfaceName: AstarteInterface['name'];
+  }): Promise<AstarteInterfaceValues> {
+    const { deviceId, interfaceName } = params;
     const response = await this.$get(
       this.apiConfig.deviceData({
         deviceId,

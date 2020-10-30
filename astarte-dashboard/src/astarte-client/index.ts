@@ -26,10 +26,23 @@ export {
   AstarteDevice,
   AstarteFlow,
   AstartePipeline,
+  AstarteInterface,
+  AstarteMapping,
   AstarteRealm,
   AstarteToken,
 } from './models';
 
 export type { AstarteBlock } from './models';
+
+export type {
+  AstarteDataType,
+  AstartePropertiesInterfaceValue,
+  AstartePropertiesInterfaceValues,
+  AstarteIndividualDatastreamInterfaceValue,
+  AstarteIndividualDatastreamInterfaceValues,
+  AstarteAggregatedDatastreamInterfaceValue,
+  AstarteAggregatedDatastreamInterfaceValues,
+  AstarteInterfaceValues,
+} from './types';
 
 export default AstarteClient;
