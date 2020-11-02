@@ -137,7 +137,7 @@ defmodule AstarteE2E.Config do
     type: :binary
 
   @envdoc """
-  The mail domain. This env var must be set and valid to use the mail service.
+  The mail domain. This env var must be set and valid to use the mailgun service.
   """
   app_env :mail_domain, :astarte_e2e, :mail_domain,
     os_env: "ASTARTE_E2E_MAIL_DOMAIN",
@@ -151,8 +151,8 @@ defmodule AstarteE2E.Config do
     type: :binary
 
   @envdoc """
-  The mail service. Currently only Mailgun is supported. This env var must be set and
-  valid to use the mail service.
+  The mail service. Currently only "mailgun" and "sendgrid" are supported.
+  This env var must be set and valid to use the mail service.
   """
   app_env :mail_service, :astarte_e2e, :mail_service,
     os_env: "ASTARTE_E2E_MAIL_SERVICE",
@@ -221,15 +221,26 @@ defmodule AstarteE2E.Config do
   end
 
   def service_notifier_config do
-    with {:mail_adapter, {:ok, mail_adapter}} when not is_nil(mail_adapter) <-
-           {:mail_adapter, mail_service()},
-         {:ok, base_uri} when not is_nil(base_uri) <- mail_api_base_uri(),
+    case mail_service() do
+      {:ok, Bamboo.MailgunAdapter} ->
+        mailgun_config()
+
+      {:ok, Bamboo.SendGridAdapter} ->
+        sendgrid_config()
+
+      _ ->
+        fallback_config()
+    end
+  end
+
+  defp mailgun_config do
+    with {:ok, base_uri} <- mail_api_base_uri(),
          {:ok, domain} when not is_nil(domain) <- mail_domain(),
          {:ok, api_key} when not is_nil(api_key) <- mail_api_key(),
          {:ok, from} when from != "" <- mailer_from_address(),
          {:ok, to} when to != "" <- mailer_to_address() do
       %{
-        chained_adapter: mail_adapter,
+        chained_adapter: mail_service!(),
         api_key: api_key,
         domain: domain,
         base_uri: base_uri,
@@ -238,16 +249,40 @@ defmodule AstarteE2E.Config do
         ]
       }
     else
-      {:mail_adapter, {:ok, nil}} ->
-        %{chained_adapter: Bamboo.LocalAdapter}
-
       _ ->
         Logger.warn("Incomplete mail configuration. The Local Adapter will be used.",
           tag: "local_adapter_fallback"
         )
 
-        %{chained_adapter: Bamboo.LocalAdapter}
+        fallback_config()
     end
+  end
+
+  defp sendgrid_config do
+    with {:ok, base_uri} <- mail_api_base_uri(),
+         {:ok, api_key} when not is_nil(api_key) <- mail_api_key(),
+         {:ok, from} when from != "" <- mailer_from_address(),
+         {:ok, to} when to != "" <- mailer_to_address() do
+      %{
+        chained_adapter: mail_service!(),
+        api_key: api_key,
+        base_uri: base_uri,
+        hackney_opts: [
+          recv_timeout: :timer.minutes(1)
+        ]
+      }
+    else
+      _ ->
+        Logger.warn("Incomplete mail configuration. The Local Adapter will be used.",
+          tag: "local_adapter_fallback"
+        )
+
+        fallback_config()
+    end
+  end
+
+  defp fallback_config do
+    %{chained_adapter: Bamboo.LocalAdapter}
   end
 
   @spec standard_interface_provider() :: {:ok, String.t()}
