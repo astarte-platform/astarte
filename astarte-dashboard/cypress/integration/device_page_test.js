@@ -281,7 +281,8 @@ describe('Device page tests', () => {
             cy.get('input#value').type('alias_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
-            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('input#value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
@@ -366,7 +367,8 @@ describe('Device page tests', () => {
             cy.get('input#value').type('alias_new_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('input#value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
@@ -407,7 +409,8 @@ describe('Device page tests', () => {
             cy.get('input#value').type('metadata_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
-            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('input#value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
@@ -493,7 +496,8 @@ describe('Device page tests', () => {
             cy.get('input#value').type('metadata_new_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('input#value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
