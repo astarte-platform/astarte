@@ -16,22 +16,16 @@
 # limitations under the License.
 #
 
-defmodule AstarteE2EWeb.Router do
-  @moduledoc false
+defmodule AstarteE2EWeb.HealthPlug do
+  import Plug.Conn
 
-  use Plug.Router
+  def init(_args), do: nil
 
-  if Mix.env() == :dev do
-    forward "/sent_emails", to: Bamboo.SentEmailViewerPlug
+  def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
+    conn
+    |> send_resp(:ok, "")
+    |> halt()
   end
 
-  plug AstarteE2EWeb.HealthPlug
-  plug AstarteE2EWeb.MetricsPlug
-
-  plug :match
-  plug :dispatch
-
-  match _ do
-    send_resp(conn, 404, "Not found")
-  end
+  def call(conn, _opts), do: conn
 end
