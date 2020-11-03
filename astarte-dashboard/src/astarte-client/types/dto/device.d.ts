@@ -48,8 +48,8 @@ export interface AstarteDeviceDTO {
   groups?: string[];
   previous_interfaces?: Array<{
     name: string;
-    major: string;
-    minor: string;
+    major: number;
+    minor: number;
     exchanged_msgs?: number;
     exchanged_bytes?: number;
   }>;

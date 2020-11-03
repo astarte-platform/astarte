@@ -273,7 +273,7 @@ export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement
       const device = await astarte.getDeviceInfo(deviceId).catch(() => {
         throw new Error('Device not found.');
       });
-      const interfaceIntrospection = device.introspection[interfaceName];
+      const interfaceIntrospection = device.introspection.get(interfaceName);
       if (!interfaceIntrospection) {
         throw new Error('Interface not found in device introspection.');
       }
