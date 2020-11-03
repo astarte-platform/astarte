@@ -28,12 +28,8 @@ module AstarteApi exposing
     , configDecoder
     , deleteInterface
     , deleteTrigger
-    , detailedDeviceList
-    , deviceData
     , deviceInfos
-    , deviceList
     , deviceStats
-    , encodeConfig
     , errorToHumanReadable
     , flowApiHealth
     , getInterface
@@ -41,9 +37,7 @@ module AstarteApi exposing
     , groupList
     , listInterfaceMajors
     , listInterfaces
-    , listTriggers
     , pairingApiHealth
-    , realmConfig
     , realmManagementApiHealth
     , removeDeviceAlias
     , removeDeviceMetadataField
@@ -51,7 +45,6 @@ module AstarteApi exposing
     , updateDeviceAliases
     , updateDeviceMetadata
     , updateInterface
-    , updateRealmConfig
     , wipeDeviceCredentials
     )
 
@@ -73,9 +66,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode exposing (Value)
 import Types.Device as Device exposing (Device)
-import Types.DeviceData as DeviceData exposing (DeviceData)
 import Types.Interface as Interface exposing (Interface)
-import Types.RealmConfig as RealmConfig exposing (RealmConfig)
 import Types.Trigger as Trigger exposing (Trigger)
 import Url.Builder exposing (crossOrigin)
 
@@ -344,37 +335,6 @@ wipeDeviceCredentials apiConfig deviceId resultMsg =
 
 
 
--- Realm config
-
-
-realmConfig : Config -> (RealmConfig -> msg) -> (Error -> msg) -> msg -> Cmd msg
-realmConfig apiConfig okMsg errorMsg loginMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "config", "auth" ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply AnswerWithData <| field "data" RealmConfig.decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
-
-
-updateRealmConfig : Config -> RealmConfig -> msg -> (Error -> msg) -> msg -> Cmd msg
-updateRealmConfig apiConfig realmConf okMsg errorMsg loginMsg =
-    Http.request
-        { method = "PUT"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "config", "auth" ] []
-        , body = Http.jsonBody <| Encode.object [ ( "data", RealmConfig.encode realmConf ) ]
-        , expect = expectWhateverAstarteReply Answer
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
-
-
 
 -- Interfaces
 
@@ -479,19 +439,6 @@ updateInterface apiConfig interface okMsg errorMsg loginMsg =
 -- Triggers
 
 
-listTriggers : Config -> (List String -> msg) -> (Error -> msg) -> msg -> Cmd msg
-listTriggers apiConfig okMsg errorMsg loginMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "triggers" ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply AnswerWithData <| field "data" (list string)
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
-
 
 getTrigger : Config -> String -> (Trigger -> msg) -> (Error -> msg) -> msg -> Cmd msg
 getTrigger apiConfig triggerName okMsg errorMsg loginMsg =
@@ -539,34 +486,6 @@ deleteTrigger apiConfig triggerName okMsg errorMsg loginMsg =
 -- Devices
 
 
-deviceList : Config -> (Result Error (List String) -> msg) -> Cmd msg
-deviceList apiConfig resultMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices" ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply resultMsg <| field "data" (list string)
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-detailedDeviceList : Config -> (Result Error (List Device) -> msg) -> Cmd msg
-detailedDeviceList apiConfig resultMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url =
-            buildUrl apiConfig.secureConnection
-                apiConfig.appengineUrl
-                [ "v1", apiConfig.realm, "devices" ]
-                [ Url.Builder.string "details" "true" ]
-        , body = Http.emptyBody
-        , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Device.decoder)
-        , timeout = Nothing
-        , tracker = Nothing
-        }
 
 
 deviceInfos : Config -> String -> (Result Error Device -> msg) -> Cmd msg
@@ -701,22 +620,6 @@ addDeviceToGroup apiConfig groupName deviceId resultMsg =
         }
 
 
-deviceData : Config -> String -> String -> (Result Error (List DeviceData) -> msg) -> Cmd msg
-deviceData apiConfig deviceId interfaceName resultMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url =
-            buildUrl apiConfig.secureConnection
-                apiConfig.appengineUrl
-                [ "v1", apiConfig.realm, "devices", deviceId, "interfaces", interfaceName ]
-                []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply resultMsg <| field "data" DeviceData.decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
 
 
 -- Health checks
@@ -793,20 +696,6 @@ buildUrl secure host path query =
                 protocol ++ host
     in
     crossOrigin baseUrl path query
-
-
-encodeConfig : Config -> Value
-encodeConfig config =
-    Encode.object
-        [ ( "secure_connection", Encode.bool config.secureConnection )
-        , ( "realm_management_url", Encode.string config.realmManagementUrl )
-        , ( "appengine_url", Encode.string config.appengineUrl )
-        , ( "pairing_url", Encode.string config.pairingUrl )
-        , ( "flow_url", Encode.string config.flowUrl )
-        , ( "realm", Encode.string config.realm )
-        , ( "token", Encode.string config.token )
-        , ( "enable_flow_preview", Encode.bool config.enableFlowPreview )
-        ]
 
 
 configDecoder : Decoder Config

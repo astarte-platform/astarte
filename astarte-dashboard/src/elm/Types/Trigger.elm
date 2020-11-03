@@ -29,7 +29,6 @@ module Types.Trigger exposing
     , toPrettySource
     )
 
-import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder, Value, andThen, decodeString, field, index, map, nullable, string)
 import Json.Decode.Pipeline exposing (hardcoded, optional, required, resolve)
 import Json.Encode as Encode

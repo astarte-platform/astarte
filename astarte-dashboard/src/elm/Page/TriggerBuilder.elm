@@ -29,7 +29,6 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
 import Bootstrap.Modal as Modal
-import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
 import Bootstrap.Utilities.Size as Size
@@ -40,7 +39,6 @@ import Html exposing (Html, b, h5, text)
 import Html.Attributes exposing (class, for, href, readonly, selected, value)
 import Html.Events exposing (onSubmit)
 import Icons
-import Json.Decode as Decode
 import Modal.AskKeyValue as AskKeyValue
 import Modal.AskSingleValue as AskSingleValue
 import Modal.ConfirmModal as ConfirmModal
@@ -2064,13 +2062,6 @@ mappingTypeToJsonType mType =
         Nothing ->
             DataTrigger.JString
 
-
-interfacesOption : String -> String -> Select.Item Msg
-interfacesOption selectedInterface interfaceName =
-    renderOption
-        interfaceName
-        (selectedInterface == interfaceName)
-        interfaceName
 
 
 interfaceMajors : Int -> Int -> Select.Item Msg

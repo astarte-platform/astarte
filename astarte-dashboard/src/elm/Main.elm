@@ -35,7 +35,6 @@ import Html exposing (Html, a, div, hr, img, li, p, small, span, text, ul)
 import Html.Attributes exposing (class, classList, href, src, style)
 import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
-import Json.Encode as Encode
 import ListUtils exposing (addWhen)
 import Page.Device as Device
 import Page.InterfaceBuilder as InterfaceBuilder
@@ -50,7 +49,6 @@ import Types.ExternalMessage exposing (ExternalMsg(..))
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.Session as Session exposing (LoginStatus(..), LoginType(..), Session)
 import Url exposing (Url)
-import Url.Builder
 
 
 main : Program Value Model Msg
@@ -1135,14 +1133,6 @@ pageSubscriptions page =
 sessionChange : Sub (Maybe Session)
 sessionChange =
     Ports.onSessionChange (Decode.decodeValue Session.decoder >> Result.toMaybe)
-
-
-storeSession : Session -> Cmd msg
-storeSession session =
-    Session.encode session
-        |> Encode.encode 0
-        |> Just
-        |> Ports.storeSession
 
 
 pageRequestedFromJS : Sub (Maybe String)
