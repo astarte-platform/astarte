@@ -117,14 +117,14 @@ defmodule AstarteE2E.Config do
     default: 10
 
   @envdoc "The comma-separated email recipients."
-  app_env :mailer_to_address, :astarte_e2e, :mailer_to_address,
-    os_env: "E2E_MAILER_TO_ADDRESS",
+  app_env :mail_to_address, :astarte_e2e, :mail_to_address,
+    os_env: "E2E_MAIL_TO_ADDRESS",
     type: ListOfStrings,
     default: ""
 
   @envdoc "The notification email sender."
-  app_env :mailer_from_address, :astarte_e2e, :mailer_from_address,
-    os_env: "E2E_MAILER_FROM_ADDRESS",
+  app_env :mail_from_address, :astarte_e2e, :mail_from_address,
+    os_env: "E2E_MAIL_FROM_ADDRESS",
     type: :binary,
     default: ""
 
@@ -237,8 +237,8 @@ defmodule AstarteE2E.Config do
     with {:ok, base_uri} <- mail_api_base_uri(),
          {:ok, domain} when not is_nil(domain) <- mail_domain(),
          {:ok, api_key} when not is_nil(api_key) <- mail_api_key(),
-         {:ok, from} when from != "" <- mailer_from_address(),
-         {:ok, to} when to != "" <- mailer_to_address() do
+         {:ok, from} when from != "" <- mail_from_address(),
+         {:ok, to} when to != "" <- mail_to_address() do
       %{
         chained_adapter: mail_service!(),
         api_key: api_key,
@@ -261,8 +261,8 @@ defmodule AstarteE2E.Config do
   defp sendgrid_config do
     with {:ok, base_uri} <- mail_api_base_uri(),
          {:ok, api_key} when not is_nil(api_key) <- mail_api_key(),
-         {:ok, from} when from != "" <- mailer_from_address(),
-         {:ok, to} when to != "" <- mailer_to_address() do
+         {:ok, from} when from != "" <- mail_from_address(),
+         {:ok, to} when to != "" <- mail_to_address() do
       %{
         chained_adapter: mail_service!(),
         api_key: api_key,
