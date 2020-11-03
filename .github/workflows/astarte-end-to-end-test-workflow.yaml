@@ -48,25 +48,25 @@ jobs:
       run: |
         ./astartectl utils gen-keypair test
         ./astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_public.pem -k compose/astarte-keys/housekeeping_private.pem
-        echo "ASTARTE_E2E_REALM=test" >> $GITHUB_ENV
+        echo "E2E_REALM=test" >> $GITHUB_ENV
         sleep 5
     - name: Install e2e test interfaces
       run: |
         for i in $(ls tools/astarte_e2e/priv/interfaces/); do
           echo "Installing $i"
-          ./astartectl realm-management interfaces install tools/astarte_e2e/priv/interfaces/$i --realm-management-url http://localhost:4000 -k test_private.pem -r $ASTARTE_E2E_REALM
+          ./astartectl realm-management interfaces install tools/astarte_e2e/priv/interfaces/$i --realm-management-url http://localhost:4000 -k test_private.pem -r $E2E_REALM
           sleep 2
         done
     - name: Register device
       run: |
         DEVICE_ID=$(./astartectl utils device-id generate-random)
-        echo "ASTARTE_E2E_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
-        CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID --pairing-url http://localhost:4003 -k test_private.pem -r $ASTARTE_E2E_REALM | grep "Credentials Secret is" | cut -d '"' -f 2)
-        echo "ASTARTE_E2E_CREDENTIALS_SECRET=$CREDENTIALS_SECRET" >> $GITHUB_ENV
+        echo "E2E_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
+        CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID --pairing-url http://localhost:4003 -k test_private.pem -r $E2E_REALM | grep "Credentials Secret is" | cut -d '"' -f 2)
+        echo "E2E_CREDENTIALS_SECRET=$CREDENTIALS_SECRET" >> $GITHUB_ENV
     - name: Generate AppEngine JWT
       run: |
         JWT=$(./astartectl utils gen-jwt appengine channels -k test_private.pem)
-        echo "ASTARTE_E2E_JWT=$JWT" >> $GITHUB_ENV
+        echo "E2E_JWT=$JWT" >> $GITHUB_ENV
     - uses: actions/cache@v1
       with:
         path: tools/astarte_e2e/deps
@@ -87,12 +87,12 @@ jobs:
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:
-        ASTARTE_E2E_PAIRING_URL: http://localhost:4003
-        ASTARTE_E2E_APPENGINE_URL: http://localhost:4002
-        ASTARTE_E2E_IGNORE_SSL_ERRORS: true
-        ASTARTE_E2E_CHECK_INTERVAL_SECONDS: 5
-        ASTARTE_E2E_CHECK_REPETITIONS: 5
-        ASTARTE_E2E_MAILER_TO_ADDRESS: mail@example.com
+        E2E_PAIRING_URL: http://localhost:4003
+        E2E_APPENGINE_URL: http://localhost:4002
+        E2E_IGNORE_SSL_ERRORS: true
+        E2E_CHECK_INTERVAL_SECONDS: 5
+        E2E_CHECK_REPETITIONS: 5
+        E2E_MAILER_TO_ADDRESS: mail@example.com
       run: |
         mix run --no-halt
     - name: Check Docker
