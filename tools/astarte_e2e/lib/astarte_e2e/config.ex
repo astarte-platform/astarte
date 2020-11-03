@@ -25,6 +25,7 @@ defmodule AstarteE2E.Config do
   alias AstarteE2E.Config.AstarteDeviceID
   alias AstarteE2E.Config.ListOfStrings
   alias AstarteE2E.Config.BambooMailAdapter
+  alias AstarteE2E.Config.NormalizedMailAddress
 
   @type client_option ::
           {:url, String.t()}
@@ -125,7 +126,7 @@ defmodule AstarteE2E.Config do
   @envdoc "The notification email sender."
   app_env :mail_from_address, :astarte_e2e, :mail_from_address,
     os_env: "E2E_MAIL_FROM_ADDRESS",
-    type: :binary,
+    type: NormalizedMailAddress,
     default: ""
 
   @envdoc """
