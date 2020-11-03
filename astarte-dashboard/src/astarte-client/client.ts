@@ -37,6 +37,7 @@ import type {
   AstarteDeviceDTO,
   AstarteJWT,
   AstarteInterfaceValues,
+  AstarteDeviceEvent,
 } from './types';
 
 export interface AstarteInterfaceDescriptor {
@@ -603,7 +604,10 @@ class AstarteClient {
     });
   }
 
-  async listenForEvents(roomName: string, eventHandler: () => any): Promise<void> {
+  async listenForEvents(
+    roomName: string,
+    eventHandler: (event: AstarteDeviceEvent) => void,
+  ): Promise<void> {
     const channel = this.joinedChannels[roomName];
     if (!channel) {
       return Promise.reject(new Error("Can't listen for room events before joining it first"));

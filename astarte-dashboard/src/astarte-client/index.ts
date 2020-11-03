@@ -36,6 +36,7 @@ export type { AstarteBlock } from './models';
 
 export type {
   AstarteDataType,
+  AstarteDeviceEvent,
   AstartePropertiesInterfaceValue,
   AstartePropertiesInterfaceValues,
   AstarteIndividualDatastreamInterfaceValue,
