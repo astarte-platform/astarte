@@ -22,8 +22,8 @@ defmodule AstarteE2E.ServiceNotifier.Email do
   alias AstarteE2E.Config
 
   def service_down_email(reason) do
-    from = Config.mailer_from_address!()
-    to = Config.mailer_to_address!()
+    from = Config.mail_from_address!()
+    to = Config.mail_to_address!()
 
     text = """
     AstarteE2E detected a service malfunction.
