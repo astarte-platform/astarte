@@ -312,7 +312,7 @@ defmodule AstarteE2E.Client do
         _transport,
         state
       ) do
-    Logger.info("Handling incoming data message.", tag: "handle_incoming_message")
+    Logger.debug("Handling incoming data message.", tag: "handle_incoming_message")
 
     :telemetry.execute([:astarte_end_to_end, :messages, :received], %{})
 
@@ -329,14 +329,14 @@ defmodule AstarteE2E.Client do
 
       :ok = Process.cancel_timer(tref, async: false, info: false)
 
-      Logger.info("Timeout timer canceled successfully in handle_message.",
+      Logger.debug("Timeout timer canceled successfully in handle_message.",
         tag: "cancel_timer_success"
       )
 
       dt_ms = reception_timestamp - timestamp
       new_state = Map.put(state, :pending_requests, new_pending_requests)
 
-      Logger.info("Message verified. Round trip time = #{inspect(dt_ms)} ms.")
+      Logger.debug("Message verified. Round trip time = #{inspect(dt_ms)} ms.")
 
       :telemetry.execute(
         [:astarte_end_to_end, :messages, :round_trip_time],
@@ -368,13 +368,13 @@ defmodule AstarteE2E.Client do
   end
 
   def handle_message(_topic, event, payload, _transport, state) do
-    Logger.info("Neglecting msg. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
+    Logger.debug("Ignoring msg. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
 
     {:ok, state}
   end
 
   def handle_reply(_topic, event, payload, _transport, state) do
-    Logger.info("Handling reply. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
+    Logger.debug("Handling reply. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
 
     {:ok, state}
   end
@@ -535,7 +535,7 @@ defmodule AstarteE2E.Client do
 
       :ok = Process.cancel_timer(tref, async: false, info: false)
 
-      Logger.info("Timeout timer canceled successfully in handle_call.",
+      Logger.debug("Timeout timer canceled successfully in handle_call.",
         tag: "cancel_timer_success"
       )
 
@@ -559,7 +559,7 @@ defmodule AstarteE2E.Client do
 
       ServiceNotifier.notify_service_up()
 
-      Logger.info("Round trip time = #{inspect(dt_ms)} ms.")
+      Logger.debug("Round trip time = #{inspect(dt_ms)} ms.")
 
       {:reply, :ok, new_state}
     else
