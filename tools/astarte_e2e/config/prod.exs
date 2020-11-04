@@ -18,10 +18,11 @@
 
 use Mix.Config
 
-config :logger, :console,
-  level: :info,
+config :logger,
   compile_time_purge_matching: [
     [level_lower_than: :info]
-  ],
+  ]
+
+config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [:module, :function, :tag]
