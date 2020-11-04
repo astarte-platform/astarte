@@ -22,45 +22,39 @@ defmodule AstarteE2E.ServiceNotifier.Email do
   alias AstarteE2E.Config
 
   def service_down_email(reason) do
-    from = Config.mail_from_address!()
-    to = Config.mail_to_address!()
-
     text = """
-    AstarteE2E detected a service malfunction.
+    AstarteE2E detected a service malfunction at #{current_timestamp()}.
 
     Reason: #{reason}.
-    #{datetime_to_string()}
 
     Please take actions to prevent further issues.
     """
 
-    new_email()
-    |> to(to)
-    |> from(from)
+    base_email()
     |> subject("Astarte Warning! Service is down")
     |> text_body(text)
   end
 
-  defp datetime_to_string do
-    now = DateTime.utc_now()
-
-    day = now.day |> to_padded_string()
-    month = now.month |> to_padded_string()
-    year = now.year |> to_padded_string()
-    hour = now.hour |> to_padded_string()
-    minute = now.minute |> to_padded_string()
-    second = now.second |> to_padded_string()
-
+  def service_up_email do
+    text = """
+    AstarteE2E service is back to its normal state at #{current_timestamp()}.
     """
-    Timezone: #{now.time_zone}
-    Date: #{day}/#{month}/#{year}
-    Time: #{hour}:#{minute}:#{second}
-    """
+
+    base_email()
+    |> subject("Astarte: service back to its normal state.")
+    |> text_body(text)
   end
 
-  defp to_padded_string(num) do
-    num
-    |> Integer.to_string()
-    |> String.pad_leading(2, "0")
+  defp base_email do
+    from = Config.mail_from_address!()
+    to = Config.mail_to_address!()
+
+    new_email()
+    |> to(to)
+    |> from(from)
+  end
+
+  defp current_timestamp do
+    DateTime.utc_now() |> DateTime.to_string()
   end
 end

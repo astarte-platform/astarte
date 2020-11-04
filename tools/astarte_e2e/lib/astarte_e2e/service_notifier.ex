@@ -91,6 +91,11 @@ defmodule AstarteE2E.ServiceNotifier do
 
   def service_down({:call, from}, :notify_service_up, data) do
     actions = [{:reply, from, :ok}]
+
+    Email.service_up_email()
+    |> deliver()
+
+    Logger.info("Service up. The user has been notified.", tag: "service_up_notified")
     {:next_state, :service_up, data, actions}
   end
 
