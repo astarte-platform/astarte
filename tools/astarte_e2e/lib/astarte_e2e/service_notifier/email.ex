@@ -29,6 +29,7 @@ defmodule AstarteE2E.ServiceNotifier.Email do
     AstarteE2E detected a service malfunction.
 
     Reason: #{reason}.
+    #{datetime_to_string()}
 
     Please take actions to prevent further issues.
     """
@@ -38,5 +39,28 @@ defmodule AstarteE2E.ServiceNotifier.Email do
     |> from(from)
     |> subject("Astarte Warning! Service is down")
     |> text_body(text)
+  end
+
+  defp datetime_to_string do
+    now = DateTime.utc_now()
+
+    day = now.day |> to_padded_string()
+    month = now.month |> to_padded_string()
+    year = now.year |> to_padded_string()
+    hour = now.hour |> to_padded_string()
+    minute = now.minute |> to_padded_string()
+    second = now.second |> to_padded_string()
+
+    """
+    Timezone: #{now.time_zone}
+    Date: #{day}/#{month}/#{year}
+    Time: #{hour}:#{minute}:#{second}
+    """
+  end
+
+  defp to_padded_string(num) do
+    num
+    |> Integer.to_string()
+    |> String.pad_leading(2, "0")
   end
 end
