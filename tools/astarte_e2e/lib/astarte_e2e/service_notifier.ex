@@ -72,10 +72,10 @@ defmodule AstarteE2E.ServiceNotifier do
 
   @impl true
   def init(_) do
-    {:ok, :service_down, nil, [{:state_timeout, 60_000, nil}]}
+    {:ok, :starting, nil, [{:state_timeout, 60_000, nil}]}
   end
 
-  def service_down(:state_timeout, _content, _data) do
+  def starting(:state_timeout, _content, data) do
     reason = "Timeout at startup"
 
     reason
@@ -86,7 +86,19 @@ defmodule AstarteE2E.ServiceNotifier do
       tag: "service_down_notified"
     )
 
-    :keep_state_and_data
+    {:next_state, :service_down, data}
+  end
+
+  def starting({:call, from}, :notify_service_up, data) do
+    actions = [{:reply, from, :ok}]
+
+    Logger.info("Service up.", tag: "service_up")
+    {:next_state, :service_up, data, actions}
+  end
+
+  def starting({:call, from}, {:notify_service_down, _reason}, _data) do
+    actions = [{:reply, from, :not_started_yet}]
+    {:keep_state_and_data, actions}
   end
 
   def service_down({:call, from}, :notify_service_up, data) do
