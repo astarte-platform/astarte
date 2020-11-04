@@ -51,7 +51,7 @@ defmodule AstarteE2E.ServiceNotifier do
     :gen_statem.call(__MODULE__, :notify_service_up)
   end
 
-  defp deliver(%Bamboo.Email{} = email, reason) do
+  defp deliver(%Bamboo.Email{} = email) do
     service_notifier_config = Config.service_notifier_config()
 
     configured_email =
@@ -59,7 +59,6 @@ defmodule AstarteE2E.ServiceNotifier do
       |> Bamboo.ConfigAdapter.Email.put_config(service_notifier_config)
 
     with %Bamboo.Email{} = sent_email <- Mailer.deliver_later(configured_email) do
-      Logger.warn("Service down. The user has been notified. Reason: #{reason}", tag: "mail_sent")
       {:ok, sent_email}
     end
   end
@@ -79,8 +78,13 @@ defmodule AstarteE2E.ServiceNotifier do
   def service_down(:state_timeout, _content, _data) do
     reason = "Timeout at startup"
 
-    mail = Email.service_down_email(reason)
-    deliver(mail, reason)
+    reason
+    |> Email.service_down_email()
+    |> deliver()
+
+    Logger.warn("Service down. The user has been notified. Reason: #{reason}",
+      tag: "service_down_notified"
+    )
 
     :keep_state_and_data
   end
@@ -101,8 +105,13 @@ defmodule AstarteE2E.ServiceNotifier do
   end
 
   def service_up({:call, from}, {:notify_service_down, reason}, data) do
-    mail = Email.service_down_email(reason)
-    deliver(mail, reason)
+    reason
+    |> Email.service_down_email()
+    |> deliver()
+
+    Logger.warn("Service down. The user has been notified. Reason: #{reason}",
+      tag: "service_down_notified"
+    )
 
     actions = [{:reply, from, :mail_sent}]
     {:next_state, :service_down, data, actions}
