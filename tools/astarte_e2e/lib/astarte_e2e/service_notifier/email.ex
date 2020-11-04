@@ -22,21 +22,39 @@ defmodule AstarteE2E.ServiceNotifier.Email do
   alias AstarteE2E.Config
 
   def service_down_email(reason) do
-    from = Config.mail_from_address!()
-    to = Config.mail_to_address!()
-
     text = """
-    AstarteE2E detected a service malfunction.
+    AstarteE2E detected a service malfunction at #{current_timestamp()}.
 
     Reason: #{reason}.
 
     Please take actions to prevent further issues.
     """
 
+    base_email()
+    |> subject("Astarte Warning! Service is down")
+    |> text_body(text)
+  end
+
+  def service_up_email do
+    text = """
+    AstarteE2E service is back to its normal state at #{current_timestamp()}.
+    """
+
+    base_email()
+    |> subject("Astarte: service back to its normal state.")
+    |> text_body(text)
+  end
+
+  defp base_email do
+    from = Config.mail_from_address!()
+    to = Config.mail_to_address!()
+
     new_email()
     |> to(to)
     |> from(from)
-    |> subject("Astarte Warning! Service is down")
-    |> text_body(text)
+  end
+
+  defp current_timestamp do
+    DateTime.utc_now() |> DateTime.to_string()
   end
 end
