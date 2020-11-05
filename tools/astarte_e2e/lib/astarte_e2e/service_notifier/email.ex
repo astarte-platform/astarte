@@ -21,11 +21,12 @@ defmodule AstarteE2E.ServiceNotifier.Email do
 
   alias AstarteE2E.Config
 
-  def service_down_email(reason) do
+  def service_down_email(reason, failure_id) do
     text = """
     AstarteE2E detected a service malfunction at #{current_timestamp()}.
 
     Reason: #{reason}.
+    FailureID: #{failure_id}
 
     Please take actions to prevent further issues.
     """
@@ -35,9 +36,11 @@ defmodule AstarteE2E.ServiceNotifier.Email do
     |> text_body(text)
   end
 
-  def service_up_email do
+  def service_up_email(failure_id) do
     text = """
     AstarteE2E service is back to its normal state at #{current_timestamp()}.
+
+    Linked FailureId: #{failure_id}
     """
 
     base_email()
