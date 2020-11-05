@@ -63,6 +63,14 @@ defmodule AstarteE2E.ServiceNotifier do
     end
   end
 
+  defp update_failures_before_alert(data) do
+    %{data | failures_before_alert: data.failures_before_alert - 1}
+  end
+
+  defp reset_failures_before_alert(data) do
+    %{data | failures_before_alert: Config.failures_before_alert!()}
+  end
+
   # Callbacks
 
   @impl true
@@ -72,7 +80,8 @@ defmodule AstarteE2E.ServiceNotifier do
 
   @impl true
   def init(_) do
-    {:ok, :starting, nil, [{:state_timeout, 60_000, nil}]}
+    data = %{failures_before_alert: Config.failures_before_alert!()}
+    {:ok, :starting, data, [{:state_timeout, 60_000, nil}]}
   end
 
   def starting(:state_timeout, _content, data) do
@@ -92,8 +101,12 @@ defmodule AstarteE2E.ServiceNotifier do
   def starting({:call, from}, :notify_service_up, data) do
     actions = [{:reply, from, :ok}]
 
+    updated_data =
+      data
+      |> reset_failures_before_alert()
+
     Logger.info("Service up.", tag: "service_up")
-    {:next_state, :service_up, data, actions}
+    {:next_state, :service_up, updated_data, actions}
   end
 
   def starting({:call, from}, {:notify_service_down, _reason}, _data) do
@@ -104,24 +117,22 @@ defmodule AstarteE2E.ServiceNotifier do
   def service_down({:call, from}, :notify_service_up, data) do
     actions = [{:reply, from, :ok}]
 
+    updated_data =
+      data
+      |> reset_failures_before_alert()
+
     Email.service_up_email()
     |> deliver()
 
     Logger.info("Service up. The user has been notified.", tag: "service_up_notified")
-    {:next_state, :service_up, data, actions}
+    {:next_state, :service_up, updated_data, actions}
   end
 
-  def service_down({:call, from}, {:notify_service_down, _reason}, _data) do
-    actions = [{:reply, from, :already_notified}]
-    {:keep_state_and_data, actions}
-  end
-
-  def service_up({:call, from}, :notify_service_up, _data) do
-    actions = [{:reply, from, :ok}]
-    {:keep_state_and_data, actions}
-  end
-
-  def service_up({:call, from}, {:notify_service_down, reason}, data) do
+  def service_down(
+        {:call, from},
+        {:notify_service_down, reason},
+        %{failures_before_alert: 0} = data
+      ) do
     reason
     |> Email.service_down_email()
     |> deliver()
@@ -131,6 +142,50 @@ defmodule AstarteE2E.ServiceNotifier do
     )
 
     actions = [{:reply, from, :mail_sent}]
-    {:next_state, :service_down, data, actions}
+
+    updated_data =
+      data
+      |> update_failures_before_alert()
+
+    {:keep_state, updated_data, actions}
+  end
+
+  def service_down(
+        {:call, from},
+        {:notify_service_down, _reason},
+        data
+      ) do
+    actions =
+      if data.failures_before_alert > 0 do
+        [{:reply, from, :nothing_to_do}]
+      else
+        [{:reply, from, :mail_sent}]
+      end
+
+    updated_data =
+      data
+      |> update_failures_before_alert()
+
+    {:keep_state, updated_data, actions}
+  end
+
+  def service_up({:call, from}, :notify_service_up, data) do
+    actions = [{:reply, from, :ok}]
+
+    updated_data =
+      data
+      |> reset_failures_before_alert()
+
+    {:keep_state, updated_data, actions}
+  end
+
+  def service_up({:call, from}, {:notify_service_down, _reason}, data) do
+    actions = [{:reply, from, :nothing_to_do}]
+
+    updated_data =
+      data
+      |> update_failures_before_alert()
+
+    {:next_state, :service_down, updated_data, actions}
   end
 end
