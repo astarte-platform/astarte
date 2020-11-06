@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,85 +17,73 @@
 */
 
 import { useCallback, useEffect, useState } from 'react';
-import type {
-  AstarteChartProvider,
-  AstarteChartSingleValue,
-  AstarteChartListValue,
-} from 'astarte-charts';
+import type { ChartProvider, ChartData, ChartDataWrapper, ChartDataKind } from 'astarte-charts';
 
-type Status = 'loading' | 'ok' | 'error';
+type Status = 'initial' | 'loading' | 'loaded';
 
 type DataFetcher<Data> =
   | {
+      status: 'initial';
+      data: null;
+      refresh: () => Promise<void>;
+    }
+  | {
       status: 'loading';
       data: Data | null;
-      error: Error | null;
       refresh: () => Promise<void>;
     }
   | {
-      status: 'ok';
-      data: Data;
-      error: Error | null;
-      refresh: () => Promise<void>;
-    }
-  | {
-      status: 'error';
+      status: 'loaded';
       data: Data | null;
-      error: Error;
       refresh: () => Promise<void>;
     };
 
 export const useChartProviders = <
-  AstarteChartProviderValue extends null | AstarteChartSingleValue | AstarteChartListValue
->(
-  providers: AstarteChartProvider<AstarteChartProviderValue>[],
-  refreshInterval = 0,
-): DataFetcher<AstarteChartProviderValue[]> => {
-  const [status, setStatus] = useState<Status>('loading');
-  const [data, setData] = useState<AstarteChartProviderValue[] | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  DataWrapper extends ChartDataWrapper,
+  DataKind extends ChartDataKind
+>(params: {
+  providers: ChartProvider<DataWrapper, DataKind>[];
+  onError?: (error: Error) => void;
+  refreshInterval?: number;
+}): DataFetcher<(ChartData<DataWrapper, DataKind> | null)[]> => {
+  const [status, setStatus] = useState<Status>('initial');
+  const [data, setData] = useState<(ChartData<DataWrapper, DataKind> | null)[] | null>(null);
 
   const fetchData = useCallback(async () => {
     setStatus('loading');
     try {
-      const providersData = await Promise.all(providers.map((provider) => provider.getData()));
+      const providersData = await Promise.all(
+        params.providers.map((provider) => provider.getData()),
+      );
       setData(providersData);
-      setStatus('ok');
     } catch (err) {
-      setError(err);
-      setStatus('error');
+      if (params.onError) {
+        params.onError(err);
+      }
+    } finally {
+      setStatus('loaded');
     }
-  }, [providers]);
+  }, [params.providers]);
 
   useEffect(() => {
     fetchData();
-    if (refreshInterval) {
-      const fetchDataInterval = setInterval(fetchData, refreshInterval);
+    if (params.refreshInterval) {
+      const fetchDataInterval = setInterval(fetchData, params.refreshInterval);
       return () => clearInterval(fetchDataInterval);
     }
     return () => {};
-  }, [fetchData, refreshInterval]);
+  }, [fetchData, params.refreshInterval]);
 
-  if (status === 'error') {
+  if (status === 'initial') {
     return {
       status,
-      data,
-      error: error as Error,
-      refresh: fetchData,
-    };
-  }
-  if (status === 'ok') {
-    return {
-      status,
-      data: data as AstarteChartProviderValue[],
-      error,
+      data: data as null,
       refresh: fetchData,
     };
   }
   return {
     status,
     data,
-    error,
     refresh: fetchData,
   };
 };

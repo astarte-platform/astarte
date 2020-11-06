@@ -15,6 +15,8 @@ module.exports = {
     alias: {
       'astarte-client': path.resolve(__dirname, 'src/astarte-client/'),
       'astarte-charts': path.resolve(__dirname, 'src/astarte-charts/'),
+      'astarte-charts/react': path.resolve(__dirname, 'src/astarte-charts/react/'),
+    },
   },
   module: {
     rules: [

@@ -15,6 +15,7 @@
     "paths": {
       "astarte-client": ["./src/astarte-client/index.ts"],
       "astarte-charts": ["./src/astarte-charts/index.ts"],
+      "astarte-charts/react": ["./src/astarte-charts/react/index.ts"]
     }
   }
 }
