@@ -13,9 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": "./",
     "paths": {
-      "astarte-client": [
-        "./src/astarte-client/index.ts"
-      ]
+      "astarte-client": ["./src/astarte-client/index.ts"],
+      "astarte-charts": ["./src/astarte-charts/index.ts"],
     }
   }
 }

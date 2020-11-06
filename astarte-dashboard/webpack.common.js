@@ -13,8 +13,8 @@ module.exports = {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.elm', '.scss'],
     modules: [path.resolve(__dirname, 'src'), 'node_modules'],
     alias: {
-      "astarte-client": path.resolve(__dirname, 'src/astarte-client/')
-    }
+      'astarte-client': path.resolve(__dirname, 'src/astarte-client/'),
+      'astarte-charts': path.resolve(__dirname, 'src/astarte-charts/'),
   },
   module: {
     rules: [
