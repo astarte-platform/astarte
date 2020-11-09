@@ -122,21 +122,32 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     |> Enum.reduce(base_values, fn {item_key, item_value}, acc ->
       case item_key do
         :bson_value ->
-          %{"v" => decoded_value} = Cyanide.decode!(item_value)
+          decoded_value = extract_bson_value(item_value)
           Map.put(acc, "value", decoded_value)
 
         :old_bson_value ->
-          %{"v" => decoded_value} = Cyanide.decode!(item_value)
+          decoded_value = extract_bson_value(item_value)
           Map.put(acc, "old_value", decoded_value)
 
         :new_bson_value ->
-          %{"v" => decoded_value} = Cyanide.decode!(item_value)
+          decoded_value = extract_bson_value(item_value)
           Map.put(acc, "new_value", decoded_value)
 
         _ ->
           Map.put(acc, to_string(item_key), item_value)
       end
     end)
+  end
+
+  defp extract_bson_value(bson_value) do
+    case Cyanide.decode!(bson_value) do
+      # TODO: update this when Cyanide decodes binaries to %Cyanide.Binary{}
+      %{"v" => {_bin_subtype, binary}} ->
+        Base.encode64(binary)
+
+      %{"v" => value} ->
+        value
+    end
   end
 
   defp event_to_headers(realm, _device_id, _event_type, _event, %{
