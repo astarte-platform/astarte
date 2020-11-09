@@ -31,7 +31,7 @@ profiles.
 If you do not want to use `astartectl` or Profiles, you can create your own Astarte Custom Resource. This gives you
 a higher degree of customization, allowing you to tweak any single parameter in the Astarte setup. The main
 Astarte CRD contains
-[extensive documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/v0.11.3/deploy/crds/api.astarte-platform.org_astartes_crd.yaml)
+[extensive documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/release-0.11/deploy/crds/api.astarte-platform.org_astartes_crd.yaml)
 on the available fields in OpenAPIv3 format. Just create your Astarte Custom Resource, which will look something
 like this:
 
@@ -44,7 +44,7 @@ metadata:
 spec:
   # This is the most minimal set of reasonable configuration to spin up an Astarte
   # instance with reasonable defaults and enough control over the deployment.
-  version: 0.11.3
+  version: 0.11-snapshot
   api:
     host: "api.astarte.yourdomain.com" # MANDATORY
   rabbitmq:

@@ -15,7 +15,7 @@ for the Operator are. Ensure you're cloning the right branch for the Operator Ve
 For example, if you want to Deploy an Operator in the 0.11 series, you would
 
 ```bash
-git clone -b v0.11.3 https://github.com/astarte-platform/astarte-kubernetes-operator.git
+git clone -b release-0.11 https://github.com/astarte-platform/astarte-kubernetes-operator.git
 ```
 
 ## Install RBACs and CRDs
