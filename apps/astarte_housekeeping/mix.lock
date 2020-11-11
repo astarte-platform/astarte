@@ -1,7 +1,7 @@
 %{
   "amqp": {:hex, :amqp, "1.5.0", "91572d74e3569fa1bd9bab1ce8b161fe959574a1407a34f8046a0e64f3e83e95", [:mix], [{:amqp_client, "~> 3.8.0", [hex: :amqp_client, repo: "hexpm", optional: false]}], "hexpm", "b569cffcbc6e1c5d26bcb4e39168a9dd986e85b20c633e710d27d19d9a2e33de"},
   "amqp_client": {:hex, :amqp_client, "3.8.5", "279a73dcbdc5f797d7874d600a51fad6a82a716eec40ab1f25e3497939fc7f2d", [:make, :rebar3], [{:rabbit_common, "3.8.5", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm", "19bc8b22ddd00e5afa4bd7922090425e86f7ab26eb26a7230426e7637692d5cf"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "62d3f8b9229a5376a6a142cb8aa6a5bf7b4f81f1", [branch: "release-1.0"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "ef7f016b94ccf84a3391dc3e424175c0615a04f4", [branch: "release-1.0"]},
   "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "e92577c04f6f24a1d8acd8b12deb230b2b0b6240", [branch: "release-1.0"]},
   "astarte_rpc": {:git, "https://github.com/astarte-platform/astarte_rpc.git", "f0f53473d7eb126d1928d08088ac4c257e03afc7", [branch: "release-1.0"]},
   "castore": {:hex, :castore, "0.1.6", "2da0dccb3eacb67841d11790598ff03cd5caee861e01fad61dce1376b5da28e6", [:mix], [], "hexpm", "f874c510b720d31dd6334e9ae5c859a06a3c9e67dfe1a195c512e57588556d3f"},
