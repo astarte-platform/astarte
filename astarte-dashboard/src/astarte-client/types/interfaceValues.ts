@@ -16,17 +16,14 @@
    limitations under the License.
 */
 
-import type { AstarteDataType } from './dataType';
+import type { AstarteDataValue } from './dataType';
 
-export interface AstartePropertiesInterfaceValue {
-  value: AstarteDataType;
-}
 export interface AstartePropertiesInterfaceValues {
-  [subPath: string]: AstartePropertiesInterfaceValues | AstartePropertiesInterfaceValue;
+  [subPath: string]: AstartePropertiesInterfaceValues | AstarteDataValue;
 }
 
 export interface AstarteIndividualDatastreamInterfaceValue {
-  value: AstarteDataType;
+  value: AstarteDataValue;
   timestamp: string;
 }
 export interface AstarteIndividualDatastreamInterfaceValues {
@@ -36,14 +33,12 @@ export interface AstarteIndividualDatastreamInterfaceValues {
 }
 
 export type AstarteAggregatedDatastreamInterfaceValue = Array<{
-  [key: string]: AstarteDataType;
+  [key: string]: AstarteDataValue;
   timestamp: string;
 }>;
-export interface AstarteAggregatedDatastreamInterfaceValues {
-  [subPath: string]:
-    | AstarteAggregatedDatastreamInterfaceValues
-    | AstarteAggregatedDatastreamInterfaceValue;
-}
+export type AstarteAggregatedDatastreamInterfaceValues =
+  | AstarteAggregatedDatastreamInterfaceValue
+  | { [subPath: string]: AstarteAggregatedDatastreamInterfaceValues };
 
 export type AstarteInterfaceValues =
   | AstartePropertiesInterfaceValues

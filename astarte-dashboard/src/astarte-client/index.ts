@@ -34,10 +34,17 @@ export {
 
 export type { AstarteBlock } from './models';
 
+export type { AstarteDataTreeNode, AstarteDataTreeKind } from './transforms';
+
 export type {
   AstarteDataType,
+  AstarteDataTuple,
+  AstarteDataValue,
   AstarteDeviceEvent,
-  AstartePropertiesInterfaceValue,
+  AstartePropertyData,
+  AstarteDatastreamData,
+  AstarteDatastreamIndividualData,
+  AstarteDatastreamObjectData,
   AstartePropertiesInterfaceValues,
   AstarteIndividualDatastreamInterfaceValue,
   AstarteIndividualDatastreamInterfaceValues,

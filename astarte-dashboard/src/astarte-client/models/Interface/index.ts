@@ -191,6 +191,10 @@ export class AstarteInterface {
     );
   }
 
+  static findEndpointMapping(iface: AstarteInterface, endpoint: string): AstarteMapping | null {
+    return iface.mappings.find((m) => AstarteMapping.matchEndpoint(m.endpoint, endpoint)) || null;
+  }
+
   static validation = astarteInterfaceObjectSchema;
 
   static fromJSON(json: AstarteInterfaceJSON): AstarteInterface {

@@ -45,7 +45,7 @@ describe('Interface values page tests', () => {
               });
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
               cy.get('.main-content .card-body [role="alert"]').contains(
-                'Could not retrieve interface properties.',
+                'Could not retrieve interface data.',
               );
             });
         });
@@ -75,7 +75,9 @@ describe('Interface values page tests', () => {
                 response: '',
               });
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
-              cy.get('.main-content .card-body [role="alert"]').contains('Device not found.');
+              cy.get('.main-content .card-body [role="alert"]').contains(
+                'Could not retrieve interface data.',
+              );
             });
         });
     });

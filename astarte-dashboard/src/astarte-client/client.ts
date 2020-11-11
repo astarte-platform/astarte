@@ -21,10 +21,12 @@ import { Socket as PhoenixSocket } from 'phoenix';
 import _ from 'lodash';
 
 import {
+  AstarteDataTreeNode,
   fromAstarteDeviceDTO,
   fromAstarteInterfaceDTO,
   fromAstartePipelineDTO,
   toAstartePipelineDTO,
+  toAstarteDataTree,
 } from './transforms';
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
 import { AstarteDevice } from './models/Device';
@@ -36,8 +38,11 @@ import type {
   AstarteBlockDTO,
   AstarteDeviceDTO,
   AstarteJWT,
-  AstarteInterfaceValues,
   AstarteDeviceEvent,
+  AstarteInterfaceValues,
+  AstartePropertyData,
+  AstarteDatastreamIndividualData,
+  AstarteDatastreamObjectData,
 } from './types';
 
 export interface AstarteInterfaceDescriptor {
@@ -47,6 +52,10 @@ export interface AstarteInterfaceDescriptor {
 }
 type Channel = any;
 type Trigger = any;
+
+type InterfaceOrInterfaceNameParams =
+  | { interfaceName: AstarteInterface['name'] }
+  | { interface: AstarteInterface };
 
 // Wrap phoenix lib calls in promise for async handling
 async function openNewSocketConnection(
@@ -172,6 +181,7 @@ class AstarteClient {
     this.joinedChannels = {};
     this.listeners = {};
 
+    this.getDeviceData = this.getDeviceData.bind(this);
     this.getDevicesStats = this.getDevicesStats.bind(this);
     this.getInterfaceNames = this.getInterfaceNames.bind(this);
     this.getTriggerNames = this.getTriggerNames.bind(this);
@@ -320,15 +330,45 @@ class AstarteClient {
     deviceId: AstarteDevice['id'];
     interfaceName: AstarteInterface['name'];
   }): Promise<AstarteInterfaceValues> {
-    const { deviceId, interfaceName } = params;
     const response = await this.$get(
       this.apiConfig.deviceData({
-        deviceId,
-        interfaceName,
+        deviceId: params.deviceId,
+        interfaceName: params.interfaceName,
         ...this.config,
       }),
     );
     return response.data;
+  }
+
+  async getDeviceDataTree(
+    params: { deviceId: AstarteDevice['id'] } & InterfaceOrInterfaceNameParams,
+  ): Promise<
+    | AstarteDataTreeNode<AstartePropertyData>
+    | AstarteDataTreeNode<AstarteDatastreamIndividualData>
+    | AstarteDataTreeNode<AstarteDatastreamObjectData>
+  > {
+    let iface: AstarteInterface;
+    if ('interface' in params) {
+      iface = params.interface;
+    } else {
+      const device = await this.getDeviceInfo(params.deviceId);
+      const interfaceIntrospection = device.introspection.get(params.interfaceName);
+      if (!interfaceIntrospection) {
+        throw new Error(`Could not find interface ${params.interfaceName} in device introspection`);
+      }
+      iface = await this.getInterface({
+        interfaceName: params.interfaceName,
+        interfaceMajor: interfaceIntrospection.major,
+      });
+    }
+    const interfaceValues = await this.getDeviceData({
+      deviceId: params.deviceId,
+      interfaceName: iface.name,
+    });
+    return toAstarteDataTree({
+      interface: iface,
+      data: interfaceValues,
+    });
   }
 
   async getGroupList(): Promise<string[]> {
