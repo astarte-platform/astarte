@@ -99,8 +99,9 @@ defmodule AstarteE2E.ServiceNotifier do
     |> deliver()
 
     Logger.warn(
-      "Service down. The user has been notified. Reason: #{reason}. FailureID: #{event_id}",
-      tag: "service_down_notified"
+      "Service down. The user has been notified. Reason: #{reason}.",
+      tag: "service_down_notified",
+      failure_id: event_id
     )
 
     {:next_state, :service_down, updated_data}
@@ -131,8 +132,9 @@ defmodule AstarteE2E.ServiceNotifier do
     Email.service_up_email(failure_id)
     |> deliver()
 
-    Logger.info("Service up. The user has been notified. Last FailureID: #{failure_id}.",
-      tag: "service_up_notified"
+    Logger.info("Service up. The user has been notified.",
+      tag: "service_up_notified",
+      failure_id: failure_id
     )
 
     {:next_state, :service_up, updated_data, actions}
@@ -155,8 +157,9 @@ defmodule AstarteE2E.ServiceNotifier do
     |> deliver()
 
     Logger.warn(
-      "Service down. The user has been notified. Reason: #{reason}. FailureID: #{event_id}",
-      tag: "service_down_notified"
+      "Service down. The user has been notified. Reason: #{reason}.",
+      tag: "service_down_notified",
+      failure_id: event_id
     )
 
     actions = [{:reply, from, :mail_sent}]
