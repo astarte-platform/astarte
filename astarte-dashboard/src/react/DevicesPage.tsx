@@ -29,6 +29,8 @@ import {
   Table,
   Tooltip,
 } from 'react-bootstrap';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import _ from 'lodash';
 import AstarteClient from 'astarte-client';
 import type { AstarteDevice } from 'astarte-client';
@@ -45,6 +47,7 @@ interface DeviceFilters {
   showNeverConnected?: boolean;
   metadataKey?: string;
   metadataValue?: string;
+  activeSinceDate?: Date;
 }
 
 const DEVICES_PER_PAGE = 20;
@@ -178,7 +181,16 @@ const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
+    activeSinceDate,
   } = filters;
+
+  if (
+    activeSinceDate != null &&
+    !device.isConnected &&
+    (device.lastDisconnection == null || device.lastDisconnection < activeSinceDate)
+  ) {
+    return false;
+  }
 
   if (!showConnected && device.isConnected) {
     return false;
@@ -286,6 +298,7 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
     showNeverConnected = true,
     metadataKey = '',
     metadataValue = '',
+    activeSinceDate,
   } = filters;
 
   return (
@@ -332,6 +345,20 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             onUpdateFilters({ ...filters, showNeverConnected: e.target.checked })
           }
+        />
+        <p className="mt-3">Active since:</p>
+        <DatePicker
+          selected={activeSinceDate}
+          onChange={(date: Date) =>
+            onUpdateFilters({
+              ...filters,
+              activeSinceDate: date,
+              showConnected: true,
+              showDisconnected: true,
+              showNeverConnected: true,
+            })
+          }
+          customInput={<Form.Control type="search" />}
         />
       </Form.Group>
       <div className="mb-2">
