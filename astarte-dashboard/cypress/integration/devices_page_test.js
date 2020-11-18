@@ -101,5 +101,22 @@ describe('Devices page tests', () => {
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', value);
     });
+
+    it('correctly filters by last device activity', function () {
+      const disconnectedDevice = this.devices.data.find((device) => device.last_connection != null);
+      const activeSinceDate = new Date(disconnectedDevice.last_connection);
+      const activeDevices = this.devices.data.filter(
+        (device) =>
+          !!device.connected ||
+          (device.lastDisconnection != null && device.lastDisconnection >= activeSinceDate),
+      );
+      cy.get('table tbody tr').should('have.length', this.devices.data.length);
+      cy.get('#filterActiveSince').type(activeSinceDate.toISOString().slice(0, 10));
+      cy.get('#filterActiveSince').type('{enter}');
+      cy.get('table tbody tr').should('have.length', activeDevices.length);
+      activeDevices.forEach((activeDevice) => {
+        cy.get('table tbody').should('contain', activeDevice?.aliases?.name || activeDevice.id);
+      });
+    });
   });
 });
