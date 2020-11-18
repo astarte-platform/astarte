@@ -346,20 +346,27 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
             onUpdateFilters({ ...filters, showNeverConnected: e.target.checked })
           }
         />
-        <p className="mt-3">Active since:</p>
-        <DatePicker
-          selected={activeSinceDate}
-          onChange={(date: Date) =>
-            onUpdateFilters({
-              ...filters,
-              activeSinceDate: date,
-              showConnected: true,
-              showDisconnected: true,
-              showNeverConnected: true,
-            })
-          }
-          customInput={<Form.Control type="search" />}
-        />
+      </Form.Group>
+      <Form.Group controlId="filterActiveSince" className="mb-4">
+        <Form.Label>
+          <b>Active since</b>
+        </Form.Label>
+        <div className="d-block">
+          <DatePicker
+            maxDate={new Date()}
+            selected={activeSinceDate}
+            onChange={(date: Date) =>
+              onUpdateFilters({
+                ...filters,
+                activeSinceDate: date,
+                showConnected: true,
+                showDisconnected: true,
+                showNeverConnected: true,
+              })
+            }
+            customInput={<Form.Control type="search" />}
+          />
+        </div>
       </Form.Group>
       <div className="mb-2">
         <b>Metadata</b>
