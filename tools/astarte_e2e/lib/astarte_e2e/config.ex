@@ -117,6 +117,12 @@ defmodule AstarteE2E.Config do
     type: :pos_integer,
     default: 10
 
+  @envdoc "The number of consecutive failures before an email alert is sent. Defaults to 10."
+  app_env :failures_before_alert, :astarte_e2e, :failures_before_alert,
+    os_env: "E2E_FAILURES_BEFORE_ALERT",
+    type: :pos_integer,
+    default: 10
+
   @envdoc "The comma-separated email recipients."
   app_env :mail_to_address, :astarte_e2e, :mail_to_address,
     os_env: "E2E_MAIL_TO_ADDRESS",

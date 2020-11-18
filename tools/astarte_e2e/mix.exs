@@ -64,6 +64,7 @@ defmodule AstarteE2E.MixProject do
       {:observer_cli, "~> 1.5"},
       {:bamboo, "~> 1.6"},
       {:bamboo_config_adapter, "~> 1.0"},
+      {:hukai, "~> 0.3"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
     ]
   end
