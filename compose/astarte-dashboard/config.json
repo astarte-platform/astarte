@@ -1,6 +1,7 @@
 {
     "astarte_api_url": "localhost",
     "default_auth": "token",
+    "enable_flow_preview": false,
     "auth": [
         {
             "type": "token"
