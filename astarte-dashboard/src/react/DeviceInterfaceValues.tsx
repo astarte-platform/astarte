@@ -16,18 +16,15 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type {
-  AstarteDataType,
-  AstarteInterface,
-  AstarteInterfaceValues,
-  AstartePropertiesInterfaceValues,
-  AstarteIndividualDatastreamInterfaceValue,
-  AstarteIndividualDatastreamInterfaceValues,
-  AstarteAggregatedDatastreamInterfaceValue,
-  AstarteAggregatedDatastreamInterfaceValues,
+  AstarteDataTuple,
+  AstarteDataTreeNode,
+  AstartePropertyData,
+  AstarteDatastreamIndividualData,
+  AstarteDatastreamObjectData,
 } from 'astarte-client';
 import _ from 'lodash';
 
@@ -38,67 +35,11 @@ import { useAlerts } from './AlertManager';
 
 const MAX_SHOWN_VALUES = 20;
 
-type LinearizedIndividualDatastreamInterfaceValues = Array<{
-  path: string;
-  value: AstarteDataType;
-  timestamp: string;
-}>;
-type LinearizedAggregatedDatastreamInterfaceValue = Array<{
-  [key: string]: AstarteDataType;
-  timestamp: string;
-}>;
-type LinearizedAggregatedDatastreamInterfaceValues = Array<{
-  path: string;
-  value: LinearizedAggregatedDatastreamInterfaceValue;
-}>;
-
-const isIndividualDatastreamInterfaceValue = (
-  value: any,
-): value is AstarteIndividualDatastreamInterfaceValue =>
-  value.value != null && typeof value.value !== 'object';
-
-const isAggregatedDatastreamInterfaceValue = (
-  value: any,
-): value is AstarteAggregatedDatastreamInterfaceValue => Array.isArray(value);
-
-function linearizeIndividualDatastreamInterfaceValue(
-  prefix: string,
-  data: AstarteIndividualDatastreamInterfaceValues,
-): LinearizedIndividualDatastreamInterfaceValues {
-  return Object.entries(data)
-    .map(([key, value]) => {
-      const newPrefix = `${prefix}/${key}`;
-      if (isIndividualDatastreamInterfaceValue(value)) {
-        return {
-          path: newPrefix,
-          value: value.value,
-          timestamp: value.timestamp,
-        };
-      }
-      return linearizeIndividualDatastreamInterfaceValue(newPrefix, value).flat();
-    })
-    .flat();
-}
-
-function linearizeAggregatedDatastreamInterfaceValue(
-  prefix: string,
-  data: AstarteAggregatedDatastreamInterfaceValues,
-): LinearizedAggregatedDatastreamInterfaceValues {
-  return Object.entries(data)
-    .map(([key, value]) => {
-      const newPrefix = `${prefix}/${key}`;
-      if (isAggregatedDatastreamInterfaceValue(value)) {
-        return {
-          path: newPrefix,
-          value,
-        };
-      }
-      return linearizeAggregatedDatastreamInterfaceValue(newPrefix, value).flat();
-    })
-    .flat();
-}
-
-function formatAstarteDataValue(value: AstarteDataType): string {
+function formatAstarteData(data?: AstarteDataTuple): string {
+  const value = data?.value;
+  if (value == null) {
+    return '';
+  }
   if (_.isArray(value)) {
     return JSON.stringify(value);
   }
@@ -115,26 +56,26 @@ function formatAstarteDataValue(value: AstarteDataType): string {
 }
 
 interface PropertyTreeProps {
-  data: AstartePropertiesInterfaceValues;
+  treeNode: AstarteDataTreeNode<AstartePropertyData>;
 }
 
-const PropertyTree = ({ data }: PropertyTreeProps): React.ReactElement => (
+const PropertyTree = ({ treeNode }: PropertyTreeProps): React.ReactElement => (
   <pre>
-    <code>{JSON.stringify(data, null, 2)}</code>
+    <code>{JSON.stringify(treeNode.toLastValue(), null, 2)}</code>
   </pre>
 );
 
 interface IndividualDatastreamTableProps {
-  data: AstarteIndividualDatastreamInterfaceValues;
+  treeNode: AstarteDataTreeNode<AstarteDatastreamIndividualData>;
 }
 
 const IndividualDatastreamTable = ({
-  data,
+  treeNode,
 }: IndividualDatastreamTableProps): React.ReactElement => {
-  const paths = linearizeIndividualDatastreamInterfaceValue(
-    '',
-    data,
-  ) as LinearizedIndividualDatastreamInterfaceValues;
+  const dataValues = treeNode.toLinearizedData();
+  if (dataValues.length === 0) {
+    return <p>No data sent by the device.</p>;
+  }
 
   return (
     <Table>
@@ -146,11 +87,11 @@ const IndividualDatastreamTable = ({
         </tr>
       </thead>
       <tbody>
-        {paths.map((obj) => (
-          <tr key={obj.path}>
-            <td>{obj.path}</td>
-            <td>{formatAstarteDataValue(obj.value)}</td>
-            <td>{new Date(obj.timestamp).toLocaleString()}</td>
+        {dataValues.map((dataValue) => (
+          <tr key={dataValue.endpoint}>
+            <td>{dataValue.endpoint}</td>
+            <td>{formatAstarteData(dataValue)}</td>
+            <td>{new Date(dataValue.timestamp).toLocaleString()}</td>
           </tr>
         ))}
       </tbody>
@@ -159,45 +100,44 @@ const IndividualDatastreamTable = ({
 };
 
 interface ObjectDatastreamTableProps {
-  path: string;
-  values: LinearizedAggregatedDatastreamInterfaceValue;
+  dataTreeNode: AstarteDataTreeNode<AstarteDatastreamObjectData>;
 }
 
 const ObjectDatastreamTable = ({
-  path,
-  values,
+  dataTreeNode,
 }: ObjectDatastreamTableProps): React.ReactElement => {
-  const labels: string[] = [];
-  const latestValues = values.slice(0, MAX_SHOWN_VALUES);
+  const treeData = dataTreeNode.toData();
+  if (treeData.length === 0) {
+    return <p>No data sent by the device.</p>;
+  }
 
-  Object.keys(values[0]).forEach((prop) => {
-    if (prop !== 'timestamp') {
-      labels.push(prop);
-    }
-  });
+  const objectProperties = Object.keys(treeData[0].value);
+  const orderedData = _.orderBy(treeData, 'timestamp', 'desc');
 
   return (
     <>
       <h5 className="mb-1">Path</h5>
-      <p>{path}</p>
+      <p>{dataTreeNode.endpoint}</p>
       <Table>
         <thead>
           <tr>
-            {labels.map((label) => (
-              <th key={label}>{label}</th>
+            {objectProperties.map((property) => (
+              <th key={property}>{property}</th>
             ))}
             <th>Timestamp</th>
           </tr>
         </thead>
         <tbody>
-          {latestValues.map((obj) => (
-            <tr key={obj.timestamp}>
-              {labels.map((label) => (
-                <td key={label}>{formatAstarteDataValue(obj[label])}</td>
-              ))}
-              <td>{new Date(obj.timestamp).toLocaleString()}</td>
-            </tr>
-          ))}
+          {orderedData.slice(0, MAX_SHOWN_VALUES).map((data) => {
+            return (
+              <tr key={data.timestamp}>
+                {objectProperties.map((property) => {
+                  return <td key={property}>{formatAstarteData(data.value[property])}</td>;
+                })}
+                <td>{new Date(data.timestamp).toLocaleString()}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </Table>
     </>
@@ -205,43 +145,43 @@ const ObjectDatastreamTable = ({
 };
 
 interface ObjectTableListProps {
-  data: AstarteAggregatedDatastreamInterfaceValues;
+  treeNode: AstarteDataTreeNode<AstarteDatastreamObjectData>;
 }
 
-const ObjectTableList = ({ data }: ObjectTableListProps): React.ReactElement => {
-  const linearizedData = linearizeAggregatedDatastreamInterfaceValue(
-    '',
-    data,
-  ) as LinearizedAggregatedDatastreamInterfaceValues;
-  if (linearizedData.length === 0) {
+const ObjectTableList = ({ treeNode }: ObjectTableListProps): React.ReactElement => {
+  const dataTreeLeaves = treeNode.getLeaves();
+  if (dataTreeLeaves.length === 0) {
     return <p>No data sent by the device.</p>;
   }
   return (
     <>
-      {linearizedData.map((obj) => (
-        <ObjectDatastreamTable key={obj.path} path={obj.path} values={obj.value} />
+      {dataTreeLeaves.map((dataTreeLeaf) => (
+        <ObjectDatastreamTable key={dataTreeLeaf.endpoint} dataTreeNode={dataTreeLeaf} />
       ))}
     </>
   );
 };
 
 interface InterfaceDataProps {
-  interfaceData: AstarteInterfaceValues;
-  interfaceDefinition: AstarteInterface;
+  interfaceData:
+    | AstarteDataTreeNode<AstartePropertyData>
+    | AstarteDataTreeNode<AstarteDatastreamIndividualData>
+    | AstarteDataTreeNode<AstarteDatastreamObjectData>;
 }
 
-const InterfaceData = ({
-  interfaceData,
-  interfaceDefinition,
-}: InterfaceDataProps): React.ReactElement => {
-  if (interfaceDefinition.type === 'properties') {
-    return <PropertyTree data={interfaceData as AstartePropertiesInterfaceValues} />;
+const InterfaceData = ({ interfaceData }: InterfaceDataProps): React.ReactElement => {
+  if (interfaceData.dataKind === 'properties') {
+    return <PropertyTree treeNode={interfaceData as AstarteDataTreeNode<AstartePropertyData>} />;
   }
-  if (interfaceDefinition.type === 'datastream' && interfaceDefinition.aggregation === 'object') {
-    return <ObjectTableList data={interfaceData as AstarteAggregatedDatastreamInterfaceValues} />;
+  if (interfaceData.dataKind === 'datastream_individual') {
+    return (
+      <IndividualDatastreamTable
+        treeNode={interfaceData as AstarteDataTreeNode<AstarteDatastreamIndividualData>}
+      />
+    );
   }
   return (
-    <IndividualDatastreamTable data={interfaceData as AstarteIndividualDatastreamInterfaceValues} />
+    <ObjectTableList treeNode={interfaceData as AstarteDataTreeNode<AstarteDatastreamObjectData>} />
   );
 };
 
@@ -252,9 +192,8 @@ interface Props {
 }
 
 export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement => {
-  const [interfaceDefinition, setInterfaceDefinition] = useState<AstarteInterface | null>(null);
   const deviceData = useFetch(() =>
-    astarte.getDeviceData({
+    astarte.getDeviceDataTree({
       deviceId,
       interfaceName,
     }),
@@ -267,31 +206,6 @@ export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement
       deviceAlerts.showError('Could not retrieve interface data.');
     }
   }, [deviceData.error]);
-
-  useEffect(() => {
-    const getInterfaceType = async () => {
-      const device = await astarte.getDeviceInfo(deviceId).catch(() => {
-        throw new Error('Device not found.');
-      });
-      const interfaceIntrospection = device.introspection.get(interfaceName);
-      if (!interfaceIntrospection) {
-        throw new Error('Interface not found in device introspection.');
-      }
-      await astarte
-        .getInterface({
-          interfaceName,
-          interfaceMajor: interfaceIntrospection.major,
-        })
-        .then(setInterfaceDefinition)
-        .catch(() => {
-          throw new Error('Could not retrieve interface properties.');
-        });
-    };
-
-    getInterfaceType().catch((err) => {
-      deviceAlerts.showError(err.message);
-    });
-  }, []);
 
   return (
     <Container fluid className="p-3">
@@ -306,18 +220,11 @@ export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement
         <Card.Body>
           <deviceAlerts.Alerts />
           <WaitForData
-            data={interfaceDefinition && deviceData.value}
-            status={interfaceDefinition ? deviceData.status : 'loading'}
-            fallback={
-              deviceData.error != null ? <></> : <Spinner animation="border" role="status" />
-            }
+            data={deviceData.value}
+            status={deviceData.status}
+            fallback={<Spinner animation="border" role="status" />}
           >
-            {(interfaceData) => (
-              <InterfaceData
-                interfaceData={interfaceData as AstarteInterfaceValues}
-                interfaceDefinition={interfaceDefinition as AstarteInterface}
-              />
-            )}
+            {(data) => <InterfaceData interfaceData={data} />}
           </WaitForData>
         </Card.Body>
       </Card>

@@ -17,30 +17,17 @@
 */
 
 import * as yup from 'yup';
+import _ from 'lodash';
 
 import { fromAstarteMappingDTO, toAstarteMappingDTO } from '../../transforms/mapping';
-import type { AstarteMappingDTO } from '../../types';
+import type { AstarteMappingDTO, AstarteDataType } from '../../types';
 
 type AstarteMappingJSON = AstarteMappingDTO;
 
 export interface AstarteMappingObject {
   endpoint: string;
 
-  type:
-    | 'double'
-    | 'integer'
-    | 'boolean'
-    | 'longinteger'
-    | 'string'
-    | 'binaryblob'
-    | 'datetime'
-    | 'doublearray'
-    | 'integerarray'
-    | 'booleanarray'
-    | 'longintegerarray'
-    | 'stringarray'
-    | 'binaryblobarray'
-    | 'datetimearray';
+  type: AstarteDataType;
 
   reliability?: 'unreliable' | 'guaranteed' | 'unique';
 
@@ -62,8 +49,9 @@ export interface AstarteMappingObject {
 }
 
 const mappingEndpointRegex = /^(\/(%{([a-zA-Z][a-zA-Z0-9_]*)}|[a-zA-Z][a-zA-Z0-9_]*)){1,64}$/;
+const mappingEndpointParamRegex = /^%{([a-zA-Z][a-zA-Z0-9_]*)}$/;
 
-const astarteDataTypes: AstarteMappingObject['type'][] = [
+const astarteDataTypes: AstarteDataType[] = [
   'string',
   'boolean',
   'double',
@@ -107,24 +95,18 @@ const astarteMappingObjectSchema: yup.ObjectSchema<AstarteMappingObject> = yup
   })
   .required();
 
+const isEndpointParam = (endpointPart?: string) => {
+  return endpointPart == null ? false : mappingEndpointParamRegex.test(endpointPart);
+};
+
+const matchEndpointPart = ([part1, part2]: [string | undefined, string | undefined]) => {
+  return part1 === part2 || isEndpointParam(part1) || isEndpointParam(part2);
+};
+
 export class AstarteMapping {
   endpoint: string;
 
-  type:
-    | 'double'
-    | 'integer'
-    | 'boolean'
-    | 'longinteger'
-    | 'string'
-    | 'binaryblob'
-    | 'datetime'
-    | 'doublearray'
-    | 'integerarray'
-    | 'booleanarray'
-    | 'longintegerarray'
-    | 'stringarray'
-    | 'binaryblobarray'
-    | 'datetimearray';
+  type: AstarteDataType;
 
   reliability?: 'unreliable' | 'guaranteed' | 'unique';
 
@@ -157,6 +139,10 @@ export class AstarteMapping {
     this.explicitTimestamp = validatedObj.explicitTimestamp;
     this.description = validatedObj.description;
     this.documentation = validatedObj.documentation;
+  }
+
+  static matchEndpoint(endpoint1: string, endpoint2: string): boolean {
+    return _.zip(endpoint1.split('/'), endpoint2.split('/')).every(matchEndpointPart);
   }
 
   static validation = astarteMappingObjectSchema;

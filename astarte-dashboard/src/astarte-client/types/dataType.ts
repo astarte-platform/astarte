@@ -16,4 +16,59 @@
    limitations under the License.
 */
 
-export type AstarteDataType = number | boolean | string | number[] | boolean[] | string[];
+export type AstarteDataValue = number | boolean | string | number[] | boolean[] | string[] | null;
+
+export type AstarteDataType =
+  | 'double'
+  | 'integer'
+  | 'boolean'
+  | 'longinteger'
+  | 'string'
+  | 'binaryblob'
+  | 'datetime'
+  | 'doublearray'
+  | 'integerarray'
+  | 'booleanarray'
+  | 'longintegerarray'
+  | 'stringarray'
+  | 'binaryblobarray'
+  | 'datetimearray';
+
+export type AstarteDataTuple =
+  | { type: 'double'; value: number }
+  | { type: 'integer'; value: number }
+  | { type: 'boolean'; value: boolean }
+  | { type: 'longinteger'; value: string }
+  | { type: 'string'; value: string }
+  | { type: 'binaryblob'; value: string }
+  | { type: 'datetime'; value: string }
+  | { type: 'doublearray'; value: number[] }
+  | { type: 'integerarray'; value: number[] }
+  | { type: 'booleanarray'; value: boolean[] }
+  | { type: 'longintegerarray'; value: string[] }
+  | { type: 'stringarray'; value: string[] }
+  | { type: 'binaryblobarray'; value: string[] }
+  | { type: 'datetimearray'; value: string[] }
+  | { type: AstarteDataType; value: null };
+
+export type AstartePropertyData = {
+  endpoint: string;
+} & AstarteDataTuple;
+
+export type AstarteDatastreamData = {
+  endpoint: string;
+  timestamp: string;
+} & AstarteDataTuple;
+
+export type AstarteDatastreamIndividualData = {
+  endpoint: string;
+  timestamp: string;
+} & AstarteDataTuple;
+
+export type AstarteDatastreamObjectData = {
+  endpoint: string;
+  timestamp: string;
+  value: {
+    [path: string]: AstarteDataTuple;
+  };
+};
