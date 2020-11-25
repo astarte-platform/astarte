@@ -603,7 +603,7 @@ describe('Device page tests', () => {
             cy.contains(formatBytes(totalBytes));
             cy.contains(totalMessages);
           });
-          cy.get('svg.device-data-piechart').should('be.visible');
+          cy.get('svg.device-data-piechart').scrollIntoView().should('be.visible');
         });
     });
 
