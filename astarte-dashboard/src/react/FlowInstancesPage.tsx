@@ -17,7 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type { AstarteFlow } from 'astarte-client';
@@ -99,15 +99,15 @@ const InstancesTable = ({ instances, onDelete }: InstancesTableProps): React.Rea
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'loading' | 'ok' | 'err'>('loading');
   const [instances, setInstances] = useState<AstarteFlow[] | null>(null);
   const [flowToConfirmDelete, setFlowToConfirmDelete] = useState<AstarteFlow['name'] | null>(null);
   const [isDeletingFlow, setIsDeletingFlow] = useState(false);
   const deletionAlerts = useAlerts();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleInstanceResponse = (instance: AstarteFlow) => {
@@ -198,7 +198,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
   return (
     <SingleCardPage title="Running Flows">
       {innerHTML}
-      <Button variant="primary" onClick={() => history.push('/pipelines')}>
+      <Button variant="primary" onClick={() => navigate('/pipelines')}>
         New flow
       </Button>
       {flowToConfirmDelete != null && (

@@ -17,6 +17,7 @@
 */
 
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 
@@ -44,11 +45,11 @@ const LoadingRow = (): React.ReactElement => (
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ history, astarte }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const triggers = useFetch(astarte.getTriggerNames);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const intervalId = setInterval(triggers.refresh, 30000);
@@ -70,7 +71,7 @@ export default ({ history, astarte }: Props): React.ReactElement => {
                 variant="link"
                 className="p-0"
                 onClick={() => {
-                  history.push('/triggers/new');
+                  navigate('/triggers/new');
                 }}
               >
                 <i className="fas fa-plus mr-2" />
@@ -83,7 +84,7 @@ export default ({ history, astarte }: Props): React.ReactElement => {
                   key={trigger}
                   name={trigger}
                   onClick={() => {
-                    history.push(`/triggers/${trigger}`);
+                    navigate(`/triggers/${trigger}`);
                   }}
                 />
               ))

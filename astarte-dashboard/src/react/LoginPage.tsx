@@ -17,6 +17,7 @@
 */
 
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { AstarteRealm, AstarteToken } from 'astarte-client';
 
@@ -293,22 +294,24 @@ const RightColumn = ({
 interface Props {
   canSwitchLoginType: boolean;
   defaultRealm: string;
-  history: any;
   type: LoginType;
 }
 
-export default ({ history, type, canSwitchLoginType, defaultRealm }: Props): React.ReactElement => (
-  <Container fluid>
-    <Row>
-      <LeftColumn />
-      <RightColumn
-        type={type}
-        canSwitchLoginType={canSwitchLoginType}
-        defaultRealm={defaultRealm}
-        onLogin={(url) => {
-          history.push(url);
-        }}
-      />
-    </Row>
-  </Container>
-);
+export default ({ type, canSwitchLoginType, defaultRealm }: Props): React.ReactElement => {
+  const navigate = useNavigate();
+  return (
+    <Container fluid>
+      <Row>
+        <LeftColumn />
+        <RightColumn
+          type={type}
+          canSwitchLoginType={canSwitchLoginType}
+          defaultRealm={defaultRealm}
+          onLogin={(url) => {
+            navigate(url);
+          }}
+        />
+      </Row>
+    </Container>
+  );
+};

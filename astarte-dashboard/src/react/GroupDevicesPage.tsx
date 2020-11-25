@@ -19,7 +19,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Button, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 import AstarteClient, { AstarteDevice } from 'astarte-client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
@@ -102,16 +102,16 @@ const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) 
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
   groupName: string;
 }
 
-const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactElement => {
+const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
   const [devices, setDevices] = useState<AstarteDevice[] | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<AstarteDevice | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);
+  const navigate = useNavigate();
 
   const fetchDevices = useCallback(() => {
     const handleDevicesRequest = (newDevices: AstarteDevice[]) => {
@@ -154,7 +154,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactEl
       })
       .finally(() => {
         if (devices?.length === 1) {
-          history.push({ pathname: '/groups' });
+          navigate({ pathname: '/groups' });
         } else {
           setIsRemovingDevice(false);
           setIsModalVisible(false);
@@ -169,7 +169,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactEl
     groupName,
     selectedDevice,
     devices,
-    history,
+    navigate,
   ]);
 
   useEffect(() => {

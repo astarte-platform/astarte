@@ -17,6 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 
@@ -26,16 +27,16 @@ import { useAlerts } from './AlertManager';
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
   const [userPublicKey, setUserPublicKey] = useState('');
   const [draftPublicKey, setDraftPublicKey] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const formAlerts = useAlerts();
+  const navigate = useNavigate();
 
   const showModal = useCallback(() => setIsModalVisible(true), [setIsModalVisible]);
 
@@ -46,14 +47,21 @@ export default ({ astarte, history }: Props): React.ReactElement => {
     astarte
       .updateConfigAuth({ publicKey: draftPublicKey })
       .then(() => {
-        history.push('/logout');
+        navigate('/logout');
       })
       .catch((err) => {
         setIsUpdatingSettings(false);
         dismissModal();
         formAlerts.showError(err.message);
       });
-  }, [setIsUpdatingSettings, astarte, draftPublicKey, history, dismissModal, formAlerts.showError]);
+  }, [
+    setIsUpdatingSettings,
+    astarte,
+    draftPublicKey,
+    navigate,
+    dismissModal,
+    formAlerts.showError,
+  ]);
 
   useEffect(() => {
     astarte

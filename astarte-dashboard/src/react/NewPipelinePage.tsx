@@ -17,7 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
 import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
@@ -44,10 +44,9 @@ const CommandRow = ({ className = '', children }: CommandRowProps): React.ReactE
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [editorModel] = useState(getNewModel());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
@@ -59,6 +58,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
     schema: '',
   });
   const formAlerts = useAlerts();
+  const navigate = useNavigate();
 
   useEffect(() => {
     astarte
@@ -94,12 +94,12 @@ export default ({ astarte, history }: Props): React.ReactElement => {
           schema: schemaObject || {},
         }),
       )
-      .then(() => history.push('/pipelines'))
+      .then(() => navigate('/pipelines'))
       .catch((err) => {
         setIsCreatingPipeline(false);
         formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
       });
-  }, [astarte, history, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
+  }, [astarte, navigate, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
 
   const isValidSchema = useMemo(() => {
     if (!schemaObject) {

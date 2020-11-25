@@ -17,13 +17,13 @@
 */
 
 import React, { useCallback, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, Col, Container, Card, Row, Spinner, Table } from 'react-bootstrap';
 import useFetch from './hooks/useFetch';
 import DevicesPieChart from './ui/DevicesPieChart';
 import WaitForData from './components/WaitForData';
 
-export default ({ astarte, history }) => {
+export default ({ astarte }) => {
   const devicesStats = useFetch(astarte.getDevicesStats);
   const interfaces = useFetch(astarte.getInterfaceNames);
   const triggers = useFetch(astarte.getTriggerNames);
@@ -31,6 +31,7 @@ export default ({ astarte, history }) => {
   const realmManagementHealth = useFetch(astarte.getRealmManagementHealth);
   const pairingHealth = useFetch(astarte.getPairingHealth);
   const flowHealth = astarte.config.enableFlowPreview ? useFetch(astarte.getFlowHealth) : null;
+  const navigate = useNavigate();
 
   const refreshData = () => {
     devicesStats.refresh();
@@ -60,7 +61,7 @@ export default ({ astarte, history }) => {
     e.preventDefault();
     astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => {
       const latestMajor = Math.max(...interfaceMajors);
-      history.push(`/interfaces/${interfaceName}/${latestMajor}`);
+      navigate(`/interfaces/${interfaceName}/${latestMajor}`);
     });
   }, []);
 
@@ -94,7 +95,7 @@ export default ({ astarte, history }) => {
               <InterfacesCard
                 interfaceList={interfaceList}
                 onInterfaceClick={redirectToLastInterface}
-                onInstallInterfaceClick={() => history.push('/interfaces/new')}
+                onInstallInterfaceClick={() => navigate('/interfaces/new')}
               />
             </Col>
           )}
@@ -104,7 +105,7 @@ export default ({ astarte, history }) => {
             <Col xs={6} className={cellSpacingClass}>
               <TriggersCard
                 triggerList={triggerList}
-                onInstallTriggerClick={() => history.push('/triggers/new')}
+                onInstallTriggerClick={() => navigate('/triggers/new')}
               />
             </Col>
           )}
