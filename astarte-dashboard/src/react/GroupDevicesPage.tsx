@@ -183,10 +183,7 @@ const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => 
       const deviceList = devices as AstarteDevice[];
       innerHTML = (
         <>
-          <h5 className="mt-1 mb-3">
-            Devices in group
-            {groupName}
-          </h5>
+          <h5 className="mt-1 mb-3">{`Devices in group ${groupName}`}</h5>
           {deviceTable(deviceList, showModal)}
         </>
       );
