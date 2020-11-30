@@ -32,17 +32,24 @@ function isValidUrl(urlString: string): boolean {
   }
 }
 
-function tokenValidationFeedback(token: AstarteToken): React.ReactElement {
-  if (token.isValid) {
-    return <></>;
-  }
+function tokenValidationFeedback(
+  tokenValidation: 'expired' | 'noAstarteClaims' | 'valid' | 'invalid',
+): React.ReactElement {
   let message = null;
-  if (token.isExpired) {
-    message = 'Provided token has expired.';
-  } else if (!token.hasAstarteClaims) {
-    message = 'Provided JWT token has no usable Astarte claims.';
-  } else {
-    message = 'Invalid JWT token.';
+  switch (tokenValidation) {
+    case 'valid':
+      return <></>;
+    case 'expired': {
+      message = 'Provided JWT token has expired.';
+      break;
+    }
+    case 'noAstarteClaims': {
+      message = 'Provided JWT token has no usable Astarte claims.';
+      break;
+    }
+    case 'invalid':
+    default:
+      message = 'Invalid JWT token.';
   }
   return <Form.Control.Feedback type="invalid">{message}</Form.Control.Feedback>;
 }
@@ -65,9 +72,9 @@ const TokenForm = ({
 
   const isValidRealm = AstarteRealm.isValidName(realm);
 
-  const token = useMemo(() => new AstarteToken(jwt), [jwt]);
+  const tokenValidation = useMemo(() => AstarteToken.validate(jwt), [jwt]);
 
-  const canSubmitForm = isValidRealm && token.isValid;
+  const canSubmitForm = isValidRealm && tokenValidation === 'valid';
 
   const handleTokenLogin = (event: React.FormEvent<HTMLElement>) => {
     event.preventDefault();
@@ -113,11 +120,11 @@ const TokenForm = ({
           onChange={(e) => {
             setJwt(e.target.value.trim());
           }}
-          isValid={jwt !== '' && token.isValid}
-          isInvalid={jwt !== '' && !token.isValid}
+          isValid={jwt !== '' && tokenValidation === 'valid'}
+          isInvalid={jwt !== '' && tokenValidation !== 'valid'}
           required
         />
-        {tokenValidationFeedback(token)}
+        {tokenValidationFeedback(tokenValidation)}
       </Form.Group>
       <Button type="submit" variant="primary" disabled={!canSubmitForm} className="w-100">
         Login
