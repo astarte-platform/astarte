@@ -20,27 +20,30 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Status = 'loading' | 'ok' | 'err';
 
-type FetchState<Data> =
+type FetchState<Data, FetchParams extends any[]> =
   | {
       status: 'loading';
       value: Data | null;
       error: Error | null;
-      refresh: () => Promise<void>;
+      refresh: (...params: FetchParams) => Promise<void>;
     }
   | {
       status: 'ok';
       value: Data;
       error: Error | null;
-      refresh: () => Promise<void>;
+      refresh: (...params: FetchParams) => Promise<void>;
     }
   | {
       status: 'err';
       value: Data | null;
       error: Error;
-      refresh: () => Promise<void>;
+      refresh: (...params: FetchParams) => Promise<void>;
     };
 
-const useFetch = <Data = any>(fetchData: () => Promise<Data>): FetchState<Data> => {
+const useFetch = <Data = any, FetchParams extends any[] = any[]>(
+  fetchData: (...params: FetchParams) => Promise<Data>,
+  ...initialFetchParams: FetchParams
+): FetchState<Data, FetchParams> => {
   if (!fetchData) {
     throw new Error('Invalid fetch method');
   }
@@ -50,23 +53,26 @@ const useFetch = <Data = any>(fetchData: () => Promise<Data>): FetchState<Data> 
   const [error, setError] = useState<Error | null>(null);
   const isReady = useRef(false);
 
-  const getData = useCallback(async () => {
-    setStatus('loading');
-    try {
-      const fetchedData = await fetchData();
-      if (isReady.current) {
-        setData(fetchedData);
-        setStatus('ok');
+  const getData = useCallback(
+    async (...fetchParams: FetchParams) => {
+      setStatus('loading');
+      try {
+        const fetchedData = await fetchData(...fetchParams);
+        if (isReady.current) {
+          setData(fetchedData);
+          setStatus('ok');
+        }
+      } catch (err) {
+        setError(err);
+        setStatus('err');
       }
-    } catch (err) {
-      setError(err);
-      setStatus('err');
-    }
-  }, [isReady]);
+    },
+    [isReady],
+  );
 
   useEffect(() => {
     isReady.current = true;
-    getData();
+    getData(...initialFetchParams);
     return () => {
       isReady.current = false;
     };

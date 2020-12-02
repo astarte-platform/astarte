@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Button,
   Col,
@@ -38,7 +38,10 @@ import type { AstarteDevice } from 'astarte-client';
 import { Link, useNavigate } from 'react-router-dom';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
+import Empty from './components/Empty';
 import Highlight from './components/Highlight';
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
 
 interface DeviceFilters {
   deviceId?: AstarteDevice['id'];
@@ -400,48 +403,58 @@ interface Props {
 }
 
 export default ({ astarte }: Props): React.ReactElement => {
-  const [phase, setPhase] = useState<'loading' | 'ok' | 'err'>('loading');
   const [activePage, setActivePage] = useState(0);
-  const [deviceList, setDeviceList] = useState<AstarteDevice[]>([]);
-  const [requestToken, setRequestToken] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [filters, setFilters] = useState({});
   const navigate = useNavigate();
 
   const pageAlerts = useAlerts();
-  const pagedDevices = useMemo(() => {
-    const devices = deviceList.filter((device) => matchFilters(device, filters));
-    return _.chunk(devices, DEVICES_PER_PAGE);
-  }, [deviceList, filters]);
 
-  const loadMoreDevices = async (fromToken?: string, loadAllDevices = false) =>
-    astarte
-      .getDevices({
+  const fetchDevices = useCallback(
+    async (
+      params: {
+        fromToken?: string;
+        fetchAll?: boolean;
+        previousDevices?: AstarteDevice[];
+      } = {},
+    ): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> => {
+      const { devices, nextToken } = await astarte.getDevices({
         details: true,
-        from: fromToken,
+        from: params.fromToken,
         limit: DEVICES_PER_REQUEST,
-      })
-      .then(({ devices, nextToken }) => {
-        setRequestToken(nextToken);
-        setDeviceList((previousList) => {
-          const updatedDeviceList = previousList.concat(devices);
-          const pageCount = Math.ceil(updatedDeviceList.length / DEVICES_PER_PAGE);
-          const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || loadAllDevices;
-          if (shouldLoadMore && nextToken) {
-            loadMoreDevices(nextToken, loadAllDevices);
-          } else {
-            setPhase('ok');
-          }
-          return updatedDeviceList;
-        });
-      })
-      .catch((err) => {
-        pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`);
       });
+      const updatedDevices = (params.previousDevices || []).concat(devices);
+      const pageCount = Math.ceil(updatedDevices.length / DEVICES_PER_PAGE);
+      const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || !!params.fetchAll;
+      if (shouldLoadMore && nextToken) {
+        return fetchDevices({
+          fromToken: nextToken,
+          fetchAll: params.fetchAll,
+          previousDevices: updatedDevices,
+        });
+      }
+      return { devices: updatedDevices, nextToken };
+    },
+    [astarte],
+  );
+
+  const devicesFetcher = useFetch(fetchDevices, {});
+
+  const pagedDevices = useMemo(() => {
+    if (devicesFetcher.value == null) {
+      return _.chunk([], DEVICES_PER_PAGE);
+    }
+    const devices = devicesFetcher.value.devices.filter((device) => matchFilters(device, filters));
+    return _.chunk(devices, DEVICES_PER_PAGE);
+  }, [devicesFetcher.value, filters]);
+
+  const pageDevices = (activePage < pagedDevices.length && pagedDevices[activePage]) || [];
 
   const handlePageChange = (pageIndex: number) => {
-    if (pageIndex > pagedDevices.length - MAX_SHOWN_PAGES && requestToken) {
-      loadMoreDevices(requestToken);
+    const fromToken = devicesFetcher.value?.nextToken;
+    const previousDevices = devicesFetcher.value?.devices || [];
+    if (pageIndex > pagedDevices.length - MAX_SHOWN_PAGES && fromToken) {
+      devicesFetcher.refresh({ previousDevices, fromToken });
     }
     setActivePage(pageIndex);
   };
@@ -450,81 +463,70 @@ export default ({ astarte }: Props): React.ReactElement => {
     if (activePage !== 0) {
       setActivePage(0);
     }
-    if (requestToken) {
-      loadMoreDevices(requestToken, true);
+    const fromToken = devicesFetcher.value?.nextToken;
+    const previousDevices = devicesFetcher.value?.devices || [];
+    if (fromToken) {
+      devicesFetcher.refresh({ previousDevices, fromToken, fetchAll: true });
     }
     setFilters(newFilters);
   };
 
-  useEffect(() => {
-    loadMoreDevices();
-  }, []);
-
-  let innerHTML;
-
-  switch (phase) {
-    case 'ok':
-      if (deviceList.length === 0) {
-        innerHTML = <p>No registered devices</p>;
-      } else {
-        const devices = pagedDevices[activePage] || [];
-
-        innerHTML = (
-          <>
-            <Container fluid>
-              <Row>
-                <Col>
-                  {devices.length === 0 ? (
-                    <p>No device matches current filters</p>
-                  ) : (
-                    <DeviceTable deviceList={devices} filters={filters} />
-                  )}
-                </Col>
-                <Col xs="auto" className="p-1">
-                  <div className="p-2 mb-2" onClick={() => setShowSidebar(!showSidebar)}>
-                    <i className="fas fa-filter mr-1" />
-                    {showSidebar && <b>Filters</b>}
-                  </div>
-                  {showSidebar && (
-                    <FilterForm filters={filters} onUpdateFilters={handleFilterUpdate} />
-                  )}
-                </Col>
-              </Row>
-              <Row>
-                <Col />
-                <Col>
-                  <TablePagination
-                    activePage={activePage}
-                    canLoadMorePages={!!requestToken}
-                    lastPage={pagedDevices.length}
-                    onPageChange={handlePageChange}
-                  />
-                </Col>
-                <Col />
-              </Row>
-            </Container>
-          </>
-        );
-      }
-      break;
-
-    case 'err':
-      innerHTML = <p>Couldn&apos;t load the device list</p>;
-      break;
-
-    default:
-      innerHTML = (
-        <div>
-          <Spinner animation="border" role="status" />
-        </div>
-      );
-      break;
-  }
-
   return (
     <SingleCardPage title="Devices">
       <pageAlerts.Alerts />
-      {innerHTML}
+      <WaitForData
+        data={devicesFetcher.value}
+        status={devicesFetcher.status}
+        fallback={
+          <Container fluid className="text-center">
+            <Spinner animation="border" role="status" />
+          </Container>
+        }
+        errorFallback={
+          <Empty title="Couldn't load the device list" onRetry={() => devicesFetcher.refresh()} />
+        }
+      >
+        {({ devices, nextToken }) =>
+          devices.length === 0 ? (
+            <p>No registered devices</p>
+          ) : (
+            <>
+              <Container fluid>
+                <Row>
+                  <Col>
+                    {pageDevices.length === 0 ? (
+                      <p>No device matches current filters</p>
+                    ) : (
+                      <DeviceTable deviceList={pageDevices} filters={filters} />
+                    )}
+                  </Col>
+                  <Col xs="auto" className="p-1">
+                    <div className="p-2 mb-2" onClick={() => setShowSidebar(!showSidebar)}>
+                      <i className="fas fa-filter mr-1" />
+                      {showSidebar && <b>Filters</b>}
+                    </div>
+                    {showSidebar && (
+                      <FilterForm filters={filters} onUpdateFilters={handleFilterUpdate} />
+                    )}
+                  </Col>
+                </Row>
+                <Row>
+                  <Col />
+                  <Col>
+                    <TablePagination
+                      activePage={activePage}
+                      canLoadMorePages={!!nextToken}
+                      lastPage={pagedDevices.length}
+                      onPageChange={handlePageChange}
+                    />
+                  </Col>
+                  <Col />
+                </Row>
+              </Container>
+            </>
+          )
+        }
+      </WaitForData>
       <Button
         variant="primary"
         onClick={() => {
