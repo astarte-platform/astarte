@@ -10,9 +10,10 @@ describe('Blocks page tests', () => {
     beforeEach(function () {
       cy.server();
       cy.fixture('blocks').as('blocks');
-      cy.route('GET', '/flow/v1/*/blocks', '@blocks');
+      cy.route('GET', '/flow/v1/*/blocks', '@blocks').as('getBlocksRequest');
       cy.login();
       cy.visit('/blocks');
+      cy.wait('@getBlocksRequest');
     });
 
     it('successfully loads Blocks page', () => {
