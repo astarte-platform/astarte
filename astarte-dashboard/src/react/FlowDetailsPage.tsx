@@ -17,11 +17,13 @@
 */
 
 import React from 'react';
-import { Spinner } from 'react-bootstrap';
+import { Container, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import AstarteClient from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
+import Empty from './components/Empty';
+import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 
 interface Props {
@@ -30,34 +32,31 @@ interface Props {
 }
 
 export default ({ astarte, flowName }: Props): React.ReactElement => {
-  const flow = useFetch(() => astarte.getFlowDetails(flowName));
-
-  let innerHTML;
-
-  switch (flow.status) {
-    case 'ok':
-      innerHTML = (
-        <>
-          <h5>Flow configuration</h5>
-          <SyntaxHighlighter language="json" showLineNumbers>
-            {JSON.stringify(flow.value, null, 4)}
-          </SyntaxHighlighter>
-        </>
-      );
-      break;
-
-    case 'err':
-      innerHTML = <p>Couldn&apos;t load flow description</p>;
-      break;
-
-    default:
-      innerHTML = <Spinner animation="border" role="status" />;
-      break;
-  }
+  const flowFetcher = useFetch(() => astarte.getFlowDetails(flowName));
 
   return (
     <SingleCardPage title="Flow Details" backLink="/flows">
-      {innerHTML}
+      <WaitForData
+        data={flowFetcher.value}
+        status={flowFetcher.status}
+        fallback={
+          <Container fluid className="text-center">
+            <Spinner animation="border" role="status" />
+          </Container>
+        }
+        errorFallback={
+          <Empty title="Couldn't load flow description" onRetry={flowFetcher.refresh} />
+        }
+      >
+        {(flow) => (
+          <>
+            <h5>Flow configuration</h5>
+            <SyntaxHighlighter language="json" showLineNumbers>
+              {JSON.stringify(flow, null, 4)}
+            </SyntaxHighlighter>
+          </>
+        )}
+      </WaitForData>
     </SingleCardPage>
   );
 };
