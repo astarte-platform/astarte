@@ -12,11 +12,16 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge, Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import _ from 'lodash';
+
+import Empty from './components/Empty';
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
+import useInterval from './hooks/useInterval';
 
 interface InterfaceRowProps {
   name: string;
@@ -49,7 +54,19 @@ const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement =
 
 const LoadingRow = (): React.ReactElement => (
   <ListGroup.Item>
-    <Spinner animation="border" role="status" />
+    <Container fluid className="text-center">
+      <Spinner animation="border" role="status" />
+    </Container>
+  </ListGroup.Item>
+);
+
+interface ErrorRowProps {
+  onRetry: () => void;
+}
+
+const ErrorRow = ({ onRetry }: ErrorRowProps): React.ReactElement => (
+  <ListGroup.Item>
+    <Empty title="Couldn't load available interfaces" onRetry={onRetry} />
   </ListGroup.Item>
 );
 
@@ -63,9 +80,9 @@ interface InterfaceInfo {
 }
 
 export default ({ astarte }: Props): React.ReactElement => {
-  const [interfaces, setInterfaces] = useState<InterfaceInfo[] | null>(null);
   const navigate = useNavigate();
-  const fetchInterfaces = async () => {
+
+  const fetchInterfacesInfo = useCallback(async (): Promise<InterfaceInfo[]> => {
     const interfaceNames = await astarte.getInterfaceNames();
     const fetchedInterfaces = await Promise.all(
       interfaceNames.map((interfaceName) =>
@@ -76,14 +93,12 @@ export default ({ astarte }: Props): React.ReactElement => {
       ),
     );
     const sortedInterfaces = _.sortBy(fetchedInterfaces, ['name']);
-    setInterfaces(sortedInterfaces);
-  };
+    return sortedInterfaces;
+  }, [astarte]);
 
-  useEffect(() => {
-    fetchInterfaces();
-    const intervalId = setInterval(fetchInterfaces, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
+  const interfacesInfoFetcher = useFetch(fetchInterfacesInfo);
+
+  useInterval(interfacesInfoFetcher.refresh, 30000);
 
   return (
     <Container fluid className="p-3">
@@ -101,13 +116,20 @@ export default ({ astarte }: Props): React.ReactElement => {
                 Install a new interface...
               </Button>
             </ListGroup.Item>
-            {interfaces ? (
-              interfaces.map(({ name, majors }) => (
-                <InterfaceRow key={name} name={name} majors={majors} />
-              ))
-            ) : (
-              <LoadingRow />
-            )}
+            <WaitForData
+              data={interfacesInfoFetcher.value}
+              status={interfacesInfoFetcher.status}
+              fallback={<LoadingRow />}
+              errorFallback={<ErrorRow onRetry={interfacesInfoFetcher.refresh} />}
+            >
+              {(interfaces) => (
+                <>
+                  {interfaces.map(({ name, majors }) => (
+                    <InterfaceRow key={name} name={name} majors={majors} />
+                  ))}
+                </>
+              )}
+            </WaitForData>
           </ListGroup>
         </Col>
       </Row>
