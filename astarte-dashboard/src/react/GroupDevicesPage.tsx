@@ -16,13 +16,16 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { Button, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import React, { useState, useCallback } from 'react';
+import { Button, Container, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 import AstarteClient, { AstarteDevice } from 'astarte-client';
 import { Link, useNavigate } from 'react-router-dom';
 
+import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
 
 const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
   <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
@@ -106,29 +109,17 @@ interface Props {
 }
 
 const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => {
-  const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
-  const [devices, setDevices] = useState<AstarteDevice[] | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<AstarteDevice | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);
   const navigate = useNavigate();
 
-  const fetchDevices = useCallback(() => {
-    const handleDevicesRequest = (newDevices: AstarteDevice[]) => {
-      setDevices(newDevices);
-      setPhase('ok');
-    };
-    const handleDevicesError = () => {
-      setPhase('err');
-    };
-    astarte
-      .getDevicesInGroup({
-        groupName,
-        details: true,
-      })
-      .then(handleDevicesRequest)
-      .catch(handleDevicesError);
-  }, [astarte, groupName, setPhase, setDevices]);
+  const devicesFetcher = useFetch(() =>
+    astarte.getDevicesInGroup({
+      groupName,
+      details: true,
+    }),
+  );
 
   const showModal = useCallback(
     (device: AstarteDevice) => {
@@ -153,55 +144,44 @@ const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => 
         deviceId: selectedDevice.id,
       })
       .finally(() => {
-        if (devices?.length === 1) {
+        if (devicesFetcher.value != null && devicesFetcher.value.length === 1) {
           navigate({ pathname: '/groups' });
         } else {
           setIsRemovingDevice(false);
           setIsModalVisible(false);
-          fetchDevices();
+          devicesFetcher.refresh();
         }
       });
   }, [
     astarte,
     setIsRemovingDevice,
     setIsModalVisible,
-    fetchDevices,
+    devicesFetcher.refresh,
+    devicesFetcher.value,
     groupName,
     selectedDevice,
-    devices,
     navigate,
   ]);
 
-  useEffect(() => {
-    fetchDevices();
-  }, [fetchDevices]);
-
-  let innerHTML;
-
-  switch (phase) {
-    case 'ok':
-      const deviceList = devices as AstarteDevice[];
-      innerHTML = (
-        <>
-          <h5 className="mt-1 mb-3">{`Devices in group ${groupName}`}</h5>
-          {deviceTable(deviceList, showModal)}
-        </>
-      );
-      break;
-
-    case 'err':
-      innerHTML = <p>Couldn&apos;t load devices in group</p>;
-      break;
-
-    default:
-      innerHTML = <Spinner animation="border" role="status" />;
-      break;
-  }
-
   const selectedDeviceName = selectedDevice?.name as string;
+
   return (
     <SingleCardPage title="Group Devices" backLink="/groups">
-      {innerHTML}
+      <h5 className="mt-1 mb-3">{`Devices in group ${groupName}`}</h5>
+      <WaitForData
+        data={devicesFetcher.value}
+        status={devicesFetcher.status}
+        fallback={
+          <Container fluid className="text-center">
+            <Spinner animation="border" role="status" />
+          </Container>
+        }
+        errorFallback={
+          <Empty title="Couldn't load devices in group" onRetry={devicesFetcher.refresh} />
+        }
+      >
+        {(devices) => deviceTable(devices, showModal)}
+      </WaitForData>
       {isModalVisible && (
         <ConfirmModal
           title="Warning"
@@ -211,7 +191,7 @@ const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => 
           onConfirm={removeDevice}
           isConfirming={isRemovingDevice}
         >
-          {devices?.length === 1 && (
+          {devicesFetcher.value != null && devicesFetcher.value.length === 1 && (
             <p>This is the last device in the group. Removing this device will delete the group</p>
           )}
           <p>
