@@ -16,15 +16,18 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import { Button, Container, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type { AstarteFlow } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
+import Empty from './components/Empty';
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
 
 const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
   <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
@@ -102,36 +105,18 @@ interface Props {
 }
 
 export default ({ astarte }: Props): React.ReactElement => {
-  const [phase, setPhase] = useState<'loading' | 'ok' | 'err'>('loading');
-  const [instances, setInstances] = useState<AstarteFlow[] | null>(null);
   const [flowToConfirmDelete, setFlowToConfirmDelete] = useState<AstarteFlow['name'] | null>(null);
   const [isDeletingFlow, setIsDeletingFlow] = useState(false);
   const deletionAlerts = useAlerts();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleInstanceResponse = (instance: AstarteFlow) => {
-      setInstances((oldInstances) => (oldInstances || []).concat(instance));
-      setPhase('ok');
-    };
-    const handleFlowResponse = (instanceNames: Array<AstarteFlow['name']>) => {
-      if (instanceNames.length === 0) {
-        setInstances([]);
-        setPhase('ok');
-      } else {
-        setInstances([]);
-        setPhase('loading');
-        instanceNames.forEach((name) => {
-          astarte.getFlowDetails(name).then(handleInstanceResponse);
-        });
-      }
-      return null;
-    };
-    const handleFlowError = () => {
-      setPhase('err');
-    };
-    astarte.getFlowInstances().then(handleFlowResponse).catch(handleFlowError);
-  }, [astarte, setInstances, setPhase]);
+  const fetchInstances = useCallback(async (): Promise<AstarteFlow[]> => {
+    const instanceNames = await astarte.getFlowInstances();
+    const instances = await Promise.all(instanceNames.map((name) => astarte.getFlowDetails(name)));
+    return instances;
+  }, [astarte]);
+
+  const instancesFetcher = useFetch(fetchInstances);
 
   const handleDeleteFlow = useCallback(
     (instance: AstarteFlow) => {
@@ -148,10 +133,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       .then(() => {
         setFlowToConfirmDelete(null);
         setIsDeletingFlow(false);
-        setInstances((oldInstances) =>
-          (oldInstances || []).filter((instance) => instance.name !== flowName),
-        );
-        setPhase('ok');
+        instancesFetcher.refresh();
       })
       .catch((err) => {
         setIsDeletingFlow(false);
@@ -161,8 +143,7 @@ export default ({ astarte }: Props): React.ReactElement => {
     flowToConfirmDelete,
     setFlowToConfirmDelete,
     setIsDeletingFlow,
-    setInstances,
-    setPhase,
+    instancesFetcher.refresh,
     deletionAlerts.showError,
   ]);
 
@@ -170,34 +151,23 @@ export default ({ astarte }: Props): React.ReactElement => {
     setFlowToConfirmDelete(null);
   }, [setFlowToConfirmDelete]);
 
-  let innerHTML;
-
-  switch (phase) {
-    case 'ok':
-      innerHTML = (
-        <>
-          <deletionAlerts.Alerts />
-          <InstancesTable instances={instances as AstarteFlow[]} onDelete={handleDeleteFlow} />
-        </>
-      );
-      break;
-
-    case 'err':
-      innerHTML = <p>Couldn&apos;t load flow instances</p>;
-      break;
-
-    default:
-      innerHTML = (
-        <div>
-          <Spinner animation="border" role="status" />;
-        </div>
-      );
-      break;
-  }
-
   return (
     <SingleCardPage title="Running Flows">
-      {innerHTML}
+      <deletionAlerts.Alerts />
+      <WaitForData
+        data={instancesFetcher.value}
+        status={instancesFetcher.status}
+        fallback={
+          <Container fluid className="text-center">
+            <Spinner animation="border" role="status" />
+          </Container>
+        }
+        errorFallback={
+          <Empty title="Couldn't load flow instances" onRetry={instancesFetcher.refresh} />
+        }
+      >
+        {(instances) => <InstancesTable instances={instances} onDelete={handleDeleteFlow} />}
+      </WaitForData>
       <Button variant="primary" onClick={() => navigate('/pipelines')}>
         New flow
       </Button>
