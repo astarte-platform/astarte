@@ -22,6 +22,7 @@ import { Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type { AstartePipeline } from 'astarte-client';
 
+import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 
@@ -76,33 +77,41 @@ export default ({ astarte }: Props): React.ReactElement => {
   return (
     <Container fluid className="p-3">
       <h2>Pipelines</h2>
-      <WaitForData
-        data={pipelinesFetcher.value}
-        status={pipelinesFetcher.status}
-        fallback={<Spinner animation="border" role="status" />}
-        errorFallback={<p>Couldn&apos;t load available pipelines</p>}
-      >
-        {(pipelines) => (
-          <CardDeck className="mt-4">
-            <NewPipelineCard onCreate={() => navigate('/pipelines/new')} />
-            {pipelines.map((pipeline, index) => (
-              <React.Fragment key={`fragment-${index}`}>
-                {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
-                <PipelineCard
-                  pipeline={pipeline}
-                  onInstantiate={() => {
-                    navigate(`/flows/new/${pipeline.name}`);
-                  }}
-                  showLink={`/pipelines/${pipeline.name}`}
-                />
-                {index === pipelines.length - 1 && pipelines.length % 2 === 0 ? (
-                  <div className="w-50 d-none d-md-block" />
-                ) : null}
-              </React.Fragment>
-            ))}
-          </CardDeck>
-        )}
-      </WaitForData>
+      <CardDeck className="mt-4">
+        <NewPipelineCard onCreate={() => navigate('/pipelines/new')} />
+        <WaitForData
+          data={pipelinesFetcher.value}
+          status={pipelinesFetcher.status}
+          fallback={
+            <Container fluid className="text-center">
+              <Spinner animation="border" role="status" />
+            </Container>
+          }
+          errorFallback={
+            <Empty title="Couldn't load available pipelines" onRetry={pipelinesFetcher.refresh} />
+          }
+        >
+          {(pipelines) => (
+            <>
+              {pipelines.map((pipeline, index) => (
+                <React.Fragment key={`fragment-${index}`}>
+                  {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
+                  <PipelineCard
+                    pipeline={pipeline}
+                    onInstantiate={() => {
+                      navigate(`/flows/new/${pipeline.name}`);
+                    }}
+                    showLink={`/pipelines/${pipeline.name}`}
+                  />
+                  {index === pipelines.length - 1 && pipelines.length % 2 === 0 ? (
+                    <div className="w-50 d-none d-md-block" />
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </>
+          )}
+        </WaitForData>
+      </CardDeck>
     </Container>
   );
 };
