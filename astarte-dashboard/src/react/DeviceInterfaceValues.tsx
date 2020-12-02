@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type {
@@ -29,9 +29,9 @@ import type {
 import _ from 'lodash';
 
 import BackButton from './ui/BackButton';
+import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
-import { useAlerts } from './AlertManager';
 
 const MAX_SHOWN_VALUES = 20;
 
@@ -192,20 +192,12 @@ interface Props {
 }
 
 export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement => {
-  const deviceData = useFetch(() =>
+  const deviceDataFetcher = useFetch(() =>
     astarte.getDeviceDataTree({
       deviceId,
       interfaceName,
     }),
   );
-
-  const deviceAlerts = useAlerts();
-
-  useEffect(() => {
-    if (deviceData.error != null) {
-      deviceAlerts.showError('Could not retrieve interface data.');
-    }
-  }, [deviceData.error]);
 
   return (
     <Container fluid className="p-3">
@@ -218,11 +210,17 @@ export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement
           <span className="text-monospace">{deviceId}</span> /{interfaceName}
         </Card.Header>
         <Card.Body>
-          <deviceAlerts.Alerts />
           <WaitForData
-            data={deviceData.value}
-            status={deviceData.status}
-            fallback={<Spinner animation="border" role="status" />}
+            data={deviceDataFetcher.value}
+            status={deviceDataFetcher.status}
+            fallback={
+              <Container fluid className="text-center">
+                <Spinner animation="border" role="status" />
+              </Container>
+            }
+            errorFallback={
+              <Empty title="Couldn't load interface data" onRetry={deviceDataFetcher.refresh} />
+            }
           >
             {(data) => <InterfaceData interfaceData={data} />}
           </WaitForData>
