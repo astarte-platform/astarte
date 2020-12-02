@@ -16,124 +16,114 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Spinner, Table } from 'react-bootstrap';
-import AstarteClient, { AstarteDevice } from 'astarte-client';
+import { Button, Container, Spinner, Table } from 'react-bootstrap';
+import AstarteClient from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
-
-interface Props {
-  astarte: AstarteClient;
-}
+import Empty from './components/Empty';
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
 
 interface GroupState {
   name: string;
-  loading: boolean;
   totalDevices: number;
   connectedDevices: number;
 }
 
 type GroupMap = Map<string, GroupState>;
 
+type GroupsTableProps = {
+  groupMap: GroupMap;
+};
+
+const GroupsTable = ({ groupMap }: GroupsTableProps) => {
+  if (groupMap.size === 0) {
+    return <p>No registered group</p>;
+  }
+  return (
+    <Table responsive>
+      <thead>
+        <tr>
+          <th>Group name</th>
+          <th>Connected devices</th>
+          <th>Total devices</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from(groupMap.values()).map((group) => {
+          const encodedGroupName = encodeURIComponent(encodeURIComponent(group.name));
+          return (
+            <tr key={group.name}>
+              <td>
+                <Link to={`/groups/${encodedGroupName}`}>{group.name}</Link>
+              </td>
+              <td>{group.connectedDevices}</td>
+              <td>{group.totalDevices}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  );
+};
+
+interface Props {
+  astarte: AstarteClient;
+}
+
 export default ({ astarte }: Props): React.ReactElement => {
-  const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
-  const [groups, setGroups] = useState<GroupMap | null>(null);
   const pageAlerts = useAlerts();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleDeviceList = (groupName: string, devices: AstarteDevice[]) => {
-      setGroups((groupMap: GroupMap | null) => {
-        const newGroupMap = groupMap ? new Map(groupMap) : new Map();
-        const newGroupState = newGroupMap.get(groupName);
-        newGroupState.loading = false;
-        newGroupState.totalDevices = devices.length;
-        const connectedDevices = devices.filter((device) => device.isConnected);
-        newGroupState.connectedDevices = connectedDevices.length;
-        newGroupMap.set(groupName, newGroupState);
-        return newGroupMap;
-      });
-    };
-    const handleGroupsRequest = (groupNames: string[]) => {
-      const groupMap: GroupMap = groupNames.reduce((acc, groupName) => {
-        acc.set(groupName, { name: groupName, loading: true });
-        return acc;
-      }, new Map());
-      setGroups(groupMap);
-      setPhase('ok');
-      groupMap.forEach((groupState, groupName) => {
-        astarte
-          .getDevicesInGroup({
-            groupName,
-            details: true,
-          })
-          .then((devices) => handleDeviceList(groupName, devices))
-          .catch(() => {
-            pageAlerts.showError(`Couldn't get the device list for group ${groupName}`);
-          });
-      });
-    };
-    const handleGroupsError = () => {
-      setPhase('err');
-    };
-    astarte.getGroupList().then(handleGroupsRequest).catch(handleGroupsError);
-  }, [astarte, setGroups, setPhase]);
-
-  let innerHTML;
-
-  switch (phase) {
-    case 'ok':
-      const groupMap = groups as GroupMap;
-      if (groupMap.size === 0) {
-        innerHTML = <p>No registered group</p>;
-      } else {
-        innerHTML = (
-          <Table responsive>
-            <thead>
-              <tr>
-                <th>Group name</th>
-                <th>Connected devices</th>
-                <th>Total devices</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from(groupMap.values()).map((group) => {
-                const encodedGroupName = encodeURIComponent(encodeURIComponent(group.name));
-                return (
-                  <tr key={group.name}>
-                    <td>
-                      <Link to={`/groups/${encodedGroupName}`}>{group.name}</Link>
-                    </td>
-                    <td>{group.connectedDevices}</td>
-                    <td>{group.totalDevices}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        );
+  const fetchGroups = useCallback(async (): Promise<GroupMap> => {
+    pageAlerts.closeAll();
+    const groupNames = await astarte.getGroupList();
+    const groupMap: GroupMap = new Map();
+    const fetchGroupPromises = groupNames.map((groupName) =>
+      astarte
+        .getDevicesInGroup({
+          groupName,
+          details: true,
+        })
+        .catch(() => {
+          pageAlerts.showError(`Couldn't get the device list for group ${groupName}`);
+          return null;
+        }),
+    );
+    const groupsDevices = await Promise.all(fetchGroupPromises);
+    groupNames.forEach((groupName, index) => {
+      const groupDevices = groupsDevices[index];
+      if (groupDevices) {
+        groupMap.set(groupName, {
+          name: groupName,
+          totalDevices: groupDevices.length,
+          connectedDevices: groupDevices.filter((device) => device.isConnected).length,
+        });
       }
-      break;
+    });
+    return groupMap;
+  }, [astarte, pageAlerts.closeAll, pageAlerts.showError]);
 
-    case 'err':
-      innerHTML = <p>Couldn&apos;t load groups</p>;
-      break;
-
-    default:
-      innerHTML = (
-        <div>
-          <Spinner animation="border" role="status" />
-        </div>
-      );
-      break;
-  }
+  const groupsFetcher = useFetch(fetchGroups);
 
   return (
     <SingleCardPage title="Groups">
       <pageAlerts.Alerts />
-      {innerHTML}
+      <WaitForData
+        data={groupsFetcher.value}
+        status={groupsFetcher.status}
+        fallback={
+          <Container fluid className="text-center">
+            <Spinner animation="border" role="status" />
+          </Container>
+        }
+        errorFallback={<Empty title="Couldn't load groups" onRetry={groupsFetcher.refresh} />}
+      >
+        {(groupMap) => <GroupsTable groupMap={groupMap} />}
+      </WaitForData>
       <Button
         variant="primary"
         onClick={() => {
