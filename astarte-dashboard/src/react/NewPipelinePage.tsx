@@ -18,59 +18,20 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Button, Form, Modal, Spinner } from 'react-bootstrap';
+import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
 import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
-import JsonSchemaForm from '@rjsf/bootstrap-4';
 import AstarteClient, { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import FormModal from './components/modals/Form';
 import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/VisualFlowEditor';
 import type NativeBlockModel from './models/NativeBlockModel';
 import SingleCardPage from './ui/SingleCardPage';
 
 const ajv = new Ajv({ schemaId: 'id' });
 ajv.addMetaSchema(metaSchemaDraft04);
-
-interface NodeSettingsModalProps {
-  node: NativeBlockModel;
-  schema: AstarteBlock['schema'];
-  initialData: { [key: string]: any };
-  onCancel: () => void;
-  onConfirm: (formData: { [key: string]: any }) => void;
-}
-
-const NodeSettingsModal = ({
-  node,
-  schema,
-  initialData,
-  onCancel,
-  onConfirm,
-}: NodeSettingsModalProps): React.ReactElement => (
-  <Modal size="lg" show onHide={onCancel}>
-    <Modal.Header closeButton>
-      <Modal.Title>Settings for {node.name}</Modal.Title>
-    </Modal.Header>
-    <Modal.Body>
-      <JsonSchemaForm
-        schema={schema}
-        additionalMetaSchemas={[metaSchemaDraft04]}
-        formData={initialData}
-        onSubmit={(params) => onConfirm(params.formData)}
-      >
-        <div className="form-footer">
-          <Button type="submit" variant="primary">
-            Apply settings
-          </Button>
-          <Button variant="secondary mr-2" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
-      </JsonSchemaForm>
-    </Modal.Body>
-  </Modal>
-);
 
 interface CommandRowProps {
   className?: string;
@@ -162,10 +123,11 @@ export default ({ astarte, history }: Props): React.ReactElement => {
       editorModel.setLocked(true);
 
       setActiveModal(
-        <NodeSettingsModal
-          node={node}
+        <FormModal
+          title={`Settings for ${node.name}`}
           schema={blockDefinition.schema}
           initialData={node.getProperties()}
+          confirmLabel="Apply settings"
           onCancel={() => {
             setActiveModal(null);
             editorModel.setLocked(false);
