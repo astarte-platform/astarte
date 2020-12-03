@@ -78,7 +78,7 @@ export default ({ astarte, history }) => {
             realmManagement={realmManagementHealth.status}
             pairing={pairingHealth.status}
             showFlowStatus={astarte.config.enableFlowPreview}
-            flow={flowHealth.status}
+            flow={astarte.config.enableFlowPreview ? flowHealth.status : null}
           />
         </Col>
         <WaitForData data={devicesStats.value} status={devicesStats.status}>
