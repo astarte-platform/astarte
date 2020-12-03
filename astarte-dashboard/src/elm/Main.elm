@@ -32,7 +32,7 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation
 import Html exposing (Html, a, div, hr, img, li, p, small, span, text, ul)
-import Html.Attributes exposing (class, classList, href, src, style)
+import Html.Attributes exposing (id, class, classList, href, src, style)
 import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import ListUtils exposing (addWhen)
@@ -752,11 +752,11 @@ view model =
                 [ Grid.col
                     (if showNavbar then
                         [ Col.xsAuto
-                        , Col.attrs [ class "nav-col" ]
+                        , Col.attrs [ id "main-navbar", class "nav-col" ]
                         ]
 
                      else
-                        [ Col.attrs [ Display.none ] ]
+                        [ Col.attrs [ id "main-navbar", Display.none ] ]
                     )
                     [ renderNavbar model realmName ]
                 , Grid.col

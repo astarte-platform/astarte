@@ -52,5 +52,23 @@ describe('Login tests', () => {
 
       cy.wait('@httpsRequest');
     });
+
+    it('correctly loads without Flow features when configured to do so', function () {
+      cy.fixture('config/flowDisabled').then((userConfig) => {
+        cy.route('/user-config/config.json', userConfig);
+      });
+
+      cy.visit('/login');
+
+      cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
+      cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+      cy.get('.btn[type=submit]').click();
+
+      cy.get('#status-card').should('not.contain', 'Flow');
+      cy.get('#main-navbar').should('be.visible');
+      cy.get('#main-navbar').should('not.contain', 'Flows');
+      cy.get('#main-navbar').should('not.contain', 'Pipelines');
+      cy.get('#main-navbar').should('not.contain', 'Blocks');
+    });
   });
 });
