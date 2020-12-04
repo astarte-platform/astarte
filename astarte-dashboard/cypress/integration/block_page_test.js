@@ -20,6 +20,12 @@ describe('Block page tests', () => {
           .then((customBlock) => {
             cy.server();
             cy.route('GET', '/flow/v1/*/blocks/*', '@customBlock');
+            cy.route({
+              method: 'DELETE',
+              url: `/flow/v1/*/blocks/${customBlock.data.name}`,
+              status: 204,
+              response: '',
+            }).as('deleteBlockRequest');
             cy.login();
             cy.visit(`/blocks/${customBlock.data.name}`);
           });
@@ -37,6 +43,19 @@ describe('Block page tests', () => {
           cy.contains('Source');
           cy.contains('Schema');
         });
+      });
+
+      it('can delete a custom block', function () {
+        cy.get('.main-content').within(() => {
+          cy.contains('Delete block').click();
+        });
+        cy.get('.modal')
+          .contains(`Delete block ${this.customBlock.data.name}?`)
+          .parents('.modal')
+          .as('deleteModal');
+        cy.get('@deleteModal').get('button').contains('Remove').click();
+        cy.wait('@deleteBlockRequest');
+        cy.location('pathname').should('eq', '/blocks');
       });
     });
 
@@ -63,6 +82,12 @@ describe('Block page tests', () => {
           cy.contains('Type').next().contains(blockTypeToLabel[this.nativeBlock.data.type]);
           cy.contains('Source').should('not.exist');
           cy.contains('Schema');
+        });
+      });
+
+      it('cannot delete a native block', function () {
+        cy.get('.main-content').within(() => {
+          cy.contains('Delete block').should('not.exist');
         });
       });
     });
