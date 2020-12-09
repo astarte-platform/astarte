@@ -760,7 +760,7 @@ view model =
                     )
                     [ renderNavbar model realmName ]
                 , Grid.col
-                    [ Col.attrs [ class "main-content overflow-hidden" ] ]
+                    [ Col.attrs [ class "main-content vh-100 overflow-auto" ] ]
                     [ renderPage model model.selectedPage ]
                 ]
             ]
@@ -883,7 +883,7 @@ standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHea
       ]
     ]
         |> List.concat
-        |> Html.nav [ class "nav navbar-dark", Flex.col ]
+        |> Html.nav [ class "nav navbar-dark flex-nowrap vh-100 overflow-auto", Flex.col ]
 
 
 dashboardBrand : Html Msg
