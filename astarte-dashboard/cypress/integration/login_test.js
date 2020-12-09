@@ -70,5 +70,32 @@ describe('Login tests', () => {
       cy.get('#main-navbar').should('not.contain', 'Pipelines');
       cy.get('#main-navbar').should('not.contain', 'Blocks');
     });
+
+    it('use custom Astarte URLs when configured to do so', function () {
+      cy.fixture('config/custom_urls').then((userConfig) => {
+        cy.route('/user-config/config.json', userConfig);
+        cy.route('https://api.example.com/custom-appengine/health', '').as(
+          'appEngineHealthRequest',
+        );
+        cy.route('https://api.example.com/custom-realmmanagement/health', '').as(
+          'realmManagementHealthRequest',
+        );
+        cy.route('https://api.example.com/custom-pairing/health', '').as('pairingHealthRequest');
+        cy.route('https://api.example.com/custom-flow/health', '').as('flowHealthRequest');
+
+        cy.visit('/login');
+
+        cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
+        cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+        cy.get('.btn[type=submit]').click();
+
+        cy.wait([
+          '@appEngineHealthRequest',
+          '@realmManagementHealthRequest',
+          '@pairingHealthRequest',
+          '@flowHealthRequest',
+        ]);
+      });
+    });
   });
 });

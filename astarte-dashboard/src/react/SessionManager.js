@@ -55,7 +55,7 @@ class SessionManager {
     }
 
     if (appConfig.flow_api_url) {
-      flowApiUrl = new URL(appConfig.appConfig);
+      flowApiUrl = new URL(appConfig.flow_api_url);
     }
 
     this.config = {
