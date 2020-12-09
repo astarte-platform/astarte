@@ -23,6 +23,7 @@ import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 
 const blockTypeToLabel = {
@@ -40,6 +41,7 @@ interface Props {
 export default ({ astarte, history, blockId }: Props): React.ReactElement => {
   const [phase, setPhase] = useState('loading');
   const [block, setBlock] = useState<AstarteBlock | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const deletionAlerts = useAlerts();
 
@@ -51,6 +53,7 @@ export default ({ astarte, history, blockId }: Props): React.ReactElement => {
       .catch((err: Error) => {
         setIsDeletingBlock(false);
         deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
+        setShowDeleteModal(false);
       });
   }, [astarte, history, setIsDeletingBlock, blockId, deletionAlerts.showError]);
 
@@ -102,7 +105,7 @@ export default ({ astarte, history, blockId }: Props): React.ReactElement => {
             {blockObj instanceof AstarteCustomBlock && (
               <Button
                 variant="danger"
-                onClick={isDeletingBlock ? undefined : deleteBlock}
+                onClick={() => setShowDeleteModal(true)}
                 disabled={isDeletingBlock}
               >
                 {isDeletingBlock && (
@@ -112,6 +115,20 @@ export default ({ astarte, history, blockId }: Props): React.ReactElement => {
               </Button>
             )}
           </Row>
+          {showDeleteModal && (
+            <ConfirmModal
+              title="Warning"
+              confirmLabel="Remove"
+              confirmVariant="danger"
+              onCancel={() => setShowDeleteModal(false)}
+              onConfirm={deleteBlock}
+              isConfirming={isDeletingBlock}
+            >
+              <p>
+                Delete block <b>{blockId}</b>?
+              </p>
+            </ConfirmModal>
+          )}
         </>
       );
 

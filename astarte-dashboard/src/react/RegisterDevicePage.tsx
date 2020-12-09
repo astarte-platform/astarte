@@ -18,12 +18,14 @@
 
 /* @global document */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
-import { Button, Col, Form, Modal, Spinner, Table } from 'react-bootstrap';
+import { Button, Col, Form, Spinner, Table } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
 
+import ConfirmModal from './components/modals/Confirm';
+import FormModal from './components/modals/Form';
 import SingleCardPage from './ui/SingleCardPage';
 import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
 import { useAlerts } from './AlertManager';
@@ -191,112 +193,62 @@ const InstrospectionTable = ({
   </Table>
 );
 
-interface CredentialSecretModalProps {
-  show: boolean;
-  secret: string;
-  onConfirm: () => void;
-}
-
-const CredentialSecretModal = ({
-  show,
-  secret,
-  onConfirm,
-}: CredentialSecretModalProps): React.ReactElement => (
-  <Modal size="lg" show={show} onHide={onConfirm}>
-    <Modal.Header closeButton>
-      <Modal.Title>Device Registered!</Modal.Title>
-    </Modal.Header>
-    <Modal.Body>
-      <span>The device credential secret is</span>
-      <pre className="my-2">
-        <code id="secret-code" className="m-1 p-2 bg-light" style={{ fontSize: '1.2em' }}>
-          {secret}
-        </code>
-        <i className="fas fa-paste" onClick={pasteSecret} style={{ cursor: 'copy' }} />
-      </pre>
-      <span>
-        Please don&apos;t share the Credentials Secret, and ensure it is transferred securely to
-        your Device.
-        <br />
-        Once the Device pairs for the first time, the Credentials Secret will be associated
-        permanently to the Device and it won&apos;t be changeable anymore.
-      </span>
-    </Modal.Body>
-    <Modal.Footer>
-      <Button variant="primary" onClick={onConfirm} style={{ width: '8em' }}>
-        Ok
-      </Button>
-    </Modal.Footer>
-  </Modal>
-);
-
 interface NamespaceModalProps {
-  show: boolean;
   onCancel: () => void;
   onConfirm: (deviceId: string) => void;
 }
 
-const NamespaceModal = ({ show, onCancel, onConfirm }: NamespaceModalProps): React.ReactElement => {
-  const [namespace, setNamespace] = useState('');
-  const [customString, setCustomString] = useState('');
-
-  const newDeviceId = useMemo(() => {
-    try {
-      const newUUID = uuidv5(customString, namespace).replace(/-/g, '');
+const NamespaceModal = ({ onCancel, onConfirm }: NamespaceModalProps) => {
+  const handleConfirm = useCallback(
+    (formData: { userNamespace: string; userString?: string }) => {
+      const newUUID = uuidv5(formData.userString || '', formData.userNamespace).replace(/-/g, '');
       const bytes = (newUUID.match(/.{2}/g) as RegExpMatchArray).map((b) => parseInt(b, 16));
-      return byteArrayToUrlSafeBase64(bytes);
-    } catch (e) {
-      // namespace is not a UUID
-      return '';
-    }
-  }, [customString, namespace]);
+      const deviceId = byteArrayToUrlSafeBase64(bytes);
+      onConfirm(deviceId);
+    },
+    [onConfirm],
+  );
 
   return (
-    <Modal size="lg" show={show} onHide={onCancel}>
-      <Modal.Header closeButton>
-        <Modal.Title>Generate from name</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form>
-          <Form.Group controlId="userNamespace">
-            <Form.Label>Namespace UUID in canonical text format</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="e.g.: 753ffc99-dd9d-4a08-a07e-9b0d6ce0bc82"
-              value={namespace}
-              onChange={(e) => setNamespace(e.target.value)}
-              isValid={namespace !== '' && newDeviceId !== ''}
-              isInvalid={namespace !== '' && newDeviceId === ''}
-              required
-            />
-            <Form.Control.Feedback type="invalid">
-              The namespace must be a valid UUID
-            </Form.Control.Feedback>
-          </Form.Group>
-          <Form.Group controlId="userString">
-            <Form.Label>Name</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="e.g.: my device"
-              value={customString}
-              onChange={(e) => setCustomString(e.target.value)}
-            />
-          </Form.Group>
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          onClick={() => onConfirm(newDeviceId)}
-          disabled={newDeviceId === ''}
-        >
-          Generate ID
-        </Button>
-      </Modal.Footer>
-    </Modal>
+    <FormModal
+      title="Generate from name"
+      confirmLabel="Generate ID"
+      onCancel={onCancel}
+      onConfirm={handleConfirm}
+      schema={{
+        type: 'object',
+        required: ['userNamespace'],
+        properties: {
+          userNamespace: {
+            title: 'Namespace UUID in canonical text format',
+            type: 'string',
+            pattern:
+              '^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}$',
+          },
+          userString: {
+            title: 'Name',
+            type: 'string',
+          },
+        },
+      }}
+      uiSchema={{
+        userNamespace: {
+          'ui:autofocus': true,
+          'ui:placeholder': 'e.g.: 753ffc99-dd9d-4a08-a07e-9b0d6ce0bc82',
+        },
+        userString: {
+          'ui:placeholder': 'e.g.: my device',
+        },
+      }}
+      transformErrors={(errors) =>
+        errors.map((error) => {
+          if (error.property === '.userNamespace' && error.name === 'pattern') {
+            return { ...error, message: 'The namespace must be a valid UUID' };
+          }
+          return error;
+        })
+      }
+    />
   );
 };
 
@@ -429,19 +381,37 @@ export default ({ astarte, history }: Props): React.ReactElement => {
           </Button>
         </Form.Row>
       </Form>
-      <NamespaceModal
-        show={showNamespaceModal}
-        onCancel={() => setShowNamespaceModal(false)}
-        onConfirm={(newDeviceId: string) => {
-          setShowNamespaceModal(false);
-          setDeviceId(newDeviceId);
-        }}
-      />
-      <CredentialSecretModal
-        show={showCredentialSecretModal}
-        secret={deviceSecret}
-        onConfirm={() => history.push('/devices')}
-      />
+      {showNamespaceModal && (
+        <NamespaceModal
+          onCancel={() => setShowNamespaceModal(false)}
+          onConfirm={(newDeviceId: string) => {
+            setShowNamespaceModal(false);
+            setDeviceId(newDeviceId);
+          }}
+        />
+      )}
+      {showCredentialSecretModal && (
+        <ConfirmModal
+          title="Device Registered!"
+          confirmLabel="OK"
+          onConfirm={() => history.push('/devices')}
+        >
+          <span>The device credential secret is</span>
+          <pre className="my-2">
+            <code id="secret-code" className="m-1 p-2 bg-light" style={{ fontSize: '1.2em' }}>
+              {deviceSecret}
+            </code>
+            <i className="fas fa-paste" onClick={pasteSecret} style={{ cursor: 'copy' }} />
+          </pre>
+          <span>
+            Please don&apos;t share the Credentials Secret, and ensure it is transferred securely to
+            your Device.
+            <br />
+            Once the Device pairs for the first time, the Credentials Secret will be associated
+            permanently to the Device and it won&apos;t be changeable anymore.
+          </span>
+        </ConfirmModal>
+      )}
     </SingleCardPage>
   );
 };
