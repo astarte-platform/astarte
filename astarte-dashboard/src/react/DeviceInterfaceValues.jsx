@@ -155,7 +155,7 @@ const IndividualDatastreamTable = ({ data }) => {
   const paths = linearizePathTree('', data);
 
   return (
-    <Table>
+    <Table responsive>
       <thead>
         <tr>
           <th>Path</th>
@@ -194,7 +194,7 @@ const ObjectDatastreamTable = ({ path, values }) => {
     <>
       <h5 className="mb-1">Path</h5>
       <p>{path}</p>
-      <Table>
+      <Table responsive>
         <thead>
           <tr>
             {labels.map((label) => (

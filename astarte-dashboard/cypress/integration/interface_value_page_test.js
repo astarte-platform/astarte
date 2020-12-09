@@ -129,12 +129,12 @@ describe('Interface values page tests', () => {
             const sensorData = this.interface_data.data.sensors[sensorId].value;
             cy.get('.card-body p')
               .contains(`/sensors/${sensorId}/value`)
-              .next('table')
+              .next()
               .within(() => {
-                cy.get('tbody tr').should('have.length', sensorData.length);
-                cy.get('thead th').should('have.length', Object.keys(sensorData[0]).length);
+                cy.get('table tbody tr').should('have.length', sensorData.length);
+                cy.get('table thead th').should('have.length', Object.keys(sensorData[0]).length);
                 Object.keys(sensorData[0]).forEach((valueLabel) => {
-                  cy.get('thead th').contains(
+                  cy.get('table thead th').contains(
                     valueLabel === 'timestamp' ? 'Timestamp' : valueLabel,
                   );
                 });
