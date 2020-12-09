@@ -17,18 +17,19 @@
 */
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
 import AstarteClient, { AstarteNativeBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [phase, setPhase] = useState('loading');
   const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     astarte
@@ -46,11 +47,11 @@ export default ({ astarte, history }: Props): React.ReactElement => {
     case 'ok':
       innerHTML = (
         <CardDeck className="mt-4">
-          <NewBlockCard onCreate={() => history.push('/blocks/new')} />
+          <NewBlockCard onCreate={() => navigate('/blocks/new')} />
           {blocks.map((block, index) => (
             <React.Fragment key={`fragment-${index}`}>
               {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
-              <BlockCard block={block} onShow={() => history.push(`/blocks/${block.name}`)} />
+              <BlockCard block={block} onShow={() => navigate(`/blocks/${block.name}`)} />
               {index === blocks.length - 1 && blocks.length % 2 === 0 ? (
                 <div className="w-50 d-none d-md-block" />
               ) : null}

@@ -17,6 +17,7 @@
 */
 
 import React, { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 
@@ -25,16 +26,16 @@ import SingleCardPage from './ui/SingleCardPage';
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
   pipelineId: string;
 }
 
-export default ({ astarte, history, pipelineId }: Props): React.ReactElement => {
+export default ({ astarte, pipelineId }: Props): React.ReactElement => {
   const [flow, setFlow] = useState({
     name: '',
     config: '{}',
   });
   const [isCreatingFlow, setIsCreatingFlow] = useState(false);
+  const navigate = useNavigate();
 
   const parsedFlowConfig = useMemo(() => {
     try {
@@ -55,7 +56,7 @@ export default ({ astarte, history, pipelineId }: Props): React.ReactElement => 
         pipeline: pipelineId,
       })
       .then(() => {
-        history.push('/flows');
+        navigate('/flows');
       })
       .catch((err) => {
         setIsCreatingFlow(false);
@@ -67,7 +68,7 @@ export default ({ astarte, history, pipelineId }: Props): React.ReactElement => 
     parsedFlowConfig,
     pipelineId,
     astarte,
-    history,
+    navigate,
     formAlerts.showError,
   ]);
 

@@ -17,6 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Col, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
@@ -35,27 +36,27 @@ const blockTypeToLabel = {
 interface Props {
   astarte: AstarteClient;
   blockId: AstarteBlock['name'];
-  history: any;
 }
 
-export default ({ astarte, history, blockId }: Props): React.ReactElement => {
+export default ({ astarte, blockId }: Props): React.ReactElement => {
   const [phase, setPhase] = useState('loading');
   const [block, setBlock] = useState<AstarteBlock | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const deletionAlerts = useAlerts();
+  const navigate = useNavigate();
 
   const deleteBlock = useCallback(() => {
     setIsDeletingBlock(true);
     astarte
       .deleteBlock(blockId)
-      .then(() => history.push('/blocks'))
+      .then(() => navigate('/blocks'))
       .catch((err: Error) => {
         setIsDeletingBlock(false);
         deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
         setShowDeleteModal(false);
       });
-  }, [astarte, history, setIsDeletingBlock, blockId, deletionAlerts.showError]);
+  }, [astarte, navigate, setIsDeletingBlock, blockId, deletionAlerts.showError]);
 
   useEffect(() => {
     astarte

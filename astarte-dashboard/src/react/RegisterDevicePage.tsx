@@ -19,6 +19,7 @@
 /* @global document */
 
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import { Button, Col, Form, Spinner, Table } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
@@ -254,10 +255,9 @@ const NamespaceModal = ({ onCancel, onConfirm }: NamespaceModalProps) => {
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [deviceId, setDeviceId] = useState<AstarteDevice['id']>('');
   const [deviceSecret, setDeviceSecret] = useState<string>('');
   const [shouldSendIntrospection, setShouldSendIntrospection] = useState(false);
@@ -267,8 +267,8 @@ export default ({ astarte, history }: Props): React.ReactElement => {
   const [isRegisteringDevice, setRegisteringDevice] = useState(false);
   const [showNamespaceModal, setShowNamespaceModal] = useState(false);
   const [showCredentialSecretModal, setShowCredentialSecretModal] = useState(false);
-
   const registrationAlerts = useAlerts();
+  const navigate = useNavigate();
 
   const byteArray = urlSafeBase64ToByteArray(deviceId);
   const isValidDeviceId = byteArray.length === 17 && byteArray[16] === 0;
@@ -394,7 +394,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
         <ConfirmModal
           title="Device Registered!"
           confirmLabel="OK"
-          onConfirm={() => history.push('/devices')}
+          onConfirm={() => navigate('/devices')}
         >
           <span>The device credential secret is</span>
           <pre className="my-2">
