@@ -624,28 +624,121 @@ describe('Device page tests', () => {
             cy.contains('Watching for device disconnection events');
             cy.contains('Watching for device error events');
             cy.contains('Watching for device data events');
+
             cy.sendWebSocketDeviceConnected({
               deviceId: this.device.data.id,
               deviceIpAddress: '1.2.3.4',
             });
             cy.contains('device connected');
             cy.contains('IP : 1.2.3.4');
+
+            cy.sendWebSocketDeviceDisconnected({ deviceId: this.device.data.id });
+            cy.contains('device disconnected');
+            cy.contains('Device disconnected');
+
             cy.sendWebSocketDeviceEvent({
               deviceId: this.device.data.id,
               event: {
-                interface: 'com.domain.InterfaceName',
-                path: '/some/endpoint',
                 type: 'incoming_data',
+                interface: 'com.domain.InterfaceName1',
+                path: '/some/endpoint1',
                 value: 42,
               },
             });
             cy.contains('incoming data');
-            cy.contains('com.domain.InterfaceName');
-            cy.contains('/some/endpoint');
+            cy.contains('com.domain.InterfaceName1');
+            cy.contains('/some/endpoint1');
             cy.contains('42');
-            cy.sendWebSocketDeviceDisconnected({ deviceId: this.device.data.id });
-            cy.contains('device disconnected');
-            cy.contains('Device disconnected');
+
+            cy.sendWebSocketDeviceEvent({
+              deviceId: this.device.data.id,
+              event: {
+                type: 'incoming_data',
+                interface: 'com.domain.InterfaceName2',
+                path: '/some/endpoint2',
+                value: null,
+              },
+            });
+            cy.contains('unset property');
+            cy.contains('com.domain.InterfaceName2');
+            cy.contains('/some/endpoint2');
+
+            const deviceErrors = [
+              {
+                name: 'write_on_server_owned_interface',
+                label: 'Write on a server owned interface',
+              },
+              {
+                name: 'invalid_interface',
+                label: 'Invalid interface',
+              },
+              {
+                name: 'invalid_path',
+                label: 'Invalid path',
+              },
+              {
+                name: 'mapping_not_found',
+                label: 'Mapping not found',
+              },
+              {
+                name: 'interface_loading_failed',
+                label: 'Interface loading failed',
+              },
+              {
+                name: 'ambiguous_path',
+                label: 'Ambiguous path',
+              },
+              {
+                name: 'undecodable_bson_payload',
+                label: 'Undecodable BSON payload',
+              },
+              {
+                name: 'unexpected_value_type',
+                label: 'Unexpected value type',
+              },
+              {
+                name: 'value_size_exceeded',
+                label: 'Value size exceeded',
+              },
+              {
+                name: 'unexpected_object_key',
+                label: 'Unexpected object key',
+              },
+              {
+                name: 'invalid_introspection',
+                label: 'Invalid introspection',
+              },
+              {
+                name: 'unexpected_control_message',
+                label: 'Unexpected control message',
+              },
+              {
+                name: 'device_session_not_found',
+                label: 'Device session not found',
+              },
+              {
+                name: 'resend_interface_properties_failed',
+                label: 'Resend interface properties failed',
+              },
+              {
+                name: 'empty_cache_error',
+                label: 'Empty cache error',
+              },
+            ];
+            deviceErrors.forEach((deviceError) => {
+              cy.sendWebSocketDeviceEvent({
+                deviceId: this.device.data.id,
+                event: {
+                  type: 'device_error',
+                  error_name: deviceError.name,
+                  metadata: {
+                    meta_key: 'meta_value',
+                  },
+                },
+              });
+              cy.contains('device error');
+              cy.contains(deviceError.label);
+            });
           });
       });
     });
