@@ -253,6 +253,16 @@ describe('Device page tests', () => {
         );
         cy.get('.modal').contains('Wipe credentials secret').click();
         cy.wait('@wipeCredentialsSecretRequest');
+        cy.get('.modal')
+          .contains(
+            "The device's credentials secret was wiped from Astarte. You can click here to register the device again and retrieve its new credentials secret.",
+          )
+          .contains('click here')
+          .should('have.attr', 'href')
+          .then((href) => {
+            expect(href.endsWith(`/devices/register?deviceId=${this.device.data.id}`)).to.be.true;
+          });
+        cy.get('.modal button').contains('OK').click();
       });
     });
 
