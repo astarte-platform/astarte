@@ -72,7 +72,7 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
         <Route path="triggers" element={<TriggersPage {...pageProps} />} />
         <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
         <Route path="devices" element={<DevicesPage {...pageProps} />} />
-        <Route path="devices/register" element={<RegisterDevicePage {...pageProps} />} />
+        <Route path="devices/register" element={<RegisterDevice {...pageProps} />} />
         <Route
           path="devices/:deviceId/interfaces/:interfaceName"
           element={<DeviceDataSubPath {...pageProps} />}
@@ -124,6 +124,13 @@ function Login({ defaultLoginType, ...props }) {
   const loginType = new URLSearchParams(search).get('type') || defaultLoginType;
 
   return <LoginPage type={loginType} {...props} />;
+}
+
+function RegisterDevice(props) {
+  const searchQuery = new URLSearchParams(useLocation().search);
+  const deviceId = searchQuery.get('deviceId') || '';
+
+  return <RegisterDevicePage deviceId={deviceId} {...props} />;
 }
 
 function GroupDevicesSubPath(props) {

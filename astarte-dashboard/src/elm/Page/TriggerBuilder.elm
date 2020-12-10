@@ -951,9 +951,10 @@ update session msg model =
                 modalModel =
                     ConfirmModal.init
                         "Remove Header"
-                        ("Remove custom header \"" ++ header ++ "\"?")
+                        (Html.text ("Remove custom header \"" ++ header ++ "\"?"))
                         (Just "Remove header")
                         (Just ConfirmModal.Danger)
+                        True
                         True
 
                 modal =
@@ -996,9 +997,10 @@ update session msg model =
                 modalModel =
                     ConfirmModal.init
                         "Remove Header"
-                        ("Remove static header \"" ++ header ++ "\"?")
+                        (Html.text ("Remove static header \"" ++ header ++ "\"?"))
                         (Just "Remove header")
                         (Just ConfirmModal.Danger)
+                        True
                         True
 
                 modal =

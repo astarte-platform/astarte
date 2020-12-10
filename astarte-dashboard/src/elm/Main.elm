@@ -512,7 +512,7 @@ pageInit realmRoute config session =
         Route.DeviceList ->
             initReactPage session Devices "devices-list" realmRoute
 
-        Route.RegisterDevice ->
+        Route.RegisterDevice _ ->
             initReactPage session Devices "devices-register" realmRoute
 
         Route.GroupList ->
