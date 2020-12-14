@@ -78,7 +78,7 @@ const IndividualDatastreamTable = ({
   }
 
   return (
-    <Table>
+    <Table responsive>
       <thead>
         <tr>
           <th>Path</th>
@@ -118,7 +118,7 @@ const ObjectDatastreamTable = ({
     <>
       <h5 className="mb-1">Path</h5>
       <p>{dataTreeNode.endpoint}</p>
-      <Table>
+      <Table responsive>
         <thead>
           <tr>
             {objectProperties.map((property) => (

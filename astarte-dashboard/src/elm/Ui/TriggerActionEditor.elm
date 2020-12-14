@@ -731,19 +731,20 @@ customHttpHeaders customHeaders editMode newCustomHeader editCustomHeader delete
 
 headersTable : Dict String String -> Html msg
 headersTable headers =
-    Table.simpleTable
-        ( Table.simpleThead
+    Table.table
+        { options = [ Table.responsive ]
+        , thead = Table.simpleThead
             [ Table.th []
                 [ Html.text "Header" ]
             , Table.th []
                 [ Html.text "Value" ]
             ]
-        , Table.tbody []
+        , tbody = Table.tbody []
             (headers
                 |> Dict.toList
                 |> List.map keyValueTableRow
             )
-        )
+        }
 
 
 editableheadersTable : Dict String String -> (String -> msg) -> (String -> msg) -> Html msg
@@ -752,8 +753,9 @@ editableheadersTable headers editHeader deleteHeader =
         Html.text ""
 
     else
-        Table.simpleTable
-            ( Table.simpleThead
+        Table.table
+            { options = [ Table.responsive ]
+            , thead = Table.simpleThead
                 [ Table.th []
                     [ Html.text "Header" ]
                 , Table.th []
@@ -761,12 +763,12 @@ editableheadersTable headers editHeader deleteHeader =
                 , Table.th [ Table.cellAttr <| class "action-column" ]
                     [ Html.text "Actions" ]
                 ]
-            , Table.tbody []
+            , tbody = Table.tbody []
                 (headers
                     |> Dict.toList
                     |> List.map (keyValueTableRowWithControls editHeader deleteHeader)
                 )
-            )
+            }
 
 
 keyValueTableRow : ( String, String ) -> Table.Row msg

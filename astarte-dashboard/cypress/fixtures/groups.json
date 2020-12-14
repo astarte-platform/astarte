@@ -1,3 +1,7 @@
 {
-  "data": ["test-devices", "first-floor"]
+  "data": [
+    "test-devices",
+    "first-floor",
+    "special characters %20///%%`~!@#$^&*()_-+=[]{};:'\"|\\<>,."
+  ]
 }

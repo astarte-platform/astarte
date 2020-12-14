@@ -42,5 +42,38 @@ describe('Trigger builder tests', () => {
       cy.get('#triggerPath').should('have.value', '/*');
       cy.get('#triggerUrl').should('have.value', 'http://www.example.com');
     });
+
+    it('redirects to list of triggers after a new trigger installation', function () {
+      cy.route({
+        method: 'POST',
+        url: '/realmmanagement/v1/*/triggers',
+        status: 201,
+        response: '@test_trigger',
+      }).as('installTriggerRequest');
+      cy.visit('/triggers/new');
+      cy.get('#triggerSource')
+        .clear()
+        .type(JSON.stringify(this.test_trigger.data), { parseSpecialCharSequences: false });
+      cy.get('button').contains('Install Trigger').click();
+      cy.wait('@installTriggerRequest');
+      cy.location('pathname').should('eq', '/triggers');
+      cy.get('h2').contains('Triggers');
+    });
+
+    it('redirects to list of triggers after deleting a trigger', function () {
+      cy.route({
+        method: 'DELETE',
+        url: `/realmmanagement/v1/*/triggers/${this.test_trigger.data.name}`,
+        status: 204,
+        response: '',
+      }).as('deleteTriggerRequest');
+      cy.visit('/triggers/test.astarte.FirstTrigger');
+      cy.get('button').contains('Delete trigger').click();
+      cy.get('.modal.show #confirmTriggerName').type(this.test_trigger.data.name);
+      cy.get('.modal.show button').contains('Confirm').click();
+      cy.wait('@deleteTriggerRequest');
+      cy.location('pathname').should('eq', '/triggers');
+      cy.get('h2').contains('Triggers');
+    });
   });
 });

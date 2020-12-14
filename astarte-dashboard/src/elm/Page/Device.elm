@@ -25,7 +25,6 @@ import Bootstrap.Button as Button
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Bootstrap.Grid.Row as Row
-import Bootstrap.Modal as Modal
 import Bootstrap.Table as Table
 import Bootstrap.Utilities.Border as Border
 import Bootstrap.Utilities.Display as Display
@@ -1007,17 +1006,18 @@ deviceStatsCard device width =
         [ Grid.row
             [ Row.attrs [ Spacing.mt3 ] ]
             [ Grid.col []
-                [ Table.simpleTable
-                    ( Table.simpleThead
+                [ Table.table
+                    { options = [ Table.responsive ]
+                    , thead =  Table.simpleThead
                         [ Table.th [] [ Html.text "Interface" ]
                         , tableHeaderRight "Bytes"
                         , tableHeaderRightXl "Bytes (%)"
                         , tableHeaderRight "Messages"
                         , tableHeaderRightXl "Messages (%)"
                         ]
-                    , Table.tbody []
+                    , tbody = Table.tbody []
                         (List.map renderInterfaceStats <| introspectionStats ++ [ others, total ])
-                    )
+                    }
                 ]
             , Grid.col
                 [ Col.sm12
@@ -1551,12 +1551,13 @@ renderGroups groups =
         Card.simpleText "Device does not belong to any group"
 
     else
-        Table.simpleTable
-            ( Table.simpleThead
+        Table.table
+            { options = [ Table.responsive ]
+            , thead = Table.simpleThead
                 [ Table.th [] [ Html.text "Name" ] ]
-            , Table.tbody []
+            , tbody = Table.tbody []
                 (List.map renderGroupValue groups)
-            )
+            }
 
 
 renderGroupValue : String -> Table.Row Msg
@@ -1576,8 +1577,9 @@ renderAliases aliases =
         Card.simpleText "Device has no aliases"
 
     else
-        Table.simpleTable
-            ( Table.simpleThead
+        Table.table
+            { options = [ Table.responsive ]
+            , thead = Table.simpleThead
                 [ Table.th []
                     [ Html.text "Tag" ]
                 , Table.th []
@@ -1585,12 +1587,12 @@ renderAliases aliases =
                 , Table.th [ Table.cellAttr <| class "action-column" ]
                     [ Html.text "Actions" ]
                 ]
-            , Table.tbody []
+            , tbody = Table.tbody []
                 (aliases
                     |> Dict.toList
                     |> List.map (fieldValueTableRow EditAlias DeleteAlias)
                 )
-            )
+            }
 
 
 renderMetadata : Dict String String -> Html Msg
@@ -1599,8 +1601,9 @@ renderMetadata metadata =
         Card.simpleText "Device has no metadata"
 
     else
-        Table.simpleTable
-            ( Table.simpleThead
+        Table.table
+            { options = [ Table.responsive ]
+            , thead = Table.simpleThead
                 [ Table.th []
                     [ Html.text "Field" ]
                 , Table.th []
@@ -1608,12 +1611,12 @@ renderMetadata metadata =
                 , Table.th [ Table.cellAttr <| class "action-column" ]
                     [ Html.text "Actions" ]
                 ]
-            , Table.tbody []
+            , tbody = Table.tbody []
                 (metadata
                     |> Dict.toList
                     |> List.map (fieldValueTableRow EditMetadata RemoveMetadata)
                 )
-            )
+            }
 
 
 fieldValueTableRow : (String -> Msg) -> (String -> String -> Msg) -> ( String, String ) -> Table.Row Msg
@@ -1650,15 +1653,16 @@ renderIntrospectionInfo deviceId introspectionValues =
         Html.text "No introspection info"
 
     else
-        Table.simpleTable
-            ( Table.simpleThead
+        Table.table
+            { options = [ Table.responsive ]
+            , thead = Table.simpleThead
                 [ Table.th [] [ Html.text "Name" ]
                 , Table.th [] [ Html.text "Major" ]
                 , Table.th [] [ Html.text "Minor" ]
                 ]
-            , Table.tbody []
+            , tbody = Table.tbody []
                 (List.map (renderIntrospectionValue deviceId) introspectionValues)
-            )
+            }
 
 
 renderPreviousInterfacesInfo : List Device.IntrospectionValue -> Html Msg
@@ -1667,15 +1671,16 @@ renderPreviousInterfacesInfo previousInterfaces =
         Html.text "No previous interfaces info"
 
     else
-        Table.simpleTable
-            ( Table.simpleThead
+        Table.table
+            { options = [ Table.responsive ]
+            , thead = Table.simpleThead
                 [ Table.th [] [ Html.text "Name" ]
                 , Table.th [] [ Html.text "Major" ]
                 , Table.th [] [ Html.text "Minor" ]
                 ]
-            , Table.tbody []
+            , tbody = Table.tbody []
                 (List.map renderPreviousIntrospectionValue previousInterfaces)
-            )
+            }
 
 
 renderIntrospectionValue : String -> Device.IntrospectionValue -> Table.Row Msg

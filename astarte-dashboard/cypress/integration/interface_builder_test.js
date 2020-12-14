@@ -40,5 +40,22 @@ describe('Interface builder tests', () => {
       cy.get('#interfaceMajor').should('have.value', testInterfaceMajor).and('have.attr', 'readonly');
       cy.get('#interfaceMinor').should('have.value', testInterfaceMinor);
     });
+
+    it('redirects to list of interfaces after a new interface installation', function () {
+      cy.route({
+        method: 'POST',
+        url: '/realmmanagement/v1/*/interfaces',
+        status: 201,
+        response: '@test_interface',
+      }).as('installInterfaceRequest');
+      cy.visit('/interfaces/new');
+      cy.get('#interfaceSource')
+        .clear()
+        .type(JSON.stringify(this.test_interface.data), { parseSpecialCharSequences: false });
+      cy.get('button').contains('Install interface').click();
+      cy.get('.modal.show button').contains('Confirm').click();
+      cy.location('pathname').should('eq', '/interfaces');
+      cy.get('h2').contains('Interfaces');
+    });
   });
 });
