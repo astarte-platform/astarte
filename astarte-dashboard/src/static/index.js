@@ -200,6 +200,12 @@ function clearReact() {
 $.getJSON('/user-config/config.json', (result) => {
   dashboardConfig = result;
 }).always(() => {
+  if (!dashboardConfig) {
+    // Starts app as a standalone Interface Editor
+    elmApp.init();
+    return;
+  }
+
   sessionManager = new SessionManager(dashboardConfig);
 
   const parameters = {

@@ -1,4 +1,19 @@
 describe('Interface builder tests', () => {
+  context("without an app's config", () => {
+    it('starts up as a standalone Interface Editor', () => {
+      cy.server();
+      cy.route({
+        method: 'GET',
+        url: '/user-config/config.json',
+        status: 404,
+        response: '',
+      });
+      cy.visit('/');
+      cy.get('h2').contains('Interface Editor');
+      cy.get('#interfaceName').should('have.value', '');
+    });
+  });
+
   context('no access before login', () => {
     it('redirects to login', () => {
       cy.visit('/interfaces/new');
