@@ -80,5 +80,29 @@ describe('Group page tests', () => {
         cy.get('[role="dialog"]').get('button').contains('Remove').click();
       });
     });
+
+    it('correctly removes a device from a group with symbols in its name', function () {
+      const groupName = '!"£$%&/()=?^';
+      const encodedGroupName = encodeURIComponent(groupName);
+      const groupFixture = 'group.special-characters.devices.json';
+      cy.fixture(groupFixture).then((groupDevices) => {
+        cy.server();
+        cy.route(
+          'GET',
+          `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices?details=true`,
+          groupDevices,
+        );
+        cy.route({
+          method: 'DELETE',
+          url: `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices/*`,
+          status: 204,
+        }).as('deleteDeviceRequest');
+
+        cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}`);
+        cy.get('.main-content table tbody tr .btn').first().click();
+        cy.get('[role="dialog"]').get('button').contains('Remove').click();
+        cy.wait('@deleteDeviceRequest');
+      });
+    });
   });
 });

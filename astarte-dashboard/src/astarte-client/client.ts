@@ -363,10 +363,13 @@ class AstarteClient {
       throw Error('Invalid device ID');
     }
 
+    /* Double encoding to preserve the URL format when groupName contains % and / */
+    const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
+
     await this.$delete(
       this.apiConfig.deviceInGroup({
         ...this.config,
-        groupName,
+        groupName: encodedGroupName,
         deviceId,
       }),
     );

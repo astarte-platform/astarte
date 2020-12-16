@@ -68,6 +68,7 @@ import Json.Encode as Encode exposing (Value)
 import Types.Device as Device exposing (Device)
 import Types.Interface as Interface exposing (Interface)
 import Types.Trigger as Trigger exposing (Trigger)
+import Url
 import Url.Builder exposing (crossOrigin)
 
 
@@ -609,10 +610,17 @@ groupList apiConfig resultMsg =
 
 addDeviceToGroup : Config -> String -> String -> (Result Error () -> msg) -> Cmd msg
 addDeviceToGroup apiConfig groupName deviceId resultMsg =
+    let
+        {- Double encoding to preserve the URL format when groupName contains % and / -}
+        encodedGroupName =
+            groupName
+            |> Url.percentEncode
+            |> Url.percentEncode
+    in
     Http.request
         { method = "POST"
         , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "groups", groupName, "devices" ] []
+        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "groups", encodedGroupName, "devices" ] []
         , body = Http.jsonBody <| Encode.object [ ( "data", Encode.object [ ( "device_id", Encode.string deviceId ) ] ) ]
         , expect = expectWhateverAstarteReply resultMsg
         , timeout = Nothing
