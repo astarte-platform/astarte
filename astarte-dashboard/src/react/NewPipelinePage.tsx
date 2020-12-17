@@ -17,60 +17,21 @@
 */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-
-import { Button, Form, Modal, Spinner } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
 import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
-import JsonSchemaForm from '@rjsf/bootstrap-4';
 import AstarteClient, { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import FormModal from './components/modals/Form';
 import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/VisualFlowEditor';
 import type NativeBlockModel from './models/NativeBlockModel';
 import SingleCardPage from './ui/SingleCardPage';
 
 const ajv = new Ajv({ schemaId: 'id' });
 ajv.addMetaSchema(metaSchemaDraft04);
-
-interface NodeSettingsModalProps {
-  node: NativeBlockModel;
-  schema: AstarteBlock['schema'];
-  initialData: { [key: string]: any };
-  onCancel: () => void;
-  onConfirm: (formData: { [key: string]: any }) => void;
-}
-
-const NodeSettingsModal = ({
-  node,
-  schema,
-  initialData,
-  onCancel,
-  onConfirm,
-}: NodeSettingsModalProps): React.ReactElement => (
-  <Modal size="lg" show onHide={onCancel}>
-    <Modal.Header closeButton>
-      <Modal.Title>Settings for {node.name}</Modal.Title>
-    </Modal.Header>
-    <Modal.Body>
-      <JsonSchemaForm
-        schema={schema}
-        additionalMetaSchemas={[metaSchemaDraft04]}
-        formData={initialData}
-        onSubmit={(params) => onConfirm(params.formData)}
-      >
-        <div className="form-footer">
-          <Button type="submit" variant="primary">
-            Apply settings
-          </Button>
-          <Button variant="secondary mr-2" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
-      </JsonSchemaForm>
-    </Modal.Body>
-  </Modal>
-);
 
 interface CommandRowProps {
   className?: string;
@@ -83,10 +44,9 @@ const CommandRow = ({ className = '', children }: CommandRowProps): React.ReactE
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [editorModel] = useState(getNewModel());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
@@ -98,6 +58,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
     schema: '',
   });
   const formAlerts = useAlerts();
+  const navigate = useNavigate();
 
   useEffect(() => {
     astarte
@@ -133,12 +94,12 @@ export default ({ astarte, history }: Props): React.ReactElement => {
           schema: schemaObject || {},
         }),
       )
-      .then(() => history.push('/pipelines'))
+      .then(() => navigate('/pipelines'))
       .catch((err) => {
         setIsCreatingPipeline(false);
         formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
       });
-  }, [astarte, history, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
+  }, [astarte, navigate, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
 
   const isValidSchema = useMemo(() => {
     if (!schemaObject) {
@@ -162,10 +123,11 @@ export default ({ astarte, history }: Props): React.ReactElement => {
       editorModel.setLocked(true);
 
       setActiveModal(
-        <NodeSettingsModal
-          node={node}
+        <FormModal
+          title={`Settings for ${node.name}`}
           schema={blockDefinition.schema}
           initialData={node.getProperties()}
+          confirmLabel="Apply settings"
           onCancel={() => {
             setActiveModal(null);
             editorModel.setLocked(false);

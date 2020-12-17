@@ -35,7 +35,7 @@ import _ from 'lodash';
 import AstarteClient from 'astarte-client';
 import type { AstarteDevice } from 'astarte-client';
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 import Highlight from './components/Highlight';
@@ -397,16 +397,16 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'loading' | 'ok' | 'err'>('loading');
   const [activePage, setActivePage] = useState(0);
   const [deviceList, setDeviceList] = useState<AstarteDevice[]>([]);
   const [requestToken, setRequestToken] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [filters, setFilters] = useState({});
+  const navigate = useNavigate();
 
   const pageAlerts = useAlerts();
   const pagedDevices = useMemo(() => {
@@ -528,7 +528,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
       <Button
         variant="primary"
         onClick={() => {
-          history.push('/devices/register');
+          navigate('/devices/register');
         }}
       >
         Register a new device

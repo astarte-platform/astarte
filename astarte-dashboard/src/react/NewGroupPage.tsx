@@ -17,6 +17,7 @@
 */
 
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Form, InputGroup, Spinner } from 'react-bootstrap';
 import AstarteClient, { AstarteDevice } from 'astarte-client';
 
@@ -103,10 +104,9 @@ const FilterInputBox = ({ filter, onFilterChange }: FilterInputBoxProps): React.
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
   const [groupName, setGroupName] = useState('');
   const [deviceFilter, setDeviceFilter] = useState('');
@@ -114,6 +114,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
   const [selectedDevices, setSelectedDevices] = useState<Set<AstarteDevice['id']>>(new Set());
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const formAlerts = useAlerts();
+  const navigate = useNavigate();
 
   useEffect(() => {
     astarte
@@ -136,7 +137,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
         deviceIds: Array.from(selectedDevices),
       })
       .then(() => {
-        history.push({ pathname: '/groups' });
+        navigate({ pathname: '/groups' });
       })
       .catch((err) => {
         formAlerts.showError(`Could not create group: ${err.message}`);

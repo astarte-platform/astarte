@@ -13,7 +13,7 @@
 */
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Badge, Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import _ from 'lodash';
@@ -55,7 +55,6 @@ const LoadingRow = (): React.ReactElement => (
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
 interface InterfaceInfo {
@@ -63,8 +62,9 @@ interface InterfaceInfo {
   majors: number[];
 }
 
-export default ({ history, astarte }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [interfaces, setInterfaces] = useState<InterfaceInfo[] | null>(null);
+  const navigate = useNavigate();
   const fetchInterfaces = async () => {
     const interfaceNames = await astarte.getInterfaceNames();
     const fetchedInterfaces = await Promise.all(
@@ -96,11 +96,7 @@ export default ({ history, astarte }: Props): React.ReactElement => {
         <Col sm={12}>
           <ListGroup>
             <ListGroup.Item>
-              <Button
-                variant="link"
-                className="p-0"
-                onClick={() => history.push('/interfaces/new')}
-              >
+              <Button variant="link" className="p-0" onClick={() => navigate('/interfaces/new')}>
                 <i className="fas fa-plus mr-2" />
                 Install a new interface...
               </Button>

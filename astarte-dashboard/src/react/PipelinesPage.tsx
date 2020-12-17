@@ -17,7 +17,7 @@
 */
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type { AstartePipeline } from 'astarte-client';
@@ -67,11 +67,11 @@ const PipelineCard = ({
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const pipelinesFetcher = useFetch(astarte.getPipelines);
+  const navigate = useNavigate();
 
   return (
     <Container fluid className="p-3">
@@ -84,14 +84,14 @@ export default ({ astarte, history }: Props): React.ReactElement => {
       >
         {(pipelines) => (
           <CardDeck className="mt-4">
-            <NewPipelineCard onCreate={() => history.push('/pipelines/new')} />
+            <NewPipelineCard onCreate={() => navigate('/pipelines/new')} />
             {pipelines.map((pipeline, index) => (
               <React.Fragment key={`fragment-${index}`}>
                 {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
                 <PipelineCard
                   pipeline={pipeline}
                   onInstantiate={() => {
-                    history.push(`/flows/new/${pipeline.name}`);
+                    navigate(`/flows/new/${pipeline.name}`);
                   }}
                   showLink={`/pipelines/${pipeline.name}`}
                 />

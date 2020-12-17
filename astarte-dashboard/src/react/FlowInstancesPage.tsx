@@ -17,12 +17,13 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Button, Modal, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 import type { AstarteFlow } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 
 const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
@@ -96,64 +97,17 @@ const InstancesTable = ({ instances, onDelete }: InstancesTableProps): React.Rea
   );
 };
 
-interface ConfirmDeletionModalProps {
-  show: boolean;
-  flowName: string;
-  isDeleting: boolean;
-  onCancel: () => void;
-  onDelete: () => void;
-}
-
-const ConfirmDeletionModal = ({
-  show,
-  flowName,
-  isDeleting,
-  onCancel,
-  onDelete,
-}: ConfirmDeletionModalProps): React.ReactElement => (
-  <div
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isDeleting) {
-        onDelete();
-      }
-    }}
-  >
-    <Modal size="sm" show={show} onHide={onCancel}>
-      <Modal.Header closeButton>
-        <Modal.Title>Warning</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <p>
-          Delete flow <b>{flowName}</b>?
-        </p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="danger" onClick={onDelete} disabled={isDeleting}>
-          <>
-            {isDeleting && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
-            Remove
-          </>
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  </div>
-);
-
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'loading' | 'ok' | 'err'>('loading');
   const [instances, setInstances] = useState<AstarteFlow[] | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedFlow, setSelectedFlow] = useState<AstarteFlow['name'] | null>(null);
+  const [flowToConfirmDelete, setFlowToConfirmDelete] = useState<AstarteFlow['name'] | null>(null);
   const [isDeletingFlow, setIsDeletingFlow] = useState(false);
   const deletionAlerts = useAlerts();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleInstanceResponse = (instance: AstarteFlow) => {
@@ -179,22 +133,20 @@ export default ({ astarte, history }: Props): React.ReactElement => {
     astarte.getFlowInstances().then(handleFlowResponse).catch(handleFlowError);
   }, [astarte, setInstances, setPhase]);
 
-  const confirmDeleteFlow = useCallback(
+  const handleDeleteFlow = useCallback(
     (instance: AstarteFlow) => {
-      setSelectedFlow(instance.name);
-      setIsModalVisible(true);
+      setFlowToConfirmDelete(instance.name);
     },
-    [setSelectedFlow, setIsModalVisible],
+    [setFlowToConfirmDelete],
   );
 
   const deleteFlow = useCallback(() => {
-    const flowName = selectedFlow as AstarteFlow['name'];
+    const flowName = flowToConfirmDelete as AstarteFlow['name'];
     setIsDeletingFlow(true);
     astarte
       .deleteFlowInstance(flowName)
       .then(() => {
-        setIsModalVisible(false);
-        setSelectedFlow(null);
+        setFlowToConfirmDelete(null);
         setIsDeletingFlow(false);
         setInstances((oldInstances) =>
           (oldInstances || []).filter((instance) => instance.name !== flowName),
@@ -206,9 +158,8 @@ export default ({ astarte, history }: Props): React.ReactElement => {
         deletionAlerts.showError(`Could not delete flow instance: ${err.message}`);
       });
   }, [
-    selectedFlow,
-    setIsModalVisible,
-    setSelectedFlow,
+    flowToConfirmDelete,
+    setFlowToConfirmDelete,
     setIsDeletingFlow,
     setInstances,
     setPhase,
@@ -216,9 +167,8 @@ export default ({ astarte, history }: Props): React.ReactElement => {
   ]);
 
   const handleModalCancel = useCallback(() => {
-    setIsModalVisible(false);
-    setSelectedFlow(null);
-  }, [setIsModalVisible, setSelectedFlow]);
+    setFlowToConfirmDelete(null);
+  }, [setFlowToConfirmDelete]);
 
   let innerHTML;
 
@@ -227,7 +177,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
       innerHTML = (
         <>
           <deletionAlerts.Alerts />
-          <InstancesTable instances={instances as AstarteFlow[]} onDelete={confirmDeleteFlow} />
+          <InstancesTable instances={instances as AstarteFlow[]} onDelete={handleDeleteFlow} />
         </>
       );
       break;
@@ -248,16 +198,23 @@ export default ({ astarte, history }: Props): React.ReactElement => {
   return (
     <SingleCardPage title="Running Flows">
       {innerHTML}
-      <Button variant="primary" onClick={() => history.push('/pipelines')}>
+      <Button variant="primary" onClick={() => navigate('/pipelines')}>
         New flow
       </Button>
-      <ConfirmDeletionModal
-        show={isModalVisible}
-        flowName={selectedFlow || ''}
-        isDeleting={isDeletingFlow}
-        onCancel={handleModalCancel}
-        onDelete={deleteFlow}
-      />
+      {flowToConfirmDelete != null && (
+        <ConfirmModal
+          title="Warning"
+          confirmLabel="Remove"
+          confirmVariant="danger"
+          onCancel={handleModalCancel}
+          onConfirm={deleteFlow}
+          isConfirming={isDeletingFlow}
+        >
+          <p>
+            Delete flow <b>{flowToConfirmDelete}</b>?
+          </p>
+        </ConfirmModal>
+      )}
     </SingleCardPage>
   );
 };

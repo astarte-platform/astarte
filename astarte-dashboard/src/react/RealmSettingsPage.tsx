@@ -17,67 +17,26 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Form, Modal, Spinner } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { Button, Form, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 
+import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 
-interface ConfirmKeyChangesProps {
-  show: boolean;
-  isUpdating: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-}
-
-const ConfirmKeyChanges = ({
-  show,
-  isUpdating,
-  onCancel,
-  onConfirm,
-}: ConfirmKeyChangesProps): React.ReactElement => (
-  <div
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isUpdating) {
-        onConfirm();
-      }
-    }}
-  >
-    <Modal size="lg" show={show} onHide={onCancel}>
-      <Modal.Header closeButton>
-        <Modal.Title>Confirm Public Key Update</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <p>
-          Realm public key will be changed, users will not be able to make further API calls using
-          their current auth token. Confirm?
-        </p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="primary" onClick={onConfirm} disabled={isUpdating}>
-          {isUpdating && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
-          Update settings
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  </div>
-);
-
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
   const [userPublicKey, setUserPublicKey] = useState('');
   const [draftPublicKey, setDraftPublicKey] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const formAlerts = useAlerts();
+  const navigate = useNavigate();
 
   const showModal = useCallback(() => setIsModalVisible(true), [setIsModalVisible]);
 
@@ -88,14 +47,21 @@ export default ({ astarte, history }: Props): React.ReactElement => {
     astarte
       .updateConfigAuth({ publicKey: draftPublicKey })
       .then(() => {
-        history.push('/logout');
+        navigate('/logout');
       })
       .catch((err) => {
         setIsUpdatingSettings(false);
         dismissModal();
         formAlerts.showError(err.message);
       });
-  }, [setIsUpdatingSettings, astarte, draftPublicKey, history, dismissModal, formAlerts.showError]);
+  }, [
+    setIsUpdatingSettings,
+    astarte,
+    draftPublicKey,
+    navigate,
+    dismissModal,
+    formAlerts.showError,
+  ]);
 
   useEffect(() => {
     astarte
@@ -127,8 +93,14 @@ export default ({ astarte, history }: Props): React.ReactElement => {
                 onChange={(e) => setDraftPublicKey(e.target.value)}
               />
             </Form.Group>
-            {/* TODO: this action is destructive, maybe we should use danger/warning variants */}
-            <Button variant="primary" disabled={!canUpdatePublicKey} onClick={showModal}>
+            <Button
+              variant="danger"
+              disabled={!canUpdatePublicKey || isUpdatingSettings}
+              onClick={showModal}
+            >
+              {isUpdatingSettings && (
+                <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+              )}
               Apply
             </Button>
           </Form>
@@ -152,12 +124,21 @@ export default ({ astarte, history }: Props): React.ReactElement => {
   return (
     <SingleCardPage title="Realm Settings">
       {innerHTML}
-      <ConfirmKeyChanges
-        isUpdating={isUpdatingSettings}
-        show={isModalVisible}
-        onCancel={dismissModal}
-        onConfirm={applyNewSettings}
-      />
+      {isModalVisible && (
+        <ConfirmModal
+          title="Confirm Public Key Update"
+          confirmLabel="Update settings"
+          confirmVariant="danger"
+          onCancel={dismissModal}
+          onConfirm={applyNewSettings}
+          isConfirming={isUpdatingSettings}
+        >
+          <p>
+            Realm public key will be changed, users will not be able to make further API calls using
+            their current auth token. Confirm?
+          </p>
+        </ConfirmModal>
+      )}
     </SingleCardPage>
   );
 };

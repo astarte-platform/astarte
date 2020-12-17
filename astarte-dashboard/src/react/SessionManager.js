@@ -55,11 +55,11 @@ class SessionManager {
     }
 
     if (appConfig.flow_api_url) {
-      flowApiUrl = new URL(appConfig.appConfig);
+      flowApiUrl = new URL(appConfig.flow_api_url);
     }
 
     this.config = {
-      enableFlowPreview: appConfig.enable_flow_preview,
+      enableFlowPreview: !!appConfig.enable_flow_preview,
       appEngineApiUrl,
       realmManagementApiUrl,
       pairingApiUrl,
@@ -119,14 +119,11 @@ class SessionManager {
       realm_management_url: urlToSchemalessString(realmManagementApiUrl),
       appengine_url: urlToSchemalessString(appEngineApiUrl),
       pairing_url: urlToSchemalessString(pairingApiUrl),
+      flow_url: urlToSchemalessString(flowApiUrl),
       enable_flow_preview: enableFlowPreview,
       realm,
       token,
     };
-
-    if (enableFlowPreview) {
-      apiConfig.flow_url = urlToSchemalessString(flowApiUrl);
-    }
 
     return {
       api_config: apiConfig,

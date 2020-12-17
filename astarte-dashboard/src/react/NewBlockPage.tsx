@@ -17,6 +17,7 @@
 */
 
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Form, Row, Spinner } from 'react-bootstrap';
 import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
 
@@ -41,10 +42,9 @@ interface BlockState {
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
 }
 
-export default ({ astarte, history }: Props): React.ReactElement => {
+export default ({ astarte }: Props): React.ReactElement => {
   const [block, setBlock] = useState<BlockState>({
     name: '',
     source: '',
@@ -54,6 +54,7 @@ export default ({ astarte, history }: Props): React.ReactElement => {
   const [isValidated, setIsValidated] = useState(false);
   const [isCreatingBlock, setIsCreatingBlock] = useState(false);
   const creationAlerts = useAlerts();
+  const navigate = useNavigate();
 
   const createBlock = useCallback(() => {
     setIsCreatingBlock(true);
@@ -63,12 +64,12 @@ export default ({ astarte, history }: Props): React.ReactElement => {
     };
     astarte
       .registerBlock(newBlock)
-      .then(() => history.push('/blocks'))
+      .then(() => navigate('/blocks'))
       .catch((err) => {
         setIsCreatingBlock(false);
         creationAlerts.showError(`Couldn't create block: ${err.message}`);
       });
-  }, [block, creationAlerts.showError]);
+  }, [block, creationAlerts.showError, navigate]);
 
   const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name) && block.name !== 'new';
   const isValidBlockSource = block.source !== '';

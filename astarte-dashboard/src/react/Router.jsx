@@ -16,8 +16,8 @@
    limitations under the License.
 */
 
-import React from 'react';
-import { Redirect, Router, Switch, Route, useParams, useLocation } from 'react-router-dom';
+import React, { useReducer, useLayoutEffect } from 'react';
+import { Navigate, Router, Routes, Route, useParams, useLocation } from 'react-router-dom';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -40,90 +40,58 @@ import NewBlockPage from './NewBlockPage';
 import RealmSettingsPage from './RealmSettingsPage';
 import DeviceInterfaceValues from './DeviceInterfaceValues';
 
-export default ({ reactHistory, astarteClient, sessionManager, config, fallback }) => {
+export default ({ reactHistory: history, astarteClient, sessionManager, config, fallback }) => {
+  const [historyState, dispatchHistoryUpdate] = useReducer((_, action) => action, {
+    action: history.action,
+    location: history.location,
+  });
+  useLayoutEffect(() => history.listen(dispatchHistoryUpdate), [history]);
+
   const pageProps = {
-    history: reactHistory,
     astarte: astarteClient,
   };
 
   return (
-    <Router history={reactHistory}>
-      <Switch>
-        <Route exact path={['/', '/home']}>
-          <HomePage {...pageProps} />
-        </Route>
-        <Route path="/auth">
-          <AttemptLogin sessionManager={sessionManager} />
-        </Route>
-        <Route path="/logout">
-          <Logout sessionManager={sessionManager} />
-        </Route>
-        <Route path="/login">
-          <Login
-            canSwitchLoginType={config.auth.length > 1}
-            defaultLoginType={config.default_auth || 'token'}
-            defaultRealm={config.default_realm || ''}
-            {...pageProps}
-          />
-        </Route>
-        <Route exact path="/triggers">
-          <TriggersPage {...pageProps} />
-        </Route>
-        <Route exact path="/interfaces">
-          <InterfacesPage {...pageProps} />
-        </Route>
-        <Route exact path="/devices">
-          <DevicesPage {...pageProps} />
-        </Route>
-        <Route exact path="/devices/register">
-          <RegisterDevicePage {...pageProps} />
-        </Route>
-        <Route exact path="/devices/:deviceId/interfaces/:interfaceName">
-          <DeviceDataSubPath {...pageProps} />
-        </Route>
-        <Route exact path="/groups">
-          <GroupsPage {...pageProps} />
-        </Route>
-        <Route exact path="/groups/new">
-          <NewGroupPage {...pageProps} />
-        </Route>
-        <Route path="/groups/:groupName">
-          <GroupDevicesSubPath {...pageProps} />
-        </Route>
-        <Route exact path="/flows">
-          <FlowInstancesPage {...pageProps} />
-        </Route>
-        <Route path="/flows/new/:pipelineId">
-          <FlowConfiguration {...pageProps} />
-        </Route>
-        <Route path="/flows/:flowName">
-          <FlowDetails {...pageProps} />
-        </Route>
-        <Route exact path="/pipelines">
-          <PipelinesPage {...pageProps} />
-        </Route>
-        <Route exact path="/pipelines/new">
-          <NewPipelinePage {...pageProps} />
-        </Route>
-        <Route exact path="/pipelines/:pipelineId">
-          <PipelineSubPath {...pageProps} />
-        </Route>
-        <Route exact path="/blocks">
-          <BlocksPage {...pageProps} />
-        </Route>
-        <Route exact path="/blocks/new">
-          <NewBlockPage {...pageProps} />
-        </Route>
-        <Route exact path="/blocks/:blockId">
-          <BlockSubPath {...pageProps} />
-        </Route>
-        <Route exact path="/settings">
-          <RealmSettingsPage {...pageProps} />
-        </Route>
-        <Route path="*">
-          <NoMatch fallback={fallback} />
-        </Route>
-      </Switch>
+    <Router action={historyState.action} location={historyState.location} navigator={history}>
+      <Routes>
+        <Route path="/" element={<HomePage {...pageProps} />} />
+        <Route path="home" element={<HomePage {...pageProps} />} />
+        <Route path="auth" element={<AttemptLogin sessionManager={sessionManager} />} />
+        <Route path="logout" element={<Logout sessionManager={sessionManager} />} />
+        <Route
+          path="login"
+          element={
+            <Login
+              canSwitchLoginType={config.auth.length > 1}
+              defaultLoginType={config.default_auth || 'token'}
+              defaultRealm={config.default_realm || ''}
+              {...pageProps}
+            />
+          }
+        />
+        <Route path="triggers" element={<TriggersPage {...pageProps} />} />
+        <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
+        <Route path="devices" element={<DevicesPage {...pageProps} />} />
+        <Route path="devices/register" element={<RegisterDevicePage {...pageProps} />} />
+        <Route
+          path="devices/:deviceId/interfaces/:interfaceName"
+          element={<DeviceDataSubPath {...pageProps} />}
+        />
+        <Route path="groups" element={<GroupsPage {...pageProps} />} />
+        <Route path="groups/new" element={<NewGroupPage {...pageProps} />} />
+        <Route path="groups/:groupName" element={<GroupDevicesSubPath {...pageProps} />} />
+        <Route path="flows" element={<FlowInstancesPage {...pageProps} />} />
+        <Route path="flows/new/:pipelineId" element={<FlowConfiguration {...pageProps} />} />
+        <Route path="flows/:flowName" element={<FlowDetails {...pageProps} />} />
+        <Route path="pipelines" element={<PipelinesPage {...pageProps} />} />
+        <Route path="pipelines/new" element={<NewPipelinePage {...pageProps} />} />
+        <Route path="pipelines/:pipelineId" element={<PipelineSubPath {...pageProps} />} />
+        <Route path="blocks" element={<BlocksPage {...pageProps} />} />
+        <Route path="blocks/new" element={<NewBlockPage {...pageProps} />} />
+        <Route path="blocks/:blockId" element={<BlockSubPath {...pageProps} />} />
+        <Route path="settings" element={<RealmSettingsPage {...pageProps} />} />
+        <Route path="*" element={<NoMatch fallback={fallback} />} />
+      </Routes>
     </Router>
   );
 };
@@ -139,16 +107,16 @@ function AttemptLogin({ sessionManager }) {
 
   const succesfulLogin = sessionManager.login(realm, token, authUrl);
   if (!succesfulLogin) {
-    return <Redirect to="/login" />;
+    return <Navigate to="/login" />;
   }
 
-  return <Redirect to="/" />;
+  return <Navigate to="/" />;
 }
 
 function Logout({ sessionManager }) {
   sessionManager.logout();
 
-  return <Redirect to="/login" />;
+  return <Navigate to="/login" />;
 }
 
 function Login({ defaultLoginType, ...props }) {

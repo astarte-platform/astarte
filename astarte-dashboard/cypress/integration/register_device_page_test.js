@@ -40,8 +40,8 @@ describe('Register device page tests', () => {
 
       cy.get('.btn').contains('Generate from name').click();
 
-      cy.get('#userNamespace').type(namespace);
-      cy.get('#userString').type(customString);
+      cy.get('[id$="userNamespace"]').type(namespace);
+      cy.get('[id$="userString"]').type(customString);
 
       cy.get('.btn').contains('Generate ID').click();
 

@@ -17,6 +17,7 @@
 */
 
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Col, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import AstarteClient from 'astarte-client';
@@ -24,30 +25,33 @@ import _ from 'lodash';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
+import ConfirmModal from './components/modals/Confirm';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
   pipelineId: string;
 }
 
-export default ({ astarte, history, pipelineId }: Props): React.ReactElement => {
+export default ({ astarte, pipelineId }: Props): React.ReactElement => {
   const pipelineFetcher = useFetch(() => astarte.getPipeline(pipelineId));
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingPipeline, setIsDeletingPipeline] = useState(false);
   const deletionAlerts = useAlerts();
+  const navigate = useNavigate();
 
   const deletePipeline = useCallback(() => {
     setIsDeletingPipeline(true);
     astarte
       .deletePipeline(pipelineId)
-      .then(() => history.push('/pipelines'))
+      .then(() => navigate('/pipelines'))
       .catch((err) => {
         deletionAlerts.showError(`Couldn't delete pipeline: ${err.message}`);
         setIsDeletingPipeline(false);
+        setShowDeleteModal(false);
       });
-  }, [astarte, pipelineId, history, deletionAlerts.showError]);
+  }, [astarte, pipelineId, navigate, deletionAlerts.showError]);
 
   return (
     <SingleCardPage title="Pipeline Details" backLink="/pipelines">
@@ -84,7 +88,11 @@ export default ({ astarte, history, pipelineId }: Props): React.ReactElement => 
                 )}
               </Col>
             </Row>
-            <Button variant="danger" onClick={deletePipeline} disabled={isDeletingPipeline}>
+            <Button
+              variant="danger"
+              onClick={() => setShowDeleteModal(true)}
+              disabled={isDeletingPipeline}
+            >
               {isDeletingPipeline && (
                 <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
               )}
@@ -93,6 +101,20 @@ export default ({ astarte, history, pipelineId }: Props): React.ReactElement => 
           </>
         )}
       </WaitForData>
+      {showDeleteModal && (
+        <ConfirmModal
+          title="Warning"
+          confirmLabel="Remove"
+          confirmVariant="danger"
+          onCancel={() => setShowDeleteModal(false)}
+          onConfirm={deletePipeline}
+          isConfirming={isDeletingPipeline}
+        >
+          <p>
+            Delete pipeline <b>{pipelineId}</b>?
+          </p>
+        </ConfirmModal>
+      )}
     </SingleCardPage>
   );
 };

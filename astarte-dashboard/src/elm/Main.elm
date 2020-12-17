@@ -32,10 +32,9 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation
 import Html exposing (Html, a, div, hr, img, li, p, small, span, text, ul)
-import Html.Attributes exposing (class, classList, href, src, style)
+import Html.Attributes exposing (id, class, classList, href, src, style)
 import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
-import Json.Encode as Encode
 import ListUtils exposing (addWhen)
 import Page.Device as Device
 import Page.InterfaceBuilder as InterfaceBuilder
@@ -50,7 +49,6 @@ import Types.ExternalMessage exposing (ExternalMsg(..))
 import Types.FlashMessage as FlashMessage exposing (FlashMessage, Severity)
 import Types.Session as Session exposing (LoginStatus(..), LoginType(..), Session)
 import Url exposing (Url)
-import Url.Builder
 
 
 main : Program Value Model Msg
@@ -754,15 +752,15 @@ view model =
                 [ Grid.col
                     (if showNavbar then
                         [ Col.xsAuto
-                        , Col.attrs [ class "nav-col" ]
+                        , Col.attrs [ id "main-navbar", class "nav-col" ]
                         ]
 
                      else
-                        [ Col.attrs [ Display.none ] ]
+                        [ Col.attrs [ id "main-navbar", Display.none ] ]
                     )
                     [ renderNavbar model realmName ]
                 , Grid.col
-                    [ Col.attrs [ class "main-content overflow-hidden" ] ]
+                    [ Col.attrs [ class "main-content vh-100 overflow-auto" ] ]
                     [ renderPage model model.selectedPage ]
                 ]
             ]
@@ -885,7 +883,7 @@ standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHea
       ]
     ]
         |> List.concat
-        |> Html.nav [ class "nav navbar-dark", Flex.col ]
+        |> Html.nav [ class "nav navbar-dark flex-nowrap vh-100 overflow-auto", Flex.col ]
 
 
 dashboardBrand : Html Msg
@@ -1135,14 +1133,6 @@ pageSubscriptions page =
 sessionChange : Sub (Maybe Session)
 sessionChange =
     Ports.onSessionChange (Decode.decodeValue Session.decoder >> Result.toMaybe)
-
-
-storeSession : Session -> Cmd msg
-storeSession session =
-    Session.encode session
-        |> Encode.encode 0
-        |> Just
-        |> Ports.storeSession
 
 
 pageRequestedFromJS : Sub (Maybe String)

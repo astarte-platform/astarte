@@ -17,10 +17,11 @@
 */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Button, Modal, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import { Button, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 import AstarteClient, { AstarteDevice } from 'astarte-client';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { Link } from 'react-router-dom';
+import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 
 const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
@@ -28,55 +29,6 @@ const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((
     {props.children}
   </i>
 ));
-
-interface ConfirmDeviceRemovalModal {
-  deviceName: string;
-  groupName: string;
-  isLastDevice: boolean;
-  isRemoving: boolean;
-  show: boolean;
-  onCancel: () => void;
-  onRemove: () => void;
-}
-
-const ConfirmDeviceRemovalModal = ({
-  deviceName,
-  groupName,
-  isLastDevice,
-  isRemoving,
-  show,
-  onCancel,
-  onRemove,
-}: ConfirmDeviceRemovalModal): React.ReactElement => (
-  <div
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' && !isRemoving) {
-        onRemove();
-      }
-    }}
-  >
-    <Modal size="lg" show={show} onHide={onCancel}>
-      <Modal.Header closeButton>
-        <Modal.Title>Warning</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {isLastDevice && (
-          <p>This is the last device in the group. Removing this device will delete the group</p>
-        )}
-        <p>{`Remove device "${deviceName}" from group "${groupName}"?`}</p>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="danger" disabled={isRemoving} onClick={onRemove}>
-          {isRemoving && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
-          Remove
-        </Button>
-      </Modal.Footer>
-    </Modal>
-  </div>
-);
 
 const deviceTableRow = (
   device: AstarteDevice,
@@ -150,16 +102,16 @@ const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) 
 
 interface Props {
   astarte: AstarteClient;
-  history: any;
   groupName: string;
 }
 
-const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactElement => {
+const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => {
   const [phase, setPhase] = useState<'ok' | 'loading' | 'err'>('loading');
   const [devices, setDevices] = useState<AstarteDevice[] | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<AstarteDevice | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);
+  const navigate = useNavigate();
 
   const fetchDevices = useCallback(() => {
     const handleDevicesRequest = (newDevices: AstarteDevice[]) => {
@@ -202,7 +154,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactEl
       })
       .finally(() => {
         if (devices?.length === 1) {
-          history.push({ pathname: '/groups' });
+          navigate({ pathname: '/groups' });
         } else {
           setIsRemovingDevice(false);
           setIsModalVisible(false);
@@ -217,7 +169,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactEl
     groupName,
     selectedDevice,
     devices,
-    history,
+    navigate,
   ]);
 
   useEffect(() => {
@@ -231,10 +183,7 @@ const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactEl
       const deviceList = devices as AstarteDevice[];
       innerHTML = (
         <>
-          <h5 className="mt-1 mb-3">
-            Devices in group
-            {groupName}
-          </h5>
+          <h5 className="mt-1 mb-3">{`Devices in group ${groupName}`}</h5>
           {deviceTable(deviceList, showModal)}
         </>
       );
@@ -253,15 +202,23 @@ const GroupDevicesPage = ({ astarte, history, groupName }: Props): React.ReactEl
   return (
     <SingleCardPage title="Group Devices" backLink="/groups">
       {innerHTML}
-      <ConfirmDeviceRemovalModal
-        deviceName={selectedDeviceName}
-        groupName={groupName}
-        isLastDevice={devices?.length === 1}
-        isRemoving={isRemovingDevice}
-        show={isModalVisible}
-        onCancel={closeModal}
-        onRemove={removeDevice}
-      />
+      {isModalVisible && (
+        <ConfirmModal
+          title="Warning"
+          confirmLabel="Remove"
+          confirmVariant="danger"
+          onCancel={closeModal}
+          onConfirm={removeDevice}
+          isConfirming={isRemovingDevice}
+        >
+          {devices?.length === 1 && (
+            <p>This is the last device in the group. Removing this device will delete the group</p>
+          )}
+          <p>
+            Remove device <b>{selectedDeviceName}</b> from group <b>{groupName}</b>?
+          </p>
+        </ConfirmModal>
+      )}
     </SingleCardPage>
   );
 };

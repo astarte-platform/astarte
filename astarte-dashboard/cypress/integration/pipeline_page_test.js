@@ -20,7 +20,7 @@ describe('Pipeline page tests', () => {
             url: `/flow/v1/*/pipelines/${pipeline.data.name}`,
             status: 204,
             response: '',
-          }).as('deletePipeline');
+          }).as('deletePipelineRequest');
           cy.login();
           cy.visit(`/pipelines/${pipeline.data.name}`);
           cy.wait('@getPipeline');
@@ -42,12 +42,17 @@ describe('Pipeline page tests', () => {
       });
     });
 
-    it('can delete the pipeline', () => {
+    it('can delete the pipeline', function () {
       cy.get('.main-content').within(() => {
         cy.contains('Delete pipeline').click();
-        cy.wait('@deletePipeline');
-        cy.location('pathname').should('eq', '/pipelines');
       });
+      cy.get('.modal')
+        .contains(`Delete pipeline ${this.pipeline.data.name}?`)
+        .parents('.modal')
+        .as('deleteModal');
+      cy.get('@deleteModal').get('button').contains('Remove').click();
+      cy.wait('@deletePipelineRequest');
+      cy.location('pathname').should('eq', '/pipelines');
     });
   });
 });
