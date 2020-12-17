@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /*
    This file is part of Astarte.
 
@@ -17,62 +18,112 @@
 */
 
 import jwt from 'jsonwebtoken';
+import * as yup from 'yup';
 
-import type { AstarteJWT, AstarteDecodedJWT } from '../../types';
+interface AstarteTokenObject {
+  exp?: number;
+  iat?: number;
+  iss?: string;
+  a_aea?: string[];
+  a_ch?: string[];
+  a_f?: string[];
+  a_hka?: string[];
+  a_pa?: string[];
+  a_rma?: string[];
+}
 
-type AstarteTokenValidationResult = 'expired' | 'notAnAstarteToken' | 'valid' | 'invalid';
+const channelsClaimRegex = /^(?<action>JOIN|WATCH|\.\*)::(?<resource>.+)$/;
+const httpClaimRegex = /^(?<action>DELETE|GET|PATCH|POST|PUT|\.\*)::(?<resource>.+)$/;
+
+type ChannelsAction = 'JOIN' | 'WATCH';
+type HTTPAction = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
+
+type Claim = {
+  action: RegExp;
+  resource: RegExp;
+};
+
+type Claims = {
+  appEngine: Claim[];
+  channels: Claim[];
+  flow: Claim[];
+  houseKeeping: Claim[];
+  pairing: Claim[];
+  realmManagement: Claim[];
+};
+
+const parseClaim = (claimRegex: RegExp, claim: string): Claim => {
+  const {
+    // @ts-expect-error incorrect type for RegExp.exec
+    groups: { action, resource },
+  } = claimRegex.exec(claim);
+  return {
+    action: new RegExp(action),
+    resource: new RegExp(resource),
+  };
+};
+
+const astarteTokenObjectSchema: yup.ObjectSchema<AstarteTokenObject> = yup
+  .object({
+    exp: yup.number().integer().min(0).notRequired(),
+    iat: yup.number().integer().min(0).notRequired(),
+    iss: yup.string().notRequired(),
+    a_aea: yup.array(yup.string().required().matches(httpClaimRegex)),
+    a_ch: yup.array(yup.string().required().matches(channelsClaimRegex)),
+    a_f: yup.array(yup.string().required().matches(httpClaimRegex)),
+    a_hka: yup.array(yup.string().required().matches(httpClaimRegex)),
+    a_pa: yup.array(yup.string().required().matches(httpClaimRegex)),
+    a_rma: yup.array(yup.string().required().matches(httpClaimRegex)),
+  })
+  .required();
 
 export class AstarteToken {
-  private payload: AstarteDecodedJWT | null = null;
+  #claims: Claims;
 
-  constructor(encodedToken: AstarteJWT) {
-    const decodedToken: any = jwt.decode(encodedToken, { complete: true });
-    if (decodedToken != null) {
-      this.payload = decodedToken.payload as AstarteDecodedJWT;
-    }
+  #expirationDate: Date | null;
+
+  #issueDate: Date | null;
+
+  #issuer: string | null;
+
+  constructor(encodedToken: string) {
+    // @ts-expect-error wrong type for decode options
+    const decodedToken = jwt.decode(encodedToken, { complete: true, ignoreExpiration: true });
+    const tokenObj: AstarteTokenObject = astarteTokenObjectSchema.validateSync(
+      decodedToken && decodedToken.payload,
+    );
+    this.#expirationDate = tokenObj.exp ? new Date(tokenObj.exp * 1000) : null;
+    this.#issueDate = tokenObj.iat ? new Date(tokenObj.iat * 1000) : null;
+    this.#issuer = tokenObj.iss || null;
+    this.#claims = {
+      appEngine: (tokenObj.a_aea || []).map((claim) => parseClaim(httpClaimRegex, claim)),
+      channels: (tokenObj.a_ch || []).map((claim) => parseClaim(channelsClaimRegex, claim)),
+      flow: (tokenObj.a_f || []).map((claim) => parseClaim(httpClaimRegex, claim)),
+      houseKeeping: (tokenObj.a_hka || []).map((claim) => parseClaim(httpClaimRegex, claim)),
+      pairing: (tokenObj.a_pa || []).map((claim) => parseClaim(httpClaimRegex, claim)),
+      realmManagement: (tokenObj.a_rma || []).map((claim) => parseClaim(httpClaimRegex, claim)),
+    };
+  }
+
+  can(service: keyof Claims, action: ChannelsAction | HTTPAction, resource: string): boolean {
+    return this.#claims[service].some(
+      (claim) => claim.action.test(action) && claim.resource.test(resource),
+    );
   }
 
   get hasAstarteClaims(): boolean {
-    if (this.payload == null) {
-      return false;
-    }
-    // AppEngine API
-    if ('a_aea' in this.payload) {
-      return true;
-    }
-    // Realm Management API
-    if ('a_rma' in this.payload) {
-      return true;
-    }
-    // Pairing API
-    if ('a_pa' in this.payload) {
-      return true;
-    }
-    // Astarte Channels
-    if ('a_ch' in this.payload) {
-      return true;
-    }
-    return false;
+    return Object.values(this.#claims).some((serviceClaims) => serviceClaims.length > 0);
   }
 
   get isExpired(): boolean {
-    if (this.payload == null) {
-      return false;
-    }
-    if (this.payload.exp) {
-      const posix = Number.parseInt(this.payload.exp, 10);
-      const expiry = new Date(posix * 1000);
-      const now = new Date();
-      return expiry <= now;
-    }
-    return false;
+    return this.#expirationDate != null && this.#expirationDate <= new Date();
   }
 
   get isValid(): boolean {
-    return this.payload != null && !this.isExpired && this.hasAstarteClaims;
+    return !this.isExpired && this.hasAstarteClaims;
   }
 
-  static validate(encodedToken: AstarteJWT): AstarteTokenValidationResult {
+  static validate(encodedToken: string): 'valid' | 'expired' | 'noAstarteClaims' | 'invalid' {
     try {
       const token = new AstarteToken(encodedToken);
       if (token.isValid) {
@@ -82,7 +133,7 @@ export class AstarteToken {
         return 'expired';
       }
       if (!token.hasAstarteClaims) {
-        return 'notAnAstarteToken';
+        return 'noAstarteClaims';
       }
       return 'invalid';
     } catch {

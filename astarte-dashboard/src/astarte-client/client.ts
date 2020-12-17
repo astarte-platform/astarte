@@ -37,7 +37,6 @@ import type { AstarteBlock } from './models/Block';
 import type {
   AstarteBlockDTO,
   AstarteDeviceDTO,
-  AstarteJWT,
   AstarteDeviceEvent,
   AstarteInterfaceValues,
   AstartePropertyData,
@@ -142,7 +141,7 @@ interface AstarteClientConfig {
   pairingUrl: string;
   realm?: string;
   realmManagementUrl: string;
-  token?: AstarteJWT;
+  token?: string;
 }
 
 class AstarteClient {
@@ -164,7 +163,7 @@ class AstarteClient {
 
   private phoenixSocket: PhoenixSocket | null;
 
-  private token: AstarteJWT;
+  private token: string;
 
   constructor(config: AstarteClientConfig) {
     this.config = {
