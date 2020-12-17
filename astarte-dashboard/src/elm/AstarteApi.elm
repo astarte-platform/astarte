@@ -21,29 +21,20 @@ module AstarteApi exposing
     ( Config
     , DeviceStats
     , Error(..)
-    , addDeviceToGroup
     , addNewInterface
     , addNewTrigger
     , appEngineApiHealth
     , configDecoder
     , deleteInterface
     , deleteTrigger
-    , deviceInfos
-    , deviceStats
     , errorToHumanReadable
     , flowApiHealth
     , getInterface
     , getTrigger
-    , groupList
     , listInterfaceMajors
     , listInterfaces
     , pairingApiHealth
     , realmManagementApiHealth
-    , removeDeviceAlias
-    , removeDeviceMetadataField
-    , setCredentialInhibited
-    , updateDeviceAliases
-    , updateDeviceMetadata
     , updateInterface
     , wipeDeviceCredentials
     )
@@ -65,7 +56,6 @@ import Json.Decode as Decode
         )
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode exposing (Value)
-import Types.Device as Device exposing (Device)
 import Types.Interface as Interface exposing (Interface)
 import Types.Trigger as Trigger exposing (Trigger)
 import Url.Builder exposing (crossOrigin)
@@ -480,146 +470,6 @@ deleteTrigger apiConfig triggerName okMsg errorMsg loginMsg =
         , tracker = Nothing
         }
         |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
-
-
-
--- Devices
-
-
-
-
-deviceInfos : Config -> String -> (Result Error Device -> msg) -> Cmd msg
-deviceInfos apiConfig deviceId resultMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply resultMsg <| field "data" Device.decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-updateDeviceAliases : Config -> String -> Dict String String -> (Result Error () -> msg) -> Cmd msg
-updateDeviceAliases apiConfig deviceId aliases resultMsg =
-    Http.request
-        { method = "PATCH"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
-        , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", Device.encodeAliases aliases ) ]
-        , expect = expectWhateverAstarteReply resultMsg
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-removeDeviceAlias : Config -> String -> String -> (Result Error () -> msg) -> Cmd msg
-removeDeviceAlias apiConfig deviceId aliasTag resultMsg =
-    let
-        emptyAlias =
-            Encode.object [ ( "aliases", Encode.object [ ( aliasTag, Encode.null ) ] ) ]
-    in
-    Http.request
-        { method = "PATCH"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
-        , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", emptyAlias ) ]
-        , expect = expectWhateverAstarteReply resultMsg
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-updateDeviceMetadata : Config -> String -> Dict String String -> (Result Error () -> msg) -> Cmd msg
-updateDeviceMetadata apiConfig deviceId metadata resultMsg =
-    Http.request
-        { method = "PATCH"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
-        , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", Device.encodeMetadata metadata ) ]
-        , expect = expectWhateverAstarteReply resultMsg
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-removeDeviceMetadataField : Config -> String -> String -> (Result Error () -> msg) -> Cmd msg
-removeDeviceMetadataField apiConfig deviceId metadataField resultMsg =
-    let
-        emptyMetadata =
-            Encode.object [ ( "metadata", Encode.object [ ( metadataField, Encode.null ) ] ) ]
-    in
-    Http.request
-        { method = "PATCH"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
-        , body = Http.stringBody "application/merge-patch+json" <| Encode.encode 0 <| Encode.object [ ( "data", emptyMetadata ) ]
-        , expect = expectWhateverAstarteReply resultMsg
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-setCredentialInhibited : Config -> String -> Bool -> (Result Error () -> msg) -> Cmd msg
-setCredentialInhibited apiConfig deviceId enabled resultMsg =
-    Http.request
-        { method = "PATCH"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "devices", deviceId ] []
-        , body =
-            Http.stringBody "application/merge-patch+json" <|
-                Encode.encode 0 <|
-                    Encode.object [ ( "data", Device.encodeCredentialsInhibited enabled ) ]
-        , expect = expectWhateverAstarteReply resultMsg
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-deviceStats : Config -> (Result Error DeviceStats -> msg) -> Cmd msg
-deviceStats apiConfig resultMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "stats", "devices" ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply resultMsg <| field "data" deviceStatsDecoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-
--- Groups
-
-
-groupList : Config -> (Result Error (List String) -> msg) -> Cmd msg
-groupList apiConfig resultMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "groups" ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply resultMsg <| field "data" (Decode.list Decode.string)
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-addDeviceToGroup : Config -> String -> String -> (Result Error () -> msg) -> Cmd msg
-addDeviceToGroup apiConfig groupName deviceId resultMsg =
-    Http.request
-        { method = "POST"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.appengineUrl [ "v1", apiConfig.realm, "groups", groupName, "devices" ] []
-        , body = Http.jsonBody <| Encode.object [ ( "data", Encode.object [ ( "device_id", Encode.string deviceId ) ] ) ]
-        , expect = expectWhateverAstarteReply resultMsg
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
 
 
 -- Health checks

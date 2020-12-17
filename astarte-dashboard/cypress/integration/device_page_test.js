@@ -29,6 +29,8 @@ describe('Device page tests', () => {
 
     it('displays correct properties for a device', function () {
       cy.server();
+      const allGroups = ['group1', 'group2', 'group3', 'group4'];
+      cy.route('GET', '/appengine/v1/*/groups', { data: allGroups });
       cy.route('GET', '/appengine/v1/*/devices/*', '@device');
       cy.visit(`/devices/${this.device.data.id}`);
       cy.get('.main-content').within(() => {
@@ -76,8 +78,6 @@ describe('Device page tests', () => {
           .within(() => {
             cy.contains('No previous interfaces info');
           });
-
-        cy.contains('Device Stats');
 
         cy.contains('Device Status Events');
 
@@ -248,10 +248,12 @@ describe('Device page tests', () => {
       cy.visit(`/devices/${this.device.data.id}`);
       cy.get('.main-content').within(() => {
         cy.contains('Wipe credential secret').should('exist').and('not.be.disabled').click();
-        cy.get('.modal').contains(
+      });
+      cy.get('.modal').within(() => {
+        cy.contains(
           'This will remove the current device credential secret from Astarte, forcing the device to register again and store its new credentials secret. Continue?',
         );
-        cy.get('.modal').contains('Wipe credentials secret').click();
+        cy.contains('Wipe credentials secret').click();
         cy.wait('@wipeCredentialsSecretRequest');
       });
     });
@@ -271,22 +273,24 @@ describe('Device page tests', () => {
           .within(() => {
             cy.contains('Add new alias').should('exist').and('not.be.disabled').click();
           });
+      });
+      cy.get('.modal-dialog').within(() => {
         cy.get('.modal-header')
           .contains('Add New Alias')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#key').type('alias_key');
-            cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#value').type('alias_value');
+            cy.get('input#root_key').type('alias_key');
+            cy.get('input#root_value').type('alias_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('{enter}');
+            cy.get('input#root_value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
           .should('deep.eq', { aliases: { alias_key: 'alias_value' } });
+      });
+      cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Aliases')
           .parents('.card')
@@ -318,6 +322,8 @@ describe('Device page tests', () => {
             cy.contains('alias_value2');
             cy.get('table tbody tr:nth(1) i.fa-eraser').click();
           });
+      });
+      cy.get('.modal-dialog').within(() => {
         cy.get('.modal-header')
           .contains('Delete Alias')
           .parents('.modal')
@@ -329,6 +335,8 @@ describe('Device page tests', () => {
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
           .should('deep.eq', { aliases: { alias_key2: null } });
+      });
+      cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Aliases')
           .parents('.card')
@@ -358,21 +366,24 @@ describe('Device page tests', () => {
             cy.contains('alias_value');
             cy.get('table tbody tr:nth(0) i.fa-pencil-alt').click();
           });
+      });
+      cy.get('.modal-dialog').within(() => {
         cy.get('.modal-header')
           .contains('Edit "alias_key"')
           .parents('.modal')
           .within(() => {
-            cy.get('input#value').clear();
-            cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#value').type('alias_new_value');
+            cy.get('input#root_value').clear();
+            cy.get('input#root_value').type('alias_new_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('{enter}');
+            cy.get('input#root_value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
           .should('deep.eq', { aliases: { alias_key: 'alias_new_value' } });
+      });
+      cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Aliases')
           .parents('.card')
@@ -399,22 +410,25 @@ describe('Device page tests', () => {
           .within(() => {
             cy.contains('Add new item').should('exist').and('not.be.disabled').click();
           });
+      });
+      cy.get('.modal-dialog').within(() => {
         cy.get('.modal-header')
           .contains('Add New Item')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#key').type('metadata_key');
+            cy.get('input#root_key').type('metadata_key');
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('metadata_value');
+            cy.get('input#root_value').type('metadata_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('{enter}');
+            cy.get('input#root_value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
           .should('deep.eq', { metadata: { metadata_key: 'metadata_value' } });
+      });
+      cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Metadata')
           .parents('.card')
@@ -446,6 +460,8 @@ describe('Device page tests', () => {
             cy.contains('metadata_value2');
             cy.get('table tbody tr:nth(1) i.fa-eraser').click();
           });
+      });
+      cy.get('.modal-dialog').within(() => {
         cy.get('.modal-header')
           .contains('Delete Item')
           .parents('.modal')
@@ -458,6 +474,8 @@ describe('Device page tests', () => {
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
           .should('deep.eq', { metadata: { metadata_key2: null } });
+      });
+      cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Metadata')
           .parents('.card')
@@ -487,21 +505,25 @@ describe('Device page tests', () => {
             cy.contains('metadata_value');
             cy.get('table tbody tr:nth(0) i.fa-pencil-alt').click();
           });
+      });
+      cy.get('.modal-dialog').within(() => {
         cy.get('.modal-header')
           .contains('Edit "metadata_key"')
           .parents('.modal')
           .within(() => {
-            cy.get('input#value').clear();
+            cy.get('input#root_value').clear();
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('metadata_new_value');
+            cy.get('input#root_value').type('metadata_new_value');
             cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('{enter}');
+            cy.get('input#root_value').type('{enter}');
           });
         cy.wait('@updateDeviceRequest')
           .its('requestBody.data')
           .should('deep.eq', { metadata: { metadata_key: 'metadata_new_value' } });
+      });
+      cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Metadata')
           .parents('.card')
@@ -532,6 +554,8 @@ describe('Device page tests', () => {
             cy.get('table tbody tr').should('have.length', deviceGroups.length);
             cy.contains('Add to existing group').click();
           });
+      });
+      cy.get('.modal-dialog').within(() => {
         cy.get('.modal-header')
           .contains('Select Existing Group')
           .parents('.modal')
@@ -548,6 +572,8 @@ describe('Device page tests', () => {
             cy.get('button').contains('Confirm').click();
           });
         cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
+      });
+      cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Groups')
           .parents('.card')
@@ -607,7 +633,7 @@ describe('Device page tests', () => {
             cy.contains(formatBytes(totalBytes));
             cy.contains(totalMessages);
           });
-          cy.get('svg.device-data-piechart').scrollIntoView().should('be.visible');
+          cy.get('.chart-container canvas').scrollIntoView().should('be.visible');
         });
     });
 

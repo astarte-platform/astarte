@@ -37,12 +37,14 @@ import type { AstarteBlock } from './models/Block';
 import type {
   AstarteBlockDTO,
   AstarteDeviceDTO,
-  AstarteDeviceEvent,
   AstarteInterfaceValues,
   AstartePropertyData,
   AstarteDatastreamIndividualData,
   AstarteDatastreamObjectData,
 } from './types';
+import { AstarteDeviceEvent, decodeEvent } from './types/events';
+
+export type AstarteClientEvent = 'credentialsChange' | 'socketError' | 'socketClose';
 
 export interface AstarteInterfaceDescriptor {
   name: string;
@@ -210,6 +212,7 @@ class AstarteClient {
       phoenixSocket:         astarteAPIurl`${config.appengineUrl}v1/socket`,
       pairingHealth:         astarteAPIurl`${config.pairingUrl}health`,
       registerDevice:        astarteAPIurl`${config.pairingUrl}v1/${'realm'}/agent/devices`,
+      deviceAgent:           astarteAPIurl`${config.pairingUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
       flowHealth:            astarteAPIurl`${config.flowUrl}health`,
       flows:                 astarteAPIurl`${config.flowUrl}v1/${'realm'}/flows`,
       flowInstance:          astarteAPIurl`${config.flowUrl}v1/${'realm'}/flows/${'instanceName'}`,
@@ -220,7 +223,7 @@ class AstarteClient {
     };
   }
 
-  addListener(eventName: any, callback: any): void {
+  addListener(eventName: AstarteClientEvent, callback: () => void): void {
     if (!this.listeners[eventName]) {
       this.listeners[eventName] = [];
     }
@@ -228,14 +231,14 @@ class AstarteClient {
     this.listeners[eventName].push(callback);
   }
 
-  removeListener(eventName: any, callback: any): void {
+  removeListener(eventName: AstarteClientEvent, callback: () => void): void {
     const previousListeners = this.listeners[eventName];
     if (previousListeners) {
       this.listeners[eventName] = previousListeners.filter((listener) => listener !== callback);
     }
   }
 
-  private dispatch(eventName: any): void {
+  private dispatch(eventName: AstarteClientEvent): void {
     const listeners = this.listeners[eventName];
     if (listeners) {
       listeners.forEach((listener) => listener());
@@ -325,6 +328,47 @@ class AstarteClient {
     return fromAstarteDeviceDTO(response.data);
   }
 
+  async insertDeviceAlias(
+    deviceId: AstarteDevice['id'],
+    aliasKey: string,
+    aliasValue: string,
+  ): Promise<void> {
+    await this.$patch(this.apiConfig.deviceInfo({ deviceId, ...this.config }), {
+      aliases: { [aliasKey]: aliasValue },
+    });
+  }
+
+  async deleteDeviceAlias(deviceId: AstarteDevice['id'], aliasKey: string): Promise<void> {
+    await this.$patch(this.apiConfig.deviceInfo({ deviceId, ...this.config }), {
+      aliases: { [aliasKey]: null },
+    });
+  }
+
+  async insertDeviceMetadata(
+    deviceId: AstarteDevice['id'],
+    metadataKey: string,
+    metadataValue: string,
+  ): Promise<void> {
+    await this.$patch(this.apiConfig.deviceInfo({ deviceId, ...this.config }), {
+      metadata: { [metadataKey]: metadataValue },
+    });
+  }
+
+  async deleteDeviceMetadata(deviceId: AstarteDevice['id'], metadataKey: string): Promise<void> {
+    await this.$patch(this.apiConfig.deviceInfo({ deviceId, ...this.config }), {
+      metadata: { [metadataKey]: null },
+    });
+  }
+
+  async inhibitDeviceCredentialsRequests(
+    deviceId: AstarteDevice['id'],
+    inhibit: boolean,
+  ): Promise<void> {
+    await this.$patch(this.apiConfig.deviceInfo({ deviceId, ...this.config }), {
+      credentials_inhibited: inhibit,
+    });
+  }
+
   async getDeviceData(params: {
     deviceId: AstarteDevice['id'];
     interfaceName: AstarteInterface['name'];
@@ -392,7 +436,7 @@ class AstarteClient {
   }): Promise<AstarteDevice[]> {
     const { groupName, details } = params;
     if (!groupName) {
-      throw Error('Invalid group name');
+      throw new Error('Invalid group name');
     }
     /* Double encoding to preserve the URL format when groupName contains % and / */
     const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
@@ -409,15 +453,35 @@ class AstarteClient {
     return response.data.map((device: AstarteDeviceDTO) => fromAstarteDeviceDTO(device));
   }
 
+  async addDeviceToGroup(params: { groupName: string; deviceId: string }): Promise<void> {
+    const { groupName, deviceId } = params;
+
+    if (!groupName) {
+      throw new Error('Invalid group name');
+    }
+
+    if (!deviceId) {
+      throw new Error('Invalid device ID');
+    }
+
+    await this.$post(
+      this.apiConfig.groupDevices({
+        ...this.config,
+        groupName,
+      }),
+      { device_id: deviceId },
+    );
+  }
+
   async removeDeviceFromGroup(params: { groupName: string; deviceId: string }): Promise<void> {
     const { groupName, deviceId } = params;
 
     if (!groupName) {
-      throw Error('Invalid group name');
+      throw new Error('Invalid group name');
     }
 
     if (!deviceId) {
-      throw Error('Invalid device ID');
+      throw new Error('Invalid device ID');
     }
 
     await this.$delete(
@@ -445,6 +509,10 @@ class AstarteClient {
     }
     const response = await this.$post(this.apiConfig.registerDevice(this.config), requestBody);
     return { credentialsSecret: response.data.credentials_secret };
+  }
+
+  async wipeDeviceCredentials(deviceId: AstarteDevice['id']): Promise<void> {
+    await this.$delete(this.apiConfig.deviceAgent({ deviceId, ...this.config }));
   }
 
   async getFlowInstances(): Promise<Array<AstarteFlow['name']>> {
@@ -577,6 +645,20 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
+  private async $patch(url: string, data: any): Promise<any> {
+    return axios({
+      method: 'patch',
+      url,
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/merge-patch+json',
+      },
+      data: {
+        data,
+      },
+    }).then((response) => response.data);
+  }
+
   private async $delete(url: string): Promise<any> {
     return axios({
       method: 'delete',
@@ -604,14 +686,10 @@ class AstarteClient {
           token: this.token,
         },
         () => {
-          if (this.onSocketError) {
-            this.onSocketError();
-          }
+          this.dispatch('socketError');
         },
         () => {
-          if (this.onSocketClose) {
-            this.onSocketClose();
-          }
+          this.dispatch('socketClose');
         },
       ).then((socket) => {
         this.phoenixSocket = socket;
@@ -652,7 +730,15 @@ class AstarteClient {
       return Promise.reject(new Error("Can't listen for room events before joining it first"));
     }
 
-    channel.on('new_event', eventHandler);
+    channel.on('new_event', (jsonEvent: any) => {
+      const decodedEvent = decodeEvent(jsonEvent);
+
+      if (decodedEvent) {
+        eventHandler(decodedEvent);
+      } else {
+        throw new Error('Unrecognised event received');
+      }
+    });
     return Promise.resolve();
   }
 

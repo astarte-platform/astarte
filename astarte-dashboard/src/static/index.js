@@ -36,126 +36,8 @@ let app;
 let astarteClient = null;
 let sessionManager = null;
 
-function sendErrorMessage(errorMessage) {
-  app.ports.onDeviceEventReceived.send({
-    message: errorMessage,
-    level: 'error',
-    timestamp: Date.now(),
-  });
-}
-
-function sendInfoMessage(infoMessage) {
-  app.ports.onDeviceEventReceived.send({
-    message: infoMessage,
-    level: 'info',
-    timestamp: Date.now(),
-  });
-}
-
 function noMatchFallback(url) {
   app.ports.onPageRequested.send(url);
-}
-
-function watchDeviceEvents(params) {
-  const { deviceId } = params;
-  const salt = Math.floor(Math.random() * 10000);
-  const roomName = `dashboard_${deviceId}_${salt}`;
-  astarteClient
-    .joinRoom(roomName)
-    .then(() => {
-      sendInfoMessage(`Joined room for device ${params.deviceId}`);
-
-      astarteClient.listenForEvents(roomName, (payload) => {
-        app.ports.onDeviceEventReceived.send(payload);
-      });
-
-      const connectionTriggerPayload = {
-        name: `connectiontrigger-${deviceId}`,
-        device_id: deviceId,
-        simple_trigger: {
-          type: 'device_trigger',
-          on: 'device_connected',
-          device_id: deviceId,
-        },
-      };
-
-      const disconnectionTriggerPayload = {
-        name: `disconnectiontrigger-${deviceId}`,
-        device_id: deviceId,
-        simple_trigger: {
-          type: 'device_trigger',
-          on: 'device_disconnected',
-          device_id: deviceId,
-        },
-      };
-
-      const errorTriggerPayload = {
-        name: `errortrigger-${deviceId}`,
-        device_id: deviceId,
-        simple_trigger: {
-          type: 'device_trigger',
-          on: 'device_error',
-          device_id: deviceId,
-        },
-      };
-
-      const dataTriggerPayload = {
-        name: `datatrigger-${deviceId}`,
-        device_id: deviceId,
-        simple_trigger: {
-          type: 'data_trigger',
-          on: 'incoming_data',
-          interface_name: '*',
-          value_match_operator: '*',
-          match_path: '/*',
-        },
-      };
-
-      astarteClient
-        .registerVolatileTrigger(roomName, connectionTriggerPayload)
-        .then(() => {
-          sendInfoMessage('Watching for device connection events');
-        })
-        .catch(() => {
-          sendErrorMessage("Coulnd't watch for device connection events");
-        });
-
-      astarteClient
-        .registerVolatileTrigger(roomName, disconnectionTriggerPayload)
-        .then(() => {
-          sendInfoMessage('Watching for device disconnection events');
-        })
-        .catch(() => {
-          sendErrorMessage("Coulnd't watch for device disconnection events");
-        });
-
-      astarteClient
-        .registerVolatileTrigger(roomName, errorTriggerPayload)
-        .then(() => {
-          sendInfoMessage('Watching for device error events');
-        })
-        .catch(() => {
-          sendErrorMessage("Coulnd't watch for device error events");
-        });
-
-      astarteClient
-        .registerVolatileTrigger(roomName, dataTriggerPayload)
-        .then(() => {
-          sendInfoMessage('Watching for device data events');
-        })
-        .catch(() => {
-          sendErrorMessage("Coulnd't watch for device data events");
-        });
-    })
-    .catch(() => {
-      sendErrorMessage(`Couldn't join device ${deviceId} room`);
-    });
-}
-
-function leaveDeviceRoom() {
-  astarteClient.joinedRooms.forEach((room) => {
-    astarteClient.leaveRoom(room);
-  });
 }
 
 function loadPage(page) {
@@ -217,12 +99,6 @@ $.getJSON('/user-config/config.json', (result) => {
     pairingUrl: conf.pairingApiUrl,
     flowUrl: conf.flowApiUrl,
     enableFlowPreview: conf.enableFlowPreview,
-    onSocketError: () => {
-      sendErrorMessage('Astarte channels communication error');
-    },
-    onSocketClose: () => {
-      sendErrorMessage('Lost connection with the Astarte channel');
-    },
   });
 
   if (sessionManager.isUserLoggedIn) {
@@ -243,18 +119,5 @@ $.getJSON('/user-config/config.json', (result) => {
   /* begin Elm ports */
   app.ports.loadReactPage.subscribe(loadPage);
   app.ports.unloadReactPage.subscribe(clearReact);
-  app.ports.leaveDeviceRoom.subscribe(leaveDeviceRoom);
-
-  app.ports.listenToDeviceEvents.subscribe(watchDeviceEvents);
-
-  app.ports.isoDateToLocalizedString.subscribe((taggedDate) => {
-    if (taggedDate.date) {
-      const convertedDate = new Date(taggedDate.date);
-      app.ports.onDateConverted.send({
-        name: taggedDate.name,
-        date: convertedDate.toLocaleString(),
-      });
-    }
-  });
   /* end Elm ports */
 });

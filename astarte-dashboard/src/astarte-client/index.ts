@@ -32,7 +32,16 @@ export {
   AstarteToken,
 } from './models';
 
-export type { AstarteBlock } from './models';
+export {
+  AstarteDeviceEvent,
+  AstarteDeviceConnectedEvent,
+  AstarteDeviceDisconnectedEvent,
+  AstarteDeviceErrorEvent,
+  AstarteDeviceIncomingDataEvent,
+  AstarteDeviceUnsetPropertyEvent,
+} from './types/events';
+
+export type { AstarteBlock, AstarteDeviceInterfaceStats } from './models';
 
 export type { AstarteDataTreeNode, AstarteDataTreeKind } from './transforms';
 
@@ -40,7 +49,6 @@ export type {
   AstarteDataType,
   AstarteDataTuple,
   AstarteDataValue,
-  AstarteDeviceEvent,
   AstartePropertyData,
   AstarteDatastreamData,
   AstarteDatastreamIndividualData,
