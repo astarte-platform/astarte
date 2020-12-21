@@ -236,6 +236,7 @@ view : Model -> Html Msg
 view model =
     Modal.config (Close ModalCancel)
         |> Modal.large
+        |> Modal.scrollableBody True
         |> Modal.h5 []
             [ if model.editMode then
                 text "Edit mapping"
