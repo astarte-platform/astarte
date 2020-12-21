@@ -62,6 +62,7 @@ import Types.InterfaceMapping as InterfaceMapping
         , mappingTypeToEnglishString
         , reliabilityToEnglishString
         , retentionToEnglishString
+        , databaseRetentionToEnglishString
         )
 import Types.Session exposing (Session)
 import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
@@ -259,6 +260,8 @@ update session msg model =
                             { reliability = mapping.reliability
                             , retention = mapping.retention
                             , expiry = mapping.expiry
+                            , databaseRetention = mapping.databaseRetention
+                            , ttl = mapping.ttl
                             , explicitTimestamp = mapping.explicitTimestamp
                             }
 
@@ -266,6 +269,8 @@ update session msg model =
                             { reliability = InterfaceMapping.Unreliable
                             , retention = InterfaceMapping.Discard
                             , expiry = 0
+                            , databaseRetention = InterfaceMapping.NoTTL
+                            , ttl = 60
                             , explicitTimestamp = True
                             }
             in
@@ -278,6 +283,8 @@ update session msg model =
                 , objectReliability = commonObjectParams.reliability
                 , objectRetention = commonObjectParams.retention
                 , objectExpiry = commonObjectParams.expiry
+                , objectDatabaseRetention = commonObjectParams.databaseRetention
+                , objectTTL = commonObjectParams.ttl
                 , objectExplicitTimestamp = commonObjectParams.explicitTimestamp
                 , showSpinner = False
               }
@@ -420,6 +427,8 @@ update session msg model =
                                         { reliability = mapping.reliability
                                         , retention = mapping.retention
                                         , expiry = mapping.expiry
+                                        , databaseRetention = mapping.databaseRetention
+                                        , ttl = mapping.ttl
                                         , explicitTimestamp = mapping.explicitTimestamp
                                         }
 
@@ -427,6 +436,8 @@ update session msg model =
                                         { reliability = InterfaceMapping.Unreliable
                                         , retention = InterfaceMapping.Discard
                                         , expiry = 0
+                                        , databaseRetention = InterfaceMapping.NoTTL
+                                        , ttl = 60
                                         , explicitTimestamp = False
                                         }
                         in
@@ -437,6 +448,8 @@ update session msg model =
                             , objectReliability = commonObjectParams.reliability
                             , objectRetention = commonObjectParams.retention
                             , objectExpiry = commonObjectParams.expiry
+                            , objectDatabaseRetention = commonObjectParams.databaseRetention
+                            , objectTTL = commonObjectParams.ttl
                             , objectExplicitTimestamp = commonObjectParams.explicitTimestamp
                           }
                         , Cmd.none
@@ -1483,11 +1496,17 @@ renderMapping mapping =
         , options = [ Card.attrs [ Spacing.mb2 ] ]
         , header = renderMappingHeader mapping
         , blocks =
-            [ ( textBlock "Allow Unset" ""
+            [ ( textBlock "Description" mapping.description
+              , String.isEmpty mapping.description
+              )
+            , ( textBlock "Documentation" mapping.doc
+              , String.isEmpty mapping.doc
+              )
+            , ( textBlock "Allow Unset" <| boolToString mapping.allowUnset
               , not mapping.allowUnset
               )
-            , ( textBlock "Description" mapping.description
-              , String.isEmpty mapping.description
+            , ( textBlock "Explicit Timestamp" <| boolToString mapping.explicitTimestamp
+              , not mapping.explicitTimestamp
               )
             , ( textBlock "Reliability" <| reliabilityToEnglishString mapping.reliability
               , mapping.reliability == InterfaceMapping.Unreliable
@@ -1495,14 +1514,14 @@ renderMapping mapping =
             , ( textBlock "Retention" <| retentionToEnglishString mapping.retention
               , mapping.retention == InterfaceMapping.Discard
               )
-            , ( textBlock "Expiry" <| String.fromInt mapping.expiry
+            , ( textBlock "Expiry" <| String.fromInt mapping.expiry ++ " seconds"
               , mapping.retention == InterfaceMapping.Discard || mapping.expiry == 0
               )
-            , ( textBlock "Explicit Timestamp" <| boolToString mapping.explicitTimestamp
-              , not mapping.explicitTimestamp
+            , ( textBlock "Database Retention" <| databaseRetentionToEnglishString mapping.databaseRetention
+              , mapping.databaseRetention == InterfaceMapping.NoTTL
               )
-            , ( textBlock "Doc" mapping.doc
-              , String.isEmpty mapping.doc
+            , ( textBlock "Database Retention TTL" <| String.fromInt mapping.ttl ++ " seconds"
+              , mapping.databaseRetention == InterfaceMapping.NoTTL
               )
             ]
                 |> List.filterMap
@@ -1710,7 +1729,7 @@ subscriptions model =
 boolToString : Bool -> String
 boolToString b =
     if b then
-        "true"
+        "True"
 
     else
-        "false"
+        "False"
