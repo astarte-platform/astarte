@@ -1103,14 +1103,14 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.children
                                 (Radio.radioList "interfaceType"
                                     [ Radio.create
-                                        [ Radio.id "itrb1"
+                                        [ Radio.id "interfaceTypeDatastream"
                                         , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.iType == Interface.Datastream
                                         , Radio.onClick <| UpdateInterfaceType Interface.Datastream
                                         ]
                                         "Datastream"
                                     , Radio.create
-                                        [ Radio.id "itrb2"
+                                        [ Radio.id "interfaceTypeProperties"
                                         , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.iType == Interface.Properties
                                         , Radio.onClick <| UpdateInterfaceType Interface.Properties
@@ -1129,14 +1129,14 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.children
                                 (Radio.radioList "interfaceAggregation"
                                     [ Radio.create
-                                        [ Radio.id "iarb1"
+                                        [ Radio.id "interfaceAggregationIndividual"
                                         , Radio.disabled <| interfaceEditMode || interface.iType == Interface.Properties
                                         , Radio.checked <| interface.aggregation == Interface.Individual
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Individual
                                         ]
                                         "Individual"
                                     , Radio.create
-                                        [ Radio.id "iarb2"
+                                        [ Radio.id "interfaceAggregationObject"
                                         , Radio.disabled <| interfaceEditMode || interface.iType == Interface.Properties
                                         , Radio.checked <| interface.aggregation == Interface.Object
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Object
@@ -1155,14 +1155,14 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.children
                                 (Radio.radioList "interfaceOwnership"
                                     [ Radio.create
-                                        [ Radio.id "iorb1"
+                                        [ Radio.id "interfaceOwnershipDevice"
                                         , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Device
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Device
                                         ]
                                         "Device"
                                     , Radio.create
-                                        [ Radio.id "iorb2"
+                                        [ Radio.id "interfaceOwnershipServer"
                                         , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Server
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Server
@@ -1191,9 +1191,9 @@ renderContent model interface interfaceEditMode accordionState =
             , Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ Form.group []
-                        [ Form.label [ for "interfaceDoc" ] [ text "Documentation" ]
+                        [ Form.label [ for "interfaceDocumentation" ] [ text "Documentation" ]
                         , Textarea.textarea
-                            [ Textarea.id "interfaceDoc"
+                            [ Textarea.id "interfaceDocumentation"
                             , Textarea.rows 3
                             , Textarea.value interface.doc
                             , Textarea.onInput UpdateInterfaceDoc
@@ -1305,7 +1305,7 @@ renderCommonMappingSettings model =
             ]
             [ Form.group []
                 [ Checkbox.checkbox
-                    [ Checkbox.id "objectMappingExpTimestamp"
+                    [ Checkbox.id "objectMappingExplicitTimestamp"
                     , Checkbox.disabled model.interfaceEditMode
                     , Checkbox.checked model.objectExplicitTimestamp
                     , Checkbox.onCheck UpdateObjectMappingExplicitTimestamp
@@ -1374,9 +1374,9 @@ renderCommonMappingSettings model =
                 Col.sm6
             ]
             [ Form.group []
-                [ Form.label [ for "objectDatabaseRetention" ] [ text "Database Retention" ]
+                [ Form.label [ for "objectMappingDatabaseRetention" ] [ text "Database Retention" ]
                 , Select.select
-                    [ Select.id "objectDatabaseRetention"
+                    [ Select.id "objectMappingDatabaseRetention"
                     , Select.disabled model.interfaceEditMode
                     , Select.onChange UpdateObjectMappingDatabaseRetention
                     ]
@@ -1401,9 +1401,9 @@ renderCommonMappingSettings model =
                 Col.sm6
             ]
             [ Form.group []
-                [ Form.label [ for "objectTTL" ] [ text "TTL" ]
+                [ Form.label [ for "objectMappingTTL" ] [ text "TTL" ]
                 , InputGroup.number
-                    [ Input.id "objectTTL"
+                    [ Input.id "objectMappingTTL"
                     , Input.disabled model.interfaceEditMode
                     , Input.value <| String.fromInt model.objectTTL
                     , Input.onInput UpdateObjectMappingTTL
