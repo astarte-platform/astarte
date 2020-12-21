@@ -504,7 +504,7 @@ renderMappingEndpointInput endpoint isObject editMode endpointWarningPopup =
     Form.group []
         [ Form.label [ for "mappingEndpoint" ] [ text "Endpoint" ]
         , Input.text
-            [ Input.id "Endpoint"
+            [ Input.id "mappingEndpoint"
             , Input.value endpoint
             , Input.disabled editMode
             , Input.onInput UpdateMappingEndpoint
