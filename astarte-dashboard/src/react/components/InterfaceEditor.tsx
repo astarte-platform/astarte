@@ -341,7 +341,7 @@ const getInitialDatastreamOptions = (iface: AstarteInterface): DatastreamOptions
 interface Props {
   initialData?: AstarteInterface;
   isSourceVisible?: boolean;
-  onChange: (updatedInterface: AstarteInterface, isValid: boolean) => unknown;
+  onChange?: (updatedInterface: AstarteInterface, isValid: boolean) => unknown;
   denyMajorChanges?: boolean;
 }
 
@@ -619,7 +619,9 @@ export default ({
     setInterfaceSource((source) =>
       formatJSONText(source) !== formattedInterfaceSource ? formattedInterfaceSource : source,
     );
-    onChange(interfaceDraft, isValidInterface);
+    if (onChange) {
+      onChange(interfaceDraft, isValidInterface);
+    }
   }, [interfaceDraft, isValidInterface]);
 
   const interfaceValidationWarnings = computeInterfaceWarnings(interfaceDraft);

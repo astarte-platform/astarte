@@ -640,7 +640,7 @@ processRoute : Browser.Navigation.Key -> Config -> Session -> ( Maybe Route, May
 processRoute key config session ( maybeRoute, maybeToken ) =
     case ( Config.getParams config, maybeRoute ) of
         ( Nothing, _ ) ->
-            initInterfaceEditorPage session
+            initReactPage session Home "home" Route.Home
 
         ( Just params, Nothing ) ->
             -- unknown route
