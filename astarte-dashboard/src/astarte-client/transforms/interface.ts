@@ -15,6 +15,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+import _ from 'lodash';
 
 import { fromAstarteMappingDTO, toAstarteMappingDTO } from './mapping';
 import { AstarteInterface } from '../models/Interface';
@@ -34,41 +35,84 @@ export const fromAstarteInterfaceDTO = (dto: AstarteInterfaceDTO): AstarteInterf
   });
 };
 
-export const toAstarteInterfaceDTO = (obj: AstarteInterface): AstarteInterfaceDTO => {
-  return obj.type === 'datastream'
-    ? {
-        interface_name: obj.name,
-        version_major: obj.major,
-        version_minor: obj.minor,
-        type: obj.type,
-        ownership: obj.ownership,
-        aggregation: obj.aggregation || 'individual',
-        description: obj.description,
-        doc: obj.documentation,
-        mappings: (obj.mappings || []).map((mapping) =>
-          toAstarteMappingDTO({
-            ...mapping,
-            explicitTimestamp: mapping.explicitTimestamp || false,
-            reliability: mapping.reliability || 'unreliable',
-            retention: mapping.retention || 'discard',
-            expiry: mapping.expiry || 0,
-            databaseRetentionPolicy: mapping.databaseRetentionPolicy || 'no_ttl',
-          }),
-        ),
+const stripAstarteInterfaceDTODefaults = (dto: AstarteInterfaceDTO): AstarteInterfaceDTO => {
+  const iface = _.cloneDeep(dto);
+  if (iface.type === 'datastream' && iface.aggregation === 'individual') {
+    delete iface.aggregation;
+  }
+  if (iface.type === 'datastream') {
+    iface.mappings = iface.mappings.map((mappingDTO) => {
+      const mapping = _.cloneDeep(mappingDTO);
+      if (mapping.explicit_timestamp === false) {
+        delete mapping.explicit_timestamp;
       }
-    : {
-        interface_name: obj.name,
-        version_major: obj.major,
-        version_minor: obj.minor,
-        type: obj.type,
-        ownership: obj.ownership,
-        description: obj.description,
-        doc: obj.documentation,
-        mappings: (obj.mappings || []).map((mapping) =>
-          toAstarteMappingDTO({
-            ...mapping,
-            allowUnset: mapping.allowUnset || false,
-          }),
-        ),
-      };
+      if (mapping.reliability === 'unreliable') {
+        delete mapping.reliability;
+      }
+      if (mapping.retention === 'discard') {
+        delete mapping.retention;
+      }
+      if (mapping.database_retention_policy === 'no_ttl') {
+        delete mapping.database_retention_policy;
+      }
+      if (!mapping.retention || mapping.expiry === 0) {
+        delete mapping.expiry;
+      }
+      if (!mapping.database_retention_policy) {
+        delete mapping.database_retention_ttl;
+      }
+      return mapping;
+    });
+  }
+  if (iface.type === 'properties') {
+    iface.mappings = iface.mappings.map((mappingDTO) => {
+      const mapping = _.cloneDeep(mappingDTO);
+      if (mapping.allow_unset === false) {
+        delete mapping.allow_unset;
+      }
+      return mapping;
+    });
+  }
+  return iface;
+};
+
+export const toAstarteInterfaceDTO = (obj: AstarteInterface): AstarteInterfaceDTO => {
+  return stripAstarteInterfaceDTODefaults(
+    obj.type === 'datastream'
+      ? {
+          interface_name: obj.name,
+          version_major: obj.major,
+          version_minor: obj.minor,
+          type: obj.type,
+          ownership: obj.ownership,
+          aggregation: obj.aggregation || 'individual',
+          description: obj.description,
+          doc: obj.documentation,
+          mappings: (obj.mappings || []).map((mapping) =>
+            toAstarteMappingDTO({
+              ...mapping,
+              explicitTimestamp: mapping.explicitTimestamp || false,
+              reliability: mapping.reliability || 'unreliable',
+              retention: mapping.retention || 'discard',
+              expiry: mapping.expiry || 0,
+              databaseRetentionPolicy: mapping.databaseRetentionPolicy || 'no_ttl',
+            }),
+          ),
+        }
+      : {
+          interface_name: obj.name,
+          version_major: obj.major,
+          version_minor: obj.minor,
+          type: obj.type,
+          ownership: obj.ownership,
+          description: obj.description,
+          doc: obj.documentation,
+          mappings: (obj.mappings || []).map((mapping) =>
+            toAstarteMappingDTO({
+              ...mapping,
+              allowUnset: mapping.allowUnset || false,
+            }),
+          ),
+        },
+  );
 };
