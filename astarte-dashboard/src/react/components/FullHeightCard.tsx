@@ -16,9 +16,18 @@
    limitations under the License.
 */
 
-export * from './dto';
-export * from './block';
-export * from './dataType';
-export * from './events';
-export * from './interfaceValues';
-export * from './validation';
+import React from 'react';
+import { Card, Col } from 'react-bootstrap';
+import type { ColProps } from 'react-bootstrap';
+
+const FullHeightCard = (props: ColProps): React.ReactElement => {
+  const { children, className, ...remainingProps } = props;
+
+  return (
+    <Col className={className} {...remainingProps}>
+      <Card className="h-100">{children}</Card>
+    </Col>
+  );
+};
+
+export default FullHeightCard;

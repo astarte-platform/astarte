@@ -24,8 +24,8 @@ export interface AstarteDeviceInterfaceStats {
   name: string;
   major: number;
   minor: number;
-  exchangedMessages?: number;
-  exchangedBytes?: number;
+  exchangedMessages: number;
+  exchangedBytes: number;
 }
 
 export interface AstarteDeviceObject {
@@ -84,8 +84,8 @@ const astarteDeviceInterfaceStatsSchema: yup.ObjectSchema<AstarteDeviceInterface
         then: yup.number().integer().min(1).required(),
         otherwise: yup.number().integer().min(0).required(),
       }),
-    exchangedMessages: yup.number().integer().min(0).notRequired(),
-    exchangedBytes: yup.number().integer().min(0).notRequired(),
+    exchangedMessages: yup.number().integer().min(0).required(),
+    exchangedBytes: yup.number().integer().min(0).required(),
   })
   .required();
 
