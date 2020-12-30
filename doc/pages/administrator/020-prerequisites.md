@@ -24,6 +24,32 @@ you should refer to [Voyager's documentation](https://appscode.com/products/voya
 
 You don't need to create Voyager ingresses yourself - just the Operator itself is enough.
 
+## cert-manager
+
+Astarte requires [`cert-manager`](https://cert-manager.io/) to be installed in the cluster in its default
+configuration (installed in namespace `cert-manager` as `cert-manager`). If you are using `cert-manager` in your
+cluster already you don't need to take any action - otherwise, you will need to install it.
+
+Astarte is actively tested with `cert-manager` 1.1, but should work with any 1.0+ releases of `cert-manager`.
+
+[`cert-manager` documentation](https://cert-manager.io/docs/installation/) details all needed steps to have
+a working instance on your cluster - however, in case you won't be using `cert-manager` for other components beyond
+Astarte or, in general, if you don't have very specific requirements, it is advised to install it through its Helm
+chart. To do so, run the following commands:
+
+```bash
+$ helm repo add jetstack https://charts.jetstack.io
+$ helm repo update
+$ kubectl create namespace cert-manager
+$ helm install \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --version v1.1.0 \
+  --set installCRDs=true
+```
+
+This will install `cert-manager` 1.1.0 and its CRDs in the cluster.
+
 ## External Cassandra
 
 In production deployments, it is strongly advised to have a separate Cassandra cluster interacting with the Kubernetes
