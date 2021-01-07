@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import Request from "request-promise";
+import axios from 'axios';
 
 export default class AstarteClient {
   constructor(config) {
@@ -115,38 +115,35 @@ export default class AstarteClient {
   }
 
   _get(url) {
-    return Request({
-      method: "GET",
-      uri: url,
+    return axios({
+      method: "get",
+      url,
       headers: {
         Authorization: `Bearer ${this.token}`
       },
-      json: true
     });
   }
 
   _post(url, data) {
-    return Request({
-      method: "POST",
-      uri: url,
+    return axios({
+      method: "post",
+      url,
       headers: {
         Authorization: `Bearer ${this.token}`
       },
       body: {
         data: data
       },
-      json: true
     });
   }
 
   _delete(url) {
-    return Request({
-      method: "DELETE",
-      uri: url,
+    return axios({
+      method: "delete",
+      url,
       headers: {
         Authorization: `Bearer ${this.token}`
       },
-      json: true
     });
   }
 }

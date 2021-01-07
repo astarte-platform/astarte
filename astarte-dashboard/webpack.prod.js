@@ -1,6 +1,6 @@
 const path = require('path');
 const common = require('./webpack.common.js');
-const merge = require('webpack-merge');
+const { merge } = require('webpack-merge');
 const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
@@ -25,12 +25,7 @@ module.exports = merge(common, {
                 , { loader: 'css-loader'
                   , options: { importLoaders: 1 }
                   }
-                , { loader: 'postcss-loader'
-                  , options:
-                    { config:
-                        { path: './' }
-                    }
-                  }
+                , 'postcss-loader'
                 , 'sass-loader'
                 ]
         }]
@@ -47,12 +42,17 @@ module.exports = merge(common, {
         ]
     },
     plugins: [
-        new CopyWebpackPlugin([{
-            from: 'src/static/img/',
-            to: 'static/img/'
-        }, {
-            from: 'src/favicon.ico'
-        }]),
+        new CopyWebpackPlugin({
+          patterns: [
+            {
+              from: 'src/static/img/',
+              to: 'static/img/',
+            },
+            {
+              from: 'src/favicon.ico',
+            },
+          ],
+        }),
         new MiniCssExtractPlugin({
             filename: "[name].css",
             chunkFilename: "[id].css"
