@@ -107,7 +107,7 @@ function AttemptLogin({ sessionManager }) {
   const token = hashParams.get('access_token');
   const authUrl = searchParams.get('authUrl');
 
-  const succesfulLogin = sessionManager.login(realm, token, authUrl);
+  const succesfulLogin = sessionManager.login({ realm, token, authUrl });
   if (!succesfulLogin) {
     return <Navigate to="/login" />;
   }
