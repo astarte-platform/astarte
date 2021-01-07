@@ -1,6 +1,6 @@
 const path = require('path');
 const common = require('./webpack.common.js');
-const merge = require('webpack-merge');
+const { merge } = require('webpack-merge');
 
 const entryPath = path.join(__dirname, 'src/static/index.js');
 
@@ -39,12 +39,7 @@ module.exports = merge(common, {
                 , { loader: 'css-loader'
                   , options: { importLoaders: 1 }
                   }
-                , { loader: 'postcss-loader'
-                  , options:
-                    { config:
-                        { path: './' }
-                    }
-                  }
+                , 'postcss-loader'
                 , 'sass-loader'
                 ]
         }]

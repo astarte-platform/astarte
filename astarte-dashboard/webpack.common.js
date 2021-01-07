@@ -17,7 +17,10 @@ module.exports = {
     },
     resolve: {
         extensions: ['.js', '.elm'],
-        modules: ['node_modules']
+        modules: ['node_modules'],
+        fallback: {
+            assert: false
+        }
     },
     module: {
         //noParse: /\.elm$/,
@@ -59,10 +62,4 @@ module.exports = {
             filename: 'index.html'
         })
     ],
-    node: {
-        console: true,
-        fs: "empty",
-        net: "empty",
-        tls: "empty"
-    }
 }
