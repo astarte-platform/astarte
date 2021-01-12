@@ -62,7 +62,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       break;
 
     case 'err':
-      innerHTML = <p>Couldn&apos;t load avalilable blocks</p>;
+      innerHTML = <p>Couldn&apos;t load available blocks</p>;
       break;
 
     default:
