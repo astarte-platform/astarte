@@ -35,6 +35,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Explicit timestamp is enabled by default for all mappings when interface type is changed to
   datastream.
 
+## [0.11.4] - Unreleased
+### Changed
+- Disable ValueChanged, ValueChangedApplied and PathCreated triggers
+  on datastream interfaces
+### Fixed
+- Device sent bytes pie chart now showing up on Chrome browser.
+
 ## [0.11.3] - 2020-09-24
 ### Added
 - Label for property unset in device live events page.

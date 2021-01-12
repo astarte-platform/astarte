@@ -24,7 +24,7 @@ describe('Realm Settings page tests', () => {
       cy.get('.main-content').within(() => {
         cy.contains('Public key')
           .next()
-          .contains(this.configAuth.data.jwt_public_key_pem)
+          .should('have.value', this.configAuth.data.jwt_public_key_pem)
           .should('not.be.disabled');
         cy.contains('Apply').should('be.disabled');
       });

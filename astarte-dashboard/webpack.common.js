@@ -12,6 +12,12 @@ module.exports = {
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.elm', '.scss'],
     modules: [path.resolve(__dirname, 'src'), 'node_modules'],
+    fallback: {
+      assert: false,
+      crypto: require.resolve("crypto-browserify"),
+      stream: require.resolve("stream-browserify"),
+      util: require.resolve("util/"),
+    },
     alias: {
       "astarte-client": path.resolve(__dirname, 'src/astarte-client/')
     }
@@ -43,11 +49,8 @@ module.exports = {
       inject: 'body',
       filename: 'index.html',
     }),
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+    }),
   ],
-  node: {
-    console: true,
-    fs: 'empty',
-    net: 'empty',
-    tls: 'empty',
-  },
 };
