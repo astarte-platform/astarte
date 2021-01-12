@@ -301,6 +301,12 @@ describe('Interface builder tests', () => {
       cy.visit('/');
       cy.get('h2').contains('Interface Editor');
       cy.get('#interfaceName').should('have.value', '');
+
+      cy.get('.nav-col .nav').within(() => {
+        cy.get('.nav-brand').as('brand').next('.nav-link').as('interfaceEditor');
+        cy.get('@brand').should('have.attr', 'href', '/');
+        cy.get('@interfaceEditor').should('have.attr', 'href', '/').contains('Interface Editor');
+      });
     });
   });
 

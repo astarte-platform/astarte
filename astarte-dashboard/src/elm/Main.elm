@@ -741,7 +741,7 @@ view model =
             model.session.apiConfig.realm
 
         showNavbar =
-            Session.isLoggedIn model.session
+            Session.isLoggedIn model.session || model.config == Config.EditorOnly
     in
     { title = "Astarte - Dashboard"
     , body =
