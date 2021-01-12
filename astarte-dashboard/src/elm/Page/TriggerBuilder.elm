@@ -1148,11 +1148,37 @@ renderSimpleTrigger model =
            )
 
 
+triggerEventOptions : DataTriggerEvent -> Bool -> List (Select.Item Msg)
+triggerEventOptions currentEvent isPropertyInterface =
+    let
+        availableEvents =
+            if isPropertyInterface then
+                [ ( DataTrigger.IncomingData, "Incoming Data" )
+                , ( DataTrigger.ValueChange, "Value Change" )
+                , ( DataTrigger.ValueChangeApplied, "Value Change Applied" )
+                , ( DataTrigger.PathCreated, "Path Created" )
+                , ( DataTrigger.PathRemoved, "Path Removed" )
+                , ( DataTrigger.ValueStored, "Value Stored" )
+                ]
+
+            else
+                [ ( DataTrigger.IncomingData, "Incoming Data" )
+                , ( DataTrigger.ValueStored, "Value Stored" )
+                ]
+    in
+    List.map (dataTriggerEventOptions currentEvent) availableEvents
+
+
 renderDataTrigger : DataTrigger -> Model -> List (Html Msg)
 renderDataTrigger dataTrigger model =
     let
         isAnyInterface =
             model.selectedInterfaceName == "*"
+
+        isPropertyInterface =
+            model.refInterface
+                |> Maybe.map (\interface -> interface.iType == Interface.Properties)
+                |> Maybe.withDefault False
     in
     [ Form.row []
         [ Form.col
@@ -1215,16 +1241,7 @@ renderDataTrigger dataTrigger model =
                     , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerCondition
                     ]
-                    (List.map
-                        (dataTriggerEventOptions dataTrigger.on)
-                        [ ( DataTrigger.IncomingData, "Incoming Data" )
-                        , ( DataTrigger.ValueChange, "Value Change" )
-                        , ( DataTrigger.ValueChangeApplied, "Value Change Applied" )
-                        , ( DataTrigger.PathCreated, "Path Created" )
-                        , ( DataTrigger.PathRemoved, "Path Removed" )
-                        , ( DataTrigger.ValueStored, "Value Stored" )
-                        ]
-                    )
+                    (triggerEventOptions dataTrigger.on isPropertyInterface)
                 ]
             ]
         ]
