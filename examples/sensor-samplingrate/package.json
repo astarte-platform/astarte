@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "axios": "^0.19.2",
-    "named-urls": "^2.0.0",
+    "axios": "^0.21.1",
     "bootstrap": "^4.4.1",
+    "named-urls": "^2.0.0",
     "react": "^16.12.0",
     "react-bootstrap": "^1.0.1",
     "react-dom": "^16.12.0",
