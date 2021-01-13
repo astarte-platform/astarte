@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
    limitations under the License.
 */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, Col, Row, Table } from 'react-bootstrap';
+import AstarteClient, { AstarteDevice, AstarteDeviceInterfaceStats } from 'astarte-client';
+import { getDeviceStats } from 'astarte-charts';
+import { PieChart } from 'astarte-charts/react';
 
-import type { AstarteDevice, AstarteDeviceInterfaceStats } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
-import DeviceDataPieChart from './DeviceDataPieChart';
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) {
@@ -56,10 +57,15 @@ const StatsTableRow = ({ stats }: StatsTableRowProps): React.ReactElement => (
 );
 
 interface ExchangedBytesCardProps {
+  astarte: AstarteClient;
   device: AstarteDevice;
 }
 
-const ExchangedBytesCard = ({ device }: ExchangedBytesCardProps): React.ReactElement => {
+const ExchangedBytesCard = ({ astarte, device }: ExchangedBytesCardProps): React.ReactElement => {
+  const deviceStatsProvider = useMemo(
+    () => getDeviceStats(astarte, { deviceId: device.id, stats: 'exchangedBytes' }),
+    [astarte],
+  );
   const fullList = Array.from(device.introspection.values()).concat(device.previousInterfaces);
   const totalBytes = device.totalReceivedBytes;
   const totalMessages = device.totalReceivedMessages;
@@ -118,7 +124,9 @@ const ExchangedBytesCard = ({ device }: ExchangedBytesCardProps): React.ReactEle
               </tbody>
             </Table>
           </Col>
-          <DeviceDataPieChart stats={computedStats} />
+          <Col sm={12} xl={4}>
+            <PieChart providers={[deviceStatsProvider]} />
+          </Col>
         </Row>
       </Card.Body>
     </FullHeightCard>

@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,11 +16,13 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Col, Container, Card, Row, Spinner, Table } from 'react-bootstrap';
+import { getConnectedDevices } from 'astarte-charts';
+import { ConnectedDevicesChart } from 'astarte-charts/react';
+
 import useFetch from './hooks/useFetch';
-import DevicesPieChart from './ui/DevicesPieChart';
 import WaitForData from './components/WaitForData';
 
 export default ({ astarte }) => {
@@ -32,6 +34,8 @@ export default ({ astarte }) => {
   const pairingHealth = useFetch(astarte.getPairingHealth);
   const flowHealth = astarte.config.enableFlowPreview ? useFetch(astarte.getFlowHealth) : null;
   const navigate = useNavigate();
+
+  const connectedDevicesProvider = useMemo(() => getConnectedDevices(astarte), [astarte]);
 
   const refreshData = () => {
     devicesStats.refresh();
@@ -85,7 +89,11 @@ export default ({ astarte }) => {
         <WaitForData data={devicesStats.value} status={devicesStats.status}>
           {({ connected_devices: connectedDevices, total_devices: totalDevices }) => (
             <Col xs={6} className={cellSpacingClass}>
-              <DevicesCard connectedDevices={connectedDevices} totalDevices={totalDevices} />
+              <DevicesCard
+                connectedDevices={connectedDevices}
+                totalDevices={totalDevices}
+                connectedDevicesProvider={connectedDevicesProvider}
+              />
             </Col>
           )}
         </WaitForData>
@@ -137,7 +145,7 @@ const ApiStatusCard = ({ appengine, realmManagement, pairing, showFlowStatus, fl
   </Card>
 );
 
-const DevicesCard = ({ connectedDevices, totalDevices }) => (
+const DevicesCard = ({ connectedDevices, totalDevices, connectedDevicesProvider }) => (
   <Card id="devices-card" className="h-100">
     <Card.Header as="h5">Devices</Card.Header>
     <Card.Body>
@@ -150,12 +158,7 @@ const DevicesCard = ({ connectedDevices, totalDevices }) => (
             <Card.Text>{totalDevices}</Card.Text>
           </Col>
           <Col xs={12} lg={6}>
-            {totalDevices > 0 && (
-              <DevicesPieChart
-                connectedDevices={connectedDevices}
-                disconnectedDevices={totalDevices - connectedDevices}
-              />
-            )}
+            {totalDevices > 0 && <ConnectedDevicesChart provider={connectedDevicesProvider} />}
           </Col>
         </Row>
       </Container>
