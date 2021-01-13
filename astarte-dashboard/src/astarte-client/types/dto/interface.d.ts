@@ -36,7 +36,7 @@ interface AstarteDatastreamInterfaceDTO {
   version_minor: number;
   type: 'datastream';
   ownership: 'device' | 'server';
-  aggregation: 'individual' | 'object';
+  aggregation?: 'individual' | 'object';
   description?: string;
   doc?: string;
   mappings: AstarteMappingDTO[];

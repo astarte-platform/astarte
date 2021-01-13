@@ -62,6 +62,7 @@ import Types.InterfaceMapping as InterfaceMapping
         , mappingTypeToEnglishString
         , reliabilityToEnglishString
         , retentionToEnglishString
+        , databaseRetentionToEnglishString
         )
 import Types.Session exposing (Session)
 import Types.SuggestionPopup as SuggestionPopup exposing (SuggestionPopup)
@@ -259,6 +260,8 @@ update session msg model =
                             { reliability = mapping.reliability
                             , retention = mapping.retention
                             , expiry = mapping.expiry
+                            , databaseRetention = mapping.databaseRetention
+                            , ttl = mapping.ttl
                             , explicitTimestamp = mapping.explicitTimestamp
                             }
 
@@ -266,6 +269,8 @@ update session msg model =
                             { reliability = InterfaceMapping.Unreliable
                             , retention = InterfaceMapping.Discard
                             , expiry = 0
+                            , databaseRetention = InterfaceMapping.NoTTL
+                            , ttl = 60
                             , explicitTimestamp = True
                             }
             in
@@ -278,6 +283,8 @@ update session msg model =
                 , objectReliability = commonObjectParams.reliability
                 , objectRetention = commonObjectParams.retention
                 , objectExpiry = commonObjectParams.expiry
+                , objectDatabaseRetention = commonObjectParams.databaseRetention
+                , objectTTL = commonObjectParams.ttl
                 , objectExplicitTimestamp = commonObjectParams.explicitTimestamp
                 , showSpinner = False
               }
@@ -420,6 +427,8 @@ update session msg model =
                                         { reliability = mapping.reliability
                                         , retention = mapping.retention
                                         , expiry = mapping.expiry
+                                        , databaseRetention = mapping.databaseRetention
+                                        , ttl = mapping.ttl
                                         , explicitTimestamp = mapping.explicitTimestamp
                                         }
 
@@ -427,6 +436,8 @@ update session msg model =
                                         { reliability = InterfaceMapping.Unreliable
                                         , retention = InterfaceMapping.Discard
                                         , expiry = 0
+                                        , databaseRetention = InterfaceMapping.NoTTL
+                                        , ttl = 60
                                         , explicitTimestamp = False
                                         }
                         in
@@ -437,6 +448,8 @@ update session msg model =
                             , objectReliability = commonObjectParams.reliability
                             , objectRetention = commonObjectParams.retention
                             , objectExpiry = commonObjectParams.expiry
+                            , objectDatabaseRetention = commonObjectParams.databaseRetention
+                            , objectTTL = commonObjectParams.ttl
                             , objectExplicitTimestamp = commonObjectParams.explicitTimestamp
                           }
                         , Cmd.none
@@ -1090,14 +1103,14 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.children
                                 (Radio.radioList "interfaceType"
                                     [ Radio.create
-                                        [ Radio.id "itrb1"
+                                        [ Radio.id "interfaceTypeDatastream"
                                         , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.iType == Interface.Datastream
                                         , Radio.onClick <| UpdateInterfaceType Interface.Datastream
                                         ]
                                         "Datastream"
                                     , Radio.create
-                                        [ Radio.id "itrb2"
+                                        [ Radio.id "interfaceTypeProperties"
                                         , Radio.disabled interfaceEditMode
                                         , Radio.checked <| interface.iType == Interface.Properties
                                         , Radio.onClick <| UpdateInterfaceType Interface.Properties
@@ -1116,14 +1129,14 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.children
                                 (Radio.radioList "interfaceAggregation"
                                     [ Radio.create
-                                        [ Radio.id "iarb1"
+                                        [ Radio.id "interfaceAggregationIndividual"
                                         , Radio.disabled <| interfaceEditMode || interface.iType == Interface.Properties
                                         , Radio.checked <| interface.aggregation == Interface.Individual
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Individual
                                         ]
                                         "Individual"
                                     , Radio.create
-                                        [ Radio.id "iarb2"
+                                        [ Radio.id "interfaceAggregationObject"
                                         , Radio.disabled <| interfaceEditMode || interface.iType == Interface.Properties
                                         , Radio.checked <| interface.aggregation == Interface.Object
                                         , Radio.onClick <| UpdateInterfaceAggregation Interface.Object
@@ -1142,14 +1155,14 @@ renderContent model interface interfaceEditMode accordionState =
                             |> Fieldset.children
                                 (Radio.radioList "interfaceOwnership"
                                     [ Radio.create
-                                        [ Radio.id "iorb1"
+                                        [ Radio.id "interfaceOwnershipDevice"
                                         , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Device
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Device
                                         ]
                                         "Device"
                                     , Radio.create
-                                        [ Radio.id "iorb2"
+                                        [ Radio.id "interfaceOwnershipServer"
                                         , Radio.disabled <| interfaceEditMode
                                         , Radio.checked <| interface.ownership == Interface.Server
                                         , Radio.onClick <| UpdateInterfaceOwnership Interface.Server
@@ -1178,9 +1191,9 @@ renderContent model interface interfaceEditMode accordionState =
             , Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ Form.group []
-                        [ Form.label [ for "interfaceDoc" ] [ text "Documentation" ]
+                        [ Form.label [ for "interfaceDocumentation" ] [ text "Documentation" ]
                         , Textarea.textarea
-                            [ Textarea.id "interfaceDoc"
+                            [ Textarea.id "interfaceDocumentation"
                             , Textarea.rows 3
                             , Textarea.value interface.doc
                             , Textarea.onInput UpdateInterfaceDoc
@@ -1292,7 +1305,7 @@ renderCommonMappingSettings model =
             ]
             [ Form.group []
                 [ Checkbox.checkbox
-                    [ Checkbox.id "objectMappingExpTimestamp"
+                    [ Checkbox.id "objectMappingExplicitTimestamp"
                     , Checkbox.disabled model.interfaceEditMode
                     , Checkbox.checked model.objectExplicitTimestamp
                     , Checkbox.onCheck UpdateObjectMappingExplicitTimestamp
@@ -1361,9 +1374,9 @@ renderCommonMappingSettings model =
                 Col.sm6
             ]
             [ Form.group []
-                [ Form.label [ for "objectDatabaseRetention" ] [ text "Database Retention" ]
+                [ Form.label [ for "objectMappingDatabaseRetention" ] [ text "Database Retention" ]
                 , Select.select
-                    [ Select.id "objectDatabaseRetention"
+                    [ Select.id "objectMappingDatabaseRetention"
                     , Select.disabled model.interfaceEditMode
                     , Select.onChange UpdateObjectMappingDatabaseRetention
                     ]
@@ -1388,9 +1401,9 @@ renderCommonMappingSettings model =
                 Col.sm6
             ]
             [ Form.group []
-                [ Form.label [ for "objectTTL" ] [ text "TTL" ]
+                [ Form.label [ for "objectMappingTTL" ] [ text "TTL" ]
                 , InputGroup.number
-                    [ Input.id "objectTTL"
+                    [ Input.id "objectMappingTTL"
                     , Input.disabled model.interfaceEditMode
                     , Input.value <| String.fromInt model.objectTTL
                     , Input.onInput UpdateObjectMappingTTL
@@ -1483,11 +1496,17 @@ renderMapping mapping =
         , options = [ Card.attrs [ Spacing.mb2 ] ]
         , header = renderMappingHeader mapping
         , blocks =
-            [ ( textBlock "Allow Unset" ""
+            [ ( textBlock "Description" mapping.description
+              , String.isEmpty mapping.description
+              )
+            , ( textBlock "Documentation" mapping.doc
+              , String.isEmpty mapping.doc
+              )
+            , ( textBlock "Allow Unset" <| boolToString mapping.allowUnset
               , not mapping.allowUnset
               )
-            , ( textBlock "Description" mapping.description
-              , String.isEmpty mapping.description
+            , ( textBlock "Explicit Timestamp" <| boolToString mapping.explicitTimestamp
+              , not mapping.explicitTimestamp
               )
             , ( textBlock "Reliability" <| reliabilityToEnglishString mapping.reliability
               , mapping.reliability == InterfaceMapping.Unreliable
@@ -1495,14 +1514,14 @@ renderMapping mapping =
             , ( textBlock "Retention" <| retentionToEnglishString mapping.retention
               , mapping.retention == InterfaceMapping.Discard
               )
-            , ( textBlock "Expiry" <| String.fromInt mapping.expiry
+            , ( textBlock "Expiry" <| String.fromInt mapping.expiry ++ " seconds"
               , mapping.retention == InterfaceMapping.Discard || mapping.expiry == 0
               )
-            , ( textBlock "Explicit Timestamp" <| boolToString mapping.explicitTimestamp
-              , not mapping.explicitTimestamp
+            , ( textBlock "Database Retention" <| databaseRetentionToEnglishString mapping.databaseRetention
+              , mapping.databaseRetention == InterfaceMapping.NoTTL
               )
-            , ( textBlock "Doc" mapping.doc
-              , String.isEmpty mapping.doc
+            , ( textBlock "Database Retention TTL" <| String.fromInt mapping.ttl ++ " seconds"
+              , mapping.databaseRetention == InterfaceMapping.NoTTL
               )
             ]
                 |> List.filterMap
@@ -1710,7 +1729,7 @@ subscriptions model =
 boolToString : Bool -> String
 boolToString b =
     if b then
-        "true"
+        "True"
 
     else
-        "false"
+        "False"

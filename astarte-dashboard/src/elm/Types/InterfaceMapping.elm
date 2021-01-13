@@ -36,6 +36,7 @@ module Types.InterfaceMapping exposing
     , mappingTypeToString
     , reliabilityToEnglishString
     , retentionToEnglishString
+    , databaseRetentionToEnglishString
     , setAllowUnset
     , setDatabaseRetention
     , setDescription
@@ -641,3 +642,12 @@ retentionToEnglishString retention =
 
         Stored ->
             "Stored"
+
+databaseRetentionToEnglishString : DatabaseRetention -> String
+databaseRetentionToEnglishString databaseRetention =
+    case databaseRetention of
+        NoTTL ->
+            "No TTL"
+
+        UseTTL ->
+            "Use TTL"

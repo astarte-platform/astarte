@@ -236,6 +236,7 @@ view : Model -> Html Msg
 view model =
     Modal.config (Close ModalCancel)
         |> Modal.large
+        |> Modal.scrollableBody True
         |> Modal.h5 []
             [ if model.editMode then
                 text "Edit mapping"
@@ -283,9 +284,9 @@ renderBody mapping isProperties isObject editMode endpointWarningPopup =
                     Col.sm12
                 ]
                 [ Form.group []
-                    [ Form.label [ for "mappingTypes" ] [ text "Type" ]
+                    [ Form.label [ for "mappingType" ] [ text "Type" ]
                     , Select.select
-                        [ Select.id "mappingTypes"
+                        [ Select.id "mappingType"
                         , Select.onChange UpdateMappingType
                         ]
                         (List.map (\t -> renderMappingTypeItem (t == mapping.mType) t) InterfaceMapping.mappingTypeList)
@@ -441,7 +442,7 @@ renderBody mapping isProperties isObject editMode endpointWarningPopup =
             , Form.col [ Col.sm3 ]
                 [ Form.group []
                     [ Checkbox.checkbox
-                        [ Checkbox.id "mappingExpTimestamp"
+                        [ Checkbox.id "mappingExplicitTimestamp"
                         , Checkbox.checked mapping.explicitTimestamp
                         , Checkbox.onCheck UpdateMappingTimestamp
                         ]
@@ -465,9 +466,9 @@ renderBody mapping isProperties isObject editMode endpointWarningPopup =
         , Form.row []
             [ Form.col [ Col.sm12 ]
                 [ Form.group []
-                    [ Form.label [ for "mappingDoc" ] [ text "Documentation" ]
+                    [ Form.label [ for "mappingDocumentation" ] [ text "Documentation" ]
                     , Textarea.textarea
-                        [ Textarea.id "mappingDoc"
+                        [ Textarea.id "mappingDocumentation"
                         , Textarea.rows 1
                         , Textarea.value <| mapping.doc
                         , Textarea.onInput UpdateMappingDoc
@@ -504,7 +505,7 @@ renderMappingEndpointInput endpoint isObject editMode endpointWarningPopup =
     Form.group []
         [ Form.label [ for "mappingEndpoint" ] [ text "Endpoint" ]
         , Input.text
-            [ Input.id "Endpoint"
+            [ Input.id "mappingEndpoint"
             , Input.value endpoint
             , Input.disabled editMode
             , Input.onInput UpdateMappingEndpoint

@@ -24,6 +24,7 @@ import {
   AstarteDataTreeNode,
   fromAstarteDeviceDTO,
   fromAstarteInterfaceDTO,
+  toAstarteInterfaceDTO,
   fromAstartePipelineDTO,
   toAstartePipelineDTO,
   toAstarteDataTree,
@@ -288,6 +289,10 @@ class AstarteClient {
       }),
     );
     return fromAstarteInterfaceDTO(response.data);
+  }
+
+  async installInterface(iface: AstarteInterface): Promise<void> {
+    await this.$post(this.apiConfig.interfaces(this.config), toAstarteInterfaceDTO(iface));
   }
 
   async getTriggerNames(): Promise<string[]> {

@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- Major rework for the Interface Editor.
+
 ## [1.0.0-beta.1] - Unreleased
 ### Added
 - Support device groups in device triggers.
