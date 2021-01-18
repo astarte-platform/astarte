@@ -2243,9 +2243,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         end
 
       :object ->
-        with {:guessed, guessed_endpoints} <-
+        with {:guessed, [first_endpoint_id | _tail] = guessed_endpoints} <-
                EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton),
-             :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings) do
+             :ok <- check_object_aggregation_prefix(path, guessed_endpoints, mappings),
+             {:ok, first_mapping} <- Map.fetch(mappings, first_endpoint_id) do
+          # We return the first guessed mapping changing just its endpoint id, using the canonical
+          # endpoint id used in object aggregated interfaces. This way all mapping properties
+          # (database_retention_ttl, reliability etc) are correctly set since they're the same in
+          # all mappings (this is enforced by Realm Management when the interface is installed)
+
           endpoint_id =
             CQLUtils.endpoint_id(
               interface_descriptor.name,
@@ -2253,7 +2259,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               ""
             )
 
-          {:ok, %Mapping{endpoint_id: endpoint_id}}
+          {:ok, %{first_mapping | endpoint_id: endpoint_id}}
         else
           {:ok, _endpoint_id} ->
             # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces

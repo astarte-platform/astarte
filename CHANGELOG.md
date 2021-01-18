@@ -77,6 +77,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   housekeeping keypair.
 - [trigger_engine] Correctly handle triggers on binaryblob interfaces, serializing value with base64
   like appengine does.
+- [data_updater_plant] Consider `database_retention_ttl` when inserting data on device owned
+  aggregate interfaces.
 
 ## [0.11.3] - 2020-09-24
 
