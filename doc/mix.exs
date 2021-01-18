@@ -24,6 +24,7 @@ defmodule Doc.MixProject do
       main: "001-intro_user",
       logo: "images/mascot.png",
       source_url: "https://git.ispirata.com/Astarte-NG/%{path}#L%{line}",
+      javascript_config_path: "../common_vars.js", # It's in the docs repo root
       extras: Path.wildcard("pages/*/*.md"),
       assets: "images/",
       api_reference: false,
