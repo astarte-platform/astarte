@@ -101,7 +101,7 @@ export default ({ astarte }: Props): React.ReactElement => {
               {isUpdatingSettings && (
                 <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
               )}
-              Apply
+              Change
             </Button>
           </Form>
         </>

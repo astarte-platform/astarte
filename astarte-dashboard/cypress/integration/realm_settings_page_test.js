@@ -26,14 +26,14 @@ describe('Realm Settings page tests', () => {
           .next()
           .should('have.value', this.configAuth.data.jwt_public_key_pem)
           .should('not.be.disabled');
-        cy.contains('Apply').should('be.disabled');
+        cy.contains('Change').should('be.disabled');
       });
     });
 
     it('cannot update current public key with an empty string', function () {
       cy.get('.main-content').within(() => {
         cy.contains('Public key').next().clear();
-        cy.contains('Apply').should('be.disabled');
+        cy.contains('Change').should('be.disabled');
       });
     });
 
@@ -43,7 +43,7 @@ describe('Realm Settings page tests', () => {
           .next()
           .clear()
           .type(this.configAuth.data.jwt_public_key_pem + '\n');
-        cy.contains('Apply').should('not.be.disabled').click();
+        cy.contains('Change').should('not.be.disabled').click();
       });
       cy.get('[role="dialog"]').contains('Confirm Public Key Update');
       cy.get('[role="dialog"]').contains('Update settings').click();
