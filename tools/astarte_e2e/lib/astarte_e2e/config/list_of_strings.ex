@@ -16,13 +16,19 @@
 # limitations under the License.
 #
 
-use Mix.Config
+defmodule AstarteE2E.Config.ListOfStrings do
+  use Skogsra.Type
 
-config :logger,
-  compile_time_purge_matching: [
-    [level_lower_than: :info]
-  ]
+  def cast(value) when is_binary(value) do
+    list =
+      value
+      |> String.split(~r/,/)
+      |> Enum.map(&String.trim/1)
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag, :failure_id]
+    {:ok, list}
+  end
+
+  def cast(_) do
+    :error
+  end
+end

@@ -19,7 +19,7 @@
 defmodule AstarteE2E.Client do
   alias Phoenix.Channels.GenSocketClient
   alias Phoenix.Channels.GenSocketClient.Transport.WebSocketClient
-  alias AstarteE2E.{Utils, Config}
+  alias AstarteE2E.{Utils, Config, ServiceNotifier}
 
   require Logger
 
@@ -270,6 +270,8 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
+    ServiceNotifier.notify_service_down("Client disconnected")
+
     Logger.info("Disconnected with reason: #{inspect(reason)}.",
       tag: "client_disconnected"
     )
@@ -310,7 +312,7 @@ defmodule AstarteE2E.Client do
         _transport,
         state
       ) do
-    Logger.info("Handling incoming data message.", tag: "handle_incoming_message")
+    Logger.debug("Handling incoming data message.", tag: "handle_incoming_message")
 
     :telemetry.execute([:astarte_end_to_end, :messages, :received], %{})
 
@@ -327,14 +329,14 @@ defmodule AstarteE2E.Client do
 
       :ok = Process.cancel_timer(tref, async: false, info: false)
 
-      Logger.info("Timeout timer canceled successfully in handle_message.",
+      Logger.debug("Timeout timer canceled successfully in handle_message.",
         tag: "cancel_timer_success"
       )
 
       dt_ms = reception_timestamp - timestamp
       new_state = Map.put(state, :pending_requests, new_pending_requests)
 
-      Logger.info("Message verified. Round trip time = #{inspect(dt_ms)} ms.")
+      Logger.debug("Message verified. Round trip time = #{inspect(dt_ms)} ms.")
 
       :telemetry.execute(
         [:astarte_end_to_end, :messages, :round_trip_time],
@@ -345,6 +347,8 @@ defmodule AstarteE2E.Client do
         [:astarte_end_to_end, :astarte_platform],
         %{status: 1}
       )
+
+      ServiceNotifier.notify_service_up()
 
       GenSocketClient.reply(from, :ok)
       {:ok, new_state}
@@ -364,13 +368,13 @@ defmodule AstarteE2E.Client do
   end
 
   def handle_message(_topic, event, payload, _transport, state) do
-    Logger.info("Neglecting msg. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
+    Logger.debug("Ignoring msg. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
 
     {:ok, state}
   end
 
   def handle_reply(_topic, event, payload, _transport, state) do
-    Logger.info("Handling reply. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
+    Logger.debug("Handling reply. Event: #{inspect(event)}, payload: #{inspect(payload)}.")
 
     {:ok, state}
   end
@@ -395,6 +399,8 @@ defmodule AstarteE2E.Client do
       %{status: 0}
     )
 
+    ServiceNotifier.notify_service_down("Message timeout")
+
     Logger.warn("Incoming message timeout. Key = #{inspect(key)}",
       tag: "message_timeout"
     )
@@ -412,6 +418,8 @@ defmodule AstarteE2E.Client do
       [:astarte_end_to_end, :astarte_platform],
       %{status: 0}
     )
+
+    ServiceNotifier.notify_service_down("Maximum number of request timeout reached")
 
     Logger.warn(
       "Maximum number of requests timeout reached. The websocket client is going to crash.",
@@ -433,6 +441,8 @@ defmodule AstarteE2E.Client do
       [:astarte_end_to_end, :astarte_platform],
       %{status: 0}
     )
+
+    ServiceNotifier.notify_service_down("Request timeout")
 
     Logger.warn("Request timed out. Key = #{inspect(key)}", tag: "request_timeout")
 
@@ -525,7 +535,7 @@ defmodule AstarteE2E.Client do
 
       :ok = Process.cancel_timer(tref, async: false, info: false)
 
-      Logger.info("Timeout timer canceled successfully in handle_call.",
+      Logger.debug("Timeout timer canceled successfully in handle_call.",
         tag: "cancel_timer_success"
       )
 
@@ -547,7 +557,9 @@ defmodule AstarteE2E.Client do
         %{status: 1}
       )
 
-      Logger.info("Round trip time = #{inspect(dt_ms)} ms.")
+      ServiceNotifier.notify_service_up()
+
+      Logger.debug("Round trip time = #{inspect(dt_ms)} ms.")
 
       {:reply, :ok, new_state}
     else

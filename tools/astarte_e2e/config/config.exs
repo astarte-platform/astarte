@@ -23,6 +23,10 @@
 # is restricted to this project.
 use Mix.Config
 
+config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer,
+  adapter: Bamboo.ConfigAdapter,
+  chained_adapter: Bamboo.LocalAdapter
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

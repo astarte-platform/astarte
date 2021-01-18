@@ -16,13 +16,23 @@
 # limitations under the License.
 #
 
-use Mix.Config
+defmodule AstarteE2E.Config.BambooMailAdapter do
+  use Skogsra.Type
 
-config :logger,
-  compile_time_purge_matching: [
-    [level_lower_than: :info]
-  ]
+  def cast(value) when is_binary(value) do
+    case value do
+      "mailgun" ->
+        {:ok, Bamboo.MailgunAdapter}
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag, :failure_id]
+      "sendgrid" ->
+        {:ok, Bamboo.SendGridAdapter}
+
+      _ ->
+        :error
+    end
+  end
+
+  def cast(_) do
+    :error
+  end
+end

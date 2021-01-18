@@ -16,13 +16,16 @@
 # limitations under the License.
 #
 
-use Mix.Config
+defmodule AstarteE2EWeb.HealthPlug do
+  import Plug.Conn
 
-config :logger,
-  compile_time_purge_matching: [
-    [level_lower_than: :info]
-  ]
+  def init(_args), do: nil
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag, :failure_id]
+  def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
+    conn
+    |> send_resp(:ok, "")
+    |> halt()
+  end
+
+  def call(conn, _opts), do: conn
+end

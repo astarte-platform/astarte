@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [realm_management] Allow updating doc, description and explicit_timestamp within mappings when
   bumping an interface minor.
 - Remove postgresql dependency in `docker-compose`, make CFSSL stateless.
+- Update Operator's documentation for install/upgrade/uninstall procedures.
 
 ## [1.0.0-alpha.1] - 2020-06-19
 ### Fixed
@@ -74,6 +75,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - Avoid creating an `housekeeping_public.pem` directory if `docker-compose up` doesn't find the
   housekeeping keypair.
+- [trigger_engine] Correctly handle triggers on binaryblob interfaces, serializing value with base64
+  like appengine does.
+- [data_updater_plant] Consider `database_retention_ttl` when inserting data on device owned
+  aggregate interfaces.
 
 ## [0.11.3] - 2020-09-24
 

@@ -2,6 +2,8 @@ version: '2.3'
 services:
   astarte-housekeeping:
     image: astarte/astarte_housekeeping:1.0-snapshot
+    build:
+      context: apps/astarte_housekeeping
     env_file:
      - ./compose.env
     ports:
@@ -13,6 +15,8 @@ services:
 
   astarte-housekeeping-api:
     image: astarte/astarte_housekeeping_api:1.0-snapshot
+    build:
+      context: apps/astarte_housekeeping_api
     env_file:
      - ./compose.env
     environment:
@@ -29,6 +33,8 @@ services:
 
   astarte-realm-management:
     image: astarte/astarte_realm_management:1.0-snapshot
+    build:
+      context: apps/astarte_realm_management
     env_file:
      - ./compose.env
     ports:
@@ -40,6 +46,8 @@ services:
 
   astarte-realm-management-api:
     image: astarte/astarte_realm_management_api:1.0-snapshot
+    build:
+      context: apps/astarte_realm_management_api
     env_file:
      - ./compose.env
     ports:
@@ -50,6 +58,8 @@ services:
 
   astarte-pairing:
     image: astarte/astarte_pairing:1.0-snapshot
+    build:
+      context: apps/astarte_pairing
     env_file:
      - ./compose.env
     ports:
@@ -63,6 +73,8 @@ services:
 
   astarte-pairing-api:
     image: astarte/astarte_pairing_api:1.0-snapshot
+    build:
+      context: apps/astarte_pairing_api
     env_file:
      - ./compose.env
     ports:
@@ -73,6 +85,8 @@ services:
 
   astarte-appengine-api:
     image: astarte/astarte_appengine_api:1.0-snapshot
+    build:
+      context: apps/astarte_appengine_api
     env_file:
      - ./compose.env
     environment:
@@ -89,6 +103,8 @@ services:
 
   astarte-data-updater-plant:
     image: astarte/astarte_data_updater_plant:1.0-snapshot
+    build:
+      context: apps/astarte_data_updater_plant
     env_file:
      - ./compose.env
     ports:
@@ -107,6 +123,8 @@ services:
 
   astarte-trigger-engine:
     image: astarte/astarte_trigger_engine:1.0-snapshot
+    build:
+      context: apps/astarte_trigger_engine
     env_file:
      - ./compose.env
     ports:

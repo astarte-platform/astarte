@@ -1,7 +1,7 @@
 %{
   "amqp": {:hex, :amqp, "1.5.0", "91572d74e3569fa1bd9bab1ce8b161fe959574a1407a34f8046a0e64f3e83e95", [:mix], [{:amqp_client, "~> 3.8.0", [hex: :amqp_client, repo: "hexpm", optional: false]}], "hexpm", "b569cffcbc6e1c5d26bcb4e39168a9dd986e85b20c633e710d27d19d9a2e33de"},
   "amqp_client": {:hex, :amqp_client, "3.8.6", "adbce73b4c0b9bbe6465ebe472c8aee3fb2bcd6ee8e39f791caf70de68675003", [:make, :rebar3], [{:rabbit_common, "3.8.6", [hex: :rabbit_common, repo: "hexpm", optional: false]}], "hexpm", "ee0d00d46a32dda5369f9a94e0c1c8393d048df3c0e58a14e0542075461c65a0"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "62d3f8b9229a5376a6a142cb8aa6a5bf7b4f81f1", [branch: "release-1.0"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "ef7f016b94ccf84a3391dc3e424175c0615a04f4", [branch: "release-1.0"]},
   "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "e92577c04f6f24a1d8acd8b12deb230b2b0b6240", [branch: "release-1.0"]},
   "astarte_rpc": {:git, "https://github.com/astarte-platform/astarte_rpc.git", "f0f53473d7eb126d1928d08088ac4c257e03afc7", [branch: "release-1.0"]},
   "castore": {:hex, :castore, "0.1.7", "1ca19eee705cde48c9e809e37fdd0730510752cc397745e550f6065a56a701e9", [:mix], [], "hexpm", "a2ae2c13d40e9c308387f1aceb14786dca019ebc2a11484fb2a9f797ea0aa0d8"},
@@ -45,6 +45,7 @@
   "recon": {:hex, :recon, "2.5.1", "430ffa60685ac1efdfb1fe4c97b8767c92d0d92e6e7c3e8621559ba77598678a", [:mix, :rebar3], [], "hexpm", "5721c6b6d50122d8f68cccac712caa1231f97894bab779eff5ff0f886cb44648"},
   "semver": {:hex, :semver_erl, "0.0.1", "e1dc99fb20ff071b240a0280611faba93eeb9c2adfb02a15e20a06a9f13dfff4", [:rebar3], [], "hexpm", "adf1cb935eeb2472b4b7bb8116c678c1077ae4cd5bdfe90010b765aecce5753b"},
   "skogsra": {:hex, :skogsra, "2.3.3", "90ea76d98ad749241b31e724ca17ed8aca0202001972aeca3cb834f44027f3ea", [:mix], [{:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: true]}, {:yamerl, "~> 0.8", [hex: :yamerl, repo: "hexpm", optional: true]}], "hexpm", "e36880922431d41ac56d6cb4529b0526039a108fb44f8ecc90b517d494b86c28"},
+  "snappy": {:git, "https://github.com/fdmanana/snappy-erlang-nif.git", "4e3b8611b6a1ff85a417b0f2fad8886c9485810e", [ref: "4e3b861"]},
   "snappyer": {:hex, :snappyer, "1.2.6", "34181e3233f68a92044e176fe96e54fee7957acc2be554f0460d799c495166c2", [:rebar3], [], "hexpm", "d538d1e8892af09dc8b2771b2652c9d70f009cd1556246b3e22706df643f47b4"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.6", "cf344f5692c82d2cd7554f5ec8fd961548d4fd09e7d22f5b62482e5aeaebd4b0", [:make, :mix, :rebar3], [], "hexpm", "bdb0d2471f453c88ff3908e7686f86f9be327d065cc1ec16fa4540197ea04680"},
   "telemetry": {:hex, :telemetry, "0.4.2", "2808c992455e08d6177322f14d3bdb6b625fbcfd233a73505870d8738a2f4599", [:rebar3], [], "hexpm", "2d1419bd9dda6a206d7b5852179511722e2b18812310d304620c7bd92a13fcef"},
