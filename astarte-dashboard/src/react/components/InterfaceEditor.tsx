@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -48,8 +48,8 @@ const FormControlWarning = ({ message }: FormControlWarningProps): React.ReactEl
 interface MappingRowProps {
   className?: string;
   mapping: AstarteMapping;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const reliabilityToLabel = {
@@ -84,12 +84,16 @@ const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) =
               {mapping.endpoint}
             </Button>
           </span>
-          <Button className="mr-2" variant="outline-primary" onClick={onEdit}>
-            Edit...
-          </Button>
-          <Button variant="outline-primary" onClick={onDelete}>
-            Remove
-          </Button>
+          {onEdit && (
+            <Button className="mr-2" variant="outline-primary" onClick={onEdit}>
+              Edit...
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="outline-primary" onClick={onDelete}>
+              Remove
+            </Button>
+          )}
         </Accordion.Toggle>
         <Accordion.Collapse eventKey={mapping.endpoint}>
           <Card.Body>
@@ -246,6 +250,35 @@ const computeInterfaceWarnings = (iface: AstarteInterface): { [key: string]: str
   return warnings;
 };
 
+const checkInterfaceHasMajorChanges = (
+  initialInterface: AstarteInterface,
+  draftInterface: AstarteInterface,
+) => {
+  const sensibleProperties: Array<keyof AstarteInterface> = [
+    'name',
+    'major',
+    'type',
+    'aggregation',
+    'ownership',
+  ];
+  const hasPropertyMajorChange = sensibleProperties.some(
+    (property) => draftInterface[property] !== initialInterface[property],
+  );
+  if (hasPropertyMajorChange) {
+    return true;
+  }
+  const hasExistingMappings = initialInterface.mappings.every((initialMapping) => {
+    const draftMapping = draftInterface.mappings.find(
+      ({ endpoint }) => endpoint === initialMapping.endpoint,
+    );
+    return _.isEqual(draftMapping, initialMapping);
+  });
+  if (!hasExistingMappings) {
+    return true;
+  }
+  return false;
+};
+
 const formatJSON = (json: unknown): string => {
   return JSON.stringify(json, null, 4);
 };
@@ -265,16 +298,6 @@ const checkValidJSONText = (text: string): boolean => {
   } catch {
     return false;
   }
-};
-
-const parseAstarteInterfaceJSON = (json: any): AstarteInterface | null => {
-  let parsedInterface: AstarteInterface;
-  try {
-    parsedInterface = AstarteInterface.fromJSON(json);
-  } catch {
-    throw new Error('Invalid interface');
-  }
-  return parsedInterface;
 };
 
 const defaultInterface: AstarteInterface = {
@@ -319,9 +342,15 @@ interface Props {
   initialData?: AstarteInterface;
   isSourceVisible?: boolean;
   onChange: (updatedInterface: AstarteInterface, isValid: boolean) => unknown;
+  denyMajorChanges?: boolean;
 }
 
-export default ({ initialData, isSourceVisible = false, onChange }: Props): React.ReactElement => {
+export default ({
+  initialData,
+  isSourceVisible = false,
+  onChange,
+  denyMajorChanges = false,
+}: Props): React.ReactElement => {
   const [interfaceDraft, setInterfaceDraft] = useState<AstarteInterface>(
     initialData || defaultInterface,
   );
@@ -333,6 +362,28 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
   );
   const [isMappingModalVisible, setIsMappingModalVisible] = useState(false);
   const [mappingToEditIndex, setMappingToEditIndex] = useState(0);
+
+  const parseAstarteInterfaceJSON = useCallback(
+    (json: any): AstarteInterface | null => {
+      let parsedInterface: AstarteInterface;
+      try {
+        parsedInterface = AstarteInterface.fromJSON(json);
+      } catch {
+        throw new Error('Invalid interface');
+      }
+      if (
+        initialData != null &&
+        denyMajorChanges &&
+        checkInterfaceHasMajorChanges(initialData, parsedInterface)
+      ) {
+        throw new Error(
+          'Interface cannot have major changes such as updating name, major, type, aggregation, ownership, or editing already existing mappings',
+        );
+      }
+      return parsedInterface;
+    },
+    [initialData, denyMajorChanges],
+  );
 
   const handleInterfaceNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
@@ -611,6 +662,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                     autoComplete="off"
                     required
                     isInvalid={interfaceValidationErrors.name != null}
+                    readOnly={denyMajorChanges}
                   />
                   <Form.Control.Feedback type="invalid">
                     {interfaceValidationErrors.name}
@@ -625,11 +677,12 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                   <Form.Label>Major</Form.Label>
                   <Form.Control
                     type="number"
-                    min={0}
+                    min={initialData ? initialData.major : 0}
                     value={interfaceDraft.major}
                     onChange={handleInterfaceMajorChange}
                     required
                     isInvalid={interfaceValidationErrors.major != null}
+                    readOnly={denyMajorChanges}
                   />
                   <Form.Control.Feedback type="invalid">
                     {interfaceValidationErrors.major}
@@ -641,7 +694,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                   <Form.Label>Minor</Form.Label>
                   <Form.Control
                     type="number"
-                    min={0}
+                    min={initialData ? initialData.minor : 0}
                     value={interfaceDraft.minor}
                     onChange={handleInterfaceMinorChange}
                     required
@@ -665,6 +718,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                     value="datastream"
                     checked={interfaceDraft.type === 'datastream'}
                     onChange={handleInterfaceTypeChange}
+                    disabled={denyMajorChanges}
                   />
                   <Form.Check
                     type="radio"
@@ -674,6 +728,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                     value="properties"
                     checked={interfaceDraft.type === 'properties'}
                     onChange={handleInterfaceTypeChange}
+                    disabled={denyMajorChanges}
                   />
                 </Form.Group>
               </Col>
@@ -690,7 +745,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                       interfaceDraft.aggregation === 'individual' || !interfaceDraft.aggregation
                     }
                     onChange={handleInterfaceAggregationChange}
-                    disabled={interfaceDraft.type === 'properties'}
+                    disabled={interfaceDraft.type === 'properties' || denyMajorChanges}
                   />
                   <Form.Check
                     type="radio"
@@ -700,7 +755,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                     value="object"
                     checked={interfaceDraft.aggregation === 'object'}
                     onChange={handleInterfaceAggregationChange}
-                    disabled={interfaceDraft.type === 'properties'}
+                    disabled={interfaceDraft.type === 'properties' || denyMajorChanges}
                   />
                 </Form.Group>
               </Col>
@@ -715,6 +770,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                     value="device"
                     checked={interfaceDraft.ownership === 'device'}
                     onChange={handleInterfaceOwnershipChange}
+                    disabled={denyMajorChanges}
                   />
                   <Form.Check
                     type="radio"
@@ -724,6 +780,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                     value="server"
                     checked={interfaceDraft.ownership === 'server'}
                     onChange={handleInterfaceOwnershipChange}
+                    disabled={denyMajorChanges}
                   />
                 </Form.Group>
               </Col>
@@ -738,6 +795,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                       name="mappingReliability"
                       value={datastreamOptions.reliability || 'unreliable'}
                       onChange={handleInterfaceReliabilityChange}
+                      disabled={denyMajorChanges}
                     >
                       <option value="unreliable">{reliabilityToLabel.unreliable}</option>
                       <option value="guaranteed">{reliabilityToLabel.guaranteed}</option>
@@ -754,6 +812,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                       label="Explicit timestamp"
                       checked={!!datastreamOptions.explicitTimestamp}
                       onChange={handleInterfaceExplicitTimestampChange}
+                      disabled={denyMajorChanges}
                     />
                   </Form.Group>
                 </Col>
@@ -769,6 +828,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                       name="mappingRetention"
                       value={datastreamOptions.retention || 'discard'}
                       onChange={handleInterfaceRetentionChange}
+                      disabled={denyMajorChanges}
                     >
                       <option value="discard">{retentionToLabel.discard}</option>
                       <option value="volatile">{retentionToLabel.volatile}</option>
@@ -787,6 +847,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                           value={datastreamOptions.expiry || 0}
                           onChange={handleInterfaceExpiryChange}
                           isInvalid={(datastreamOptions.expiry || 0) < 0}
+                          disabled={denyMajorChanges}
                         />
                         <InputGroup.Append>
                           <InputGroup.Text>seconds</InputGroup.Text>
@@ -807,6 +868,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                       name="mappingDatabaseRetention"
                       value={datastreamOptions.databaseRetentionPolicy || 'no_ttl'}
                       onChange={handleInterfaceDatabaseRetentionPolicyChange}
+                      disabled={denyMajorChanges}
                     >
                       <option value="no_ttl">{databaseRetentionToLabel.no_ttl}</option>
                       <option value="use_ttl">{databaseRetentionToLabel.use_ttl}</option>
@@ -824,6 +886,7 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                           value={datastreamOptions.databaseRetentionTtl || 60}
                           onChange={handleInterfaceDatabaseRetentionTtlChange}
                           isInvalid={(datastreamOptions.databaseRetentionTtl || 60) < 60}
+                          disabled={denyMajorChanges}
                         />
                         <InputGroup.Append>
                           <InputGroup.Text>seconds</InputGroup.Text>
@@ -880,15 +943,22 @@ export default ({ initialData, isSourceVisible = false, onChange }: Props): Reac
                   >
                     <i className="fas fa-plus mr-2" /> Add new mapping...
                   </button>
-                  {interfaceDraft.mappings.map((mapping, index) => (
-                    <MappingRow
-                      key={mapping.endpoint}
-                      className="mb-2"
-                      mapping={mapping}
-                      onEdit={() => handleEditMapping(index)}
-                      onDelete={() => handleDeleteMapping(index)}
-                    />
-                  ))}
+                  {interfaceDraft.mappings.map((mapping, index) => {
+                    const isExistingMapping = (initialData?.mappings || []).some(
+                      ({ endpoint }) => endpoint === mapping.endpoint,
+                    );
+                    const canEdit = !(denyMajorChanges && isExistingMapping);
+                    const canDelete = !(denyMajorChanges && isExistingMapping);
+                    return (
+                      <MappingRow
+                        key={mapping.endpoint}
+                        className="mb-2"
+                        mapping={mapping}
+                        onEdit={canEdit ? () => handleEditMapping(index) : undefined}
+                        onDelete={canDelete ? () => handleDeleteMapping(index) : undefined}
+                      />
+                    );
+                  })}
                   <Form.Control
                     className="d-none"
                     isInvalid={interfaceValidationErrors.mappings != null}

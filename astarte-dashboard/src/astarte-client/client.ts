@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -200,6 +200,7 @@ class AstarteClient {
       auth:                  astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/config/auth`,
       interfaces:            astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces`,
       interfaceMajors:       astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
+      interface:             astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       interfaceData:         astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       triggers:              astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/triggers`,
       appengineHealth:       astarteAPIurl`${config.appengineUrl}health`,
@@ -277,7 +278,7 @@ class AstarteClient {
   }
 
   async getInterface(params: {
-    interfaceName: AstarteDevice['name'];
+    interfaceName: AstarteInterface['name'];
     interfaceMajor: AstarteInterface['major'];
   }): Promise<AstarteInterface> {
     const { interfaceName, interfaceMajor } = params;
@@ -293,6 +294,24 @@ class AstarteClient {
 
   async installInterface(iface: AstarteInterface): Promise<void> {
     await this.$post(this.apiConfig.interfaces(this.config), toAstarteInterfaceDTO(iface));
+  }
+
+  async updateInterface(iface: AstarteInterface): Promise<void> {
+    await this.$put(
+      this.apiConfig.interface({
+        interfaceName: iface.name,
+        interfaceMajor: iface.major,
+        ...this.config,
+      }),
+      toAstarteInterfaceDTO(iface),
+    );
+  }
+
+  async deleteInterface(
+    interfaceName: AstarteInterface['name'],
+    interfaceMajor: AstarteInterface['major'],
+  ): Promise<void> {
+    await this.$delete(this.apiConfig.interface({ ...this.config, interfaceName, interfaceMajor }));
   }
 
   async getTriggerNames(): Promise<string[]> {
