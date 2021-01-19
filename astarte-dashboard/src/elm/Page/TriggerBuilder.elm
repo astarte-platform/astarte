@@ -1017,7 +1017,7 @@ update session msg model =
         OpenNewHttpHeaderPopup ->
             let
                 modal =
-                    NewCustomHeader (AskKeyValue.init "Add custom HTTP header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewCustomHeader (AskKeyValue.init "Add Custom HTTP Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -1063,7 +1063,7 @@ update session msg model =
         OpenNewAmqpHeaderPopup ->
             let
                 modal =
-                    NewAmqpStaticHeader (AskKeyValue.init "Add custom AMQP header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewAmqpStaticHeader (AskKeyValue.init "Add Custom AMQP Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -1074,7 +1074,7 @@ update session msg model =
             let
                 modalModel =
                     AskSingleValue.init
-                        ("Edit Value for header \"" ++ header ++ "\"")
+                        ("Edit Value for Header \"" ++ header ++ "\"")
                         "Value"
                         AskSingleValue.AnyValue
                         True
@@ -1893,9 +1893,9 @@ renderDeviceTrigger deviceTrigger editMode =
         ++ [ Form.row []
                 [ Form.col [ Col.sm12 ]
                     [ Form.group []
-                        [ Form.label [ for "triggerDeviceOn" ] [ text "Trigger condition" ]
+                        [ Form.label [ for "triggerCondition" ] [ text "Trigger condition" ]
                         , Select.select
-                            [ Select.id "triggerDeviceOn"
+                            [ Select.id "triggerCondition"
                             , Select.disabled editMode
                             , Select.onChange UpdateDeviceTriggerCondition
                             ]
