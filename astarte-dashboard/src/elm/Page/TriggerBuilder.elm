@@ -1612,7 +1612,7 @@ renderDataTrigger dataTrigger model =
             [ Form.group []
                 [ Form.label [ for "triggerOperator" ] [ text "Operator" ]
                 , Select.select
-                    [ Select.id "triggerCondition"
+                    [ Select.id "triggerOperator"
                     , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerOperator
                     ]
@@ -1962,7 +1962,7 @@ allOperators =
     , ( "greaterThan", ">" )
     , ( "greaterOrEqualTo", ">=" )
     , ( "lessThan", "<" )
-    , ( "lessOrEqualTo", ">=" )
+    , ( "lessOrEqualTo", "<=" )
     , ( "contains", "Contains" )
     , ( "notContains", "Not Contains" )
     ]
