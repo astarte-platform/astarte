@@ -82,49 +82,53 @@ function clearReact() {
 $.getJSON('/user-config/config.json', (result) => {
   dashboardConfig = result;
 }).always(() => {
-  sessionManager = new SessionManager({
-    astarteApiUrl: dashboardConfig.astarte_api_url,
-    appEngineApiUrl: dashboardConfig.appengine_api_url,
-    realmManagementApiUrl: dashboardConfig.realm_management_api_url,
-    pairingApiUrl: dashboardConfig.pairing_api_url,
-    flowApiUrl: dashboardConfig.flow_api_url,
-    enableFlowPreview: dashboardConfig.enable_flow_preview,
-    auth: dashboardConfig.auth,
-    defaultAuth: dashboardConfig.default_auth,
-    defaultRealm: dashboardConfig.default_realm,
-  });
-
-  const session = sessionManager.getSession();
-
-  const parameters = {
-    config: dashboardConfig,
-    previousSession: SessionManager.serializeSession(session),
-  };
-
-  // init app
-  app = elmApp.init({ flags: parameters });
-
-  const conf = sessionManager.getConfig();
-  astarteClient = new AstarteClient({
-    realmManagementUrl: conf.realmManagementApiUrl,
-    appengineUrl: conf.appEngineApiUrl,
-    pairingUrl: conf.pairingApiUrl,
-    flowUrl: conf.flowApiUrl,
-    enableFlowPreview: conf.enableFlowPreview,
-  });
-
-  if (sessionManager.isLoggedIn) {
-    astarteClient.setCredentials(sessionManager.getCredentials());
-  }
-
-  sessionManager.on('sessionChange', (newSession) => {
-    app.ports.onSessionChange.send(JSON.parse(SessionManager.serializeSession(newSession)));
-
-    astarteClient.setCredentials({
-      token: newSession ? newSession.credentials.token : '',
-      realm: newSession ? newSession.credentials.realm : '',
+  if (!dashboardConfig) {
+    app = elmApp.init();
+  } else {
+    sessionManager = new SessionManager({
+      astarteApiUrl: dashboardConfig.astarte_api_url,
+      appEngineApiUrl: dashboardConfig.appengine_api_url,
+      realmManagementApiUrl: dashboardConfig.realm_management_api_url,
+      pairingApiUrl: dashboardConfig.pairing_api_url,
+      flowApiUrl: dashboardConfig.flow_api_url,
+      enableFlowPreview: dashboardConfig.enable_flow_preview,
+      auth: dashboardConfig.auth,
+      defaultAuth: dashboardConfig.default_auth,
+      defaultRealm: dashboardConfig.default_realm,
     });
-  });
+
+    const session = sessionManager.getSession();
+
+    const parameters = {
+      config: dashboardConfig,
+      previousSession: SessionManager.serializeSession(session),
+    };
+
+    // init app
+    app = elmApp.init({ flags: parameters });
+
+    const conf = sessionManager.getConfig();
+    astarteClient = new AstarteClient({
+      realmManagementUrl: conf.realmManagementApiUrl,
+      appengineUrl: conf.appEngineApiUrl,
+      pairingUrl: conf.pairingApiUrl,
+      flowUrl: conf.flowApiUrl,
+      enableFlowPreview: conf.enableFlowPreview,
+    });
+
+    if (sessionManager.isLoggedIn) {
+      astarteClient.setCredentials(sessionManager.getCredentials());
+    }
+
+    sessionManager.on('sessionChange', (newSession) => {
+      app.ports.onSessionChange.send(JSON.parse(SessionManager.serializeSession(newSession)));
+
+      astarteClient.setCredentials({
+        token: newSession ? newSession.credentials.token : '',
+        realm: newSession ? newSession.credentials.realm : '',
+      });
+    });
+  }
 
   /* begin Elm ports */
   app.ports.loadReactPage.subscribe(loadPage);

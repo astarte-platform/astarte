@@ -36,7 +36,6 @@ import Html.Attributes exposing (id, class, classList, href, src, style)
 import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import ListUtils exposing (addWhen)
-import Page.InterfaceBuilder as InterfaceBuilder
 import Page.ReactInit as ReactInit
 import Page.TriggerBuilder as TriggerBuilder
 import Ports
@@ -200,8 +199,7 @@ type Page
 
 
 type RealmPage
-    = InterfaceBuilderPage InterfaceBuilder.Model
-    | TriggerBuilderPage TriggerBuilder.Model
+    = TriggerBuilderPage TriggerBuilder.Model
     | ReactInitPage ReactPageCategory
 
 
@@ -228,7 +226,6 @@ type Msg
     | UrlRequest UrlRequest
     | UpdateRelativeURL (Maybe String)
     | UpdateSession (Maybe Session)
-    | InterfaceBuilderMsg InterfaceBuilder.Msg
     | TriggerBuilderMsg TriggerBuilder.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
@@ -394,9 +391,6 @@ updateRealmPage realm realmPage msg model =
     let
         ( page, command, externalMsg ) =
             case ( msg, realmPage ) of
-                ( InterfaceBuilderMsg subMsg, InterfaceBuilderPage subModel ) ->
-                    updateRealmPageHelper realm (InterfaceBuilder.update model.session subMsg subModel) InterfaceBuilderMsg InterfaceBuilderPage
-
                 ( TriggerBuilderMsg subMsg, TriggerBuilderPage subModel ) ->
                     updateRealmPageHelper realm (TriggerBuilder.update model.session subMsg subModel) TriggerBuilderMsg TriggerBuilderPage
 
@@ -564,26 +558,6 @@ initLoginPage session =
     )
 
 
-initInterfaceBuilderPage : Maybe ( String, Int ) -> Session -> String -> ( Page, Cmd Msg, Session )
-initInterfaceBuilderPage maybeInterfaceId session realm =
-    let
-        pageMode =
-            case maybeInterfaceId of
-                Nothing ->
-                    InterfaceBuilder.New
-
-                Just ( name, major ) ->
-                    InterfaceBuilder.Edit ( name, major )
-
-        ( initialModel, initialCommand ) =
-            InterfaceBuilder.init pageMode session
-    in
-    ( Realm realm (InterfaceBuilderPage initialModel)
-    , Cmd.map InterfaceBuilderMsg initialCommand
-    , session
-    )
-
-
 initTriggerBuilderPage : Maybe String -> Session -> String -> ( Page, Cmd Msg, Session )
 initTriggerBuilderPage maybeTriggerName session realm =
     let
@@ -592,18 +566,6 @@ initTriggerBuilderPage maybeTriggerName session realm =
     in
     ( Realm realm (TriggerBuilderPage initialModel)
     , Cmd.map TriggerBuilderMsg initialCommand
-    , session
-    )
-
-
-initInterfaceEditorPage : Session -> ( Page, Cmd Msg, Session )
-initInterfaceEditorPage session =
-    let
-        ( initialModel, initialCommand ) =
-            InterfaceBuilder.init InterfaceBuilder.EditorOnly session
-    in
-    ( Realm "" (InterfaceBuilderPage initialModel)
-    , Cmd.map InterfaceBuilderMsg initialCommand
     , session
     )
 
@@ -640,7 +602,7 @@ processRoute : Browser.Navigation.Key -> Config -> Session -> ( Maybe Route, May
 processRoute key config session ( maybeRoute, maybeToken ) =
     case ( Config.getParams config, maybeRoute ) of
         ( Nothing, _ ) ->
-            initInterfaceEditorPage session
+            initReactPage session Home "home" Route.Home
 
         ( Just params, Nothing ) ->
             -- unknown route
@@ -946,9 +908,6 @@ isInterfacesRelated page =
         Realm _ (ReactInitPage Interfaces) ->
             True
 
-        Realm _ (InterfaceBuilderPage _) ->
-            True
-
         _ ->
             False
 
@@ -1053,10 +1012,6 @@ renderPage model page =
 renderProtectedPage : List FlashMessage -> RealmPage -> Html Msg
 renderProtectedPage flashMessages page =
     case page of
-        InterfaceBuilderPage submodel ->
-            InterfaceBuilder.view submodel flashMessages
-                |> Html.map InterfaceBuilderMsg
-
         TriggerBuilderPage submodel ->
             TriggerBuilder.view submodel flashMessages
                 |> Html.map TriggerBuilderMsg
@@ -1084,9 +1039,6 @@ subscriptions model =
 pageSubscriptions : Page -> Sub Msg
 pageSubscriptions page =
     case page of
-        Realm _ (InterfaceBuilderPage submodel) ->
-            Sub.map InterfaceBuilderMsg <| InterfaceBuilder.subscriptions submodel
-
         Realm _ (TriggerBuilderPage submodel) ->
             Sub.map TriggerBuilderMsg <| TriggerBuilder.subscriptions submodel
 

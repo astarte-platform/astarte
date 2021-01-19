@@ -27,6 +27,7 @@ import NewGroupPage from './NewGroupPage';
 import TriggersPage from './TriggersPage';
 import InterfacesPage from './InterfacesPage';
 import InterfacePage from './InterfacePage';
+import InterfaceEditorPage from './InterfaceEditorPage';
 import NewInterfacePage from './NewInterfacePage';
 import DevicesPage from './DevicesPage';
 import RegisterDevicePage from './RegisterDevicePage';
@@ -49,6 +50,10 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
     location: history.location,
   });
   useLayoutEffect(() => history.listen(dispatchHistoryUpdate), [history]);
+
+  if (!astarteClient || !sessionManager || !config) {
+    return <InterfaceEditorPage />;
+  }
 
   const pageProps = {
     astarte: astarteClient,

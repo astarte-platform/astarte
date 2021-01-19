@@ -21,11 +21,9 @@ module AstarteApi exposing
     ( Config
     , DeviceStats
     , Error(..)
-    , addNewInterface
     , addNewTrigger
     , appEngineApiHealth
     , configDecoder
-    , deleteInterface
     , deleteTrigger
     , errorToHumanReadable
     , flowApiHealth
@@ -373,38 +371,6 @@ getInterface apiConfig interfaceName major okMsg errorMsg loginMsg =
         , tracker = Nothing
         }
         |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
-
-
-deleteInterface : Config -> String -> Int -> msg -> (Error -> msg) -> msg -> Cmd msg
-deleteInterface apiConfig interfaceName major okMsg errorMsg loginMsg =
-    Http.request
-        { method = "DELETE"
-        , headers = buildHeaders apiConfig.token
-        , url =
-            buildUrl apiConfig.secureConnection
-                apiConfig.realmManagementUrl
-                [ "v1", apiConfig.realm, "interfaces", interfaceName, String.fromInt major ]
-                []
-        , body = Http.emptyBody
-        , expect = expectWhateverAstarteReply Answer
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
-
-
-addNewInterface : Config -> Interface -> msg -> (Error -> msg) -> msg -> Cmd msg
-addNewInterface apiConfig interface okMsg errorMsg loginMsg =
-    Http.request
-        { method = "POST"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "interfaces" ] []
-        , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
-        , expect = expectWhateverAstarteReply Answer
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
 updateInterface : Config -> Interface -> msg -> (Error -> msg) -> msg -> Cmd msg
