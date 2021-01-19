@@ -82,11 +82,23 @@ function clearReact() {
 $.getJSON('/user-config/config.json', (result) => {
   dashboardConfig = result;
 }).always(() => {
-  sessionManager = new SessionManager(dashboardConfig);
+  sessionManager = new SessionManager({
+    astarteApiUrl: dashboardConfig.astarte_api_url,
+    appEngineApiUrl: dashboardConfig.appengine_api_url,
+    realmManagementApiUrl: dashboardConfig.realm_management_api_url,
+    pairingApiUrl: dashboardConfig.pairing_api_url,
+    flowApiUrl: dashboardConfig.flow_api_url,
+    enableFlowPreview: dashboardConfig.enable_flow_preview,
+    auth: dashboardConfig.auth,
+    defaultAuth: dashboardConfig.default_auth,
+    defaultRealm: dashboardConfig.default_realm,
+  });
+
+  const session = sessionManager.getSession();
 
   const parameters = {
     config: dashboardConfig,
-    previousSession: JSON.stringify(sessionManager.getSession()),
+    previousSession: SessionManager.serializeSession(session),
   };
 
   // init app
@@ -101,20 +113,18 @@ $.getJSON('/user-config/config.json', (result) => {
     enableFlowPreview: conf.enableFlowPreview,
   });
 
-  if (sessionManager.isUserLoggedIn) {
+  if (sessionManager.isLoggedIn) {
     astarteClient.setCredentials(sessionManager.getCredentials());
   }
 
-  // TODO use TargetEvent API or custom
-  // events library
-  sessionManager.onSessionChange = (newSession) => {
-    app.ports.onSessionChange.send(newSession);
+  sessionManager.on('sessionChange', (newSession) => {
+    app.ports.onSessionChange.send(JSON.parse(SessionManager.serializeSession(newSession)));
 
     astarteClient.setCredentials({
-      token: newSession ? newSession.api_config.token : '',
-      realm: newSession ? newSession.api_config.realm : '',
+      token: newSession ? newSession.credentials.token : '',
+      realm: newSession ? newSession.credentials.realm : '',
     });
-  };
+  });
 
   /* begin Elm ports */
   app.ports.loadReactPage.subscribe(loadPage);

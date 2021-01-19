@@ -126,6 +126,7 @@
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.20",
     "ml-matrix": "^6.5.1",
+    "nanoevents": "^5.1.10",
     "pathfinding": "^0.4.18",
     "paths-js": "^0.4.11",
     "phoenix": "^1.5.3",
