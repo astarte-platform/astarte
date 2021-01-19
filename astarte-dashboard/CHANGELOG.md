@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   on datastream interfaces
 ### Fixed
 - Device sent bytes pie chart now showing up on Chrome browser.
+- Fix typos in the Trigger Editor
 
 ## [0.11.3] - 2020-09-24
 ### Added
