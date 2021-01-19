@@ -135,13 +135,15 @@ Data triggers are installed for all devices in a Realm.
 - `incoming_data`: verifies the condition whenever new data arrives.
 - `value_stored`: verifies the condition whenever new data arrives, after it is saved to the
   database.
-- `value_change`: verifies the condition whenever the last value received is different from the
-  last one previously received.
-- `value_change_applied`: verifies the condition whenever the last value received is different from
-  the last one previously received, after it is saved to the database.
+- `value_change`: works only with properties interface; verifies the condition whenever the
+  received value is different from the previous one.
+- `value_change_applied`: works only with properties interface; verifies the condition whenever the
+  last value received is different from the last one previously received, after it is saved to the
+  database.
 - `path_created`: verifies the condition whenever a new path in a property interface is set or the
   first value is streamed on a datastream interface.
-- `path_removed`: verifies the condition whenever a property path is unset.
+- `path_removed`: works only with properties interface; verifies the condition whenever a property
+  path is unset.
 
 `interface_name` and `interface_major` represent, respectively, the Interface name and major version
 that uniquely identify an Astarte Interface. `interface_name` can be `*` to match all interfaces; in

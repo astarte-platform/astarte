@@ -553,7 +553,11 @@ defmodule Astarte.RealmManagement.Engine do
     with {:ok, interface} <- Queries.fetch_interface(client, interface_name, interface_major) do
       case interface.aggregation do
         :individual ->
-          :ok
+          if interface.type != :properties and properties_trigger_type?(data_trigger_type) do
+            {:error, :invalid_datastream_trigger}
+          else
+            :ok
+          end
 
         :object ->
           if data_trigger_type != :INCOMING_DATA or match_operator != :ANY or match_path != "/*" do
@@ -568,6 +572,15 @@ defmodule Astarte.RealmManagement.Engine do
   defp validate_simple_trigger(_client, _other_trigger) do
     # TODO: validate DeviceTrigger and IntrospectionTrigger
     :ok
+  end
+
+  defp properties_trigger_type?(tt) do
+    case tt do
+      :VALUE_CHANGE -> true
+      :VALUE_CHANGE_APPLIED -> true
+      :PATH_REMOVED -> true
+      _ -> false
+    end
   end
 
   defp install_simple_triggers(client, simple_trigger_maps, trigger_uuid, trigger_target) do
