@@ -80,6 +80,7 @@ type PageModals
     | EditAliasValue AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
     | EditMetadataValue AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
     | ConfirmCredentialsWipe ConfirmModal.Model (ConfirmModal.Msg -> Msg)
+    | CredentialsWipedFeedback ConfirmModal.Model (ConfirmModal.Msg -> Msg)
     | ConfirmAliasDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
     | ConfirmMetadataDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
 
@@ -349,6 +350,16 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
+                Just (CredentialsWipedFeedback modalModel msgTag) ->
+                    let
+                        ( newStatus, externalCommand ) =
+                            ConfirmModal.update modalMsg modalModel
+                    in
+                    ( { model | currentModal = Just (CredentialsWipedFeedback newStatus msgTag) }
+                    , handleConfirmModalCommand session model externalCommand
+                    , ExternalMsg.Noop
+                    )
+
                 Just (ConfirmAliasDeletion modalModel msgTag aliasTag) ->
                     let
                         ( newStatus, externalCommand ) =
@@ -447,7 +458,7 @@ update session msg model =
                     "Delete Alias"
 
                 body =
-                    "Delete alias \"" ++ aliasValue ++ "\"?"
+                    Html.text ("Delete alias \"" ++ aliasValue ++ "\"?")
 
                 action =
                     Just "Delete"
@@ -456,7 +467,7 @@ update session msg model =
                     Just ConfirmModal.Danger
 
                 modal =
-                    ConfirmAliasDeletion (ConfirmModal.init title body action style True) UpdateConfirmModal aliasTag
+                    ConfirmAliasDeletion (ConfirmModal.init title body action style True True) UpdateConfirmModal aliasTag
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -495,7 +506,7 @@ update session msg model =
                     "Delete Item"
 
                 body =
-                    "Do you want to delete " ++ key ++ " from metadata?"
+                    Html.text ("Do you want to delete " ++ key ++ " from metadata?")
 
                 action =
                     Just "Delete"
@@ -504,7 +515,7 @@ update session msg model =
                     Just ConfirmModal.Danger
 
                 modal =
-                    ConfirmMetadataDeletion (ConfirmModal.init title body action style True) UpdateConfirmModal key
+                    ConfirmMetadataDeletion (ConfirmModal.init title body action style True True) UpdateConfirmModal key
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -544,7 +555,7 @@ update session msg model =
                     "Warning"
 
                 body =
-                    "This will remove the current device credential secret from Astarte, forcing the device to register again and store its new credentials secret. Continue?"
+                    Html.text "This will remove the current device credential secret from Astarte, forcing the device to register again and store its new credentials secret. Continue?"
 
                 action =
                     Just "Wipe credentials secret"
@@ -553,7 +564,7 @@ update session msg model =
                     Just ConfirmModal.Danger
 
                 modal =
-                    ConfirmCredentialsWipe (ConfirmModal.init title body action style True) UpdateConfirmModal
+                    ConfirmCredentialsWipe (ConfirmModal.init title body action style True True) UpdateConfirmModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -561,9 +572,32 @@ update session msg model =
             )
 
         WipeDeviceCredentialsDone (Ok _) ->
-            ( model
+            let
+                title =
+                    "Success"
+
+                body =
+                    Html.p
+                        []
+                        [ Html.text "The device's credentials secret was wiped from Astarte. You can "
+                        , Html.a
+                            [ href <| Route.toString <| Route.Realm <| Route.RegisterDevice (Just model.deviceId) ]
+                            [ Html.text "click here" ]
+                        , Html.text " to register the device again and retrieve its new credentials secret."
+                        ]
+
+                action =
+                    Just "OK"
+
+                style =
+                    Just ConfirmModal.Normal
+
+                modal =
+                    CredentialsWipedFeedback (ConfirmModal.init title body action style True False) UpdateConfirmModal
+            in
+            ( { model | currentModal = Just modal }
             , Cmd.none
-            , ExternalMsg.AddFlashMessage FlashMessage.Notice "Credentials wiped" []
+            , ExternalMsg.Noop
             )
 
         WipeDeviceCredentialsDone (Err error) ->
@@ -846,6 +880,10 @@ renderModals modal =
                 |> Html.map msgHanlder
 
         ConfirmCredentialsWipe model msgHanlder ->
+            ConfirmModal.view model
+                |> Html.map msgHanlder
+
+        CredentialsWipedFeedback model msgHanlder ->
             ConfirmModal.view model
                 |> Html.map msgHanlder
 
