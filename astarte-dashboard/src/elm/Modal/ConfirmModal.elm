@@ -31,8 +31,9 @@ import HtmlUtils
 
 type alias Model =
     { title : String
-    , body : String
+    , body : Html Msg
     , action : String
+    , canCancel: Bool
     , modalType : ModalType
     , visibility : Modal.Visibility
     }
@@ -43,8 +44,8 @@ type ModalType
     | Danger
 
 
-init : String -> String -> Maybe String -> Maybe ModalType -> Bool -> Model
-init modalTitle body action modalType shown =
+init : String -> Html Msg -> Maybe String -> Maybe ModalType -> Bool -> Bool -> Model
+init modalTitle body action modalType shown canCancel =
     { title = modalTitle
     , body = body
     , action = action |> Maybe.withDefault "Confirm"
@@ -55,6 +56,7 @@ init modalTitle body action modalType shown =
 
         else
             Modal.hidden
+    , canCancel = canCancel
     }
 
 
@@ -87,20 +89,29 @@ update message model =
             )
 
 
+htmlIf : Bool -> Html msg -> Html msg
+htmlIf cond el =
+    if cond then
+        el
+
+    else
+        Html.text ""
+
+
 view : Model -> Html Msg
 view model =
     Modal.config (Close ModalCancel)
         |> Modal.large
         |> Modal.h5 [] [ Html.text model.title ]
         |> Modal.body []
-            [ Html.p [] [ Html.text model.body ]
+            [ Html.p [] [ model.body ]
             ]
         |> Modal.footer []
-            [ Button.button
+            [ htmlIf model.canCancel (Button.button
                 [ Button.secondary
                 , Button.onClick <| Close ModalCancel
                 ]
-                [ Html.text "Cancel" ]
+                [ Html.text "Cancel" ])
             , Button.button
                 [ buttonStyle model.modalType
                 , Button.onClick <| Close ModalOk

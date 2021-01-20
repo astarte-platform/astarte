@@ -488,10 +488,13 @@ class AstarteClient {
       throw new Error('Invalid device ID');
     }
 
+    /* Double encoding to preserve the URL format when groupName contains % and / */
+    const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
+
     await this.$post(
       this.apiConfig.groupDevices({
         ...this.config,
-        groupName,
+        groupName: encodedGroupName,
       }),
       { device_id: deviceId },
     );
@@ -508,10 +511,13 @@ class AstarteClient {
       throw new Error('Invalid device ID');
     }
 
+    /* Double encoding to preserve the URL format when groupName contains % and / */
+    const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
+
     await this.$delete(
       this.apiConfig.deviceInGroup({
         ...this.config,
-        groupName,
+        groupName: encodedGroupName,
         deviceId,
       }),
     );

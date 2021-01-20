@@ -951,9 +951,10 @@ update session msg model =
                 modalModel =
                     ConfirmModal.init
                         "Remove Header"
-                        ("Remove custom header \"" ++ header ++ "\"?")
+                        (Html.text ("Remove custom header \"" ++ header ++ "\"?"))
                         (Just "Remove header")
                         (Just ConfirmModal.Danger)
+                        True
                         True
 
                 modal =
@@ -996,9 +997,10 @@ update session msg model =
                 modalModel =
                     ConfirmModal.init
                         "Remove Header"
-                        ("Remove static header \"" ++ header ++ "\"?")
+                        (Html.text ("Remove static header \"" ++ header ++ "\"?"))
                         (Just "Remove header")
                         (Just ConfirmModal.Danger)
+                        True
                         True
 
                 modal =
@@ -1478,11 +1480,37 @@ renderSimpleTrigger model =
            )
 
 
+triggerEventOptions : DataTriggerEvent -> Bool -> List (Select.Item Msg)
+triggerEventOptions currentEvent isPropertyInterface =
+    let
+        availableEvents =
+            if isPropertyInterface then
+                [ ( DataTrigger.IncomingData, "Incoming Data" )
+                , ( DataTrigger.ValueChange, "Value Change" )
+                , ( DataTrigger.ValueChangeApplied, "Value Change Applied" )
+                , ( DataTrigger.PathCreated, "Path Created" )
+                , ( DataTrigger.PathRemoved, "Path Removed" )
+                , ( DataTrigger.ValueStored, "Value Stored" )
+                ]
+
+            else
+                [ ( DataTrigger.IncomingData, "Incoming Data" )
+                , ( DataTrigger.ValueStored, "Value Stored" )
+                ]
+    in
+    List.map (dataTriggerEventOptions currentEvent) availableEvents
+
+
 renderDataTrigger : DataTrigger -> Model -> List (Html Msg)
 renderDataTrigger dataTrigger model =
     let
         isAnyInterface =
             model.selectedInterfaceName == "*"
+
+        isPropertyInterface =
+            model.refInterface
+                |> Maybe.map (\interface -> interface.iType == Interface.Properties)
+                |> Maybe.withDefault False
     in
     [ Form.row []
         [ Form.col
@@ -1545,16 +1573,7 @@ renderDataTrigger dataTrigger model =
                     , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerCondition
                     ]
-                    (List.map
-                        (dataTriggerEventOptions dataTrigger.on)
-                        [ ( DataTrigger.IncomingData, "Incoming Data" )
-                        , ( DataTrigger.ValueChange, "Value Change" )
-                        , ( DataTrigger.ValueChangeApplied, "Value Change Applied" )
-                        , ( DataTrigger.PathCreated, "Path Created" )
-                        , ( DataTrigger.PathRemoved, "Path Removed" )
-                        , ( DataTrigger.ValueStored, "Value Stored" )
-                        ]
-                    )
+                    (triggerEventOptions dataTrigger.on isPropertyInterface)
                 ]
             ]
         ]
@@ -1593,7 +1612,7 @@ renderDataTrigger dataTrigger model =
             [ Form.group []
                 [ Form.label [ for "triggerOperator" ] [ text "Operator" ]
                 , Select.select
-                    [ Select.id "triggerCondition"
+                    [ Select.id "triggerOperator"
                     , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerOperator
                     ]
@@ -1943,7 +1962,7 @@ allOperators =
     , ( "greaterThan", ">" )
     , ( "greaterOrEqualTo", ">=" )
     , ( "lessThan", "<" )
-    , ( "lessOrEqualTo", ">=" )
+    , ( "lessOrEqualTo", "<=" )
     , ( "contains", "Contains" )
     , ( "notContains", "Not Contains" )
     ]

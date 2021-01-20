@@ -323,7 +323,6 @@ wipeDeviceCredentials apiConfig deviceId resultMsg =
 
 
 
-
 -- Interfaces
 
 
@@ -395,7 +394,6 @@ updateInterface apiConfig interface okMsg errorMsg loginMsg =
 -- Triggers
 
 
-
 getTrigger : Config -> String -> (Trigger -> msg) -> (Error -> msg) -> msg -> Cmd msg
 getTrigger apiConfig triggerName okMsg errorMsg loginMsg =
     Http.request
@@ -436,6 +434,7 @@ deleteTrigger apiConfig triggerName okMsg errorMsg loginMsg =
         , tracker = Nothing
         }
         |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
+
 
 
 -- Health checks
