@@ -33,6 +33,7 @@ defmodule Doc.MixProject do
         "Architecture, Design and Concepts": ~r"/architecture/",
         "User Guide": ~r"/user/",
         "Administrator Guide": ~r"/administrator/",
+        "Upgrade Guide": ~r"/upgrade/",
         Tutorials: ~r"/tutorials/",
         "REST API Reference": ~r"/api/"
       ],
