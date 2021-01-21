@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   like appengine does.
 - [data_updater_plant] Consider `database_retention_ttl` when inserting data on device owned
   aggregate interfaces.
+- [realm_management] Do not allow `value_change`, `value_change_applied` and `path_removed`
+  triggers on datastreams.
 
 ## [0.11.3] - 2020-09-24
 
