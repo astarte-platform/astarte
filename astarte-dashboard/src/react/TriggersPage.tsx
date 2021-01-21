@@ -16,12 +16,15 @@
    limitations under the License.
 */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
 import AstarteClient from 'astarte-client';
 
+import Empty from './components/Empty';
+import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import useInterval from './hooks/useInterval';
 
 interface TriggerRowProps {
   name: string;
@@ -39,7 +42,19 @@ const TriggerRow = ({ name, onClick }: TriggerRowProps): React.ReactElement => (
 
 const LoadingRow = (): React.ReactElement => (
   <ListGroup.Item>
-    <Spinner animation="border" role="status" />
+    <Container fluid className="text-center">
+      <Spinner animation="border" role="status" />
+    </Container>
+  </ListGroup.Item>
+);
+
+interface ErrorRowProps {
+  onRetry: () => void;
+}
+
+const ErrorRow = ({ onRetry }: ErrorRowProps): React.ReactElement => (
+  <ListGroup.Item>
+    <Empty title="Couldn't load available triggers" onRetry={onRetry} />
   </ListGroup.Item>
 );
 
@@ -48,13 +63,10 @@ interface Props {
 }
 
 export default ({ astarte }: Props): React.ReactElement => {
-  const triggers = useFetch(astarte.getTriggerNames);
   const navigate = useNavigate();
+  const triggersFetcher = useFetch(astarte.getTriggerNames);
 
-  useEffect(() => {
-    const intervalId = setInterval(triggers.refresh, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
+  useInterval(triggersFetcher.refresh, 30000);
 
   return (
     <Container fluid className="p-3">
@@ -78,19 +90,26 @@ export default ({ astarte }: Props): React.ReactElement => {
                 Install a new trigger...
               </Button>
             </ListGroup.Item>
-            {triggers.status === 'ok' ? (
-              triggers.value.map((trigger) => (
-                <TriggerRow
-                  key={trigger}
-                  name={trigger}
-                  onClick={() => {
-                    navigate(`/triggers/${trigger}`);
-                  }}
-                />
-              ))
-            ) : (
-              <LoadingRow />
-            )}
+            <WaitForData
+              data={triggersFetcher.value}
+              status={triggersFetcher.status}
+              fallback={<LoadingRow />}
+              errorFallback={<ErrorRow onRetry={triggersFetcher.refresh} />}
+            >
+              {(triggers) => (
+                <>
+                  {triggers.map((trigger) => (
+                    <TriggerRow
+                      key={trigger}
+                      name={trigger}
+                      onClick={() => {
+                        navigate(`/triggers/${trigger}`);
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+            </WaitForData>
           </ListGroup>
         </Col>
       </Row>

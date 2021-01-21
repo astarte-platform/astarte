@@ -18,13 +18,14 @@
 
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Col, Row, Spinner } from 'react-bootstrap';
+import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import AstarteClient from 'astarte-client';
 import _ from 'lodash';
 
 import { useAlerts } from './AlertManager';
 import SingleCardPage from './ui/SingleCardPage';
+import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -54,16 +55,22 @@ export default ({ astarte, pipelineId }: Props): React.ReactElement => {
   }, [astarte, pipelineId, navigate, deletionAlerts.showError]);
 
   return (
-    <SingleCardPage title="Pipeline Details" backLink="/pipelines">
-      <WaitForData
-        data={pipelineFetcher.value}
-        status={pipelineFetcher.status}
-        fallback={<Spinner animation="border" role="status" />}
-        errorFallback={<p>Couldn&apos;t load pipeline source</p>}
-      >
-        {(pipeline) => (
-          <>
-            <deletionAlerts.Alerts />
+    <>
+      <SingleCardPage title="Pipeline Details" backLink="/pipelines">
+        <deletionAlerts.Alerts />
+        <WaitForData
+          data={pipelineFetcher.value}
+          status={pipelineFetcher.status}
+          fallback={
+            <Container fluid className="text-center">
+              <Spinner animation="border" role="status" />
+            </Container>
+          }
+          errorFallback={
+            <Empty title="Couldn't load pipeline source" onRetry={pipelineFetcher.refresh} />
+          }
+        >
+          {(pipeline) => (
             <Row>
               <Col>
                 <h5 className="mt-2 mb-2">Name</h5>
@@ -88,19 +95,23 @@ export default ({ astarte, pipelineId }: Props): React.ReactElement => {
                 )}
               </Col>
             </Row>
-            <Button
-              variant="danger"
-              onClick={() => setShowDeleteModal(true)}
-              disabled={isDeletingPipeline}
-            >
-              {isDeletingPipeline && (
-                <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
-              )}
-              Delete pipeline
-            </Button>
-          </>
-        )}
-      </WaitForData>
+          )}
+        </WaitForData>
+      </SingleCardPage>
+      {pipelineFetcher.status === 'ok' && (
+        <Row className="justify-content-end m-3">
+          <Button
+            variant="danger"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={isDeletingPipeline}
+          >
+            {isDeletingPipeline && (
+              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+            )}
+            Delete pipeline
+          </Button>
+        </Row>
+      )}
       {showDeleteModal && (
         <ConfirmModal
           title="Warning"
@@ -115,6 +126,6 @@ export default ({ astarte, pipelineId }: Props): React.ReactElement => {
           </p>
         </ConfirmModal>
       )}
-    </SingleCardPage>
+    </>
   );
 };

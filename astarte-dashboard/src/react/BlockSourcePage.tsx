@@ -16,16 +16,19 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Col, Row, Spinner } from 'react-bootstrap';
+import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
 
 const blockTypeToLabel = {
   consumer: 'Consumer',
@@ -39,8 +42,7 @@ interface Props {
 }
 
 export default ({ astarte, blockId }: Props): React.ReactElement => {
-  const [phase, setPhase] = useState('loading');
-  const [block, setBlock] = useState<AstarteBlock | null>(null);
+  const blockFetcher = useFetch(() => astarte.getBlock(blockId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const deletionAlerts = useAlerts();
@@ -58,93 +60,74 @@ export default ({ astarte, blockId }: Props): React.ReactElement => {
       });
   }, [astarte, navigate, setIsDeletingBlock, blockId, deletionAlerts.showError]);
 
-  useEffect(() => {
-    astarte
-      .getBlock(blockId)
-      .then((fetchedBlock) => {
-        setBlock(fetchedBlock);
-        setPhase('ok');
-      })
-      .catch(() => setPhase('err'));
-  }, [astarte, setBlock, setPhase]);
-
-  const ContentCard = ({ children }: { children: React.ReactNode }): React.ReactElement => (
-    <SingleCardPage title="Block Details" backLink="/blocks">
-      {children}
-    </SingleCardPage>
-  );
-
-  switch (phase) {
-    case 'ok':
-      const blockObj = block as AstarteBlock;
-      return (
-        <>
-          <ContentCard>
-            <deletionAlerts.Alerts />
+  return (
+    <>
+      <SingleCardPage title="Block Details" backLink="/blocks">
+        <deletionAlerts.Alerts />
+        <WaitForData
+          data={blockFetcher.value}
+          status={blockFetcher.status}
+          fallback={
+            <Container fluid className="text-center">
+              <Spinner animation="border" role="status" />
+            </Container>
+          }
+          errorFallback={
+            <Empty title="Couldn't load block source" onRetry={blockFetcher.refresh} />
+          }
+        >
+          {(block) => (
             <Row>
               <Col>
                 <h5 className="mt-2 mb-2">Name</h5>
-                <p>{blockObj.name}</p>
+                <p>{block.name}</p>
                 <h5 className="mt-2 mb-2">Type</h5>
-                <p>{blockTypeToLabel[blockObj.type]}</p>
-                {blockObj instanceof AstarteCustomBlock && (
+                <p>{blockTypeToLabel[block.type]}</p>
+                {block instanceof AstarteCustomBlock && (
                   <>
                     <h5 className="mt-2 mb-2">Source</h5>
                     <SyntaxHighlighter language="json" showLineNumbers>
-                      {blockObj.source}
+                      {block.source}
                     </SyntaxHighlighter>
                   </>
                 )}
                 <h5 className="mt-2 mb-2">Schema</h5>
                 <SyntaxHighlighter language="json" showLineNumbers>
-                  {JSON.stringify(blockObj.schema, null, 2)}
+                  {JSON.stringify(block.schema, null, 2)}
                 </SyntaxHighlighter>
               </Col>
             </Row>
-          </ContentCard>
-          <Row className="justify-content-end m-3">
-            {blockObj instanceof AstarteCustomBlock && (
-              <Button
-                variant="danger"
-                onClick={() => setShowDeleteModal(true)}
-                disabled={isDeletingBlock}
-              >
-                {isDeletingBlock && (
-                  <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
-                )}
-                Delete block
-              </Button>
-            )}
-          </Row>
-          {showDeleteModal && (
-            <ConfirmModal
-              title="Warning"
-              confirmLabel="Remove"
-              confirmVariant="danger"
-              onCancel={() => setShowDeleteModal(false)}
-              onConfirm={deleteBlock}
-              isConfirming={isDeletingBlock}
-            >
-              <p>
-                Delete block <b>{blockId}</b>?
-              </p>
-            </ConfirmModal>
           )}
-        </>
-      );
-
-    case 'err':
-      return (
-        <ContentCard>
-          <p>Couldn&apos;t load block source</p>
-        </ContentCard>
-      );
-
-    default:
-      return (
-        <ContentCard>
-          <Spinner animation="border" role="status" />
-        </ContentCard>
-      );
-  }
+        </WaitForData>
+      </SingleCardPage>
+      {blockFetcher.status === 'ok' && blockFetcher.value instanceof AstarteCustomBlock && (
+        <Row className="justify-content-end m-3">
+          <Button
+            variant="danger"
+            onClick={() => setShowDeleteModal(true)}
+            disabled={isDeletingBlock}
+          >
+            {isDeletingBlock && (
+              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+            )}
+            Delete block
+          </Button>
+        </Row>
+      )}
+      {showDeleteModal && (
+        <ConfirmModal
+          title="Warning"
+          confirmLabel="Remove"
+          confirmVariant="danger"
+          onCancel={() => setShowDeleteModal(false)}
+          onConfirm={deleteBlock}
+          isConfirming={isDeletingBlock}
+        >
+          <p>
+            Delete block <b>{blockId}</b>?
+          </p>
+        </ConfirmModal>
+      )}
+    </>
+  );
 };

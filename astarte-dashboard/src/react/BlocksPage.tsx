@@ -16,67 +16,15 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
 import AstarteClient, { AstarteNativeBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
-  const [phase, setPhase] = useState('loading');
-  const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    astarte
-      .getBlocks()
-      .then((fetchedBlocks) => {
-        setBlocks(fetchedBlocks);
-        setPhase('ok');
-      })
-      .catch(() => setPhase('err'));
-  }, [astarte, setPhase, setBlocks]);
-
-  let innerHTML;
-
-  switch (phase) {
-    case 'ok':
-      innerHTML = (
-        <CardDeck className="mt-4">
-          <NewBlockCard onCreate={() => navigate('/blocks/new')} />
-          {blocks.map((block, index) => (
-            <React.Fragment key={`fragment-${index}`}>
-              {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
-              <BlockCard block={block} onShow={() => navigate(`/blocks/${block.name}`)} />
-              {index === blocks.length - 1 && blocks.length % 2 === 0 ? (
-                <div className="w-50 d-none d-md-block" />
-              ) : null}
-            </React.Fragment>
-          ))}
-        </CardDeck>
-      );
-      break;
-
-    case 'err':
-      innerHTML = <p>Couldn&apos;t load available blocks</p>;
-      break;
-
-    default:
-      innerHTML = <Spinner animation="border" role="status" />;
-      break;
-  }
-
-  return (
-    <Container fluid className="p-3">
-      <h2>Blocks</h2>
-      {innerHTML}
-    </Container>
-  );
-};
+import WaitForData from './components/WaitForData';
+import Empty from './components/Empty';
+import useFetch from './hooks/useFetch';
 
 interface NewBlockCardProps {
   onCreate: () => void;
@@ -129,3 +77,47 @@ function BlockCard({ block, onShow }: BlockCardProps) {
     </Card>
   );
 }
+
+interface Props {
+  astarte: AstarteClient;
+}
+
+export default ({ astarte }: Props): React.ReactElement => {
+  const blocksFetcher = useFetch(astarte.getBlocks);
+  const navigate = useNavigate();
+
+  return (
+    <Container fluid className="p-3">
+      <h2>Blocks</h2>
+      <CardDeck className="mt-4">
+        <NewBlockCard onCreate={() => navigate('/blocks/new')} />
+        <WaitForData
+          data={blocksFetcher.value}
+          status={blocksFetcher.status}
+          fallback={
+            <Container fluid className="text-center">
+              <Spinner animation="border" role="status" />
+            </Container>
+          }
+          errorFallback={
+            <Empty title="Couldn't load available blocks" onRetry={blocksFetcher.refresh} />
+          }
+        >
+          {(blocks) => (
+            <>
+              {blocks.map((block, index) => (
+                <React.Fragment key={`fragment-${index}`}>
+                  {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
+                  <BlockCard block={block} onShow={() => navigate(`/blocks/${block.name}`)} />
+                  {index === blocks.length - 1 && blocks.length % 2 === 0 ? (
+                    <div className="w-50 d-none d-md-block" />
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </>
+          )}
+        </WaitForData>
+      </CardDeck>
+    </Container>
+  );
+};

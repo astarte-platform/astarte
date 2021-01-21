@@ -183,6 +183,8 @@ class AstarteClient {
     this.joinedChannels = {};
     this.listeners = {};
 
+    this.getConfigAuth = this.getConfigAuth.bind(this);
+    this.getBlocks = this.getBlocks.bind(this);
     this.getDeviceData = this.getDeviceData.bind(this);
     this.getDevicesStats = this.getDevicesStats.bind(this);
     this.getInterfaceNames = this.getInterfaceNames.bind(this);

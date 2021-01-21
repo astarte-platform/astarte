@@ -44,9 +44,7 @@ describe('Interface values page tests', () => {
                 response: '',
               });
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
-              cy.get('.main-content .card-body [role="alert"]').contains(
-                'Could not retrieve interface data.',
-              );
+              cy.get('.main-content .card-body').contains("Couldn't load interface data");
             });
         });
     });
@@ -75,9 +73,7 @@ describe('Interface values page tests', () => {
                 response: '',
               });
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
-              cy.get('.main-content .card-body [role="alert"]').contains(
-                'Could not retrieve interface data.',
-              );
+              cy.get('.main-content .card-body').contains("Couldn't load interface data");
             });
         });
     });
@@ -102,9 +98,7 @@ describe('Interface values page tests', () => {
                 response: '',
               });
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
-              cy.get('.main-content .card-body [role="alert"]').contains(
-                'Could not retrieve interface data.',
-              );
+              cy.get('.main-content .card-body').contains("Couldn't load interface data");
             });
         });
     });
