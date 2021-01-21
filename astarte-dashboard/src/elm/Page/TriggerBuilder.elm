@@ -1169,6 +1169,22 @@ triggerEventOptions currentEvent isPropertyInterface =
     List.map (dataTriggerEventOptions currentEvent) availableEvents
 
 
+isValidPath : String -> DataTriggerEvent -> Maybe MappingType -> Bool
+isValidPath path event mappingType =
+    let
+        isAny =
+            path == "/*"
+
+        isValueChangeEvent =
+            event == DataTrigger.ValueChange || event == DataTrigger.ValueChangeApplied
+
+        matchesMapping =
+            mappingType /= Nothing
+    in
+    -- TODO: this is a workaround, re-enable ValueChange after being fixed in Astarte. See astarte-platform/astarte#513
+    matchesMapping || (isAny && not isValueChangeEvent)
+
+
 renderDataTrigger : DataTrigger -> Model -> List (Html Msg)
 renderDataTrigger dataTrigger model =
     let
@@ -1260,11 +1276,11 @@ renderDataTrigger dataTrigger model =
                     , Input.readonly model.editMode
                     , Input.value dataTrigger.path
                     , Input.onInput UpdateDataTriggerPath
-                    , if (dataTrigger.path /= "/*") && (model.mappingType == Nothing) then
-                        Input.danger
+                    , if isValidPath dataTrigger.path dataTrigger.on model.mappingType then
+                        Input.success
 
                       else
-                        Input.success
+                        Input.danger
                     ]
                 ]
             ]
