@@ -255,10 +255,11 @@ const NamespaceModal = ({ onCancel, onConfirm }: NamespaceModalProps) => {
 
 interface Props {
   astarte: AstarteClient;
+  deviceId: string;
 }
 
-export default ({ astarte }: Props): React.ReactElement => {
-  const [deviceId, setDeviceId] = useState<AstarteDevice['id']>('');
+export default ({ astarte, deviceId: initialDeviceId }: Props): React.ReactElement => {
+  const [deviceId, setDeviceId] = useState<AstarteDevice['id']>(initialDeviceId);
   const [deviceSecret, setDeviceSecret] = useState<string>('');
   const [shouldSendIntrospection, setShouldSendIntrospection] = useState(false);
   const [introspectionInterfaces, setIntrospectionInterfaces] = useState<

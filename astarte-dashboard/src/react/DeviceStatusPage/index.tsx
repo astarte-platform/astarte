@@ -18,6 +18,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Col, Container, Row, Spinner } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import _ from 'lodash';
 
 import AstarteClient from 'astarte-client';
@@ -90,6 +91,10 @@ type DeleteMetadataModalT = {
   metadataValue: string;
 };
 
+type ReregisterDeviceModalT = {
+  kind: 'reregister_device_modal';
+};
+
 function isWipeCredentialsModal(modal: PageModal): modal is WipeCredentialsModalT {
   return modal.kind === 'wipe_credentials_modal';
 }
@@ -122,6 +127,10 @@ function isDeleteMetadataModal(modal: PageModal): modal is DeleteMetadataModalT 
   return modal.kind === 'delete_metadata_modal';
 }
 
+function isDeviceReregistrationModal(modal: PageModal): modal is ReregisterDeviceModalT {
+  return modal.kind === 'reregister_device_modal';
+}
+
 type PageModal =
   | WipeCredentialsModalT
   | AddToGroupModalT
@@ -130,7 +139,8 @@ type PageModal =
   | DeleteAliasModalT
   | NewMetadataModalT
   | EditMetadataModalT
-  | DeleteMetadataModalT;
+  | DeleteMetadataModalT
+  | ReregisterDeviceModalT;
 
 interface Props {
   astarte: AstarteClient;
@@ -175,7 +185,7 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
     astarte
       .wipeDeviceCredentials(deviceId)
       .then(() => {
-        dismissModal();
+        setActiveModal({ kind: 'reregister_device_modal' });
       })
       .catch(() => {
         devicePageAlers.showError(`Couldn't wipe the device credential secret`);
@@ -470,6 +480,15 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
           isConfirming={activeModal.isDeletingMetadata}
         >
           <p>{`Do you want to delete ${activeModal.metadataKey} from metadata?`}</p>
+        </ConfirmModal>
+      )}
+      {activeModal && isDeviceReregistrationModal(activeModal) && (
+        <ConfirmModal title="Device Credentials Wiped" confirmLabel="Ok" onConfirm={dismissModal}>
+          <p>
+            The device&apos;s credentials secret was wiped from Astarte. You can&nbsp;
+            <Link to={`/devices/register?deviceId=${deviceId}`}>click here</Link> to register the
+            device again and retrieve its new credentials secret.
+          </p>
         </ConfirmModal>
       )}
     </Container>

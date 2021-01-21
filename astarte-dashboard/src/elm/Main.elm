@@ -501,7 +501,7 @@ pageInit realmRoute config session =
         Route.DeviceList ->
             initReactPage session Devices "devices-list" realmRoute
 
-        Route.RegisterDevice ->
+        Route.RegisterDevice _ ->
             initReactPage session Devices "devices-register" realmRoute
 
         Route.GroupList ->
@@ -677,7 +677,7 @@ view model =
             model.session.apiConfig.realm
 
         showNavbar =
-            Session.isLoggedIn model.session
+            Session.isLoggedIn model.session || model.config == Config.EditorOnly
     in
     { title = "Astarte - Dashboard"
     , body =

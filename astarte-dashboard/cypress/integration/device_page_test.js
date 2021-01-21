@@ -16,6 +16,7 @@ describe('Device page tests', () => {
     beforeEach(() => {
       cy.fixture('device').as('device');
       cy.fixture('device_detailed').as('deviceDetailed');
+      cy.fixture('groups').as('groups');
       cy.login();
     });
 
@@ -96,6 +97,7 @@ describe('Device page tests', () => {
     it('displays correct properties for a detailed device', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
+      cy.route('GET', `/appengine/v1/*/groups`, '@groups');
       cy.visit(`/devices/${this.deviceDetailed.data.id}`);
       cy.get('.main-content').within(() => {
         cy.contains('Device Info')
@@ -255,6 +257,17 @@ describe('Device page tests', () => {
         );
         cy.contains('Wipe credentials secret').click();
         cy.wait('@wipeCredentialsSecretRequest');
+      });
+      cy.get('.modal-dialog').within(() => {
+        cy.contains(
+            "The device's credentials secret was wiped from Astarte. You can click here to register the device again and retrieve its new credentials secret.",
+          )
+          .contains('click here')
+          .should('have.attr', 'href')
+          .then((href) => {
+            expect(href.endsWith(`/devices/register?deviceId=${this.device.data.id}`)).to.be.true;
+          });
+        cy.get('button').contains('Ok').click();
       });
     });
 
@@ -580,6 +593,57 @@ describe('Device page tests', () => {
           .within(() => {
             cy.get('table tbody tr').should('have.length', deviceGroups.length + 1);
             cy.contains('group3');
+          });
+      });
+    });
+
+    it('correctly adds the device to a group with symbols in its name', function () {
+      const groupName = '!"£$%&/()=?^';
+      const encodedGroupName = encodeURIComponent(groupName);
+      const deviceGroups = ['group1', 'group2'];
+      const allGroups = deviceGroups.concat(groupName);
+      const device = _.merge({}, this.deviceDetailed);
+      device.data.groups = deviceGroups;
+      const updatedDevice = _.merge({}, this.deviceDetailed);
+      updatedDevice.data.groups = allGroups;
+      cy.server();
+      cy.route('GET', '/appengine/v1/*/groups', { data: allGroups });
+      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.route({
+        method: 'POST',
+        url: `/appengine/v1/*/groups/${encodedGroupName}/devices`,
+        status: 201,
+        response: '',
+      }).as('updateGroupRequest');
+
+      cy.visit(`/devices/${device.data.id}`);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Groups')
+          .parents('.card')
+          .within(() => {
+            cy.get('table tbody tr').should('have.length', deviceGroups.length);
+            cy.contains('Add to existing group').click();
+          });
+      });
+      cy.get('.modal-dialog').within(() => {
+        cy.get('.modal-header')
+          .contains('Select Existing Group')
+          .parents('.modal')
+          .within(() => {
+            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.contains(groupName).click();
+            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice).as('getDeviceRequest');
+            cy.get('button').contains('Confirm').click();
+          });
+      });
+      cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header')
+          .contains('Groups')
+          .parents('.card')
+          .within(() => {
+            cy.contains(groupName);
           });
       });
     });

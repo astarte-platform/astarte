@@ -289,6 +289,27 @@ const checkInterfaceEditorUIValues = (iface) => {
 };
 
 describe('Interface builder tests', () => {
+  context("without an app's config", () => {
+    it('starts up as a standalone Interface Editor', () => {
+      cy.server();
+      cy.route({
+        method: 'GET',
+        url: '/user-config/config.json',
+        status: 404,
+        response: '',
+      });
+      cy.visit('/');
+      cy.get('h2').contains('Interface Editor');
+      cy.get('#interfaceName').should('have.value', '');
+
+      cy.get('.nav-col .nav').within(() => {
+        cy.get('.nav-brand').as('brand').next('.nav-link').as('interfaceEditor');
+        cy.get('@brand').should('have.attr', 'href', '/');
+        cy.get('@interfaceEditor').should('have.attr', 'href', '/').contains('Interface Editor');
+      });
+    });
+  });
+
   context('no access before login', () => {
     it('redirects to login', () => {
       cy.visit('/interfaces/new');
@@ -317,7 +338,7 @@ describe('Interface builder tests', () => {
       it('has a Hide button to toggle Interface Source visibility', () => {
         cy.get('#interfaceSource').scrollIntoView().should('be.visible');
         cy.get('button').contains('Hide source').scrollIntoView().click();
-        cy.get('#interfaceSource').should('not.be.visible');
+        cy.get('#interfaceSource').should('not.exist');
         cy.get('button').contains('Show source').scrollIntoView().click();
         cy.get('#interfaceSource').scrollIntoView().should('be.visible');
       });
@@ -573,7 +594,7 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceName')
           .parents('.form-group')
           .get('.warning-feedback')
-          .should('not.be.visible');
+          .should('not.exist');
       });
 
       it('correctly reports errors in mapping editor for the endpoint field', () => {
