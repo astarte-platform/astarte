@@ -553,10 +553,18 @@ defmodule Astarte.RealmManagement.Engine do
     with {:ok, interface} <- Queries.fetch_interface(client, interface_name, interface_major) do
       case interface.aggregation do
         :individual ->
-          if interface.type != :properties and properties_trigger_type?(data_trigger_type) do
-            {:error, :invalid_datastream_trigger}
-          else
-            :ok
+          cond do
+            interface.type != :properties and properties_trigger_type?(data_trigger_type) ->
+              {:error, :invalid_datastream_trigger}
+
+            match_path == "/*" and
+                (data_trigger_type == :VALUE_CHANGE or data_trigger_type == :VALUE_CHANGE_APPLIED) ->
+              # TODO: this is a workaround to a data updater plant limitation
+              # see also https://github.com/astarte-platform/astarte/issues/513
+              {:error, :unsupported_trigger_type}
+
+            true ->
+              :ok
           end
 
         :object ->
