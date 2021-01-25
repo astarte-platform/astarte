@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   triggers on datastreams.
 - [realm_management] Do not allow `/*` as match path when using `value_change` and
   `value_change_applied`. (workaround to https://github.com/astarte-platform/astarte/issues/513).
+- [trigger_engine] Update certifi to 2.5.3 (includes 2020-11-13 mkcert.org full CA bundle).
 
 ## [0.11.3] - 2020-09-24
 

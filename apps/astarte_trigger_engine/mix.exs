@@ -76,7 +76,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       {:amqp, "== 1.2.1"},
       {:bbmustache, "== 1.8.0"},
-      {:certifi, "== 2.5.2", override: true},
+      {:certifi, "== 2.5.3", override: true},
       {:conform, "== 2.5.2"},
       {:cyanide, "== 1.0.0"},
       {:httpoison, "== 1.5.1"},
