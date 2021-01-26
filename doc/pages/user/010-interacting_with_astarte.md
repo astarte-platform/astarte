@@ -25,7 +25,7 @@ interaction means.
 
 ### Setting up astartectl
 
-In the documentation, it is assumed that astartectl is [properly configured](https://github.com/astarte-platform/astartectl/tree/release-0.11#configuration) to interact with your Realm or your Cluster. Please refer to its documentation to make sure all needed configurations are in place.
+In the documentation, it is assumed that astartectl is [properly configured](https://github.com/astarte-platform/astartectl/tree/v0.11.4#configuration) to interact with your Realm or your Cluster. Please refer to its documentation to make sure all needed configurations are in place.
 
 ## Interacting with a Device
 
