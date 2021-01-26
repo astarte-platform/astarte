@@ -40,7 +40,7 @@ export function getRouter(reactHistory, fallback) {
         <Route exact path="/groups/new">
           <NewGroupPage history={reactHistory} />
         </Route>
-        <Route path="/groups/:groupName">
+        <Route path="/groups/:groupName/edit">
           <GroupDevicesSubPath history={reactHistory} />
         </Route>
         <Route path="*">

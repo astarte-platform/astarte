@@ -157,7 +157,7 @@ export default class GroupsPage extends React.Component {
             return (
               <tr key={group.name}>
                 <td>
-                  <Link to={`/groups/${group.name}`}>{group.name}</Link>
+                  <Link to={`/groups/${group.name}/edit`}>{group.name}</Link>
                 </td>
                 <td>{group.connectedDevices}</td>
                 <td>{group.totalDevices}</td>
