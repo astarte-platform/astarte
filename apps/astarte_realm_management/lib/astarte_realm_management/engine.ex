@@ -604,7 +604,19 @@ defmodule Astarte.RealmManagement.Engine do
     with {:ok, interface} <- Queries.fetch_interface(client, interface_name, interface_major) do
       case interface.aggregation do
         :individual ->
-          :ok
+          cond do
+            interface.type != :properties and properties_trigger_type?(data_trigger_type) ->
+              {:error, :invalid_datastream_trigger}
+
+            match_path == "/*" and
+                (data_trigger_type == :VALUE_CHANGE or data_trigger_type == :VALUE_CHANGE_APPLIED) ->
+              # TODO: this is a workaround to a data updater plant limitation
+              # see also https://github.com/astarte-platform/astarte/issues/513
+              {:error, :unsupported_trigger_type}
+
+            true ->
+              :ok
+          end
 
         :object ->
           if data_trigger_type != :INCOMING_DATA or match_operator != :ANY or match_path != "/*" do
@@ -619,6 +631,15 @@ defmodule Astarte.RealmManagement.Engine do
   defp validate_simple_trigger(_client, _other_trigger) do
     # TODO: validate DeviceTrigger and IntrospectionTrigger
     :ok
+  end
+
+  defp properties_trigger_type?(tt) do
+    case tt do
+      :VALUE_CHANGE -> true
+      :VALUE_CHANGE_APPLIED -> true
+      :PATH_REMOVED -> true
+      _ -> false
+    end
   end
 
   defp install_simple_triggers(client, simple_trigger_maps, trigger_uuid, trigger_target) do
