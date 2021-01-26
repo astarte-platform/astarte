@@ -1,3 +1,5 @@
+const _ = require('lodash');
+
 describe('Flow page tests', () => {
   context('no access before login', () => {
     it('redirects to login', () => {
@@ -24,6 +26,20 @@ describe('Flow page tests', () => {
     });
 
     it('correctly displays flow details', function () {
+      cy.get('.main-content').within(() => {
+        cy.contains('Flow configuration');
+        cy.get('pre code');
+      });
+    });
+
+    it('correctly displays a flow with name "new"', function () {
+      const flow = _.merge({}, this.flow.data, { name: 'new' });
+      cy.server();
+      cy.route('GET', `/flow/v1/*/flows/${flow.name}`, { data: flow }).as('getFlow');
+      cy.login();
+      cy.visit(`/flows/${flow.name}/edit`);
+      cy.location('pathname').should('eq', `/flows/new/edit`);
+      cy.get('h2').contains('Flow Details');
       cy.get('.main-content').within(() => {
         cy.contains('Flow configuration');
         cy.get('pre code');

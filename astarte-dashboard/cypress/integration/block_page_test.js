@@ -45,6 +45,21 @@ describe('Block page tests', () => {
         });
       });
 
+      it('correctly displays a block with the name "new"', function () {
+        const block = {
+          name: 'new',
+          schema: {},
+          source: 'source',
+          type: 'producer',
+        };
+        cy.server();
+        cy.route('GET', '/flow/v1/*/blocks/new', { data: block });
+        cy.visit('/blocks/new/edit');
+        cy.location('pathname').should('eq', '/blocks/new/edit');
+        cy.get('h2').contains('Block Details');
+        cy.get('.main-content').contains('Name').next().contains('new');
+      });
+
       it('can delete a custom block', function () {
         cy.get('.main-content').within(() => {
           cy.contains('Delete block').click();

@@ -1,3 +1,5 @@
+const _ = require('lodash');
+
 describe('New Flow page tests', () => {
   context('no access before login', () => {
     it('redirects to login', () => {
@@ -49,6 +51,26 @@ describe('New Flow page tests', () => {
           .type(JSON.stringify(this.flow.data.config), { parseSpecialCharSequences: false });
         cy.get('button').contains('Instantiate Flow').click();
         cy.wait('@postNewFlow').its('requestBody').should('deep.eq', this.flow);
+        cy.location('pathname').should('eq', '/flows');
+      });
+    });
+
+    it('can instantiate a Flow with the name "new"', function () {
+      const newFlow = _.merge({}, this.flow.data, { name: 'new' });
+      cy.server();
+      cy.route({
+        method: 'POST',
+        url: '/flow/v1/*/flows',
+        status: 201,
+        response: { data: newFlow },
+      }).as('postNewFlow');
+      cy.get('.main-content').within(() => {
+        cy.get('#flowNameInput').clear().type(newFlow.name);
+        cy.get('#flowConfigInput')
+          .clear()
+          .type(JSON.stringify(newFlow.config), { parseSpecialCharSequences: false });
+        cy.get('button').contains('Instantiate Flow').click();
+        cy.wait('@postNewFlow').its('requestBody.data').should('deep.eq', newFlow);
         cy.location('pathname').should('eq', '/flows');
       });
     });

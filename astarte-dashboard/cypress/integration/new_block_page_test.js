@@ -38,5 +38,23 @@ describe('New block page tests', () => {
       cy.wait('@postNewBlock').its('requestBody').should('deep.eq', this.customBlock);
       cy.location('pathname').should('eq', '/blocks');
     });
+
+    it('can create a Block with name "new"', function () {
+      const newBlock = {
+        name: 'new',
+        schema: {},
+        source: 'source',
+        type: 'producer',
+      };
+      cy.get('.main-content').within(() => {
+        cy.get('input#block-name').clear().type(newBlock.name);
+        cy.get('select#block-type').select(newBlock.type);
+        cy.get('textarea#block-source').clear().type(newBlock.source);
+        cy.get('textarea#block-schema').clear().type(JSON.stringify(newBlock.schema));
+        cy.contains('Create new block').scrollIntoView().click();
+      });
+      cy.wait('@postNewBlock').its('requestBody.data').should('deep.eq', newBlock);
+      cy.location('pathname').should('eq', '/blocks');
+    });
   });
 });
