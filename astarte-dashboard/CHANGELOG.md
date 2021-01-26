@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   on datastream interfaces
 - Disable ValueChange and ValueChangeApplied triggers on /* paths
   (workaround to [astarte-platform/astarte#513](https://github.com/astarte-platform/astarte/issues/513)).
+- Change `/resource/:id` routes to `/resource/:id/edit` to avoid conflicts with `/resource/new` routes
 ### Fixed
 - Device sent bytes pie chart now showing up on Chrome browser.
 - Fix typos in the Trigger Editor

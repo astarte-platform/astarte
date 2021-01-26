@@ -77,15 +77,15 @@ realmRouteParser =
         , map RealmSettings (s "settings")
         , map ListInterfaces (s "interfaces")
         , map NewInterface (s "interfaces" </> s "new")
-        , map ShowInterface (s "interfaces" </> string </> int)
+        , map ShowInterface (s "interfaces" </> string </> int </> s "edit")
         , map ListTriggers (s "triggers")
         , map NewTrigger (s "triggers" </> s "new")
-        , map ShowTrigger (s "triggers" </> string)
+        , map ShowTrigger (s "triggers" </> string </> s "edit")
         , map DeviceList (s "devices")
-        , map ShowDevice (s "devices" </> string)
+        , map ShowDevice (s "devices" </> string </> s "edit")
         , map ShowDeviceData (s "devices" </> string </> s "interfaces" </> string)
         , map GroupList (s "groups")
-        , map GroupDevices (s "groups" </> string)
+        , map GroupDevices (s "groups" </> string </> s "edit")
         ]
 
 
@@ -142,7 +142,7 @@ toString route =
                     [ "interfaces", "new" ]
 
                 Realm (ShowInterface name major) ->
-                    [ "interfaces", name, String.fromInt major ]
+                    [ "interfaces", name, String.fromInt major, "edit" ]
 
                 Realm ListTriggers ->
                     [ "triggers" ]
@@ -151,13 +151,13 @@ toString route =
                     [ "triggers", "new" ]
 
                 Realm (ShowTrigger name) ->
-                    [ "triggers", name ]
+                    [ "triggers", name, "edit" ]
 
                 Realm DeviceList ->
                     [ "devices" ]
 
                 Realm (ShowDevice deviceId) ->
-                    [ "devices", deviceId ]
+                    [ "devices", deviceId, "edit" ]
 
                 Realm (ShowDeviceData deviceId interfaceName) ->
                     [ "devices", deviceId, "interfaces", interfaceName ]
@@ -166,7 +166,7 @@ toString route =
                     [ "groups" ]
 
                 Realm (GroupDevices groupName) ->
-                    [ "groups", groupName ]
+                    [ "groups", groupName, "edit" ]
     in
     "/" ++ String.join "/" pieces
 
