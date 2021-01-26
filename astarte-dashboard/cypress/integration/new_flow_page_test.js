@@ -1,7 +1,7 @@
 describe('New Flow page tests', () => {
   context('no access before login', () => {
     it('redirects to login', () => {
-      cy.visit('/flows/new/test-pipeline');
+      cy.visit('/flows/new?pipelineId=test-pipeline');
       cy.location('pathname').should('eq', '/login');
     });
   });
@@ -26,12 +26,13 @@ describe('New Flow page tests', () => {
             response: '@flow',
           }).as('postNewFlow');
           cy.login();
-          cy.visit(`/flows/new/${pipeline.data.name}`);
+          cy.visit(`/flows/new?pipelineId=${pipeline.data.name}`);
         });
     });
 
     it('successfully loads New Flow page', function () {
-      cy.location('pathname').should('eq', `/flows/new/${this.pipeline.data.name}`);
+      cy.location('pathname').should('eq', '/flows/new');
+      cy.location('search').should('eq', `?pipelineId=${this.pipeline.data.name}`);
       cy.get('h2').contains('Flow Configuration');
     });
 

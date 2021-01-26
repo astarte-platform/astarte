@@ -71,7 +71,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       });
   }, [block, creationAlerts.showError, navigate]);
 
-  const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name) && block.name !== 'new';
+  const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name);
   const isValidBlockSource = block.source !== '';
   const isValidBlockType = ['producer', 'consumer', 'producer_consumer'].includes(block.type);
   const isValidBlockSchema = isJSON(block.schema.trim());

@@ -49,7 +49,7 @@ const TableRow = ({ instance, onDelete }: TableRowProps): React.ReactElement => 
       </OverlayTrigger>
     </td>
     <td>
-      <Link to={`/flows/${instance.name}`}>{instance.name}</Link>
+      <Link to={`/flows/${instance.name}/edit`}>{instance.name}</Link>
     </td>
     <td>{instance.pipeline}</td>
     <td>

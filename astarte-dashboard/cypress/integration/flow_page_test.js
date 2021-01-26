@@ -1,7 +1,7 @@
 describe('Flow page tests', () => {
   context('no access before login', () => {
     it('redirects to login', () => {
-      cy.visit('/flows/test-flow');
+      cy.visit('/flows/test-flow/edit');
       cy.location('pathname').should('eq', '/login');
     });
   });
@@ -14,12 +14,12 @@ describe('Flow page tests', () => {
           cy.server();
           cy.route('GET', `/flow/v1/*/flows/${flow.data.name}`, '@flow').as('getFlow');
           cy.login();
-          cy.visit(`/flows/${flow.data.name}`);
+          cy.visit(`/flows/${flow.data.name}/edit`);
         });
     });
 
     it('successfully loads Flow page', function () {
-      cy.location('pathname').should('eq', `/flows/${this.flow.data.name}`);
+      cy.location('pathname').should('eq', `/flows/${this.flow.data.name}/edit`);
       cy.get('h2').contains('Flow Details');
     });
 

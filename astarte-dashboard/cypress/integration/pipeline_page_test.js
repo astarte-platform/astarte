@@ -1,7 +1,7 @@
 describe('Pipeline page tests', () => {
   context('no access before login', () => {
     it('redirects to login', () => {
-      cy.visit('/pipelines/pipeline_name');
+      cy.visit('/pipelines/pipeline_name/edit');
       cy.location('pathname').should('eq', '/login');
     });
   });
@@ -22,13 +22,13 @@ describe('Pipeline page tests', () => {
             response: '',
           }).as('deletePipelineRequest');
           cy.login();
-          cy.visit(`/pipelines/${pipeline.data.name}`);
+          cy.visit(`/pipelines/${pipeline.data.name}/edit`);
           cy.wait('@getPipeline');
         });
     });
 
     it('successfully loads Pipeline page', function () {
-      cy.location('pathname').should('eq', `/pipelines/${this.pipeline.data.name}`);
+      cy.location('pathname').should('eq', `/pipelines/${this.pipeline.data.name}/edit`);
       cy.get('h2').contains('Pipeline Details');
     });
 

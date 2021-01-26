@@ -169,7 +169,7 @@ export default ({ astarte }: Props): React.ReactElement => {
     }
   };
 
-  const isValidPipelineName = pipeline.name !== '' && pipeline.name !== 'new';
+  const isValidPipelineName = pipeline.name !== '';
   const isValidSource = pipeline.source !== '';
   const isValidForm = isValidPipelineName && isValidSource;
 

@@ -68,7 +68,7 @@ describe('Pipelines page tests', () => {
       cy.get('.main-content').within(() => {
         const pipelineName = this.pipelines.data[0];
         cy.get('.card .card-header').contains(pipelineName).click();
-        cy.location('pathname').should('eq', `/pipelines/${pipelineName}`);
+        cy.location('pathname').should('eq', `/pipelines/${pipelineName}/edit`);
       });
     });
 
@@ -81,7 +81,8 @@ describe('Pipelines page tests', () => {
           .get('button')
           .contains('Instantiate')
           .click();
-        cy.location('pathname').should('eq', `/flows/new/${pipelineName}`);
+        cy.location('pathname').should('eq', '/flows/new');
+        cy.location('search').should('eq', `?pipelineId=${pipelineName}`);
       });
     });
   });

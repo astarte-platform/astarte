@@ -7,7 +7,7 @@ const blockTypeToLabel = {
 describe('Block page tests', () => {
   context('no access before login', () => {
     it('redirects to home', () => {
-      cy.visit('/blocks/blockname');
+      cy.visit('/blocks/blockname/edit');
       cy.location('pathname').should('eq', '/login');
     });
   });
@@ -27,12 +27,12 @@ describe('Block page tests', () => {
               response: '',
             }).as('deleteBlockRequest');
             cy.login();
-            cy.visit(`/blocks/${customBlock.data.name}`);
+            cy.visit(`/blocks/${customBlock.data.name}/edit`);
           });
       });
 
       it('successfully loads Block page for a custom block', function () {
-        cy.location('pathname').should('eq', `/blocks/${this.customBlock.data.name}`);
+        cy.location('pathname').should('eq', `/blocks/${this.customBlock.data.name}/edit`);
         cy.get('h2').contains('Block Details');
       });
 
@@ -65,14 +65,14 @@ describe('Block page tests', () => {
           .as('nativeBlock')
           .then((nativeBlock) => {
             cy.login();
-            cy.visit(`/blocks/${nativeBlock.data.name}`);
+            cy.visit(`/blocks/${nativeBlock.data.name}/edit`);
             cy.server();
             cy.route('GET', '/flow/v1/*/blocks/*', '@nativeBlock');
           });
       });
 
       it('successfully loads Block page for a native block', function () {
-        cy.location('pathname').should('eq', `/blocks/${this.nativeBlock.data.name}`);
+        cy.location('pathname').should('eq', `/blocks/${this.nativeBlock.data.name}/edit`);
         cy.get('h2').contains('Block Details');
       });
 
