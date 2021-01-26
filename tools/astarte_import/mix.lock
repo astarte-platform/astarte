@@ -1,7 +1,7 @@
 %{
   "artificery": {:hex, :artificery, "0.4.2", "3ded6e29e13113af52811c72f414d1e88f711410cac1b619ab3a2666bbd7efd4", [:mix], [], "hexpm", "514586f4312ef3709a3ccbd8e55f69455add235c1729656687bb781d10d0afdb"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "5e2d3277aaef885e8b8bf552cb312a29c092d56a", [tag: "v0.11.3"]},
-  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "9c10833db0f67943d369c0252826f7c48eb813f4", [tag: "v0.11.3"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "4d70bef4268c377e9c60c96d4492ac9f0595fb1b", [tag: "v0.11.4"]},
+  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "63de1eb244740c1ea8a1bcdd59ec37c760f69eb4", [tag: "v0.11.4"]},
   "conform": {:hex, :conform, "2.5.2", "7035787a9c09d28607745444e7a1700426dc47c452634a5694033fa2fbb3414c", [:mix], [{:neotoma, "~> 1.7.3", [hex: :neotoma, repo: "hexpm", optional: false]}], "hexpm", "2056f5067e5bd4cf9d11ac093ada83c44163ad94555cadc3720fa9defaaf3bac"},
   "connection": {:hex, :connection, "1.0.4", "a1cae72211f0eef17705aaededacac3eb30e6625b04a6117c1b2db6ace7d5976", [:mix], [], "hexpm", "4a0850c9be22a43af9920a71ab17c051f5f7d45c209e40269a1938832510e4d9"},
   "cqerl": {:git, "https://github.com/matehat/cqerl.git", "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9", [ref: "6e44b42df1cb0fcf82d8ab4df032c2e7cacb96f9"]},

@@ -63,10 +63,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-0.11"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-0.11"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.4"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.4"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v0.11.4"}
     ]
   end
 

@@ -23,8 +23,8 @@ defmodule Astarte.Import.MixProject do
     [
       {:xandra, "== 0.13.1"},
       {:logfmt, "== 3.3.1"},
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-0.11"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access", branch: "release-0.11"},
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v0.11.4"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access", tag: "v0.11.4"},
       {:distillery, "== 2.0.14"}
     ]
   end
