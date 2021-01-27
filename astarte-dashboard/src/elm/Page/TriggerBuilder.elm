@@ -174,6 +174,9 @@ type Msg
     | UpdateSimpleTriggerType String
     | UpdateAction TriggerActionEditor.Msg
       -- Data Trigger
+    | UpdateDataTriggerTarget TargetChoice
+    | UpdateDataTriggerDeviceId String
+    | UpdateDataTriggerGroupName String
     | UpdateDataTriggerInterfaceName String
     | UpdateDataTriggerInterfaceMajor String
     | UpdateDataTriggerCondition String
@@ -553,6 +556,98 @@ update session msg model =
             , Cmd.none
             , ExternalMsg.Noop
             )
+
+        UpdateDataTriggerTarget targetChoice ->
+            case model.trigger.simpleTrigger of
+                Trigger.Data dataTrigger ->
+                    let
+                        newTarget =
+                            case targetChoice of
+                                AllDevices ->
+                                    DataTrigger.AllDevices
+
+                                SpecificDevice ->
+                                    DataTrigger.SpecificDevice ""
+
+                                DeviceGroup ->
+                                    DataTrigger.DeviceGroup ""
+
+                        newSimpleTrigger =
+                            Trigger.Data { dataTrigger | target = newTarget }
+
+                        oldTrigger =
+                            model.trigger
+
+                        newTrigger =
+                            { oldTrigger | simpleTrigger = newSimpleTrigger }
+                    in
+                    ( { model
+                        | trigger = newTrigger
+                        , sourceBuffer = Trigger.toPrettySource newTrigger
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Trigger.Device _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateDataTriggerDeviceId deviceId ->
+            case model.trigger.simpleTrigger of
+                Trigger.Data dataTrigger ->
+                    let
+                        newSimpleTrigger =
+                            Trigger.Data { dataTrigger | target = DataTrigger.SpecificDevice deviceId }
+
+                        oldTrigger =
+                            model.trigger
+
+                        newTrigger =
+                            { oldTrigger | simpleTrigger = newSimpleTrigger }
+                    in
+                    ( { model
+                        | trigger = newTrigger
+                        , sourceBuffer = Trigger.toPrettySource newTrigger
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Trigger.Device _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+        UpdateDataTriggerGroupName groupName ->
+            case model.trigger.simpleTrigger of
+                Trigger.Data dataTrigger ->
+                    let
+                        newSimpleTrigger =
+                            Trigger.Data { dataTrigger | target = DataTrigger.DeviceGroup groupName }
+
+                        oldTrigger =
+                            model.trigger
+
+                        newTrigger =
+                            { oldTrigger | simpleTrigger = newSimpleTrigger }
+                    in
+                    ( { model
+                        | trigger = newTrigger
+                        , sourceBuffer = Trigger.toPrettySource newTrigger
+                      }
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
+
+                Trigger.Device _ ->
+                    ( model
+                    , Cmd.none
+                    , ExternalMsg.Noop
+                    )
 
         UpdateDataTriggerInterfaceName interfaceName ->
             case model.trigger.simpleTrigger of
@@ -1528,12 +1623,13 @@ renderDataTrigger dataTrigger model =
                 |> Maybe.map (\interface -> interface.iType == Interface.Properties)
                 |> Maybe.withDefault False
     in
-    [ Form.row []
+    [ renderDataTriggerTarget model.editMode dataTrigger.target
+    , Form.row []
         [ Form.col
             [ if isAnyInterface then
                 Col.sm12
 
-              else
+            else
                 Col.sm8
             ]
             [ Form.group []
@@ -1560,7 +1656,7 @@ renderDataTrigger dataTrigger model =
             [ if isAnyInterface then
                 Col.attrs [ Display.none ]
 
-              else
+            else
                 Col.sm4
             ]
             [ Form.group []
@@ -1597,7 +1693,7 @@ renderDataTrigger dataTrigger model =
         (if isAnyInterface then
             [ Row.attrs [ Display.none ] ]
 
-         else
+        else
             []
         )
         [ Form.col [ Col.sm12 ]
@@ -1611,7 +1707,7 @@ renderDataTrigger dataTrigger model =
                     , if isValidPath dataTrigger.path dataTrigger.on model.mappingType then
                         Input.success
 
-                      else
+                    else
                         Input.danger
                     ]
                 ]
@@ -1621,7 +1717,7 @@ renderDataTrigger dataTrigger model =
         (if isAnyInterface then
             [ Row.attrs [ Display.none ] ]
 
-         else
+        else
             []
         )
         [ Form.col [ Col.sm4 ]
@@ -1651,7 +1747,7 @@ renderDataTrigger dataTrigger model =
                             , if isValidKnownValue model.mappingType dataTrigger.knownValue then
                                 Input.success
 
-                              else
+                            else
                                 Input.danger
                             ]
                         ]
@@ -1668,6 +1764,106 @@ isValidKnownValue maybeType value =
 
         Nothing ->
             False
+
+
+renderDataTriggerTarget : Bool -> DataTrigger.Target -> Html Msg
+renderDataTriggerTarget editMode target =
+    case target of
+        DataTrigger.AllDevices ->
+            Form.row []
+                [ Form.col [ Col.sm12 ]
+                    [ renderDataTriggerTargetSelect editMode target ]
+                ]
+
+        DataTrigger.DeviceGroup groupName ->
+            Form.row []
+                [ Form.col [ Col.sm4 ]
+                    [ renderDataTriggerTargetSelect editMode target ]
+                , Form.col [ Col.sm8 ]
+                    [ Form.group []
+                        [ Form.label [ for "triggerGroupName" ] [ text "Group Name" ]
+                        , Input.text
+                            [ Input.id "triggerGroupName"
+                            , Input.readonly editMode
+                            , Input.value groupName
+                            , Input.onInput UpdateDataTriggerGroupName
+                            ]
+                        ]
+                    ]
+                ]
+
+        DataTrigger.SpecificDevice deviceId ->
+            Form.row []
+                [ Form.col [ Col.sm4 ]
+                    [ renderDataTriggerTargetSelect editMode target ]
+                , Form.col [ Col.sm8 ]
+                    [ Form.group []
+                        [ Form.label [ for "triggerDeviceId" ] [ text "Device id" ]
+                        , Input.text
+                            [ Input.id "triggerDeviceId"
+                            , Input.readonly editMode
+                            , Input.value deviceId
+                            , Input.onInput UpdateDataTriggerDeviceId
+                            ]
+                        ]
+                    ]
+                ]
+
+
+renderDataTriggerTargetSelect : Bool -> DataTrigger.Target -> Html Msg
+renderDataTriggerTargetSelect editMode target =
+    let
+        targetChoice =
+            case target of
+                DataTrigger.AllDevices ->
+                    AllDevices
+
+                DataTrigger.DeviceGroup _ ->
+                    DeviceGroup
+
+                DataTrigger.SpecificDevice _ ->
+                    SpecificDevice
+    in
+    Form.group []
+        [ Form.label [ for "triggerTargetSelect" ] [ text "Target" ]
+        , Select.select
+            [ Select.id "triggerTargetSelect"
+            , Select.disabled editMode
+            , Select.onChange updateDataTriggerTarget
+            ]
+            [ Select.item
+                [ value "all_devices"
+                , selected (targetChoice == AllDevices)
+                ]
+                [ text "All devices" ]
+            , Select.item
+                [ value "specific_device"
+                , selected (targetChoice == SpecificDevice)
+                ]
+                [ text "Device" ]
+            , Select.item
+                [ value "device_group"
+                , selected (targetChoice == DeviceGroup)
+                ]
+                [ text "Group" ]
+            ]
+        ]
+
+
+updateDataTriggerTarget : String -> Msg
+updateDataTriggerTarget targetChoice =
+    case targetChoice of
+        "all_devices" ->
+            UpdateDataTriggerTarget AllDevices
+
+        "specific_device" ->
+            UpdateDataTriggerTarget SpecificDevice
+
+        "device_group" ->
+            UpdateDataTriggerTarget DeviceGroup
+
+        _ ->
+            Noop
 
 
 renderAvailableInterfaces : String -> List String -> List (Select.Item Msg)
@@ -1785,9 +1981,9 @@ renderDeviceTriggerTargetSelect editMode target =
                     SpecificDevice
     in
     Form.group []
-        [ Form.label [ for "deviceTriggerTargetSelect" ] [ text "Target" ]
+        [ Form.label [ for "triggerTargetSelect" ] [ text "Target" ]
         , Select.select
-            [ Select.id "deviceTriggerTargetSelect"
+            [ Select.id "triggerTargetSelect"
             , Select.disabled editMode
             , Select.onChange updateDeviceTriggerTarget
             ]
