@@ -71,7 +71,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 
-## [0.11.4] - Unreleased
+## [0.11.4] - 2021-01-26
 ### Fixed
 - Avoid creating an `housekeeping_public.pem` directory if `docker-compose up` doesn't find the
   housekeeping keypair.
