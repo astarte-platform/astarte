@@ -91,10 +91,10 @@ instructions, i.e.:
 ```bash
 helm repo add astarte https://helm.astarte-platform.org
 helm repo update
-helm install astarte-operator astarte/astarte-operator --version 1.0.0-alpha.1
+helm install astarte-operator astarte/astarte-operator --version 1.0-snapshot
 ```
 
-Please note that version `1.0.0-alpha1` is a safe landing version to perform the upgrade. After
+Please note that version `1.0-snapshot` is a safe landing version to perform the upgrade. After
 the successful installation, please upgrade to a more recent version following the instructions
 outlined in the [previous section](#upgrading-the-operator-v1-0).
 
