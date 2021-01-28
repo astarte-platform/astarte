@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support SSL for Cassandra connections.
 - Default max certificate chain length to 10.
 
+## [0.11.4] - 2021-01-25
+
 ## [0.11.3] - 2020-09-24
 
 ## [0.11.2] - 2020-08-14
