@@ -490,7 +490,7 @@ pageInit realmRoute config session =
             initReactPage session Triggers "trigger-new" realmRoute
 
         Route.ShowTrigger name ->
-            initTriggerBuilderPage (Just name) session session.apiConfig.realm
+            initReactPage session Triggers "trigger-edit" realmRoute
 
         Route.ShowDevice deviceId ->
             initReactPage session Devices "device-status" realmRoute

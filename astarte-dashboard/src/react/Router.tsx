@@ -40,6 +40,7 @@ import GroupDevicesPage from './GroupDevicesPage';
 import NewGroupPage from './NewGroupPage';
 import TriggersPage from './TriggersPage';
 import NewTriggerPage from './NewTriggerPage';
+import TriggerPage from './TriggerPage';
 import InterfacesPage from './InterfacesPage';
 import InterfacePage from './InterfacePage';
 import InterfaceEditorPage from './InterfaceEditorPage';
@@ -116,6 +117,11 @@ function Login({ defaultLoginType, ...props }: LoginProps): React.ReactElement {
     : defaultLoginType;
 
   return <LoginPage type={loginType} {...props} />;
+}
+
+function TriggerDetails(props: PageProps): React.ReactElement {
+  const { triggerName } = useParams();
+  return <TriggerPage triggerName={triggerName} {...props} />;
 }
 
 function InterfaceEdit(props: PageProps): React.ReactElement {
@@ -249,6 +255,7 @@ export default ({
         />
         <Route path="triggers" element={<TriggersPage {...pageProps} />} />
         <Route path="triggers/new" element={<NewTriggerPage {...pageProps} />} />
+        <Route path="triggers/:triggerName/edit" element={<TriggerDetails {...pageProps} />} />
         <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
         <Route path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
         <Route
