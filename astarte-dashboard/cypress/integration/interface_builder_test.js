@@ -679,10 +679,10 @@ describe('Interface builder tests', () => {
               `/realmmanagement/v1/*/interfaces/${iface.interface_name}/${iface.version_major}`,
               { data: iface },
             );
-            cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}`);
+            cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}/edit`);
             cy.location('pathname').should(
               'eq',
-              `/interfaces/${iface.interface_name}/${iface.version_major}`,
+              `/interfaces/${iface.interface_name}/${iface.version_major}/edit`,
             );
             checkInterfaceEditorUIValues(iface);
           });
@@ -696,7 +696,7 @@ describe('Interface builder tests', () => {
             `/realmmanagement/v1/*/interfaces/${iface.interface_name}/${iface.version_major}`,
             { data: iface },
           );
-          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}`);
+          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}/edit`);
           cy.get('#interfaceName').should('have.attr', 'readonly');
           cy.get('#interfaceMajor').should('have.attr', 'readonly');
           cy.get('#interfaceTypeDatastream').should('be.disabled');
@@ -729,7 +729,7 @@ describe('Interface builder tests', () => {
             `/realmmanagement/v1/*/interfaces/${iface.interface_name}/${iface.version_major}`,
             { data: iface },
           );
-          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}`);
+          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}/edit`);
 
           const mappingEndpoint = '/new_mapping_endpoint';
 
@@ -799,7 +799,7 @@ describe('Interface builder tests', () => {
           `/realmmanagement/v1/*/interfaces/${majorInterface.interface_name}/${majorInterface.version_major}`,
           { data: majorInterface },
         );
-        cy.visit(`/interfaces/${majorInterface.interface_name}/${majorInterface.version_major}`);
+        cy.visit(`/interfaces/${majorInterface.interface_name}/${majorInterface.version_major}/edit`);
         cy.get('button').contains('Delete interface').scrollIntoView().should('not.be.visible');
 
         cy.route(
@@ -813,7 +813,7 @@ describe('Interface builder tests', () => {
           status: 204,
           response: '',
         }).as('deleteInterfaceRequest');
-        cy.visit(`/interfaces/${draftInterface.interface_name}/${draftInterface.version_major}`);
+        cy.visit(`/interfaces/${draftInterface.interface_name}/${draftInterface.version_major}/edit`);
         cy.get('button').contains('Delete interface').scrollIntoView().click();
         cy.get('.modal.show').within(() => {
           cy.contains(
@@ -841,7 +841,7 @@ describe('Interface builder tests', () => {
             status: 204,
             response: '',
           }).as('saveInterfaceRequest');
-          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}`);
+          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}/edit`);
           const newIface = _.merge({}, iface, {
             version_minor: iface.version_minor + 1,
             doc: 'New documentation',
@@ -872,7 +872,7 @@ describe('Interface builder tests', () => {
             status: 204,
             response: '',
           }).as('saveInterfaceRequest');
-          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}`);
+          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}/edit`);
           const newIface = _.merge({}, iface, {
             version_minor: iface.version_minor + 1,
             doc: 'New documentation',
@@ -914,7 +914,7 @@ describe('Interface builder tests', () => {
             status: 204,
             response: '',
           }).as('saveInterfaceRequest');
-          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}`);
+          cy.visit(`/interfaces/${iface.interface_name}/${iface.version_major}/edit`);
           const newIface = _.merge({}, iface, {
             version_minor: iface.version_minor + 1,
             doc: 'New documentation',
