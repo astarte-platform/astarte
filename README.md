@@ -6,6 +6,10 @@ Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https:/
 
 ## Let's try it!
 
+**This Astarte version has been discontinued and it is not supported anymore.**
+
+**Do not use this version on production systems, use a newer version instead.**
+
 Can't be easier.
 Pick your favorite machine with at least 4GB of RAM (Cassandra can be hungry), make sure it has [Docker](https://www.docker.com/), [cfssl](https://github.com/cloudflare/cfssl) and OpenSSL installed, and simply:
 
