@@ -21,12 +21,20 @@ defmodule Astarte.DataAccess.Mappings do
   alias CQEx.Query
   require Logger
 
-  @spec fetch_interface_mappings(:cqerl.client(), binary) ::
+  @spec fetch_interface_mappings(:cqerl.client(), binary, keyword) ::
           {:ok, list(%Mapping{})} | {:error, atom}
-  def fetch_interface_mappings(db_client, interface_id) do
+  def fetch_interface_mappings(db_client, interface_id, opts \\ []) do
+    include_docs_statement =
+      if Keyword.get(opts, :include_docs) do
+        ", doc, description"
+      else
+        ""
+      end
+
     mappings_statement = """
     SELECT endpoint, value_type, reliability, retention, database_retention_policy,
-      database_retention_ttl, expiry, allow_unset, explicit_timestamp, endpoint_id, interface_id
+      database_retention_ttl, expiry, allow_unset, explicit_timestamp, endpoint_id,
+      interface_id #{include_docs_statement}
     FROM endpoints
     WHERE interface_id=:interface_id
     """
@@ -52,9 +60,10 @@ defmodule Astarte.DataAccess.Mappings do
     end
   end
 
-  @spec fetch_interface_mappings_map(:cqerl.client(), binary) :: {:ok, map()} | {:error, atom}
-  def fetch_interface_mappings_map(db_client, interface_id) do
-    with {:ok, mappings_list} <- fetch_interface_mappings(db_client, interface_id) do
+  @spec fetch_interface_mappings_map(:cqerl.client(), binary, keyword) ::
+          {:ok, map()} | {:error, atom}
+  def fetch_interface_mappings_map(db_client, interface_id, opts \\ []) do
+    with {:ok, mappings_list} <- fetch_interface_mappings(db_client, interface_id, opts) do
       mappings_map =
         Enum.into(mappings_list, %{}, fn %Mapping{} = mapping ->
           {mapping.endpoint_id, mapping}

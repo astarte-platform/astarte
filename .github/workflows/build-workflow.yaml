@@ -41,7 +41,7 @@ jobs:
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-
-    - uses: actions/setup-elixir@v1.3.0
+    - uses: actions/setup-elixir@v1.5.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
@@ -62,7 +62,7 @@ jobs:
       matrix:
         database:
         - "cassandra:3.11.6"
-        - "scylladb/scylla:3.3.0"
+        - "scylladb/scylla:4.1.rc2"
     services:
       database:
         image: ${{ matrix.database }}
@@ -86,7 +86,7 @@ jobs:
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-
-    - uses: actions/setup-elixir@v1.3.0
+    - uses: actions/setup-elixir@v1.5.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
