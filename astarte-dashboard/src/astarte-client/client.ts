@@ -27,6 +27,8 @@ import {
   toAstarteInterfaceDTO,
   fromAstartePipelineDTO,
   toAstartePipelineDTO,
+  fromAstarteTriggerDTO,
+  toAstarteTriggerDTO,
   toAstarteDataTree,
 } from './transforms';
 import * as definitions from './definitions';
@@ -36,6 +38,7 @@ import { AstarteFlow } from './models/Flow';
 import { AstartePipeline } from './models/Pipeline';
 import type { AstarteInterface } from './models/Interface';
 import type { AstarteBlock } from './models/Block';
+import type { AstarteTrigger } from './models/Trigger';
 import type {
   AstarteBlockDTO,
   AstarteDeviceDTO,
@@ -192,8 +195,12 @@ class AstarteClient {
     this.getBlocks = this.getBlocks.bind(this);
     this.getDeviceData = this.getDeviceData.bind(this);
     this.getDevicesStats = this.getDevicesStats.bind(this);
+    this.getInterface = this.getInterface.bind(this);
+    this.getInterfaceMajors = this.getInterfaceMajors.bind(this);
     this.getInterfaceNames = this.getInterfaceNames.bind(this);
     this.getTriggerNames = this.getTriggerNames.bind(this);
+    this.getTrigger = this.getTrigger.bind(this);
+    this.deleteTrigger = this.deleteTrigger.bind(this);
     this.getAppengineHealth = this.getAppengineHealth.bind(this);
     this.getRealmManagementHealth = this.getRealmManagementHealth.bind(this);
     this.getPairingHealth = this.getPairingHealth.bind(this);
@@ -209,6 +216,7 @@ class AstarteClient {
       interfaceMajors:       astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
       interface:             astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       interfaceData:         astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
+      trigger:               astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/triggers/${'triggerName'}`,
       triggers:              astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/triggers`,
       appengineHealth:       astarteAPIurl`${config.appengineUrl}health`,
       devicesStats:          astarteAPIurl`${config.appengineUrl}v1/${'realm'}/stats/devices`,
@@ -324,6 +332,19 @@ class AstarteClient {
   async getTriggerNames(): Promise<string[]> {
     const response = await this.$get(this.apiConfig.triggers(this.config));
     return response.data;
+  }
+
+  async getTrigger(triggerName: string): Promise<AstarteTrigger> {
+    const response = await this.$get(this.apiConfig.trigger({ ...this.config, triggerName }));
+    return fromAstarteTriggerDTO(response.data);
+  }
+
+  async deleteTrigger(triggerName: string): Promise<void> {
+    await this.$delete(this.apiConfig.trigger({ ...this.config, triggerName }));
+  }
+
+  async installTrigger(trigger: AstarteTrigger): Promise<void> {
+    await this.$post(this.apiConfig.triggers(this.config), toAstarteTriggerDTO(trigger));
   }
 
   async getDevicesStats(): Promise<any> {
@@ -829,6 +850,10 @@ class AstarteClient {
     return {
       flow: this.config.enableFlowPreview,
     };
+  }
+
+  get realm(): string | null {
+    return this.config.realm || null;
   }
 }
 

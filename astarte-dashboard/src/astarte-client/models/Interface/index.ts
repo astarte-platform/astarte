@@ -27,7 +27,7 @@ import type { AstarteInterfaceDTO } from '../../types';
 
 type AstarteInterfaceJSON = AstarteInterfaceDTO;
 
-export interface AstarteInterfaceObject {
+interface AstarteInterfaceObject {
   name: string;
 
   major: number;
@@ -143,7 +143,7 @@ const astarteInterfaceObjectSchema: yup.ObjectSchema<AstarteInterfaceObject> = y
   })
   .required();
 
-export class AstarteInterface {
+class AstarteInterface {
   name: string;
 
   major: number;
@@ -205,3 +205,5 @@ export class AstarteInterface {
     return toAstarteInterfaceDTO(iface);
   }
 }
+
+export { AstarteInterface, AstarteInterfaceObject, interfaceNameRegex };

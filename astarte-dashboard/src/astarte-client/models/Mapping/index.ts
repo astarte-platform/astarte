@@ -24,7 +24,7 @@ import type { AstarteMappingDTO, AstarteDataType } from '../../types';
 
 type AstarteMappingJSON = AstarteMappingDTO;
 
-export interface AstarteMappingObject {
+interface AstarteMappingObject {
   endpoint: string;
 
   type: AstarteDataType;
@@ -101,7 +101,7 @@ const isEndpointParam = (endpointPart?: string) =>
 const matchEndpointPart = ([part1, part2]: [string | undefined, string | undefined]) =>
   part1 === part2 || isEndpointParam(part1) || isEndpointParam(part2);
 
-export class AstarteMapping {
+class AstarteMapping {
   endpoint: string;
 
   type: AstarteDataType;
@@ -153,3 +153,5 @@ export class AstarteMapping {
     return toAstarteMappingDTO(mapping);
   }
 }
+
+export { AstarteMapping, AstarteMappingObject, mappingEndpointRegex };
