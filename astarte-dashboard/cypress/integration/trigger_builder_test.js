@@ -413,7 +413,7 @@ describe('Trigger builder tests', () => {
         cy.get('#amqpExchange')
           .should('be.enabled')
           .and('be.empty')
-          .and('have.attr', 'placeholder', `astarte_events_${this.realm.name}_exchangename`);
+          .and('have.attr', 'placeholder', `astarte_events_${this.realm.name}_<exchange-name>`);
         cy.get('label[for="amqpRoutingKey"]').contains('Routing key');
         cy.get('#amqpRoutingKey').should('be.enabled').and('be.empty');
         cy.get('label[for="amqpPersistency"]').contains('Persistency');
