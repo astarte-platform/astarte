@@ -65,7 +65,7 @@ const deviceTableRow = (
         </OverlayTrigger>
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
-        <Link to={`/devices/${device.id}`}>{device.name}</Link>
+        <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
       </td>
       <td>{lastEvent}</td>
       <td>

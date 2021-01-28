@@ -66,7 +66,7 @@ describe('Groups page tests', () => {
         const groupName = 'special characters %20///%%`~!@#$^&*()_-+=[]{};:\'"|\\<>,.';
         const encodedGroupName = encodeURIComponent(groupName);
         cy.get('table td').contains(groupName).click();
-        cy.location('pathname').should('eq', `/groups/${encodeURIComponent(encodedGroupName)}`);
+        cy.location('pathname').should('eq', `/groups/${encodeURIComponent(encodedGroupName)}/edit`);
       });
     });
   });

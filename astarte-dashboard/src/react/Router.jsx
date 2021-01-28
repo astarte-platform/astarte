@@ -79,7 +79,7 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
         />
         <Route path="groups" element={<GroupsPage {...pageProps} />} />
         <Route path="groups/new" element={<NewGroupPage {...pageProps} />} />
-        <Route path="groups/:groupName" element={<GroupDevicesSubPath {...pageProps} />} />
+        <Route path="groups/:groupName/edit" element={<GroupDevicesSubPath {...pageProps} />} />
         <Route path="flows" element={<FlowInstancesPage {...pageProps} />} />
         <Route path="flows/new/:pipelineId" element={<FlowConfiguration {...pageProps} />} />
         <Route path="flows/:flowName" element={<FlowDetails {...pageProps} />} />

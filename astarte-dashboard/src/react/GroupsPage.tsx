@@ -104,7 +104,7 @@ export default ({ astarte }: Props): React.ReactElement => {
                 return (
                   <tr key={group.name}>
                     <td>
-                      <Link to={`/groups/${encodedGroupName}`}>{group.name}</Link>
+                      <Link to={`/groups/${encodedGroupName}/edit`}>{group.name}</Link>
                     </td>
                     <td>{group.connectedDevices}</td>
                     <td>{group.totalDevices}</td>

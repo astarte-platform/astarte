@@ -7,7 +7,7 @@ describe('Device page tests', () => {
     });
 
     it('redirects to login', function () {
-      cy.visit(`/devices/${this.device.data.id}`);
+      cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.location('pathname').should('eq', '/login');
     });
   });
@@ -22,15 +22,15 @@ describe('Device page tests', () => {
     it('successfully loads Device page', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-      cy.visit(`/devices/${this.device.data.id}`);
-      cy.location('pathname').should('eq', `/devices/${this.device.data.id}`);
+      cy.visit(`/devices/${this.device.data.id}/edit`);
+      cy.location('pathname').should('eq', `/devices/${this.device.data.id}/edit`);
       cy.get('h2').contains('Device');
     });
 
     it('displays correct properties for a device', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-      cy.visit(`/devices/${this.device.data.id}`);
+      cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.contains('Device Info')
           .next()
@@ -88,15 +88,15 @@ describe('Device page tests', () => {
     it('successfully loads Device page for a detailed device', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
-      cy.visit(`/devices/${this.deviceDetailed.data.id}`);
-      cy.location('pathname').should('eq', `/devices/${this.deviceDetailed.data.id}`);
+      cy.visit(`/devices/${this.deviceDetailed.data.id}/edit`);
+      cy.location('pathname').should('eq', `/devices/${this.deviceDetailed.data.id}/edit`);
       cy.get('h2').contains('Device');
     });
 
     it('displays correct properties for a detailed device', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
-      cy.visit(`/devices/${this.deviceDetailed.data.id}`);
+      cy.visit(`/devices/${this.deviceDetailed.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.contains('Device Info')
           .next()
@@ -134,7 +134,7 @@ describe('Device page tests', () => {
           .next()
           .within(() => {
             this.deviceDetailed.data.groups.forEach((group) => {
-              cy.contains(group).should('have.attr', 'href', `/groups/${group}`);
+              cy.contains(group).should('have.attr', 'href', `/groups/${group}/edit`);
             });
             cy.contains('Add to existing group').should('not.be.disabled');
           });
@@ -183,7 +183,7 @@ describe('Device page tests', () => {
         data: { credentials_inhibited: false },
       });
       cy.route('GET', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials);
-      cy.visit(`/devices/${this.device.data.id}`);
+      cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content .card-header')
         .contains('Device Info')
         .parents('.card')
@@ -214,7 +214,7 @@ describe('Device page tests', () => {
         data: { credentials_inhibited: false },
       });
       cy.route('GET', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials);
-      cy.visit(`/devices/${this.device.data.id}`);
+      cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content .card-header')
         .contains('Device Info')
         .parents('.card')
@@ -245,7 +245,7 @@ describe('Device page tests', () => {
         status: 204,
         response: '',
       }).as('wipeCredentialsSecretRequest');
-      cy.visit(`/devices/${this.device.data.id}`);
+      cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.contains('Wipe credential secret').should('exist').and('not.be.disabled').click();
         cy.get('.modal').contains(
@@ -273,7 +273,7 @@ describe('Device page tests', () => {
       updatedDevice.data.aliases = { alias_key: 'alias_value' };
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Aliases')
@@ -314,7 +314,7 @@ describe('Device page tests', () => {
       updatedDevice.data.aliases = { alias_key1: 'alias_value1' };
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Aliases')
@@ -356,7 +356,7 @@ describe('Device page tests', () => {
       updatedDevice.data.aliases = { alias_key: 'alias_new_value' };
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Aliases')
@@ -399,7 +399,7 @@ describe('Device page tests', () => {
       updatedDevice.data.metadata = { metadata_key: 'metadata_value' };
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Metadata')
@@ -440,7 +440,7 @@ describe('Device page tests', () => {
       updatedDevice.data.metadata = { metadata_key1: 'metadata_value1' };
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Metadata')
@@ -483,7 +483,7 @@ describe('Device page tests', () => {
       updatedDevice.data.metadata = { metadata_key: 'metadata_new_value' };
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Metadata')
@@ -529,7 +529,7 @@ describe('Device page tests', () => {
       cy.server();
       cy.route('GET', '/appengine/v1/*/groups', { data: allGroups });
       cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Groups')
@@ -583,7 +583,7 @@ describe('Device page tests', () => {
         response: '',
       }).as('updateGroupRequest');
 
-      cy.visit(`/devices/${device.data.id}`);
+      cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
           .contains('Groups')
@@ -614,7 +614,7 @@ describe('Device page tests', () => {
     it('correctly renders Device Stats', function () {
       cy.server();
       cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
-      cy.visit(`/devices/${this.deviceDetailed.data.id}`);
+      cy.visit(`/devices/${this.deviceDetailed.data.id}/edit`);
 
       const formatBytes = (bytes) => {
         if (bytes < 1024) {
@@ -671,7 +671,7 @@ describe('Device page tests', () => {
         cy.mockWebSocket({ url: wssUrl });
         cy.server();
         cy.route('GET', '/appengine/v1/*/devices/*', this.device);
-        cy.visit(`/devices/${this.device.data.id}`);
+        cy.visit(`/devices/${this.device.data.id}/edit`);
         cy.get('.main-content .card-header')
           .contains('Device Live Events')
           .parents('.card')
