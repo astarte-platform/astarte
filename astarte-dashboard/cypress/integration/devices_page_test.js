@@ -40,7 +40,7 @@ describe('Devices page tests', () => {
         cy.get('table tbody')
           .contains(device.aliases.name || device.id)
           .click();
-        cy.location('pathname').should('eq', `/devices/${device.id}`);
+        cy.location('pathname').should('eq', `/devices/${device.id}/edit`);
       });
     });
 

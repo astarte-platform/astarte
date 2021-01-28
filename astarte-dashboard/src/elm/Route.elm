@@ -55,6 +55,7 @@ type RealmRoute
     | ShowDeviceData String String
     | RegisterDevice (Maybe String)
     | GroupList
+    | NewGroup
     | GroupDevices String
     | FlowInstances
     | FlowConfigure String
@@ -85,16 +86,17 @@ realmRouteParser =
         , map RealmSettings (s "settings")
         , map ListInterfaces (s "interfaces")
         , map NewInterface (s "interfaces" </> s "new")
-        , map ShowInterface (s "interfaces" </> string </> int)
+        , map ShowInterface (s "interfaces" </> string </> int </> s "edit")
         , map ListTriggers (s "triggers")
         , map NewTrigger (s "triggers" </> s "new")
-        , map ShowTrigger (s "triggers" </> string)
+        , map ShowTrigger (s "triggers" </> string </> s "edit")
         , map DeviceList (s "devices")
         , map RegisterDevice (s "devices" </> s "register" <?> Query.string "deviceId")
-        , map ShowDevice (s "devices" </> string)
+        , map ShowDevice (s "devices" </> string </> s "edit")
         , map ShowDeviceData (s "devices" </> string </> s "interfaces" </> string)
         , map GroupList (s "groups")
-        , map GroupDevices (s "groups" </> string)
+        , map NewGroup (s "groups" </> s "new")
+        , map GroupDevices (s "groups" </> string </> s "edit")
         , map FlowInstances (s "flows")
         , map FlowConfigure (s "flows" </> s "new" </> string)
         , map FlowDetails (s "flows" </> string)
@@ -104,6 +106,7 @@ realmRouteParser =
         , map BlockList (s "blocks")
         , map NewBlock (s "blocks" </> s "new")
         , map BlockShowSource (s "blocks" </> string)
+        , map GroupDevices (s "groups" </> string </> s "edit")
         ]
 
 
@@ -157,7 +160,7 @@ toString route =
                     [ "interfaces", "new" ]
 
                 Realm (ShowInterface name major) ->
-                    [ "interfaces", name, String.fromInt major ]
+                    [ "interfaces", name, String.fromInt major, "edit" ]
 
                 Realm ListTriggers ->
                     [ "triggers" ]
@@ -166,13 +169,13 @@ toString route =
                     [ "triggers", "new" ]
 
                 Realm (ShowTrigger name) ->
-                    [ "triggers", name ]
+                    [ "triggers", name, "edit" ]
 
                 Realm DeviceList ->
                     [ "devices" ]
 
                 Realm (ShowDevice deviceId) ->
-                    [ "devices", deviceId ]
+                    [ "devices", deviceId, "edit" ]
 
                 Realm (ShowDeviceData deviceId interfaceName) ->
                     [ "devices", deviceId, "interfaces", interfaceName ]
@@ -188,15 +191,18 @@ toString route =
                 Realm GroupList ->
                     [ "groups" ]
 
+                Realm NewGroup ->
+                    [ "groups", "new" ]
+
                 Realm (GroupDevices groupName) ->
                     let
                         -- Double encoding to preserve the URL format when groupName contains % and /
                         encodedGroupName =
                             groupName
-                            |> Url.percentEncode
-                            |> Url.percentEncode
+                                |> Url.percentEncode
+                                |> Url.percentEncode
                     in
-                    [ "groups", encodedGroupName ]
+                    [ "groups", encodedGroupName, "edit" ]
 
                 Realm FlowInstances ->
                     [ "flows" ]

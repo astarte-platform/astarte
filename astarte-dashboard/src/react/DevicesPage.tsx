@@ -146,7 +146,7 @@ const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
         </OverlayTrigger>
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
-        <Link to={`/devices/${device.id}`}>{device.name}</Link>
+        <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
         <MatchedMetadata filters={filters} metadata={device.metadata} />
       </td>
       <td>{lastEvent}</td>

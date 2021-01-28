@@ -6,7 +6,7 @@ describe('Trigger builder tests', () => {
     });
 
     it('redirects to login', () => {
-      cy.visit('/triggers/testTrigger');
+      cy.visit('/triggers/testTrigger/edit');
       cy.location('pathname').should('eq', '/login');
     });
   });
@@ -34,8 +34,8 @@ describe('Trigger builder tests', () => {
     });
 
     it('shows selected trigger', function() {
-      cy.visit('/triggers/test.astarte.FirstTrigger');
-      cy.location('pathname').should('eq', '/triggers/test.astarte.FirstTrigger');
+      cy.visit('/triggers/test.astarte.FirstTrigger/edit');
+      cy.location('pathname').should('eq', '/triggers/test.astarte.FirstTrigger/edit');
 
       cy.get('#triggerName').should('have.value', this.test_trigger.data.name);
       cy.get('#triggerSimpleTriggerType').should('have.value', 'data');
@@ -67,7 +67,7 @@ describe('Trigger builder tests', () => {
         status: 204,
         response: '',
       }).as('deleteTriggerRequest');
-      cy.visit('/triggers/test.astarte.FirstTrigger');
+      cy.visit('/triggers/test.astarte.FirstTrigger/edit');
       cy.get('button').contains('Delete trigger').click();
       cy.get('.modal.show #confirmTriggerName').type(this.test_trigger.data.name);
       cy.get('.modal.show button').contains('Confirm').click();

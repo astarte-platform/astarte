@@ -40,7 +40,7 @@ const GroupsTable = ({ groups }: GroupsTableProps): React.ReactElement => (
         return (
           <tr key={index}>
             <td>
-              <Link to={`/groups/${encodedGroupName}`}>{groupName}</Link>
+              <Link to={`/groups/${encodedGroupName}/edit`}>{groupName}</Link>
             </td>
           </tr>
         );

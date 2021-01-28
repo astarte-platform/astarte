@@ -81,19 +81,19 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
         <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
         <Route path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
         <Route
-          path="interfaces/:interfaceName/:interfaceMajor"
+          path="interfaces/:interfaceName/:interfaceMajor/edit"
           element={<InterfaceEdit {...pageProps} />}
         />
         <Route path="devices" element={<DevicesPage {...pageProps} />} />
         <Route path="devices/register" element={<RegisterDevice {...pageProps} />} />
-        <Route path="devices/:deviceId" element={<DeviceStatusSubPath {...pageProps} />} />
+        <Route path="devices/:deviceId/edit" element={<DeviceStatusSubPath {...pageProps} />} />
         <Route
           path="devices/:deviceId/interfaces/:interfaceName"
           element={<DeviceDataSubPath {...pageProps} />}
         />
         <Route path="groups" element={<GroupsPage {...pageProps} />} />
         <Route path="groups/new" element={<NewGroupPage {...pageProps} />} />
-        <Route path="groups/:groupName" element={<GroupDevicesSubPath {...pageProps} />} />
+        <Route path="groups/:groupName/edit" element={<GroupDevicesSubPath {...pageProps} />} />
         <Route path="flows" element={<FlowInstancesPage {...pageProps} />} />
         <Route path="flows/new/:pipelineId" element={<FlowConfiguration {...pageProps} />} />
         <Route path="flows/:flowName" element={<FlowDetails {...pageProps} />} />
