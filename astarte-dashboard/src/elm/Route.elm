@@ -55,6 +55,7 @@ type RealmRoute
     | ShowDeviceData String String
     | RegisterDevice (Maybe String)
     | GroupList
+    | NewGroup
     | GroupDevices String
     | FlowInstances
     | FlowConfigure String
@@ -94,6 +95,7 @@ realmRouteParser =
         , map ShowDevice (s "devices" </> string)
         , map ShowDeviceData (s "devices" </> string </> s "interfaces" </> string)
         , map GroupList (s "groups")
+        , map NewGroup (s "groups" </> s "new")
         , map GroupDevices (s "groups" </> string)
         , map FlowInstances (s "flows")
         , map FlowConfigure (s "flows" </> s "new" </> string)
@@ -104,6 +106,7 @@ realmRouteParser =
         , map BlockList (s "blocks")
         , map NewBlock (s "blocks" </> s "new")
         , map BlockShowSource (s "blocks" </> string)
+        , map GroupDevices (s "groups" </> string </> s "edit")
         ]
 
 
@@ -187,6 +190,9 @@ toString route =
 
                 Realm GroupList ->
                     [ "groups" ]
+
+                Realm NewGroup ->
+                    [ "groups", "new" ]
 
                 Realm (GroupDevices groupName) ->
                     let
