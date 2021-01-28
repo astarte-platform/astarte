@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Major rework for the Interface Editor.
+- Major rework for the Trigger Editor.
 
 ## [1.0.0-beta.2] - Unreleased
 ### Fixed
