@@ -487,7 +487,7 @@ pageInit realmRoute config session =
             initReactPage session Triggers "trigger-list" realmRoute
 
         Route.NewTrigger ->
-            initTriggerBuilderPage Nothing session session.apiConfig.realm
+            initReactPage session Triggers "trigger-new" realmRoute
 
         Route.ShowTrigger name ->
             initTriggerBuilderPage (Just name) session session.apiConfig.realm

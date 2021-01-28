@@ -317,7 +317,7 @@ describe('Trigger builder tests', () => {
       it('has a Hide button to toggle Trigger Source visibility', () => {
         cy.get('#triggerSource').scrollIntoView().should('be.visible');
         cy.get('button').contains('Hide source').scrollIntoView().click();
-        cy.get('#triggerSource').should('not.be.visible');
+        cy.get('#triggerSource').should('not.exist');
         cy.get('button').contains('Show source').scrollIntoView().click();
         cy.get('#triggerSource').scrollIntoView().should('be.visible');
       });
@@ -346,8 +346,9 @@ describe('Trigger builder tests', () => {
         cy.get('label[for="triggerInterfaceName"]').contains('Interface name');
         cy.get('#triggerInterfaceName')
           .should('be.enabled')
-          .contains(this.first_interface.data.interface_name)
+          .contains('Any interface')
           .should('be.selected');
+        cy.get('#triggerInterfaceName').select(this.first_interface.data.interface_name);
         cy.get('label[for="triggerInterfaceMajor"]').contains('Interface major');
         cy.get('#triggerInterfaceMajor')
           .should('be.enabled')
@@ -380,9 +381,9 @@ describe('Trigger builder tests', () => {
           .should('be.selected');
 
         cy.get('#triggerInterfaceName').select('Any interface');
-        cy.get('#triggerInterfaceMajor').should('not.be.visible');
-        cy.get('#triggerPath').should('not.be.visible');
-        cy.get('#triggerOperator').should('not.be.visible');
+        cy.get('#triggerInterfaceMajor').should('not.exist');
+        cy.get('#triggerPath').should('not.exist');
+        cy.get('#triggerOperator').should('not.exist');
 
         cy.get('#triggerSimpleTriggerType').select('Device Trigger');
         cy.get('#triggerInterfaceName').should('not.exist');
@@ -513,7 +514,7 @@ describe('Trigger builder tests', () => {
       it('lists appropriate Condition Operators for the specified interface path', function () {
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
         cy.get('#triggerInterfaceName').select('Any interface');
-        cy.get('#triggerOperator').should('not.be.visible');
+        cy.get('#triggerOperator').should('not.exist');
 
         // Without specified path
         const iface = this.properties_interface.data;
@@ -623,12 +624,12 @@ describe('Trigger builder tests', () => {
         cy.contains('Add custom HTTP headers').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Add Custom HTTP Header');
-          cy.get('label[for="key"]').contains('Header');
-          cy.get('#key').should('be.enabled').and('be.empty');
-          cy.get('label[for="value"]').contains('Value');
-          cy.get('#value').should('be.enabled').and('be.empty');
-          cy.get('#key').paste('X-Custom-Header');
-          cy.get('#value').paste('Header value');
+          cy.get('label').contains('Header');
+          cy.get('#root_key').should('be.enabled').and('be.empty');
+          cy.get('label').contains('Value');
+          cy.get('#root_value').should('be.enabled').and('be.empty');
+          cy.get('#root_key').paste('X-Custom-Header');
+          cy.get('#root_value').paste('Header value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
@@ -646,9 +647,9 @@ describe('Trigger builder tests', () => {
         cy.get('table tr').contains('X-Custom-Header').parents('tr').get('i.fa-pencil-alt').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Edit Value for Header "X-Custom-Header"');
-          cy.get('label[for="value"]').contains('Value');
-          cy.get('#value').should('be.enabled').and('have.value', '');
-          cy.get('#value').paste('Header new value');
+          cy.get('label').contains('Value');
+          cy.get('#root_value').should('be.enabled').and('be.empty');
+          cy.get('#root_value').paste('Header new value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('Header new value');
@@ -668,7 +669,7 @@ describe('Trigger builder tests', () => {
           cy.get('.modal-body').contains('Remove custom header "X-Custom-Header"?');
           cy.get('button').contains('Remove header').click();
         });
-        cy.contains('X-Custom-Header').should('not.be.visible');
+        cy.contains('X-Custom-Header').should('not.exist');
         cy.get('#triggerSource')
           .invoke('val')
           .should((triggerSource) => {
@@ -684,12 +685,12 @@ describe('Trigger builder tests', () => {
         cy.contains('Add static AMQP headers').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Add Custom AMQP Header');
-          cy.get('label[for="key"]').contains('Header');
-          cy.get('#key').should('be.enabled').and('be.empty');
-          cy.get('label[for="value"]').contains('Value');
-          cy.get('#value').should('be.enabled').and('be.empty');
-          cy.get('#key').paste('X-Custom-Header');
-          cy.get('#value').paste('Header value');
+          cy.get('label').contains('Header');
+          cy.get('#root_key').should('be.enabled').and('be.empty');
+          cy.get('label').contains('Value');
+          cy.get('#root_value').should('be.enabled').and('be.empty');
+          cy.get('#root_key').paste('X-Custom-Header');
+          cy.get('#root_value').paste('Header value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
@@ -707,9 +708,9 @@ describe('Trigger builder tests', () => {
         cy.get('table tr').contains('X-Custom-Header').parents('tr').get('i.fa-pencil-alt').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Edit Value for Header "X-Custom-Header"');
-          cy.get('label[for="value"]').contains('Value');
-          cy.get('#value').should('be.enabled').and('have.value', '');
-          cy.get('#value').paste('Header new value');
+          cy.get('label').contains('Value');
+          cy.get('#root_value').should('be.enabled').and('be.empty');
+          cy.get('#root_value').paste('Header new value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('Header new value');
@@ -729,7 +730,7 @@ describe('Trigger builder tests', () => {
           cy.get('.modal-body').contains('Remove static header "X-Custom-Header"?');
           cy.get('button').contains('Remove header').click();
         });
-        cy.contains('X-Custom-Header').should('not.be.visible');
+        cy.contains('X-Custom-Header').should('not.exist');
         cy.get('#triggerSource')
           .invoke('val')
           .should((triggerSource) => {
@@ -752,7 +753,7 @@ describe('Trigger builder tests', () => {
             body: trigger,
           }).as('installTriggerRequest');
           setupTriggerEditorFromSource(trigger.data);
-          cy.get('button').contains('Install Trigger').click();
+          cy.get('button').contains('Install Trigger').scrollIntoView().click();
           cy.wait('@installTriggerRequest')
             .its('request.body.data')
             .should('deep.eq', trigger.data);

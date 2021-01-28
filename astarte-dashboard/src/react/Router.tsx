@@ -39,6 +39,7 @@ import GroupsPage from './GroupsPage';
 import GroupDevicesPage from './GroupDevicesPage';
 import NewGroupPage from './NewGroupPage';
 import TriggersPage from './TriggersPage';
+import NewTriggerPage from './NewTriggerPage';
 import InterfacesPage from './InterfacesPage';
 import InterfacePage from './InterfacePage';
 import InterfaceEditorPage from './InterfaceEditorPage';
@@ -247,6 +248,7 @@ export default ({
           }
         />
         <Route path="triggers" element={<TriggersPage {...pageProps} />} />
+        <Route path="triggers/new" element={<NewTriggerPage {...pageProps} />} />
         <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
         <Route path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
         <Route
