@@ -6,13 +6,15 @@ describe('Login tests', () => {
   context('after login pages', () => {
     beforeEach(() => {
       cy.fixture('realm').as('realm');
-      cy.fixture('devices_stats').as('devicesStats');
-      cy.server();
-      cy.route('http://**/appengine/v1/*/stats/devices', '@devicesStats').as('httpRequest');
-      cy.route('https://**/appengine/v1/*/stats/devices', '@devicesStats').as('httpsRequest');
+      cy.intercept('http://**/appengine/v1/*/stats/devices', { fixture: 'devices_stats' }).as(
+        'httpRequest',
+      );
+      cy.intercept('https://**/appengine/v1/*/stats/devices', { fixture: 'devices_stats' }).as(
+        'httpsRequest',
+      );
     });
 
-    it('successfully login', function() {
+    it('successfully login', function () {
       cy.visit('/login');
 
       cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
@@ -25,9 +27,9 @@ describe('Login tests', () => {
       cy.get('.nav-status').contains(this.realm.name);
     });
 
-    it('use unsecure HTTP when configured to do so', function() {
-      cy.fixture('config/http').then((userConfig) => {
-        cy.route('/user-config/config.json', userConfig);
+    it('use unsecure HTTP when configured to do so', function () {
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', {
+        fixture: 'config/http',
       });
 
       cy.visit('/login');
@@ -39,9 +41,9 @@ describe('Login tests', () => {
       cy.wait('@httpRequest');
     });
 
-    it('use HTTPS when configured to do so', function() {
-      cy.fixture('config/https').then((userConfig) => {
-        cy.route('/user-config/config.json', userConfig);
+    it('use HTTPS when configured to do so', function () {
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', {
+        fixture: 'config/https',
       });
 
       cy.visit('/login');
@@ -54,8 +56,8 @@ describe('Login tests', () => {
     });
 
     it('correctly loads without Flow features when configured to do so', function () {
-      cy.fixture('config/flowDisabled').then((userConfig) => {
-        cy.route('/user-config/config.json', userConfig);
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', {
+        fixture: 'config/flowDisabled',
       });
 
       cy.visit('/login');
@@ -72,30 +74,31 @@ describe('Login tests', () => {
     });
 
     it('use custom Astarte URLs when configured to do so', function () {
-      cy.fixture('config/custom_urls').then((userConfig) => {
-        cy.route('/user-config/config.json', userConfig);
-        cy.route('https://api.example.com/custom-appengine/health', '').as(
-          'appEngineHealthRequest',
-        );
-        cy.route('https://api.example.com/custom-realmmanagement/health', '').as(
-          'realmManagementHealthRequest',
-        );
-        cy.route('https://api.example.com/custom-pairing/health', '').as('pairingHealthRequest');
-        cy.route('https://api.example.com/custom-flow/health', '').as('flowHealthRequest');
-
-        cy.visit('/login');
-
-        cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
-        cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
-        cy.get('.btn[type=submit]').click();
-
-        cy.wait([
-          '@appEngineHealthRequest',
-          '@realmManagementHealthRequest',
-          '@pairingHealthRequest',
-          '@flowHealthRequest',
-        ]);
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', {
+        fixture: 'config/custom_urls',
       });
+
+      cy.intercept('https://api.example.com/custom-appengine/health', '').as(
+        'appEngineHealthRequest',
+      );
+      cy.intercept('https://api.example.com/custom-realmmanagement/health', '').as(
+        'realmManagementHealthRequest',
+      );
+      cy.intercept('https://api.example.com/custom-pairing/health', '').as('pairingHealthRequest');
+      cy.intercept('https://api.example.com/custom-flow/health', '').as('flowHealthRequest');
+
+      cy.visit('/login');
+
+      cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
+      cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+      cy.get('.btn[type=submit]').click();
+
+      cy.wait([
+        '@appEngineHealthRequest',
+        '@realmManagementHealthRequest',
+        '@pairingHealthRequest',
+        '@flowHealthRequest',
+      ]);
     });
   });
 });

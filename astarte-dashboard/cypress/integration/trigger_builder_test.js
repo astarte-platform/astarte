@@ -272,17 +272,20 @@ describe('Trigger builder tests', () => {
       cy.fixture('interfaces').as('interfaces');
       cy.fixture('interface_majors').as('interface_majors');
       cy.fixture('test.astarte.FirstInterface').as('first_interface');
-      cy.server();
-      cy.route('GET', '/realmmanagement/v1/*/interfaces', '@interfaces');
-      cy.route('GET', '/realmmanagement/v1/*/interfaces/*', '@interface_majors');
-      cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@first_interface');
+      cy.intercept('GET', '/realmmanagement/v1/*/interfaces', { fixture: 'interfaces' });
+      cy.intercept('GET', '/realmmanagement/v1/*/interfaces/test.astarte.FirstInterface', {
+        fixture: 'interface_majors',
+      });
+      cy.intercept('GET', '/realmmanagement/v1/*/interfaces/test.astarte.FirstInterface/*', {
+        fixture: 'test.astarte.FirstInterface',
+      });
       cy.fixture('test.astarte.AggregatedObjectInterface')
         .as('datastream_object_interface')
         .then((iface) => {
-          cy.route('GET', `/realmmanagement/v1/*/interfaces/${iface.data.interface_name}`, {
+          cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${iface.data.interface_name}`, {
             data: [iface.data.version_major],
           });
-          cy.route(
+          cy.intercept(
             'GET',
             `/realmmanagement/v1/*/interfaces/${iface.data.interface_name}/${iface.data.version_major}`,
             iface,
@@ -291,10 +294,10 @@ describe('Trigger builder tests', () => {
       cy.fixture('test.astarte.PropertiesInterface')
         .as('properties_interface')
         .then((iface) => {
-          cy.route('GET', `/realmmanagement/v1/*/interfaces/${iface.data.interface_name}`, {
+          cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${iface.data.interface_name}`, {
             data: [iface.data.version_major],
           });
-          cy.route(
+          cy.intercept(
             'GET',
             `/realmmanagement/v1/*/interfaces/${iface.data.interface_name}/${iface.data.version_major}`,
             iface,
@@ -748,16 +751,16 @@ describe('Trigger builder tests', () => {
 
       it('correctly installs a trigger and redirects to list of triggers', () => {
         cy.fixture('test.astarte.FirstTrigger').then((trigger) => {
-          cy.route({
-            method: 'POST',
-            url: '/realmmanagement/v1/*/triggers',
-            status: 201,
-            response: trigger,
+          cy.intercept('POST', '/realmmanagement/v1/*/triggers', {
+            statusCode: 201,
+            body: trigger,
           }).as('installTriggerRequest');
           cy.visit('/triggers/new');
           setupTriggerEditorFromSource(trigger.data);
           cy.get('button').contains('Install Trigger').click();
-          cy.wait('@installTriggerRequest').its('requestBody.data').should('deep.eq', trigger.data);
+          cy.wait('@installTriggerRequest')
+            .its('request.body.data')
+            .should('deep.eq', trigger.data);
           cy.location('pathname').should('eq', '/triggers');
           cy.get('h2').contains('Triggers');
         });
@@ -768,9 +771,12 @@ describe('Trigger builder tests', () => {
       beforeEach(() => {
         cy.fixture('test.astarte.FirstInterface').as('interface_source');
         cy.fixture('test.astarte.FirstTrigger').as('test_trigger');
-        cy.server();
-        cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface_source');
-        cy.route('GET', '/realmmanagement/v1/*/triggers/*', '@test_trigger');
+        cy.intercept('GET', '/realmmanagement/v1/*/interfaces/*/*', {
+          fixture: 'test.astarte.FirstInterface',
+        });
+        cy.intercept('GET', '/realmmanagement/v1/*/triggers/*', {
+          fixture: 'test.astarte.FirstTrigger',
+        });
         cy.wait(200);
       });
 
@@ -789,11 +795,10 @@ describe('Trigger builder tests', () => {
       });
 
       it('redirects to list of triggers after deleting a trigger', function () {
-        cy.route({
-          method: 'DELETE',
-          url: `/realmmanagement/v1/*/triggers/${this.test_trigger.data.name}`,
-          status: 204,
-          response: '',
+        const encodedTriggerName = encodeURIComponent(this.test_trigger.data.name);
+        cy.intercept('DELETE', `/realmmanagement/v1/*/triggers/${encodedTriggerName}`, {
+          statusCode: 204,
+          body: '',
         }).as('deleteTriggerRequest');
         cy.visit(`/triggers/${this.test_trigger.data.name}/edit`);
         cy.get('button').contains('Delete trigger').click();

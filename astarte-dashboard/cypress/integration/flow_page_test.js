@@ -13,8 +13,7 @@ describe('Flow page tests', () => {
       cy.fixture('flow.room1-occupation')
         .as('flow')
         .then((flow) => {
-          cy.server();
-          cy.route('GET', `/flow/v1/*/flows/${flow.data.name}`, '@flow').as('getFlow');
+          cy.intercept('GET', `/flow/v1/*/flows/${flow.data.name}`, flow).as('getFlow');
           cy.login();
           cy.visit(`/flows/${flow.data.name}/edit`);
         });
@@ -34,8 +33,7 @@ describe('Flow page tests', () => {
 
     it('correctly displays a flow with name "new"', function () {
       const flow = _.merge({}, this.flow.data, { name: 'new' });
-      cy.server();
-      cy.route('GET', `/flow/v1/*/flows/${flow.name}`, { data: flow }).as('getFlow');
+      cy.intercept('GET', `/flow/v1/*/flows/${flow.name}`, { data: flow }).as('getFlow');
       cy.login();
       cy.visit(`/flows/${flow.name}/edit`);
       cy.location('pathname').should('eq', `/flows/new/edit`);

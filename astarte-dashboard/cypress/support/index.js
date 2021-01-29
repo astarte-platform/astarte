@@ -1,12 +1,26 @@
 import websocketMock from './websocket';
 
+// TODO: we're defining a dynamicIntercept command since we cannot override interceptors
+// For more details see issue: https://github.com/cypress-io/cypress/issues/9302
+Cypress.Commands.add('dynamicIntercept', (alias, method, url, response) => {
+  const key = `${alias}-${method}-${url}`;
+  const intercepts = Cypress.config('intercepts');
+  if (!(key in intercepts)) {
+    cy.intercept(method, url, (req) => {
+      return req.reply(intercepts[key]);
+    }).as(alias);
+  }
+  intercepts[key] = response;
+});
+
 // This hook runs before each test of every test suite
 // So this query will be already mocked in every test
 beforeEach(() => {
+  // Reset cached intercept responses
+  Cypress.config('intercepts', {});
   // unless overwritten, test expecting https connections
   cy.fixture('config/https').then((userConfig) => {
-    cy.server();
-    cy.route('/user-config/config.json', userConfig);
+    cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', { body: userConfig });
   });
 });
 

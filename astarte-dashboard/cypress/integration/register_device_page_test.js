@@ -54,19 +54,14 @@ describe('Register device page tests', () => {
     it('register device to astarte', () => {
       const deviceId = 'Zb0hSFUSVduexJXxXlGvrA';
       const credentialSecret = 'W3Bj5uModtDXSr3lqcjOVuYIRhgdNe1REJKj76v16IM=';
-
-      cy.server();
-      cy.route({
-        method: 'POST',
-        url: '/pairing/v1/*/agent/devices',
-        status: 201,
-        response: {
+      cy.intercept('POST', '/pairing/v1/*/agent/devices', {
+        statusCode: 201,
+        body: {
           data: {
-            credentials_secret: credentialSecret
-          }
-        }
+            credentials_secret: credentialSecret,
+          },
+        },
       }).as('registerDeviceCheck');
-
 
       cy.get('#deviceIdInput').type(deviceId);
       cy.get('.btn').contains('Register device').click();
@@ -75,13 +70,11 @@ describe('Register device page tests', () => {
         .its('request.body')
         .should('deep.equal', {
           data: {
-            hw_id: deviceId
-          }
+            hw_id: deviceId,
+          },
         })
         .then(() => {
-          cy.get('.modal-body pre code')
-            .contains(credentialSecret)
-            .should('be.visible');
+          cy.get('.modal-body pre code').contains(credentialSecret).should('be.visible');
         });
     });
   });

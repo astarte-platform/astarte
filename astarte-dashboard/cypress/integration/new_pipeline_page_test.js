@@ -20,13 +20,10 @@ describe('New Pipeline page tests', () => {
           cy.wrap(producerConsumerBlocks).as('producerConsumerBlocks');
           cy.wrap(consumerBlocks).as('consumerBlocks');
           cy.fixture('pipeline.sample-computation').as('pipeline');
-          cy.server();
-          cy.route('GET', '/flow/v1/*/blocks', '@blocks');
-          cy.route({
-            method: 'POST',
-            url: '/flow/v1/*/pipelines',
-            status: 201,
-            response: '@pipeline',
+          cy.intercept('GET', '/flow/v1/*/blocks', blocks);
+          cy.intercept('POST', '/flow/v1/*/pipelines', {
+            statusCode: 201,
+            fixture: 'pipeline.sample-computation',
           }).as('postNewPipeline');
           cy.login();
           cy.visit('/pipelines/new');
@@ -146,7 +143,7 @@ describe('New Pipeline page tests', () => {
         cy.get('#pipeline-source').type(`{selectall}${this.pipeline.data.source}`);
         cy.get('button').contains('Create new pipeline').scrollIntoView().click();
         cy.wait('@postNewPipeline')
-          .its('requestBody')
+          .its('request.body')
           .should('deep.eq', {
             data: {
               name: this.pipeline.data.name,
@@ -182,7 +179,7 @@ describe('New Pipeline page tests', () => {
         cy.get('#pipeline-source').type(`{selectall}${pipeline.source}`);
         cy.get('button').contains('Create new pipeline').scrollIntoView().click();
         cy.wait('@postNewPipeline')
-          .its('requestBody')
+          .its('request.body')
           .should('deep.eq', {
             data: {
               name: pipeline.name,

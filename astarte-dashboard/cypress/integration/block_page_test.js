@@ -18,13 +18,10 @@ describe('Block page tests', () => {
         cy.fixture('custom_block')
           .as('customBlock')
           .then((customBlock) => {
-            cy.server();
-            cy.route('GET', '/flow/v1/*/blocks/*', '@customBlock');
-            cy.route({
-              method: 'DELETE',
-              url: `/flow/v1/*/blocks/${customBlock.data.name}`,
-              status: 204,
-              response: '',
+            cy.intercept('GET', `/flow/v1/*/blocks/${customBlock.data.name}`, customBlock);
+            cy.intercept('DELETE', `/flow/v1/*/blocks/${customBlock.data.name}`, {
+              statusCode: 204,
+              body: '',
             }).as('deleteBlockRequest');
             cy.login();
             cy.visit(`/blocks/${customBlock.data.name}/edit`);
@@ -52,8 +49,7 @@ describe('Block page tests', () => {
           source: 'source',
           type: 'producer',
         };
-        cy.server();
-        cy.route('GET', '/flow/v1/*/blocks/new', { data: block });
+        cy.intercept('GET', '/flow/v1/*/blocks/new', { data: block });
         cy.visit('/blocks/new/edit');
         cy.location('pathname').should('eq', '/blocks/new/edit');
         cy.get('h2').contains('Block Details');
@@ -81,8 +77,7 @@ describe('Block page tests', () => {
           .then((nativeBlock) => {
             cy.login();
             cy.visit(`/blocks/${nativeBlock.data.name}/edit`);
-            cy.server();
-            cy.route('GET', '/flow/v1/*/blocks/*', '@nativeBlock');
+            cy.intercept('GET', `/flow/v1/*/blocks/${nativeBlock.data.name}`, nativeBlock);
           });
       });
 

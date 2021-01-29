@@ -10,13 +10,10 @@ describe('New Group page tests', () => {
     beforeEach(() => {
       cy.fixture('devices_detailed').as('devices');
       cy.fixture('group.first-floor.created').as('postNewGroupResponse');
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices?details=true', '@devices');
-      cy.route({
-        method: 'POST',
-        url: '/appengine/v1/*/groups',
-        status: 201,
-        response: '@postNewGroupResponse',
+      cy.intercept('GET', '/appengine/v1/*/devices?details=true', { fixture: 'devices_detailed' });
+      cy.intercept('POST', '/appengine/v1/*/groups', {
+        statusCode: 201,
+        fixture: 'group.first-floor.created',
       }).as('postNewGroup');
       cy.login();
       cy.visit('/groups/new');
@@ -92,14 +89,10 @@ describe('New Group page tests', () => {
           cy.get('table tbody tr:nth-child(1) [type="checkbox"]').check();
         });
         cy.get('button').contains('Create group').should('not.be.disabled').click();
-        cy.wait('@postNewGroup')
-          .its('requestBody')
-          .should('deep.eq', {
-            data: {
-              devices: groupDevicesIds,
-              group_name: groupName,
-            },
-          });
+        cy.wait('@postNewGroup').its('request.body.data').should('deep.eq', {
+          devices: groupDevicesIds,
+          group_name: groupName,
+        });
         cy.location('pathname').should('eq', '/groups');
       });
     });

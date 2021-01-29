@@ -9,8 +9,7 @@ describe('Realm Settings page tests', () => {
   context('authenticated', () => {
     beforeEach(() => {
       cy.fixture('config_auth').as('configAuth');
-      cy.server();
-      cy.route('GET', '/realmmanagement/v1/*/config/auth', '@configAuth');
+      cy.intercept('GET', '/realmmanagement/v1/*/config/auth', { fixture: 'config_auth' });
       cy.login();
       cy.visit('/settings');
     });

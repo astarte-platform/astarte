@@ -9,12 +9,9 @@ describe('New block page tests', () => {
   context('authenticated', () => {
     beforeEach(() => {
       cy.fixture('custom_block').as('customBlock');
-      cy.server();
-      cy.route({
-        method: 'POST',
-        url: '**/flow/v1/**',
-        status: 201,
-        response: '@customBlock',
+      cy.intercept('POST', '**/flow/v1/**', {
+        statusCode: 201,
+        fixture: 'custom_block',
       }).as('postNewBlock');
       cy.login();
       cy.visit('/blocks/new');
@@ -35,7 +32,7 @@ describe('New block page tests', () => {
         cy.contains('Create new block').should('not.be.disabled');
         cy.contains('Create new block').click({ force: true });
       });
-      cy.wait('@postNewBlock').its('requestBody').should('deep.eq', this.customBlock);
+      cy.wait('@postNewBlock').its('request.body').should('deep.eq', this.customBlock);
       cy.location('pathname').should('eq', '/blocks');
     });
 
@@ -53,7 +50,7 @@ describe('New block page tests', () => {
         cy.get('textarea#block-schema').clear().type(JSON.stringify(newBlock.schema));
         cy.contains('Create new block').scrollIntoView().click();
       });
-      cy.wait('@postNewBlock').its('requestBody.data').should('deep.eq', newBlock);
+      cy.wait('@postNewBlock').its('request.body.data').should('deep.eq', newBlock);
       cy.location('pathname').should('eq', '/blocks');
     });
   });

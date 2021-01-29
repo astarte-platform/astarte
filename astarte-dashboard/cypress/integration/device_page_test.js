@@ -16,20 +16,22 @@ describe('Device page tests', () => {
     beforeEach(() => {
       cy.fixture('device').as('device');
       cy.fixture('device_detailed').as('deviceDetailed');
+      cy.intercept('POST', '/appengine/v1/*/groups/*/devices', {
+        statusCode: 201,
+        body: '',
+      }).as('updateGroupRequest');
       cy.login();
     });
 
     it('successfully loads Device page', function () {
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', '@device');
+      cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device' });
       cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.location('pathname').should('eq', `/devices/${this.device.data.id}/edit`);
       cy.get('h2').contains('Device');
     });
 
     it('displays correct properties for a device', function () {
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', '@device');
+      cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device' });
       cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.contains('Device Info')
@@ -86,16 +88,14 @@ describe('Device page tests', () => {
     });
 
     it('successfully loads Device page for a detailed device', function () {
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
+      cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device_detailed' });
       cy.visit(`/devices/${this.deviceDetailed.data.id}/edit`);
       cy.location('pathname').should('eq', `/devices/${this.deviceDetailed.data.id}/edit`);
       cy.get('h2').contains('Device');
     });
 
     it('displays correct properties for a detailed device', function () {
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
+      cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device_detailed' });
       cy.visit(`/devices/${this.deviceDetailed.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.contains('Device Info')
@@ -175,14 +175,13 @@ describe('Device page tests', () => {
     });
 
     it('correctly inhibit credentials request', function () {
-      cy.server();
       const deviceWithInhibitedCredentials = _.merge({}, this.device, {
         data: { credentials_inhibited: true },
       });
       const deviceWithoutInhibitedCredentials = _.merge({}, this.device, {
         data: { credentials_inhibited: false },
       });
-      cy.route('GET', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials);
       cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content .card-header')
         .contains('Device Info')
@@ -191,13 +190,14 @@ describe('Device page tests', () => {
           cy.contains('Credentials inhibited').next().contains('False');
           cy.contains('Enable credentials request').should('not.exist');
           cy.contains('Inhibit credentials').should('exist').and('not.be.disabled');
-          cy.route('PATCH', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials).as(
+          cy.intercept('PATCH', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials).as(
             'updateDeviceRequest',
           );
-          cy.route('GET', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials);
+          cy.intercept('GET', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials);
           cy.contains('Inhibit credentials').click();
           cy.wait('@updateDeviceRequest')
-            .its('requestBody.data.credentials_inhibited')
+            .its('request.body')
+            .then((body) => JSON.parse(body).data.credentials_inhibited)
             .should('deep.eq', true);
           cy.contains('Credentials inhibited').next().contains('True');
           cy.contains('Enable credentials request').should('exist').and('not.be.disabled');
@@ -206,14 +206,13 @@ describe('Device page tests', () => {
     });
 
     it('correctly enable credentials request', function () {
-      cy.server();
       const deviceWithInhibitedCredentials = _.merge({}, this.device, {
         data: { credentials_inhibited: true },
       });
       const deviceWithoutInhibitedCredentials = _.merge({}, this.device, {
         data: { credentials_inhibited: false },
       });
-      cy.route('GET', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', deviceWithInhibitedCredentials);
       cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content .card-header')
         .contains('Device Info')
@@ -222,13 +221,14 @@ describe('Device page tests', () => {
           cy.contains('Credentials inhibited').next().contains('True');
           cy.contains('Enable credentials request').should('exist').and('not.be.disabled');
           cy.contains('Inhibit credentials').should('not.exist');
-          cy.route('PATCH', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials).as(
+          cy.intercept('PATCH', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials).as(
             'updateDeviceRequest',
           );
-          cy.route('GET', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials);
+          cy.intercept('GET', '/appengine/v1/*/devices/*', deviceWithoutInhibitedCredentials);
           cy.contains('Enable credentials request').click();
           cy.wait('@updateDeviceRequest')
-            .its('requestBody.data.credentials_inhibited')
+            .its('request.body')
+            .then((body) => JSON.parse(body).data.credentials_inhibited)
             .should('deep.eq', false);
           cy.contains('Credentials inhibited').next().contains('False');
           cy.contains('Enable credentials request').should('not.exist');
@@ -237,13 +237,10 @@ describe('Device page tests', () => {
     });
 
     it('asks confirmation before wiping credentials secret', function () {
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-      cy.route({
-        method: 'DELETE',
-        url: `/pairing/v1/*/agent/devices/${this.device.data.id}`,
-        status: 204,
-        response: '',
+      cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device' });
+      cy.intercept('DELETE', `/pairing/v1/*/agent/devices/${this.device.data.id}`, {
+        statusCode: 204,
+        body: '',
       }).as('wipeCredentialsSecretRequest');
       cy.visit(`/devices/${this.device.data.id}/edit`);
       cy.get('.main-content').within(() => {
@@ -271,8 +268,7 @@ describe('Device page tests', () => {
       device.data.aliases = {};
       const updatedDevice = _.merge({}, this.device);
       updatedDevice.data.aliases = { alias_key: 'alias_value' };
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', device);
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
@@ -289,12 +285,15 @@ describe('Device page tests', () => {
             cy.get('input#key').type('alias_key');
             cy.get('button').contains('Confirm').should('be.disabled');
             cy.get('input#value').type('alias_value');
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
-            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
+              'updateDeviceRequest',
+            );
             cy.get('button').contains('Confirm').should('not.be.disabled').click();
           });
         cy.wait('@updateDeviceRequest')
-          .its('requestBody.data')
+          .its('request.body')
+          .then((body) => JSON.parse(body).data)
           .should('deep.eq', { aliases: { alias_key: 'alias_value' } });
         cy.get('.card-header')
           .contains('Aliases')
@@ -312,8 +311,7 @@ describe('Device page tests', () => {
       device.data.aliases = { alias_key1: 'alias_value1', alias_key2: 'alias_value2' };
       const updatedDevice = _.merge({}, this.device);
       updatedDevice.data.aliases = { alias_key1: 'alias_value1' };
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', device);
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
@@ -331,12 +329,15 @@ describe('Device page tests', () => {
           .contains('Delete Alias')
           .parents('.modal')
           .within(() => {
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
-            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
+              'updateDeviceRequest',
+            );
             cy.get('button').contains('Delete').click();
           });
         cy.wait('@updateDeviceRequest')
-          .its('requestBody.data')
+          .its('request.body')
+          .then((body) => JSON.parse(body).data)
           .should('deep.eq', { aliases: { alias_key2: null } });
         cy.get('.card-header')
           .contains('Aliases')
@@ -354,8 +355,7 @@ describe('Device page tests', () => {
       device.data.aliases = { alias_key: 'alias_value' };
       const updatedDevice = _.merge({}, this.device);
       updatedDevice.data.aliases = { alias_key: 'alias_new_value' };
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', device);
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
@@ -374,12 +374,15 @@ describe('Device page tests', () => {
             cy.get('input#value').clear();
             cy.get('button').contains('Confirm').should('be.disabled');
             cy.get('input#value').type('alias_new_value');
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
-            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
+              'updateDeviceRequest',
+            );
             cy.get('button').contains('Confirm').click();
           });
         cy.wait('@updateDeviceRequest')
-          .its('requestBody.data')
+          .its('request.body')
+          .then((body) => JSON.parse(body).data)
           .should('deep.eq', { aliases: { alias_key: 'alias_new_value' } });
         cy.get('.card-header')
           .contains('Aliases')
@@ -397,8 +400,7 @@ describe('Device page tests', () => {
       device.data.metadata = {};
       const updatedDevice = _.merge({}, this.device);
       updatedDevice.data.metadata = { metadata_key: 'metadata_value' };
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', device);
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
@@ -415,12 +417,15 @@ describe('Device page tests', () => {
             cy.get('input#key').type('metadata_key');
             cy.get('button').contains('Confirm').should('not.be.disabled');
             cy.get('input#value').type('metadata_value');
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
-            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
+              'updateDeviceRequest',
+            );
             cy.get('button').contains('Confirm').should('not.be.disabled').click();
           });
         cy.wait('@updateDeviceRequest')
-          .its('requestBody.data')
+          .its('request.body')
+          .then((body) => JSON.parse(body).data)
           .should('deep.eq', { metadata: { metadata_key: 'metadata_value' } });
         cy.get('.card-header')
           .contains('Metadata')
@@ -438,8 +443,7 @@ describe('Device page tests', () => {
       device.data.metadata = { metadata_key1: 'metadata_value1', metadata_key2: 'metadata_value2' };
       const updatedDevice = _.merge({}, this.device);
       updatedDevice.data.metadata = { metadata_key1: 'metadata_value1' };
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', device);
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
@@ -458,12 +462,15 @@ describe('Device page tests', () => {
           .parents('.modal')
           .within(() => {
             cy.contains('Do you want to delete metadata_key2 from metadata?');
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
-            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
+              'updateDeviceRequest',
+            );
             cy.get('button').contains('Delete').click();
           });
         cy.wait('@updateDeviceRequest')
-          .its('requestBody.data')
+          .its('request.body')
+          .then((body) => JSON.parse(body).data)
           .should('deep.eq', { metadata: { metadata_key2: null } });
         cy.get('.card-header')
           .contains('Metadata')
@@ -481,8 +488,7 @@ describe('Device page tests', () => {
       device.data.metadata = { metadata_key: 'metadata_value' };
       const updatedDevice = _.merge({}, this.device);
       updatedDevice.data.metadata = { metadata_key: 'metadata_new_value' };
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/devices/*', device);
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
@@ -501,12 +507,15 @@ describe('Device page tests', () => {
             cy.get('input#value').clear();
             cy.get('button').contains('Confirm').should('not.be.disabled');
             cy.get('input#value').type('metadata_new_value');
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice);
-            cy.route('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as('updateDeviceRequest');
+            cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
+            cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
+              'updateDeviceRequest',
+            );
             cy.get('button').contains('Confirm').click();
           });
         cy.wait('@updateDeviceRequest')
-          .its('requestBody.data')
+          .its('request.body')
+          .then((body) => JSON.parse(body).data)
           .should('deep.eq', { metadata: { metadata_key: 'metadata_new_value' } });
         cy.get('.card-header')
           .contains('Metadata')
@@ -526,9 +535,8 @@ describe('Device page tests', () => {
       device.data.groups = deviceGroups;
       const updatedDevice = _.merge({}, this.deviceDetailed);
       updatedDevice.data.groups = deviceGroups.concat('group3');
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/groups', { data: allGroups });
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/groups', { data: allGroups });
+      cy.dynamicIntercept('getDeviceRequest', 'GET', '/appengine/v1/*/devices/*', device);
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
         cy.get('.card-header')
@@ -544,13 +552,12 @@ describe('Device page tests', () => {
           .within(() => {
             cy.get('button').contains('Confirm').should('be.disabled');
             cy.contains('group3').click();
-            cy.route({
-              method: 'POST',
-              url: '/appengine/v1/*/groups/group3/devices',
-              status: 201,
-              response: '',
-            }).as('updateGroupRequest');
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice).as('getDeviceRequest');
+            cy.dynamicIntercept(
+              'getDeviceRequest',
+              'GET',
+              '/appengine/v1/*/devices/*',
+              updatedDevice,
+            );
             cy.get('button').contains('Confirm').click();
           });
         cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
@@ -566,22 +573,14 @@ describe('Device page tests', () => {
 
     it('correctly adds the device to a group with symbols in its name', function () {
       const groupName = '!"£$%&/()=?^';
-      const encodedGroupName = encodeURIComponent(groupName);
       const deviceGroups = ['group1', 'group2'];
       const allGroups = deviceGroups.concat(groupName);
       const device = _.merge({}, this.deviceDetailed);
       device.data.groups = deviceGroups;
       const updatedDevice = _.merge({}, this.deviceDetailed);
       updatedDevice.data.groups = allGroups;
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/groups', { data: allGroups });
-      cy.route('GET', '/appengine/v1/*/devices/*', device);
-      cy.route({
-        method: 'POST',
-        url: `/appengine/v1/*/groups/${encodedGroupName}/devices`,
-        status: 201,
-        response: '',
-      }).as('updateGroupRequest');
+      cy.dynamicIntercept('getDeviceRequest', 'GET', '/appengine/v1/*/devices/*', device);
+      cy.intercept('GET', '/appengine/v1/*/groups', { data: allGroups });
 
       cy.visit(`/devices/${device.data.id}/edit`);
       cy.get('.main-content').within(() => {
@@ -598,7 +597,12 @@ describe('Device page tests', () => {
           .within(() => {
             cy.get('button').contains('Confirm').should('be.disabled');
             cy.contains(groupName).click();
-            cy.route('GET', '/appengine/v1/*/devices/*', updatedDevice).as('getDeviceRequest');
+            cy.dynamicIntercept(
+              'getDeviceRequest',
+              'GET',
+              '/appengine/v1/*/devices/*',
+              updatedDevice,
+            );
             cy.get('button').contains('Confirm').click();
           });
         cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
@@ -612,8 +616,7 @@ describe('Device page tests', () => {
     });
 
     it('correctly renders Device Stats', function () {
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices/*', '@deviceDetailed');
+      cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device_detailed' });
       cy.visit(`/devices/${this.deviceDetailed.data.id}/edit`);
 
       const formatBytes = (bytes) => {
@@ -668,9 +671,8 @@ describe('Device page tests', () => {
       cy.fixture('config/https').then((config) => {
         const wssUrl =
           config.astarte_api_url.replace('https://', 'wss://') + '/appengine/v1/socket/websocket';
+        cy.intercept('GET', '/appengine/v1/*/devices/*', this.device);
         cy.mockWebSocket({ url: wssUrl });
-        cy.server();
-        cy.route('GET', '/appengine/v1/*/devices/*', this.device);
         cy.visit(`/devices/${this.device.data.id}/edit`);
         cy.get('.main-content .card-header')
           .contains('Device Live Events')
