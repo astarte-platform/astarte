@@ -28,6 +28,10 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 ## Let's try it!
 
+**This is the upcoming 1.0 release branch. Astarte 1.0 has not been released yet and may contain bugs.**
+
+**You're welcome to test the upcoming release, but for production purposes we recommend using the latest stable release (currently [v0.11.4](https://github.com/astarte-platform/astarte/tree/release-0.11))**
+
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
 [Docker](https://www.docker.com/), and simply:
 
