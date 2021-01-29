@@ -282,9 +282,9 @@ describe('Device page tests', () => {
           .parents('.modal')
           .within(() => {
             cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#key').type('alias_key');
+            cy.get('input#key').paste('alias_key');
             cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#value').type('alias_value');
+            cy.get('input#value').paste('alias_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
@@ -373,7 +373,7 @@ describe('Device page tests', () => {
           .within(() => {
             cy.get('input#value').clear();
             cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#value').type('alias_new_value');
+            cy.get('input#value').paste('alias_new_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
@@ -414,9 +414,9 @@ describe('Device page tests', () => {
           .parents('.modal')
           .within(() => {
             cy.get('button').contains('Confirm').should('be.disabled');
-            cy.get('input#key').type('metadata_key');
+            cy.get('input#key').paste('metadata_key');
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('metadata_value');
+            cy.get('input#value').paste('metadata_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
@@ -506,7 +506,7 @@ describe('Device page tests', () => {
           .within(() => {
             cy.get('input#value').clear();
             cy.get('button').contains('Confirm').should('not.be.disabled');
-            cy.get('input#value').type('metadata_new_value');
+            cy.get('input#value').paste('metadata_new_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',

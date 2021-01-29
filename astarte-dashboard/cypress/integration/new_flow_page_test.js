@@ -42,10 +42,8 @@ describe('New Flow page tests', () => {
     it('can fill out a form to instantiate a new Flow', function () {
       cy.get('.main-content').within(() => {
         cy.get('button').contains('Instantiate Flow').should('be.disabled');
-        cy.get('#flowNameInput').clear().type(this.flow.data.name);
-        cy.get('#flowConfigInput')
-          .clear()
-          .type(JSON.stringify(this.flow.data.config), { parseSpecialCharSequences: false });
+        cy.get('#flowNameInput').clear().paste(this.flow.data.name);
+        cy.get('#flowConfigInput').clear().paste(JSON.stringify(this.flow.data.config));
         cy.get('button').contains('Instantiate Flow').click();
         cy.wait('@postNewFlow').its('request.body').should('deep.eq', this.flow);
         cy.location('pathname').should('eq', '/flows');
@@ -59,10 +57,8 @@ describe('New Flow page tests', () => {
         body: { data: newFlow },
       }).as('postNewFlow');
       cy.get('.main-content').within(() => {
-        cy.get('#flowNameInput').clear().type(newFlow.name);
-        cy.get('#flowConfigInput')
-          .clear()
-          .type(JSON.stringify(newFlow.config), { parseSpecialCharSequences: false });
+        cy.get('#flowNameInput').clear().paste(newFlow.name);
+        cy.get('#flowConfigInput').clear().paste(JSON.stringify(newFlow.config));
         cy.get('button').contains('Instantiate Flow').click();
         cy.wait('@postNewFlow').its('request.body.data').should('deep.eq', newFlow);
         cy.location('pathname').should('eq', '/flows');

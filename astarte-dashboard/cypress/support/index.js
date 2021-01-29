@@ -98,3 +98,21 @@ Cypress.Commands.add('sendWebSocketDeviceEvent', ({ deviceId, event }) => {
     websocketMock.sendDeviceEvent(win, { deviceId, event });
   });
 });
+
+Cypress.Commands.add(
+  'paste',
+  {
+    prevSubject: true,
+    element: true,
+  },
+  ($element, text = '') => {
+    cy.get($element)
+      .click()
+      .then(() => {
+        $element.text(text);
+        $element.val(text);
+        const sampleCharacter = text.length > 0 ? text[text.length - 1] : 'a';
+        cy.get($element).type(`${sampleCharacter}{backspace}{movetoend}`);
+      });
+  },
+);

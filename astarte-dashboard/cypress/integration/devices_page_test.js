@@ -64,7 +64,7 @@ describe('Devices page tests', () => {
     it('correctly filters by device handle', function () {
       const deviceName = this.devices.data[0].aliases.name;
       const filter = deviceName.substring(2, 7);
-      cy.get('#filterId').type(filter);
+      cy.get('#filterId').paste(filter);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', deviceName);
     });
@@ -73,7 +73,7 @@ describe('Devices page tests', () => {
       const metadata = this.devices.data[0].metadata;
       const key = Object.keys(metadata)[0];
 
-      cy.get('#filterMetadataKey').type(key);
+      cy.get('#filterMetadataKey').paste(key);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', key);
     });
@@ -82,7 +82,7 @@ describe('Devices page tests', () => {
       const metadata = this.devices.data[0].metadata;
       const value = Object.values(metadata)[0];
 
-      cy.get('#filterMetadataValue').type(value);
+      cy.get('#filterMetadataValue').paste(value);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', value);
     });
@@ -92,11 +92,11 @@ describe('Devices page tests', () => {
       const key = Object.keys(metadata)[0];
       const value = metadata[key];
 
-      cy.get('#filterMetadataKey').type(key);
+      cy.get('#filterMetadataKey').paste(key);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', key);
 
-      cy.get('#filterMetadataValue').type(value);
+      cy.get('#filterMetadataValue').paste(value);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', value);
     });

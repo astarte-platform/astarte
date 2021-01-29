@@ -17,8 +17,8 @@ describe('Login tests', () => {
     it('successfully login', function () {
       cy.visit('/login');
 
-      cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
-      cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+      cy.get('input[id=astarteRealm]').clear().paste(this.realm.name);
+      cy.get('textarea[id=astarteToken]').paste(this.realm.infinite_token);
       cy.get('.btn[type=submit]').click();
 
       cy.location('pathname').should('eq', '/');
@@ -34,8 +34,8 @@ describe('Login tests', () => {
 
       cy.visit('/login');
 
-      cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
-      cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+      cy.get('input[id=astarteRealm]').clear().paste(this.realm.name);
+      cy.get('textarea[id=astarteToken]').paste(this.realm.infinite_token);
       cy.get('.btn[type=submit]').click();
 
       cy.wait('@httpRequest');
@@ -48,8 +48,8 @@ describe('Login tests', () => {
 
       cy.visit('/login');
 
-      cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
-      cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+      cy.get('input[id=astarteRealm]').clear().paste(this.realm.name);
+      cy.get('textarea[id=astarteToken]').paste(this.realm.infinite_token);
       cy.get('.btn[type=submit]').click();
 
       cy.wait('@httpsRequest');
@@ -62,8 +62,8 @@ describe('Login tests', () => {
 
       cy.visit('/login');
 
-      cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
-      cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+      cy.get('input[id=astarteRealm]').clear().paste(this.realm.name);
+      cy.get('textarea[id=astarteToken]').paste(this.realm.infinite_token);
       cy.get('.btn[type=submit]').click();
 
       cy.get('#status-card').should('not.contain', 'Flow');
@@ -89,8 +89,8 @@ describe('Login tests', () => {
 
       cy.visit('/login');
 
-      cy.get('input[id=astarteRealm]').clear().type(this.realm.name);
-      cy.get('textarea[id=astarteToken]').type(this.realm.infinite_token);
+      cy.get('input[id=astarteRealm]').clear().paste(this.realm.name);
+      cy.get('textarea[id=astarteToken]').paste(this.realm.infinite_token);
       cy.get('.btn[type=submit]').click();
 
       cy.wait([

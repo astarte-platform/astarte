@@ -24,10 +24,7 @@ const triggerOperatorToLabel = {
 };
 
 const setupTriggerEditorFromSource = (trigger) => {
-  cy.get('#triggerSource')
-    .scrollIntoView()
-    .clear()
-    .type(JSON.stringify(trigger), { parseSpecialCharSequences: false });
+  cy.get('#triggerSource').scrollIntoView().paste(JSON.stringify(trigger));
   cy.wait(1500);
 };
 
@@ -308,6 +305,7 @@ describe('Trigger builder tests', () => {
     context('new trigger page', () => {
       beforeEach(() => {
         cy.visit('/triggers/new');
+        cy.wait(1000);
       });
 
       it('successfully loads New Trigger page', function () {
@@ -520,21 +518,21 @@ describe('Trigger builder tests', () => {
         // Without specified path
         const iface = this.properties_interface.data;
         cy.get('#triggerInterfaceName').select(iface.interface_name);
-        cy.get('#triggerPath').clear().type('/*');
+        cy.get('#triggerPath').clear().paste('/*');
         cy.get('#triggerOperator option').should((options) => {
           const labels = [...options].map((option) => option.textContent);
           expect(labels).to.deep.eq(['*']);
         });
 
         // Path with boolean value
-        cy.get('#triggerPath').clear().type('/lights/kitchen');
+        cy.get('#triggerPath').clear().paste('/lights/kitchen');
         cy.get('#triggerOperator option').should((options) => {
           const labels = [...options].map((option) => option.textContent);
           expect(labels).to.deep.eq(['*', '==', '!=', '>', '>=', '<', '<=']);
         });
 
         // Path with array-like value (e.g. booleanarray)
-        cy.get('#triggerPath').clear().type('/lights/bath');
+        cy.get('#triggerPath').clear().paste('/lights/bath');
         cy.get('#triggerOperator option').should((options) => {
           const labels = [...options].map((option) => option.textContent);
           expect(labels).to.deep.eq([
@@ -579,13 +577,13 @@ describe('Trigger builder tests', () => {
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
         cy.get('#triggerInterfaceName').select(iface.interface_name);
         cy.get('#triggerInterfaceMajor').select(String(iface.version_major));
-        cy.get('#triggerPath').clear().type('/*');
+        cy.get('#triggerPath').clear().paste('/*');
         cy.get('#triggerPath').should('not.have.class', 'is-invalid');
-        cy.get('#triggerPath').clear().type('/invalid'); // invalid path
+        cy.get('#triggerPath').clear().paste('/invalid'); // invalid path
         cy.get('#triggerPath').should('have.class', 'is-invalid');
-        cy.get('#triggerPath').clear().type('/lights/kitchen'); // valid path
+        cy.get('#triggerPath').clear().paste('/lights/kitchen'); // valid path
         cy.get('#triggerPath').should('not.have.class', 'is-invalid');
-        cy.get('#triggerPath').clear().type('/kitchen/heating/active'); // valid parametrized path
+        cy.get('#triggerPath').clear().paste('/kitchen/heating/active'); // valid parametrized path
         cy.get('#triggerPath').should('not.have.class', 'is-invalid');
       });
 
@@ -594,29 +592,27 @@ describe('Trigger builder tests', () => {
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
         cy.get('#triggerInterfaceName').select(iface.interface_name);
         cy.get('#triggerInterfaceMajor').select(String(iface.version_major));
-        cy.get('#triggerPath').clear().type('/lights/kitchen'); // boolean type
+        cy.get('#triggerPath').clear().paste('/lights/kitchen'); // boolean type
         cy.get('#triggerOperator').select('==');
-        cy.get('#triggerKnownValue').clear().type('notboolean'); // invalid boolean
+        cy.get('#triggerKnownValue').clear().paste('notboolean'); // invalid boolean
         cy.get('#triggerKnownValue').should('have.class', 'is-invalid');
-        cy.get('#triggerKnownValue').clear().type('false'); // valid boolean
+        cy.get('#triggerKnownValue').clear().paste('false'); // valid boolean
         cy.get('#triggerKnownValue').should('not.have.class', 'is-invalid');
       });
 
       it('shows amqp_exchange as invalid if it does not follow astarte_events_<realm-name>_<any-allowed-string> format', function () {
         cy.get('#triggerActionType').select('AMQP Message');
-        cy.get('#amqpExchange').clear().type('invalid_format_exchange');
+        cy.get('#amqpExchange').clear().paste('invalid_format_exchange');
         cy.get('#amqpExchange').should('have.class', 'is-invalid');
-        cy.get('#amqpExchange').clear().type(`astarte_events_${this.realm.name}_exchange`);
+        cy.get('#amqpExchange').clear().paste(`astarte_events_${this.realm.name}_exchange`);
         cy.get('#amqpExchange').should('not.have.class', 'is-invalid');
       });
 
       it('shows amqp_routing_key as invalid if it contains { or }', () => {
         cy.get('#triggerActionType').select('AMQP Message');
-        cy.get('#amqpRoutingKey')
-          .clear()
-          .type('invalid_{route}', { parseSpecialCharSequences: false });
+        cy.get('#amqpRoutingKey').clear().paste('invalid_{route}');
         cy.get('#amqpRoutingKey').should('have.class', 'is-invalid');
-        cy.get('#amqpRoutingKey').clear().type('valid_route');
+        cy.get('#amqpRoutingKey').clear().paste('valid_route');
         cy.get('#amqpRoutingKey').should('not.have.class', 'is-invalid');
       });
 
@@ -631,8 +627,8 @@ describe('Trigger builder tests', () => {
           cy.get('#key').should('be.enabled').and('be.empty');
           cy.get('label[for="value"]').contains('Value');
           cy.get('#value').should('be.enabled').and('be.empty');
-          cy.get('#key').type('X-Custom-Header');
-          cy.get('#value').type('Header value');
+          cy.get('#key').paste('X-Custom-Header');
+          cy.get('#value').paste('Header value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
@@ -651,8 +647,8 @@ describe('Trigger builder tests', () => {
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Edit Value for Header "X-Custom-Header"');
           cy.get('label[for="value"]').contains('Value');
-          cy.get('#value').should('be.enabled').and('be.empty');
-          cy.get('#value').type('Header new value');
+          cy.get('#value').should('be.enabled').and('have.value', '');
+          cy.get('#value').paste('Header new value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('Header new value');
@@ -692,8 +688,8 @@ describe('Trigger builder tests', () => {
           cy.get('#key').should('be.enabled').and('be.empty');
           cy.get('label[for="value"]').contains('Value');
           cy.get('#value').should('be.enabled').and('be.empty');
-          cy.get('#key').type('X-Custom-Header');
-          cy.get('#value').type('Header value');
+          cy.get('#key').paste('X-Custom-Header');
+          cy.get('#value').paste('Header value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
@@ -712,8 +708,8 @@ describe('Trigger builder tests', () => {
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Edit Value for Header "X-Custom-Header"');
           cy.get('label[for="value"]').contains('Value');
-          cy.get('#value').should('be.enabled').and('be.empty');
-          cy.get('#value').type('Header new value');
+          cy.get('#value').should('be.enabled').and('have.value', '');
+          cy.get('#value').paste('Header new value');
           cy.get('button').contains('Confirm').click();
         });
         cy.get('table tr').contains('Header new value');
@@ -755,7 +751,6 @@ describe('Trigger builder tests', () => {
             statusCode: 201,
             body: trigger,
           }).as('installTriggerRequest');
-          cy.visit('/triggers/new');
           setupTriggerEditorFromSource(trigger.data);
           cy.get('button').contains('Install Trigger').click();
           cy.wait('@installTriggerRequest')
@@ -777,12 +772,12 @@ describe('Trigger builder tests', () => {
         cy.intercept('GET', '/realmmanagement/v1/*/triggers/*', {
           fixture: 'test.astarte.FirstTrigger',
         });
-        cy.wait(200);
       });
 
       it('correctly shows trigger data in the Editor UI', function () {
         const encodedTriggerName = encodeURIComponent(this.test_trigger.data.name);
         cy.visit(`/triggers/${encodedTriggerName}/edit`);
+        cy.wait(1000);
         cy.location('pathname').should('eq', `/triggers/${encodedTriggerName}/edit`);
         checkTriggerEditorUIValues(this.test_trigger.data);
       });
@@ -790,6 +785,7 @@ describe('Trigger builder tests', () => {
       it('correctly displays all fields as readonly/disabled', function () {
         const encodedTriggerName = encodeURIComponent(this.test_trigger.data.name);
         cy.visit(`/triggers/${encodedTriggerName}/edit`);
+        cy.wait(1000);
         cy.location('pathname').should('eq', `/triggers/${encodedTriggerName}/edit`);
         checkTriggerEditorUIDisabledOptions(this.test_trigger.data);
       });
@@ -801,6 +797,7 @@ describe('Trigger builder tests', () => {
           body: '',
         }).as('deleteTriggerRequest');
         cy.visit(`/triggers/${this.test_trigger.data.name}/edit`);
+        cy.wait(1000);
         cy.get('button').contains('Delete trigger').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Confirmation Required');
@@ -808,7 +805,7 @@ describe('Trigger builder tests', () => {
             `You are going to remove ${this.test_trigger.data.name}. This might cause data loss, removed triggers cannot be restored. Are you sure?`,
           );
           cy.get('.modal-body').contains(`Please type ${this.test_trigger.data.name} to proceed.`);
-          cy.get('#confirmTriggerName').type(this.test_trigger.data.name);
+          cy.get('#confirmTriggerName').paste(this.test_trigger.data.name);
           cy.get('button').contains('Confirm').click();
         });
         cy.wait('@deleteTriggerRequest');

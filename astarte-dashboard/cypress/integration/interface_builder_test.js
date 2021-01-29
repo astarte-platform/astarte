@@ -13,14 +13,12 @@ const parseMappingOptions = (mapping) => {
 };
 
 const setupInterfaceEditorFromSource = (iface) => {
-  cy.get('#interfaceSource')
-    .clear()
-    .type(JSON.stringify(iface), { parseSpecialCharSequences: false });
+  cy.get('#interfaceSource').clear().paste(JSON.stringify(iface));
   cy.wait(500);
 };
 
 const setupInterfaceEditorFromUI = (iface) => {
-  cy.get('#interfaceName').scrollIntoView().clear().type(iface.interface_name);
+  cy.get('#interfaceName').scrollIntoView().clear().paste(iface.interface_name);
   if (iface.version_major > 0) {
     cy.get('#interfaceMajor').scrollIntoView().type(`{selectall}${iface.version_major}`);
     cy.get('#interfaceMinor').scrollIntoView().type(`{selectall}${iface.version_minor}`);
@@ -69,35 +67,24 @@ const setupInterfaceEditorFromUI = (iface) => {
   }
   cy.get('#interfaceDescription').scrollIntoView().clear();
   if (iface.description) {
-    cy.get('#interfaceDescription')
-      .scrollIntoView()
-      .type(iface.description, { parseSpecialCharSequences: false });
+    cy.get('#interfaceDescription').scrollIntoView().paste(iface.description);
   }
   cy.get('#interfaceDocumentation').scrollIntoView().clear();
   if (iface.doc) {
-    cy.get('#interfaceDocumentation')
-      .scrollIntoView()
-      .type(iface.doc, { parseSpecialCharSequences: false });
+    cy.get('#interfaceDocumentation').scrollIntoView().paste(iface.doc);
   }
   (iface.mappings || []).forEach((mapping) => {
     cy.get('button').contains('Add new mapping...').click();
     cy.get('.modal.show').within(() => {
-      cy.get('#mappingEndpoint')
-        .scrollIntoView()
-        .clear()
-        .type(mapping.endpoint, { parseSpecialCharSequences: false });
+      cy.get('#mappingEndpoint').scrollIntoView().clear().paste(mapping.endpoint);
       cy.get('#mappingType').scrollIntoView().select(mapping.type);
       cy.get('#mappingDescription').scrollIntoView().clear();
       if (mapping.description) {
-        cy.get('#mappingDescription').scrollIntoView().type(mapping.description, {
-          parseSpecialCharSequences: false,
-        });
+        cy.get('#mappingDescription').scrollIntoView().paste(mapping.description);
       }
       cy.get('#mappingDocumentation').scrollIntoView().clear();
       if (mapping.doc) {
-        cy.get('#mappingDocumentation')
-          .scrollIntoView()
-          .type(mapping.doc, { parseSpecialCharSequences: false });
+        cy.get('#mappingDocumentation').scrollIntoView().paste(mapping.doc);
       }
       const {
         reliability,
@@ -479,7 +466,7 @@ describe('Interface builder tests', () => {
         cy.get('button').contains('Add new mapping...').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Add new mapping');
-          cy.get('#mappingEndpoint').type(mappingEndpoint);
+          cy.get('#mappingEndpoint').paste(mappingEndpoint);
           cy.get('#mappingType').select('double');
           cy.get('button').contains('Confirm').click();
         });
@@ -523,7 +510,7 @@ describe('Interface builder tests', () => {
         const interfaceName = 'com.samples.Interface';
 
         // Set name
-        cy.get('#interfaceName').type(interfaceName);
+        cy.get('#interfaceName').paste(interfaceName);
 
         // Set draft version
         cy.get('#interfaceMinor').type('{selectall}1');
@@ -533,7 +520,7 @@ describe('Interface builder tests', () => {
         cy.get('button').contains('Add new mapping...').click();
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Add new mapping');
-          cy.get('#mappingEndpoint').type('/enpdoint');
+          cy.get('#mappingEndpoint').paste('/enpdoint');
           cy.get('button').contains('Confirm').click();
         });
 
@@ -573,11 +560,11 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceName').should('have.class', 'is-invalid');
 
         // Invalid name
-        cy.get('#interfaceName').type('invalid_name!');
+        cy.get('#interfaceName').paste('invalid_name!');
         cy.get('#interfaceName').should('have.class', 'is-invalid');
 
         // Valid but poor name
-        cy.get('#interfaceName').clear().type('name');
+        cy.get('#interfaceName').clear().paste('name');
         cy.get('#interfaceName').should('not.have.class', 'is-invalid');
         cy.get('#interfaceName')
           .parents('.form-group')
@@ -585,7 +572,7 @@ describe('Interface builder tests', () => {
           .should('be.visible');
 
         // Valid name
-        cy.get('#interfaceName').clear().type('com.sample.Name');
+        cy.get('#interfaceName').clear().paste('com.sample.Name');
         cy.get('#interfaceName').should('not.have.class', 'is-invalid');
         cy.get('#interfaceName')
           .parents('.form-group')
@@ -598,9 +585,9 @@ describe('Interface builder tests', () => {
         cy.get('.modal.show').within(() => {
           cy.get('#mappingEndpoint').clear();
           cy.get('#mappingEndpoint').should('have.class', 'is-invalid');
-          cy.get('#mappingEndpoint').type('invalid_endpoint!');
+          cy.get('#mappingEndpoint').paste('invalid_endpoint!');
           cy.get('#mappingEndpoint').should('have.class', 'is-invalid');
-          cy.get('#mappingEndpoint').clear().type('/valid_endpoint');
+          cy.get('#mappingEndpoint').clear().paste('/valid_endpoint');
           cy.get('#mappingEndpoint').should('not.have.class', 'is-invalid');
         });
       });
@@ -732,7 +719,7 @@ describe('Interface builder tests', () => {
           cy.get('button').contains('Add new mapping...').click();
           cy.get('.modal.show').within(() => {
             cy.get('.modal-header').contains('Add new mapping');
-            cy.get('#mappingEndpoint').type(mappingEndpoint);
+            cy.get('#mappingEndpoint').paste(mappingEndpoint);
             cy.get('#mappingType').select('double');
             cy.get('button').contains('Confirm').click();
           });
@@ -822,7 +809,7 @@ describe('Interface builder tests', () => {
           );
           cy.contains(`Please type ${draftInterface.interface_name} to proceed.`);
           cy.get('button').contains('Confirm').should('be.disabled');
-          cy.get('#confirmInterfaceName').type(draftInterface.interface_name);
+          cy.get('#confirmInterfaceName').paste(draftInterface.interface_name);
           cy.get('button').contains('Confirm').should('be.enabled').click();
         });
         cy.wait('@deleteInterfaceRequest');
@@ -850,7 +837,7 @@ describe('Interface builder tests', () => {
             doc: 'New documentation',
           });
           cy.get('#interfaceMinor').type(`{selectall}${newIface.version_minor}`);
-          cy.get('#interfaceDocumentation').clear().type(newIface.doc);
+          cy.get('#interfaceDocumentation').clear().paste(newIface.doc);
           cy.get('button').contains('Apply changes').scrollIntoView().click();
           cy.get('.modal.show').within(() => {
             cy.get('.modal-header').contains('Confirmation Required');
@@ -891,7 +878,7 @@ describe('Interface builder tests', () => {
             });
 
           cy.get('#interfaceMinor').type(`{selectall}${newIface.version_minor}`);
-          cy.get('#interfaceDocumentation').clear().type(newIface.doc);
+          cy.get('#interfaceDocumentation').clear().paste(newIface.doc);
 
           // Source should be displayed equal, without adding default values
           cy.get('#interfaceSource')
@@ -937,7 +924,7 @@ describe('Interface builder tests', () => {
             });
 
           cy.get('#interfaceMinor').type(`{selectall}${newIface.version_minor}`);
-          cy.get('#interfaceDocumentation').clear().type(newIface.doc);
+          cy.get('#interfaceDocumentation').clear().paste(newIface.doc);
 
           // Source should not be displayed equal, since default values are stripped out
           cy.get('#interfaceSource')

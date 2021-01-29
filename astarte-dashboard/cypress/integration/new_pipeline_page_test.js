@@ -137,9 +137,9 @@ describe('New Pipeline page tests', () => {
         );
         cy.get('button').contains('Generate pipeline source').scrollIntoView().click();
 
-        cy.get('#pipeline-name').scrollIntoView().type(this.pipeline.data.name);
+        cy.get('#pipeline-name').scrollIntoView().paste(this.pipeline.data.name);
         cy.get('#pipeline-schema').clear();
-        cy.get('#pipeline-description').type(this.pipeline.data.description);
+        cy.get('#pipeline-description').paste(this.pipeline.data.description);
         cy.get('#pipeline-source').type(`{selectall}${this.pipeline.data.source}`);
         cy.get('button').contains('Create new pipeline').scrollIntoView().click();
         cy.wait('@postNewPipeline')
@@ -173,9 +173,9 @@ describe('New Pipeline page tests', () => {
         );
         cy.get('button').contains('Generate pipeline source').scrollIntoView().click();
 
-        cy.get('#pipeline-name').scrollIntoView().type(pipeline.name);
+        cy.get('#pipeline-name').scrollIntoView().paste(pipeline.name);
         cy.get('#pipeline-schema').clear();
-        cy.get('#pipeline-description').type(pipeline.description);
+        cy.get('#pipeline-description').paste(pipeline.description);
         cy.get('#pipeline-source').type(`{selectall}${pipeline.source}`);
         cy.get('button').contains('Create new pipeline').scrollIntoView().click();
         cy.wait('@postNewPipeline')

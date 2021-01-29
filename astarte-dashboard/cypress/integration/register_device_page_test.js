@@ -40,8 +40,8 @@ describe('Register device page tests', () => {
 
       cy.get('.btn').contains('Generate from name').click();
 
-      cy.get('[id$="userNamespace"]').type(namespace);
-      cy.get('[id$="userString"]').type(customString);
+      cy.get('[id$="userNamespace"]').paste(namespace);
+      cy.get('[id$="userString"]').paste(customString);
 
       cy.get('.btn').contains('Generate ID').click();
 
@@ -63,7 +63,7 @@ describe('Register device page tests', () => {
         },
       }).as('registerDeviceCheck');
 
-      cy.get('#deviceIdInput').type(deviceId);
+      cy.get('#deviceIdInput').paste(deviceId);
       cy.get('.btn').contains('Register device').click();
 
       cy.wait('@registerDeviceCheck')
