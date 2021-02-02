@@ -174,7 +174,11 @@ export default ({ astarte }: Props): React.ReactElement => {
   const isValidForm = isValidPipelineName && isValidSource;
 
   return (
-    <SingleCardPage title="New Pipeline" backLink="/pipelines">
+    <SingleCardPage
+      title="New Pipeline"
+      backLink="/pipelines"
+      docsLink="https://docs.astarte-platform.org/flow/snapshot/"
+    >
       <formAlerts.Alerts />
       <Form>
         <Form.Group controlId="pipeline-name">
@@ -208,6 +212,7 @@ export default ({ astarte }: Props): React.ReactElement => {
               <Form.Control
                 as="textarea"
                 rows={8}
+                spellCheck={false}
                 value={pipeline.source}
                 onChange={(e) => setPipeline({ ...pipeline, source: e.target.value })}
               />
@@ -217,6 +222,7 @@ export default ({ astarte }: Props): React.ReactElement => {
               <Form.Control
                 as="textarea"
                 rows={8}
+                spellCheck={false}
                 value={pipeline.schema}
                 isValid={pipeline.schema !== '' && isValidSchema}
                 isInvalid={pipeline.schema !== '' && !isValidSchema}
