@@ -47,7 +47,7 @@ describe('New Pipeline page tests', () => {
 
     it('correctly displays all blocks in its category in the visual editor', function () {
       cy.get('.main-content .flow-editor').within(() => {
-        cy.get('.block-item').should('have.length', this.blocks.data.length);
+        cy.get('.block-item').should('have.length', this.blocks.data.length + 7);
         this.producerBlocks.forEach((block) => {
           cy.get('.block-label')
             .contains('Producer')

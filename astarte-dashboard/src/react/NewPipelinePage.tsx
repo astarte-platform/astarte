@@ -23,6 +23,7 @@ import Ajv from 'ajv';
 import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
 import AstarteClient, { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
+import _ from 'lodash';
 
 import { useAlerts } from './AlertManager';
 import FormModal from './components/modals/Form';
@@ -64,7 +65,21 @@ export default ({ astarte }: Props): React.ReactElement => {
     astarte
       .getBlocks()
       .then((astarteBlocks) => {
-        setBlocks(astarteBlocks);
+        const containerBlock = astarteBlocks.find(
+          (block) => block.name === 'container' && block.type === 'producer_consumer',
+        );
+        if (!containerBlock) {
+          setBlocks(astarteBlocks);
+        } else {
+          const container = _.merge({}, containerBlock);
+          _.unset(container, 'schema.properties.type');
+          const containerProducer = _.merge({}, container, { type: 'producer' });
+          const containerConsumer = _.merge({}, container, { type: 'consumer' });
+          const parsedBlocks = astarteBlocks
+            .filter((b) => b.name !== 'container')
+            .concat([container, containerConsumer, containerProducer]);
+          setBlocks(parsedBlocks);
+        }
       })
       .catch((error) => {
         formAlerts.showError(`Couldn't retrieve block descriptions: ${error.message}`);
