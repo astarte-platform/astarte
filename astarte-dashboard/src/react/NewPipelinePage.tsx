@@ -115,7 +115,9 @@ export default ({ astarte }: Props): React.ReactElement => {
 
   const blockSettingsClickHandler = useCallback(
     (e, node: NativeBlockModel) => {
-      const blockDefinition = blocks.find((block) => node.name === block.name);
+      const blockDefinition = blocks.find(
+        (block) => node.name === block.name && node.blockType === block.type,
+      );
       if (!blockDefinition) {
         return;
       }
