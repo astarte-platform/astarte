@@ -124,6 +124,12 @@ class NativeBlockModel extends NodeModel {
     const params = Object.entries(this.properties)
       .filter(([, value]) => !isEmptyValue(value))
       .map(([key, value]) => `\n    .${key}(${encodeValue(value)})`);
+    if (this.name === 'container') {
+      return this.name + params.concat(`\n    .type("${this.blockType}")`).join('');
+    }
+    if (this.name === 'dynamic_virtual_device_pool') {
+      return `virtual_device_pool${params.join('')}`;
+    }
     return this.name + params.join('');
   }
 }
