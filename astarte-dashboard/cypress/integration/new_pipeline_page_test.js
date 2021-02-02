@@ -56,7 +56,7 @@ describe('New Pipeline page tests', () => {
         });
         this.producerConsumerBlocks.forEach((block) => {
           cy.get('.block-label')
-            .contains('Producer & consumer')
+            .contains('Producer & Consumer')
             .nextUntil('.block-label')
             .contains(block.name);
         });

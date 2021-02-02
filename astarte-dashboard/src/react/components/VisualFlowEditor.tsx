@@ -60,7 +60,7 @@ const EditorSidebar = ({ blocks }: EditorSidebarProps) => (
     {filterSortBlocks(blocks, 'producer').map((block) => (
       <BlockMenuItem key={block.name} block={block} />
     ))}
-    <div className="block-label">Producer & consumer</div>
+    <div className="block-label">Producer & Consumer</div>
     {filterSortBlocks(blocks, 'producer_consumer').map((block) => (
       <BlockMenuItem key={block.name} block={block} />
     ))}
