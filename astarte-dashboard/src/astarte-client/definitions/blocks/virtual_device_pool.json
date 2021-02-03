@@ -190,7 +190,7 @@
         "type": "array"
       }
     },
-    "required": ["pairing_url", "devices"],
+    "required": ["pairing_url", "target_devices"],
     "title": "Virtual Device Pool options",
     "type": "object"
   },
