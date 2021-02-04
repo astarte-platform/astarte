@@ -45,7 +45,7 @@ import Bootstrap.Utilities.Spacing as Spacing
 import Debouncer.Basic as Debouncer exposing (Debouncer, fromSeconds, toDebouncer)
 import Dict
 import Html exposing (Html, b, br, h5, p, small, text)
-import Html.Attributes exposing (class, for, href, selected, value)
+import Html.Attributes exposing (attribute, class, for, href, selected, value)
 import Html.Events exposing (onSubmit)
 import Icons
 import Modal.MappingBuilder as MappingBuilder
@@ -1493,7 +1493,7 @@ renderMapping : InterfaceMapping -> Accordion.Card Msg
 renderMapping mapping =
     Accordion.card
         { id = endpointToHtmlId mapping.endpoint
-        , options = [ Card.attrs [ Spacing.mb2 ] ]
+        , options = [ Card.attrs [ Spacing.mb2, attribute "data-testid" mapping.endpoint ] ]
         , header = renderMappingHeader mapping
         , blocks =
             [ ( textBlock "Description" mapping.description
