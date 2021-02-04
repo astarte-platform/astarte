@@ -84,7 +84,7 @@ export default ({ astarte }: Props): React.ReactElement => {
                   key={trigger}
                   name={trigger}
                   onClick={() => {
-                    navigate(`/triggers/${trigger}`);
+                    navigate(`/triggers/${trigger}/edit`);
                   }}
                 />
               ))
