@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,12 +17,16 @@
 */
 
 import React from 'react';
-import { Container, Toast } from 'react-bootstrap';
+import { Container, Toast, ToastProps } from 'react-bootstrap';
 
-import { useGlobalAlertsState } from '../AlertManager';
+import { useGlobalAlertsState, IAlert } from '../AlertManager';
 import useRelativeTime from '../hooks/useRelativeTime';
 
-const SnackbarAlert = ({ alert, ...props }) => {
+type SnackbarAlertProps = ToastProps & {
+  alert: IAlert;
+};
+
+const SnackbarAlert = ({ alert, ...props }: SnackbarAlertProps) => {
   const alertRelativeTime = useRelativeTime(alert.timestamp);
   return (
     <Toast {...props} onClose={alert.close} className="mx-auto">
@@ -34,7 +38,7 @@ const SnackbarAlert = ({ alert, ...props }) => {
   );
 };
 
-export default () => {
+export default (): React.ReactElement | null => {
   const alerts = useGlobalAlertsState();
   if (!alerts || alerts.length === 0) {
     return null;
