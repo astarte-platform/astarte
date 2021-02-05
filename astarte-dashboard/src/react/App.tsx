@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,19 +17,36 @@
 */
 
 import React from 'react';
+import type AstarteClient from 'astarte-client';
+import type { BrowserHistory as History } from 'history';
 
 import AlertsProvider from './AlertManager';
 import Router from './Router';
 import Snackbar from './ui/Snackbar';
+import type SessionManager from './SessionManager';
 
-export default (reactHistory, astarteClient, sessionManager, config, fallback) => (
+interface Props {
+  reactHistory: History;
+  astarteClient: AstarteClient;
+  sessionManager: SessionManager;
+  dashboardConfig: any;
+  noMatchFallback: (requestURL: string) => void;
+}
+
+export default ({
+  reactHistory,
+  astarteClient,
+  sessionManager,
+  dashboardConfig,
+  noMatchFallback,
+}: Props): React.ReactElement => (
   <AlertsProvider>
     <Router
       reactHistory={reactHistory}
       astarteClient={astarteClient}
       sessionManager={sessionManager}
-      config={config}
-      fallback={fallback}
+      config={dashboardConfig}
+      fallback={noMatchFallback}
     />
     <Snackbar />
   </AlertsProvider>
