@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial device introspection during device registration.
 - Pipeline source visual editor.
 - Search filters for devices page.
+- Support target device or group in data triggers.
 
 ### Changed
 - Change Flow routes to avoid possible conflicts between routes.
