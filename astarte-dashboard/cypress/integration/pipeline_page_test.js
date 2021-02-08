@@ -1,7 +1,9 @@
+const _ = require('lodash');
+
 describe('Pipeline page tests', () => {
   context('no access before login', () => {
     it('redirects to login', () => {
-      cy.visit('/pipelines/pipeline_name');
+      cy.visit('/pipelines/pipeline_name/edit');
       cy.location('pathname').should('eq', '/login');
     });
   });
@@ -22,13 +24,13 @@ describe('Pipeline page tests', () => {
             response: '',
           }).as('deletePipelineRequest');
           cy.login();
-          cy.visit(`/pipelines/${pipeline.data.name}`);
+          cy.visit(`/pipelines/${pipeline.data.name}/edit`);
           cy.wait('@getPipeline');
         });
     });
 
     it('successfully loads Pipeline page', function () {
-      cy.location('pathname').should('eq', `/pipelines/${this.pipeline.data.name}`);
+      cy.location('pathname').should('eq', `/pipelines/${this.pipeline.data.name}/edit`);
       cy.get('h2').contains('Pipeline Details');
     });
 
@@ -40,6 +42,16 @@ describe('Pipeline page tests', () => {
         }
         cy.contains('Source');
       });
+    });
+
+    it('correctly displays a pipeline with the name "new"', function () {
+      const pipeline = _.merge({}, this.pipeline.data, { name: 'new' });
+      cy.server();
+      cy.route('GET', `/flow/v1/*/pipelines/${pipeline.name}`, { data: pipeline });
+      cy.visit(`/pipelines/${pipeline.name}/edit`);
+      cy.location('pathname').should('eq', `/pipelines/new/edit`);
+      cy.get('h2').contains('Pipeline Details');
+      cy.get('.main-content').contains('Name').next().contains(pipeline.name);
     });
 
     it('can delete the pipeline', function () {

@@ -60,7 +60,7 @@ describe('Blocks page tests', () => {
 
     it('each block has a primary button that redirects to the block page', function () {
       cy.get('.main-content .card button.btn-primary').contains('Show').first().click();
-      cy.location('pathname').should('eq', `/blocks/${this.blocks.data[0].name}`);
+      cy.location('pathname').should('eq', `/blocks/${this.blocks.data[0].name}/edit`);
     });
   });
 });

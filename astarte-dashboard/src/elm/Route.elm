@@ -58,7 +58,7 @@ type RealmRoute
     | NewGroup
     | GroupDevices String
     | FlowInstances
-    | FlowConfigure String
+    | FlowConfigure (Maybe String)
     | FlowDetails String
     | PipelineList
     | PipelineShowSource String
@@ -98,14 +98,14 @@ realmRouteParser =
         , map NewGroup (s "groups" </> s "new")
         , map GroupDevices (s "groups" </> string </> s "edit")
         , map FlowInstances (s "flows")
-        , map FlowConfigure (s "flows" </> s "new" </> string)
-        , map FlowDetails (s "flows" </> string)
+        , map FlowConfigure (s "flows" </> s "new" <?> Query.string "pipelineId")
+        , map FlowDetails (s "flows" </> string </> s "edit")
         , map PipelineList (s "pipelines")
         , map NewPipeline (s "pipelines" </> s "new")
-        , map PipelineShowSource (s "pipelines" </> string)
+        , map PipelineShowSource (s "pipelines" </> string </> s "edit")
         , map BlockList (s "blocks")
         , map NewBlock (s "blocks" </> s "new")
-        , map BlockShowSource (s "blocks" </> string)
+        , map BlockShowSource (s "blocks" </> string </> s "edit")
         , map GroupDevices (s "groups" </> string </> s "edit")
         ]
 
@@ -207,11 +207,16 @@ toString route =
                 Realm FlowInstances ->
                     [ "flows" ]
 
-                Realm (FlowConfigure pipelineId) ->
-                    [ "flows", "new", pipelineId ]
+                Realm (FlowConfigure p) ->
+                    case p of
+                        Just pipelineId ->
+                            [ "flows", "new?pipelineId=" ++ pipelineId ]
+
+                        Nothing ->
+                            [ "flows", "new" ]
 
                 Realm (FlowDetails flowName) ->
-                    [ "flows", flowName ]
+                    [ "flows", flowName, "edit" ]
 
                 Realm PipelineList ->
                     [ "pipelines" ]
@@ -220,7 +225,7 @@ toString route =
                     [ "pipelines", "new" ]
 
                 Realm (PipelineShowSource pipelineName) ->
-                    [ "pipelines", pipelineName ]
+                    [ "pipelines", pipelineName, "edit" ]
 
                 Realm BlockList ->
                     [ "blocks" ]
@@ -229,7 +234,7 @@ toString route =
                     [ "blocks", "new" ]
 
                 Realm (BlockShowSource blockName) ->
-                    [ "blocks", blockName ]
+                    [ "blocks", blockName, "edit" ]
     in
     "/" ++ String.join "/" pieces
 

@@ -17,7 +17,15 @@
 */
 
 import React, { useReducer, useLayoutEffect } from 'react';
-import { Navigate, Router, Routes, Route, useParams, useLocation } from 'react-router-dom';
+import {
+  Navigate,
+  Router,
+  Routes,
+  Route,
+  useParams,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -81,14 +89,14 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
         <Route path="groups/new" element={<NewGroupPage {...pageProps} />} />
         <Route path="groups/:groupName/edit" element={<GroupDevicesSubPath {...pageProps} />} />
         <Route path="flows" element={<FlowInstancesPage {...pageProps} />} />
-        <Route path="flows/new/:pipelineId" element={<FlowConfiguration {...pageProps} />} />
-        <Route path="flows/:flowName" element={<FlowDetails {...pageProps} />} />
+        <Route path="flows/new" element={<FlowConfiguration {...pageProps} />} />
+        <Route path="flows/:flowName/edit" element={<FlowDetails {...pageProps} />} />
         <Route path="pipelines" element={<PipelinesPage {...pageProps} />} />
         <Route path="pipelines/new" element={<NewPipelinePage {...pageProps} />} />
-        <Route path="pipelines/:pipelineId" element={<PipelineSubPath {...pageProps} />} />
+        <Route path="pipelines/:pipelineId/edit" element={<PipelineSubPath {...pageProps} />} />
         <Route path="blocks" element={<BlocksPage {...pageProps} />} />
         <Route path="blocks/new" element={<NewBlockPage {...pageProps} />} />
-        <Route path="blocks/:blockId" element={<BlockSubPath {...pageProps} />} />
+        <Route path="blocks/:blockId/edit" element={<BlockSubPath {...pageProps} />} />
         <Route path="settings" element={<RealmSettingsPage {...pageProps} />} />
         <Route path="*" element={<NoMatch fallback={fallback} />} />
       </Routes>
@@ -147,7 +155,8 @@ function FlowDetails(props) {
 }
 
 function FlowConfiguration(props) {
-  const { pipelineId } = useParams();
+  const [searchParams] = useSearchParams();
+  const pipelineId = searchParams.get('pipelineId') || '';
 
   return <FlowConfigurationPage pipelineId={pipelineId} {...props} />;
 }

@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Pipeline source visual editor.
 - Search filters for devices page.
 
+### Changed
+- Change Flow routes to avoid possible conflicts between routes.
+
 ### Fixed
 - Fix bug which caused marking triggers as invalid on parametric endpoints containing an underscore.
 - Fix interface value page when displaying data from a parametric object datastream interface.
