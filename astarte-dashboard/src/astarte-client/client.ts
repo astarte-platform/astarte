@@ -471,6 +471,7 @@ class AstarteClient {
     return toAstarteDataTree({
       interface: iface,
       data: interfaceValues,
+      endpoint: params.path,
     });
   }
 
