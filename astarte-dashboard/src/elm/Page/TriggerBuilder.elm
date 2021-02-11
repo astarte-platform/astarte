@@ -254,12 +254,22 @@ update session msg model =
                     )
 
         GetInterfaceListDone interfaces ->
-            case ( List.head interfaces, String.isEmpty model.selectedInterfaceName ) of
-                ( Just interfaceName, True ) ->
+            case ( List.head interfaces, String.isEmpty model.selectedInterfaceName, model.trigger.simpleTrigger ) of
+                ( Just interfaceName, True, Trigger.Data dataTrigger ) ->
+                    let
+                        newSimpleTrigger =
+                            dataTrigger
+                                |> DataTrigger.setInterfaceName interfaceName
+                                |> Trigger.Data
+
+                        newTrigger =
+                            Trigger.setSimpleTrigger newSimpleTrigger model.trigger
+                    in
                     ( { model
                         | interfaces = interfaces
                         , selectedInterfaceName = interfaceName
                         , showSpinner = False
+                        , trigger = newTrigger
                       }
                     , AstarteApi.listInterfaceMajors session.apiConfig
                         interfaceName
@@ -651,20 +661,18 @@ update session msg model =
 
         UpdateDataTriggerInterfaceName interfaceName ->
             case model.trigger.simpleTrigger of
-                Trigger.Data dataTrigger ->
+                Trigger.Data _ ->
                     let
                         ( newSimpleTrigger, command ) =
                             if interfaceName == "*" then
-                                ( dataTrigger
+                                ( DataTrigger.empty
                                     |> DataTrigger.setInterfaceName interfaceName
-                                    |> DataTrigger.setPath "/*"
-                                    |> DataTrigger.setOperator DataTrigger.Any
                                     |> Trigger.Data
                                 , Cmd.none
                                 )
 
                             else
-                                ( dataTrigger
+                                ( DataTrigger.empty
                                     |> DataTrigger.setInterfaceName interfaceName
                                     |> Trigger.Data
                                 , AstarteApi.listInterfaceMajors session.apiConfig
@@ -1575,8 +1583,8 @@ renderSimpleTrigger model =
            )
 
 
-triggerEventOptions : DataTriggerEvent -> Bool -> List (Select.Item Msg)
-triggerEventOptions currentEvent isPropertyInterface =
+triggerEventOptions : DataTriggerEvent -> Bool -> Bool -> List (Select.Item Msg)
+triggerEventOptions currentEvent isPropertyInterface isObjectInterface =
     let
         availableEvents =
             if isPropertyInterface then
@@ -1588,6 +1596,11 @@ triggerEventOptions currentEvent isPropertyInterface =
                 , ( DataTrigger.ValueStored, "Value Stored" )
                 ]
 
+            else if isObjectInterface then
+                -- TODO: this is a workaround, lift this limitation after the issue is fixed. See astarte-platform/astarte#523
+                [ ( DataTrigger.IncomingData, "Incoming Data" )
+                ]
+
             else
                 [ ( DataTrigger.IncomingData, "Incoming Data" )
                 , ( DataTrigger.ValueStored, "Value Stored" )
@@ -1596,8 +1609,8 @@ triggerEventOptions currentEvent isPropertyInterface =
     List.map (dataTriggerEventOptions currentEvent) availableEvents
 
 
-isValidPath : String -> DataTriggerEvent -> Maybe MappingType -> Bool
-isValidPath path event mappingType =
+isValidPath : String -> DataTriggerEvent -> Maybe MappingType -> DataTrigger.Operator -> Bool -> Bool
+isValidPath path event mappingType operator isObjectInterface =
     let
         isAny =
             path == "/*"
@@ -1607,9 +1620,17 @@ isValidPath path event mappingType =
 
         matchesMapping =
             mappingType /= Nothing
+
+        isValidObjectPath =
+            event == DataTrigger.IncomingData && path == "/*" && operator == DataTrigger.Any
     in
-    -- TODO: this is a workaround, re-enable ValueChange after being fixed in Astarte. See astarte-platform/astarte#513
-    matchesMapping || (isAny && not isValueChangeEvent)
+    if isObjectInterface then
+        -- TODO: this is a workaround, lift this limitation after the issue is fixed. See astarte-platform/astarte#523
+        isValidObjectPath
+
+    else
+        -- TODO: this is a workaround, re-enable ValueChange after being fixed in Astarte. See astarte-platform/astarte#513
+        matchesMapping || (isAny && not isValueChangeEvent)
 
 
 renderDataTrigger : DataTrigger -> Model -> List (Html Msg)
@@ -1622,6 +1643,11 @@ renderDataTrigger dataTrigger model =
             model.refInterface
                 |> Maybe.map (\interface -> interface.iType == Interface.Properties)
                 |> Maybe.withDefault False
+
+        isObjectInterface =
+            model.refInterface
+                |> Maybe.map (\interface -> interface.aggregation == Interface.Object)
+                |> Maybe.withDefault False
     in
     [ renderDataTriggerTarget model.editMode dataTrigger.target
     , Form.row []
@@ -1629,7 +1655,7 @@ renderDataTrigger dataTrigger model =
             [ if isAnyInterface then
                 Col.sm12
 
-            else
+              else
                 Col.sm8
             ]
             [ Form.group []
@@ -1656,7 +1682,7 @@ renderDataTrigger dataTrigger model =
             [ if isAnyInterface then
                 Col.attrs [ Display.none ]
 
-            else
+              else
                 Col.sm4
             ]
             [ Form.group []
@@ -1685,7 +1711,7 @@ renderDataTrigger dataTrigger model =
                     , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerCondition
                     ]
-                    (triggerEventOptions dataTrigger.on isPropertyInterface)
+                    (triggerEventOptions dataTrigger.on isPropertyInterface isObjectInterface)
                 ]
             ]
         ]
@@ -1693,7 +1719,7 @@ renderDataTrigger dataTrigger model =
         (if isAnyInterface then
             [ Row.attrs [ Display.none ] ]
 
-        else
+         else
             []
         )
         [ Form.col [ Col.sm12 ]
@@ -1704,10 +1730,10 @@ renderDataTrigger dataTrigger model =
                     , Input.readonly model.editMode
                     , Input.value dataTrigger.path
                     , Input.onInput UpdateDataTriggerPath
-                    , if isValidPath dataTrigger.path dataTrigger.on model.mappingType then
+                    , if isValidPath dataTrigger.path dataTrigger.on model.mappingType dataTrigger.operator isObjectInterface then
                         Input.success
 
-                    else
+                      else
                         Input.danger
                     ]
                 ]
@@ -1717,7 +1743,7 @@ renderDataTrigger dataTrigger model =
         (if isAnyInterface then
             [ Row.attrs [ Display.none ] ]
 
-        else
+         else
             []
         )
         [ Form.col [ Col.sm4 ]
@@ -1728,7 +1754,7 @@ renderDataTrigger dataTrigger model =
                     , Select.disabled model.editMode
                     , Select.onChange UpdateDataTriggerOperator
                     ]
-                    (renderAvailableOperators dataTrigger.operator model.mappingType)
+                    (renderAvailableOperators dataTrigger.operator model.mappingType isObjectInterface)
                 ]
             ]
         , Form.col [ Col.sm8 ]
@@ -1747,7 +1773,7 @@ renderDataTrigger dataTrigger model =
                             , if isValidKnownValue model.mappingType dataTrigger.knownValue then
                                 Input.success
 
-                            else
+                              else
                                 Input.danger
                             ]
                         ]
@@ -1872,9 +1898,9 @@ renderAvailableInterfaces selectedInterface installedInterfaces =
         |> selectOptions selectedInterface
 
 
-renderAvailableOperators : DataTrigger.Operator -> Maybe InterfaceMapping.MappingType -> List (Select.Item Msg)
-renderAvailableOperators selectedOperator mappingType =
-    aviableOperators mappingType
+renderAvailableOperators : DataTrigger.Operator -> Maybe InterfaceMapping.MappingType -> Bool -> List (Select.Item Msg)
+renderAvailableOperators selectedOperator mappingType isObjectInterface =
+    aviableOperators mappingType isObjectInterface
         |> selectOptions (operatorToId selectedOperator)
 
 
@@ -2130,23 +2156,28 @@ availableInterfaces installedInterfaces =
         |> (::) ( "*", "Any interface" )
 
 
-aviableOperators : Maybe InterfaceMapping.MappingType -> List ( String, String )
-aviableOperators mType =
-    case mType of
-        Nothing ->
-            defaultOperators
+aviableOperators : Maybe InterfaceMapping.MappingType -> Bool -> List ( String, String )
+aviableOperators mType isObjectInterface =
+    if isObjectInterface then
+        -- TODO: this is a workaround, lift this limitation after the issue is fixed. See astarte-platform/astarte#523
+        defaultOperators
 
-        Just (Single InterfaceMapping.StringMapping) ->
-            allOperators
+    else
+        case mType of
+            Nothing ->
+                defaultOperators
 
-        Just (Single InterfaceMapping.BinaryBlobMapping) ->
-            allOperators
+            Just (Single InterfaceMapping.StringMapping) ->
+                allOperators
 
-        Just (Single _) ->
-            numericOperators
+            Just (Single InterfaceMapping.BinaryBlobMapping) ->
+                allOperators
 
-        Just (Array _) ->
-            allOperators
+            Just (Single _) ->
+                numericOperators
+
+            Just (Array _) ->
+                allOperators
 
 
 defaultOperators : List ( String, String )
@@ -2292,7 +2323,6 @@ mappingTypeToJsonType mType =
 
         Nothing ->
             DataTrigger.JString
-
 
 
 interfaceMajors : Int -> Int -> Select.Item Msg
