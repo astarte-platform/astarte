@@ -65,7 +65,7 @@ export default ({ astarte }) => {
     e.preventDefault();
     astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => {
       const latestMajor = Math.max(...interfaceMajors);
-      navigate(`/interfaces/${interfaceName}/${latestMajor}`);
+      navigate(`/interfaces/${interfaceName}/${latestMajor}/edit`);
     });
   }, []);
 
@@ -314,7 +314,7 @@ const TriggerList = ({ triggers, maxShownTriggers }) => {
     <ul className="list-unstyled">
       {shownTriggers.map((triggerName) => (
         <li key={triggerName} className="my-1">
-          <Link to={`/triggers/${triggerName}`}>
+          <Link to={`/triggers/${triggerName}/edit`}>
             <i className="fas fa-bolt mr-1" />
             {triggerName}
           </Link>

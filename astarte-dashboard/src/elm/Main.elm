@@ -507,6 +507,9 @@ pageInit realmRoute config session =
         Route.GroupList ->
             initReactPage session Groups "group-list" realmRoute
 
+        Route.NewGroup ->
+            initReactPage session Groups "new-group" realmRoute
+
         Route.GroupDevices groupName ->
             initReactPage session Groups "group-devices" realmRoute
 
