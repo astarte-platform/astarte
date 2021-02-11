@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Explicit timestamp is enabled by default for all mappings when interface type is changed to
   datastream.
 
+## [0.11.5] - Unreleased
+### Changed
+- Enforce IncomingData triggers with /* paths and * match operator on datastream object interfaces
+  (workaround to [astarte-platform/astarte#523](https://github.com/astarte-platform/astarte/issues/523)).
+
 ## [0.11.4] - 2021-01-26
 ### Changed
 - Disable ValueChanged, ValueChangedApplied and PathCreated triggers
