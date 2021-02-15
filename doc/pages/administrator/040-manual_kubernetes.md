@@ -65,10 +65,14 @@ the go-to scenario for production.*
 From the root directory of your clone, run:
 
 ```bash
-make run
+make run ENABLE_WEBHOOKS=false
 ```
 
-This will bring up the Operator and connect it to your current Kubernetes context.
+This will bring up the Operator (with all the webhooks disabled) and connect it to your current
+Kubernetes context.
+
+In case you need to run the Operator with webhooks, please refer to the [Operator-SDK
+documentation](https://v0-19-x.sdk.operatorframework.io/docs/golang/webhooks/#run-locally).
 
 ### Caveats
 
