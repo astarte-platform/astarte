@@ -36,9 +36,8 @@ defmodule AstarteExport.MixProject do
   defp deps do
     [
       {:xandra, "~> 0.13"},
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.0"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.0"},
+      {:astarte_core, "== 1.0.0-beta.1"},
+      {:astarte_data_access, "== 1.0.0-beta.1"},
       {:distillery, "~> 2.0.0"},
       {:pretty_log, "~> 0.1.0"},
       {:xml_stream_writer, "~> 0.1"},
