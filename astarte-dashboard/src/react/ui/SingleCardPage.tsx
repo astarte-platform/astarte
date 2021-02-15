@@ -23,17 +23,33 @@ import BackButton from './BackButton';
 interface Props {
   backLink?: string;
   children: React.ReactNode;
+  docsLink?: string;
   title: string;
 }
 
-export default function SingleCardPage({ backLink, children, title }: Props): React.ReactElement {
+export default function SingleCardPage({
+  backLink,
+  children,
+  docsLink,
+  title,
+}: Props): React.ReactElement {
   return (
     <Container fluid className="p-3">
-      <h2>
-        {backLink && <BackButton href={backLink} />}
-        {title}
-      </h2>
-      <Container fluid className="bg-white rounded p-3 mt-4">
+      <header className="d-flex justify-content-between align-items-baseline">
+        <h2>
+          {backLink && <BackButton href={backLink} />}
+          {title}
+        </h2>
+        {docsLink && (
+          <div className="float-right">
+            <a target="_blank" rel="noreferrer" href={docsLink}>
+              <i className="fa fa-book mr-2" />
+              Documentation
+            </a>
+          </div>
+        )}
+      </header>
+      <Container fluid className="bg-white rounded p-3">
         {children}
       </Container>
     </Container>

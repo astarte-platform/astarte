@@ -99,9 +99,9 @@ export default ({ astarte }: Props): React.ReactElement => {
                   <PipelineCard
                     pipeline={pipeline}
                     onInstantiate={() => {
-                      navigate(`/flows/new/${pipeline.name}`);
+                      navigate(`/flows/new?pipelineId=${pipeline.name}`);
                     }}
-                    showLink={`/pipelines/${pipeline.name}`}
+                    showLink={`/pipelines/${pipeline.name}/edit`}
                   />
                   {index === pipelines.length - 1 && pipelines.length % 2 === 0 ? (
                     <div className="w-50 d-none d-md-block" />

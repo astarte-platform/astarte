@@ -108,7 +108,7 @@ export default ({ astarte }: Props): React.ReactElement => {
               {blocks.map((block, index) => (
                 <React.Fragment key={`fragment-${index}`}>
                   {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
-                  <BlockCard block={block} onShow={() => navigate(`/blocks/${block.name}`)} />
+                  <BlockCard block={block} onShow={() => navigate(`/blocks/${block.name}/edit`)} />
                   {index === blocks.length - 1 && blocks.length % 2 === 0 ? (
                     <div className="w-50 d-none d-md-block" />
                   ) : null}

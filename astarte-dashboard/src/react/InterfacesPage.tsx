@@ -33,14 +33,14 @@ const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement =
     <Container className="p-0" fluid>
       <Row>
         <Col>
-          <Link to={`/interfaces/${name}/${Math.max(...majors)}`}>
+          <Link to={`/interfaces/${name}/${Math.max(...majors)}/edit`}>
             <i className="fas fa-stream mr-2" />
             {name}
           </Link>
         </Col>
         <Col md="auto">
           {majors.map((major) => (
-            <Link key={major} to={`/interfaces/${name}/${major}`}>
+            <Link key={major} to={`/interfaces/${name}/${major}/edit`}>
               <Badge variant={major > 0 ? 'primary' : 'secondary'} className="mr-1 px-2 py-1">
                 v{major}
               </Badge>
