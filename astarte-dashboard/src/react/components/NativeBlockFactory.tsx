@@ -31,11 +31,12 @@ import NativeBlockWidget from './NativeBlockWidget';
 
 type GenerateModelEvent = Parameters<AbstractReactFactory['generateModel']>['0'] & {
   name: AstarteBlock['name'];
+  type: AstarteBlock['type'];
   onSettingsClick?: (...args: any[]) => void;
 };
 
 class NativeBlockFactory extends AbstractReactFactory<BaseModel, DiagramEngine> {
-  blockDefinitions: Map<AstarteBlock['name'], AstarteBlock>;
+  blockDefinitions: Map<string, AstarteBlock>;
 
   constructor(blockDefinitions: AstarteBlock[]) {
     super('astarte-native');
@@ -45,7 +46,7 @@ class NativeBlockFactory extends AbstractReactFactory<BaseModel, DiagramEngine> 
 
   generateReactWidget(event: GenerateWidgetEvent<NativeBlockModel>): React.ReactElement {
     const node = event.model as NativeBlockModel;
-    const block = this.blockDefinitions.get(node.name);
+    const block = this.blockDefinitions.get(`${node.blockType}-${node.name}`);
     if (!block) {
       return <></>;
     }
@@ -53,18 +54,18 @@ class NativeBlockFactory extends AbstractReactFactory<BaseModel, DiagramEngine> 
     return <NativeBlockWidget engine={this.engine} node={node} hasSettings={hasSettings} />;
   }
 
-  generateModel({ name, onSettingsClick }: GenerateModelEvent): NativeBlockModel {
-    const block = this.blockDefinitions.get(name);
+  generateModel({ name, type, onSettingsClick }: GenerateModelEvent): NativeBlockModel {
+    const block = this.blockDefinitions.get(`${type}-${name}`);
     return new NativeBlockModel({
-      name,
-      blockType: block ? block.type : 'producer',
+      name: block ? block.name : name,
+      blockType: block ? block.type : type,
       onSettingsClick,
     });
   }
 
   updateDefinitions(blocks: AstarteBlock[]): void {
     if (blocks && blocks.length > 0) {
-      this.blockDefinitions = new Map(blocks.map((b) => [b.name, b]));
+      this.blockDefinitions = new Map(blocks.map((b) => [`${b.type}-${b.name}`, b]));
     } else {
       this.blockDefinitions = new Map();
     }

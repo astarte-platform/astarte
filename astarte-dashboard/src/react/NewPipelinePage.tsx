@@ -23,6 +23,7 @@ import Ajv from 'ajv';
 import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
 import AstarteClient, { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
+import _ from 'lodash';
 
 import { useAlerts } from './AlertManager';
 import FormModal from './components/modals/Form';
@@ -64,7 +65,21 @@ export default ({ astarte }: Props): React.ReactElement => {
     astarte
       .getBlocks()
       .then((astarteBlocks) => {
-        setBlocks(astarteBlocks);
+        const containerBlock = astarteBlocks.find(
+          (block) => block.name === 'container' && block.type === 'producer_consumer',
+        );
+        if (!containerBlock) {
+          setBlocks(astarteBlocks);
+        } else {
+          const container = _.merge({}, containerBlock);
+          _.unset(container, 'schema.properties.type');
+          const containerProducer = _.merge({}, container, { type: 'producer' });
+          const containerConsumer = _.merge({}, container, { type: 'consumer' });
+          const parsedBlocks = astarteBlocks
+            .filter((b) => b.name !== 'container')
+            .concat([container, containerConsumer, containerProducer]);
+          setBlocks(parsedBlocks);
+        }
       })
       .catch((error) => {
         formAlerts.showError(`Couldn't retrieve block descriptions: ${error.message}`);
@@ -115,7 +130,9 @@ export default ({ astarte }: Props): React.ReactElement => {
 
   const blockSettingsClickHandler = useCallback(
     (e, node: NativeBlockModel) => {
-      const blockDefinition = blocks.find((block) => node.name === block.name);
+      const blockDefinition = blocks.find(
+        (block) => node.name === block.name && node.blockType === block.type,
+      );
       if (!blockDefinition) {
         return;
       }
@@ -152,12 +169,16 @@ export default ({ astarte }: Props): React.ReactElement => {
     }
   };
 
-  const isValidPipelineName = pipeline.name !== '' && pipeline.name !== 'new';
+  const isValidPipelineName = pipeline.name !== '';
   const isValidSource = pipeline.source !== '';
   const isValidForm = isValidPipelineName && isValidSource;
 
   return (
-    <SingleCardPage title="New Pipeline" backLink="/pipelines">
+    <SingleCardPage
+      title="New Pipeline"
+      backLink="/pipelines"
+      docsLink="https://docs.astarte-platform.org/flow/snapshot/"
+    >
       <formAlerts.Alerts />
       <Form>
         <Form.Group controlId="pipeline-name">
@@ -191,6 +212,7 @@ export default ({ astarte }: Props): React.ReactElement => {
               <Form.Control
                 as="textarea"
                 rows={8}
+                spellCheck={false}
                 value={pipeline.source}
                 onChange={(e) => setPipeline({ ...pipeline, source: e.target.value })}
               />
@@ -200,6 +222,7 @@ export default ({ astarte }: Props): React.ReactElement => {
               <Form.Control
                 as="textarea"
                 rows={8}
+                spellCheck={false}
                 value={pipeline.schema}
                 isValid={pipeline.schema !== '' && isValidSchema}
                 isInvalid={pipeline.schema !== '' && !isValidSchema}

@@ -56,7 +56,7 @@ describe('Flows page tests', () => {
       cy.wait(['@getFlows', '@getFlow']);
       cy.get('.main-content').within(() => {
         cy.get('table tbody tr:nth-child(1)').contains(this.flow.data.name).click();
-        cy.location('pathname').should('eq', `/flows/${this.flow.data.name}`);
+        cy.location('pathname').should('eq', `/flows/${this.flow.data.name}/edit`);
       });
     });
 

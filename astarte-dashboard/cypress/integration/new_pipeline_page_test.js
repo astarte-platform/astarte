@@ -1,3 +1,5 @@
+const _ = require('lodash');
+
 describe('New Pipeline page tests', () => {
   context('no access before login', () => {
     it('redirects to login', () => {
@@ -47,7 +49,7 @@ describe('New Pipeline page tests', () => {
 
     it('correctly displays all blocks in its category in the visual editor', function () {
       cy.get('.main-content .flow-editor').within(() => {
-        cy.get('.block-item').should('have.length', this.blocks.data.length);
+        cy.get('.block-item').should('have.length', this.blocks.data.length + 7);
         this.producerBlocks.forEach((block) => {
           cy.get('.block-label')
             .contains('Producer')
@@ -56,7 +58,7 @@ describe('New Pipeline page tests', () => {
         });
         this.producerConsumerBlocks.forEach((block) => {
           cy.get('.block-label')
-            .contains('Producer & consumer')
+            .contains('Producer & Consumer')
             .nextUntil('.block-label')
             .contains(block.name);
         });
@@ -150,6 +152,42 @@ describe('New Pipeline page tests', () => {
               name: this.pipeline.data.name,
               description: this.pipeline.data.description,
               source: this.pipeline.data.source,
+            },
+          });
+        cy.location('pathname').should('eq', '/pipelines');
+      });
+    });
+
+    it('can create a pipeline with the name "new"', function () {
+      const pipeline = _.merge({}, this.pipeline.data, { name: 'new' });
+      cy.get('.main-content').within(() => {
+        const producerBlockName = this.producerBlocks[0].name;
+        const consumerBlockName = this.consumerBlocks[0].name;
+        cy.get('.flow-editor .block-item')
+          .contains(producerBlockName)
+          .dragOnto('.flow-editor .canvas-container');
+        cy.get('.canvas-container .node .producer').parents('.node').moveTo(-50, -50);
+        cy.get('.flow-editor .block-item')
+          .contains(consumerBlockName)
+          .dragOnto('.flow-editor .canvas-container');
+        cy.get('.canvas-container .node .consumer').parents('.node').moveTo(50, 50);
+        cy.get('.canvas-container .node .producer .port[data-name="Out"] > div').moveOnto(
+          '.canvas-container .node .consumer .port[data-name="In"] > div',
+        );
+        cy.get('button').contains('Generate pipeline source').scrollIntoView().click();
+
+        cy.get('#pipeline-name').scrollIntoView().type(pipeline.name);
+        cy.get('#pipeline-schema').clear();
+        cy.get('#pipeline-description').type(pipeline.description);
+        cy.get('#pipeline-source').type(`{selectall}${pipeline.source}`);
+        cy.get('button').contains('Create new pipeline').scrollIntoView().click();
+        cy.wait('@postNewPipeline')
+          .its('requestBody')
+          .should('deep.eq', {
+            data: {
+              name: pipeline.name,
+              description: pipeline.description,
+              source: pipeline.source,
             },
           });
         cy.location('pathname').should('eq', '/pipelines');

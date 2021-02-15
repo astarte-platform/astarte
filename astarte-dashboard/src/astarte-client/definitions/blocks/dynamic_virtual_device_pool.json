@@ -1,0 +1,195 @@
+{
+  "beam_module": "Elixir.Astarte.Flow.Blocks.DynamicVirtualDevicePool",
+  "name": "dynamic_virtual_device_pool",
+  "schema": {
+    "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/dynamic_virtual_device_pool.json",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "additionalProperties": false,
+    "definitions": {
+      "interface": {
+        "$schema": "http://json-schema.org/draft-04/schema",
+        "title": "Astarte Interface Schema",
+        "description": "This schema describes how an Astarte interface should be declared",
+        "type": "object",
+        "properties": {
+          "interface_name": {
+            "type": "string",
+            "pattern": "^([a-zA-Z][a-zA-Z0-9]*.([a-zA-Z0-9][a-zA-Z0-9-]*.)*)?[a-zA-Z][a-zA-Z0-9]*$",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The name of the interface. This has to be an unique, alphanumeric reverse internet domain name, shorther than 128 characters."
+          },
+          "version_major": {
+            "type": "integer",
+            "description": "A Major version qualifier for this interface. Interfaces with the same id and different version_major number are deemed incompatible. It is then acceptable to redefine any property of the interface when changing the major version number."
+          },
+          "version_minor": {
+            "type": "integer",
+            "description": "A Minor version qualifier for this interface. Interfaces with the same id and major version number and different version_minor number are deemed compatible between each other. When changing the minor number, it is then only possible to insert further mappings. Any other modification might lead to incompatibilities and undefined behavior."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["datastream", "properties"],
+            "description": "Identifies the type of this Interface. Currently two types are supported: datastream and properties. datastream should be used when dealing with streams of non-persistent data, where a single path receives updates and there's no concept of state. properties, instead, are meant to be an actual state and as such they have only a change history, and are retained."
+          },
+          "ownership": {
+            "type": "string",
+            "enum": ["device", "server"],
+            "description": "Identifies the ownership of the interface. Interfaces are meant to be unidirectional, and this property defines who's sending or receiving data. device means the device/gateway is sending data to Astarte, server means the device/gateway is receiving data from Astarte. Bidirectional mode is not supported, you should instantiate another interface for that."
+          },
+          "aggregation": {
+            "type": "string",
+            "enum": ["individual", "object"],
+            "default": "individual",
+            "description": "Identifies the aggregation of the mappings of the interface. Individual means every mapping changes state or streams data independently, whereas an object aggregation treats the interface as an object, making all the mappings changes interdependent. Choosing the right aggregation might drastically improve performances."
+          },
+          "description": {
+            "type": "string",
+            "description": "An optional description of the interface."
+          },
+          "doc": {
+            "type": "string",
+            "description": "A string containing documentation that will be injected in the generated client code."
+          },
+          "mappings": {
+            "type": "array",
+            "description": "Mappings define the endpoint of the interface, where actual data is stored/streamed. They are defined as relative URLs (e.g. /my/path) and can be parametrized (e.g.: /%{myparam}/path). A valid interface must have no mappings clash, which means that every mapping must resolve to a unique path or collection of paths (including parametrization). Every mapping acquires type, quality and aggregation of the interface.",
+            "items": { "$ref": "#/definitions/mapping" },
+            "minItems": 1,
+            "maxItems": 1024,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "interface_name",
+          "version_minor",
+          "version_major",
+          "type",
+          "ownership",
+          "mappings"
+        ]
+      },
+      "mapping": {
+        "$schema": "http://json-schema.org/draft-04/schema",
+        "title": "Astarte Mapping Schema",
+        "type": "object",
+        "description": "Identifies a mapping for an interface. A mapping must consist at least of an endpoint and a type.",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "pattern": "^(/(%{([a-zA-Z][a-zA-Z0-9_]*)}|[a-zA-Z][a-zA-Z0-9_]*)){1,64}$",
+            "minLength": 2,
+            "maxLength": 256,
+            "description": "The template of the path. This is a UNIX-like path (e.g. /my/path) and can be parametrized. Parameters are in the %{name} form, and can be used to create interfaces which represent dictionaries of mappings. When the interface aggregation is object, an object is composed by all the mappings for one specific parameter combination. /timestamp is a reserved path for timestamps, so every mapping on a datastream must not have any endpoint that ends with /timestamp."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "double",
+              "integer",
+              "boolean",
+              "longinteger",
+              "string",
+              "binaryblob",
+              "datetime",
+              "doublearray",
+              "integerarray",
+              "booleanarray",
+              "longintegerarray",
+              "stringarray",
+              "binaryblobarray",
+              "datetimearray"
+            ],
+            "description": "Defines the type of the mapping."
+          },
+          "reliability": {
+            "type": "string",
+            "enum": ["unreliable", "guaranteed", "unique"],
+            "default": "unreliable",
+            "description": "Useful only with datastream. Defines whether the sent data should be considered delivered when the transport successfully sends the data (unreliable), when we know that the data has been received at least once (guaranteed) or when we know that the data has been received exactly once (unique). unreliable by default. When using reliable data, consider you might incur in additional resource usage on both the transport and the device's end."
+          },
+          "retention": {
+            "type": "string",
+            "enum": ["discard", "volatile", "stored"],
+            "default": "discard",
+            "description": "Useful only with datastream. Defines whether the sent data should be discarded if the transport is temporarily uncapable of delivering it (discard) or should be kept in a cache in memory (volatile) or on disk (stored), and guaranteed to be delivered in the timeframe defined by the expiry. discard by default."
+          },
+          "expiry": {
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "description": "Useful when retention is stored. Defines after how many seconds a specific data entry should be kept before giving up and erasing it from the persistent cache. A value <= 0 means the persistent cache never expires, and is the default."
+          },
+          "database_retention_policy": {
+            "type": "string",
+            "enum": ["no_ttl", "use_ttl"],
+            "default": "no_ttl",
+            "description": "Useful only with datastream. Defines whether data should expire from the database after a given interval. Valid values are: no_ttl and use_ttl."
+          },
+          "database_retention_ttl": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 630719999,
+            "description": "Useful when database_retention_policy is use_ttl. Defines how many seconds a specific data entry should be kept before erasing it from the database."
+          },
+          "allow_unset": {
+            "type": "boolean",
+            "default": false,
+            "description": "Used only with properties. Used with producers, it generates a method to unset the property. Used with consumers, it generates code to call an unset method when an empty payload is received."
+          },
+          "explicit_timestamp": {
+            "type": "boolean",
+            "default": false,
+            "description": "Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If true explicit timestamp will also be used for sorting. This feature is only supported on datastreams."
+          },
+          "description": {
+            "type": "string",
+            "description": "An optional description of the mapping."
+          },
+          "doc": {
+            "type": "string",
+            "description": "A string containing documentation that will be injected in the generated client code."
+          }
+        },
+        "required": ["endpoint", "type"]
+      }
+    },
+    "description": "This is a consumer block that takes `data` from incoming `Message`s and publishes it as an Astarte device.",
+    "properties": {
+      "pairing_url": {
+        "description": "Base URL of the Astarte Pairing API instance the devices will connect to. URL containing the API version suffix (i.e. `/v1`) are *deprecated* and will be removed in a future release.",
+        "title": "Pairing URL",
+        "type": "string"
+      },
+      "realms": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "realm": {
+              "description": "The realm devices will register to.",
+              "type": "string"
+            },
+            "jwt": {
+              "description": "The pairing JWT with the authorizations needed to register a device in the realm.",
+              "type": "string"
+            }
+          },
+          "required": ["jwt", "realm"],
+          "type": "object"
+        },
+        "title": "Realms",
+        "type": "array"
+      },
+      "interfaces": {
+        "default": [],
+        "items": { "$ref": "#/definitions/interface" },
+        "title": "Interfaces",
+        "type": "array"
+      }
+    },
+    "required": ["pairing_url", "realms", "interfaces"],
+    "title": "Dynamic Virtual Device Pool options",
+    "type": "object"
+  },
+  "type": "consumer"
+}

@@ -11,12 +11,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Major rework for the Interface Editor.
 
-## [1.0.0-beta.1] - Unreleased
+## [1.0.0-beta.1] - 2021-02-15
 ### Added
 - Support device groups in device triggers.
 - Initial device introspection during device registration.
 - Pipeline source visual editor.
 - Search filters for devices page.
+- Support target device or group in data triggers.
+
+### Changed
+- Change Flow routes to avoid possible conflicts between routes.
 
 ### Fixed
 - Fix bug which caused marking triggers as invalid on parametric endpoints containing an underscore.
@@ -41,6 +45,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Configuration accepts both base Astarte API URL and specific component URLs.
 - Explicit timestamp is enabled by default for all mappings when interface type is changed to
   datastream.
+
+## [0.11.5] - Unreleased
+### Changed
+- Enforce IncomingData triggers with /* paths and * match operator on datastream object interfaces
+  (workaround to [astarte-platform/astarte#523](https://github.com/astarte-platform/astarte/issues/523)).
 
 ## [0.11.4] - 2021-01-26
 ### Changed

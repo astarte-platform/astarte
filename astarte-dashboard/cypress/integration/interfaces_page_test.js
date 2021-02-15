@@ -22,12 +22,36 @@ describe('Interfaces page tests', () => {
       cy.get('h2').contains('Interfaces');
     });
 
-    it('displays links to available interfaces', function () {
+    it('correctly displays available interfaces', function () {
+      const interfaceMajors = this.interface_majors.data;
       this.interfaces.data.sort().forEach((interfaceName, index) => {
-        cy.get(`.list-group > .list-group-item:nth-child(${index + 2}) .col > a`)
-          .should('have.attr', 'href')
-          .and('contains', interfaceName);
+        const majorMax = Math.max(...interfaceMajors);
+        cy.get('.list-group-item a').contains(interfaceName);
+        cy.get(`.list-group > .list-group-item:nth-child(${index + 2})`).within(() => {
+          cy.contains(interfaceName).should(
+            'have.attr',
+            'href',
+            `/interfaces/${interfaceName}/${majorMax}/edit`,
+          );
+          interfaceMajors.forEach((major) => {
+            cy.get('a')
+              .should('have.attr', 'href', `/interfaces/${interfaceName}/${major}/edit`)
+              .get('.badge')
+              .contains(`v${major}`);
+          });
+        });
       });
+    });
+
+    it('correctly redirects to interface page when clicking on its name', function () {
+      const interfaceMajors = this.interface_majors.data;
+      const sampleInterfaceName = this.interfaces.data[0];
+      const sampleInterfaceMajor = Math.max(...interfaceMajors);
+      cy.get('.list-group-item a').contains(sampleInterfaceName).click();
+      cy.location('pathname').should(
+        'eq',
+        `/interfaces/${sampleInterfaceName}/${sampleInterfaceMajor}/edit`,
+      );
     });
   });
 });

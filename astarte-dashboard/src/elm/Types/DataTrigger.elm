@@ -20,6 +20,7 @@
 module Types.DataTrigger exposing
     ( DataTrigger
     , DataTriggerEvent(..)
+    , Target(..)
     , JsonType(..)
     , Operator(..)
     , dataTriggerEventToString
@@ -49,6 +50,7 @@ type alias DataTrigger =
     , operator : Operator
     , knownValue : String
     , knownValueType : JsonType
+    , target : Target
     }
 
 
@@ -61,6 +63,7 @@ empty =
     , operator = Any
     , knownValue = ""
     , knownValueType = JString
+    , target = AllDevices
     }
 
 
@@ -71,6 +74,12 @@ type DataTriggerEvent
     | PathCreated
     | PathRemoved
     | ValueStored
+
+
+type Target
+    = AllDevices
+    | DeviceGroup String
+    | SpecificDevice String
 
 
 type Operator
@@ -141,8 +150,22 @@ encode dataTrigger =
          , ( "on", dataTriggerEventEncoder dataTrigger.on )
          , ( "match_path", Encode.string dataTrigger.path )
          ]
+            ++ encodeTarget dataTrigger.target
             ++ operatorEncoder dataTrigger.operator dataTrigger.knownValue dataTrigger.knownValueType
         )
+
+
+encodeTarget : Target -> List ( String, Value )
+encodeTarget target =
+    case target of
+        AllDevices ->
+            []
+
+        DeviceGroup groupName ->
+            [ ( "group_name", Encode.string groupName ) ]
+
+        SpecificDevice deviceId ->
+            [ ( "device_id", Encode.string deviceId ) ]
 
 
 operatorEncoder : Operator -> String -> JsonType -> List ( String, Value )
@@ -246,6 +269,8 @@ dataTriggerEventToString d =
 decoder : Decoder DataTrigger
 decoder =
     Decode.succeed toDecoder
+        |> optional "group_name" string "*"
+        |> optional "device_id" string "*"
         |> required "interface_name" string
         |> optional "interface_major" int 0
         |> required "on" dataTriggerEventDecoder
@@ -255,14 +280,40 @@ decoder =
         |> resolve
 
 
-toDecoder : String -> Int -> DataTriggerEvent -> String -> Operator -> Maybe ( String, JsonType ) -> Decoder DataTrigger
-toDecoder iName iMajor on path operator maybeKnownValue =
-    case maybeKnownValue of
-        Just ( value, jType ) ->
-            Decode.succeed (DataTrigger iName iMajor on path operator value jType)
+toDecoder : String -> String -> String -> Int -> DataTriggerEvent -> String -> Operator -> Maybe ( String, JsonType ) -> Decoder DataTrigger
+toDecoder groupName deviceId iName iMajor on path operator maybeKnownValue =
+    let
+        resultValue =
+            case maybeKnownValue of
+                Just ( value, jType ) ->
+                    Ok (value, jType)
 
-        Nothing ->
-            Decode.succeed (DataTrigger iName iMajor on path operator "" JString)
+                Nothing ->
+                    Ok ("", JString)
+
+        resultTarget =
+            case ( groupName, deviceId ) of
+                ( "*", "*" ) ->
+                    Ok AllDevices
+
+                ( _, "*" ) ->
+                    Ok (DeviceGroup groupName)
+
+                ( "*", _ ) ->
+                    Ok (SpecificDevice deviceId)
+
+                ( _, _ ) ->
+                    Err "Cannot have both device ID and group name"
+    in
+    case ( resultValue, resultTarget ) of
+        ( Ok (knownValue, knownValueType), Ok target ) ->
+            Decode.succeed (DataTrigger iName iMajor on path operator knownValue knownValueType target)
+
+        ( Err msg, _ ) ->
+            Decode.fail msg
+
+        ( _, Err msg ) ->
+            Decode.fail msg
 
 
 knownValueDecoder : Decoder ( String, JsonType )

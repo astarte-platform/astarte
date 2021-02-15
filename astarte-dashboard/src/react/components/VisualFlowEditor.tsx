@@ -40,7 +40,10 @@ interface BlockMenuItem {
 const BlockMenuItem = ({ block }: BlockMenuItem) => (
   <div
     className={`block-item ${block.type}`}
-    onDragStart={(e) => e.dataTransfer.setData('block-name', block.name)}
+    onDragStart={(e) => {
+      e.dataTransfer.setData('block-name', block.name);
+      e.dataTransfer.setData('block-type', block.type);
+    }}
     draggable
   >
     {block.name}
@@ -57,7 +60,7 @@ const EditorSidebar = ({ blocks }: EditorSidebarProps) => (
     {filterSortBlocks(blocks, 'producer').map((block) => (
       <BlockMenuItem key={block.name} block={block} />
     ))}
-    <div className="block-label">Producer & consumer</div>
+    <div className="block-label">Producer & Consumer</div>
     {filterSortBlocks(blocks, 'producer_consumer').map((block) => (
       <BlockMenuItem key={block.name} block={block} />
     ))}
@@ -96,9 +99,10 @@ const VisualFlowEditor = ({
   }, [blocks]);
 
   const addBlock = useCallback(
-    (name, position) => {
+    (name, type, position) => {
       const newNode = nodeFactory.generateModel({
         name,
+        type,
         onSettingsClick: onNodeSettingsClick,
       });
       newNode.setPosition(position.x - 30, position.y - 20);
@@ -116,7 +120,8 @@ const VisualFlowEditor = ({
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           const blockName = e.dataTransfer.getData('block-name');
-          addBlock(blockName, engine.getRelativeMousePoint(e));
+          const blockType = e.dataTransfer.getData('block-type');
+          addBlock(blockName, blockType, engine.getRelativeMousePoint(e));
         }}
       >
         <CanvasWidget engine={engine} />

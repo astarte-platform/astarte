@@ -29,6 +29,7 @@ import {
   toAstartePipelineDTO,
   toAstarteDataTree,
 } from './transforms';
+import * as definitions from './definitions';
 import { AstarteCustomBlock, toAstarteBlock } from './models/Block';
 import { AstarteDevice } from './models/Device';
 import { AstarteFlow } from './models/Flow';
@@ -601,20 +602,38 @@ class AstarteClient {
   }
 
   async getBlocks(): Promise<AstarteBlock[]> {
+    const staticBlocks = definitions.blocks as AstarteBlockDTO[];
     const response = await this.$get(this.apiConfig.blocks(this.config));
-    return response.data.map((block: AstarteBlockDTO) => toAstarteBlock(block));
+    const fetchedBlocks = response.data as AstarteBlockDTO[];
+    const allBlocks = _.uniqBy(fetchedBlocks.concat(staticBlocks), 'name');
+    return allBlocks.map((block: AstarteBlockDTO) => toAstarteBlock(block));
   }
 
   async registerBlock(block: AstarteCustomBlock): Promise<void> {
+    const staticBlocksName = definitions.blocks.map((b) => b.name);
+    if (staticBlocksName.includes(block.name)) {
+      throw new Error("The block's name already exists");
+    }
     await this.$post(this.apiConfig.blocks(this.config), block);
   }
 
   async getBlock(blockId: AstarteBlock['name']): Promise<AstarteBlock> {
-    const response = await this.$get(this.apiConfig.blockSource({ ...this.config, blockId }));
-    return toAstarteBlock(response.data as AstarteBlockDTO);
+    let blockDTO: AstarteBlockDTO;
+    const staticBlocksName = definitions.blocks.map((block) => block.name);
+    if (staticBlocksName.includes(blockId)) {
+      blockDTO = definitions.blocks.find((block) => block.name === blockId) as AstarteBlockDTO;
+    } else {
+      const response = await this.$get(this.apiConfig.blockSource({ ...this.config, blockId }));
+      blockDTO = response.data;
+    }
+    return toAstarteBlock(blockDTO);
   }
 
   async deleteBlock(blockId: AstarteBlock['name']): Promise<void> {
+    const staticBlocksName = definitions.blocks.map((b) => b.name);
+    if (staticBlocksName.includes(blockId)) {
+      throw new Error('Cannot delete a native block');
+    }
     await this.$delete(this.apiConfig.blockSource({ ...this.config, blockId }));
   }
 
