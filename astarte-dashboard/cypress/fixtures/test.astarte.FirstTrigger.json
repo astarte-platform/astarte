@@ -10,7 +10,7 @@
         "simple_triggers": [
             {
                 "type": "data_trigger",
-                "interface_name": "test.astarte.SecondInterface",
+                "interface_name": "test.astarte.FirstInterface",
                 "interface_major": 0,
                 "on": "incoming_data",
                 "match_path": "/*",
