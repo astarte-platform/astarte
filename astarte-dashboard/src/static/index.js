@@ -62,13 +62,13 @@ function loadPage(page) {
 
   reactHistory = createBrowserHistory();
 
-  const reactApp = getReactApp(
+  const reactApp = getReactApp({
     reactHistory,
     astarteClient,
     sessionManager,
     dashboardConfig,
     noMatchFallback,
-  );
+  });
   ReactDOM.render(reactApp, document.getElementById('react-page'));
 }
 

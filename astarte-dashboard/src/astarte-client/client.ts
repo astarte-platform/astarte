@@ -48,6 +48,10 @@ import { AstarteDeviceEvent, decodeEvent } from './types/events';
 
 export type AstarteClientEvent = 'credentialsChange' | 'socketError' | 'socketClose';
 
+interface AstarteClientFeatures {
+  flow: boolean;
+}
+
 export interface AstarteInterfaceDescriptor {
   name: string;
   major: number;
@@ -819,6 +823,12 @@ class AstarteClient {
       rooms.push(roomName);
     });
     return rooms;
+  }
+
+  get features(): AstarteClientFeatures {
+    return {
+      flow: this.config.enableFlowPreview,
+    };
   }
 }
 
