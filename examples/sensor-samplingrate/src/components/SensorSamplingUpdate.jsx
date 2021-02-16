@@ -72,11 +72,12 @@ class SensorSamplingUpdate extends Component {
             data: parseInt(samplingRate)
           }
         })
+        .catch((err) => this.handleError(err))
         .then(() => {
           refreshSamplingRate(data.id, samplingRateInterface);
-          this.setState({ loading: false });
         })
-        .catch(err => this.handleError(err));
+        .catch((err) => this.handleError(err))
+        .finally(() => this.setState({ loading: false }));
     }
   };
 
@@ -101,11 +102,12 @@ class SensorSamplingUpdate extends Component {
             data: status === "enable"
           }
         })
+        .catch((err) => this.handleError(err))
         .then(() => {
           refreshSamplingRate(data.id, samplingRateInterface);
-          this.setState({ loading: false });
         })
-        .catch(err => this.handleError(err));
+        .catch((err) => this.handleError(err))
+        .finally(() => this.setState({ loading: false }));
     }
   };
 
@@ -132,13 +134,10 @@ class SensorSamplingUpdate extends Component {
                   name="sensor"
                   required
                   onChange={this.handleSensor}
+                  value={this.sensor}
                 >
-                  {Object.keys(sensorValues).map((item, index) => {
-                    return (
-                      <option selected={!index} key={index}>
-                        {item}
-                      </option>
-                    );
+                  {Object.keys(sensorValues).map((sensorId) => {
+                    return <option key={sensorId}>{sensorId}</option>;
                   })}
                 </FormControl>
               </FormGroup>

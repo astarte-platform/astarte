@@ -14,7 +14,7 @@ import ApiHandler from "../apiHandler";
 import SensorSamplingUpdate from "./SensorSamplingUpdate";
 
 const _ = require("lodash");
-const CONSTANT = {
+const INTERFACES = {
   VALUES: "Values",
   SAMPLING_RATE: "SamplingRate"
 };
@@ -71,14 +71,12 @@ class SensorViewer extends Component {
     const { astarte } = this.state;
     const id = res.id;
     const interfaces = Object.keys(res.introspection);
-    const samplingIndex = interfaces.findIndex(
-      key => key.search(CONSTANT.SAMPLING_RATE) > -1
+    const samplingRateInterface = interfaces.find(
+      (key) => key.search(INTERFACES.SAMPLING_RATE) > -1
     );
-    const samplingRateInterface = interfaces[samplingIndex];
-    const valueIndex = interfaces.findIndex(
-      key => key.search(CONSTANT.VALUES) > -1
+    const valueInterface = interfaces.find(
+      (key) => key.search(INTERFACES.VALUES) > -1
     );
-    const valueInterface = interfaces[valueIndex];
     this.setState({
       data: res,
       loading: false,

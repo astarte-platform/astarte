@@ -183,7 +183,7 @@ export default class ApiHandler {
         type: "data_trigger",
         on: "incoming_data",
         interface_name: interfaceName,
-        interface_major: 0,
+        interface_major: 1,
         match_path: "/*",
         known_value: known_value,
         value_match_operator: value_match_operator
