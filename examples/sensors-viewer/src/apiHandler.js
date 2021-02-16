@@ -41,16 +41,16 @@ function getDeviceById(id, params = {}) {
 
 function handleDeviceDataInterfaces(data) {
   const interfaces = Object.keys(data.introspection);
-  const availableIndex = interfaces.findIndex(
+  const availableSensorsInterface = interfaces.find(
     key => key.search(constant.AVAILABLE_SENSORS) > -1
   );
-  const valueIndex = interfaces.findIndex(
+  const valuesInterface = interfaces.find(
     key => key.search(constant.VALUES) > -1
   );
-  const samplingRateIndex = interfaces.findIndex(
+  const samplingRateInterface = interfaces.find(
     key => key.search(constant.SAMPLING_RATE) > -1
   );
-  return { interfaces, availableIndex, valueIndex, samplingRateIndex, data };
+  return { interfaces, availableSensorsInterface, valuesInterface, samplingRateInterface, data };
 }
 
 export const getDeviceDataById = (id, params = {}) => {
