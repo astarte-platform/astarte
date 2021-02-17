@@ -5,7 +5,7 @@ import {
   FormControl,
   InputGroup,
   Row,
-  Spinner
+  Spinner,
 } from "react-bootstrap";
 import CredentialsModal from "./CredentialsModal";
 import GraphComponent from "./GraphComponent";
@@ -15,7 +15,7 @@ import {
   getDeviceDataById,
   getInterfaceByAlias,
   getInterfaceById,
-  isMissingCredentials
+  isMissingCredentials,
 } from "../apiHandler";
 
 class SensorPlotGraph extends Component {
@@ -26,26 +26,26 @@ class SensorPlotGraph extends Component {
     availableSensors: {},
     sensorValues: {},
     loading: false,
-    fetched: false
+    fetched: false,
   };
 
   componentDidMount() {
     if (isMissingCredentials()) this.setState({ visible: true });
   }
 
-  handleChange = e => {
+  handleChange = (e) => {
     e.preventDefault();
     this.setState({ [e.target.name]: e.target.value });
   };
 
-  handleCredentialModal = visible => {
+  handleCredentialModal = (visible) => {
     this.setState({ visible });
     if (!visible) {
       this.handleSubmit();
     }
   };
 
-  checkDeviceType = value => {
+  checkDeviceType = (value) => {
     const expression = new RegExp(/[a-z]?[A-Z]?[0-9]?-?_?/i);
     if (value.length === 22) if (expression.test(value)) return constant.ID;
     return constant.ALIAS;
@@ -60,7 +60,7 @@ class SensorPlotGraph extends Component {
         availableSensors: {},
         sensorValues: {},
         fetched: false,
-        notFound: false
+        notFound: false,
       });
       if (type === constant.ID) {
         this.setDeviceDataById(deviceID);
@@ -81,48 +81,50 @@ class SensorPlotGraph extends Component {
 
   setDeviceDataById = (id, params = {}) => {
     getDeviceDataById(id, params)
-      .then(res => {
+      .then((res) => {
         this.setState({
           data: res.data,
           loading: false,
           fetched: true,
-          ValueInterfaces: res.interfaces[res.valueIndex]
+          ValueInterfaces: res.interfaces[res.valueIndex],
         });
         getInterfaceById(id, res.interfaces[res.availableIndex]).then(
-          response => {
+          (response) => {
             this.setState({ availableSensors: response });
           }
         );
-        getInterfaceById(id, res.interfaces[res.valueIndex]).then(response => {
-          this.setState({ sensorValues: response });
-        });
+        getInterfaceById(id, res.interfaces[res.valueIndex]).then(
+          (response) => {
+            this.setState({ sensorValues: response });
+          }
+        );
       })
-      .catch(err => {
+      .catch((err) => {
         this.handleError(err);
       });
   };
 
   setDeviceDataByAlias = (alias, params = {}) => {
     getDeviceDataByAlias(alias, params)
-      .then(res => {
+      .then((res) => {
         this.setState({
           data: res.data,
           loading: false,
           fetched: true,
-          ValueInterfaces: res.interfaces[res.valueIndex]
+          ValueInterfaces: res.interfaces[res.valueIndex],
         });
         getInterfaceByAlias(alias, res.interfaces[res.availableIndex]).then(
-          response => {
+          (response) => {
             this.setState({ availableSensors: response });
           }
         );
         getInterfaceByAlias(alias, res.interfaces[res.valueIndex]).then(
-          response => {
+          (response) => {
             this.setState({ sensorValues: response });
           }
         );
       })
-      .catch(err => {
+      .catch((err) => {
         this.handleError(err);
       });
   };
@@ -134,7 +136,7 @@ class SensorPlotGraph extends Component {
       loading,
       deviceID,
       availableSensors,
-      ValueInterfaces
+      ValueInterfaces,
     } = this.state;
     return (
       <Container className="px-0 py-4" fluid>

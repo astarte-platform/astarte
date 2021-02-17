@@ -9,7 +9,7 @@ export const constant = {
   SAMPLING_RATE: "SamplingRate",
   REALM: "realm",
   TOKEN: "token",
-  ENDPOINT: "endpoint"
+  ENDPOINT: "endpoint",
 };
 
 const Endpoint = {
@@ -19,7 +19,7 @@ const Endpoint = {
   interface_by_id: "devices/:device_id/interfaces/:interface/",
   interface_id_path: "devices/:device_id/interfaces/:interface/:path/value",
   interface_alias_path:
-    "devices/:device_alias/interfaces/:interface/:path/value"
+    "devices/:device_alias/interfaces/:interface/:path/value",
 };
 
 function getAPIUrl(endPoint, params = null) {
@@ -30,7 +30,7 @@ function getAPIUrl(endPoint, params = null) {
 function GET(url, params) {
   const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${getAuthToken()}`
+    Authorization: `Bearer ${getAuthToken()}`,
   };
   return axios.get(url, { headers: headers, params: params });
 }
@@ -44,36 +44,36 @@ function getDeviceById(id, params = {}) {
 
 export const getDeviceDataById = (id, params = {}) => {
   return getDeviceById(id, params)
-    .then(response => {
+    .then((response) => {
       const data = response.data.data;
       const interfaces = Object.keys(data.introspection);
       const availableIndex = interfaces.findIndex(
-        key => key.search(constant.AVAILABLE_SENSORS) > -1
+        (key) => key.search(constant.AVAILABLE_SENSORS) > -1
       );
       const valueIndex = interfaces.findIndex(
-        key => key.search(constant.VALUES) > -1
+        (key) => key.search(constant.VALUES) > -1
       );
       return Promise.resolve({ valueIndex, availableIndex, interfaces });
     })
-    .catch(err => {
+    .catch((err) => {
       return Promise.reject(err);
     });
 };
 
 export const getDeviceDataByAlias = (alias, params = {}) => {
   return getDeviceByAlias(alias, params)
-    .then(response => {
+    .then((response) => {
       const data = response.data.data;
       const interfaces = Object.keys(data.introspection);
       const availableIndex = interfaces.findIndex(
-        key => key.search(constant.AVAILABLE_SENSORS) > -1
+        (key) => key.search(constant.AVAILABLE_SENSORS) > -1
       );
       const valueIndex = interfaces.findIndex(
-        key => key.search(constant.VALUES) > -1
+        (key) => key.search(constant.VALUES) > -1
       );
       return Promise.resolve({ valueIndex, availableIndex, interfaces });
     })
-    .catch(err => {
+    .catch((err) => {
       return Promise.reject(err);
     });
 };
@@ -86,16 +86,16 @@ function getDeviceByAlias(alias, params = {}) {
 export function getInterfaceById(device_id, interface_id, params = {}) {
   const URL = getAPIUrl("interface_by_id", {
     device_id: device_id,
-    interface: interface_id
+    interface: interface_id,
   });
-  return GET(URL, params).then(response => response.data.data);
+  return GET(URL, params).then((response) => response.data.data);
 }
 
 export function getSensorValueById(device_id, interface_id, path, params = {}) {
   const URL = getAPIUrl("interface_id_path", {
     device_id: device_id,
     interface: interface_id,
-    path: path
+    path: path,
   });
   return GET(URL, params);
 }
@@ -103,9 +103,9 @@ export function getSensorValueById(device_id, interface_id, path, params = {}) {
 export function getInterfaceByAlias(device_alias, interface_id, params = {}) {
   const URL = getAPIUrl("interface_by_id", {
     device_alias: device_alias,
-    interface: interface_id
+    interface: interface_id,
   });
-  return GET(URL, params).then(response => response.data.data);
+  return GET(URL, params).then((response) => response.data.data);
 }
 
 // LocalStorage Config

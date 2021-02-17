@@ -28,22 +28,22 @@ function SensorListItem(props) {
   const sensor_items = [
     {
       label: "Sensor Name",
-      value: _.get(props.sensor, "name", props.sensorId)
+      value: _.get(props.sensor, "name", props.sensorId),
     },
     {
       label: "Sensor ID",
-      value: props.sensorId
+      value: props.sensorId,
     },
     {
       label: "Sampling Period",
-      value: _.get(props.sampling, "samplingPeriod", "N/A")
+      value: _.get(props.sampling, "samplingPeriod", "N/A"),
     },
     {
       label: "Last Update",
       value: moment(props.sensorValues.value.timestamp).format(
         getLocaleFormat()
-      )
-    }
+      ),
+    },
   ];
   return (
     <Card className="main-card border-0 mb-4">
@@ -81,7 +81,7 @@ function SensorListItem(props) {
 export default function SensorItems({
   availableSensors,
   sensorsValues,
-  sensorSamplingRate
+  sensorSamplingRate,
 }) {
   return Object.keys(sensorsValues).map((sensorId, index) => {
     return (
