@@ -110,7 +110,7 @@ Astarte, by default, is extremely easy to configure assuming your chosen SSO is 
 
 The main purpose of Astarte's design, however, is to keep things simple for everyone. Putting up a full-fledged SSO dedicated to Astarte is beyond the scope of this documentation, and we favor the use case where an existing SSO infrastructure is integrated with Astarte, rather than built ad-hoc.
 
-For simple use cases and instant satisfaction, it is strongly advised to use a simpler solution, such as a dedicated OAuth server. Almost all popular languages and frameworks provide great projects which can spin up an OAuth2 server + user management in a matter of hours, from [Elixir/Phoenix](https://github.com/mustafaturan/shield) to [Java/Spring](https://github.com/spring-cloud-samples/authserver) to [Go](https://github.com/RichardKnop/go-oauth2-server).
+For simple use cases and instant satisfaction, it is strongly advised to use a simpler solution, such as a dedicated OAuth server. Almost all popular languages and frameworks provide great projects which can spin up an OAuth2 server + user management in a matter of hours, from [Elixir/Phoenix](https://github.com/mbuhot/shield) to [Java/Spring](https://github.com/spring-cloud-samples/authserver) to [Go](https://github.com/RichardKnop/go-oauth2-server).
 
 [Astarte's Enterprise Distribution](https://astarte.cloud/enterprise) includes other add-ons, such as automation and configuration for popular SSOs.
 

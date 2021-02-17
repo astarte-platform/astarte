@@ -28,7 +28,7 @@ is then used for obtaining information about which Transports the Device can use
 and for obtaining Credentials for its assigned Transports.
 
 The ability to request Credentials of a Device can be inhibited with [AppEngine
-API](/api/#/device/updateDeviceStatus) or using
+API](https://docs.astarte-platform.org/1.0/api/#/device/updateDeviceStatus) or using
 [`astartectl`](https://github.com/astarte-platform/astartectl) with this command:
 
 ```bash
