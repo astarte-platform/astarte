@@ -53,7 +53,8 @@ body {
 .main-card.card {
   box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.09);
 }
-.bg-sensor-theme,.btn-primary {
+.bg-sensor-theme,
+.btn-primary {
   background-color: #6aa8d8 !important;
   border: #6aa8d8;
 }
@@ -65,10 +66,10 @@ body {
 .disconnected {
   background-color: #ff0000;
 }
-.sensor-sampling-div .form-group{
+.sensor-sampling-div .form-group {
   margin: 1rem 0;
 }
-.border-separate{
+.border-separate {
   border-top: 1px solid #cccccc;
   padding-top: 0.9rem;
 }

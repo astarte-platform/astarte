@@ -6,7 +6,7 @@ import {
   FormControl,
   InputGroup,
   Row,
-  Spinner
+  Spinner,
 } from "react-bootstrap";
 import CredentialsModal from "./CredentialsModal";
 import SensorDataHandler from "./SensorDataHandler";
@@ -20,7 +20,7 @@ class SensorDisplay extends Component {
       device: null,
       astarte: null,
       loading: false,
-      submit: false
+      submit: false,
     };
   }
 
@@ -34,18 +34,18 @@ class SensorDisplay extends Component {
     }
   }
 
-  setCredentials = config => {
+  setCredentials = (config) => {
     const astarte = new ApiHandler(config);
     localStorage.AstarteConfig = JSON.stringify(config);
     this.setState({ astarte, visible: false }, () => this.handleSubmit());
   };
 
-  handleChange = e => {
+  handleChange = (e) => {
     e.preventDefault();
     this.setState({ [e.target.name]: e.target.value, submit: false });
   };
 
-  handleCredentialModal = visible => {
+  handleCredentialModal = (visible) => {
     this.setState({ visible });
     if (!visible) {
       this.handleSubmit();
@@ -58,8 +58,8 @@ class SensorDisplay extends Component {
       this.setState({ loading: true });
       astarte
         .getDevice(device)
-        .then(response => this.setDeviceData(response))
-        .catch(error => this.handleError(error));
+        .then((response) => this.setDeviceData(response))
+        .catch((error) => this.handleError(error));
     }
   };
 
@@ -67,13 +67,13 @@ class SensorDisplay extends Component {
     this.setState({
       device: response.id,
       loading: false,
-      submit: true
+      submit: true,
     });
   }
 
   handleError(err) {
     if (err.response.status === 403) {
-      this.setState({visible: true, loading: false});
+      this.setState({ visible: true, loading: false });
       window.confirm("Invalid Credentials");
     }
     if (err.response.status === 404) {

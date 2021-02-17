@@ -6,7 +6,7 @@ const ENDPOINT = {
   device_id: "devices/:id?",
   interface_by_alias: "devices/:device_alias/interfaces/:interface/",
   interface_by_id: "devices/:device_id/interfaces/:interface/",
-  interface_id_path: "devices/:device_id/interfaces/:interface/:sensor_id/:key"
+  interface_id_path: "devices/:device_id/interfaces/:interface/:sensor_id/:key",
 };
 
 export default class ApiHandler {
@@ -29,7 +29,7 @@ export default class ApiHandler {
   getHeaders() {
     return {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.token}`
+      Authorization: `Bearer ${this.token}`,
     };
   }
 
@@ -61,15 +61,15 @@ export default class ApiHandler {
   getDeviceDataById(device, params = {}) {
     const URL = this.getAPIUrl("device_id", { id: device });
     return this.GET(URL, params)
-      .then(response => Promise.resolve(response.data.data))
-      .catch(err => Promise.reject(err));
+      .then((response) => Promise.resolve(response.data.data))
+      .catch((err) => Promise.reject(err));
   }
 
   getDeviceDataByAlias(alias, params = {}) {
     const URL = this.getAPIUrl("device_alias", { device_alias: alias });
     return this.GET(URL, params)
-      .then(response => Promise.resolve(response.data.data))
-      .catch(err => Promise.reject(err));
+      .then((response) => Promise.resolve(response.data.data))
+      .catch((err) => Promise.reject(err));
   }
 
   getSensorValueById(id, interfaces, sensor_id, key, params = {}) {
@@ -77,7 +77,7 @@ export default class ApiHandler {
       device_id: id,
       interface: interfaces,
       sensor_id: sensor_id,
-      key: key
+      key: key,
     });
     return this.GET(URL, params);
   }
@@ -88,7 +88,7 @@ export default class ApiHandler {
       device_id: id,
       interface: interfaces,
       sensor_id: sensor_id,
-      key: key
+      key: key,
     });
     if (unset) {
       return this.DELETE(URL);
@@ -99,8 +99,8 @@ export default class ApiHandler {
   getInterfaceById(device_id, interface_id, params = {}) {
     const URL = this.getAPIUrl("interface_by_id", {
       device_id: device_id,
-      interface: interface_id
+      interface: interface_id,
     });
-    return this.GET(URL, params).then(response => response.data.data);
+    return this.GET(URL, params).then((response) => response.data.data);
   }
 }

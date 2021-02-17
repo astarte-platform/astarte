@@ -14,21 +14,21 @@ class SensorDataHandler extends Component {
     this.state = {
       sensors: {},
       device: {
-        connection_type: false
+        connection_type: false,
       },
       connected: false,
-      alerts: []
+      alerts: [],
     };
   }
 
   setDeviceStatus = () => {
     const { device, astarte } = this.props;
-    astarte.getDeviceDataById(device).then(response => {
+    astarte.getDeviceDataById(device).then((response) => {
       this.setState({ device: { connection_type: response.connected } });
     });
   };
 
-  onInComingData = response => {
+  onInComingData = (response) => {
     if (response.event === "new_event") {
       const { sensors } = this.state;
       const time = response.payload.timestamp;
@@ -40,7 +40,7 @@ class SensorDataHandler extends Component {
           // We need extract 'device_name' from path
           // So we skip first "/" using event.path.split("/")[1]
           name: event.path.split("/")[1],
-          timestamp: getLocaleFormat(time)
+          timestamp: getLocaleFormat(time),
         };
       }
       this.setState({ sensors });
@@ -75,7 +75,7 @@ class SensorDataHandler extends Component {
         onInComingData: this.onInComingData,
         onOpenConnection: this.onSocketOpen,
         onCloseConnection: this.onSocketClose,
-        onErrorConnection: this.onSocketError
+        onErrorConnection: this.onSocketError,
       });
     } else {
       astarte.disconnectSocket();
