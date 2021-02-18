@@ -16,13 +16,10 @@
    limitations under the License.
 */
 
-const isValidRealmName = (name: string): boolean => {
-  return (
-    RegExp('^[a-z][a-z0-9]{0,47}$').test(name) &&
-    !name.startsWith('astarte') &&
-    !name.startsWith('system')
-  );
-};
+const isValidRealmName = (name: string): boolean =>
+  RegExp('^[a-z][a-z0-9]{0,47}$').test(name) &&
+  !name.startsWith('astarte') &&
+  !name.startsWith('system');
 
 export const AstarteRealm = {
   isValidName: isValidRealmName,

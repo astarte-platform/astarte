@@ -78,10 +78,10 @@ const TextWidget = ({
         <datalist id={`examples_${id}`}>
           {(schema.examples as string[])
             .concat(schema.default ? ([schema.default] as string[]) : [])
-            .map((example: any) => {
+            .map((example: any) => (
               // eslint-disable-next-line jsx-a11y/control-has-associated-label
-              return <option key={example} value={example} />;
-            })}
+              <option key={example} value={example} />
+            ))}
         </datalist>
       ) : null}
     </Form.Group>
