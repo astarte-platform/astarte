@@ -21,20 +21,16 @@ import _ from 'lodash';
 import type { AstartePipeline } from '../models/Pipeline';
 import type { AstartePipelineDTO } from '../types';
 
-export const fromAstartePipelineDTO = (dto: AstartePipelineDTO): AstartePipeline => {
-  return {
-    name: dto.name,
-    description: dto.description,
-    schema: dto.schema || {},
-    source: dto.source,
-  };
-};
+export const fromAstartePipelineDTO = (dto: AstartePipelineDTO): AstartePipeline => ({
+  name: dto.name,
+  description: dto.description,
+  schema: dto.schema || {},
+  source: dto.source,
+});
 
-export const toAstartePipelineDTO = (obj: AstartePipeline): AstartePipelineDTO => {
-  return {
-    name: obj.name,
-    description: obj.description,
-    schema: _.isEmpty(obj.schema) ? undefined : obj.schema,
-    source: obj.source,
-  };
-};
+export const toAstartePipelineDTO = (obj: AstartePipeline): AstartePipelineDTO => ({
+  name: obj.name,
+  description: obj.description,
+  schema: _.isEmpty(obj.schema) ? undefined : obj.schema,
+  source: obj.source,
+});
