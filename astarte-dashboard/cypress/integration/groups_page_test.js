@@ -12,22 +12,29 @@ describe('Groups page tests', () => {
         cy.fixture('groups')
           .as('groups')
           .then((groups) => {
-            cy.server();
-            cy.route('GET', `/appengine/v1/${realm.name}/groups`, groups);
             groups.data.forEach((groupName) => {
               const encodedGroupName = encodeURIComponent(groupName);
               const groupFixture = groupName.startsWith('special characters')
                 ? `group.special-characters.devices.json`
                 : `group.${groupName}.devices.json`;
               cy.fixture(groupFixture).as(`${encodedGroupName}-devices`);
-              cy.route(
+              // Browsers will convert single quotes but encodeURIComponent don't
+              cy.intercept(
                 'GET',
-                `/appengine/v1/${realm.name}/groups/${encodedGroupName}/devices?details=true`,
-                `@${encodedGroupName}-devices`,
-              );
+                `/appengine/v1/${realm.name}/groups/${encodeURIComponent(encodedGroupName).replace(
+                  /'/g,
+                  '%27',
+                )}/devices?details=true`,
+                { fixture: groupFixture },
+              ).as(`${encodedGroupName}-request`);
             });
+            cy.intercept('GET', `/appengine/v1/${realm.name}/groups`, groups);
             cy.login();
             cy.visit('/groups');
+            const requestAliases = groups.data.map(
+              (groupName) => `@${encodeURIComponent(groupName)}-request`,
+            );
+            cy.wait(requestAliases);
           });
       });
     });
@@ -66,7 +73,10 @@ describe('Groups page tests', () => {
         const groupName = 'special characters %20///%%`~!@#$^&*()_-+=[]{};:\'"|\\<>,.';
         const encodedGroupName = encodeURIComponent(groupName);
         cy.get('table td').contains(groupName).click();
-        cy.location('pathname').should('eq', `/groups/${encodeURIComponent(encodedGroupName)}/edit`);
+        cy.location('pathname').should(
+          'eq',
+          `/groups/${encodeURIComponent(encodedGroupName)}/edit`,
+        );
       });
     });
   });

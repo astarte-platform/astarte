@@ -11,14 +11,13 @@ describe('Pipelines page tests', () => {
       cy.fixture('pipelines').as('pipelines');
       cy.fixture('pipeline.test-calculation').as('pipeline-test-calculation');
       cy.fixture('pipeline.sample-computation').as('pipeline-sample-computation');
-      cy.server();
-      cy.route('GET', '/flow/v1/*/pipelines', '@pipelines').as('getPipelines');
-      cy.route('GET', '/flow/v1/*/pipelines/test-calculation', '@pipeline-test-calculation').as(
-        'get-pipeline-test-calculation',
-      );
-      cy.route('GET', '/flow/v1/*/pipelines/sample-computation', '@pipeline-sample-computation').as(
-        'get-pipeline-sample-computation',
-      );
+      cy.intercept('GET', '/flow/v1/*/pipelines', { fixture: 'pipelines' }).as('getPipelines');
+      cy.intercept('GET', '/flow/v1/*/pipelines/test-calculation', {
+        fixture: 'pipeline.test-calculation',
+      }).as('get-pipeline-test-calculation');
+      cy.intercept('GET', '/flow/v1/*/pipelines/sample-computation', {
+        fixture: 'pipeline.sample-computation',
+      }).as('get-pipeline-sample-computation');
       cy.login();
       cy.visit('/pipelines');
       cy.wait([

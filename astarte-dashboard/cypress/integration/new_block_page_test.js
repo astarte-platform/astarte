@@ -9,12 +9,9 @@ describe('New block page tests', () => {
   context('authenticated', () => {
     beforeEach(() => {
       cy.fixture('custom_block').as('customBlock');
-      cy.server();
-      cy.route({
-        method: 'POST',
-        url: '**/flow/v1/**',
-        status: 201,
-        response: '@customBlock',
+      cy.intercept('POST', '**/flow/v1/**', {
+        statusCode: 201,
+        fixture: 'custom_block',
       }).as('postNewBlock');
       cy.login();
       cy.visit('/blocks/new');
@@ -28,14 +25,14 @@ describe('New block page tests', () => {
     it('can fill out a form for a new Block', function () {
       cy.get('.main-content').within(() => {
         cy.contains('Create new block').should('be.disabled');
-        cy.get('input#block-name').clear().type('customblock');
+        cy.get('input#block-name').clear().paste('customblock');
         cy.get('select#block-type').select('producer');
-        cy.get('textarea#block-source').clear().type('source');
-        cy.get('textarea#block-schema').clear().type('{}');
+        cy.get('textarea#block-source').clear().paste('source');
+        cy.get('textarea#block-schema').clear().paste('{}');
         cy.contains('Create new block').should('not.be.disabled');
         cy.contains('Create new block').click({ force: true });
       });
-      cy.wait('@postNewBlock').its('requestBody').should('deep.eq', this.customBlock);
+      cy.wait('@postNewBlock').its('request.body').should('deep.eq', this.customBlock);
       cy.location('pathname').should('eq', '/blocks');
     });
 
@@ -47,13 +44,13 @@ describe('New block page tests', () => {
         type: 'producer',
       };
       cy.get('.main-content').within(() => {
-        cy.get('input#block-name').clear().type(newBlock.name);
+        cy.get('input#block-name').clear().paste(newBlock.name);
         cy.get('select#block-type').select(newBlock.type);
-        cy.get('textarea#block-source').clear().type(newBlock.source);
-        cy.get('textarea#block-schema').clear().type(JSON.stringify(newBlock.schema));
+        cy.get('textarea#block-source').clear().paste(newBlock.source);
+        cy.get('textarea#block-schema').clear().paste(JSON.stringify(newBlock.schema));
         cy.contains('Create new block').scrollIntoView().click();
       });
-      cy.wait('@postNewBlock').its('requestBody.data').should('deep.eq', newBlock);
+      cy.wait('@postNewBlock').its('request.body.data').should('deep.eq', newBlock);
       cy.location('pathname').should('eq', '/blocks');
     });
   });

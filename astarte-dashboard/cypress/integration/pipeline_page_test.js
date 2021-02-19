@@ -13,15 +13,12 @@ describe('Pipeline page tests', () => {
       cy.fixture('pipeline.sample-computation')
         .as('pipeline')
         .then((pipeline) => {
-          cy.server();
-          cy.route('GET', `/flow/v1/*/pipelines/${pipeline.data.name}`, '@pipeline').as(
+          cy.intercept('GET', `/flow/v1/*/pipelines/${pipeline.data.name}`, pipeline).as(
             'getPipeline',
           );
-          cy.route({
-            method: 'DELETE',
-            url: `/flow/v1/*/pipelines/${pipeline.data.name}`,
-            status: 204,
-            response: '',
+          cy.intercept('DELETE', `/flow/v1/*/pipelines/${pipeline.data.name}`, {
+            statusCode: 204,
+            body: '',
           }).as('deletePipelineRequest');
           cy.login();
           cy.visit(`/pipelines/${pipeline.data.name}/edit`);
@@ -46,8 +43,7 @@ describe('Pipeline page tests', () => {
 
     it('correctly displays a pipeline with the name "new"', function () {
       const pipeline = _.merge({}, this.pipeline.data, { name: 'new' });
-      cy.server();
-      cy.route('GET', `/flow/v1/*/pipelines/${pipeline.name}`, { data: pipeline });
+      cy.intercept('GET', `/flow/v1/*/pipelines/${pipeline.name}`, { data: pipeline });
       cy.visit(`/pipelines/${pipeline.name}/edit`);
       cy.location('pathname').should('eq', `/pipelines/new/edit`);
       cy.get('h2').contains('Pipeline Details');

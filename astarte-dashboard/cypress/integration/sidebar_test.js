@@ -15,11 +15,10 @@ describe('Sidebar tests', () => {
     });
 
     it('correctly renders sidebar elements', function () {
-      cy.server();
-      cy.route('GET', '/appengine/health', '');
-      cy.route('GET', '/realmmanagement/health', '');
-      cy.route('GET', '/pairing/health', '');
-      cy.route('GET', '/flow/health', '');
+      cy.intercept('GET', '/appengine/health', '');
+      cy.intercept('GET', '/realmmanagement/health', '');
+      cy.intercept('GET', '/pairing/health', '');
+      cy.intercept('GET', '/flow/health', '');
       cy.get('.nav-col .nav').within(() => {
         cy.get('.nav-brand')
           .as('brand')
@@ -74,11 +73,10 @@ describe('Sidebar tests', () => {
     });
 
     it('correctly reports realm status when unhealthy', () => {
-      cy.server();
-      cy.route({ method: 'GET', url: '/appengine/health', status: 200, response: '' });
-      cy.route({ method: 'GET', url: '/realmmanagement/health', status: 200, response: '' });
-      cy.route({ method: 'GET', url: '/pairing/health', status: 200, response: '' });
-      cy.route({ method: 'GET', url: '/flow/health', status: 500, response: '' });
+      cy.intercept('GET', '/appengine/health', { statusCode: 200, body: '' });
+      cy.intercept('GET', '/realmmanagement/health', { statusCode: 200, body: '' });
+      cy.intercept('GET', '/pairing/health', { statusCode: 200, body: '' });
+      cy.intercept('GET', '/flow/health', { statusCode: 500, body: '' });
       cy.get('.nav-col .nav .nav-status').contains('Degraded');
     });
   });

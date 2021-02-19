@@ -20,13 +20,10 @@ describe('New Pipeline page tests', () => {
           cy.wrap(producerConsumerBlocks).as('producerConsumerBlocks');
           cy.wrap(consumerBlocks).as('consumerBlocks');
           cy.fixture('pipeline.sample-computation').as('pipeline');
-          cy.server();
-          cy.route('GET', '/flow/v1/*/blocks', '@blocks');
-          cy.route({
-            method: 'POST',
-            url: '/flow/v1/*/pipelines',
-            status: 201,
-            response: '@pipeline',
+          cy.intercept('GET', '/flow/v1/*/blocks', blocks);
+          cy.intercept('POST', '/flow/v1/*/pipelines', {
+            statusCode: 201,
+            fixture: 'pipeline.sample-computation',
           }).as('postNewPipeline');
           cy.login();
           cy.visit('/pipelines/new');
@@ -140,13 +137,13 @@ describe('New Pipeline page tests', () => {
         );
         cy.get('button').contains('Generate pipeline source').scrollIntoView().click();
 
-        cy.get('#pipeline-name').scrollIntoView().type(this.pipeline.data.name);
+        cy.get('#pipeline-name').scrollIntoView().paste(this.pipeline.data.name);
         cy.get('#pipeline-schema').clear();
-        cy.get('#pipeline-description').type(this.pipeline.data.description);
+        cy.get('#pipeline-description').paste(this.pipeline.data.description);
         cy.get('#pipeline-source').type(`{selectall}${this.pipeline.data.source}`);
         cy.get('button').contains('Create new pipeline').scrollIntoView().click();
         cy.wait('@postNewPipeline')
-          .its('requestBody')
+          .its('request.body')
           .should('deep.eq', {
             data: {
               name: this.pipeline.data.name,
@@ -176,13 +173,13 @@ describe('New Pipeline page tests', () => {
         );
         cy.get('button').contains('Generate pipeline source').scrollIntoView().click();
 
-        cy.get('#pipeline-name').scrollIntoView().type(pipeline.name);
+        cy.get('#pipeline-name').scrollIntoView().paste(pipeline.name);
         cy.get('#pipeline-schema').clear();
-        cy.get('#pipeline-description').type(pipeline.description);
+        cy.get('#pipeline-description').paste(pipeline.description);
         cy.get('#pipeline-source').type(`{selectall}${pipeline.source}`);
         cy.get('button').contains('Create new pipeline').scrollIntoView().click();
         cy.wait('@postNewPipeline')
-          .its('requestBody')
+          .its('request.body')
           .should('deep.eq', {
             data: {
               name: pipeline.name,

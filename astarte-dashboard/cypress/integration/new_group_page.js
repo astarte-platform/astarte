@@ -10,13 +10,10 @@ describe('New Group page tests', () => {
     beforeEach(() => {
       cy.fixture('devices_detailed').as('devices');
       cy.fixture('group.first-floor.created').as('postNewGroupResponse');
-      cy.server();
-      cy.route('GET', '/appengine/v1/*/devices?details=true', '@devices');
-      cy.route({
-        method: 'POST',
-        url: '/appengine/v1/*/groups',
-        status: 201,
-        response: '@postNewGroupResponse',
+      cy.intercept('GET', '/appengine/v1/*/devices?details=true', { fixture: 'devices_detailed' });
+      cy.intercept('POST', '/appengine/v1/*/groups', {
+        statusCode: 201,
+        fixture: 'group.first-floor.created',
       }).as('postNewGroup');
       cy.login();
       cy.visit('/groups/new');
@@ -45,9 +42,9 @@ describe('New Group page tests', () => {
       cy.get('.main-content').within(() => {
         const device = this.devices.data.find((d) => Object.values(d.aliases).length > 0);
         const deviceAlias = Object.values(device.aliases)[0];
-        cy.get("input[placeholder*='Device ID']").type(device.id);
+        cy.get("input[placeholder*='Device ID']").paste(device.id);
         cy.get('table tbody').find('tr').should('have.length', 1);
-        cy.get("input[placeholder*='Device ID']").clear().type(deviceAlias);
+        cy.get("input[placeholder*='Device ID']").clear().paste(deviceAlias);
         cy.get('table tbody').find('tr').should('have.length', 1);
       });
     });
@@ -59,7 +56,7 @@ describe('New Group page tests', () => {
         cy.contains('1 device selected');
         cy.get('table tbody tr:nth-child(2) [type="checkbox"]').check();
         cy.contains('2 devices selected');
-        cy.get("input[placeholder*='Device ID']").type('non-existent-device-id');
+        cy.get("input[placeholder*='Device ID']").paste('non-existent-device-id');
         cy.contains('2 devices selected');
       });
     });
@@ -67,7 +64,7 @@ describe('New Group page tests', () => {
     it('cannot create a group without devices', () => {
       cy.get('.main-content').within(() => {
         cy.get('button').contains('Create group').should('be.disabled');
-        cy.get('#groupNameInput').type('my_group');
+        cy.get('#groupNameInput').paste('my_group');
         cy.get('button').contains('Create group').should('be.disabled');
       });
     });
@@ -86,20 +83,16 @@ describe('New Group page tests', () => {
         const groupDevices = this.devices.data.filter((d) => d.groups.includes(groupName));
         const groupDevicesIds = groupDevices.map((d) => d.id);
         cy.get('button').contains('Create group').should('be.disabled');
-        cy.get('#groupNameInput').type(groupName);
+        cy.get('#groupNameInput').paste(groupName);
         groupDevicesIds.forEach((deviceId) => {
-          cy.get("input[placeholder*='Device ID']").clear().type(deviceId);
+          cy.get("input[placeholder*='Device ID']").clear().paste(deviceId);
           cy.get('table tbody tr:nth-child(1) [type="checkbox"]').check();
         });
         cy.get('button').contains('Create group').should('not.be.disabled').click();
-        cy.wait('@postNewGroup')
-          .its('requestBody')
-          .should('deep.eq', {
-            data: {
-              devices: groupDevicesIds,
-              group_name: groupName,
-            },
-          });
+        cy.wait('@postNewGroup').its('request.body.data').should('deep.eq', {
+          devices: groupDevicesIds,
+          group_name: groupName,
+        });
         cy.location('pathname').should('eq', '/groups');
       });
     });

@@ -30,18 +30,15 @@ describe('Interface values page tests', () => {
             .then((device) => {
               const interfaceName = interface.data.interface_name;
               const deviceId = device.data.id;
-              cy.server();
-              cy.route('GET', `/appengine/v1/*/devices/${deviceId}`, '@device');
-              cy.route(
+              cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, device);
+              cy.intercept(
                 'GET',
                 `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
-                '@interface_data',
+                { fixture: 'test_aggregated_object_interface_values' },
               );
-              cy.route({
-                method: 'GET',
-                url: `/realmmanagement/v1/*/interfaces/${interfaceName}/*`,
-                status: 418,
-                response: '',
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, {
+                statusCode: 418,
+                body: '',
               });
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
               cy.get('.main-content .card-body [role="alert"]').contains(
@@ -61,18 +58,15 @@ describe('Interface values page tests', () => {
             .then((device) => {
               const interfaceName = interface.data.interface_name;
               const deviceId = device.data.id;
-              cy.server();
-              cy.route('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, '@interface');
-              cy.route(
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, interface);
+              cy.intercept(
                 'GET',
                 `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
-                '@interface_data',
+                { fixture: 'test_aggregated_object_interface_values' },
               );
-              cy.route({
-                method: 'GET',
-                url: `/appengine/v1/*/devices/${deviceId}`,
-                status: 418,
-                response: '',
+              cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, {
+                statusCode: 418,
+                body: '',
               });
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
               cy.get('.main-content .card-body [role="alert"]').contains('Device not found.');
@@ -90,15 +84,16 @@ describe('Interface values page tests', () => {
             .then((device) => {
               const interfaceName = interface.data.interface_name;
               const deviceId = device.data.id;
-              cy.server();
-              cy.route('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, '@interface');
-              cy.route('GET', `/appengine/v1/*/devices/${deviceId}`, '@device');
-              cy.route({
-                method: 'GET',
-                url: `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
-                status: 418,
-                response: '',
-              });
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, interface);
+              cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, device);
+              cy.intercept(
+                'GET',
+                `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
+                {
+                  statusCode: 418,
+                  body: '',
+                },
+              );
               cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
               cy.get('.main-content .card-body [role="alert"]').contains(
                 'Could not retrieve interface data.',
@@ -112,10 +107,13 @@ describe('Interface values page tests', () => {
         cy.fixture('test.astarte.AggregatedObjectInterface').as('interface');
         cy.fixture('test_aggregated_object_interface_values').as('interface_data');
         cy.fixture('device_detailed').as('device');
-        cy.server();
-        cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface');
-        cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-        cy.route('GET', '/appengine/v1/*/devices/*/interfaces/*', '@interface_data');
+        cy.intercept('GET', '/realmmanagement/v1/*/interfaces/*/*', {
+          fixture: 'test.astarte.AggregatedObjectInterface',
+        });
+        cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device_detailed' });
+        cy.intercept('GET', '/appengine/v1/*/devices/*/interfaces/*', {
+          fixture: 'test_aggregated_object_interface_values',
+        });
       });
 
       it('shows correct aggregated datastream data', function () {
@@ -149,10 +147,13 @@ describe('Interface values page tests', () => {
         cy.fixture('test.astarte.IndividualObjectInterface').as('interface');
         cy.fixture('test_individual_object_interface_values').as('interface_data');
         cy.fixture('device_detailed').as('device');
-        cy.server();
-        cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface');
-        cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-        cy.route('GET', '/appengine/v1/*/devices/*/interfaces/*', '@interface_data');
+        cy.intercept('GET', '/realmmanagement/v1/*/interfaces/*/*', {
+          fixture: 'test.astarte.IndividualObjectInterface',
+        });
+        cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device_detailed' });
+        cy.intercept('GET', '/appengine/v1/*/devices/*/interfaces/*', {
+          fixture: 'test_individual_object_interface_values',
+        });
       });
 
       it('shows correct individual datastream data', function () {
@@ -178,10 +179,13 @@ describe('Interface values page tests', () => {
         cy.fixture('test.astarte.PropertiesInterface').as('interface');
         cy.fixture('test_properties_interface_values').as('interface_data');
         cy.fixture('device_detailed').as('device');
-        cy.server();
-        cy.route('GET', '/realmmanagement/v1/*/interfaces/*/*', '@interface');
-        cy.route('GET', '/appengine/v1/*/devices/*', '@device');
-        cy.route('GET', '/appengine/v1/*/devices/*/interfaces/*', '@interface_data');
+        cy.intercept('GET', '/realmmanagement/v1/*/interfaces/*/*', {
+          fixture: 'test.astarte.PropertiesInterface',
+        });
+        cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device_detailed' });
+        cy.intercept('GET', '/appengine/v1/*/devices/*/interfaces/*', {
+          fixture: 'test_properties_interface_values',
+        });
       });
 
       it('shows correct properties data', function () {
