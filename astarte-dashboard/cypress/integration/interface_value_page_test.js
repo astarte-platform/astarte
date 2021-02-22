@@ -20,6 +20,23 @@ describe('Interface values page tests', () => {
       });
     });
 
+    it('pressing back redirects to the device page', () => {
+      cy.intercept('GET', '/appengine/v1/*/devices/*', { fixture: 'device_detailed' });
+      cy.intercept('GET', '/realmmanagement/v1/*/interfaces/*/*', {
+        fixture: 'test.astarte.IndividualObjectInterface',
+      });
+      cy.intercept('GET', '/appengine/v1/*/devices/*/interfaces/*', {
+        fixture: 'test_individual_object_interface_values',
+      });
+
+      const deviceId = '0ma4SioESHKk28VhYGcW1w';
+      const interfaceName = 'test.astarte.IndividualObjectInterface';
+
+      cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+      cy.get('[aria-label="Back"]').click();
+      cy.location('pathname').should('eq', `/devices/${deviceId}/edit`);
+    });
+
     it('correctly handles error while fetching interface', () => {
       cy.fixture('test_aggregated_object_interface_values').as('interface_data');
       cy.fixture('test.astarte.AggregatedObjectInterface')

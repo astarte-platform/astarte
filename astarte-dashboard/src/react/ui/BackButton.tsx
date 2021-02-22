@@ -25,7 +25,7 @@ interface Props {
 
 export default function BackButton({ href }: Props): React.ReactElement {
   return (
-    <Link to={href} className="align-bottom mr-2">
+    <Link to={href} className="align-bottom mr-2" aria-label="Back">
       <i className="fas fa-chevron-left align-text-bottom" />
     </Link>
   );
