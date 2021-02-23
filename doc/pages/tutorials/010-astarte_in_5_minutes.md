@@ -122,7 +122,7 @@ Replace `http://example.com` with your target URL in the command below, you can 
       "type": "data_trigger",
       "on": "incoming_data",
       "interface_name": "org.astarte-platform.genericsensors.Values",
-      "interface_major": 0,
+      "interface_major": 1,
       "match_path": "/streamTest/value",
       "value_match_operator": ">",
       "known_value": 0.6
@@ -145,9 +145,11 @@ $ astartectl realm-management triggers ls --realm-management-url http://localhos
 
 ## Stream data
 
-If you already have an Astarte compliant device, you can configure it and connect it straight away, and it will just work with your new installation - provided you skip SSL checks on the broker's certificate. If you don't, you can use Astarte's `stream-qt5-test` to emulate an Astarte device and generate a `datastream`. You can do this either on the same machine where you are running Astarte, or from another machine or device on the same network.
-
-Depending on what your client supports, you can either compile `stream-qt5-test` (this will take some more time), or you can use a ready to use Docker container to launch it. Docker is the easiest and painless way, but this guide will cover both methods.
+If you already have an Astarte compliant device, you can configure it and connect it straight away,
+and it will just work with your new installation - provided you skip SSL checks on the broker's
+certificate. If you don't, you can use Astarte's `stream-qt5-test` to emulate an Astarte device and
+generate a `datastream`. You can do this either on the same machine where you are running Astarte,
+or from another machine or device on the same network.
 
 ### Using a container for stream-qt5-test
 
@@ -168,33 +170,6 @@ This will generate a random datastream from a brand new, random Device ID. You c
 Refer to `stream-qt5-test` [README](https://github.com/astarte-platform/stream-qt5-test/blob/release-1.0/README.md) for more details on which variables can be passed to the container.
 
 Also, please note that the `--net="host"` parameter is required to make `localhost` work. If this is not desirable, you can change `PAIRING_HOST` to an host reachable from within the container network. Obviously, that parameter isn't required if you're running the container on a different machine and `PAIRING_HOST` is pointing to a different URL.
-
-## Building stream-qt5-test from source
-
-If your target platform does not support running containers, you can build `stream-qt5-test` from source. To do so, you will have to compile both Astarte Qt5 SDK and Astarte Qt5 Stream Test. Their main dependencies are `cmake`, `qtbase`, `mosquitto` and `openssl`. If you're on a Debian derivative, you can install them all with:
-
-```sh
-# apt-get install qt5-default qtbase5-dev libqt5sql5-sqlite libssl-dev libmosquittopp-dev cmake git build-essential
-```
-
-Once your dependencies are installed, compile your components:
-
-```sh
-$ git clone https://github.com/astarte-platform/astarte-device-sdk-qt5.git
-$ cd astarte-device-sdk-qt5
-$ mkdir build
-$ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX=/usr ..
-$ make
-$ make install
-$ cd -
-$ git clone https://github.com/astarte-platform/stream-qt5-test.git
-$ cd stream-qt5-test
-$ qmake .
-$ make
-```
-
-You can now run `stream-qt5-test` from your last build directory. Refer to its [README](https://github.com/astarte-platform/stream-qt5-test/blob/release-1.0/README.md) (or to its sources) to learn about how to use it and which options are available.
 
 ## Grab your tea
 
