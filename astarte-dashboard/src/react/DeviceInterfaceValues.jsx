@@ -104,7 +104,7 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
   return (
     <Container fluid className="p-3">
       <h2>
-        <BackButton href={`/devices/${deviceId}`} />
+        <BackButton href={`/devices/${deviceId}/edit`} />
         Interface Data
       </h2>
       <Card className="mt-4">
