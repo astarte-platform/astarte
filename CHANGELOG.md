@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.0.0-beta.2] - Unreleased
+### Fixed
+- [astarte_e2e] Fix alerting mechanism preventing "unknown" failures to be raised or linked.
+
+### Changed
+- [astarte_e2e] Client disconnections are responsible for triggering a mail alert.
 
 ## [1.0.0-beta.1] - 2021-02-16
 ### Fixed
