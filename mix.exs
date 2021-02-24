@@ -23,7 +23,7 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       app: :astarte_data_access,
       version: "1.0.0-beta.2",
-      elixir: "~> 1.10",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -64,7 +64,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.0.0-beta.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.0"}
     ]
   end
 
