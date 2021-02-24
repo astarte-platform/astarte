@@ -127,7 +127,7 @@ defmodule AstarteE2E.ServiceNotifier do
     updated_data =
       data
       |> Map.put(:failures_before_alert, Config.failures_before_alert!())
-      |> Map.put(:failure_id, @default_failure_id)
+      |> Map.put(:failure_id, failure_id)
 
     Email.service_up_email(failure_id)
     |> deliver()
@@ -142,14 +142,31 @@ defmodule AstarteE2E.ServiceNotifier do
 
   def service_down(
         {:call, from},
-        {:notify_service_down, reason},
-        %{failures_before_alert: 0} = data
+        {:notify_service_down, _reason},
+        _data
+      ) do
+    actions = [{:reply, from, :nothing_to_do}]
+
+    {:keep_state_and_data, actions}
+  end
+
+  def service_up({:call, from}, :notify_service_up, data) do
+    actions = [{:reply, from, :ok}]
+
+    updated_data = Map.put(data, :failures_before_alert, Config.failures_before_alert!())
+
+    {:keep_state, updated_data, actions}
+  end
+
+  def service_up(
+        {:call, from},
+        {:notify_service_down, "Client disconnected" = reason},
+        data
       ) do
     event_id = Hukai.generate("%a-%A")
 
     updated_data =
       data
-      |> Map.put(:failures_before_alert, data.failures_before_alert - 1)
       |> Map.put(:failure_id, event_id)
 
     reason
@@ -164,32 +181,33 @@ defmodule AstarteE2E.ServiceNotifier do
 
     actions = [{:reply, from, :mail_sent}]
 
-    {:keep_state, updated_data, actions}
+    {:next_state, :service_down, updated_data, actions}
   end
 
-  def service_down(
+  def service_up(
         {:call, from},
-        {:notify_service_down, _reason},
-        data
+        {:notify_service_down, reason},
+        %{failures_before_alert: 0} = data
       ) do
-    actions =
-      if data.failures_before_alert > 0 do
-        [{:reply, from, :nothing_to_do}]
-      else
-        [{:reply, from, :mail_sent}]
-      end
+    event_id = Hukai.generate("%a-%A")
 
-    updated_data = Map.put(data, :failures_before_alert, data.failures_before_alert - 1)
+    updated_data =
+      data
+      |> Map.put(:failure_id, event_id)
 
-    {:keep_state, updated_data, actions}
-  end
+    reason
+    |> Email.service_down_email(event_id)
+    |> deliver()
 
-  def service_up({:call, from}, :notify_service_up, data) do
-    actions = [{:reply, from, :ok}]
+    Logger.warn(
+      "Service down. The user has been notified. Reason: #{reason}.",
+      tag: "service_down_notified",
+      failure_id: event_id
+    )
 
-    updated_data = Map.put(data, :failures_before_alert, Config.failures_before_alert!())
+    actions = [{:reply, from, :mail_sent}]
 
-    {:keep_state, updated_data, actions}
+    {:next_state, :service_down, updated_data, actions}
   end
 
   def service_up({:call, from}, {:notify_service_down, _reason}, data) do
@@ -197,6 +215,6 @@ defmodule AstarteE2E.ServiceNotifier do
 
     updated_data = Map.put(data, :failures_before_alert, data.failures_before_alert - 1)
 
-    {:next_state, :service_down, updated_data, actions}
+    {:keep_state, updated_data, actions}
   end
 end
