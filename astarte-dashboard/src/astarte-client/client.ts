@@ -262,10 +262,9 @@ class AstarteClient {
     }
   }
 
-  setCredentials({ realm, token }: any): void {
-    this.config.realm = realm || '';
-    this.token = token || '';
-
+  setCredentials(params: { realm: string; token: string } | null): void {
+    this.config.realm = params?.realm || '';
+    this.token = params?.token || '';
     this.dispatch('credentialsChange');
   }
 
