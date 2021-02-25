@@ -1,9 +1,11 @@
-language: elm
-elm:
-  - elm0.19.0
+language: node_js
+node_js:
+  - 14
 
 script:
-  - npm run check-format-js
+  - npm run check-format
+  - npm run check-lint
+  - npm run check-types
   - npm run build
 
 deploy:

@@ -231,9 +231,6 @@ class SessionManager {
   get isLoggedIn(): boolean {
     return this.#credentials != null;
   }
-
-  // TODO: Remove this method once we won't need to pass session to Elm
-  static serializeSession = serializeSession;
 }
 
 type SessionContextValue = {

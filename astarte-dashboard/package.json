@@ -27,7 +27,6 @@
   },
   "scripts": {
     "start": "webpack serve --hot --inline --config webpack.dev.js",
-    "start-ci": "CI_RUN=true npm run start",
     "prebuild": "rimraf dist",
     "build": "webpack --config webpack.prod.js",
     "deploy": "webpack --config webpack.prod.js",
@@ -65,8 +64,6 @@
     "copy-webpack-plugin": "^7.0.0",
     "css-loader": "^5.0.2",
     "cypress": "^6.5.0",
-    "elm": "^0.19.1-5",
-    "elm-webpack-loader": "^7.0.1",
     "eslint": "^7.20.0",
     "eslint-config-airbnb": "^18.2.0",
     "eslint-config-prettier": "^7.2.0",

@@ -19,19 +19,6 @@ module.exports = merge(common, {
   module: {
     rules: [
       {
-        test: /\.elm$/,
-        exclude: [/elm-stuff/, /node_modules/],
-        use: [
-          {
-            loader: 'elm-webpack-loader',
-            options: {
-              verbose: true,
-              debug: !process.env.CI_RUN,
-            },
-          },
-        ],
-      },
-      {
         test: /\.s?css$/,
         use: [
           'style-loader',

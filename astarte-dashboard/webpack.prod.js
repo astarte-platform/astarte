@@ -15,16 +15,6 @@ module.exports = merge(common, {
   module: {
     rules: [
       {
-        test: /\.elm$/,
-        exclude: [/elm-stuff/, /node_modules/],
-        use: {
-          loader: 'elm-webpack-loader',
-          options: {
-            optimize: true,
-          },
-        },
-      },
-      {
         test: /\.s?css$/,
         use: [
           MiniCssExtractPlugin.loader,
