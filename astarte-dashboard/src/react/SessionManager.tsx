@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,31 +18,7 @@
 
 import { createNanoEvents, Emitter, Unsubscribe } from 'nanoevents';
 
-type SessionManagerAuthParams =
-  | {
-      auth: [{ type: 'token' }];
-      defaultAuth?: 'token';
-      defaultRealm?: string;
-    }
-  | {
-      auth: [{ type: 'oauth' }];
-      defaultAuth?: 'oauth';
-      defaultRealm?: string;
-    }
-  | {
-      auth: [{ type: 'token' }, { type: 'oauth' }];
-      defaultAuth?: 'token' | 'oauth';
-      defaultRealm?: string;
-    };
-
-type SessionManagerParams = {
-  astarteApiUrl: string;
-  appEngineApiUrl?: string;
-  realmManagementApiUrl?: string;
-  pairingApiUrl?: string;
-  flowApiUrl?: string;
-  enableFlowPreview: boolean;
-} & SessionManagerAuthParams;
+import type { DashboardConfig } from './types';
 
 type SessionConfig = {
   secureConnection: boolean;
@@ -60,7 +36,7 @@ type SessionCredentials = {
 
 type Session = {
   config: SessionConfig;
-  credentials: SessionCredentials;
+  credentials: SessionCredentials | null;
   loginType: string | 'TokenLogin';
 };
 
@@ -88,8 +64,8 @@ function serializeSession(session?: Session | null): string {
       pairing_url: urlToSchemalessString(session.config.pairingApiUrl),
       flow_url: urlToSchemalessString(session.config.flowApiUrl),
       enable_flow_preview: session.config.enableFlowPreview,
-      realm: session.credentials.realm,
-      token: session.credentials.token,
+      realm: session.credentials?.realm || '',
+      token: session.credentials?.token || '',
     },
     login_type: session.loginType,
   });
@@ -135,7 +111,7 @@ class SessionManager {
 
   #emitter: Emitter<SessionManagerEvents>;
 
-  constructor(params: SessionManagerParams) {
+  constructor(params: DashboardConfig) {
     this.#emitter = createNanoEvents<SessionManagerEvents>();
 
     // base API URL
@@ -188,7 +164,7 @@ class SessionManager {
     this.#authUrl = null;
 
     const previousSession = deserializeSession(this.#storage.getItem('session'));
-    if (previousSession) {
+    if (previousSession && previousSession.credentials) {
       const { realm, token } = previousSession.credentials;
       const authUrl = previousSession.loginType !== 'TokenLogin' ? previousSession.loginType : null;
       this.login({ realm, token, authUrl });
