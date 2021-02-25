@@ -16,22 +16,9 @@
    limitations under the License.
 */
 
-import React, { useReducer, useLayoutEffect } from 'react';
-import {
-  Navigate,
-  Router,
-  Routes,
-  Route,
-  useParams,
-  useLocation,
-  useSearchParams,
-} from 'react-router-dom';
+import React from 'react';
+import { Navigate, Routes, Route, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import type AstarteClient from 'astarte-client';
-import type {
-  BrowserHistory as History,
-  Action as HistoryAction,
-  Location as HistoryLocation,
-} from 'history';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -43,7 +30,6 @@ import NewTriggerPage from './NewTriggerPage';
 import TriggerPage from './TriggerPage';
 import InterfacesPage from './InterfacesPage';
 import InterfacePage from './InterfacePage';
-import InterfaceEditorPage from './InterfaceEditorPage';
 import NewInterfacePage from './NewInterfacePage';
 import DevicesPage from './DevicesPage';
 import RegisterDevicePage from './RegisterDevicePage';
@@ -59,18 +45,15 @@ import NewBlockPage from './NewBlockPage';
 import RealmSettingsPage from './RealmSettingsPage';
 import DeviceStatusPage from './DeviceStatusPage';
 import DeviceInterfaceValues from './DeviceInterfaceValues';
-import type SessionManager from './SessionManager';
+import { useSession } from './SessionManager';
 
 interface PageProps {
   astarte: AstarteClient;
 }
 
-interface AttemptLoginProps {
-  sessionManager: SessionManager;
-}
-
-function AttemptLogin({ sessionManager }: AttemptLoginProps): React.ReactElement {
+function AttemptLogin(): React.ReactElement {
   const { search, hash } = useLocation();
+  const session = useSession();
   const searchParams = new URLSearchParams(search);
   const hashParams = new URLSearchParams(hash.slice(1));
 
@@ -81,7 +64,7 @@ function AttemptLogin({ sessionManager }: AttemptLoginProps): React.ReactElement
   let succesfulLogin = false;
 
   if (realm && token) {
-    succesfulLogin = sessionManager.login({ realm, token, authUrl });
+    succesfulLogin = session.manager.login({ realm, token, authUrl });
   }
 
   if (!succesfulLogin) {
@@ -91,12 +74,9 @@ function AttemptLogin({ sessionManager }: AttemptLoginProps): React.ReactElement
   return <Navigate to="/" />;
 }
 
-interface LogoutProps {
-  sessionManager: SessionManager;
-}
-
-function Logout({ sessionManager }: LogoutProps): React.ReactElement {
-  sessionManager.logout();
+function Logout(): React.ReactElement {
+  const session = useSession();
+  session.manager.logout();
 
   return <Navigate to="/login" />;
 }
@@ -111,6 +91,12 @@ type LoginProps = PageProps & {
 
 function Login({ defaultLoginType, ...props }: LoginProps): React.ReactElement {
   const { search } = useLocation();
+  const session = useSession();
+
+  if (session.isAuthenticated) {
+    return <Navigate to="/" />;
+  }
+
   const requestedLoginType = new URLSearchParams(search).get('type') || '';
   const loginType = ['oauth', 'token'].includes(requestedLoginType)
     ? (requestedLoginType as LoginType)
@@ -186,104 +172,79 @@ function DeviceDataSubPath(props: PageProps): React.ReactElement {
   return <DeviceInterfaceValues deviceId={deviceId} interfaceName={interfaceName} {...props} />;
 }
 
-interface NoMatchProps {
-  fallback: (requesteURL: string) => void;
-}
+type PrivateRouteProps = React.ComponentProps<typeof Route>;
 
-function NoMatch({ fallback }: NoMatchProps): React.ReactElement {
-  const pageLocation = useLocation();
-  const relativeUrl = [pageLocation.pathname, pageLocation.search, pageLocation.hash].join('');
-  fallback(relativeUrl);
-
-  return <p>Redirecting...</p>;
-}
+const PrivateRoute = ({ ...props }: PrivateRouteProps) => {
+  const session = useSession();
+  return session.isAuthenticated ? <Route {...props} /> : <Navigate to="/login" />;
+};
 
 interface Props {
-  reactHistory: History;
-  astarteClient: AstarteClient;
-  sessionManager: SessionManager;
+  astarte: AstarteClient;
   config: any;
-  fallback: (requesteURL: string) => void;
 }
 
-interface HistoryState {
-  action: HistoryAction;
-  location: HistoryLocation;
-}
-
-export default ({
-  reactHistory: history,
-  astarteClient,
-  sessionManager,
-  config,
-  fallback,
-}: Props): React.ReactElement => {
-  const [historyState, dispatchHistoryUpdate] = useReducer(
-    (prevState: HistoryState, state: HistoryState) => state,
-    {
-      action: history.action,
-      location: history.location,
-    },
-  );
-  useLayoutEffect(() => history.listen(dispatchHistoryUpdate), [history]);
-
-  if (!astarteClient || !sessionManager || !config) {
-    return <InterfaceEditorPage />;
-  }
-
+export default ({ astarte, config }: Props): React.ReactElement => {
   const pageProps = {
-    astarte: astarteClient,
+    astarte,
   };
 
   return (
-    <Router action={historyState.action} location={historyState.location} navigator={history}>
-      <Routes>
-        <Route path="/" element={<HomePage {...pageProps} />} />
-        <Route path="home" element={<HomePage {...pageProps} />} />
-        <Route path="auth" element={<AttemptLogin sessionManager={sessionManager} />} />
-        <Route path="logout" element={<Logout sessionManager={sessionManager} />} />
-        <Route
-          path="login"
-          element={
-            <Login
-              canSwitchLoginType={config.auth.length > 1}
-              defaultLoginType={config.default_auth || 'token'}
-              defaultRealm={config.default_realm || ''}
-              {...pageProps}
-            />
-          }
-        />
-        <Route path="triggers" element={<TriggersPage {...pageProps} />} />
-        <Route path="triggers/new" element={<NewTriggerPage {...pageProps} />} />
-        <Route path="triggers/:triggerName/edit" element={<TriggerDetails {...pageProps} />} />
-        <Route path="interfaces" element={<InterfacesPage {...pageProps} />} />
-        <Route path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
-        <Route
-          path="interfaces/:interfaceName/:interfaceMajor/edit"
-          element={<InterfaceEdit {...pageProps} />}
-        />
-        <Route path="devices" element={<DevicesPage {...pageProps} />} />
-        <Route path="devices/register" element={<RegisterDevice {...pageProps} />} />
-        <Route path="devices/:deviceId/edit" element={<DeviceStatusSubPath {...pageProps} />} />
-        <Route
-          path="devices/:deviceId/interfaces/:interfaceName"
-          element={<DeviceDataSubPath {...pageProps} />}
-        />
-        <Route path="groups" element={<GroupsPage {...pageProps} />} />
-        <Route path="groups/new" element={<NewGroupPage {...pageProps} />} />
-        <Route path="groups/:groupName/edit" element={<GroupDevicesSubPath {...pageProps} />} />
-        <Route path="flows" element={<FlowInstancesPage {...pageProps} />} />
-        <Route path="flows/new" element={<FlowConfiguration {...pageProps} />} />
-        <Route path="flows/:flowName/edit" element={<FlowDetails {...pageProps} />} />
-        <Route path="pipelines" element={<PipelinesPage {...pageProps} />} />
-        <Route path="pipelines/new" element={<NewPipelinePage {...pageProps} />} />
-        <Route path="pipelines/:pipelineId/edit" element={<PipelineSubPath {...pageProps} />} />
-        <Route path="blocks" element={<BlocksPage {...pageProps} />} />
-        <Route path="blocks/new" element={<NewBlockPage {...pageProps} />} />
-        <Route path="blocks/:blockId/edit" element={<BlockSubPath {...pageProps} />} />
-        <Route path="settings" element={<RealmSettingsPage {...pageProps} />} />
-        <Route path="*" element={<NoMatch fallback={fallback} />} />
-      </Routes>
-    </Router>
+    <Routes>
+      <PrivateRoute path="/" element={<HomePage {...pageProps} />} />
+      <PrivateRoute path="home" element={<HomePage {...pageProps} />} />
+      <Route path="auth" element={<AttemptLogin />} />
+      <Route path="logout" element={<Logout />} />
+      <Route
+        path="login"
+        element={
+          <Login
+            canSwitchLoginType={config.auth.length > 1}
+            defaultLoginType={config.default_auth || 'token'}
+            defaultRealm={config.default_realm || ''}
+            {...pageProps}
+          />
+        }
+      />
+      <PrivateRoute path="triggers" element={<TriggersPage {...pageProps} />} />
+      <PrivateRoute path="triggers/new" element={<NewTriggerPage {...pageProps} />} />
+      <PrivateRoute path="triggers/:triggerName/edit" element={<TriggerDetails {...pageProps} />} />
+      <PrivateRoute path="interfaces" element={<InterfacesPage {...pageProps} />} />
+      <PrivateRoute path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
+      <PrivateRoute
+        path="interfaces/:interfaceName/:interfaceMajor/edit"
+        element={<InterfaceEdit {...pageProps} />}
+      />
+      <PrivateRoute path="devices" element={<DevicesPage {...pageProps} />} />
+      <PrivateRoute path="devices/register" element={<RegisterDevice {...pageProps} />} />
+      <PrivateRoute
+        path="devices/:deviceId/edit"
+        element={<DeviceStatusSubPath {...pageProps} />}
+      />
+      <PrivateRoute
+        path="devices/:deviceId/interfaces/:interfaceName"
+        element={<DeviceDataSubPath {...pageProps} />}
+      />
+      <PrivateRoute path="groups" element={<GroupsPage {...pageProps} />} />
+      <PrivateRoute path="groups/new" element={<NewGroupPage {...pageProps} />} />
+      <PrivateRoute
+        path="groups/:groupName/edit"
+        element={<GroupDevicesSubPath {...pageProps} />}
+      />
+      <PrivateRoute path="flows" element={<FlowInstancesPage {...pageProps} />} />
+      <PrivateRoute path="flows/new" element={<FlowConfiguration {...pageProps} />} />
+      <PrivateRoute path="flows/:flowName/edit" element={<FlowDetails {...pageProps} />} />
+      <PrivateRoute path="pipelines" element={<PipelinesPage {...pageProps} />} />
+      <PrivateRoute path="pipelines/new" element={<NewPipelinePage {...pageProps} />} />
+      <PrivateRoute
+        path="pipelines/:pipelineId/edit"
+        element={<PipelineSubPath {...pageProps} />}
+      />
+      <PrivateRoute path="blocks" element={<BlocksPage {...pageProps} />} />
+      <PrivateRoute path="blocks/new" element={<NewBlockPage {...pageProps} />} />
+      <PrivateRoute path="blocks/:blockId/edit" element={<BlockSubPath {...pageProps} />} />
+      <PrivateRoute path="settings" element={<RealmSettingsPage {...pageProps} />} />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   );
 };

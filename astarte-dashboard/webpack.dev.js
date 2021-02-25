@@ -2,7 +2,7 @@ const path = require('path');
 const common = require('./webpack.common.js');
 const { merge } = require('webpack-merge');
 
-const entryPath = path.join(__dirname, 'src/static/index.js');
+const entryPath = path.join(__dirname, 'src/static/index.tsx');
 
 module.exports = merge(common, {
   mode: 'development',

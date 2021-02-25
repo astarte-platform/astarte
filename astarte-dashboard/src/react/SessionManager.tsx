@@ -16,6 +16,7 @@
    limitations under the License.
 */
 
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createNanoEvents, Emitter, Unsubscribe } from 'nanoevents';
 
 import type { DashboardConfig } from './types';
@@ -235,4 +236,50 @@ class SessionManager {
   static serializeSession = serializeSession;
 }
 
-export default SessionManager;
+type SessionContextValue = {
+  credentials: SessionCredentials | null;
+  isAuthenticated: boolean;
+  manager: SessionManager;
+};
+
+const SessionContext: React.Context<SessionContextValue> = createContext(null) as any;
+
+interface SessionProviderProps {
+  children: React.ReactNode;
+  config: DashboardConfig;
+}
+
+const SessionProvider = ({
+  children,
+  config,
+  ...props
+}: SessionProviderProps): React.ReactElement => {
+  const manager = useMemo(() => new SessionManager(config), [config]);
+  const [credentials, setCredentials] = useState(manager.getCredentials());
+  const [isAuthenticated, setIsAuthenticated] = useState(manager.isLoggedIn);
+  useEffect(
+    () =>
+      manager.on('sessionChange', () => {
+        setCredentials(manager.getCredentials());
+        setIsAuthenticated(manager.isLoggedIn);
+      }),
+    [manager],
+  );
+  const contextValue = useMemo(() => ({ manager, credentials, isAuthenticated }), [
+    manager,
+    credentials,
+    isAuthenticated,
+  ]);
+
+  return (
+    <SessionContext.Provider value={contextValue} {...props}>
+      {children}
+    </SessionContext.Provider>
+  );
+};
+
+const useSession = (): SessionContextValue => useContext(SessionContext);
+
+export { useSession };
+
+export default SessionProvider;

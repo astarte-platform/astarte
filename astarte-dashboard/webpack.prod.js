@@ -7,7 +7,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-const entryPath = path.join(__dirname, 'src/static/index.js');
+const entryPath = path.join(__dirname, 'src/static/index.tsx');
 
 module.exports = merge(common, {
   mode: 'production',
