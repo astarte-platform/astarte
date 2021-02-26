@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Run funcionality tests
+    name: Run code quality and funcionality tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -30,6 +30,12 @@ jobs:
             ${{ runner.os }}-node-
       - name: Install dependencies
         run: npm install
+      - name: Check formatting
+        run: npm run check-format
+      - name: Check linting
+        run: npm run check-lint
+      - name: Check Typescript
+        run: npm run check-types
       - name: Start dev server
         run: npm run start-ci & npx wait-on http://localhost:8080
       - name: Run tests
