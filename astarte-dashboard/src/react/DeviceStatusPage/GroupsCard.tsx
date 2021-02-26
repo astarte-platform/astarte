@@ -59,26 +59,24 @@ const GroupsCard = ({
   device,
   showAddToGropButton,
   onAddToGroupClick,
-}: GroupsCardProps): React.ReactElement => {
-  return (
-    <FullHeightCard xs={12} md={6} className="mb-4">
-      <Card.Header as="h5">Groups</Card.Header>
-      <Card.Body className="d-flex flex-column">
-        {device.groups.length > 0 ? (
-          <GroupsTable groups={device.groups} />
-        ) : (
-          <p>Device does not belong to any group</p>
+}: GroupsCardProps): React.ReactElement => (
+  <FullHeightCard xs={12} md={6} className="mb-4">
+    <Card.Header as="h5">Groups</Card.Header>
+    <Card.Body className="d-flex flex-column">
+      {device.groups.length > 0 ? (
+        <GroupsTable groups={device.groups} />
+      ) : (
+        <p>Device does not belong to any group</p>
+      )}
+      <div className="mt-auto">
+        {showAddToGropButton && (
+          <Button variant="primary" onClick={onAddToGroupClick}>
+            Add to existing group
+          </Button>
         )}
-        <div className="mt-auto">
-          {showAddToGropButton && (
-            <Button variant="primary" onClick={onAddToGroupClick}>
-              Add to existing group
-            </Button>
-          )}
-        </div>
-      </Card.Body>
-    </FullHeightCard>
-  );
-};
+      </div>
+    </Card.Body>
+  </FullHeightCard>
+);
 
 export default GroupsCard;

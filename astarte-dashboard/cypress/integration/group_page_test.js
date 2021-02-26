@@ -19,10 +19,9 @@ describe('Group page tests', () => {
         ? `group.special-characters.devices.json`
         : `group.${groupName}.devices.json`;
       cy.fixture(groupFixture).then((groupDevices) => {
-        cy.server();
-        cy.route(
+        cy.intercept(
           'GET',
-          `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices?details=true`,
+          `/appengine/v1/${this.realm.name}/groups/*/devices?details=true`,
           groupDevices,
         );
         cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}/edit`);
@@ -43,8 +42,7 @@ describe('Group page tests', () => {
         ? `group.special-characters.devices.json`
         : `group.${groupName}.devices.json`;
       cy.fixture(groupFixture).then((groupDevices) => {
-        cy.server();
-        cy.route(
+        cy.intercept(
           'GET',
           `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices?details=true`,
           groupDevices,
@@ -69,8 +67,7 @@ describe('Group page tests', () => {
         ? `group.special-characters.devices.json`
         : `group.${groupName}.devices.json`;
       cy.fixture(groupFixture).then((groupDevices) => {
-        cy.server();
-        cy.route(
+        cy.intercept(
           'GET',
           `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices?details=true`,
           groupDevices,
@@ -86,16 +83,13 @@ describe('Group page tests', () => {
       const encodedGroupName = encodeURIComponent(groupName);
       const groupFixture = 'group.special-characters.devices.json';
       cy.fixture(groupFixture).then((groupDevices) => {
-        cy.server();
-        cy.route(
+        cy.intercept(
           'GET',
-          `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices?details=true`,
+          `/appengine/v1/${this.realm.name}/groups/*/devices?details=true`,
           groupDevices,
         );
-        cy.route({
-          method: 'DELETE',
-          url: `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices/*`,
-          status: 204,
+        cy.intercept('DELETE', `/appengine/v1/${this.realm.name}/groups/*/devices/*`, {
+          statusCode: 204,
         }).as('deleteDeviceRequest');
 
         cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}/edit`);

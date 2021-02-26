@@ -128,16 +128,14 @@ const ObjectDatastreamTable = ({
           </tr>
         </thead>
         <tbody>
-          {orderedData.slice(0, MAX_SHOWN_VALUES).map((data) => {
-            return (
-              <tr key={data.timestamp}>
-                {objectProperties.map((property) => {
-                  return <td key={property}>{formatAstarteData(data.value[property])}</td>;
-                })}
-                <td>{new Date(data.timestamp).toLocaleString()}</td>
-              </tr>
-            );
-          })}
+          {orderedData.slice(0, MAX_SHOWN_VALUES).map((data) => (
+            <tr key={data.timestamp}>
+              {objectProperties.map((property) => (
+                <td key={property}>{formatAstarteData(data.value[property])}</td>
+              ))}
+              <td>{new Date(data.timestamp).toLocaleString()}</td>
+            </tr>
+          ))}
         </tbody>
       </Table>
     </>
@@ -202,7 +200,7 @@ export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement
   return (
     <Container fluid className="p-3">
       <h2>
-        <BackButton href={`/devices/${deviceId}`} />
+        <BackButton href={`/devices/${deviceId}/edit`} />
         Interface Data
       </h2>
       <Card className="mt-4">

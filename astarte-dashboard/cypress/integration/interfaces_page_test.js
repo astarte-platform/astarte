@@ -10,9 +10,8 @@ describe('Interfaces page tests', () => {
     beforeEach(() => {
       cy.fixture('interfaces').as('interfaces');
       cy.fixture('interface_majors').as('interface_majors');
-      cy.server();
-      cy.route('GET', '/realmmanagement/v1/*/interfaces', '@interfaces');
-      cy.route('GET', '/realmmanagement/v1/*/interfaces/*', '@interface_majors');
+      cy.intercept('GET', '/realmmanagement/v1/*/interfaces', { fixture: 'interfaces' });
+      cy.intercept('GET', '/realmmanagement/v1/*/interfaces/*', { fixture: 'interface_majors' });
       cy.login();
       cy.visit('/interfaces');
     });

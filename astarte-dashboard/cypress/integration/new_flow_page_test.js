@@ -16,16 +16,13 @@ describe('New Flow page tests', () => {
       cy.fixture('pipeline.room-occupation')
         .as('pipeline')
         .then((pipeline) => {
-          cy.server();
-          cy.route('GET', '/flow/v1/*/flows', '@flows');
-          cy.route('GET', '/flow/v1/*/flows/*', '@flow');
-          cy.route('GET', '/flow/v1/*/pipelines', '@pipelines');
-          cy.route('GET', '/flow/v1/*/pipelines/*', '@pipeline');
-          cy.route({
-            method: 'POST',
-            url: '/flow/v1/*/flows',
-            status: 201,
-            response: '@flow',
+          cy.intercept('GET', '/flow/v1/*/flows', { fixture: 'flows' });
+          cy.intercept('GET', '/flow/v1/*/flows/*', { fixture: 'flow.room1-occupation' });
+          cy.intercept('GET', '/flow/v1/*/pipelines', { fixture: 'pipelines' });
+          cy.intercept('GET', '/flow/v1/*/pipelines/*', { fixture: 'pipeline.room-occupation' });
+          cy.intercept('POST', '/flow/v1/*/flows', {
+            statusCode: 201,
+            fixture: 'flow.room1-occupation',
           }).as('postNewFlow');
           cy.login();
           cy.visit(`/flows/new?pipelineId=${pipeline.data.name}`);
@@ -45,32 +42,25 @@ describe('New Flow page tests', () => {
     it('can fill out a form to instantiate a new Flow', function () {
       cy.get('.main-content').within(() => {
         cy.get('button').contains('Instantiate Flow').should('be.disabled');
-        cy.get('#flowNameInput').clear().type(this.flow.data.name);
-        cy.get('#flowConfigInput')
-          .clear()
-          .type(JSON.stringify(this.flow.data.config), { parseSpecialCharSequences: false });
+        cy.get('#flowNameInput').clear().paste(this.flow.data.name);
+        cy.get('#flowConfigInput').clear().paste(JSON.stringify(this.flow.data.config));
         cy.get('button').contains('Instantiate Flow').click();
-        cy.wait('@postNewFlow').its('requestBody').should('deep.eq', this.flow);
+        cy.wait('@postNewFlow').its('request.body').should('deep.eq', this.flow);
         cy.location('pathname').should('eq', '/flows');
       });
     });
 
     it('can instantiate a Flow with the name "new"', function () {
       const newFlow = _.merge({}, this.flow.data, { name: 'new' });
-      cy.server();
-      cy.route({
-        method: 'POST',
-        url: '/flow/v1/*/flows',
-        status: 201,
-        response: { data: newFlow },
+      cy.intercept('POST', '/flow/v1/*/flows', {
+        statusCode: 201,
+        body: { data: newFlow },
       }).as('postNewFlow');
       cy.get('.main-content').within(() => {
-        cy.get('#flowNameInput').clear().type(newFlow.name);
-        cy.get('#flowConfigInput')
-          .clear()
-          .type(JSON.stringify(newFlow.config), { parseSpecialCharSequences: false });
+        cy.get('#flowNameInput').clear().paste(newFlow.name);
+        cy.get('#flowConfigInput').clear().paste(JSON.stringify(newFlow.config));
         cy.get('button').contains('Instantiate Flow').click();
-        cy.wait('@postNewFlow').its('requestBody.data').should('deep.eq', newFlow);
+        cy.wait('@postNewFlow').its('request.body.data').should('deep.eq', newFlow);
         cy.location('pathname').should('eq', '/flows');
       });
     });

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Major rework for the Interface Editor.
 
+## [1.0.0-beta.2] - Unreleased
+### Fixed
+- Hide login image column on small screen devices.
+
 ## [1.0.0-beta.1] - 2021-02-15
 ### Added
 - Support device groups in device triggers.

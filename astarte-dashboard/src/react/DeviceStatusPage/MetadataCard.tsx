@@ -79,28 +79,26 @@ const MetadataCard = ({
   onNewMetadataClick,
   onEditMetadataClick,
   onRemoveMetadataClick,
-}: MetadataCardProps): React.ReactElement => {
-  return (
-    <FullHeightCard xs={12} md={6} className="mb-4">
-      <Card.Header as="h5">Metadata</Card.Header>
-      <Card.Body className="d-flex flex-column">
-        {device.metadata.size > 0 ? (
-          <MetadataTable
-            metadata={device.metadata}
-            onEditMetadataClick={onEditMetadataClick}
-            onRemoveMetadataClick={onRemoveMetadataClick}
-          />
-        ) : (
-          <p>Device has no metadata</p>
-        )}
-        <div className="mt-auto">
-          <Button variant="primary" onClick={onNewMetadataClick}>
-            Add new item
-          </Button>
-        </div>
-      </Card.Body>
-    </FullHeightCard>
-  );
-};
+}: MetadataCardProps): React.ReactElement => (
+  <FullHeightCard xs={12} md={6} className="mb-4">
+    <Card.Header as="h5">Metadata</Card.Header>
+    <Card.Body className="d-flex flex-column">
+      {device.metadata.size > 0 ? (
+        <MetadataTable
+          metadata={device.metadata}
+          onEditMetadataClick={onEditMetadataClick}
+          onRemoveMetadataClick={onRemoveMetadataClick}
+        />
+      ) : (
+        <p>Device has no metadata</p>
+      )}
+      <div className="mt-auto">
+        <Button variant="primary" onClick={onNewMetadataClick}>
+          Add new item
+        </Button>
+      </div>
+    </Card.Body>
+  </FullHeightCard>
+);
 
 export default MetadataCard;

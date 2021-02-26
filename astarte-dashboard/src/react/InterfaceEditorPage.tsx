@@ -21,13 +21,11 @@ import { Container } from 'react-bootstrap';
 
 import InterfaceEditor from './components/InterfaceEditor';
 
-export default (): React.ReactElement => {
-  return (
-    <Container fluid className="p-3">
-      <h2>Interface Editor</h2>
-      <div className="mt-4">
-        <InterfaceEditor isSourceVisible />
-      </div>
-    </Container>
-  );
-};
+export default (): React.ReactElement => (
+  <Container fluid className="p-3">
+    <h2>Interface Editor</h2>
+    <div className="mt-4">
+      <InterfaceEditor isSourceVisible />
+    </div>
+  </Container>
+);

@@ -8,9 +8,8 @@ describe('Blocks page tests', () => {
 
   context('authenticated', () => {
     beforeEach(function () {
-      cy.server();
       cy.fixture('blocks').as('blocks');
-      cy.route('GET', '/flow/v1/*/blocks', '@blocks').as('getBlocksRequest');
+      cy.intercept('GET', '/flow/v1/*/blocks', { fixture: 'blocks' }).as('getBlocksRequest');
       cy.login();
       cy.visit('/blocks');
       cy.wait('@getBlocksRequest');

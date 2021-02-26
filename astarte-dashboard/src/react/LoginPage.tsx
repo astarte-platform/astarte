@@ -232,7 +232,7 @@ const OAuthForm = ({
 };
 
 const LeftColumn = (): React.ReactElement => (
-  <Col lg={6} sm={false} className="p-0 no-gutters">
+  <Col lg={6} className="p-0 no-gutters d-none d-lg-block">
     <div className="d-flex flex-column align-items-center justify-content-center position-relative login-image-container">
       <img
         src="/static/img/background-login-top.svg"
@@ -276,7 +276,7 @@ const RightColumn = ({
     <Col
       lg={6}
       sm={12}
-      className="bg-white d-flex flex-column align-items-center justify-content-center"
+      className="bg-white d-flex flex-column align-items-center justify-content-center min-vh-100"
     >
       <h1>Sign In</h1>
       {loginType === 'oauth' ? (

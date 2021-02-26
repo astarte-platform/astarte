@@ -9,8 +9,7 @@ describe('Realm Settings page tests', () => {
   context('authenticated', () => {
     beforeEach(() => {
       cy.fixture('config_auth').as('configAuth');
-      cy.server();
-      cy.route('GET', '/realmmanagement/v1/*/config/auth', '@configAuth');
+      cy.intercept('GET', '/realmmanagement/v1/*/config/auth', { fixture: 'config_auth' });
       cy.login();
       cy.visit('/settings');
     });
@@ -42,7 +41,7 @@ describe('Realm Settings page tests', () => {
         cy.contains('Public key')
           .next()
           .clear()
-          .type(this.configAuth.data.jwt_public_key_pem + '\n');
+          .paste(this.configAuth.data.jwt_public_key_pem + '\n');
         cy.contains('Change').should('not.be.disabled').click();
       });
       cy.get('[role="dialog"]').contains('Confirm Public Key Update');

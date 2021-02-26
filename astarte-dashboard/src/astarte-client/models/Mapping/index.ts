@@ -95,13 +95,11 @@ const astarteMappingObjectSchema: yup.ObjectSchema<AstarteMappingObject> = yup
   })
   .required();
 
-const isEndpointParam = (endpointPart?: string) => {
-  return endpointPart == null ? false : mappingEndpointParamRegex.test(endpointPart);
-};
+const isEndpointParam = (endpointPart?: string) =>
+  endpointPart == null ? false : mappingEndpointParamRegex.test(endpointPart);
 
-const matchEndpointPart = ([part1, part2]: [string | undefined, string | undefined]) => {
-  return part1 === part2 || isEndpointParam(part1) || isEndpointParam(part2);
-};
+const matchEndpointPart = ([part1, part2]: [string | undefined, string | undefined]) =>
+  part1 === part2 || isEndpointParam(part1) || isEndpointParam(part2);
 
 export class AstarteMapping {
   endpoint: string;

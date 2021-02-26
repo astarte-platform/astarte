@@ -19,8 +19,8 @@
 import { AstarteMapping } from '../models/Mapping';
 import type { AstarteMappingDTO } from '../types';
 
-export const fromAstarteMappingDTO = (dto: AstarteMappingDTO): AstarteMapping => {
-  return new AstarteMapping({
+export const fromAstarteMappingDTO = (dto: AstarteMappingDTO): AstarteMapping =>
+  new AstarteMapping({
     endpoint: dto.endpoint,
     type: dto.type,
     reliability: dto.reliability,
@@ -33,20 +33,17 @@ export const fromAstarteMappingDTO = (dto: AstarteMappingDTO): AstarteMapping =>
     description: dto.description,
     documentation: dto.doc,
   });
-};
 
-export const toAstarteMappingDTO = (obj: AstarteMapping): AstarteMappingDTO => {
-  return {
-    endpoint: obj.endpoint,
-    type: obj.type,
-    reliability: obj.reliability,
-    retention: obj.retention,
-    expiry: obj.expiry,
-    database_retention_policy: obj.databaseRetentionPolicy,
-    database_retention_ttl: obj.databaseRetentionTtl,
-    allow_unset: obj.allowUnset,
-    explicit_timestamp: obj.explicitTimestamp,
-    description: obj.description,
-    doc: obj.documentation,
-  };
-};
+export const toAstarteMappingDTO = (obj: AstarteMapping): AstarteMappingDTO => ({
+  endpoint: obj.endpoint,
+  type: obj.type,
+  reliability: obj.reliability,
+  retention: obj.retention,
+  expiry: obj.expiry,
+  database_retention_policy: obj.databaseRetentionPolicy,
+  database_retention_ttl: obj.databaseRetentionTtl,
+  allow_unset: obj.allowUnset,
+  explicit_timestamp: obj.explicitTimestamp,
+  description: obj.description,
+  doc: obj.documentation,
+});
