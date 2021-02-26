@@ -22,8 +22,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      version: "1.0.0-beta.1",
-      elixir: "~> 1.10",
+      version: "1.0.0-beta.2",
+      elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -59,8 +59,9 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "== 1.0.0-beta.1"},
-      {:astarte_data_access, "== 1.0.0-beta.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.0"},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.0"}
     ]
   end
 

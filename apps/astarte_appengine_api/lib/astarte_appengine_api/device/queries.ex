@@ -617,7 +617,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       total_received_bytes: total_received_bytes,
       exchanged_msgs_by_interface: exchanged_msgs_by_interface,
       exchanged_bytes_by_interface: exchanged_bytes_by_interface,
-      groups: groups_map,
+      groups: groups_proplist,
       old_introspection: old_introspection,
       inhibit_credentials_request: credentials_inhibited
     ] = row
@@ -680,8 +680,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         }
       end)
 
-    # groups_map could be nil, default to empty keyword list
-    groups = Keyword.keys(groups_map || [])
+    # groups_proplist could be nil, default to empty keyword list
+    groups = :proplists.get_keys(groups_proplist || [])
 
     %DeviceStatus{
       id: Base.url_encode64(device_id, padding: false),

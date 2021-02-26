@@ -1,4 +1,4 @@
-FROM ispirata/elixir:1.10-otp-23 as builder
+FROM elixir:1.11.3 as builder
 
 WORKDIR /app
 
