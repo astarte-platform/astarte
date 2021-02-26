@@ -41,35 +41,33 @@ const InstallModal = ({
   onCancel,
   onConfirm,
   isInstallingInterface,
-}: InstallModalProps) => {
-  return (
-    <ConfirmModal
-      title="Confirmation Required"
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-      isConfirming={isInstallingInterface}
-    >
+}: InstallModalProps) => (
+  <ConfirmModal
+    title="Confirmation Required"
+    onCancel={onCancel}
+    onConfirm={onConfirm}
+    isConfirming={isInstallingInterface}
+  >
+    <p>
+      You are about to install the interface <b>{interfaceName}</b>.
+    </p>
+    {isDraft ? (
       <p>
-        You are about to install the interface <b>{interfaceName}</b>.
+        As its major version is 0, this is a draft interface, which can be deleted.
+        <br />
+        In such a case, any data sent through this interface will be lost.
+        <br />
+        Draft Interfaces should be used for development and testing purposes only.
       </p>
-      {isDraft ? (
-        <p>
-          As its major version is 0, this is a draft interface, which can be deleted.
-          <br />
-          In such a case, any data sent through this interface will be lost.
-          <br />
-          Draft Interfaces should be used for development and testing purposes only.
-        </p>
-      ) : (
-        <p>
-          Interface major is greater than zero, that means you will not be able to change already
-          installed mappings.
-        </p>
-      )}
-      <p>Are you sure you want to continue?</p>
-    </ConfirmModal>
-  );
-};
+    ) : (
+      <p>
+        Interface major is greater than zero, that means you will not be able to change already
+        installed mappings.
+      </p>
+    )}
+    <p>Are you sure you want to continue?</p>
+  </ConfirmModal>
+);
 
 interface Props {
   astarte: AstarteClient;

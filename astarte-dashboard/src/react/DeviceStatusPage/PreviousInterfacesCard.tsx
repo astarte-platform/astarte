@@ -51,19 +51,17 @@ interface PreviousInterfacesCardProps {
   device: AstarteDevice;
 }
 
-const PreviousInterfacesCard = ({ device }: PreviousInterfacesCardProps): React.ReactElement => {
-  return (
-    <FullHeightCard className="mb-4">
-      <Card.Header as="h5">Previous Interfaces</Card.Header>
-      <Card.Body className="d-flex flex-column">
-        {device.previousInterfaces.length > 0 ? (
-          <PreviousInterfacesTable interfaces={device.previousInterfaces} />
-        ) : (
-          <p>No previous interfaces info</p>
-        )}
-      </Card.Body>
-    </FullHeightCard>
-  );
-};
+const PreviousInterfacesCard = ({ device }: PreviousInterfacesCardProps): React.ReactElement => (
+  <FullHeightCard className="mb-4">
+    <Card.Header as="h5">Previous Interfaces</Card.Header>
+    <Card.Body className="d-flex flex-column">
+      {device.previousInterfaces.length > 0 ? (
+        <PreviousInterfacesTable interfaces={device.previousInterfaces} />
+      ) : (
+        <p>No previous interfaces info</p>
+      )}
+    </Card.Body>
+  </FullHeightCard>
+);
 
 export default PreviousInterfacesCard;

@@ -273,14 +273,12 @@ interface AstarteDeviceEventDelegateProps {
   event: AstarteDeviceEvent;
 }
 
-const AstarteDeviceEventDelegate = ({ event }: AstarteDeviceEventDelegateProps) => {
-  return (
-    <li className="event-device px-2">
-      <Timestamp>{new Date(event.timestamp)}</Timestamp>
-      {astarteDeviceEventBody(event)}
-    </li>
-  );
-};
+const AstarteDeviceEventDelegate = ({ event }: AstarteDeviceEventDelegateProps) => (
+  <li className="event-device px-2">
+    <Timestamp>{new Date(event.timestamp)}</Timestamp>
+    {astarteDeviceEventBody(event)}
+  </li>
+);
 
 interface SystemEventDelegateProps {
   event: SystemEvent;
@@ -397,15 +395,13 @@ interface DeviceLiveEventsCardProps {
 const DeviceLiveEventsCard = ({
   astarte,
   deviceId,
-}: DeviceLiveEventsCardProps): React.ReactElement => {
-  return (
-    <FullHeightCard xs={12} className="mb-4">
-      <Card.Header as="h5">Device Live Events</Card.Header>
-      <Card.Body className="d-flex flex-column">
-        <DeviceLiveEventsView astarte={astarte} deviceId={deviceId} />
-      </Card.Body>
-    </FullHeightCard>
-  );
-};
+}: DeviceLiveEventsCardProps): React.ReactElement => (
+  <FullHeightCard xs={12} className="mb-4">
+    <Card.Header as="h5">Device Live Events</Card.Header>
+    <Card.Body className="d-flex flex-column">
+      <DeviceLiveEventsView astarte={astarte} deviceId={deviceId} />
+    </Card.Body>
+  </FullHeightCard>
+);
 
 export default DeviceLiveEventsCard;

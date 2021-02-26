@@ -68,42 +68,36 @@ const DeviceInfoCard = ({
   onInhibitCredentialsClick,
   onEnableCredentialsClick,
   onWipeCredentialsClick,
-}: DeviceInfoCardProps): React.ReactElement => {
-  return (
-    <FullHeightCard xs={12} md={6} className="mb-4">
-      <Card.Header as="h5">Device Info</Card.Header>
-      <Card.Body className="d-flex flex-column">
-        <h6>Device ID</h6>
-        <p className="text-monospace">{device.id}</p>
-        <h6>Device name</h6>
-        <p>{device.hasNameAlias ? device.name : 'No name alias set'}</p>
-        <h6>Status</h6>
-        <p>
-          <ConnectionStatus status={device.connectionStatus} />
-        </p>
-        <h6>Credentials inhibited</h6>
-        <p>{device.hasCredentialsInhibited ? 'True' : 'False'}</p>
-        <div className="mt-auto">
-          {device.hasCredentialsInhibited ? (
-            <Button
-              variant="success text-white"
-              className="mr-1"
-              onClick={onEnableCredentialsClick}
-            >
-              Enable credentials request
-            </Button>
-          ) : (
-            <Button variant="danger" className="mr-1" onClick={onInhibitCredentialsClick}>
-              Inhibit credentials
-            </Button>
-          )}
-          <Button variant="danger" onClick={onWipeCredentialsClick}>
-            Wipe credential secret
+}: DeviceInfoCardProps): React.ReactElement => (
+  <FullHeightCard xs={12} md={6} className="mb-4">
+    <Card.Header as="h5">Device Info</Card.Header>
+    <Card.Body className="d-flex flex-column">
+      <h6>Device ID</h6>
+      <p className="text-monospace">{device.id}</p>
+      <h6>Device name</h6>
+      <p>{device.hasNameAlias ? device.name : 'No name alias set'}</p>
+      <h6>Status</h6>
+      <p>
+        <ConnectionStatus status={device.connectionStatus} />
+      </p>
+      <h6>Credentials inhibited</h6>
+      <p>{device.hasCredentialsInhibited ? 'True' : 'False'}</p>
+      <div className="mt-auto">
+        {device.hasCredentialsInhibited ? (
+          <Button variant="success text-white" className="mr-1" onClick={onEnableCredentialsClick}>
+            Enable credentials request
           </Button>
-        </div>
-      </Card.Body>
-    </FullHeightCard>
-  );
-};
+        ) : (
+          <Button variant="danger" className="mr-1" onClick={onInhibitCredentialsClick}>
+            Inhibit credentials
+          </Button>
+        )}
+        <Button variant="danger" onClick={onWipeCredentialsClick}>
+          Wipe credential secret
+        </Button>
+      </div>
+    </Card.Body>
+  </FullHeightCard>
+);
 
 export default DeviceInfoCard;

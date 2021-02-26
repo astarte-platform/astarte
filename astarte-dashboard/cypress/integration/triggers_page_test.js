@@ -9,9 +9,7 @@ describe('Triggers page tests', () => {
   context('authenticated', () => {
     beforeEach(() => {
       cy.login();
-      cy.fixture('triggers').as('triggers');
-      cy.server();
-      cy.route('GET', '/realmmanagement/v1/*/triggers', '@triggers');
+      cy.intercept('GET', '/realmmanagement/v1/*/triggers', { fixture: 'triggers' });
       cy.visit('/triggers');
     });
 

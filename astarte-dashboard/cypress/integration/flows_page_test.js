@@ -10,13 +10,10 @@ describe('Flows page tests', () => {
     beforeEach(() => {
       cy.fixture('flows').as('flows');
       cy.fixture('flow.room1-occupation').as('flow');
-      cy.server();
-      cy.route('GET', '/flow/v1/*/flows/*', '@flow').as('getFlow');
-      cy.route({
-        method: 'DELETE',
-        url: `/flow/v1/*/flows/*`,
-        status: 204,
-        response: '',
+      cy.intercept('GET', '/flow/v1/*/flows/*', { fixture: 'flow.room1-occupation' }).as('getFlow');
+      cy.intercept('DELETE', `/flow/v1/*/flows/*`, {
+        statusCode: 204,
+        body: '',
       });
       cy.login();
       cy.visit('/flows');
@@ -28,7 +25,7 @@ describe('Flows page tests', () => {
     });
 
     it('correctly reports there are no flows running', () => {
-      cy.route('GET', '/flow/v1/*/flows', { data: [] }).as('getFlows');
+      cy.intercept('GET', '/flow/v1/*/flows', { data: [] }).as('getFlows');
       cy.wait(['@getFlows']);
       cy.get('.main-content').within(() => {
         cy.contains('No running flows');
@@ -37,7 +34,7 @@ describe('Flows page tests', () => {
     });
 
     it('correctly displays running flows in a table', function () {
-      cy.route('GET', '/flow/v1/*/flows', '@flows').as('getFlows');
+      cy.intercept('GET', '/flow/v1/*/flows', this.flows).as('getFlows');
       cy.wait(['@getFlows', '@getFlow']);
       cy.get('.main-content').within(() => {
         cy.get('table tbody').find('tr').should('have.length', this.flows.data.length);
@@ -52,7 +49,7 @@ describe('Flows page tests', () => {
     });
 
     it('each flow name is a link to its dedicated page', function () {
-      cy.route('GET', '/flow/v1/*/flows', '@flows').as('getFlows');
+      cy.intercept('GET', '/flow/v1/*/flows', this.flows).as('getFlows');
       cy.wait(['@getFlows', '@getFlow']);
       cy.get('.main-content').within(() => {
         cy.get('table tbody tr:nth-child(1)').contains(this.flow.data.name).click();
@@ -61,7 +58,7 @@ describe('Flows page tests', () => {
     });
 
     it('shows a confirm dialog when deleting a flow', function () {
-      cy.route('GET', '/flow/v1/*/flows', '@flows').as('getFlows');
+      cy.intercept('GET', '/flow/v1/*/flows', this.flows).as('getFlows');
       cy.wait(['@getFlows', '@getFlow']);
       cy.get('.main-content table tbody tr:nth-child(1) .btn.btn-danger').click();
       cy.get('[role="dialog"]').contains(`Delete flow ${this.flow.data.name}?`);

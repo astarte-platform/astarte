@@ -69,94 +69,92 @@ const databaseRetentionToLabel = {
   use_ttl: 'Use TTL',
 };
 
-const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) => {
-  return (
-    <Accordion>
-      <Card className={className}>
-        <Accordion.Toggle
-          eventKey={mapping.endpoint}
-          as={Card.Header}
-          className="d-flex align-items-center flex-wrap"
-        >
-          <span className="flex-grow-1">
-            <Badge variant="secondary">{mapping.type}</Badge>
-            <Button className="text-left text-truncate" variant="link">
-              {mapping.endpoint}
-            </Button>
-          </span>
-          {onEdit && (
-            <Button className="mr-2" variant="outline-primary" onClick={onEdit}>
-              Edit...
-            </Button>
+const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) => (
+  <Accordion data-testid={mapping.endpoint}>
+    <Card className={className}>
+      <Accordion.Toggle
+        eventKey={mapping.endpoint}
+        as={Card.Header}
+        className="d-flex align-items-center flex-wrap"
+      >
+        <span className="flex-grow-1">
+          <Badge variant="secondary">{mapping.type}</Badge>
+          <Button className="text-left text-truncate" variant="link">
+            {mapping.endpoint}
+          </Button>
+        </span>
+        {onEdit && (
+          <Button className="mr-2" variant="outline-primary" onClick={onEdit}>
+            Edit...
+          </Button>
+        )}
+        {onDelete && (
+          <Button variant="outline-primary" onClick={onDelete}>
+            Remove
+          </Button>
+        )}
+      </Accordion.Toggle>
+      <Accordion.Collapse eventKey={mapping.endpoint}>
+        <Card.Body>
+          {mapping.description && (
+            <>
+              <h5>Description</h5>
+              <p>{mapping.description}</p>
+            </>
           )}
-          {onDelete && (
-            <Button variant="outline-primary" onClick={onDelete}>
-              Remove
-            </Button>
+          {mapping.documentation && (
+            <>
+              <h5>Documentation</h5>
+              <p>{mapping.documentation}</p>
+            </>
           )}
-        </Accordion.Toggle>
-        <Accordion.Collapse eventKey={mapping.endpoint}>
-          <Card.Body>
-            {mapping.description && (
-              <>
-                <h5>Description</h5>
-                <p>{mapping.description}</p>
-              </>
-            )}
-            {mapping.documentation && (
-              <>
-                <h5>Documentation</h5>
-                <p>{mapping.documentation}</p>
-              </>
-            )}
-            {mapping.allowUnset && (
-              <>
-                <h5>Allow Unset</h5>
-                <p>True</p>
-              </>
-            )}
-            {mapping.explicitTimestamp && (
-              <>
-                <h5>Explicit Timestamp</h5>
-                <p>True</p>
-              </>
-            )}
-            {mapping.reliability && (
-              <>
-                <h5>Reliability</h5>
-                <p>{reliabilityToLabel[mapping.reliability]}</p>
-              </>
-            )}
-            {mapping.retention && (
-              <>
-                <h5>Retention</h5>
-                <p>{retentionToLabel[mapping.retention]}</p>
-              </>
-            )}
-            {mapping.expiry && (
-              <>
-                <h5>Expiry</h5>
-                <p>{mapping.expiry} seconds</p>
-              </>
-            )}
-            {mapping.databaseRetentionPolicy && (
-              <>
-                <h5>Database Retention</h5>
-                <p>{databaseRetentionToLabel[mapping.databaseRetentionPolicy]}</p>
-              </>
-            )}
-            {mapping.databaseRetentionTtl != null && (
-              <>
-                <h5>Database Retention TTL</h5>
-                <p>{mapping.databaseRetentionTtl} seconds</p>
-              </>
-            )}
-          </Card.Body>
-        </Accordion.Collapse>
-      </Card>
-    </Accordion>
-  );
-};
+          {mapping.allowUnset && (
+            <>
+              <h5>Allow Unset</h5>
+              <p>True</p>
+            </>
+          )}
+          {mapping.explicitTimestamp && (
+            <>
+              <h5>Explicit Timestamp</h5>
+              <p>True</p>
+            </>
+          )}
+          {mapping.reliability && (
+            <>
+              <h5>Reliability</h5>
+              <p>{reliabilityToLabel[mapping.reliability]}</p>
+            </>
+          )}
+          {mapping.retention && (
+            <>
+              <h5>Retention</h5>
+              <p>{retentionToLabel[mapping.retention]}</p>
+            </>
+          )}
+          {mapping.expiry && (
+            <>
+              <h5>Expiry</h5>
+              <p>{mapping.expiry} seconds</p>
+            </>
+          )}
+          {mapping.databaseRetentionPolicy && (
+            <>
+              <h5>Database Retention</h5>
+              <p>{databaseRetentionToLabel[mapping.databaseRetentionPolicy]}</p>
+            </>
+          )}
+          {mapping.databaseRetentionTtl != null && (
+            <>
+              <h5>Database Retention TTL</h5>
+              <p>{mapping.databaseRetentionTtl} seconds</p>
+            </>
+          )}
+        </Card.Body>
+      </Accordion.Collapse>
+    </Card>
+  </Accordion>
+);
 
 const getDefaultMapping = (params: {
   interfaceType: AstarteInterface['type'];
@@ -279,9 +277,7 @@ const checkInterfaceHasMajorChanges = (
   return false;
 };
 
-const formatJSON = (json: unknown): string => {
-  return JSON.stringify(json, null, 4);
-};
+const formatJSON = (json: unknown): string => JSON.stringify(json, null, 4);
 
 const formatJSONText = (text: string): string => {
   try {

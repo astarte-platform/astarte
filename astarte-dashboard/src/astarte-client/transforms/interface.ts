@@ -21,8 +21,8 @@ import { fromAstarteMappingDTO, toAstarteMappingDTO } from './mapping';
 import { AstarteInterface } from '../models/Interface';
 import type { AstarteInterfaceDTO } from '../types';
 
-export const fromAstarteInterfaceDTO = (dto: AstarteInterfaceDTO): AstarteInterface => {
-  return new AstarteInterface({
+export const fromAstarteInterfaceDTO = (dto: AstarteInterfaceDTO): AstarteInterface =>
+  new AstarteInterface({
     name: dto.interface_name,
     major: dto.version_major,
     minor: dto.version_minor,
@@ -33,7 +33,6 @@ export const fromAstarteInterfaceDTO = (dto: AstarteInterfaceDTO): AstarteInterf
     documentation: dto.doc,
     mappings: (dto.mappings || []).map((mapping) => fromAstarteMappingDTO(mapping)),
   });
-};
 
 const stripAstarteInterfaceDTODefaults = (dto: AstarteInterfaceDTO): AstarteInterfaceDTO => {
   const iface = _.cloneDeep(dto);
@@ -76,8 +75,8 @@ const stripAstarteInterfaceDTODefaults = (dto: AstarteInterfaceDTO): AstarteInte
   return iface;
 };
 
-export const toAstarteInterfaceDTO = (obj: AstarteInterface): AstarteInterfaceDTO => {
-  return stripAstarteInterfaceDTODefaults(
+export const toAstarteInterfaceDTO = (obj: AstarteInterface): AstarteInterfaceDTO =>
+  stripAstarteInterfaceDTODefaults(
     obj.type === 'datastream'
       ? {
           interface_name: obj.name,
@@ -115,4 +114,3 @@ export const toAstarteInterfaceDTO = (obj: AstarteInterface): AstarteInterfaceDT
           ),
         },
   );
-};

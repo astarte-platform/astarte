@@ -64,9 +64,8 @@ const getAstarteClient = (astarteConfig: AstarteConfig): AstarteClient => {
 const getConnectedDevices = (
   astarteConfig: AstarteConfig,
   params: { name?: string } = {},
-): ChartProvider<'Object', ConnectedDevices> => {
-  return generateConnectedDevicesProvider(getAstarteClient(astarteConfig), params);
-};
+): ChartProvider<'Object', ConnectedDevices> =>
+  generateConnectedDevicesProvider(getAstarteClient(astarteConfig), params);
 
 const getDeviceDatastreamIndividual = (
   astarteConfig: AstarteConfig,
@@ -76,9 +75,8 @@ const getDeviceDatastreamIndividual = (
     interfaceName: string;
     endpoint: string;
   },
-): ChartProvider<'Array', TimestampedIndividual> => {
-  return generateDeviceDatastreamIndividualProvider(getAstarteClient(astarteConfig), params);
-};
+): ChartProvider<'Array', TimestampedIndividual> =>
+  generateDeviceDatastreamIndividualProvider(getAstarteClient(astarteConfig), params);
 
 const getDeviceDatastreamObject = (
   astarteConfig: AstarteConfig,
@@ -88,9 +86,8 @@ const getDeviceDatastreamObject = (
     interfaceName: string;
     endpoint: string;
   },
-): ChartProvider<'Array', TimestampedAggregated> => {
-  return generateDeviceDatastreamObjectProvider(getAstarteClient(astarteConfig), params);
-};
+): ChartProvider<'Array', TimestampedAggregated> =>
+  generateDeviceDatastreamObjectProvider(getAstarteClient(astarteConfig), params);
 
 const getDeviceProperty = (
   astarteConfig: AstarteConfig,
@@ -100,9 +97,8 @@ const getDeviceProperty = (
     interfaceName: string;
     endpoint: string;
   },
-): ChartProvider<'Object', Aggregated> => {
-  return generateDevicePropertyProvider(getAstarteClient(astarteConfig), params);
-};
+): ChartProvider<'Object', Aggregated> =>
+  generateDevicePropertyProvider(getAstarteClient(astarteConfig), params);
 
 const getDeviceStats = (
   astarteConfig: AstarteConfig,
@@ -111,9 +107,8 @@ const getDeviceStats = (
     deviceId: string;
     stats?: 'exchangedBytes' | 'exchangedMessages';
   },
-): ChartProvider<'Object', DeviceStats> => {
-  return generateDeviceStatsProvider(getAstarteClient(astarteConfig), params);
-};
+): ChartProvider<'Object', DeviceStats> =>
+  generateDeviceStatsProvider(getAstarteClient(astarteConfig), params);
 
 export {
   Aggregated,

@@ -79,28 +79,26 @@ const AliasesCard = ({
   onNewAliasClick,
   onEditAliasClick,
   onRemoveAliasClick,
-}: AliasesCardProps): React.ReactElement => {
-  return (
-    <FullHeightCard xs={12} md={6} className="mb-4">
-      <Card.Header as="h5">Aliases</Card.Header>
-      <Card.Body className="d-flex flex-column">
-        {device.aliases.size > 0 ? (
-          <AliasesTable
-            aliases={device.aliases}
-            onEditAliasClick={onEditAliasClick}
-            onRemoveAliasClick={onRemoveAliasClick}
-          />
-        ) : (
-          <p>Device has no aliases</p>
-        )}
-        <div className="mt-auto">
-          <Button variant="primary" onClick={onNewAliasClick}>
-            Add new alias
-          </Button>
-        </div>
-      </Card.Body>
-    </FullHeightCard>
-  );
-};
+}: AliasesCardProps): React.ReactElement => (
+  <FullHeightCard xs={12} md={6} className="mb-4">
+    <Card.Header as="h5">Aliases</Card.Header>
+    <Card.Body className="d-flex flex-column">
+      {device.aliases.size > 0 ? (
+        <AliasesTable
+          aliases={device.aliases}
+          onEditAliasClick={onEditAliasClick}
+          onRemoveAliasClick={onRemoveAliasClick}
+        />
+      ) : (
+        <p>Device has no aliases</p>
+      )}
+      <div className="mt-auto">
+        <Button variant="primary" onClick={onNewAliasClick}>
+          Add new alias
+        </Button>
+      </div>
+    </Card.Body>
+  </FullHeightCard>
+);
 
 export default AliasesCard;

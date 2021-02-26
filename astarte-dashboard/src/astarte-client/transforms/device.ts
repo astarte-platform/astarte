@@ -19,28 +19,24 @@ import { AstarteDevice } from '../models/Device';
 import type { AstarteDeviceInterfaceStats } from '../models/Device';
 import type { AstarteDeviceDTO } from '../types';
 
-const fromInterfaceStatsDTO = (iface: any): AstarteDeviceInterfaceStats => {
-  return {
-    name: iface.name,
-    major: iface.major,
-    minor: iface.minor,
-    exchangedMessages: iface.exchanged_msgs,
-    exchangedBytes: iface.exchanged_bytes,
-  };
-};
+const fromInterfaceStatsDTO = (iface: any): AstarteDeviceInterfaceStats => ({
+  name: iface.name,
+  major: iface.major,
+  minor: iface.minor,
+  exchangedMessages: iface.exchanged_msgs,
+  exchangedBytes: iface.exchanged_bytes,
+});
 
-const toInterfaceStatsDTO = (iface: AstarteDeviceInterfaceStats) => {
-  return {
-    name: iface.name,
-    major: iface.major,
-    minor: iface.minor,
-    exchanged_msgs: iface.exchangedMessages,
-    exchanged_bytes: iface.exchangedBytes,
-  };
-};
+const toInterfaceStatsDTO = (iface: AstarteDeviceInterfaceStats) => ({
+  name: iface.name,
+  major: iface.major,
+  minor: iface.minor,
+  exchanged_msgs: iface.exchangedMessages,
+  exchanged_bytes: iface.exchangedBytes,
+});
 
-export const fromAstarteDeviceDTO = (dto: AstarteDeviceDTO): AstarteDevice => {
-  return new AstarteDevice({
+export const fromAstarteDeviceDTO = (dto: AstarteDeviceDTO): AstarteDevice =>
+  new AstarteDevice({
     id: dto.id,
     isConnected: !!dto.connected,
     hasCredentialsInhibited: !!dto.credentials_inhibited,
@@ -67,31 +63,28 @@ export const fromAstarteDeviceDTO = (dto: AstarteDeviceDTO): AstarteDevice => {
     lastCredentialsRequestIp:
       dto.last_credentials_request_ip != null ? dto.last_credentials_request_ip : undefined,
   });
-};
 
-export const toAstarteDeviceDTO = (obj: AstarteDevice): AstarteDeviceDTO => {
-  return {
-    id: obj.id,
-    connected: !!obj.isConnected,
-    credentials_inhibited: !!obj.hasCredentialsInhibited,
-    aliases: Object.fromEntries(obj.aliases),
-    groups: obj.groups || [],
-    introspection: _.mapValues(Object.fromEntries(obj.introspection), (iface) =>
-      toInterfaceStatsDTO(iface),
-    ),
-    metadata: Object.fromEntries(obj.metadata),
-    total_received_msgs: obj.totalReceivedMessages || 0,
-    total_received_bytes: obj.totalReceivedBytes || 0,
-    previous_interfaces: (obj.previousInterfaces || []).map(toInterfaceStatsDTO),
-    first_registration:
-      obj.firstRegistration != null ? obj.firstRegistration.toISOString() : undefined,
-    first_credentials_request:
-      obj.firstCredentialsRequest != null ? obj.firstCredentialsRequest.toISOString() : undefined,
-    last_disconnection:
-      obj.lastDisconnection != null ? obj.lastDisconnection.toISOString() : undefined,
-    last_connection: obj.lastConnection != null ? obj.lastConnection.toISOString() : undefined,
-    last_seen_ip: obj.lastSeenIp != null ? obj.lastSeenIp : undefined,
-    last_credentials_request_ip:
-      obj.lastCredentialsRequestIp != null ? obj.lastCredentialsRequestIp : undefined,
-  };
-};
+export const toAstarteDeviceDTO = (obj: AstarteDevice): AstarteDeviceDTO => ({
+  id: obj.id,
+  connected: !!obj.isConnected,
+  credentials_inhibited: !!obj.hasCredentialsInhibited,
+  aliases: Object.fromEntries(obj.aliases),
+  groups: obj.groups || [],
+  introspection: _.mapValues(Object.fromEntries(obj.introspection), (iface) =>
+    toInterfaceStatsDTO(iface),
+  ),
+  metadata: Object.fromEntries(obj.metadata),
+  total_received_msgs: obj.totalReceivedMessages || 0,
+  total_received_bytes: obj.totalReceivedBytes || 0,
+  previous_interfaces: (obj.previousInterfaces || []).map(toInterfaceStatsDTO),
+  first_registration:
+    obj.firstRegistration != null ? obj.firstRegistration.toISOString() : undefined,
+  first_credentials_request:
+    obj.firstCredentialsRequest != null ? obj.firstCredentialsRequest.toISOString() : undefined,
+  last_disconnection:
+    obj.lastDisconnection != null ? obj.lastDisconnection.toISOString() : undefined,
+  last_connection: obj.lastConnection != null ? obj.lastConnection.toISOString() : undefined,
+  last_seen_ip: obj.lastSeenIp != null ? obj.lastSeenIp : undefined,
+  last_credentials_request_ip:
+    obj.lastCredentialsRequestIp != null ? obj.lastCredentialsRequestIp : undefined,
+});
