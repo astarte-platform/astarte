@@ -41,11 +41,16 @@ const NativeBlockWidget = ({ engine, node, hasSettings }: Props): React.ReactEle
     <div className={classes.join(' ')} data-default-node-name={name}>
       <div className="node-header">
         <div className="node-title">{name}</div>
-        {hasSettings && (
-          <div className="settings-icon" onClick={(e) => node.onSettingsClick(e, node)}>
-            <i className="fas fa-cog" />
+        <div className="node-header-icons">
+          {hasSettings && (
+            <div className="node-header-icon" onClick={(e) => node.onSettingsClick(e, node)}>
+              <i className="fas fa-cog" />
+            </div>
+          )}
+          <div className="node-header-icon" onClick={() => node.onRemoveClick(node)}>
+            <i className="fas fa-times" />
           </div>
-        )}
+        </div>
       </div>
       <div className="ports">
         <div className="port-container">

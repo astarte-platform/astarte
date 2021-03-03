@@ -104,17 +104,24 @@ $block-radius: 5px;
       background: rgba(0, 0, 0, 0.3);
       border-radius: $block-radius $block-radius 0 0;
       display: flex;
+      align-items: center;
       white-space: nowrap;
+      padding: 0.3em;
     }
 
     .node-title {
       flex-grow: 1;
-      padding: 0.35em;
+      padding: 0 0.3em;
     }
 
-    .settings-icon {
-      padding: 0.3em;
-      padding-left: 1em;
+    .node-header-icons {
+      display: flex;
+      align-items: center;
+      padding: 0 0.3em;
+    }
+
+    .node-header-icon {
+      padding-left: 0.7em;
       cursor: pointer;
     }
 

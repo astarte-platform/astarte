@@ -104,6 +104,10 @@ const VisualFlowEditor = ({
         name,
         type,
         onSettingsClick: onNodeSettingsClick,
+        onRemoveClick: () => {
+          newNode.remove();
+          engine.repaintCanvas();
+        },
       });
       newNode.setPosition(position.x - 30, position.y - 20);
       model.addNode(newNode);
