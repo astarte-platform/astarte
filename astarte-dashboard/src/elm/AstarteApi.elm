@@ -21,19 +21,12 @@ module AstarteApi exposing
     ( Config
     , DeviceStats
     , Error(..)
-    , addNewTrigger
     , appEngineApiHealth
     , configDecoder
-    , deleteTrigger
     , errorToHumanReadable
     , flowApiHealth
-    , getInterface
-    , getTrigger
-    , listInterfaceMajors
-    , listInterfaces
     , pairingApiHealth
     , realmManagementApiHealth
-    , updateInterface
     , wipeDeviceCredentials
     )
 
@@ -54,8 +47,6 @@ import Json.Decode as Decode
         )
 import Json.Decode.Pipeline exposing (optional, required)
 import Json.Encode as Encode exposing (Value)
-import Types.Interface as Interface exposing (Interface)
-import Types.Trigger as Trigger exposing (Trigger)
 import Url.Builder exposing (crossOrigin)
 
 
@@ -294,13 +285,6 @@ type alias DeviceStats =
     }
 
 
-deviceStatsDecoder : Decoder DeviceStats
-deviceStatsDecoder =
-    Decode.map2 DeviceStats
-        (Decode.field "connected_devices" Decode.int)
-        (Decode.field "total_devices" Decode.int)
-
-
 
 -- Pairing
 
@@ -320,120 +304,6 @@ wipeDeviceCredentials apiConfig deviceId resultMsg =
         , timeout = Nothing
         , tracker = Nothing
         }
-
-
-
--- Interfaces
-
-
-listInterfaces : Config -> (List String -> msg) -> (Error -> msg) -> msg -> Cmd msg
-listInterfaces apiConfig okMsg errorMsg loginMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "interfaces" ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply AnswerWithData <| field "data" (list string)
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
-
-
-listInterfaceMajors : Config -> String -> (List Int -> msg) -> (Error -> msg) -> msg -> Cmd msg
-listInterfaceMajors apiConfig interfaceName okMsg errorMsg loginMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "interfaces", interfaceName ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply AnswerWithData <| field "data" (list int)
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
-
-
-getInterface : Config -> String -> Int -> (Interface -> msg) -> (Error -> msg) -> msg -> Cmd msg
-getInterface apiConfig interfaceName major okMsg errorMsg loginMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url =
-            buildUrl apiConfig.secureConnection
-                apiConfig.realmManagementUrl
-                [ "v1", apiConfig.realm, "interfaces", interfaceName, String.fromInt major ]
-                []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply AnswerWithData <| field "data" Interface.decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
-
-
-updateInterface : Config -> Interface -> msg -> (Error -> msg) -> msg -> Cmd msg
-updateInterface apiConfig interface okMsg errorMsg loginMsg =
-    Http.request
-        { method = "PUT"
-        , headers = buildHeaders apiConfig.token
-        , url =
-            buildUrl apiConfig.secureConnection
-                apiConfig.realmManagementUrl
-                [ "v1", apiConfig.realm, "interfaces", interface.name, String.fromInt interface.major ]
-                []
-        , body = Http.jsonBody <| Encode.object [ ( "data", Interface.encode interface ) ]
-        , expect = expectWhateverAstarteReply Answer
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
-
-
-
--- Triggers
-
-
-getTrigger : Config -> String -> (Trigger -> msg) -> (Error -> msg) -> msg -> Cmd msg
-getTrigger apiConfig triggerName okMsg errorMsg loginMsg =
-    Http.request
-        { method = "GET"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "triggers", triggerName ] []
-        , body = Http.emptyBody
-        , expect = expectAstarteReply AnswerWithData <| field "data" Trigger.decoder
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapResponse okMsg errorMsg loginMsg)
-
-
-addNewTrigger : Config -> Trigger -> msg -> (Error -> msg) -> msg -> Cmd msg
-addNewTrigger apiConfig trigger okMsg errorMsg loginMsg =
-    Http.request
-        { method = "POST"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "triggers" ] []
-        , body = Http.jsonBody <| Encode.object [ ( "data", Trigger.encode trigger ) ]
-        , expect = expectWhateverAstarteReply Answer
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
-
-
-deleteTrigger : Config -> String -> msg -> (Error -> msg) -> msg -> Cmd msg
-deleteTrigger apiConfig triggerName okMsg errorMsg loginMsg =
-    Http.request
-        { method = "DELETE"
-        , headers = buildHeaders apiConfig.token
-        , url = buildUrl apiConfig.secureConnection apiConfig.realmManagementUrl [ "v1", apiConfig.realm, "triggers", triggerName ] []
-        , body = Http.emptyBody
-        , expect = expectWhateverAstarteReply Answer
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-        |> Cmd.map (mapEmptyResponse okMsg errorMsg loginMsg)
 
 
 

@@ -37,7 +37,6 @@ import Icons exposing (Icon)
 import Json.Decode as Decode exposing (Value, at, string)
 import ListUtils exposing (addWhen)
 import Page.ReactInit as ReactInit
-import Page.TriggerBuilder as TriggerBuilder
 import Ports
 import Route exposing (RealmRoute, Route)
 import Task
@@ -199,8 +198,7 @@ type Page
 
 
 type RealmPage
-    = TriggerBuilderPage TriggerBuilder.Model
-    | ReactInitPage ReactPageCategory
+    = ReactInitPage ReactPageCategory
 
 
 type ReactPageCategory
@@ -226,7 +224,6 @@ type Msg
     | UrlRequest UrlRequest
     | UpdateRelativeURL (Maybe String)
     | UpdateSession (Maybe Session)
-    | TriggerBuilderMsg TriggerBuilder.Msg
     | NewFlashMessage Severity String (List String) Posix
     | ClearOldFlashMessages Posix
     | AppEngineHealthCheckDone (Result AstarteApi.Error Bool)
@@ -387,14 +384,10 @@ updatePage page msg model =
 
 
 updateRealmPage : String -> RealmPage -> Msg -> Model -> ( Model, Cmd Msg )
-updateRealmPage realm realmPage msg model =
+updateRealmPage _ realmPage msg model =
     let
         ( page, command, externalMsg ) =
             case ( msg, realmPage ) of
-                ( TriggerBuilderMsg subMsg, TriggerBuilderPage subModel ) ->
-                    updateRealmPageHelper realm (TriggerBuilder.update model.session subMsg subModel) TriggerBuilderMsg TriggerBuilderPage
-
-
                 -- Ignore messages from not matching pages
                 ( _, _ ) ->
                     ( model.selectedPage, Cmd.none, Noop )
@@ -487,10 +480,10 @@ pageInit realmRoute config session =
             initReactPage session Triggers "trigger-list" realmRoute
 
         Route.NewTrigger ->
-            initTriggerBuilderPage Nothing session session.apiConfig.realm
+            initReactPage session Triggers "trigger-new" realmRoute
 
         Route.ShowTrigger name ->
-            initTriggerBuilderPage (Just name) session session.apiConfig.realm
+            initReactPage session Triggers "trigger-edit" realmRoute
 
         Route.ShowDevice deviceId ->
             initReactPage session Devices "device-status" realmRoute
@@ -557,18 +550,6 @@ initLoginPage : Session -> ( Page, Cmd Msg, Session )
 initLoginPage session =
     ( LoginPage
     , Cmd.map (\a -> Ignore) (ReactInit.init session "login" <| Route.RealmSelection Nothing)
-    , session
-    )
-
-
-initTriggerBuilderPage : Maybe String -> Session -> String -> ( Page, Cmd Msg, Session )
-initTriggerBuilderPage maybeTriggerName session realm =
-    let
-        ( initialModel, initialCommand ) =
-            TriggerBuilder.init maybeTriggerName session realm
-    in
-    ( Realm realm (TriggerBuilderPage initialModel)
-    , Cmd.map TriggerBuilderMsg initialCommand
     , session
     )
 
@@ -921,9 +902,6 @@ isTriggersRelated page =
         Realm _ (ReactInitPage Triggers) ->
             True
 
-        Realm _ (TriggerBuilderPage _) ->
-            True
-
         _ ->
             False
 
@@ -997,9 +975,6 @@ isReactBased page =
         Realm _ (ReactInitPage _) ->
             True
 
-        _ ->
-            False
-
 
 renderPage : Model -> Page -> Html Msg
 renderPage model page =
@@ -1015,10 +990,6 @@ renderPage model page =
 renderProtectedPage : List FlashMessage -> RealmPage -> Html Msg
 renderProtectedPage flashMessages page =
     case page of
-        TriggerBuilderPage submodel ->
-            TriggerBuilder.view submodel flashMessages
-                |> Html.map TriggerBuilderMsg
-
         ReactInitPage _ ->
             ReactInit.view flashMessages
                 |> Html.map (\a -> Ignore)
@@ -1042,9 +1013,6 @@ subscriptions model =
 pageSubscriptions : Page -> Sub Msg
 pageSubscriptions page =
     case page of
-        Realm _ (TriggerBuilderPage submodel) ->
-            Sub.map TriggerBuilderMsg <| TriggerBuilder.subscriptions submodel
-
         _ ->
             Sub.none
 
