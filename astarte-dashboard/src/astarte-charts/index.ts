@@ -38,8 +38,8 @@ import type {
 type AstarteConfig =
   | AstarteClient
   | {
-      realmManagementUrl: string;
-      appengineUrl: string;
+      appEngineApiUrl: string;
+      realmManagementApiUrl: string;
       token: string;
       realm: string;
     };
@@ -49,10 +49,10 @@ const getAstarteClient = (astarteConfig: AstarteConfig): AstarteClient => {
     return astarteConfig;
   }
   const astarteClient = new AstarteClient({
-    realmManagementUrl: astarteConfig.realmManagementUrl,
-    appengineUrl: astarteConfig.appengineUrl,
-    pairingUrl: '',
-    flowUrl: '',
+    appEngineApiUrl: astarteConfig.appEngineApiUrl,
+    realmManagementApiUrl: astarteConfig.realmManagementApiUrl,
+    pairingApiUrl: '',
+    flowApiUrl: '',
   });
   astarteClient.setCredentials({
     token: astarteConfig.token,

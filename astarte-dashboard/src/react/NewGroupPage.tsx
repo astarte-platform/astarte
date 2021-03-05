@@ -19,9 +19,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Form, InputGroup, Spinner } from 'react-bootstrap';
-import AstarteClient, { AstarteDevice } from 'astarte-client';
+import type { AstarteDevice } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -84,17 +85,15 @@ const FilterInputBox = ({ filter, onFilterChange }: FilterInputBoxProps): React.
   </Form.Group>
 );
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [groupName, setGroupName] = useState('');
   const [deviceFilter, setDeviceFilter] = useState('');
   const [selectedDevices, setSelectedDevices] = useState<Set<AstarteDevice['id']>>(new Set());
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const astarte = useAstarte();
+
   const devicesFetcher = useFetch(() =>
-    astarte.getDevices({ details: true }).then(({ devices }) => devices),
+    astarte.client.getDevices({ details: true }).then(({ devices }) => devices),
   );
   const formAlerts = useAlerts();
   const navigate = useNavigate();
@@ -102,7 +101,7 @@ export default ({ astarte }: Props): React.ReactElement => {
   const createGroup = (event: React.FormEvent<HTMLElement>) => {
     event.preventDefault();
     setIsCreatingGroup(true);
-    astarte
+    astarte.client
       .createGroup({
         groupName,
         deviceIds: Array.from(selectedDevices),

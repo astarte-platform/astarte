@@ -19,8 +19,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 
+import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -58,13 +58,10 @@ const ErrorRow = ({ onRetry }: ErrorRowProps): React.ReactElement => (
   </ListGroup.Item>
 );
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const astarte = useAstarte();
   const navigate = useNavigate();
-  const triggersFetcher = useFetch(astarte.getTriggerNames);
+  const triggersFetcher = useFetch(astarte.client.getTriggerNames);
 
   useInterval(triggersFetcher.refresh, 30000);
 

@@ -16,55 +16,30 @@
    limitations under the License.
 */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Nav, NavItem, NavLink } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
-
-import useFetch from './hooks/useFetch';
-import useInterval from './hooks/useInterval';
 
 interface SidebarApiStatusProps {
-  astarte: AstarteClient;
+  healthy: boolean;
+  realm: React.ReactNode;
 }
 
-const SidebarApiStatus = ({ astarte }: SidebarApiStatusProps) => {
-  const appEngineHealth = useFetch(astarte.getAppengineHealth);
-  const realmManagementHealth = useFetch(astarte.getRealmManagementHealth);
-  const pairingHealth = useFetch(astarte.getPairingHealth);
-  const flowHealth = astarte.features.flow ? useFetch(astarte.getFlowHealth) : null;
-
-  const refreshHealth = useCallback(() => {
-    appEngineHealth.refresh();
-    realmManagementHealth.refresh();
-    pairingHealth.refresh();
-    if (flowHealth) {
-      flowHealth.refresh();
-    }
-  }, [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth]);
-
-  useInterval(refreshHealth, 30000);
-
-  const isApiHealthy = [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth].every(
-    (apiHealth) => apiHealth == null || apiHealth.status !== 'err',
-  );
-
-  return (
-    <NavItem className="nav-status pl-4">
-      <div>
-        <b>Realm</b>
-      </div>
-      <p>{astarte.realm}</p>
-      <div>
-        <b>API Status</b>
-      </div>
-      <p className="my-1">
-        <i className={`fas fa-circle mr-2 ${isApiHealthy ? 'color-green' : 'color-red'}`} />
-        {isApiHealthy ? 'Up and running' : 'Degraded'}
-      </p>
-    </NavItem>
-  );
-};
+const SidebarApiStatus = ({ healthy, realm }: SidebarApiStatusProps) => (
+  <NavItem className="nav-status pl-4">
+    <div>
+      <b>Realm</b>
+    </div>
+    <p>{realm}</p>
+    <div>
+      <b>API Status</b>
+    </div>
+    <p className="my-1">
+      <i className={`fas fa-circle mr-2 ${healthy ? 'color-green' : 'color-red'}`} />
+      {healthy ? 'Up and running' : 'Degraded'}
+    </p>
+  </NavItem>
+);
 
 const SidebarBrand = () => (
   <Link to="/" className="nav-brand mb-3">

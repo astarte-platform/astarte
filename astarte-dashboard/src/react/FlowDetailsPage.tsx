@@ -19,20 +19,20 @@
 import React from 'react';
 import { Container, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import AstarteClient from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 interface Props {
-  astarte: AstarteClient;
   flowName: string;
 }
 
-export default ({ astarte, flowName }: Props): React.ReactElement => {
-  const flowFetcher = useFetch(() => astarte.getFlowDetails(flowName));
+export default ({ flowName }: Props): React.ReactElement => {
+  const astarte = useAstarte();
+  const flowFetcher = useFetch(() => astarte.client.getFlowDetails(flowName));
 
   return (
     <SingleCardPage title="Flow Details" backLink="/flows">

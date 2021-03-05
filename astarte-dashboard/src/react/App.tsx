@@ -16,81 +16,91 @@
    limitations under the License.
 */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { BrowserRouter as RouterProvider } from 'react-router-dom';
 import { Col, Container, Row } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 
 import AlertsProvider from './AlertManager';
+import ConfigProvider, { useConfig } from './ConfigManager';
 import InterfaceEditorPage from './InterfaceEditorPage';
 import Sidebar from './Sidebar';
 import PageRouter from './Router';
-import SessionProvider, { useSession } from './SessionManager';
+import AstarteProvider, { useAstarte } from './AstarteManager';
 import type { DashboardConfig } from './types';
 import Snackbar from './ui/Snackbar';
+import useFetch from './hooks/useFetch';
+import useInterval from './hooks/useInterval';
 
-interface DashboardProps {
-  config: DashboardConfig;
-}
+const DashboardSidebar = () => {
+  const config = useConfig();
+  const astarte = useAstarte();
+  const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
+  const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
+  const pairingHealth = useFetch(astarte.client.getPairingHealth);
+  const flowHealth = config.features.flow ? useFetch(astarte.client.getFlowHealth) : null;
 
-const Dashboard = ({ config }: DashboardProps) => {
-  const session = useSession();
+  const refreshHealth = useCallback(() => {
+    if (!astarte.isAuthenticated) {
+      return;
+    }
+    appEngineHealth.refresh();
+    realmManagementHealth.refresh();
+    pairingHealth.refresh();
+    if (flowHealth) {
+      flowHealth.refresh();
+    }
+  }, [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth, astarte.isAuthenticated]);
 
-  const astarte = useMemo(() => {
-    const conf = session.manager.getConfig();
-    const astarteClient = new AstarteClient({
-      realmManagementUrl: conf.realmManagementApiUrl.toString(),
-      appengineUrl: conf.appEngineApiUrl.toString(),
-      pairingUrl: conf.pairingApiUrl.toString(),
-      flowUrl: conf.flowApiUrl.toString(),
-      enableFlowPreview: conf.enableFlowPreview,
-    });
-    astarteClient.setCredentials(session.manager.getCredentials());
-    return astarteClient;
-  }, [session.manager]);
+  useInterval(refreshHealth, 30000);
 
-  useEffect(() => {
-    astarte.setCredentials(session.credentials);
-  }, [session.credentials, astarte]);
+  const isApiHealthy = [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth].every(
+    (apiHealth) => apiHealth == null || apiHealth.status !== 'err',
+  );
+
+  if (!astarte.isAuthenticated) {
+    return null;
+  }
 
   return (
-    <Container fluid className="px-0">
-      <Row className="no-gutters">
-        {session.isAuthenticated && (
-          <Col id="main-navbar" className="col-auto nav-col">
-            <Sidebar>
-              <Sidebar.Brand />
-              <Sidebar.Item label="Home" link="/" icon="home" />
-              <Sidebar.Separator />
-              <Sidebar.Item label="Interfaces" link="/interfaces" icon="stream" />
-              <Sidebar.Item label="Triggers" link="/triggers" icon="bolt" />
-              <Sidebar.Separator />
-              <Sidebar.Item label="Devices" link="/devices" icon="cube" />
-              <Sidebar.Item label="Groups" link="/groups" icon="object-group" />
-              <Sidebar.Separator />
-              {astarte.features.flow && (
-                <>
-                  <Sidebar.Item label="Flows" link="/flows" icon="wind" />
-                  <Sidebar.Item label="Pipelines" link="/pipelines" icon="code-branch" />
-                  <Sidebar.Item label="Blocks" link="/blocks" icon="shapes" />
-                  <Sidebar.Separator />
-                </>
-              )}
-              <Sidebar.Item label="Realm settings" link="/settings" icon="cog" />
-              <Sidebar.Separator />
-              <Sidebar.ApiStatus astarte={astarte} />
-              <Sidebar.Separator />
-              <Sidebar.Item label="Logout" link="/logout" icon="sign-out-alt" />
-            </Sidebar>
-          </Col>
+    <Col id="main-navbar" className="col-auto nav-col">
+      <Sidebar>
+        <Sidebar.Brand />
+        <Sidebar.Item label="Home" link="/" icon="home" />
+        <Sidebar.Separator />
+        <Sidebar.Item label="Interfaces" link="/interfaces" icon="stream" />
+        <Sidebar.Item label="Triggers" link="/triggers" icon="bolt" />
+        <Sidebar.Separator />
+        <Sidebar.Item label="Devices" link="/devices" icon="cube" />
+        <Sidebar.Item label="Groups" link="/groups" icon="object-group" />
+        <Sidebar.Separator />
+        {config.features.flow && (
+          <>
+            <Sidebar.Item label="Flows" link="/flows" icon="wind" />
+            <Sidebar.Item label="Pipelines" link="/pipelines" icon="code-branch" />
+            <Sidebar.Item label="Blocks" link="/blocks" icon="shapes" />
+            <Sidebar.Separator />
+          </>
         )}
-        <Col className="main-content vh-100 overflow-auto">
-          <PageRouter astarte={astarte} config={config} />
-        </Col>
-      </Row>
-    </Container>
+        <Sidebar.Item label="Realm settings" link="/settings" icon="cog" />
+        <Sidebar.Separator />
+        <Sidebar.ApiStatus healthy={isApiHealthy} realm={astarte.realm} />
+        <Sidebar.Separator />
+        <Sidebar.Item label="Logout" link="/logout" icon="sign-out-alt" />
+      </Sidebar>
+    </Col>
   );
 };
+
+const Dashboard = () => (
+  <Container fluid className="px-0">
+    <Row className="no-gutters">
+      <DashboardSidebar />
+      <Col className="main-content vh-100 overflow-auto">
+        <PageRouter />
+      </Col>
+    </Row>
+  </Container>
+);
 
 const StandaloneEditor = () => (
   <Container fluid className="px-0">
@@ -116,9 +126,11 @@ export default ({ config }: Props): React.ReactElement => (
   <AlertsProvider>
     <RouterProvider>
       {config ? (
-        <SessionProvider config={config}>
-          <Dashboard config={config} />
-        </SessionProvider>
+        <ConfigProvider config={config}>
+          <AstarteProvider config={config}>
+            <Dashboard />
+          </AstarteProvider>
+        </ConfigProvider>
       ) : (
         <StandaloneEditor />
       )}

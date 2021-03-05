@@ -19,9 +19,10 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Row, Spinner } from 'react-bootstrap';
-import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
+import type { AstarteCustomBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import SingleCardPage from './ui/SingleCardPage';
 
 const isJSON = (string: string) => {
@@ -40,11 +41,7 @@ interface BlockState {
   schema: string;
 }
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [block, setBlock] = useState<BlockState>({
     name: '',
     source: '',
@@ -54,6 +51,7 @@ export default ({ astarte }: Props): React.ReactElement => {
   const [isValidated, setIsValidated] = useState(false);
   const [isCreatingBlock, setIsCreatingBlock] = useState(false);
   const creationAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
 
   const createBlock = useCallback(() => {
@@ -62,14 +60,14 @@ export default ({ astarte }: Props): React.ReactElement => {
       ...block,
       schema: JSON.parse(block.schema.trim()),
     };
-    astarte
+    astarte.client
       .registerBlock(newBlock)
       .then(() => navigate('/blocks'))
       .catch((err) => {
         setIsCreatingBlock(false);
         creationAlerts.showError(`Couldn't create block: ${err.message}`);
       });
-  }, [block, creationAlerts.showError, navigate]);
+  }, [astarte.client, block, creationAlerts.showError, navigate]);
 
   const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name);
   const isValidBlockSource = block.source !== '';

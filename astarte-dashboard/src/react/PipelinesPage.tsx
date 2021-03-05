@@ -19,9 +19,9 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 import type { AstartePipeline } from 'astarte-client';
 
+import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -66,12 +66,9 @@ const PipelineCard = ({
   </Card>
 );
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
-  const pipelinesFetcher = useFetch(astarte.getPipelines);
+export default (): React.ReactElement => {
+  const astarte = useAstarte();
+  const pipelinesFetcher = useFetch(astarte.client.getPipelines);
   const navigate = useNavigate();
 
   return (

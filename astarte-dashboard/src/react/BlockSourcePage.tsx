@@ -20,7 +20,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import AstarteClient, { AstarteCustomBlock } from 'astarte-client';
+import { AstarteCustomBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
@@ -29,6 +29,7 @@ import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 const blockTypeToLabel = {
   consumer: 'Consumer',
@@ -37,12 +38,12 @@ const blockTypeToLabel = {
 };
 
 interface Props {
-  astarte: AstarteClient;
   blockId: AstarteBlock['name'];
 }
 
-export default ({ astarte, blockId }: Props): React.ReactElement => {
-  const blockFetcher = useFetch(() => astarte.getBlock(blockId));
+export default ({ blockId }: Props): React.ReactElement => {
+  const astarte = useAstarte();
+  const blockFetcher = useFetch(() => astarte.client.getBlock(blockId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const deletionAlerts = useAlerts();
@@ -50,7 +51,7 @@ export default ({ astarte, blockId }: Props): React.ReactElement => {
 
   const deleteBlock = useCallback(() => {
     setIsDeletingBlock(true);
-    astarte
+    astarte.client
       .deleteBlock(blockId)
       .then(() => navigate('/blocks'))
       .catch((err: Error) => {
@@ -58,7 +59,7 @@ export default ({ astarte, blockId }: Props): React.ReactElement => {
         deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
         setShowDeleteModal(false);
       });
-  }, [astarte, navigate, setIsDeletingBlock, blockId, deletionAlerts.showError]);
+  }, [astarte.client, navigate, setIsDeletingBlock, blockId, deletionAlerts.showError]);
 
   return (
     <>

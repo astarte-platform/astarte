@@ -100,5 +100,24 @@ describe('Login tests', () => {
         '@flowHealthRequest',
       ]);
     });
+
+    it('saves session to localStorage after login, deletes it after logout', function () {
+      cy.visit('/login');
+
+      cy.get('input[id=astarteRealm]').clear().paste(this.realm.name);
+      cy.get('textarea[id=astarteToken]').paste(this.realm.infinite_token);
+      cy.get('.btn[type=submit]').click();
+
+      cy.wrap(localStorage).its('session').then(JSON.parse).should('deep.eq', {
+        _version: 1,
+        realm: this.realm.name,
+        token: this.realm.infinite_token,
+        authUrl: null,
+      });
+
+      cy.get('#main-navbar').contains('Logout').scrollIntoView().click();
+
+      cy.wrap(localStorage).its('session').should('not.exist');
+    });
   });
 });

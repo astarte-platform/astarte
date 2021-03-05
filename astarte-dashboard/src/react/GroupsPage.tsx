@@ -19,13 +19,13 @@
 import React, { useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Container, Spinner, Table } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 interface GroupState {
   name: string;
@@ -70,20 +70,17 @@ const GroupsTable = ({ groupMap }: GroupsTableProps) => {
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const astarte = useAstarte();
   const pageAlerts = useAlerts();
   const navigate = useNavigate();
 
   const fetchGroups = useCallback(async (): Promise<GroupMap> => {
     pageAlerts.closeAll();
-    const groupNames = await astarte.getGroupList();
+    const groupNames = await astarte.client.getGroupList();
     const groupMap: GroupMap = new Map();
     const fetchGroupPromises = groupNames.map((groupName) =>
-      astarte
+      astarte.client
         .getDevicesInGroup({
           groupName,
           details: true,
@@ -105,7 +102,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       }
     });
     return groupMap;
-  }, [astarte, pageAlerts.closeAll, pageAlerts.showError]);
+  }, [astarte.client, pageAlerts.closeAll, pageAlerts.showError]);
 
   const groupsFetcher = useFetch(fetchGroups);
 

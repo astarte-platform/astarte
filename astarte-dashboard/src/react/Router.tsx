@@ -18,7 +18,6 @@
 
 import React from 'react';
 import { Navigate, Routes, Route, useParams, useLocation, useSearchParams } from 'react-router-dom';
-import type AstarteClient from 'astarte-client';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -45,15 +44,12 @@ import NewBlockPage from './NewBlockPage';
 import RealmSettingsPage from './RealmSettingsPage';
 import DeviceStatusPage from './DeviceStatusPage';
 import DeviceInterfaceValues from './DeviceInterfaceValues';
-import { useSession } from './SessionManager';
-
-interface PageProps {
-  astarte: AstarteClient;
-}
+import { useConfig } from './ConfigManager';
+import { useAstarte } from './AstarteManager';
 
 function AttemptLogin(): React.ReactElement {
   const { search, hash } = useLocation();
-  const session = useSession();
+  const astarte = useAstarte();
   const searchParams = new URLSearchParams(search);
   const hashParams = new URLSearchParams(hash.slice(1));
 
@@ -64,7 +60,7 @@ function AttemptLogin(): React.ReactElement {
   let succesfulLogin = false;
 
   if (realm && token) {
-    succesfulLogin = session.manager.login({ realm, token, authUrl });
+    succesfulLogin = astarte.login({ realm, token, authUrl });
   }
 
   if (!succesfulLogin) {
@@ -75,176 +71,141 @@ function AttemptLogin(): React.ReactElement {
 }
 
 function Logout(): React.ReactElement {
-  const session = useSession();
-  session.manager.logout();
+  const astarte = useAstarte();
+  astarte.logout();
 
   return <Navigate to="/login" />;
 }
 
-type LoginType = 'oauth' | 'token';
-
-type LoginProps = PageProps & {
-  canSwitchLoginType: boolean;
-  defaultLoginType: LoginType;
-  defaultRealm: string;
-};
-
-function Login({ defaultLoginType, ...props }: LoginProps): React.ReactElement {
+function Login(): React.ReactElement {
   const { search } = useLocation();
-  const session = useSession();
+  const astarte = useAstarte();
+  const config = useConfig();
 
-  if (session.isAuthenticated) {
+  if (astarte.isAuthenticated) {
     return <Navigate to="/" />;
   }
 
   const requestedLoginType = new URLSearchParams(search).get('type') || '';
   const loginType = ['oauth', 'token'].includes(requestedLoginType)
-    ? (requestedLoginType as LoginType)
-    : defaultLoginType;
+    ? (requestedLoginType as 'oauth' | 'token')
+    : config.auth.defaultMethod;
 
-  return <LoginPage type={loginType} {...props} />;
-}
-
-function TriggerDetails(props: PageProps): React.ReactElement {
-  const { triggerName } = useParams();
-  return <TriggerPage triggerName={triggerName} {...props} />;
-}
-
-function InterfaceEdit(props: PageProps): React.ReactElement {
-  const { interfaceName, interfaceMajor } = useParams();
   return (
-    <InterfacePage
-      interfaceName={interfaceName}
-      interfaceMajor={parseInt(interfaceMajor, 10)}
-      {...props}
+    <LoginPage
+      type={loginType}
+      canSwitchLoginType={config.auth.methods.length > 1}
+      defaultRealm={config.auth.defaultRealm || ''}
     />
   );
 }
 
-function RegisterDevice(props: PageProps): React.ReactElement {
+function TriggerDetails(): React.ReactElement {
+  const { triggerName } = useParams();
+  return <TriggerPage triggerName={triggerName} />;
+}
+
+function InterfaceEdit(): React.ReactElement {
+  const { interfaceName, interfaceMajor } = useParams();
+  return (
+    <InterfacePage interfaceName={interfaceName} interfaceMajor={parseInt(interfaceMajor, 10)} />
+  );
+}
+
+function RegisterDevice(): React.ReactElement {
   const searchQuery = new URLSearchParams(useLocation().search);
   const deviceId = searchQuery.get('deviceId') || '';
 
-  return <RegisterDevicePage deviceId={deviceId} {...props} />;
+  return <RegisterDevicePage deviceId={deviceId} />;
 }
 
-function GroupDevicesSubPath(props: PageProps): React.ReactElement {
+function GroupDevicesSubPath(): React.ReactElement {
   const { groupName } = useParams();
   const decodedGroupName = decodeURIComponent(groupName);
 
-  return <GroupDevicesPage groupName={decodedGroupName} {...props} />;
+  return <GroupDevicesPage groupName={decodedGroupName} />;
 }
 
-function FlowDetails(props: PageProps): React.ReactElement {
+function FlowDetails(): React.ReactElement {
   const { flowName } = useParams();
 
-  return <FlowDetailsPage flowName={flowName} {...props} />;
+  return <FlowDetailsPage flowName={flowName} />;
 }
 
-function FlowConfiguration(props: PageProps): React.ReactElement {
+function FlowConfiguration(): React.ReactElement {
   const [searchParams] = useSearchParams();
   const pipelineId = searchParams.get('pipelineId') || '';
 
-  return <FlowConfigurationPage pipelineId={pipelineId} {...props} />;
+  return <FlowConfigurationPage pipelineId={pipelineId} />;
 }
 
-function PipelineSubPath(props: PageProps): React.ReactElement {
+function PipelineSubPath(): React.ReactElement {
   const { pipelineId } = useParams();
 
-  return <PipelineSourcePage pipelineId={pipelineId} {...props} />;
+  return <PipelineSourcePage pipelineId={pipelineId} />;
 }
 
-function DeviceStatusSubPath(props: PageProps): React.ReactElement {
+function DeviceStatusSubPath(): React.ReactElement {
   const { deviceId } = useParams();
 
-  return <DeviceStatusPage deviceId={deviceId} {...props} />;
+  return <DeviceStatusPage deviceId={deviceId} />;
 }
 
-function BlockSubPath(props: PageProps): React.ReactElement {
+function BlockSubPath(): React.ReactElement {
   const { blockId } = useParams();
 
-  return <BlockSourcePage blockId={blockId} {...props} />;
+  return <BlockSourcePage blockId={blockId} />;
 }
 
-function DeviceDataSubPath(props: PageProps): React.ReactElement {
+function DeviceDataSubPath(): React.ReactElement {
   const { deviceId, interfaceName } = useParams();
 
-  return <DeviceInterfaceValues deviceId={deviceId} interfaceName={interfaceName} {...props} />;
+  return <DeviceInterfaceValues deviceId={deviceId} interfaceName={interfaceName} />;
 }
 
 type PrivateRouteProps = React.ComponentProps<typeof Route>;
 
 const PrivateRoute = ({ ...props }: PrivateRouteProps) => {
-  const session = useSession();
-  return session.isAuthenticated ? <Route {...props} /> : <Navigate to="/login" />;
+  const astarte = useAstarte();
+  return astarte.isAuthenticated ? <Route {...props} /> : <Navigate to="/login" />;
 };
 
-interface Props {
-  astarte: AstarteClient;
-  config: any;
-}
-
-export default ({ astarte, config }: Props): React.ReactElement => {
-  const pageProps = {
-    astarte,
-  };
-
-  return (
-    <Routes>
-      <PrivateRoute path="/" element={<HomePage {...pageProps} />} />
-      <PrivateRoute path="home" element={<HomePage {...pageProps} />} />
-      <Route path="auth" element={<AttemptLogin />} />
-      <Route path="logout" element={<Logout />} />
-      <Route
-        path="login"
-        element={
-          <Login
-            canSwitchLoginType={config.auth.length > 1}
-            defaultLoginType={config.default_auth || 'token'}
-            defaultRealm={config.default_realm || ''}
-            {...pageProps}
-          />
-        }
-      />
-      <PrivateRoute path="triggers" element={<TriggersPage {...pageProps} />} />
-      <PrivateRoute path="triggers/new" element={<NewTriggerPage {...pageProps} />} />
-      <PrivateRoute path="triggers/:triggerName/edit" element={<TriggerDetails {...pageProps} />} />
-      <PrivateRoute path="interfaces" element={<InterfacesPage {...pageProps} />} />
-      <PrivateRoute path="interfaces/new" element={<NewInterfacePage {...pageProps} />} />
-      <PrivateRoute
-        path="interfaces/:interfaceName/:interfaceMajor/edit"
-        element={<InterfaceEdit {...pageProps} />}
-      />
-      <PrivateRoute path="devices" element={<DevicesPage {...pageProps} />} />
-      <PrivateRoute path="devices/register" element={<RegisterDevice {...pageProps} />} />
-      <PrivateRoute
-        path="devices/:deviceId/edit"
-        element={<DeviceStatusSubPath {...pageProps} />}
-      />
-      <PrivateRoute
-        path="devices/:deviceId/interfaces/:interfaceName"
-        element={<DeviceDataSubPath {...pageProps} />}
-      />
-      <PrivateRoute path="groups" element={<GroupsPage {...pageProps} />} />
-      <PrivateRoute path="groups/new" element={<NewGroupPage {...pageProps} />} />
-      <PrivateRoute
-        path="groups/:groupName/edit"
-        element={<GroupDevicesSubPath {...pageProps} />}
-      />
-      <PrivateRoute path="flows" element={<FlowInstancesPage {...pageProps} />} />
-      <PrivateRoute path="flows/new" element={<FlowConfiguration {...pageProps} />} />
-      <PrivateRoute path="flows/:flowName/edit" element={<FlowDetails {...pageProps} />} />
-      <PrivateRoute path="pipelines" element={<PipelinesPage {...pageProps} />} />
-      <PrivateRoute path="pipelines/new" element={<NewPipelinePage {...pageProps} />} />
-      <PrivateRoute
-        path="pipelines/:pipelineId/edit"
-        element={<PipelineSubPath {...pageProps} />}
-      />
-      <PrivateRoute path="blocks" element={<BlocksPage {...pageProps} />} />
-      <PrivateRoute path="blocks/new" element={<NewBlockPage {...pageProps} />} />
-      <PrivateRoute path="blocks/:blockId/edit" element={<BlockSubPath {...pageProps} />} />
-      <PrivateRoute path="settings" element={<RealmSettingsPage {...pageProps} />} />
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
-  );
-};
+export default (): React.ReactElement => (
+  <Routes>
+    <PrivateRoute path="/" element={<HomePage />} />
+    <PrivateRoute path="home" element={<HomePage />} />
+    <Route path="auth" element={<AttemptLogin />} />
+    <Route path="logout" element={<Logout />} />
+    <Route path="login" element={<Login />} />
+    <PrivateRoute path="triggers" element={<TriggersPage />} />
+    <PrivateRoute path="triggers/new" element={<NewTriggerPage />} />
+    <PrivateRoute path="triggers/:triggerName/edit" element={<TriggerDetails />} />
+    <PrivateRoute path="interfaces" element={<InterfacesPage />} />
+    <PrivateRoute path="interfaces/new" element={<NewInterfacePage />} />
+    <PrivateRoute
+      path="interfaces/:interfaceName/:interfaceMajor/edit"
+      element={<InterfaceEdit />}
+    />
+    <PrivateRoute path="devices" element={<DevicesPage />} />
+    <PrivateRoute path="devices/register" element={<RegisterDevice />} />
+    <PrivateRoute path="devices/:deviceId/edit" element={<DeviceStatusSubPath />} />
+    <PrivateRoute
+      path="devices/:deviceId/interfaces/:interfaceName"
+      element={<DeviceDataSubPath />}
+    />
+    <PrivateRoute path="groups" element={<GroupsPage />} />
+    <PrivateRoute path="groups/new" element={<NewGroupPage />} />
+    <PrivateRoute path="groups/:groupName/edit" element={<GroupDevicesSubPath />} />
+    <PrivateRoute path="flows" element={<FlowInstancesPage />} />
+    <PrivateRoute path="flows/new" element={<FlowConfiguration />} />
+    <PrivateRoute path="flows/:flowName/edit" element={<FlowDetails />} />
+    <PrivateRoute path="pipelines" element={<PipelinesPage />} />
+    <PrivateRoute path="pipelines/new" element={<NewPipelinePage />} />
+    <PrivateRoute path="pipelines/:pipelineId/edit" element={<PipelineSubPath />} />
+    <PrivateRoute path="blocks" element={<BlocksPage />} />
+    <PrivateRoute path="blocks/new" element={<NewBlockPage />} />
+    <PrivateRoute path="blocks/:blockId/edit" element={<BlockSubPath />} />
+    <PrivateRoute path="settings" element={<RealmSettingsPage />} />
+    <Route path="*" element={<Navigate to="/" />} />
+  </Routes>
+);

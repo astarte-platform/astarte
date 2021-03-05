@@ -19,12 +19,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
-import AstarteClient, { AstarteNativeBlock } from 'astarte-client';
+import { AstarteNativeBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
 import WaitForData from './components/WaitForData';
 import Empty from './components/Empty';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 interface NewBlockCardProps {
   onCreate: () => void;
@@ -78,12 +79,9 @@ function BlockCard({ block, onShow }: BlockCardProps) {
   );
 }
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
-  const blocksFetcher = useFetch(astarte.getBlocks);
+export default (): React.ReactElement => {
+  const astarte = useAstarte();
+  const blocksFetcher = useFetch(astarte.client.getBlocks);
   const navigate = useNavigate();
 
   return (

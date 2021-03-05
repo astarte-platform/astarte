@@ -18,7 +18,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Button, Container, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
-import AstarteClient, { AstarteDevice } from 'astarte-client';
+import type { AstarteDevice } from 'astarte-client';
 import { Link, useNavigate } from 'react-router-dom';
 
 import Empty from './components/Empty';
@@ -26,6 +26,7 @@ import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
   <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
@@ -104,18 +105,18 @@ const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) 
 );
 
 interface Props {
-  astarte: AstarteClient;
   groupName: string;
 }
 
-const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => {
+const GroupDevicesPage = ({ groupName }: Props): React.ReactElement => {
   const [selectedDevice, setSelectedDevice] = useState<AstarteDevice | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);
   const navigate = useNavigate();
+  const astarte = useAstarte();
 
   const devicesFetcher = useFetch(() =>
-    astarte.getDevicesInGroup({
+    astarte.client.getDevicesInGroup({
       groupName,
       details: true,
     }),
@@ -138,7 +139,7 @@ const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => 
       return;
     }
     setIsRemovingDevice(true);
-    astarte
+    astarte.client
       .removeDeviceFromGroup({
         groupName,
         deviceId: selectedDevice.id,
@@ -153,7 +154,7 @@ const GroupDevicesPage = ({ astarte, groupName }: Props): React.ReactElement => 
         }
       });
   }, [
-    astarte,
+    astarte.client,
     setIsRemovingDevice,
     setIsModalVisible,
     devicesFetcher.refresh,

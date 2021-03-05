@@ -15,9 +15,9 @@
 import React, { useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge, Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 import _ from 'lodash';
 
+import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -70,23 +70,20 @@ const ErrorRow = ({ onRetry }: ErrorRowProps): React.ReactElement => (
   </ListGroup.Item>
 );
 
-interface Props {
-  astarte: AstarteClient;
-}
-
 interface InterfaceInfo {
   name: string;
   majors: number[];
 }
 
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const astarte = useAstarte();
   const navigate = useNavigate();
 
   const fetchInterfacesInfo = useCallback(async (): Promise<InterfaceInfo[]> => {
-    const interfaceNames = await astarte.getInterfaceNames();
+    const interfaceNames = await astarte.client.getInterfaceNames();
     const fetchedInterfaces = await Promise.all(
       interfaceNames.map((interfaceName) =>
-        astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => ({
+        astarte.client.getInterfaceMajors(interfaceName).then((interfaceMajors) => ({
           name: interfaceName,
           majors: interfaceMajors.sort().reverse(),
         })),
@@ -94,7 +91,7 @@ export default ({ astarte }: Props): React.ReactElement => {
     );
     const sortedInterfaces = _.sortBy(fetchedInterfaces, ['name']);
     return sortedInterfaces;
-  }, [astarte]);
+  }, [astarte.client]);
 
   const interfacesInfoFetcher = useFetch(fetchInterfacesInfo);
 

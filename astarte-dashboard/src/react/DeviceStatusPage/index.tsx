@@ -20,13 +20,13 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Col, Container, Row, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
-import AstarteClient from 'astarte-client';
 import type { AstarteDevice } from 'astarte-client';
 import BackButton from '../ui/BackButton';
 import Empty from '../components/Empty';
 import WaitForData from '../components/WaitForData';
 import useFetch from '../hooks/useFetch';
 import { useAlerts } from '../AlertManager';
+import { useAstarte } from '../AstarteManager';
 
 import DeviceInfoCard from './DeviceInfoCard';
 import AliasesCard from './AliasesCard';
@@ -143,13 +143,13 @@ type PageModal =
   | ReregisterDeviceModalT;
 
 interface Props {
-  astarte: AstarteClient;
   deviceId: string;
 }
 
-export default ({ astarte, deviceId }: Props): React.ReactElement => {
-  const deviceFetcher = useFetch(() => astarte.getDeviceInfo(deviceId));
-  const groupsFetcher = useFetch(() => astarte.getGroupList());
+export default ({ deviceId }: Props): React.ReactElement => {
+  const astarte = useAstarte();
+  const deviceFetcher = useFetch(() => astarte.client.getDeviceInfo(deviceId));
+  const groupsFetcher = useFetch(() => astarte.client.getGroupList());
   const devicePageAlers = useAlerts();
   const [activeModal, setActiveModal] = useState<PageModal | null>(null);
 
@@ -167,7 +167,7 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
 
   const inhibitDeviceCredentialsRequests = useCallback(
     (inhibit) => {
-      astarte
+      astarte.client
         .inhibitDeviceCredentialsRequests(deviceId, inhibit)
         .then(() => {
           deviceFetcher.refresh();
@@ -178,11 +178,11 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
           );
         });
     },
-    [astarte, deviceId],
+    [astarte.client, deviceId],
   );
 
   const wipeDeviceCredentials = useCallback(() => {
-    astarte
+    astarte.client
       .wipeDeviceCredentials(deviceId)
       .then(() => {
         setActiveModal({ kind: 'reregister_device_modal' });
@@ -191,11 +191,11 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
         devicePageAlers.showError(`Couldn't wipe the device credential secret`);
         dismissModal();
       });
-  }, [astarte, deviceId]);
+  }, [astarte.client, deviceId]);
 
   const addDeviceToGroup = useCallback(
     (groupName) => {
-      astarte
+      astarte.client
         .addDeviceToGroup({
           groupName,
           deviceId,
@@ -209,12 +209,12 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte],
+    [astarte.client],
   );
 
   const handleAliasUpdate = useCallback(
     (key, value) => {
-      astarte
+      astarte.client
         .insertDeviceAlias(deviceId, key, value)
         .then(() => {
           dismissModal();
@@ -225,12 +225,12 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte, deviceId],
+    [astarte.client, deviceId],
   );
 
   const handleAliasDeletion = useCallback(
     (key) => {
-      astarte
+      astarte.client
         .deleteDeviceAlias(deviceId, key)
         .then(() => {
           dismissModal();
@@ -241,12 +241,12 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte, deviceId],
+    [astarte.client, deviceId],
   );
 
   const handleMetadataUpdate = useCallback(
     (key, value) => {
-      astarte
+      astarte.client
         .insertDeviceMetadata(deviceId, key, value)
         .then(() => {
           dismissModal();
@@ -257,12 +257,12 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte, deviceId],
+    [astarte.client, deviceId],
   );
 
   const handleMetadataDeletion = useCallback(
     (key) => {
-      astarte
+      astarte.client
         .deleteDeviceMetadata(deviceId, key)
         .then(() => {
           dismissModal();
@@ -273,7 +273,7 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte, deviceId],
+    [astarte.client, deviceId],
   );
 
   return (
@@ -378,10 +378,10 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
               <IntrospectionCard device={device} />
               <PreviousInterfacesCard device={device} />
               {fullInterfaceList.length > 0 && (
-                <ExchangedBytesCard astarte={astarte} device={device} />
+                <ExchangedBytesCard astarte={astarte.client} device={device} />
               )}
               <DeviceStatusEventsCard device={device} />
-              <DeviceLiveEventsCard astarte={astarte} deviceId={device.id} />
+              <DeviceLiveEventsCard astarte={astarte.client} deviceId={device.id} />
             </Row>
           );
         }}

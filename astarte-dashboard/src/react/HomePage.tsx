@@ -21,8 +21,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Col, Container, Card, Row, Spinner, Table } from 'react-bootstrap';
 import { getConnectedDevices, ChartProvider, ConnectedDevices } from 'astarte-charts';
 import { ConnectedDevicesChart } from 'astarte-charts/react';
-import type AstarteClient from 'astarte-client';
 
+import { useConfig } from './ConfigManager';
+import { useAstarte } from './AstarteManager';
 import useFetch from './hooks/useFetch';
 import WaitForData from './components/WaitForData';
 
@@ -306,21 +307,21 @@ const TriggersCard = ({
   </Card>
 );
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
-  const devicesStats = useFetch(astarte.getDevicesStats);
-  const interfaces = useFetch(astarte.getInterfaceNames);
-  const triggers = useFetch(astarte.getTriggerNames);
-  const appEngineHealth = useFetch(astarte.getAppengineHealth);
-  const realmManagementHealth = useFetch(astarte.getRealmManagementHealth);
-  const pairingHealth = useFetch(astarte.getPairingHealth);
-  const flowHealth = astarte.features.flow ? useFetch(astarte.getFlowHealth) : null;
+export default (): React.ReactElement => {
+  const astarte = useAstarte();
+  const config = useConfig();
+  const devicesStats = useFetch(astarte.client.getDevicesStats);
+  const interfaces = useFetch(astarte.client.getInterfaceNames);
+  const triggers = useFetch(astarte.client.getTriggerNames);
+  const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
+  const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
+  const pairingHealth = useFetch(astarte.client.getPairingHealth);
+  const flowHealth = config.features.flow ? useFetch(astarte.client.getFlowHealth) : null;
   const navigate = useNavigate();
 
-  const connectedDevicesProvider = useMemo(() => getConnectedDevices(astarte), [astarte]);
+  const connectedDevicesProvider = useMemo(() => getConnectedDevices(astarte.client), [
+    astarte.client,
+  ]);
 
   const refreshData = () => {
     devicesStats.refresh();
@@ -329,7 +330,7 @@ export default ({ astarte }: Props): React.ReactElement => {
     appEngineHealth.refresh();
     realmManagementHealth.refresh();
     pairingHealth.refresh();
-    if (astarte.features.flow && flowHealth) {
+    if (config.features.flow && flowHealth) {
       flowHealth.refresh();
     }
   };
@@ -338,17 +339,15 @@ export default ({ astarte }: Props): React.ReactElement => {
     const refreshTimer = setInterval(() => {
       refreshData();
     }, 30000);
-    astarte.addListener('credentialsChange', refreshData);
 
     return () => {
       clearTimeout(refreshTimer);
-      astarte.removeListener('credentialsChange', refreshData);
     };
-  }, [astarte]);
+  }, [astarte.client]);
 
   const redirectToLastInterface = useCallback((e, interfaceName) => {
     e.preventDefault();
-    astarte.getInterfaceMajors(interfaceName).then((interfaceMajors) => {
+    astarte.client.getInterfaceMajors(interfaceName).then((interfaceMajors) => {
       const latestMajor = Math.max(...interfaceMajors);
       navigate(`/interfaces/${interfaceName}/${latestMajor}/edit`);
     });
@@ -367,7 +366,7 @@ export default ({ astarte }: Props): React.ReactElement => {
             appengine={appEngineHealth.status}
             realmManagement={realmManagementHealth.status}
             pairing={pairingHealth.status}
-            showFlowStatus={astarte.features.flow}
+            showFlowStatus={config.features.flow}
             flow={flowHealth ? flowHealth.status : null}
           />
         </Col>
