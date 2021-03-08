@@ -13,8 +13,8 @@ When interacting with Astarte as a User, you have several options to choose from
 * [astartectl](https://github.com/astarte-platform/astartectl): `astartectl` is the main command-line tool to interact with Astarte clusters, which packs
   in a number of subcommands to interact with Astarte API sets. It is a swiss army knife to perform daily operations on Astarte Clusters, and it abstracts
   most Astarte API interactions in a user-friendly way.
-* Astarte Dashboard: Astarte provides a built-in UI that can be used for managing Interfaces, Devices and Triggers. If your cluster has the dashboard enabled, it can
-  be usually found at `dashboard.<base Astarte URL>`. It is meant to be a graphical, user-friendly tool to perform daily operations in the Cluster.
+* [Astarte Dashboard](015-astarte_dashboard.html): Astarte provides a built-in UI that can be used for managing Interfaces, Devices and Triggers.
+  It is meant to be a graphical, user-friendly tool to perform daily operations on Realms.
 * Astarte API Clients: API Clients are provided for a variety of languages. These clients abstract API interaction with language-friendly paradigms, and provide
   API automations for several operations. Currently, the main API client available is [astarte-go](https://github.com/astarte-platform/astarte-go).
 * Astarte APIs: The base APIs are the lower level interaction layer. They are accessible, in standard installations, at `api.<base Astarte URL>/<apiset>`, and are
