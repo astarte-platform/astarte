@@ -17,7 +17,7 @@
 */
 
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
 
 import { useAlerts } from './AlertManager';
@@ -70,17 +70,14 @@ const DeleteModal = ({ triggerName, onCancel, onConfirm, isDeletingTrigger }: De
   );
 };
 
-interface Props {
-  triggerName: string;
-}
-
-export default ({ triggerName }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [isDeletingTrigger, setIsDeletingTrigger] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const deletionAlerts = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
+  const { triggerName } = useParams();
 
   const triggerFetcher = useFetch(() => astarte.client.getTrigger(triggerName));
 

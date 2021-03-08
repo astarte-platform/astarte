@@ -19,7 +19,7 @@
 /* @global document */
 
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import { Button, Col, Form, Spinner, Table } from 'react-bootstrap';
 import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
@@ -253,11 +253,9 @@ const NamespaceModal = ({ onCancel, onConfirm }: NamespaceModalProps) => {
   );
 };
 
-interface Props {
-  deviceId: string;
-}
-
-export default ({ deviceId: initialDeviceId }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const searchQuery = new URLSearchParams(useLocation().search);
+  const initialDeviceId = searchQuery.get('deviceId') || '';
   const [deviceId, setDeviceId] = useState<AstarteDevice['id']>(initialDeviceId);
   const [deviceSecret, setDeviceSecret] = useState<string>('');
   const [shouldSendIntrospection, setShouldSendIntrospection] = useState(false);

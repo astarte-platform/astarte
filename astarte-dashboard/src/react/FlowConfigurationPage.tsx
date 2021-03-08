@@ -17,18 +17,16 @@
 */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 
 import { useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import SingleCardPage from './ui/SingleCardPage';
 
-interface Props {
-  pipelineId: string;
-}
-
-export default ({ pipelineId }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const [searchParams] = useSearchParams();
+  const pipelineId = searchParams.get('pipelineId') || '';
   const [flow, setFlow] = useState({
     name: '',
     config: '{}',

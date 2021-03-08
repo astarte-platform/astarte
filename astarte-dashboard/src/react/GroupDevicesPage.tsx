@@ -19,7 +19,7 @@
 import React, { useState, useCallback } from 'react';
 import { Button, Container, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
 import type { AstarteDevice } from 'astarte-client';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
@@ -104,11 +104,8 @@ const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) 
   </Table>
 );
 
-interface Props {
-  groupName: string;
-}
-
-const GroupDevicesPage = ({ groupName }: Props): React.ReactElement => {
+const GroupDevicesPage = (): React.ReactElement => {
+  const groupName = decodeURIComponent(useParams().groupName);
   const [selectedDevice, setSelectedDevice] = useState<AstarteDevice | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);

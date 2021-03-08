@@ -18,7 +18,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Col, Container, Row, Spinner } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 import type { AstarteDevice } from 'astarte-client';
 import BackButton from '../ui/BackButton';
@@ -142,11 +142,8 @@ type PageModal =
   | DeleteMetadataModalT
   | ReregisterDeviceModalT;
 
-interface Props {
-  deviceId: string;
-}
-
-export default ({ deviceId }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const { deviceId } = useParams();
   const astarte = useAstarte();
   const deviceFetcher = useFetch(() => astarte.client.getDeviceInfo(deviceId));
   const groupsFetcher = useFetch(() => astarte.client.getGroupList());

@@ -17,6 +17,7 @@
 */
 
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import { Container, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 
@@ -26,11 +27,8 @@ import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import { useAstarte } from './AstarteManager';
 
-interface Props {
-  flowName: string;
-}
-
-export default ({ flowName }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const { flowName } = useParams();
   const astarte = useAstarte();
   const flowFetcher = useFetch(() => astarte.client.getFlowDetails(flowName));
 

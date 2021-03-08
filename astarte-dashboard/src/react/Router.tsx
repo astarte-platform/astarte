@@ -17,7 +17,7 @@
 */
 
 import React from 'react';
-import { Navigate, Routes, Route, useParams, useLocation, useSearchParams } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -100,69 +100,6 @@ function Login(): React.ReactElement {
   );
 }
 
-function TriggerDetails(): React.ReactElement {
-  const { triggerName } = useParams();
-  return <TriggerPage triggerName={triggerName} />;
-}
-
-function InterfaceEdit(): React.ReactElement {
-  const { interfaceName, interfaceMajor } = useParams();
-  return (
-    <InterfacePage interfaceName={interfaceName} interfaceMajor={parseInt(interfaceMajor, 10)} />
-  );
-}
-
-function RegisterDevice(): React.ReactElement {
-  const searchQuery = new URLSearchParams(useLocation().search);
-  const deviceId = searchQuery.get('deviceId') || '';
-
-  return <RegisterDevicePage deviceId={deviceId} />;
-}
-
-function GroupDevicesSubPath(): React.ReactElement {
-  const { groupName } = useParams();
-  const decodedGroupName = decodeURIComponent(groupName);
-
-  return <GroupDevicesPage groupName={decodedGroupName} />;
-}
-
-function FlowDetails(): React.ReactElement {
-  const { flowName } = useParams();
-
-  return <FlowDetailsPage flowName={flowName} />;
-}
-
-function FlowConfiguration(): React.ReactElement {
-  const [searchParams] = useSearchParams();
-  const pipelineId = searchParams.get('pipelineId') || '';
-
-  return <FlowConfigurationPage pipelineId={pipelineId} />;
-}
-
-function PipelineSubPath(): React.ReactElement {
-  const { pipelineId } = useParams();
-
-  return <PipelineSourcePage pipelineId={pipelineId} />;
-}
-
-function DeviceStatusSubPath(): React.ReactElement {
-  const { deviceId } = useParams();
-
-  return <DeviceStatusPage deviceId={deviceId} />;
-}
-
-function BlockSubPath(): React.ReactElement {
-  const { blockId } = useParams();
-
-  return <BlockSourcePage blockId={blockId} />;
-}
-
-function DeviceDataSubPath(): React.ReactElement {
-  const { deviceId, interfaceName } = useParams();
-
-  return <DeviceInterfaceValues deviceId={deviceId} interfaceName={interfaceName} />;
-}
-
 type PrivateRouteProps = React.ComponentProps<typeof Route>;
 
 const PrivateRoute = ({ ...props }: PrivateRouteProps) => {
@@ -179,32 +116,32 @@ export default (): React.ReactElement => (
     <Route path="login" element={<Login />} />
     <PrivateRoute path="triggers" element={<TriggersPage />} />
     <PrivateRoute path="triggers/new" element={<NewTriggerPage />} />
-    <PrivateRoute path="triggers/:triggerName/edit" element={<TriggerDetails />} />
+    <PrivateRoute path="triggers/:triggerName/edit" element={<TriggerPage />} />
     <PrivateRoute path="interfaces" element={<InterfacesPage />} />
     <PrivateRoute path="interfaces/new" element={<NewInterfacePage />} />
     <PrivateRoute
       path="interfaces/:interfaceName/:interfaceMajor/edit"
-      element={<InterfaceEdit />}
+      element={<InterfacePage />}
     />
     <PrivateRoute path="devices" element={<DevicesPage />} />
-    <PrivateRoute path="devices/register" element={<RegisterDevice />} />
-    <PrivateRoute path="devices/:deviceId/edit" element={<DeviceStatusSubPath />} />
+    <PrivateRoute path="devices/register" element={<RegisterDevicePage />} />
+    <PrivateRoute path="devices/:deviceId/edit" element={<DeviceStatusPage />} />
     <PrivateRoute
       path="devices/:deviceId/interfaces/:interfaceName"
-      element={<DeviceDataSubPath />}
+      element={<DeviceInterfaceValues />}
     />
     <PrivateRoute path="groups" element={<GroupsPage />} />
     <PrivateRoute path="groups/new" element={<NewGroupPage />} />
-    <PrivateRoute path="groups/:groupName/edit" element={<GroupDevicesSubPath />} />
+    <PrivateRoute path="groups/:groupName/edit" element={<GroupDevicesPage />} />
     <PrivateRoute path="flows" element={<FlowInstancesPage />} />
-    <PrivateRoute path="flows/new" element={<FlowConfiguration />} />
-    <PrivateRoute path="flows/:flowName/edit" element={<FlowDetails />} />
+    <PrivateRoute path="flows/new" element={<FlowConfigurationPage />} />
+    <PrivateRoute path="flows/:flowName/edit" element={<FlowDetailsPage />} />
     <PrivateRoute path="pipelines" element={<PipelinesPage />} />
     <PrivateRoute path="pipelines/new" element={<NewPipelinePage />} />
-    <PrivateRoute path="pipelines/:pipelineId/edit" element={<PipelineSubPath />} />
+    <PrivateRoute path="pipelines/:pipelineId/edit" element={<PipelineSourcePage />} />
     <PrivateRoute path="blocks" element={<BlocksPage />} />
     <PrivateRoute path="blocks/new" element={<NewBlockPage />} />
-    <PrivateRoute path="blocks/:blockId/edit" element={<BlockSubPath />} />
+    <PrivateRoute path="blocks/:blockId/edit" element={<BlockSourcePage />} />
     <PrivateRoute path="settings" element={<RealmSettingsPage />} />
     <Route path="*" element={<Navigate to="/" />} />
   </Routes>

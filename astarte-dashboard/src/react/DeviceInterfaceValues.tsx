@@ -17,6 +17,7 @@
 */
 
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
 import type {
   AstarteDataTuple,
@@ -183,12 +184,8 @@ const InterfaceData = ({ interfaceData }: InterfaceDataProps): React.ReactElemen
   );
 };
 
-interface Props {
-  deviceId: string;
-  interfaceName: string;
-}
-
-export default ({ deviceId, interfaceName }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const { deviceId, interfaceName } = useParams();
   const astarte = useAstarte();
   const deviceDataFetcher = useFetch(() =>
     astarte.client.getDeviceDataTree({

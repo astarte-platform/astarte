@@ -17,11 +17,10 @@
 */
 
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { AstarteCustomBlock } from 'astarte-client';
-import type { AstarteBlock } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import Empty from './components/Empty';
@@ -37,11 +36,8 @@ const blockTypeToLabel = {
   producer_consumer: 'Producer & Consumer',
 };
 
-interface Props {
-  blockId: AstarteBlock['name'];
-}
-
-export default ({ blockId }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const { blockId } = useParams();
   const astarte = useAstarte();
   const blockFetcher = useFetch(() => astarte.client.getBlock(blockId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);

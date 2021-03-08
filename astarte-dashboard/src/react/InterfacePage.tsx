@@ -17,7 +17,7 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { AstarteInterface } from 'astarte-client';
 
@@ -80,12 +80,7 @@ const DeleteModal = ({
   );
 };
 
-interface Props {
-  interfaceName: string;
-  interfaceMajor: number;
-}
-
-export default ({ interfaceName, interfaceMajor }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [interfaceDraft, setInterfaceDraft] = useState<AstarteInterface | null>(null);
   const [isValidInterface, setIsValidInterface] = useState(false);
   const [isUpdatingInterface, setIsUpdatingInterface] = useState(false);
@@ -96,6 +91,9 @@ export default ({ interfaceName, interfaceMajor }: Props): React.ReactElement =>
   const actionAlerts = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
+  const pathParams = useParams();
+  const { interfaceName } = pathParams;
+  const interfaceMajor = parseInt(pathParams.interfaceMajor, 10);
 
   const interfaceFetcher = useFetch(() =>
     astarte.client.getInterface({ interfaceName, interfaceMajor }),

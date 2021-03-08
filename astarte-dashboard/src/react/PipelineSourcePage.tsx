@@ -17,7 +17,7 @@
 */
 
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import _ from 'lodash';
@@ -30,11 +30,8 @@ import ConfirmModal from './components/modals/Confirm';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 
-interface Props {
-  pipelineId: string;
-}
-
-export default ({ pipelineId }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const { pipelineId } = useParams();
   const astarte = useAstarte();
   const pipelineFetcher = useFetch(() => astarte.client.getPipeline(pipelineId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
