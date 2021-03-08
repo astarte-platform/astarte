@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - [astarte_e2e] Client disconnections are responsible for triggering a mail alert.
+- Run tests against RabbitMQ 3.8.12 and ScyllaDB 4.4-rc.1 / Cassandra 3.11.10.
+- Update dependencies to latest available versions (see `mix.lock` files).
+- Update Elixir to 1.11 and OTP to 23.2.
 
 ## [1.0.0-beta.1] - 2021-02-16
 ### Fixed

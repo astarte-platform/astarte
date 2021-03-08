@@ -49,7 +49,7 @@ defmodule AstarteE2E.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_device, "~> 1.0.0-beta.1"},
+      {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir", branch: "release-1.0"},
       {:phoenix_gen_socket_client, "~> 4.0"},
       {:websocket_client, "~> 1.2"},
       {:jason, "~> 1.0"},
