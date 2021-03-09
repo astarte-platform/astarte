@@ -10,6 +10,25 @@ You will need a machine with at least 4GB of RAM, a recent 64-bit operating syst
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
 
+Due to ScyllaDB requirements, if you're working on a Linux machine you should make sure that `aio-max-nr` is at least `1048576`:
+
+```sh
+cat /proc/sys/fs/aio-max-nr
+1048576
+```
+
+If it's less than that, you'll need to edit your `/etc/sysctl.conf` file
+
+```
+fs.aio-max-nr = 1048576
+```
+
+and to persist this configuration
+
+```sh
+sudo sysctl -p
+```
+
 ## Checking prerequistes
 
 Docker version >= 19 is recommended:
