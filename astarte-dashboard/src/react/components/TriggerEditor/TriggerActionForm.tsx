@@ -21,6 +21,8 @@ import { Button, Col, Form, InputGroup, Table } from 'react-bootstrap';
 import { AstarteTrigger, AstarteTriggerHTTPAction, AstarteTriggerAMQPAction } from 'astarte-client';
 import _ from 'lodash';
 
+import Icon from '../Icon';
+
 const defaultTriggerHttpAction: AstarteTriggerHTTPAction = {
   httpUrl: '',
   httpMethod: 'post',
@@ -298,7 +300,7 @@ const TriggerActionForm = ({
               <Form.Group controlId="actionHttpHeaders">
                 {!isReadOnly && (
                   <Button variant="link" className="p-0" onClick={() => onAddHttpHeader()}>
-                    <i className="fas fa-plus mr-2" />
+                    <Icon icon="add" className="mr-2" />
                     Add custom HTTP headers
                   </Button>
                 )}
@@ -318,14 +320,12 @@ const TriggerActionForm = ({
                           <td>{headerValue as string}</td>
                           {!isReadOnly && (
                             <td className="text-center">
-                              <i
-                                className="fas fa-pencil-alt color-grey action-icon mr-2"
+                              <Icon
+                                icon="edit"
                                 onClick={() => onEditHttpHeader(headerName)}
+                                className="color-grey mr-2"
                               />
-                              <i
-                                className="fas fa-eraser color-red action-icon"
-                                onClick={() => onRemoveHttpHeader(headerName)}
-                              />
+                              <Icon icon="erase" onClick={() => onRemoveHttpHeader(headerName)} />
                             </td>
                           )}
                         </tr>
@@ -454,7 +454,7 @@ const TriggerActionForm = ({
               <Form.Group controlId="actionAmqpHeaders">
                 {!isReadOnly && (
                   <Button variant="link" className="p-0" onClick={() => onAddAmqpHeader()}>
-                    <i className="fas fa-plus mr-2" />
+                    <Icon icon="add" className="mr-2" />
                     Add static AMQP headers
                   </Button>
                 )}
@@ -474,14 +474,12 @@ const TriggerActionForm = ({
                           <td>{headerValue as string}</td>
                           {!isReadOnly && (
                             <td className="text-center">
-                              <i
-                                className="fas fa-pencil-alt color-grey action-icon mr-2"
+                              <Icon
+                                icon="edit"
                                 onClick={() => onEditAmqpHeader(headerName)}
+                                className="color-grey mr-2"
                               />
-                              <i
-                                className="fas fa-eraser color-red action-icon"
-                                onClick={() => onRemoveAmqpHeader(headerName)}
-                              />
+                              <Icon icon="erase" onClick={() => onRemoveAmqpHeader(headerName)} />
                             </td>
                           )}
                         </tr>

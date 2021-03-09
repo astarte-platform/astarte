@@ -25,6 +25,7 @@ import { ConnectedDevicesChart } from 'astarte-charts/react';
 import { useConfig } from './ConfigManager';
 import { useAstarte } from './AstarteManager';
 import useFetch from './hooks/useFetch';
+import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
 
 type ServiceStatus = 'loading' | 'ok' | 'err';
@@ -46,14 +47,14 @@ const ServiceStatusRow = ({ service, status }: ServiceStatusRowProps): React.Rea
   } else if (status === 'ok') {
     messageCell = (
       <td className="color-green">
-        <i className="fas fa-check-circle mr-1" />
+        <Icon icon="statusOK" className="mr-1" />
         This service is operating normally
       </td>
     );
   } else {
     messageCell = (
       <td className="color-red">
-        <i className="fas fa-times-circle mr-1" />
+        <Icon icon="statusKO" className="mr-1" />
         This service appears offline
       </td>
     );
@@ -161,7 +162,7 @@ const InterfaceList = ({
               onInterfaceClick(e, interfaceName);
             }}
           >
-            <i className="fas fa-stream mr-1" />
+            <Icon icon="interfaces" className="mr-1" />
             {interfaceName}
           </a>
         </li>
@@ -243,7 +244,7 @@ const TriggerList = ({ triggers, maxShownTriggers }: TriggerListProps): React.Re
       {shownTriggers.map((triggerName) => (
         <li key={triggerName} className="my-1">
           <Link to={`/triggers/${triggerName}/edit`}>
-            <i className="fas fa-bolt mr-1" />
+            <Icon icon="triggers" className="mr-1" />
             {triggerName}
           </Link>
         </li>

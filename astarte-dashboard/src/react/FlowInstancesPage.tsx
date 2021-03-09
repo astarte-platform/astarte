@@ -18,22 +18,17 @@
 
 import React, { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Container, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import { Button, Container, Spinner, Table } from 'react-bootstrap';
 import type { AstarteFlow } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import Icon from './components/Icon';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import { useAstarte } from './AstarteManager';
-
-const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
-  <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
-    {props.children}
-  </i>
-));
 
 interface TableRowProps {
   instance: AstarteFlow;
@@ -43,31 +38,20 @@ interface TableRowProps {
 const TableRow = ({ instance, onDelete }: TableRowProps): React.ReactElement => (
   <tr>
     <td>
-      <OverlayTrigger
-        placement="right"
-        delay={{ show: 150, hide: 400 }}
-        overlay={<Tooltip id={`flow-state-${instance.name}`}>Running</Tooltip>}
-      >
-        <CircleIcon className="color-green" />
-      </OverlayTrigger>
+      <Icon icon="statusConnected" tooltip="Running" tooltipPlacement="right" />
     </td>
     <td>
       <Link to={`/flows/${instance.name}/edit`}>{instance.name}</Link>
     </td>
     <td>{instance.pipeline}</td>
     <td>
-      <OverlayTrigger
-        placement="left"
-        delay={{ show: 150, hide: 400 }}
-        overlay={<Tooltip id={`delete-flow-${instance.name}`}>Delete instance</Tooltip>}
-      >
-        <Button
-          as="i"
-          variant="danger"
-          className="fas fa-times"
-          onClick={() => onDelete(instance)}
-        />
-      </OverlayTrigger>
+      <Icon
+        icon="delete"
+        as="button"
+        tooltip="Delete instance"
+        tooltipPlacement="left"
+        onClick={() => onDelete(instance)}
+      />
     </td>
   </tr>
 );

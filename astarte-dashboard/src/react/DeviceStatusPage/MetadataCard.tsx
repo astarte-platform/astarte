@@ -18,9 +18,10 @@
 
 import React from 'react';
 import { Button, Card, Table } from 'react-bootstrap';
-
 import type { AstarteDevice } from 'astarte-client';
+
 import FullHeightCard from '../components/FullHeightCard';
+import Icon from '../components/Icon';
 
 interface MetadataKeyValuePair {
   key: string;
@@ -52,14 +53,12 @@ const MetadataTable = ({
           <td>{key}</td>
           <td>{value}</td>
           <td className="text-center">
-            <i
-              className="fas fa-pencil-alt color-grey action-icon mr-2"
+            <Icon
+              icon="edit"
+              className="color-grey mr-2"
               onClick={() => onEditMetadataClick(key)}
             />
-            <i
-              className="fas fa-eraser color-red action-icon"
-              onClick={() => onRemoveMetadataClick({ key, value })}
-            />
+            <Icon icon="erase" onClick={() => onRemoveMetadataClick({ key, value })} />
           </td>
         </tr>
       ))}

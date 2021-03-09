@@ -19,6 +19,7 @@
 import React from 'react';
 import { DefaultPortLabel, DiagramEngine } from '@projectstorm/react-diagrams';
 
+import Icon from './Icon';
 import NativeBlockModel from '../models/NativeBlockModel';
 
 interface Props {
@@ -43,7 +44,7 @@ const NativeBlockWidget = ({ engine, node, hasSettings }: Props): React.ReactEle
         <div className="node-title">{name}</div>
         {hasSettings && (
           <div className="settings-icon" onClick={(e) => node.onSettingsClick(e, node)}>
-            <i className="fas fa-cog" />
+            <Icon icon="settings" />
           </div>
         )}
       </div>

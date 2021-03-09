@@ -17,18 +17,7 @@
 */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Button,
-  Col,
-  Container,
-  Form,
-  OverlayTrigger,
-  Pagination,
-  Row,
-  Spinner,
-  Table,
-  Tooltip,
-} from 'react-bootstrap';
+import { Button, Col, Container, Form, Pagination, Row, Spinner, Table } from 'react-bootstrap';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import _ from 'lodash';
@@ -39,6 +28,7 @@ import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
 import Empty from './components/Empty';
 import Highlight from './components/Highlight';
+import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import { useAstarte } from './AstarteManager';
@@ -102,48 +92,34 @@ const MatchedMetadata = ({
   );
 };
 
-const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>(
-  ({ children, className, ...props }, ref) => (
-    <i ref={ref} {...props} className={`fas fa-circle ${className}`}>
-      {children}
-    </i>
-  ),
-);
-
 interface DeviceRowProps {
   device: AstarteDevice;
   filters: DeviceFilters;
 }
 
 const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
-  let colorClass;
   let lastEvent;
-  let tooltipText;
+  let icon;
+  let iconTooltip;
 
   if (device.isConnected) {
-    tooltipText = 'Connected';
-    colorClass = 'icon-connected';
+    icon = 'statusConnected' as const;
+    iconTooltip = 'Connected';
     lastEvent = `Connected on ${(device.lastConnection as Date).toLocaleString()}`;
   } else if (device.lastConnection) {
-    tooltipText = 'Disconnected';
-    colorClass = 'icon-disconnected';
+    icon = 'statusDisconnected' as const;
+    iconTooltip = 'Disconnected';
     lastEvent = `Disconnected on ${(device.lastDisconnection as Date).toLocaleString()}`;
   } else {
-    tooltipText = 'Never connected';
-    colorClass = 'icon-never-connected';
+    icon = 'statusNeverConnected' as const;
+    iconTooltip = 'Never connected';
     lastEvent = 'Never connected';
   }
 
   return (
     <tr>
       <td>
-        <OverlayTrigger
-          placement="right"
-          delay={{ show: 150, hide: 400 }}
-          overlay={<Tooltip id={device.id}>{tooltipText}</Tooltip>}
-        >
-          <CircleIcon className={colorClass} />
-        </OverlayTrigger>
+        <Icon icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
@@ -499,7 +475,7 @@ export default (): React.ReactElement => {
                   </Col>
                   <Col xs="auto" className="p-1">
                     <div className="p-2 mb-2" onClick={() => setShowSidebar(!showSidebar)}>
-                      <i className="fas fa-filter mr-1" />
+                      <Icon icon="filter" className="mr-1" />
                       {showSidebar && <b>Filters</b>}
                     </div>
                     {showSidebar && (

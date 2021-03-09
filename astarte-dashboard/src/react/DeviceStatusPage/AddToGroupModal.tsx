@@ -19,6 +19,8 @@
 import React, { useState } from 'react';
 import { Button, Modal, Spinner } from 'react-bootstrap';
 
+import Icon from '../components/Icon';
+
 interface AddToGroupModalProps {
   onCancel: () => void;
   onConfirm: (groupName: string) => void;
@@ -47,7 +49,7 @@ const AddToGroupModal = ({
               className={groupName === selectedGroup ? 'p-2 bg-success text-white' : 'p-2'}
             >
               <span onClick={() => setSelectedGroup(groupName)}>
-                <i className="fas fa-plus mr-2" />
+                <Icon icon="add" className="mr-2" />
                 {groupName}
               </span>
             </li>

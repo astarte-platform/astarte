@@ -57,10 +57,6 @@ $fa-font-path: '../../../node_modules/@fortawesome/fontawesome-free/webfonts';
 
 // Custom components
 
-$connected-color: $green;
-$disconnected-color: $red;
-$never-connected-color: $grey;
-
 h1,
 h2,
 h3,
@@ -255,18 +251,6 @@ h6,
   background-color: rgba(0, 0, 0, 0.03);
   color: $primary;
   text-align: left;
-}
-
-.icon-connected {
-  color: $connected-color;
-}
-
-.icon-disconnected {
-  color: $disconnected-color;
-}
-
-.icon-never-connected {
-  color: $never-connected-color;
 }
 
 .device-data-piechart {

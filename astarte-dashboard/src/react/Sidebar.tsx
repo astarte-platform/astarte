@@ -20,6 +20,8 @@ import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Nav, NavItem, NavLink } from 'react-bootstrap';
 
+import Icon from './components/Icon';
+
 interface SidebarApiStatusProps {
   healthy: boolean;
   realm: React.ReactNode;
@@ -35,7 +37,7 @@ const SidebarApiStatus = ({ healthy, realm }: SidebarApiStatusProps) => (
       <b>API Status</b>
     </div>
     <p className="my-1">
-      <i className={`fas fa-circle mr-2 ${healthy ? 'color-green' : 'color-red'}`} />
+      <Icon icon={healthy ? 'statusConnected' : 'statusDisconnected'} className="mr-2" />
       {healthy ? 'Up and running' : 'Degraded'}
     </p>
   </NavItem>
@@ -48,7 +50,7 @@ const SidebarBrand = () => (
 );
 
 interface SidebarItemProps {
-  icon: string;
+  icon: React.ComponentProps<typeof Icon>['icon'];
   label: string;
   link: string;
 }
@@ -65,7 +67,7 @@ const SidebarItem = ({ icon, label, link }: SidebarItemProps) => {
 
   return (
     <NavLink as={Link} to={link} active={isSelected}>
-      <i className={`fas fa-${icon} mr-2`} />
+      <Icon icon={icon} className="mr-2" />
       {label}
     </NavLink>
   );

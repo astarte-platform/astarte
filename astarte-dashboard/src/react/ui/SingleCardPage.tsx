@@ -18,7 +18,9 @@
 
 import React from 'react';
 import { Container } from 'react-bootstrap';
+
 import BackButton from './BackButton';
+import Icon from '../components/Icon';
 
 interface Props {
   backLink?: string;
@@ -43,7 +45,7 @@ export default function SingleCardPage({
         {docsLink && (
           <div className="float-right">
             <a target="_blank" rel="noreferrer" href={docsLink}>
-              <i className="fa fa-book mr-2" />
+              <Icon icon="documentation" className="mr-2" />
               Documentation
             </a>
           </div>

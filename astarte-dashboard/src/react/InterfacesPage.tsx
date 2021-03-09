@@ -19,6 +19,7 @@ import _ from 'lodash';
 
 import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
+import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import useInterval from './hooks/useInterval';
@@ -34,7 +35,7 @@ const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement =
       <Row>
         <Col>
           <Link to={`/interfaces/${name}/${Math.max(...majors)}/edit`}>
-            <i className="fas fa-stream mr-2" />
+            <Icon icon="interfaces" className="mr-2" />
             {name}
           </Link>
         </Col>
@@ -109,7 +110,7 @@ export default (): React.ReactElement => {
           <ListGroup>
             <ListGroup.Item>
               <Button variant="link" className="p-0" onClick={() => navigate('/interfaces/new')}>
-                <i className="fas fa-plus mr-2" />
+                <Icon icon="add" className="mr-2" />
                 Install a new interface...
               </Button>
             </ListGroup.Item>

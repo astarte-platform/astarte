@@ -22,6 +22,7 @@ import { Button, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap
 
 import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
+import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import useInterval from './hooks/useInterval';
@@ -34,7 +35,7 @@ interface TriggerRowProps {
 const TriggerRow = ({ name, onClick }: TriggerRowProps): React.ReactElement => (
   <ListGroup.Item>
     <Button variant="link" className="p-0" onClick={onClick}>
-      <i className="fas fa-bolt mr-2" />
+      <Icon icon="triggers" className="mr-2" />
       {name}
     </Button>
   </ListGroup.Item>
@@ -83,7 +84,7 @@ export default (): React.ReactElement => {
                   navigate('/triggers/new');
                 }}
               >
-                <i className="fas fa-plus mr-2" />
+                <Icon icon="add" className="mr-2" />
                 Install a new trigger...
               </Button>
             </ListGroup.Item>
