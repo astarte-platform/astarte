@@ -1190,7 +1190,7 @@ defmodule Astarte.AppEngine.API.Device do
                 endpoint_id,
                 endpoint_row,
                 a_path,
-                %InterfaceValuesOptions{limit: 1}
+                %{opts | limit: 1}
               )
 
             case values do
