@@ -257,8 +257,8 @@ class AstarteClient {
   }
 
   setCredentials(params: { realm: string; token: string } | null): void {
-    this.config.realm = params?.realm || '';
-    this.token = params?.token || '';
+    this.config.realm = _.get(params, 'realm') || '';
+    this.token = _.get(params, 'token') || '';
   }
 
   async getConfigAuth(): Promise<{ publicKey: string }> {
