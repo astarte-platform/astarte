@@ -9,14 +9,14 @@ export const constant = {
   SAMPLING_RATE: "SamplingRate",
   REALM: "realm",
   TOKEN: "token",
-  ENDPOINT: "endpoint"
+  ENDPOINT: "endpoint",
 };
 
 const Endpoint = {
   device_alias: "devices-by-alias/:device_alias/",
   device_id: "devices/:id?",
   interface_by_alias: "devices/:device_alias/interfaces/:interface/",
-  interface_by_id: "devices/:device_id/interfaces/:interface/"
+  interface_by_id: "devices/:device_id/interfaces/:interface/",
 };
 
 function getAPIUrl(endPoint, params = null) {
@@ -27,7 +27,7 @@ function getAPIUrl(endPoint, params = null) {
 function GET(url, params) {
   const headers = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${getAuthToken()}`
+    Authorization: `Bearer ${getAuthToken()}`,
   };
   return axios.get(url, { headers: headers, params: params });
 }
@@ -41,24 +41,30 @@ function getDeviceById(id, params = {}) {
 
 function handleDeviceDataInterfaces(data) {
   const interfaces = Object.keys(data.introspection);
-  const availableIndex = interfaces.findIndex(
-    key => key.search(constant.AVAILABLE_SENSORS) > -1
+  const availableSensorsInterface = interfaces.find(
+    (key) => key.search(constant.AVAILABLE_SENSORS) > -1
   );
-  const valueIndex = interfaces.findIndex(
-    key => key.search(constant.VALUES) > -1
+  const valuesInterface = interfaces.find(
+    (key) => key.search(constant.VALUES) > -1
   );
-  const samplingRateIndex = interfaces.findIndex(
-    key => key.search(constant.SAMPLING_RATE) > -1
+  const samplingRateInterface = interfaces.find(
+    (key) => key.search(constant.SAMPLING_RATE) > -1
   );
-  return { interfaces, availableIndex, valueIndex, samplingRateIndex, data };
+  return {
+    interfaces,
+    availableSensorsInterface,
+    valuesInterface,
+    samplingRateInterface,
+    data,
+  };
 }
 
 export const getDeviceDataById = (id, params = {}) => {
   return getDeviceById(id, params)
-    .then(response => {
+    .then((response) => {
       return Promise.resolve(handleDeviceDataInterfaces(response.data.data));
     })
-    .catch(err => {
+    .catch((err) => {
       return Promise.reject(err);
     });
 };
@@ -70,10 +76,10 @@ function getDeviceByAlias(alias, params = {}) {
 
 export const getDeviceDataByAlias = (alias, params = {}) => {
   return getDeviceByAlias(alias, params)
-    .then(response => {
+    .then((response) => {
       return Promise.resolve(handleDeviceDataInterfaces(response.data.data));
     })
-    .catch(err => {
+    .catch((err) => {
       return Promise.reject(err);
     });
 };
@@ -81,9 +87,9 @@ export const getDeviceDataByAlias = (alias, params = {}) => {
 export function getInterfaceById(device_id, interface_id, params = {}) {
   const URL = getAPIUrl("interface_by_id", {
     device_id: device_id,
-    interface: interface_id
+    interface: interface_id,
   });
-  return GET(URL, params).then(response => response.data.data);
+  return GET(URL, params).then((response) => response.data.data);
 }
 
 // LocalStorage Config

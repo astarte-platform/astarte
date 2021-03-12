@@ -7,7 +7,7 @@ import {
   FormControl,
   InputGroup,
   Row,
-  Spinner
+  Spinner,
 } from "react-bootstrap";
 import CredentialsModal from "./CredentialsModal";
 import SensorItem from "./SensorItem";
@@ -16,7 +16,7 @@ import {
   getDeviceDataByAlias,
   getDeviceDataById,
   getInterfaceById,
-  isMissingCredentials
+  isMissingCredentials,
 } from "../apiHandler";
 
 const _ = require("lodash");
@@ -27,29 +27,29 @@ class SensorViewer extends Component {
     deviceID: null,
     data: {},
     availableSensors: {},
-    sensorValues: {},
-    sensorSamplingRate: {},
+    sensorsValues: {},
+    sensorsSamplingRate: {},
     loading: false,
-    fetched: false
+    fetched: false,
   };
 
   componentDidMount() {
     if (isMissingCredentials()) this.setState({ visible: true });
   }
 
-  handleChange = e => {
+  handleChange = (e) => {
     e.preventDefault();
     this.setState({ [e.target.name]: e.target.value });
   };
 
-  handleCredentialModal = visible => {
+  handleCredentialModal = (visible) => {
     this.setState({ visible });
     if (!visible) {
       this.handleSubmit();
     }
   };
 
-  checkDeviceType = value => {
+  checkDeviceType = (value) => {
     const expression = new RegExp(/[a-z]?[A-Z]?[0-9]?-?_?/i);
     if (value.length === 22) if (expression.test(value)) return constant.ID;
     return constant.ALIAS;
@@ -71,10 +71,10 @@ class SensorViewer extends Component {
       this.setState({
         loading: true,
         availableSensors: {},
-        sensorValues: {},
-        sensorSamplingRate: {},
+        sensorsValues: {},
+        sensorsSamplingRate: {},
         fetched: false,
-        notFound: false
+        notFound: false,
       });
       if (type === constant.ID) {
         this.setDeviceDataById(deviceID);
@@ -84,36 +84,40 @@ class SensorViewer extends Component {
     }
   };
 
-  setInterfaces = res => {
+  setInterfaces = (res) => {
     const id = res.data.id;
     this.setState({
       data: res.data,
       loading: false,
-      fetched: true
+      fetched: true,
     });
-    getInterfaceById(id, res.interfaces[res.availableIndex]).then(response => {
-      this.setState({ availableSensors: response });
-    });
-    getInterfaceById(id, res.interfaces[res.valueIndex]).then(response => {
-      this.setState({ sensorValues: response });
-    });
-    getInterfaceById(id, res.interfaces[res.samplingRateIndex]).then(
-      response => {
-        this.setState({ sensorSamplingRate: response });
-      }
-    );
+    if (res.availableSensorsInterface) {
+      getInterfaceById(id, res.availableSensorsInterface).then((response) => {
+        this.setState({ availableSensors: response });
+      });
+    }
+    if (res.valuesInterface) {
+      getInterfaceById(id, res.valuesInterface).then((response) => {
+        this.setState({ sensorsValues: response });
+      });
+    }
+    if (res.samplingRateInterface) {
+      getInterfaceById(id, res.samplingRateInterface).then((response) => {
+        this.setState({ sensorsSamplingRate: response });
+      });
+    }
   };
 
   setDeviceDataById = (id, params = {}) => {
     getDeviceDataById(id, params)
-      .then(res => this.setInterfaces(res))
-      .catch(err => this.handleError(err));
+      .then((res) => this.setInterfaces(res))
+      .catch((err) => this.handleError(err));
   };
 
   setDeviceDataByAlias = (alias, params = {}) => {
     getDeviceDataByAlias(alias, params)
-      .then(res => this.setInterfaces(res))
-      .catch(err => this.handleError(err));
+      .then((res) => this.setInterfaces(res))
+      .catch((err) => this.handleError(err));
   };
 
   render() {
@@ -121,10 +125,10 @@ class SensorViewer extends Component {
       visible,
       data,
       availableSensors,
-      sensorValues,
-      sensorSamplingRate,
+      sensorsValues,
+      sensorsSamplingRate,
       loading,
-      fetched
+      fetched,
     } = this.state;
     return (
       <Container className="px-0 py-4" fluid>
@@ -135,7 +139,7 @@ class SensorViewer extends Component {
                 className="sensor-main-div text-center text-uppercase
                                 font-weight-bold text-white bg-sensor-theme mb-5 px-0 py-3"
               >
-                Sensor Viewer
+                Sensors Viewer
               </h5>
               <Col xs={12} className="sensor-id-search-div px-5 pt-5 pb-4">
                 <Row className="main-row col-sm-7 align-items-center mx-auto">
@@ -185,7 +189,7 @@ class SensorViewer extends Component {
                           style={{
                             backgroundColor: `${
                               data.connected ? "#008000" : "#ff0000"
-                            }`
+                            }`,
                           }}
                         />
                         Device {data.connected ? "Connected" : "Disconnected"}
@@ -194,15 +198,13 @@ class SensorViewer extends Component {
                       ""
                     )}
                   </Col>
-                  {!_.isEmpty(availableSensors) &&
-                  !_.isEmpty(sensorValues) &&
-                  !_.isEmpty(sensorSamplingRate) ? (
+                  {!_.isEmpty(sensorsValues) ? (
                     <Col xs={12}>
                       <Accordion>
                         <SensorItem
                           availableSensors={availableSensors}
-                          sensorValues={sensorValues}
-                          sensorSamplingRate={sensorSamplingRate}
+                          sensorsValues={sensorsValues}
+                          sensorsSamplingRate={sensorsSamplingRate}
                         />
                       </Accordion>
                     </Col>
