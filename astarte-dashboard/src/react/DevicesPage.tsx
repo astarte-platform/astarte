@@ -32,7 +32,6 @@ import {
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import _ from 'lodash';
-import AstarteClient from 'astarte-client';
 import type { AstarteDevice } from 'astarte-client';
 
 import { Link, useNavigate } from 'react-router-dom';
@@ -42,6 +41,7 @@ import Empty from './components/Empty';
 import Highlight from './components/Highlight';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 interface DeviceFilters {
   deviceId?: AstarteDevice['id'];
@@ -398,15 +398,12 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [activePage, setActivePage] = useState(0);
   const [showSidebar, setShowSidebar] = useState(true);
   const [filters, setFilters] = useState({});
   const navigate = useNavigate();
+  const astarte = useAstarte();
 
   const pageAlerts = useAlerts();
 
@@ -418,7 +415,7 @@ export default ({ astarte }: Props): React.ReactElement => {
         previousDevices?: AstarteDevice[];
       } = {},
     ): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> => {
-      const { devices, nextToken } = await astarte.getDevices({
+      const { devices, nextToken } = await astarte.client.getDevices({
         details: true,
         from: params.fromToken,
         limit: DEVICES_PER_REQUEST,
@@ -435,7 +432,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       }
       return { devices: updatedDevices, nextToken };
     },
-    [astarte],
+    [astarte.client],
   );
 
   const devicesFetcher = useFetch(fetchDevices, {});

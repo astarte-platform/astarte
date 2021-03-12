@@ -16,38 +16,125 @@
    limitations under the License.
 */
 
-import React from 'react';
-import type AstarteClient from 'astarte-client';
-import type { BrowserHistory as History } from 'history';
+import React, { useCallback } from 'react';
+import { BrowserRouter as RouterProvider } from 'react-router-dom';
+import { Col, Container, Row } from 'react-bootstrap';
 
 import AlertsProvider from './AlertManager';
-import Router from './Router';
+import ConfigProvider, { useConfig } from './ConfigManager';
+import InterfaceEditorPage from './InterfaceEditorPage';
+import Sidebar from './Sidebar';
+import PageRouter from './Router';
+import AstarteProvider, { useAstarte } from './AstarteManager';
+import type { DashboardConfig } from './types';
 import Snackbar from './ui/Snackbar';
-import type SessionManager from './SessionManager';
+import useFetch from './hooks/useFetch';
+import useInterval from './hooks/useInterval';
+
+const DashboardSidebar = () => {
+  const config = useConfig();
+  const astarte = useAstarte();
+  const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
+  const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
+  const pairingHealth = useFetch(astarte.client.getPairingHealth);
+  const flowHealth = config.features.flow ? useFetch(astarte.client.getFlowHealth) : null;
+
+  const refreshHealth = useCallback(() => {
+    if (!astarte.isAuthenticated) {
+      return;
+    }
+    appEngineHealth.refresh();
+    realmManagementHealth.refresh();
+    pairingHealth.refresh();
+    if (flowHealth) {
+      flowHealth.refresh();
+    }
+  }, [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth, astarte.isAuthenticated]);
+
+  useInterval(refreshHealth, 30000);
+
+  const isApiHealthy = [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth].every(
+    (apiHealth) => apiHealth == null || apiHealth.status !== 'err',
+  );
+
+  if (!astarte.isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <Col id="main-navbar" className="col-auto nav-col">
+      <Sidebar>
+        <Sidebar.Brand />
+        <Sidebar.Item label="Home" link="/" icon="home" />
+        <Sidebar.Separator />
+        <Sidebar.Item label="Interfaces" link="/interfaces" icon="stream" />
+        <Sidebar.Item label="Triggers" link="/triggers" icon="bolt" />
+        <Sidebar.Separator />
+        <Sidebar.Item label="Devices" link="/devices" icon="cube" />
+        <Sidebar.Item label="Groups" link="/groups" icon="object-group" />
+        <Sidebar.Separator />
+        {config.features.flow && (
+          <>
+            <Sidebar.Item label="Flows" link="/flows" icon="wind" />
+            <Sidebar.Item label="Pipelines" link="/pipelines" icon="code-branch" />
+            <Sidebar.Item label="Blocks" link="/blocks" icon="shapes" />
+            <Sidebar.Separator />
+          </>
+        )}
+        <Sidebar.Item label="Realm settings" link="/settings" icon="cog" />
+        <Sidebar.Separator />
+        <Sidebar.ApiStatus healthy={isApiHealthy} realm={astarte.realm} />
+        <Sidebar.Separator />
+        <Sidebar.Item label="Logout" link="/logout" icon="sign-out-alt" />
+      </Sidebar>
+    </Col>
+  );
+};
+
+const Dashboard = () => (
+  <Container fluid className="px-0">
+    <Row className="no-gutters">
+      <DashboardSidebar />
+      <Col className="main-content vh-100 overflow-auto">
+        <PageRouter />
+      </Col>
+    </Row>
+  </Container>
+);
+
+const StandaloneEditor = () => (
+  <Container fluid className="px-0">
+    <Row className="no-gutters">
+      <Col id="main-navbar" className="col-auto nav-col">
+        <Sidebar>
+          <Sidebar.Brand />
+          <Sidebar.Item label="Interface Editor" link="/" icon="stream" />
+        </Sidebar>
+      </Col>
+      <Col className="main-content vh-100 overflow-auto">
+        <InterfaceEditorPage />
+      </Col>
+    </Row>
+  </Container>
+);
 
 interface Props {
-  reactHistory: History;
-  astarteClient: AstarteClient;
-  sessionManager: SessionManager;
-  dashboardConfig: any;
-  noMatchFallback: (requestURL: string) => void;
+  config: DashboardConfig | null;
 }
 
-export default ({
-  reactHistory,
-  astarteClient,
-  sessionManager,
-  dashboardConfig,
-  noMatchFallback,
-}: Props): React.ReactElement => (
+export default ({ config }: Props): React.ReactElement => (
   <AlertsProvider>
-    <Router
-      reactHistory={reactHistory}
-      astarteClient={astarteClient}
-      sessionManager={sessionManager}
-      config={dashboardConfig}
-      fallback={noMatchFallback}
-    />
+    <RouterProvider>
+      {config ? (
+        <ConfigProvider config={config}>
+          <AstarteProvider config={config}>
+            <Dashboard />
+          </AstarteProvider>
+        </ConfigProvider>
+      ) : (
+        <StandaloneEditor />
+      )}
+    </RouterProvider>
     <Snackbar />
   </AlertsProvider>
 );

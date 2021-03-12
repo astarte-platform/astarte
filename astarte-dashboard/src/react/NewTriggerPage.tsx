@@ -16,26 +16,23 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Row, Spinner } from 'react-bootstrap';
-import AstarteClient, { AstarteTrigger } from 'astarte-client';
+import { AstarteTrigger } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import TriggerEditor from './components/TriggerEditor';
 import BackButton from './ui/BackButton';
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [triggerDraft, setTriggerDraft] = useState<AstarteTrigger | null>(null);
   const [isValidTrigger, setIsValidTrigger] = useState(false);
   const [isInstallingTrigger, setIsInstallingTrigger] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
-  const [astarteRealm, setAstarteRealm] = useState(astarte.realm);
   const installationAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
 
   const handleToggleSourceVisibility = useCallback(() => {
@@ -52,7 +49,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       return;
     }
     setIsInstallingTrigger(true);
-    astarte
+    astarte.client
       .installTrigger(new AstarteTrigger(triggerDraft))
       .then(() => {
         navigate({ pathname: '/triggers' });
@@ -61,7 +58,7 @@ export default ({ astarte }: Props): React.ReactElement => {
         installationAlerts.showError(`Could not install trigger: ${err.message}`);
         setIsInstallingTrigger(false);
       });
-  }, [astarte, triggerDraft, isInstallingTrigger, navigate, installationAlerts.showError]);
+  }, [astarte.client, triggerDraft, isInstallingTrigger, navigate, installationAlerts.showError]);
 
   const handleTriggerEditorError = useCallback(
     (message: string) => {
@@ -69,12 +66,6 @@ export default ({ astarte }: Props): React.ReactElement => {
     },
     [installationAlerts.showError],
   );
-
-  useEffect(() => {
-    const updateRealm = () => setAstarteRealm(astarte.realm);
-    astarte.addListener('credentialsChange', updateRealm);
-    return () => astarte.removeListener('credentialsChange', updateRealm);
-  }, [astarte]);
 
   return (
     <Container fluid className="p-3">
@@ -85,13 +76,13 @@ export default ({ astarte }: Props): React.ReactElement => {
       <div className="mt-4">
         <installationAlerts.Alerts />
         <TriggerEditor
-          realm={astarteRealm}
+          realm={astarte.realm}
           onChange={handleTriggerChange}
           onError={handleTriggerEditorError}
           isSourceVisible={isSourceVisible}
-          fetchInterfacesName={astarte.getInterfaceNames}
-          fetchInterfaceMajors={astarte.getInterfaceMajors}
-          fetchInterface={astarte.getInterface}
+          fetchInterfacesName={astarte.client.getInterfaceNames}
+          fetchInterfaceMajors={astarte.client.getInterfaceMajors}
+          fetchInterface={astarte.client.getInterface}
         />
         <Row className="justify-content-end m-0 mt-3">
           <Button variant="secondary" className="mr-2" onClick={handleToggleSourceVisibility}>

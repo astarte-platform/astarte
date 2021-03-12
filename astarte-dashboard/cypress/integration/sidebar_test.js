@@ -3,7 +3,7 @@ describe('Sidebar tests', () => {
     it('does not show the sidebar', () => {
       cy.visit('/');
       cy.location('pathname').should('eq', '/login');
-      cy.get('.nav').should('exist').should('not.be.visible');
+      cy.get('#main-navbar').should('not.exist');
     });
   });
 

@@ -19,12 +19,12 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Form, Spinner } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
@@ -73,18 +73,15 @@ const RealmSettingsForm = ({
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [draftRealmSettings, setDraftRealmSettings] = useState<RealmSettings | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const formAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
 
-  const authConfigFetcher = useFetch(astarte.getConfigAuth);
+  const authConfigFetcher = useFetch(astarte.client.getConfigAuth);
 
   const showModal = useCallback(() => setIsModalVisible(true), [setIsModalVisible]);
 
@@ -103,7 +100,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       return;
     }
     setIsUpdatingSettings(true);
-    astarte
+    astarte.client
       .updateConfigAuth({ publicKey: draftRealmSettings.publicKey })
       .then(() => {
         navigate('/logout');
@@ -115,7 +112,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       });
   }, [
     setIsUpdatingSettings,
-    astarte,
+    astarte.client,
     draftRealmSettings,
     navigate,
     dismissModal,

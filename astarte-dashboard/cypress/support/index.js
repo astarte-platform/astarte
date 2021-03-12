@@ -24,27 +24,14 @@ beforeEach(() => {
   });
 });
 
-Cypress.Commands.add('login', (params = {}) => {
-  const { secure = true } = params;
-  const configFixture = secure ? 'config/https' : 'config/http';
-  cy.fixture(configFixture).then((userConfig) => {
-    cy.fixture('realm').then((realm) => {
-      const apiUrl = new URL(userConfig.astarte_api_url).hostname;
-      const session = {
-        login_type: 'TokenLogin',
-        api_config: {
-          secure_connection: secure,
-          realm_management_url: `${apiUrl}/realmmanagement`,
-          appengine_url: `${apiUrl}/appengine`,
-          pairing_url: `${apiUrl}/pairing`,
-          flow_url: `${apiUrl}/flow`,
-          realm: realm.name,
-          token: realm.infinite_token,
-          enable_flow_preview: userConfig.enable_flow_preview,
-        },
-      };
-      localStorage.session = JSON.stringify(session);
-    });
+Cypress.Commands.add('login', () => {
+  cy.fixture('realm').then((realm) => {
+    const session = {
+      _version: 1,
+      realm: realm.name,
+      token: realm.infinite_token,
+    };
+    localStorage.session = JSON.stringify(session);
   });
 });
 

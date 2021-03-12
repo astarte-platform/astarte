@@ -49,11 +49,7 @@ import type {
 } from './types';
 import { AstarteDeviceEvent, decodeEvent } from './types/events';
 
-export type AstarteClientEvent = 'credentialsChange' | 'socketError' | 'socketClose';
-
-interface AstarteClientFeatures {
-  flow: boolean;
-}
+export type AstarteClientEvent = 'socketError' | 'socketClose';
 
 export interface AstarteInterfaceDescriptor {
   name: string;
@@ -144,19 +140,18 @@ function astarteAPIurl(strings: any, baseUrl: any, ...keys: any) {
 }
 
 interface AstarteClientConfig {
-  appengineUrl: string;
-  enableFlowPreview?: boolean;
-  flowUrl: string;
+  appEngineApiUrl: string;
+  flowApiUrl: string;
   onSocketClose?: () => any;
   onSocketError?: () => any;
-  pairingUrl: string;
+  pairingApiUrl: string;
   realm?: string;
-  realmManagementUrl: string;
+  realmManagementApiUrl: string;
   token?: string;
 }
 
 class AstarteClient {
-  private config: { realm: string; enableFlowPreview: boolean };
+  private config: { realm: string };
 
   private apiConfig: any;
 
@@ -178,7 +173,6 @@ class AstarteClient {
 
   constructor(config: AstarteClientConfig) {
     this.config = {
-      enableFlowPreview: config.enableFlowPreview || false,
       realm: config.realm || '',
     };
 
@@ -210,33 +204,33 @@ class AstarteClient {
 
     // prettier-ignore
     this.apiConfig = {
-      realmManagementHealth: astarteAPIurl`${config.realmManagementUrl}health`,
-      auth:                  astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/config/auth`,
-      interfaces:            astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces`,
-      interfaceMajors:       astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
-      interface:             astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
-      interfaceData:         astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
-      trigger:               astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/triggers/${'triggerName'}`,
-      triggers:              astarteAPIurl`${config.realmManagementUrl}v1/${'realm'}/triggers`,
-      appengineHealth:       astarteAPIurl`${config.appengineUrl}health`,
-      devicesStats:          astarteAPIurl`${config.appengineUrl}v1/${'realm'}/stats/devices`,
-      devices:               astarteAPIurl`${config.appengineUrl}v1/${'realm'}/devices`,
-      deviceInfo:            astarteAPIurl`${config.appengineUrl}v1/${'realm'}/devices/${'deviceId'}`,
-      deviceData:            astarteAPIurl`${config.appengineUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}`,
-      groups:                astarteAPIurl`${config.appengineUrl}v1/${'realm'}/groups`,
-      groupDevices:          astarteAPIurl`${config.appengineUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
-      deviceInGroup:         astarteAPIurl`${config.appengineUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,
-      phoenixSocket:         astarteAPIurl`${config.appengineUrl}v1/socket`,
-      pairingHealth:         astarteAPIurl`${config.pairingUrl}health`,
-      registerDevice:        astarteAPIurl`${config.pairingUrl}v1/${'realm'}/agent/devices`,
-      deviceAgent:           astarteAPIurl`${config.pairingUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
-      flowHealth:            astarteAPIurl`${config.flowUrl}health`,
-      flows:                 astarteAPIurl`${config.flowUrl}v1/${'realm'}/flows`,
-      flowInstance:          astarteAPIurl`${config.flowUrl}v1/${'realm'}/flows/${'instanceName'}`,
-      pipelines:             astarteAPIurl`${config.flowUrl}v1/${'realm'}/pipelines`,
-      pipelineSource:        astarteAPIurl`${config.flowUrl}v1/${'realm'}/pipelines/${'pipelineId'}`,
-      blocks:                astarteAPIurl`${config.flowUrl}v1/${'realm'}/blocks`,
-      blockSource:           astarteAPIurl`${config.flowUrl}v1/${'realm'}/blocks/${'blockId'}`,
+      realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
+      auth:                  astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/auth`,
+      interfaces:            astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces`,
+      interfaceMajors:       astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
+      interface:             astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
+      interfaceData:         astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
+      trigger:               astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers/${'triggerName'}`,
+      triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`,
+      appengineHealth:       astarteAPIurl`${config.appEngineApiUrl}health`,
+      devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
+      devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
+      deviceInfo:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
+      deviceData:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}`,
+      groups:                astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups`,
+      groupDevices:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
+      deviceInGroup:         astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,
+      phoenixSocket:         astarteAPIurl`${config.appEngineApiUrl}v1/socket`,
+      pairingHealth:         astarteAPIurl`${config.pairingApiUrl}health`,
+      registerDevice:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices`,
+      deviceAgent:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
+      flowHealth:            astarteAPIurl`${config.flowApiUrl}health`,
+      flows:                 astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/flows`,
+      flowInstance:          astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/flows/${'instanceName'}`,
+      pipelines:             astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines`,
+      pipelineSource:        astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines/${'pipelineId'}`,
+      blocks:                astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks`,
+      blockSource:           astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks/${'blockId'}`,
     };
   }
 
@@ -262,11 +256,9 @@ class AstarteClient {
     }
   }
 
-  setCredentials({ realm, token }: any): void {
-    this.config.realm = realm || '';
-    this.token = token || '';
-
-    this.dispatch('credentialsChange');
+  setCredentials(params: { realm: string; token: string } | null): void {
+    this.config.realm = params?.realm || '';
+    this.token = params?.token || '';
   }
 
   async getConfigAuth(): Promise<{ publicKey: string }> {
@@ -844,12 +836,6 @@ class AstarteClient {
       rooms.push(roomName);
     });
     return rooms;
-  }
-
-  get features(): AstarteClientFeatures {
-    return {
-      flow: this.config.enableFlowPreview,
-    };
   }
 
   get realm(): string | null {

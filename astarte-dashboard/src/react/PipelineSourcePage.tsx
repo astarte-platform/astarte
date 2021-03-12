@@ -17,26 +17,23 @@
 */
 
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import AstarteClient from 'astarte-client';
 import _ from 'lodash';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import SingleCardPage from './ui/SingleCardPage';
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 
-interface Props {
-  astarte: AstarteClient;
-  pipelineId: string;
-}
-
-export default ({ astarte, pipelineId }: Props): React.ReactElement => {
-  const pipelineFetcher = useFetch(() => astarte.getPipeline(pipelineId));
+export default (): React.ReactElement => {
+  const { pipelineId } = useParams();
+  const astarte = useAstarte();
+  const pipelineFetcher = useFetch(() => astarte.client.getPipeline(pipelineId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingPipeline, setIsDeletingPipeline] = useState(false);
   const deletionAlerts = useAlerts();
@@ -44,7 +41,7 @@ export default ({ astarte, pipelineId }: Props): React.ReactElement => {
 
   const deletePipeline = useCallback(() => {
     setIsDeletingPipeline(true);
-    astarte
+    astarte.client
       .deletePipeline(pipelineId)
       .then(() => navigate('/pipelines'))
       .catch((err) => {
@@ -52,7 +49,7 @@ export default ({ astarte, pipelineId }: Props): React.ReactElement => {
         setIsDeletingPipeline(false);
         setShowDeleteModal(false);
       });
-  }, [astarte, pipelineId, navigate, deletionAlerts.showError]);
+  }, [astarte.client, pipelineId, navigate, deletionAlerts.showError]);
 
   return (
     <>

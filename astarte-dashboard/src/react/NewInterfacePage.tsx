@@ -19,10 +19,11 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Container, Row, Spinner } from 'react-bootstrap';
-import AstarteClient, { AstarteInterface } from 'astarte-client';
+import { AstarteInterface } from 'astarte-client';
 import _ from 'lodash';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import InterfaceEditor from './components/InterfaceEditor';
 import ConfirmModal from './components/modals/Confirm';
 import BackButton from './ui/BackButton';
@@ -69,17 +70,14 @@ const InstallModal = ({
   </ConfirmModal>
 );
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [interfaceDraft, setInterfaceDraft] = useState<AstarteInterface | null>(null);
   const [isValidInterface, setIsValidInterface] = useState(false);
   const [isInstallingInterface, setIsInstallingInterface] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
   const installationAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
 
   const handleToggleSourceVisibility = useCallback(() => {
@@ -107,7 +105,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       return;
     }
     setIsInstallingInterface(true);
-    astarte
+    astarte.client
       .installInterface(new AstarteInterface(interfaceDraft))
       .then(() => {
         navigate({ pathname: '/interfaces' });
@@ -118,7 +116,7 @@ export default ({ astarte }: Props): React.ReactElement => {
         hideConfirmInstallModal();
       });
   }, [
-    astarte,
+    astarte.client,
     interfaceDraft,
     isInstallingInterface,
     navigate,

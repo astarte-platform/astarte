@@ -16,5 +16,6 @@
    limitations under the License.
 */
 
+export * from './dashboardConfig';
 export * from './timestamp';
 export * from './uuid';

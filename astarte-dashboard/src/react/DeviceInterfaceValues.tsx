@@ -17,8 +17,8 @@
 */
 
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, Container, Spinner, Table } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 import type {
   AstarteDataTuple,
   AstarteDataTreeNode,
@@ -32,6 +32,7 @@ import BackButton from './ui/BackButton';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 const MAX_SHOWN_VALUES = 20;
 
@@ -183,15 +184,11 @@ const InterfaceData = ({ interfaceData }: InterfaceDataProps): React.ReactElemen
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-  deviceId: string;
-  interfaceName: string;
-}
-
-export default ({ astarte, deviceId, interfaceName }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const { deviceId, interfaceName } = useParams();
+  const astarte = useAstarte();
   const deviceDataFetcher = useFetch(() =>
-    astarte.getDeviceDataTree({
+    astarte.client.getDeviceDataTree({
       deviceId,
       interfaceName,
     }),

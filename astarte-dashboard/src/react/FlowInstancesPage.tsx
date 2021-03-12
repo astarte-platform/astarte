@@ -19,7 +19,6 @@
 import React, { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, Container, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 import type { AstarteFlow } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
@@ -28,6 +27,7 @@ import SingleCardPage from './ui/SingleCardPage';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
+import { useAstarte } from './AstarteManager';
 
 const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
   <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
@@ -100,21 +100,20 @@ const InstancesTable = ({ instances, onDelete }: InstancesTableProps): React.Rea
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [flowToConfirmDelete, setFlowToConfirmDelete] = useState<AstarteFlow['name'] | null>(null);
   const [isDeletingFlow, setIsDeletingFlow] = useState(false);
   const deletionAlerts = useAlerts();
   const navigate = useNavigate();
+  const astarte = useAstarte();
 
   const fetchInstances = useCallback(async (): Promise<AstarteFlow[]> => {
-    const instanceNames = await astarte.getFlowInstances();
-    const instances = await Promise.all(instanceNames.map((name) => astarte.getFlowDetails(name)));
+    const instanceNames = await astarte.client.getFlowInstances();
+    const instances = await Promise.all(
+      instanceNames.map((name) => astarte.client.getFlowDetails(name)),
+    );
     return instances;
-  }, [astarte]);
+  }, [astarte.client]);
 
   const instancesFetcher = useFetch(fetchInstances);
 
@@ -128,7 +127,7 @@ export default ({ astarte }: Props): React.ReactElement => {
   const deleteFlow = useCallback(() => {
     const flowName = flowToConfirmDelete as AstarteFlow['name'];
     setIsDeletingFlow(true);
-    astarte
+    astarte.client
       .deleteFlowInstance(flowName)
       .then(() => {
         setFlowToConfirmDelete(null);
@@ -140,6 +139,7 @@ export default ({ astarte }: Props): React.ReactElement => {
         deletionAlerts.showError(`Could not delete flow instance: ${err.message}`);
       });
   }, [
+    astarte.client,
     flowToConfirmDelete,
     setFlowToConfirmDelete,
     setIsDeletingFlow,

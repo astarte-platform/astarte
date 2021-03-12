@@ -19,10 +19,9 @@
 /* @global document */
 
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import { Button, Col, Form, Spinner, Table } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
 
 import ConfirmModal from './components/modals/Confirm';
@@ -30,6 +29,7 @@ import FormModal from './components/modals/Form';
 import SingleCardPage from './ui/SingleCardPage';
 import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 
 /* TODO use clipboard API
  * Right now the 'clipboard-write' is supported
@@ -253,12 +253,9 @@ const NamespaceModal = ({ onCancel, onConfirm }: NamespaceModalProps) => {
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-  deviceId: string;
-}
-
-export default ({ astarte, deviceId: initialDeviceId }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
+  const searchQuery = new URLSearchParams(useLocation().search);
+  const initialDeviceId = searchQuery.get('deviceId') || '';
   const [deviceId, setDeviceId] = useState<AstarteDevice['id']>(initialDeviceId);
   const [deviceSecret, setDeviceSecret] = useState<string>('');
   const [shouldSendIntrospection, setShouldSendIntrospection] = useState(false);
@@ -269,6 +266,7 @@ export default ({ astarte, deviceId: initialDeviceId }: Props): React.ReactEleme
   const [showNamespaceModal, setShowNamespaceModal] = useState(false);
   const [showCredentialSecretModal, setShowCredentialSecretModal] = useState(false);
   const registrationAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
 
   const byteArray = urlSafeBase64ToByteArray(deviceId);
@@ -289,7 +287,7 @@ export default ({ astarte, deviceId: initialDeviceId }: Props): React.ReactEleme
       introspection: shouldSendIntrospection ? deviceIntrospection : undefined,
     };
     setRegisteringDevice(true);
-    astarte
+    astarte.client
       .registerDevice(params)
       .then(({ credentialsSecret }) => {
         setRegisteringDevice(false);

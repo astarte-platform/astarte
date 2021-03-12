@@ -17,11 +17,11 @@
 */
 
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
-import AstarteClient from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
 import TriggerEditor from './components/TriggerEditor';
 import ConfirmModal from './components/modals/Confirm';
@@ -70,19 +70,16 @@ const DeleteModal = ({ triggerName, onCancel, onConfirm, isDeletingTrigger }: De
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-  triggerName: string;
-}
-
-export default ({ astarte, triggerName }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [isDeletingTrigger, setIsDeletingTrigger] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const deletionAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
+  const { triggerName } = useParams();
 
-  const triggerFetcher = useFetch(() => astarte.getTrigger(triggerName));
+  const triggerFetcher = useFetch(() => astarte.client.getTrigger(triggerName));
 
   const handleToggleSourceVisibility = useCallback(() => {
     setIsSourceVisible((isVisible) => !isVisible);
@@ -98,7 +95,7 @@ export default ({ astarte, triggerName }: Props): React.ReactElement => {
 
   const handleConfirmDeleteTrigger = useCallback(() => {
     setIsDeletingTrigger(true);
-    astarte
+    astarte.client
       .deleteTrigger(triggerName)
       .then(() => {
         navigate('/triggers');
@@ -108,7 +105,7 @@ export default ({ astarte, triggerName }: Props): React.ReactElement => {
         setIsDeletingTrigger(false);
         hideConfirmDeleteModal();
       });
-  }, [astarte, triggerName, navigate, deletionAlerts.showError]);
+  }, [astarte.client, triggerName, navigate, deletionAlerts.showError]);
 
   const handleTriggerEditorError = useCallback(
     (message: string) => {
@@ -144,9 +141,9 @@ export default ({ astarte, triggerName }: Props): React.ReactElement => {
                 isReadOnly
                 onError={handleTriggerEditorError}
                 isSourceVisible={isSourceVisible}
-                fetchInterfacesName={astarte.getInterfaceNames}
-                fetchInterfaceMajors={astarte.getInterfaceMajors}
-                fetchInterface={astarte.getInterface}
+                fetchInterfacesName={astarte.client.getInterfaceNames}
+                fetchInterfaceMajors={astarte.client.getInterfaceMajors}
+                fetchInterface={astarte.client.getInterface}
               />
               <Row className="justify-content-end m-0 mt-3">
                 <Button variant="secondary" className="mr-2" onClick={handleToggleSourceVisibility}>

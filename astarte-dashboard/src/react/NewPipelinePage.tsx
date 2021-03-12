@@ -21,11 +21,12 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
 import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
-import AstarteClient, { AstartePipeline } from 'astarte-client';
+import { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 import _ from 'lodash';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import FormModal from './components/modals/Form';
 import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/VisualFlowEditor';
 import type NativeBlockModel from './models/NativeBlockModel';
@@ -43,11 +44,7 @@ const CommandRow = ({ className = '', children }: CommandRowProps): React.ReactE
   <div className={['d-flex flex-row-reverse', className].join(' ')}>{children}</div>
 );
 
-interface Props {
-  astarte: AstarteClient;
-}
-
-export default ({ astarte }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [editorModel] = useState(getNewModel());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
@@ -59,10 +56,11 @@ export default ({ astarte }: Props): React.ReactElement => {
     schema: '',
   });
   const formAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
 
   useEffect(() => {
-    astarte
+    astarte.client
       .getBlocks()
       .then((astarteBlocks) => {
         const containerBlock = astarteBlocks.find(
@@ -84,7 +82,7 @@ export default ({ astarte }: Props): React.ReactElement => {
       .catch((error) => {
         formAlerts.showError(`Couldn't retrieve block descriptions: ${error.message}`);
       });
-  }, [astarte]);
+  }, [astarte.client]);
 
   const schemaObject = useMemo(() => {
     if (pipeline.schema === '') {
@@ -100,7 +98,7 @@ export default ({ astarte }: Props): React.ReactElement => {
 
   const createPipeline = useCallback(() => {
     setIsCreatingPipeline(true);
-    astarte
+    astarte.client
       .registerPipeline(
         new AstartePipeline({
           name: pipeline.name,
@@ -114,7 +112,14 @@ export default ({ astarte }: Props): React.ReactElement => {
         setIsCreatingPipeline(false);
         formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
       });
-  }, [astarte, navigate, setIsCreatingPipeline, formAlerts.showError, pipeline, schemaObject]);
+  }, [
+    astarte.client,
+    navigate,
+    setIsCreatingPipeline,
+    formAlerts.showError,
+    pipeline,
+    schemaObject,
+  ]);
 
   const isValidSchema = useMemo(() => {
     if (!schemaObject) {

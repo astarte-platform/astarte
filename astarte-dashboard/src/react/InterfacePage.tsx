@@ -17,11 +17,12 @@
 */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
-import AstarteClient, { AstarteInterface } from 'astarte-client';
+import { AstarteInterface } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
 import InterfaceEditor from './components/InterfaceEditor';
 import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
@@ -79,13 +80,7 @@ const DeleteModal = ({
   );
 };
 
-interface Props {
-  astarte: AstarteClient;
-  interfaceName: string;
-  interfaceMajor: number;
-}
-
-export default ({ astarte, interfaceName, interfaceMajor }: Props): React.ReactElement => {
+export default (): React.ReactElement => {
   const [interfaceDraft, setInterfaceDraft] = useState<AstarteInterface | null>(null);
   const [isValidInterface, setIsValidInterface] = useState(false);
   const [isUpdatingInterface, setIsUpdatingInterface] = useState(false);
@@ -94,9 +89,15 @@ export default ({ astarte, interfaceName, interfaceMajor }: Props): React.ReactE
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const actionAlerts = useAlerts();
+  const astarte = useAstarte();
   const navigate = useNavigate();
+  const pathParams = useParams();
+  const { interfaceName } = pathParams;
+  const interfaceMajor = parseInt(pathParams.interfaceMajor, 10);
 
-  const interfaceFetcher = useFetch(() => astarte.getInterface({ interfaceName, interfaceMajor }));
+  const interfaceFetcher = useFetch(() =>
+    astarte.client.getInterface({ interfaceName, interfaceMajor }),
+  );
 
   const handleToggleSourceVisibility = useCallback(() => {
     setIsSourceVisible((isVisible) => !isVisible);
@@ -131,7 +132,7 @@ export default ({ astarte, interfaceName, interfaceMajor }: Props): React.ReactE
       return;
     }
     setIsUpdatingInterface(true);
-    astarte
+    astarte.client
       .updateInterface(new AstarteInterface(interfaceDraft))
       .then(() => {
         actionAlerts.showSuccess('Changes succesfully applied.');
@@ -143,11 +144,11 @@ export default ({ astarte, interfaceName, interfaceMajor }: Props): React.ReactE
         setIsUpdatingInterface(false);
         hideConfirmUpdateModal();
       });
-  }, [astarte, interfaceDraft, actionAlerts.showSuccess, actionAlerts.showError]);
+  }, [astarte.client, interfaceDraft, actionAlerts.showSuccess, actionAlerts.showError]);
 
   const handleConfirmDeleteInterface = useCallback(() => {
     setIsDeletingInterface(true);
-    astarte
+    astarte.client
       .deleteInterface(interfaceName, interfaceMajor)
       .then(() => {
         navigate('/interfaces');
@@ -157,7 +158,7 @@ export default ({ astarte, interfaceName, interfaceMajor }: Props): React.ReactE
         setIsDeletingInterface(false);
         hideConfirmDeleteModal();
       });
-  }, [astarte, interfaceName, interfaceMajor, navigate, actionAlerts.showError]);
+  }, [astarte.client, interfaceName, interfaceMajor, navigate, actionAlerts.showError]);
 
   useEffect(() => {
     if (interfaceFetcher.value != null) {
