@@ -23,6 +23,7 @@ import AstarteClient, { AstarteInterface } from 'astarte-client';
 
 import { useAlerts } from './AlertManager';
 import InterfaceEditor from './components/InterfaceEditor';
+import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import ConfirmModal from './components/modals/Confirm';
 import BackButton from './ui/BackButton';
@@ -178,8 +179,14 @@ export default ({ astarte, interfaceName, interfaceMajor }: Props): React.ReactE
         <WaitForData
           data={interfaceFetcher.value}
           status={interfaceFetcher.status}
-          fallback={<Spinner animation="border" role="status" />}
-          errorFallback={<p>Couldn&apos;t load interface properties.</p>}
+          fallback={
+            <Container fluid className="text-center">
+              <Spinner animation="border" role="status" />
+            </Container>
+          }
+          errorFallback={
+            <Empty title="Couldn't load interface properties" onRetry={interfaceFetcher.refresh} />
+          }
         >
           {(iface) => (
             <>

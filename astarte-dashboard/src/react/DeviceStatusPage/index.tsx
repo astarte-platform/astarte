@@ -19,11 +19,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Col, Container, Row, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import _ from 'lodash';
 
 import AstarteClient from 'astarte-client';
 import type { AstarteDevice } from 'astarte-client';
 import BackButton from '../ui/BackButton';
+import Empty from '../components/Empty';
 import WaitForData from '../components/WaitForData';
 import useFetch from '../hooks/useFetch';
 import { useAlerts } from '../AlertManager';
@@ -291,7 +291,12 @@ export default ({ astarte, deviceId }: Props): React.ReactElement => {
         data={deviceFetcher.value}
         status={deviceFetcher.status}
         fallback={
-          _.isEmpty(deviceFetcher.error) ? <Spinner animation="border" role="status" /> : <></>
+          <Container fluid className="text-center">
+            <Spinner animation="border" role="status" />
+          </Container>
+        }
+        errorFallback={
+          <Empty title="Couldn't load device details" onRetry={deviceFetcher.refresh} />
         }
       >
         {(device: AstarteDevice) => {
