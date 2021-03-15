@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_e2e] Fix alerting mechanism preventing "unknown" failures to be raised or linked.
 - [astarte_appengine_api] Allow retrieving data from interfaces with parametric endpoint and object
   aggregation (see [#480](https://github.com/astarte-platform/astarte/issues/480)).
+- [astarte_appengine_api] Encode binaryblob values with Base64 even if they are contained in an
+  aggregate value.
+- [astarte_trigger_engine] Encode binaryblob values with Base64 even if they are contained in an
+  aggregate value.
 
 ### Changed
 - [astarte_e2e] Client disconnections are responsible for triggering a mail alert.
