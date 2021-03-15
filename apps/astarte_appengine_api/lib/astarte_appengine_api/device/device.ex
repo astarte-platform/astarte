@@ -1222,17 +1222,21 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
-    {columns, column_atom_to_pretty_name, downsample_column_atom} =
+    {columns, column_metadata, downsample_column_atom} =
       Enum.reduce(endpoint_rows, {"", %{}, nil}, fn endpoint,
                                                     {query_acc, atoms_map,
                                                      prev_downsample_column_atom} ->
         endpoint_name = endpoint[:endpoint]
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
 
+        value_type = endpoint[:value_type] |> ValueType.from_int()
+
         next_query_acc = "#{query_acc} #{column_name}, "
         column_atom = String.to_atom(column_name)
         pretty_name = column_pretty_name(endpoint_name)
-        next_atom_map = Map.put(atoms_map, column_atom, pretty_name)
+
+        metadata = %{pretty_name: pretty_name, value_type: value_type}
+        next_atom_map = Map.put(atoms_map, column_atom, metadata)
 
         if opts.downsample_key == pretty_name do
           {next_query_acc, next_atom_map, column_atom}
@@ -1256,7 +1260,7 @@ defmodule Astarte.AppEngine.API.Device do
       opts
       | downsample_key: downsample_column_atom
     })
-    |> pack_result(:object, :datastream, column_atom_to_pretty_name, opts)
+    |> pack_result(:object, :datastream, column_metadata, opts)
   end
 
   defp retrieve_endpoint_values(
@@ -1539,7 +1543,7 @@ defmodule Astarte.AppEngine.API.Device do
          values,
          :object,
          :datastream,
-         column_atom_to_pretty_name,
+         column_metadata,
          %{format: "table"} = opts
        ) do
     timestamp_column =
@@ -1553,7 +1557,7 @@ defmodule Astarte.AppEngine.API.Device do
       Queries.first_result_row(values)
       |> List.foldl({1, %{"timestamp" => 0}, ["timestamp"]}, fn {column, _column_value},
                                                                 {next_index, acc, list_acc} ->
-        pretty_name = column_atom_to_pretty_name[column]
+        pretty_name = column_metadata[column][:pretty_name]
 
         if pretty_name != nil and pretty_name != "timestamp" do
           {next_index + 1, Map.put(acc, pretty_name, next_index), [pretty_name | list_acc]}
@@ -1575,12 +1579,18 @@ defmodule Astarte.AppEngine.API.Device do
         ]
 
         List.foldl(value, base_array_entry, fn {column, column_value}, acc ->
-          pretty_name = column_atom_to_pretty_name[column]
+          case Map.fetch(column_metadata, column) do
+            {:ok, metadata} ->
+              %{
+                value_type: value_type
+              } = metadata
 
-          if pretty_name do
-            [column_value | acc]
-          else
-            acc
+              json_friendly_value = AstarteValue.to_json_friendly(column_value, value_type, [])
+
+              [json_friendly_value | acc]
+
+            :error ->
+              acc
           end
         end)
         |> Enum.reverse()
@@ -1597,7 +1607,7 @@ defmodule Astarte.AppEngine.API.Device do
          values,
          :object,
          :datastream,
-         column_atom_to_pretty_name,
+         column_metadata,
          %{format: "disjoint_tables"} = opts
        ) do
     timestamp_column =
@@ -1610,24 +1620,31 @@ defmodule Astarte.AppEngine.API.Device do
     reversed_columns_map =
       Enum.reduce(values, %{}, fn value, columns_acc ->
         List.foldl(value, columns_acc, fn {column, column_value}, acc ->
-          pretty_name = column_atom_to_pretty_name[column]
+          case Map.fetch(column_metadata, column) do
+            {:ok, metadata} ->
+              %{
+                pretty_name: pretty_name,
+                value_type: value_type
+              } = metadata
 
-          if pretty_name do
-            column_list = [
-              [
-                column_value,
-                AstarteValue.to_json_friendly(
-                  value[timestamp_column],
-                  :datetime,
-                  keep_milliseconds: opts.keep_milliseconds
-                )
+              json_friendly_value = AstarteValue.to_json_friendly(column_value, value_type, [])
+
+              column_list = [
+                [
+                  json_friendly_value,
+                  AstarteValue.to_json_friendly(
+                    value[timestamp_column],
+                    :datetime,
+                    keep_milliseconds: opts.keep_milliseconds
+                  )
+                ]
+                | Map.get(columns_acc, pretty_name, [])
               ]
-              | Map.get(columns_acc, pretty_name, [])
-            ]
 
-            Map.put(acc, pretty_name, column_list)
-          else
-            acc
+              Map.put(acc, pretty_name, column_list)
+
+            :error ->
+              acc
           end
         end)
       end)
@@ -1647,7 +1664,7 @@ defmodule Astarte.AppEngine.API.Device do
          values,
          :object,
          :datastream,
-         column_atom_to_pretty_name,
+         column_metadata,
          %{format: "structured"} = opts
        ) do
     timestamp_column =
@@ -1669,12 +1686,19 @@ defmodule Astarte.AppEngine.API.Device do
         }
 
         List.foldl(value, base_array_entry, fn {column, column_value}, acc ->
-          pretty_name = column_atom_to_pretty_name[column]
+          case Map.fetch(column_metadata, column) do
+            {:ok, metadata} ->
+              %{
+                pretty_name: pretty_name,
+                value_type: value_type
+              } = metadata
 
-          if pretty_name do
-            Map.put(acc, pretty_name, column_value)
-          else
-            acc
+              json_friendly_value = AstarteValue.to_json_friendly(column_value, value_type, [])
+
+              Map.put(acc, pretty_name, json_friendly_value)
+
+            :error ->
+              acc
           end
         end)
       end
