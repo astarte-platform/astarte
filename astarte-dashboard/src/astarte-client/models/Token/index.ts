@@ -78,13 +78,13 @@ const astarteTokenObjectSchema: yup.ObjectSchema<AstarteTokenObject> = yup
   .required();
 
 export class AstarteToken {
-  #claims: Claims;
+  private $claims: Claims;
 
-  #expirationDate: Date | null;
+  private $expirationDate: Date | null;
 
-  #issueDate: Date | null;
+  private $issueDate: Date | null;
 
-  #issuer: string | null;
+  private $issuer: string | null;
 
   constructor(encodedToken: string) {
     // @ts-expect-error wrong type for decode options
@@ -92,10 +92,10 @@ export class AstarteToken {
     const tokenObj: AstarteTokenObject = astarteTokenObjectSchema.validateSync(
       decodedToken && decodedToken.payload,
     );
-    this.#expirationDate = tokenObj.exp ? new Date(tokenObj.exp * 1000) : null;
-    this.#issueDate = tokenObj.iat ? new Date(tokenObj.iat * 1000) : null;
-    this.#issuer = tokenObj.iss || null;
-    this.#claims = {
+    this.$expirationDate = tokenObj.exp ? new Date(tokenObj.exp * 1000) : null;
+    this.$issueDate = tokenObj.iat ? new Date(tokenObj.iat * 1000) : null;
+    this.$issuer = tokenObj.iss || null;
+    this.$claims = {
       appEngine: (tokenObj.a_aea || []).map((claim) => parseClaim(httpClaimRegex, claim)),
       channels: (tokenObj.a_ch || []).map((claim) => parseClaim(channelsClaimRegex, claim)),
       flow: (tokenObj.a_f || []).map((claim) => parseClaim(httpClaimRegex, claim)),
@@ -106,17 +106,17 @@ export class AstarteToken {
   }
 
   can(service: keyof Claims, action: ChannelsAction | HTTPAction, resource: string): boolean {
-    return this.#claims[service].some(
+    return this.$claims[service].some(
       (claim) => claim.action.test(action) && claim.resource.test(resource),
     );
   }
 
   get hasAstarteClaims(): boolean {
-    return Object.values(this.#claims).some((serviceClaims) => serviceClaims.length > 0);
+    return Object.values(this.$claims).some((serviceClaims) => serviceClaims.length > 0);
   }
 
   get isExpired(): boolean {
-    return this.#expirationDate != null && this.#expirationDate <= new Date();
+    return this.$expirationDate != null && this.$expirationDate <= new Date();
   }
 
   get isValid(): boolean {

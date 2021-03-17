@@ -390,13 +390,14 @@ class AstarteTrigger {
   }
 }
 
-export {
+export type {
   AstarteTriggerHTTPActionObject,
   AstarteTriggerAMQPActionObject,
-  AstarteTrigger,
   AstarteTriggerHTTPAction,
   AstarteTriggerAMQPAction,
   AstarteSimpleDeviceTrigger,
   AstarteSimpleDataTrigger,
   AstarteSimpleTrigger,
 };
+
+export { AstarteTrigger };

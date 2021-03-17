@@ -154,4 +154,6 @@ class AstarteMapping {
   }
 }
 
-export { AstarteMapping, AstarteMappingObject, mappingEndpointRegex };
+export type { AstarteMappingObject };
+
+export { AstarteMapping, mappingEndpointRegex };

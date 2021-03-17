@@ -29,7 +29,7 @@ class ChartProvider<Wrapper extends ChartDataWrapper, Kind extends ChartDataKind
 
   readonly dataKind: DataKindConstructor<Kind>;
 
-  readonly #getData: () => Promise<ChartData<Wrapper, Kind> | null>;
+  private readonly $getData: () => Promise<ChartData<Wrapper, Kind> | null>;
 
   constructor(params: {
     name: string;
@@ -40,11 +40,11 @@ class ChartProvider<Wrapper extends ChartDataWrapper, Kind extends ChartDataKind
     this.name = params.name;
     this.dataWrapper = params.dataWrapper;
     this.dataKind = params.dataKind;
-    this.#getData = params.getData;
+    this.$getData = params.getData;
   }
 
   async getData(): Promise<ChartData<Wrapper, Kind> | null> {
-    const data = await this.#getData();
+    const data = await this.$getData();
     if (data == null) {
       return null;
     }

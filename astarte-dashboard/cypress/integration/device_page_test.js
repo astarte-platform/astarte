@@ -152,8 +152,8 @@ describe('Device page tests', () => {
         cy.contains('Previous Interfaces')
           .next()
           .within(() => {
-            this.deviceDetailed.data.previous_interfaces.forEach((interface) => {
-              cy.contains(interface.name);
+            this.deviceDetailed.data.previous_interfaces.forEach((iface) => {
+              cy.contains(iface.name);
             });
           });
 
@@ -717,16 +717,16 @@ describe('Device page tests', () => {
         .within(() => {
           const currentInterfaces = Object.entries(
             this.deviceDetailed.data.introspection,
-          ).map(([name, interface]) => ({ name, ...interface }));
+          ).map(([name, iface]) => ({ name, ...iface }));
           const previousInterfaces = this.deviceDetailed.data.previous_interfaces;
           const interfaces = [...currentInterfaces, ...previousInterfaces];
           cy.get('table tbody tr').should('have.length', interfaces.length + 2);
-          interfaces.forEach((interface) => {
-            cy.contains(`${interface.name} v${interface.major}.${interface.minor}`)
+          interfaces.forEach((iface) => {
+            cy.contains(`${iface.name} v${iface.major}.${iface.minor}`)
               .parents('tr')
               .within(() => {
-                cy.contains(formatBytes(interface.exchanged_bytes));
-                cy.contains(interface.exchanged_msgs);
+                cy.contains(formatBytes(iface.exchanged_bytes));
+                cy.contains(iface.exchanged_msgs);
               });
           });
           const totalBytes = this.deviceDetailed.data.total_received_bytes;

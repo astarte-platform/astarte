@@ -1,7 +1,4 @@
-import {
-  byteArrayToUrlSafeBase64,
-  urlSafeBase64ToByteArray,
-} from '../../src/react/Base64.ts';
+import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from '../../src/Base64.ts';
 
 /*
   const uuid = "a717f8d6-5952-4064-add0-008d780879a9";

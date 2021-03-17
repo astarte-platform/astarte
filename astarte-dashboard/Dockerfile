@@ -8,5 +8,5 @@ RUN npm install
 RUN npm run deploy
 
 FROM nginx:1
-COPY --from=builder /app/dist/ /usr/share/nginx/html/
+COPY --from=builder /app/build/ /usr/share/nginx/html/
 ADD default.conf /etc/nginx/conf.d/

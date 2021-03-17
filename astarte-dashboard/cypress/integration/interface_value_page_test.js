@@ -41,11 +41,11 @@ describe('Interface values page tests', () => {
       cy.fixture('test_aggregated_object_interface_values').as('interface_data');
       cy.fixture('test.astarte.AggregatedObjectInterface')
         .as('interface')
-        .then((interface) => {
+        .then((iface) => {
           cy.fixture('device_detailed')
             .as('device')
             .then((device) => {
-              const interfaceName = interface.data.interface_name;
+              const interfaceName = iface.data.interface_name;
               const deviceId = device.data.id;
               cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, device);
               cy.intercept(
@@ -67,13 +67,13 @@ describe('Interface values page tests', () => {
       cy.fixture('test_aggregated_object_interface_values').as('interface_data');
       cy.fixture('test.astarte.AggregatedObjectInterface')
         .as('interface')
-        .then((interface) => {
+        .then((iface) => {
           cy.fixture('device_detailed')
             .as('device')
             .then((device) => {
-              const interfaceName = interface.data.interface_name;
+              const interfaceName = iface.data.interface_name;
               const deviceId = device.data.id;
-              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, interface);
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, iface);
               cy.intercept(
                 'GET',
                 `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
@@ -93,13 +93,13 @@ describe('Interface values page tests', () => {
       cy.fixture('test_aggregated_object_interface_values').as('interface_data');
       cy.fixture('test.astarte.AggregatedObjectInterface')
         .as('interface')
-        .then((interface) => {
+        .then((iface) => {
           cy.fixture('device_detailed')
             .as('device')
             .then((device) => {
-              const interfaceName = interface.data.interface_name;
+              const interfaceName = iface.data.interface_name;
               const deviceId = device.data.id;
-              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, interface);
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, iface);
               cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, device);
               cy.intercept(
                 'GET',

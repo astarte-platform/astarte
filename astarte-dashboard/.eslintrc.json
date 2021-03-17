@@ -1,50 +1,25 @@
 {
-  "root": true,
-  "parser": "@babel/eslint-parser",
-  "parserOptions": {
-    "ecmaVersion": 2020,
-    "ecmaFeatures": {
-      "jsx": true
-    },
-    "sourceType": "module",
-    "project": "./tsconfig.json"
-  },
-  "env": {
-    "browser": true,
-    "es6": true
-  },
   "extends": [
+    "react-app",
+    "react-app/jest",
     "airbnb",
     "prettier",
-    "prettier/react"
+    "prettier/react",
+    "plugin:@typescript-eslint/recommended"
   ],
-  "plugins": [
-    "prettier",
-    "react"
-  ],
+  "plugins": ["prettier", "react", "@typescript-eslint"],
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [
-          ".js",
-          ".jsx",
-          ".ts",
-          ".tsx"
-        ],
+        "extensions": [".js", ".jsx", ".ts", ".tsx"],
         "paths": "src"
       },
       "typescript": {}
-    },
-    "react": {
-      "version": "detect"
     }
   },
   "rules": {
     "camelcase": 1,
-    "curly": [
-      "error",
-      "all"
-    ],
+    "curly": ["error", "all"],
     "import/extensions": [
       "error",
       "ignorePackages",
@@ -55,6 +30,7 @@
         "tsx": "never"
       }
     ],
+    "import/prefer-default-export": "off",
     "jsx-a11y/click-events-have-key-events": "off",
     "jsx-a11y/label-has-associated-control": "off",
     "jsx-a11y/no-static-element-interactions": "off",
@@ -63,111 +39,20 @@
     "react/jsx-filename-extension": [
       2,
       {
-        "extensions": [
-          ".js",
-          ".jsx",
-          ".ts",
-          ".tsx"
-        ]
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
       }
     ],
     "react/jsx-props-no-spreading": "off",
     "react/no-array-index-key": "off",
     "react/prop-types": "off",
-    "react/require-default-props": "off"
-  },
-  "overrides": [
-    {
-      "files": [
-        "**/*.ts",
-        "**/*.tsx"
-      ],
-      "parser": "@typescript-eslint/parser",
-      "parserOptions": {
-        "ecmaVersion": 2020,
-        "ecmaFeatures": {
-          "jsx": true
-        },
-        "sourceType": "module",
-        "project": "./tsconfig.json"
-      },
-      "env": {
-        "browser": true,
-        "es6": true
-      },
-      "extends": [
-        "airbnb",
-        "prettier",
-        "prettier/react",
-        "plugin:@typescript-eslint/recommended"
-      ],
-      "plugins": [
-        "prettier",
-        "react",
-        "@typescript-eslint"
-      ],
-      "rules": {
-        "camelcase": 1,
-        "curly": [
-          "error",
-          "all"
-        ],
-        "import/extensions": [
-          "error",
-          "ignorePackages",
-          {
-            "js": "never",
-            "jsx": "never",
-            "ts": "never",
-            "tsx": "never"
-          }
-        ],
-        "import/prefer-default-export": "off",
-        "jsx-a11y/click-events-have-key-events": "off",
-        "jsx-a11y/label-has-associated-control": "off",
-        "jsx-a11y/no-static-element-interactions": "off",
-        "no-case-declarations": "off",
-        "prettier/prettier": "error",
-        "react/jsx-filename-extension": [
-          2,
-          {
-            "extensions": [
-              ".js",
-              ".jsx",
-              ".ts",
-              ".tsx"
-            ]
-          }
-        ],
-        "react/jsx-props-no-spreading": "off",
-        "react/no-array-index-key": "off",
-        "react/prop-types": "off",
-        "react/require-default-props": "off",
-        "no-use-before-define": "off",
-        "@typescript-eslint/no-empty-function": "off",
-        "@typescript-eslint/no-use-before-define": [
-          2,
-          {
-            "functions": false
-          }
-        ]
-      },
-      "settings": {
-        "import/resolver": {
-          "node": {
-            "extensions": [
-              ".js",
-              ".jsx",
-              ".ts",
-              ".tsx"
-            ],
-            "paths": "src"
-          }
-        },
-        "react": {
-          "version": "detect"
-        }
+    "react/require-default-props": "off",
+    "no-use-before-define": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-use-before-define": [
+      2,
+      {
+        "functions": false
       }
-    }
-  ]
+    ]
+  }
 }

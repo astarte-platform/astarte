@@ -12,7 +12,7 @@ deploy:
   provider: pages
   email: astarte-machine@ispirata.com
   name: Astarte Bot
-  local_dir: dist/
+  local_dir: build/
   repo: astarte-platform/online-interface-builder
   fqdn: interfaces-editor.astarte-platform.org
   skip_cleanup: true

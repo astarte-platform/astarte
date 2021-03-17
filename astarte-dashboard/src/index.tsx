@@ -20,8 +20,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import './styles/main.scss';
-import App from '../react/App';
-import type { DashboardConfig } from '../react/types';
+import App from './App';
+import type { DashboardConfig } from './types';
 
 fetch('/user-config/config.json')
   .then((response) => response.json())
@@ -38,5 +38,10 @@ fetch('/user-config/config.json')
   }))
   .catch(() => null)
   .then((config: DashboardConfig | null) => {
-    ReactDOM.render(<App config={config} />, document.getElementById('root'));
+    ReactDOM.render(
+      <React.StrictMode>
+        <App config={config} />
+      </React.StrictMode>,
+      document.getElementById('root'),
+    );
   });
