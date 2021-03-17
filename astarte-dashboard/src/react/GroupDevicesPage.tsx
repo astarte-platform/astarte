@@ -17,74 +17,58 @@
 */
 
 import React, { useState, useCallback } from 'react';
-import { Button, Container, OverlayTrigger, Spinner, Table, Tooltip } from 'react-bootstrap';
+import { Container, Spinner, Table } from 'react-bootstrap';
 import type { AstarteDevice } from 'astarte-client';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import Empty from './components/Empty';
+import Icon from './components/Icon';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import { useAstarte } from './AstarteManager';
 
-const CircleIcon = React.forwardRef<HTMLElement, React.HTMLProps<HTMLElement>>((props, ref) => (
-  <i ref={ref} {...props} className={`fas fa-circle ${props.className}`}>
-    {props.children}
-  </i>
-));
-
 const deviceTableRow = (
   device: AstarteDevice,
   index: number,
   showModal: (d: AstarteDevice) => void,
 ) => {
-  let colorClass;
+  let icon;
+  let iconTooltip;
   let lastEvent;
-  let tooltipText;
 
   if (device.isConnected) {
-    tooltipText = 'Connected';
-    colorClass = 'icon-connected';
+    icon = 'statusConnected' as const;
+    iconTooltip = 'Connected';
     lastEvent = `Connected on ${(device.lastConnection as Date).toLocaleString()}`;
   } else if (device.lastConnection) {
-    tooltipText = 'Disconnected';
-    colorClass = 'icon-disconnected';
+    icon = 'statusDisconnected' as const;
+    iconTooltip = 'Disconnected';
     lastEvent = `Disconnected on ${(device.lastDisconnection as Date).toLocaleString()}`;
   } else {
-    tooltipText = 'Never connected';
-    colorClass = 'icon-never-connected';
+    icon = 'statusNeverConnected' as const;
+    iconTooltip = 'Never connected';
     lastEvent = 'Never connected';
   }
 
   return (
     <tr key={index}>
       <td>
-        <OverlayTrigger
-          placement="right"
-          delay={{ show: 150, hide: 400 }}
-          overlay={<Tooltip id={`tooltip-icon-${index}`}>{tooltipText}</Tooltip>}
-        >
-          <CircleIcon className={colorClass} />
-        </OverlayTrigger>
+        <Icon icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
       </td>
       <td>{lastEvent}</td>
       <td>
-        <OverlayTrigger
-          placement="left"
-          delay={{ show: 150, hide: 400 }}
-          overlay={<Tooltip id={`tooltip-remove-button-${index}`}>Remove from group</Tooltip>}
-        >
-          <Button
-            as="i"
-            variant="danger"
-            className="fas fa-times"
-            onClick={() => showModal(device)}
-          />
-        </OverlayTrigger>
+        <Icon
+          icon="delete"
+          as="button"
+          tooltip="Remove from group"
+          tooltipPlacement="left"
+          onClick={() => showModal(device)}
+        />
       </td>
     </tr>
   );

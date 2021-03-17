@@ -21,6 +21,7 @@ import { Button, Card } from 'react-bootstrap';
 
 import type { AstarteDevice } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
+import Icon from '../components/Icon';
 
 interface ConnectionStatusProps {
   status: AstarteDevice['connectionStatus'];
@@ -33,24 +34,24 @@ const ConnectionStatus = ({ status }: ConnectionStatusProps): React.ReactElement
   switch (status) {
     case 'connected':
       statusString = 'Connected';
-      icon = 'icon-connected';
+      icon = 'statusConnected' as const;
       break;
 
     case 'disconnected':
       statusString = 'Disconnected';
-      icon = 'icon-disconnected';
+      icon = 'statusDisconnected' as const;
       break;
 
     case 'never_connected':
     default:
       statusString = 'Never connected';
-      icon = 'icon-never-connected';
+      icon = 'statusNeverConnected' as const;
       break;
   }
 
   return (
     <>
-      <i className={['fas fa-circle mr-1', icon].join(' ')} />
+      <Icon icon={icon} className="mr-1" />
       <span>{statusString}</span>
     </>
   );

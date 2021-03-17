@@ -67,25 +67,25 @@ const DashboardSidebar = () => {
         <Sidebar.Brand />
         <Sidebar.Item label="Home" link="/" icon="home" />
         <Sidebar.Separator />
-        <Sidebar.Item label="Interfaces" link="/interfaces" icon="stream" />
-        <Sidebar.Item label="Triggers" link="/triggers" icon="bolt" />
+        <Sidebar.Item label="Interfaces" link="/interfaces" icon="interfaces" />
+        <Sidebar.Item label="Triggers" link="/triggers" icon="triggers" />
         <Sidebar.Separator />
-        <Sidebar.Item label="Devices" link="/devices" icon="cube" />
-        <Sidebar.Item label="Groups" link="/groups" icon="object-group" />
+        <Sidebar.Item label="Devices" link="/devices" icon="devices" />
+        <Sidebar.Item label="Groups" link="/groups" icon="groups" />
         <Sidebar.Separator />
         {config.features.flow && (
           <>
-            <Sidebar.Item label="Flows" link="/flows" icon="wind" />
-            <Sidebar.Item label="Pipelines" link="/pipelines" icon="code-branch" />
-            <Sidebar.Item label="Blocks" link="/blocks" icon="shapes" />
+            <Sidebar.Item label="Flows" link="/flows" icon="flows" />
+            <Sidebar.Item label="Pipelines" link="/pipelines" icon="pipelines" />
+            <Sidebar.Item label="Blocks" link="/blocks" icon="blocks" />
             <Sidebar.Separator />
           </>
         )}
-        <Sidebar.Item label="Realm settings" link="/settings" icon="cog" />
+        <Sidebar.Item label="Realm settings" link="/settings" icon="settings" />
         <Sidebar.Separator />
         <Sidebar.ApiStatus healthy={isApiHealthy} realm={astarte.realm} />
         <Sidebar.Separator />
-        <Sidebar.Item label="Logout" link="/logout" icon="sign-out-alt" />
+        <Sidebar.Item label="Logout" link="/logout" icon="logout" />
       </Sidebar>
     </Col>
   );
@@ -108,7 +108,7 @@ const StandaloneEditor = () => (
       <Col id="main-navbar" className="col-auto nav-col">
         <Sidebar>
           <Sidebar.Brand />
-          <Sidebar.Item label="Interface Editor" link="/" icon="stream" />
+          <Sidebar.Item label="Interface Editor" link="/" icon="interfaces" />
         </Sidebar>
       </Col>
       <Col className="main-content vh-100 overflow-auto">

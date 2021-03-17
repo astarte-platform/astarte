@@ -32,6 +32,7 @@ import {
 import { AstarteInterface, AstarteMapping } from 'astarte-client';
 import _ from 'lodash';
 
+import Icon from './Icon';
 import MappingEditor from './MappingEditor';
 
 interface FormControlWarningProps {
@@ -939,7 +940,7 @@ export default ({
                     className="btn accordion-button w-100 mb-2"
                     onClick={handleAddMapping}
                   >
-                    <i className="fas fa-plus mr-2" /> Add new mapping...
+                    <Icon icon="add" className="mr-2" /> Add new mapping...
                   </button>
                   {interfaceDraft.mappings.map((mapping, index) => {
                     const isExistingMapping = (initialData?.mappings || []).some(

@@ -24,6 +24,7 @@ import type { AstarteDevice } from 'astarte-client';
 import { useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
+import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import SingleCardPage from './ui/SingleCardPage';
@@ -72,7 +73,7 @@ const FilterInputBox = ({ filter, onFilterChange }: FilterInputBoxProps): React.
     <InputGroup>
       <InputGroup.Prepend>
         <InputGroup.Text>
-          <i className="fas fa-filter" />
+          <Icon icon="filter" />
         </InputGroup.Text>
       </InputGroup.Prepend>
       <Form.Control

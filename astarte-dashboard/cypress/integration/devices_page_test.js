@@ -57,7 +57,7 @@ describe('Devices page tests', () => {
       cy.get('table tbody tr i')
         .should('have.length', 1)
         .each(($icon) => {
-          expect($icon).to.have.class('icon-connected');
+          expect($icon).to.have.class('color-green');
         });
     });
 

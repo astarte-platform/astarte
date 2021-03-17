@@ -19,14 +19,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import Icon from '../components/Icon';
+
 interface Props {
   href: string;
 }
 
 export default function BackButton({ href }: Props): React.ReactElement {
   return (
-    <Link to={href} className="align-bottom mr-2" aria-label="Back">
-      <i className="fas fa-chevron-left align-text-bottom" />
+    <Link to={href} className="mr-2" aria-label="Back">
+      <Icon icon="arrowLeft" />
     </Link>
   );
 }

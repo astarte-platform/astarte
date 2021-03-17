@@ -21,6 +21,7 @@ import { Button, Card, Table } from 'react-bootstrap';
 
 import type { AstarteDevice } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
+import Icon from '../components/Icon';
 
 interface AliasKeyValuePair {
   key: string;
@@ -52,14 +53,8 @@ const AliasesTable = ({
           <td>{key}</td>
           <td>{value}</td>
           <td className="text-center">
-            <i
-              className="fas fa-pencil-alt color-grey action-icon mr-2"
-              onClick={() => onEditAliasClick(key)}
-            />
-            <i
-              className="fas fa-eraser color-red action-icon"
-              onClick={() => onRemoveAliasClick({ key, value })}
-            />
+            <Icon icon="edit" className="color-grey mr-2" onClick={() => onEditAliasClick(key)} />
+            <Icon icon="erase" onClick={() => onRemoveAliasClick({ key, value })} />
           </td>
         </tr>
       ))}

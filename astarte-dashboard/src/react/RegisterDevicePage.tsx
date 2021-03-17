@@ -24,6 +24,7 @@ import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import { Button, Col, Form, Spinner, Table } from 'react-bootstrap';
 import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
 
+import Icon from './components/Icon';
 import ConfirmModal from './components/modals/Confirm';
 import FormModal from './components/modals/Form';
 import SingleCardPage from './ui/SingleCardPage';
@@ -76,7 +77,7 @@ const InterfaceIntrospectionRow = ({
     <td>{interfaceDescriptor.major}</td>
     <td>{interfaceDescriptor.minor}</td>
     <td>
-      <i className="fas fa-eraser color-red action-icon" onClick={onRemove} />
+      <Icon icon="erase" onClick={onRemove} />
     </td>
   </tr>
 );
@@ -400,7 +401,7 @@ export default (): React.ReactElement => {
             <code id="secret-code" className="m-1 p-2 bg-light" style={{ fontSize: '1.2em' }}>
               {deviceSecret}
             </code>
-            <i className="fas fa-paste" onClick={pasteSecret} style={{ cursor: 'copy' }} />
+            <Icon icon="copyPaste" onClick={pasteSecret} style={{ cursor: 'copy' }} />
           </pre>
           <span>
             Please don&apos;t share the Credentials Secret, and ensure it is transferred securely to
