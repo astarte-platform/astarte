@@ -70,8 +70,8 @@ export default ({ reactHistory: history, astarteClient, sessionManager, config, 
           path="login"
           element={
             <Login
-              canSwitchLoginType={config.auth.length > 1}
-              defaultLoginType={config.default_auth || 'token'}
+              authOptions={config.auth}
+              defaultAuth={config.defaultAuth}
               defaultRealm={config.default_realm || ''}
               {...pageProps}
             />

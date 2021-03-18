@@ -158,6 +158,46 @@ function leaveDeviceRoom() {
   });
 }
 
+function parseLoginConfig(json) {
+  const { default_realm, default_auth, auth } = json;
+
+  if (!auth || !default_auth) {
+    return null;
+  }
+
+  const config = {
+    defaultRealm: default_realm,
+    defaultAuth: default_auth,
+    auth: {
+      token: {
+        enabled: false,
+      },
+      oauth: {
+        enabled: false,
+        oauthApiUrl: null,
+      },
+    },
+  };
+
+  auth.forEach((authOption) => {
+    if (authOption.type === 'token') {
+      config.auth.token.enabled = true;
+    } else if (authOption.type === 'oauth') {
+      config.auth.oauth.enabled = true;
+      config.auth.oauth.oauthApiUrl = authOption.oauth_api_url;
+    }
+  });
+
+  if (
+    (default_auth !== 'token' && default_auth !== 'oauth') ||
+    !config.auth[default_auth].enabled
+  ) {
+    return null;
+  }
+
+  return config;
+}
+
 function loadPage(page) {
   const elem = document.getElementById('react-page');
   if (elem) {
@@ -184,7 +224,7 @@ function loadPage(page) {
     reactHistory,
     astarteClient,
     sessionManager,
-    dashboardConfig,
+    parseLoginConfig(dashboardConfig),
     noMatchFallback,
   );
   ReactDOM.render(reactApp, document.getElementById('react-page'));
