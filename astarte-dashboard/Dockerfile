@@ -4,7 +4,7 @@ WORKDIR /app
 ADD . .
 RUN apt-get -qq update
 RUN apt-get -qq install netbase build-essential autoconf libffi-dev
-RUN npm install
+RUN npm ci --production
 RUN npm run deploy
 
 FROM nginx:1
