@@ -206,4 +206,6 @@ class AstarteInterface {
   }
 }
 
-export { AstarteInterface, AstarteInterfaceObject, interfaceNameRegex };
+export type { AstarteInterfaceObject };
+
+export { AstarteInterface, interfaceNameRegex };

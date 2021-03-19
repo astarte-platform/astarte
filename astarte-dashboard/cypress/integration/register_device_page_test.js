@@ -1,4 +1,4 @@
-import { urlSafeBase64ToByteArray } from '../../src/react/Base64.ts';
+import { urlSafeBase64ToByteArray } from '../../src/Base64.ts';
 
 describe('Register device page tests', () => {
   context('no access before login', () => {

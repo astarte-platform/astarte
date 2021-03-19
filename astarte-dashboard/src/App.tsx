@@ -34,28 +34,22 @@ import useInterval from './hooks/useInterval';
 const DashboardSidebar = () => {
   const config = useConfig();
   const astarte = useAstarte();
-  const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
-  const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
-  const pairingHealth = useFetch(astarte.client.getPairingHealth);
-  const flowHealth = config.features.flow ? useFetch(astarte.client.getFlowHealth) : null;
 
-  const refreshHealth = useCallback(() => {
-    if (!astarte.isAuthenticated) {
-      return;
+  const healthFetcher = useFetch(() => {
+    const apiChecks = [
+      astarte.client.getAppengineHealth(),
+      astarte.client.getRealmManagementHealth(),
+      astarte.client.getPairingHealth(),
+    ];
+    if (config.features.flow) {
+      apiChecks.push(astarte.client.getFlowHealth());
     }
-    appEngineHealth.refresh();
-    realmManagementHealth.refresh();
-    pairingHealth.refresh();
-    if (flowHealth) {
-      flowHealth.refresh();
-    }
-  }, [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth, astarte.isAuthenticated]);
+    return Promise.all(apiChecks);
+  });
 
-  useInterval(refreshHealth, 30000);
+  useInterval(healthFetcher.refresh, 30000);
 
-  const isApiHealthy = [appEngineHealth, realmManagementHealth, pairingHealth, flowHealth].every(
-    (apiHealth) => apiHealth == null || apiHealth.status !== 'err',
-  );
+  const isApiHealthy = healthFetcher.status !== 'err';
 
   if (!astarte.isAuthenticated) {
     return null;

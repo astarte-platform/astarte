@@ -11,7 +11,7 @@ next:build:
     script:
         - apt-get -y update
         - apt-get -y install netbase build-essential autoconf libffi-dev
-        - npm install
+        - npm ci --production
         - npm run deploy
 
 docker:snapshot-container:

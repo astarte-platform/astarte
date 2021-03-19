@@ -29,8 +29,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+      - name: Run Jest tests
+        run: npm run jest:test
       - name: Start dev server
         run: npm run start & npx wait-on http://localhost:8080
-      - name: Run tests
-        run: npm run test
+      - name: Run Cypress tests
+        run: npm run cypress:test
