@@ -53,6 +53,7 @@ function encodeValue(value: unknown): any {
 interface NativeBlockModelConfig {
   name: AstarteBlock['name'];
   blockType: AstarteBlock['type'];
+  onRemoveClick?: (node: NativeBlockModel) => void;
   onSettingsClick?: (...args: any[]) => void;
 }
 
@@ -60,6 +61,8 @@ class NativeBlockModel extends NodeModel {
   name: AstarteBlock['name'];
 
   blockType: AstarteBlock['type'];
+
+  onRemoveClick: (node: NativeBlockModel) => void;
 
   onSettingsClick: (...args: any[]) => void;
 
@@ -69,7 +72,12 @@ class NativeBlockModel extends NodeModel {
 
   outPorts: DefaultPortModel[];
 
-  constructor({ name, blockType, onSettingsClick = () => {} }: NativeBlockModelConfig) {
+  constructor({
+    name,
+    blockType,
+    onRemoveClick = () => {},
+    onSettingsClick = () => {},
+  }: NativeBlockModelConfig) {
     super({
       type: 'astarte-native',
     });
@@ -101,6 +109,7 @@ class NativeBlockModel extends NodeModel {
     this.name = name;
     this.blockType = blockType;
     this.properties = {};
+    this.onRemoveClick = onRemoveClick;
     this.onSettingsClick = onSettingsClick;
   }
 

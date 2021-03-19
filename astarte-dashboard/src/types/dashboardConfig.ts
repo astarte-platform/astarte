@@ -23,12 +23,12 @@ type DashboardAuthConfig =
       defaultRealm?: string;
     }
   | {
-      auth: [{ type: 'oauth' }];
+      auth: [{ type: 'oauth'; oauth_api_url?: string }];
       defaultAuth?: 'oauth';
       defaultRealm?: string;
     }
   | {
-      auth: [{ type: 'token' }, { type: 'oauth' }];
+      auth: [{ type: 'token' }, { type: 'oauth'; oauth_api_url?: string }];
       defaultAuth?: 'token' | 'oauth';
       defaultRealm?: string;
     };

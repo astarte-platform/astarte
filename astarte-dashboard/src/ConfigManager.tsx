@@ -20,10 +20,26 @@ import React, { createContext, useContext, useMemo } from 'react';
 
 import type { DashboardConfig } from './types';
 
+type LoginType = keyof AuthOptions;
+
+interface TokenOptions {
+  enabled: boolean;
+}
+
+interface OAuthOptions {
+  enabled: boolean;
+  oauthApiUrl?: string | null;
+}
+
+interface AuthOptions {
+  token: TokenOptions;
+  oauth: OAuthOptions;
+}
+
 type ConfigContextValue = {
   auth: {
-    methods: DashboardConfig['auth'];
-    defaultMethod: 'oauth' | 'token';
+    methods: AuthOptions;
+    defaultMethod: LoginType;
     defaultRealm?: string;
   };
   features: {
@@ -43,19 +59,37 @@ const ConfigProvider = ({
   config,
   ...props
 }: ConfigProviderProps): React.ReactElement => {
-  const contextValue = useMemo(
-    () => ({
+  const contextValue = useMemo(() => {
+    const appConfig: ConfigContextValue = {
       auth: {
-        methods: config.auth,
+        methods: {
+          token: {
+            enabled: false,
+          },
+          oauth: {
+            enabled: false,
+            oauthApiUrl: null,
+          },
+        },
         defaultMethod: config.defaultAuth || 'token',
         defaultRealm: config.defaultRealm,
       },
       features: {
         flow: !!config.enableFlowPreview,
       },
-    }),
-    [config],
-  );
+    };
+
+    config.auth.forEach((authOption) => {
+      if (authOption.type === 'token') {
+        appConfig.auth.methods.token.enabled = true;
+      } else if (authOption.type === 'oauth') {
+        appConfig.auth.methods.oauth.enabled = true;
+        appConfig.auth.methods.oauth.oauthApiUrl = authOption.oauth_api_url || null;
+      }
+    });
+
+    return appConfig;
+  }, [config]);
 
   return (
     <ConfigContext.Provider value={contextValue} {...props}>
@@ -67,5 +101,7 @@ const ConfigProvider = ({
 const useConfig = (): ConfigContextValue => useContext(ConfigContext);
 
 export { useConfig };
+
+export type { AuthOptions, LoginType };
 
 export default ConfigProvider;
