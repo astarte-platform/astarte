@@ -23,7 +23,7 @@ export class AstarteDevice {
 
   aliases: Map<string, string>;
 
-  metadata: Map<string, string>;
+  attributes: Map<string, string>;
 
   isConnected: boolean;
 
@@ -86,10 +86,10 @@ export class AstarteDevice {
         };
       });
     }
-    this.metadata = new Map();
-    if (device.metadata) {
-      Object.entries(device.metadata).forEach(([key, value]) => {
-        this.metadata.set(key, value);
+    this.attributes = new Map();
+    if (device.attributes) {
+      Object.entries(device.attributes).forEach(([key, value]) => {
+        this.attributes.set(key, value);
       });
     }
     this.totalReceivedMessages = device.total_received_msgs || 0;

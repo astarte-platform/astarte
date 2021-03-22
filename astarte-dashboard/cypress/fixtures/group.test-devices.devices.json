@@ -6,8 +6,8 @@
         "name": "my_device_name",
         "serial_number": "1234567"
       },
-      "metadata": {
-        "metadata_key": "metadata_value"
+      "attributes": {
+        "attribute_key": "attribute_value"
       },
       "introspection": {
         "com.example.ExampleInterface": {
@@ -69,7 +69,7 @@
       "last_credentials_request_ip": null,
       "last_disconnection": null,
       "last_seen_ip": null,
-      "metadata": {},
+      "attributes": {},
       "previous_interfaces": [],
       "total_received_bytes": 0,
       "total_received_msgs": 0

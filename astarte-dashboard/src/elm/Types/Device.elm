@@ -23,7 +23,7 @@ module Types.Device exposing
     , decoder
     , encodeAliases
     , encodeCredentialsInhibited
-    , encodeMetadata
+    , encodeAttributes
     )
 
 import Dict exposing (Dict)
@@ -48,7 +48,7 @@ type alias Device =
     , credentialsinhibited : Bool
     , groups : List String
     , previousInterfaces : List IntrospectionValue
-    , metadata : Dict String String
+    , attributes : Dict String String
     }
 
 
@@ -78,7 +78,7 @@ decoder =
         |> required "credentials_inhibited" Decode.bool
         |> required "groups" (Decode.list Decode.string)
         |> required "previous_interfaces" previousInterfacesDecoder
-        |> required "metadata" (Decode.dict Decode.string)
+        |> required "attributes" (Decode.dict Decode.string)
 
 
 introspectionsDecoder : Decoder (List IntrospectionValue)
@@ -160,6 +160,6 @@ encodeCredentialsInhibited enabled =
     Encode.object [ ( "credentials_inhibited", Encode.bool enabled ) ]
 
 
-encodeMetadata : Dict String String -> Value
-encodeMetadata aliases =
-    Encode.object [ ( "metadata", Encode.dict identity Encode.string aliases ) ]
+encodeAttributes : Dict String String -> Value
+encodeAttributes attributes =
+    Encode.object [ ( "attributes", Encode.dict identity Encode.string attributes ) ]

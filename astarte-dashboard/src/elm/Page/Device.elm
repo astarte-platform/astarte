@@ -76,13 +76,13 @@ type alias Model =
 
 type PageModals
     = NewAlias AskKeyValue.Model (AskKeyValue.Msg -> Msg)
-    | NewMetadata AskKeyValue.Model (AskKeyValue.Msg -> Msg)
+    | NewAttribute AskKeyValue.Model (AskKeyValue.Msg -> Msg)
     | EditAliasValue AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
-    | EditMetadataValue AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
+    | EditAttributeValue AskSingleValue.Model (AskSingleValue.Msg -> Msg) String
     | ConfirmCredentialsWipe ConfirmModal.Model (ConfirmModal.Msg -> Msg)
     | CredentialsWipedFeedback ConfirmModal.Model (ConfirmModal.Msg -> Msg)
     | ConfirmAliasDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
-    | ConfirmMetadataDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
+    | ConfirmAttributeDeletion ConfirmModal.Model (ConfirmModal.Msg -> Msg) String
 
 
 init : Session -> String -> ( Model, Cmd Msg )
@@ -108,18 +108,18 @@ type Msg
     | UpdateDeviceInfo Time.Posix
     | Forward ExternalMsg
     | OpenNewAliasPopup
-    | OpenNewMetadataPopup
+    | OpenNewAttributePopup
     | OpenGroupsPopup
     | UpdateKeyValueModal AskKeyValue.Msg
     | UpdateSingleValueModal AskSingleValue.Msg
     | UpdateConfirmModal ConfirmModal.Msg
     | UpdateGroupModal SelectGroup.Msg
     | DeviceAliasesUpdated (Dict String String) (Result AstarteApi.Error ())
-    | DeviceMetadataUpdated (Dict String String) (Result AstarteApi.Error ())
+    | DeviceAttributesUpdated (Dict String String) (Result AstarteApi.Error ())
     | EditAlias String
     | DeleteAlias String String
-    | EditMetadata String
-    | RemoveMetadata String String
+    | EditAttribute String
+    | RemoveAttribute String String
     | SetCredentialsInhibited Bool
     | ShowConfirmModal
       -- spinner
@@ -266,10 +266,10 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        OpenNewMetadataPopup ->
+        OpenNewAttributePopup ->
             let
                 modal =
-                    NewMetadata (AskKeyValue.init "Add New Item" "Key" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewAttribute (AskKeyValue.init "Add New Item" "Key" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -294,12 +294,12 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Just (NewMetadata modalModel msgTag) ->
+                Just (NewAttribute modalModel msgTag) ->
                     let
                         ( newStatus, extenalCommand ) =
                             AskKeyValue.update modalMsg modalModel
                     in
-                    ( { model | currentModal = Just (NewMetadata newStatus msgTag) }
+                    ( { model | currentModal = Just (NewAttribute newStatus msgTag) }
                     , handleKeyValueCommand session model extenalCommand
                     , ExternalMsg.Noop
                     )
@@ -322,12 +322,12 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Just (EditMetadataValue modalModel msgTag itemKey) ->
+                Just (EditAttributeValue modalModel msgTag itemKey) ->
                     let
                         ( newStatus, extenalCommand ) =
                             AskSingleValue.update modalMsg modalModel
                     in
-                    ( { model | currentModal = Just (EditMetadataValue newStatus msgTag itemKey) }
+                    ( { model | currentModal = Just (EditAttributeValue newStatus msgTag itemKey) }
                     , handleSingleValueCommand session model extenalCommand
                     , ExternalMsg.Noop
                     )
@@ -370,12 +370,12 @@ update session msg model =
                     , ExternalMsg.Noop
                     )
 
-                Just (ConfirmMetadataDeletion modalModel msgTag metadataField) ->
+                Just (ConfirmAttributeDeletion modalModel msgTag attributeField) ->
                     let
                         ( newStatus, externalCommand ) =
                             ConfirmModal.update modalMsg modalModel
                     in
-                    ( { model | currentModal = Just (ConfirmMetadataDeletion newStatus msgTag metadataField) }
+                    ( { model | currentModal = Just (ConfirmAttributeDeletion newStatus msgTag attributeField) }
                     , handleConfirmModalCommand session model externalCommand
                     , ExternalMsg.Noop
                     )
@@ -424,7 +424,7 @@ update session msg model =
             , ExternalMsg.AddFlashMessage FlashMessage.Error message details
             )
 
-        DeviceMetadataUpdated newMetadata (Ok _) ->
+        DeviceAttributesUpdated newAttributes (Ok _) ->
             case model.device of
                 Nothing ->
                     ( model
@@ -435,14 +435,14 @@ update session msg model =
                 Just device ->
                     let
                         updatedDevice =
-                            { device | metadata = newMetadata }
+                            { device | attributes = newAttributes }
                     in
                     ( { model | device = Just updatedDevice }
                     , Cmd.none
                     , ExternalMsg.Noop
                     )
 
-        DeviceMetadataUpdated _ (Err error) ->
+        DeviceAttributesUpdated _ (Err error) ->
             let
                 ( message, details ) =
                     AstarteApi.errorToHumanReadable error
@@ -487,26 +487,26 @@ update session msg model =
             , ExternalMsg.Noop
             )
 
-        EditMetadata key ->
+        EditAttribute key ->
             let
                 title =
                     "Edit \"" ++ key ++ "\""
 
                 modal =
-                    EditMetadataValue (AskSingleValue.init title "Value" AskSingleValue.AnyValue True) UpdateSingleValueModal key
+                    EditAttributeValue (AskSingleValue.init title "Value" AskSingleValue.AnyValue True) UpdateSingleValueModal key
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
             , ExternalMsg.Noop
             )
 
-        RemoveMetadata key _ ->
+        RemoveAttribute key _ ->
             let
                 title =
                     "Delete Item"
 
                 body =
-                    Html.text ("Do you want to delete " ++ key ++ " from metadata?")
+                    Html.text ("Do you want to delete " ++ key ++ " from attributes?")
 
                 action =
                     Just "Delete"
@@ -515,7 +515,7 @@ update session msg model =
                     Just ConfirmModal.Danger
 
                 modal =
-                    ConfirmMetadataDeletion (ConfirmModal.init title body action style True True) UpdateConfirmModal key
+                    ConfirmAttributeDeletion (ConfirmModal.init title body action style True True) UpdateConfirmModal key
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -667,14 +667,14 @@ handleKeyValueCommand session model cmd =
             DeviceAliasesUpdated newAliases
                 |> AstarteApi.updateDeviceAliases session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
 
-        ( Just device, Just (NewMetadata _ _), AskKeyValue.Confirm key value ) ->
+        ( Just device, Just (NewAttribute _ _), AskKeyValue.Confirm key value ) ->
             let
-                newMetadata =
-                    device.metadata
+                newAttributes =
+                    device.attributes
                         |> Dict.insert key value
             in
-            DeviceMetadataUpdated newMetadata
-                |> AstarteApi.updateDeviceMetadata session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
+            DeviceAttributesUpdated newAttributes
+                |> AstarteApi.updateDeviceAttributes session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
 
         ( _, _, AskKeyValue.Cancel ) ->
             Cmd.none
@@ -698,14 +698,14 @@ handleSingleValueCommand session model cmd =
             DeviceAliasesUpdated newAliases
                 |> AstarteApi.updateDeviceAliases session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
 
-        ( Just device, Just (EditMetadataValue _ _ key), AskSingleValue.Confirm value ) ->
+        ( Just device, Just (EditAttributeValue _ _ key), AskSingleValue.Confirm value ) ->
             let
-                newMetadata =
-                    device.metadata
+                newAttributes =
+                    device.attributes
                         |> Dict.insert key value
             in
-            DeviceMetadataUpdated newMetadata
-                |> AstarteApi.updateDeviceMetadata session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
+            DeviceAttributesUpdated newAttributes
+                |> AstarteApi.updateDeviceAttributes session.apiConfig model.deviceId (Dict.fromList [ ( key, value ) ])
 
         ( _, _, AskSingleValue.Cancel ) ->
             Cmd.none
@@ -732,14 +732,14 @@ handleConfirmModalCommand session model cmd =
             DeviceAliasesUpdated newAliases
                 |> AstarteApi.removeDeviceAlias session.apiConfig model.deviceId aliasTag
 
-        ( Just device, Just (ConfirmMetadataDeletion _ _ metadataField), ConfirmModal.Confirm ) ->
+        ( Just device, Just (ConfirmAttributeDeletion _ _ attributeField), ConfirmModal.Confirm ) ->
             let
-                newMetadatas =
-                    device.metadata
-                        |> Dict.remove metadataField
+                newAttributes =
+                    device.attributes
+                        |> Dict.remove attributeField
             in
-            DeviceMetadataUpdated newMetadatas
-                |> AstarteApi.removeDeviceMetadataField session.apiConfig model.deviceId metadataField
+            DeviceAttributesUpdated newAttributes
+                |> AstarteApi.removeDeviceAttributeField session.apiConfig model.deviceId attributeField
 
         ( _, _, ConfirmModal.Cancel ) ->
             Cmd.none
@@ -837,7 +837,7 @@ view model flashMessages =
                 , Grid.row []
                     [ deviceInfoCard device Card.HalfWidth
                     , deviceAliasesCard device Card.HalfWidth
-                    , deviceMetadataCard device Card.HalfWidth
+                    , deviceAttributesCard device Card.HalfWidth
                     , deviceGroupsCard device (not <| List.isEmpty model.existingGroups) Card.HalfWidth
                     , deviceIntrospectionCard device Card.HalfWidth
                     , devicePreviousInterfacesCard device Card.HalfWidth
@@ -867,7 +867,7 @@ renderModals modal =
             AskKeyValue.view model
                 |> Html.map msgHandler
 
-        NewMetadata model msgHanlder ->
+        NewAttribute model msgHanlder ->
             AskKeyValue.view model
                 |> Html.map msgHanlder
 
@@ -875,7 +875,7 @@ renderModals modal =
             AskSingleValue.view model
                 |> Html.map msgHanlder
 
-        EditMetadataValue model msgHanlder _ ->
+        EditAttributeValue model msgHanlder _ ->
             AskSingleValue.view model
                 |> Html.map msgHanlder
 
@@ -891,7 +891,7 @@ renderModals modal =
             ConfirmModal.view model
                 |> Html.map msgHanlder
 
-        ConfirmMetadataDeletion model msgHanlder _ ->
+        ConfirmAttributeDeletion model msgHanlder _ ->
             ConfirmModal.view model
                 |> Html.map msgHanlder
 
@@ -1233,14 +1233,14 @@ deviceAliasesCard device width =
         ]
 
 
-deviceMetadataCard : Device -> Card.Width -> Grid.Column Msg
-deviceMetadataCard device width =
-    Card.view "Metadata"
+deviceAttributesCard : Device -> Card.Width -> Grid.Column Msg
+deviceAttributesCard device width =
+    Card.view "Attributes"
         width
-        [ renderMetadata device.metadata ]
+        [ renderAttributes device.attributes ]
         [ Button.button
             [ Button.primary
-            , Button.onClick OpenNewMetadataPopup
+            , Button.onClick OpenNewAttributePopup
             ]
             [ Html.text "Add new item" ]
         ]
@@ -1634,10 +1634,10 @@ renderAliases aliases =
             }
 
 
-renderMetadata : Dict String String -> Html Msg
-renderMetadata metadata =
-    if Dict.isEmpty metadata then
-        Card.simpleText "Device has no metadata"
+renderAttributes : Dict String String -> Html Msg
+renderAttributes attributes =
+    if Dict.isEmpty attributes then
+        Card.simpleText "Device has no attribute"
 
     else
         Table.table
@@ -1651,9 +1651,9 @@ renderMetadata metadata =
                     [ Html.text "Actions" ]
                 ]
             , tbody = Table.tbody []
-                (metadata
+                (attributes
                     |> Dict.toList
-                    |> List.map (fieldValueTableRow EditMetadata RemoveMetadata)
+                    |> List.map (fieldValueTableRow EditAttribute RemoveAttribute)
                 )
             }
 
