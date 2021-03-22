@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { BrowserRouter as RouterProvider } from 'react-router-dom';
 import { Col, Container, Row } from 'react-bootstrap';
 
