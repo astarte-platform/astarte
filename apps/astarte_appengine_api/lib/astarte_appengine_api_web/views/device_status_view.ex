@@ -61,7 +61,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusView do
       first_registration: device_status.first_registration,
       first_credentials_request: device_status.first_credentials_request,
       aliases: device_status.aliases,
-      metadata: device_status.metadata,
+      attributes: device_status.attributes,
       groups: device_status.groups,
       previous_interfaces:
         render_many(device_status.previous_interfaces, DeviceStatusView, "interface_info.json",

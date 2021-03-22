@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Run tests against RabbitMQ 3.8.12 and ScyllaDB 4.4-rc.1 / Cassandra 3.11.10.
 - Update dependencies to latest available versions (see `mix.lock` files).
 - Update Elixir to 1.11 and OTP to 23.2.
+- Rename device `metadata` to `attributes`. *This requires a manual intervention on the database*,
+  see the [Schema Changes](https://docs.astarte-platform.org/1.0/090-database.html#schema-changes)
+  documentation for additional information.
 
 ## [1.0.0-beta.1] - 2021-02-16
 ### Fixed

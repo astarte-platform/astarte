@@ -71,30 +71,30 @@ defmodule Astarte.AppEngine.API.Device do
          credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),
          :ok <- change_credentials_inhibited(client, device_id, credentials_inhibited_change),
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
-         metadata_change = Map.get(changeset.changes, :metadata, %{}),
+         attributes_change = Map.get(changeset.changes, :attributes, %{}),
          :ok <- update_aliases(client, device_id, aliases_change),
-         :ok <- update_metadata(client, device_id, metadata_change) do
+         :ok <- update_attributes(client, device_id, attributes_change) do
       # Manually merge aliases since changesets don't perform maps deep merge
       merged_aliases = merge_data(device_status.aliases, updated_device_status.aliases)
-      merged_metadata = merge_data(device_status.metadata, updated_device_status.metadata)
+      merged_attributes = merge_data(device_status.attributes, updated_device_status.attributes)
 
       updated_map =
         updated_device_status
         |> Map.put(:aliases, merged_aliases)
-        |> Map.put(:metadata, merged_metadata)
+        |> Map.put(:attributes, merged_attributes)
 
       {:ok, updated_map}
     end
   end
 
-  defp update_metadata(client, device_id, metadata) do
-    Enum.reduce_while(metadata, :ok, fn
-      {"", _metadata_value}, _acc ->
-        Logger.warn("Metadata key cannot be an empty string.", tag: :invalid_metadata_empty_key)
-        {:halt, {:error, :invalid_metadata}}
+  defp update_attributes(client, device_id, attributes) do
+    Enum.reduce_while(attributes, :ok, fn
+      {"", _attribute_value}, _acc ->
+        Logger.warn("Attribute key cannot be an empty string.", tag: :invalid_attribute_empty_key)
+        {:halt, {:error, :invalid_attributes}}
 
-      {metadata_key, nil}, _acc ->
-        case Queries.delete_metadata(client, device_id, metadata_key) do
+      {attribute_key, nil}, _acc ->
+        case Queries.delete_attribute(client, device_id, attribute_key) do
           :ok ->
             {:cont, :ok}
 
@@ -102,8 +102,8 @@ defmodule Astarte.AppEngine.API.Device do
             {:halt, {:error, reason}}
         end
 
-      {metadata_key, metadata_value}, _acc ->
-        case Queries.insert_metadata(client, device_id, metadata_key, metadata_value) do
+      {attribute_key, attribute_value}, _acc ->
+        case Queries.insert_attribute(client, device_id, attribute_key, attribute_value) do
           :ok ->
             {:cont, :ok}
 

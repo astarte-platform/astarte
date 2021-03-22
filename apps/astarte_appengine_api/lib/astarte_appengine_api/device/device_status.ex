@@ -34,7 +34,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :first_credentials_request, :utc_datetime
     field :last_credentials_request_ip
     field :last_seen_ip
-    field :metadata, {:map, :string}
+    field :attributes, {:map, :string}
     field :credentials_inhibited, :boolean
     field :total_received_msgs, :integer
     field :total_received_bytes, :integer
@@ -45,7 +45,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
   @doc false
   def changeset(%DeviceStatus{} = device_status, params \\ %{}) do
     device_status
-    |> cast(params, [:aliases, :credentials_inhibited, :metadata])
+    |> cast(params, [:aliases, :credentials_inhibited, :attributes])
   end
 
   def from_db_row(row) when is_map(row) do
@@ -61,7 +61,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       "first_credentials_request" => first_credentials_request,
       "last_credentials_request_ip" => last_credentials_request_ip,
       "last_seen_ip" => last_seen_ip,
-      "metadata" => metadata,
+      "attributes" => attributes,
       "inhibit_credentials_request" => credentials_inhibited,
       "total_received_msgs" => total_received_msgs,
       "total_received_bytes" => total_received_bytes,
@@ -123,7 +123,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       first_credentials_request: first_credentials_request,
       last_credentials_request_ip: ip_string(last_credentials_request_ip),
       last_seen_ip: ip_string(last_seen_ip),
-      metadata: metadata || %{},
+      attributes: attributes || %{},
       credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
