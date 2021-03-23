@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.0.0-beta.2] - Unreleased
+## [1.0.0-beta.2] - 2021-03-23
+### Changed
+- Run tests against ScyllaDB 4.4-rc.4 / Cassandra 3.11.10.
+- Update dependencies to latest available versions (see `mix.lock` files).
+- Update Elixir to 1.11 and OTP to 23.2.
 
 ## [1.0.0-beta.1] - 2021-02-12
 
