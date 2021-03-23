@@ -12,6 +12,25 @@ You will need a machine with at least 4GB of RAM, a recent 64-bit operating syst
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
 
+Due to ScyllaDB requirements, if you're working on a Linux machine you should make sure that `aio-max-nr` is at least `1048576`:
+
+```sh
+cat /proc/sys/fs/aio-max-nr
+1048576
+```
+
+If it's less than that, you'll need to edit your `/etc/sysctl.conf` file
+
+```
+fs.aio-max-nr = 1048576
+```
+
+and to persist this configuration
+
+```sh
+sudo sysctl -p
+```
+
 ## Checking prerequistes
 
 Docker version >= 19 is recommended:
@@ -181,7 +200,7 @@ $ astartectl appengine devices get-samples <your device id> org.astarte-platform
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
 
-Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt realm-management -k test_private.pem`. Grant a longer expiration by using the `-e` parameter to avoid being logged out too quickly.
+Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt all-realm-apis -k test_private.pem`. By default, `astartectl` will generate a token valid for 8 hours, but you can set a specific expiration by using the `-e <seconds>` parameter.
 
 From here on, you can use all of Astarte's APIs and features from your own installation. You can add devices, experiment with interfaces, or develop your own applications on top of Astarte's triggers or AppEngine's APIs. And have a lot of fun!
 
