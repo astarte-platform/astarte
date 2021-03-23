@@ -33,16 +33,16 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
        {"com.example.PixelsConfiguration", 1} => 2_010_000,
        {"com.test.LCDMonitor", 1} => 3000,
        {"com.test.LCDMonitor", 0} => 9000
-     }, %{"display_name" => "device_a"}, %{"metadata_key" => "device_a_metadata"}},
+     }, %{"display_name" => "device_a"}, %{"attribute_key" => "device_a_attribute"}},
     {"olFkumNuZ_J0f_d6-8XCDg", 10, nil, nil, nil, nil},
     {"4UQbIokuRufdtbVZt9AsLg", 22, %{{"com.test.LCDMonitor", 1} => 4},
      %{{"com.test.LCDMonitor", 1} => 16}, %{"display_name" => "device_b", "serial" => "1234"},
-     %{"metadata_key" => "device_b_metadata"}},
+     %{"attribute_key" => "device_b_attribute"}},
     {"aWag-VlVKC--1S-vfzZ9uQ", 0, %{}, %{}, %{"display_name" => "device_c"},
-     %{"metadata_key" => "device_c_metadata"}},
+     %{"attribute_key" => "device_c_attribute"}},
     {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{{"com.test.SimpleStreamTest", 1} => 9},
      %{{"com.test.SimpleStreamTest", 1} => 250}, %{"display_name" => "device_d"},
-     %{"metadata_key" => "device_d_metadata"}}
+     %{"attribute_key" => "device_d_attribute"}}
   ]
 
   @create_autotestrealm """
@@ -106,7 +106,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         last_credentials_request_ip inet,
         last_seen_ip inet,
         groups map<text, timeuuid>,
-        metadata map<varchar, varchar>,
+        attributes map<varchar, varchar>,
 
         PRIMARY KEY (device_id)
       );
@@ -120,14 +120,14 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   @insert_device_statement """
   INSERT INTO autotestrealm.devices
   (
-     device_id, aliases, metadata, connected, last_connection, last_disconnection,
+     device_id, aliases, attributes, connected, last_connection, last_disconnection,
      first_registration, first_credentials_request, last_seen_ip, last_credentials_request_ip,
      total_received_msgs, total_received_bytes, inhibit_credentials_request,
      introspection, introspection_minor, exchanged_msgs_by_interface, exchanged_bytes_by_interface
   )
   VALUES
     (
-      :device_id, :aliases, :metadata, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940',
+      :device_id, :aliases, :attributes, false, '2017-09-28 04:05+0020', '2017-09-30 04:05+0940',
       '2016-08-15 11:05+0121', '2016-08-20 11:05+0121', '198.51.100.81', '198.51.100.89',
       45000, :total_received_bytes, false,
       {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
@@ -493,14 +493,14 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       |> DatabaseQuery.statement(@insert_device_statement)
 
     for {encoded_device_id, total_received_bytes, interface_msgs_map, interface_bytes_map,
-         aliases, metadata} <- @devices_list do
+         aliases, attributes} <- @devices_list do
       device_id = Base.url_decode64!(encoded_device_id, padding: false)
 
       insert_device_query =
         insert_device_query
         |> DatabaseQuery.put(:device_id, device_id)
         |> DatabaseQuery.put(:aliases, aliases)
-        |> DatabaseQuery.put(:metadata, metadata)
+        |> DatabaseQuery.put(:attributes, attributes)
         |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
         |> DatabaseQuery.put(:exchanged_msgs_by_interface, interface_msgs_map)
         |> DatabaseQuery.put(:exchanged_bytes_by_interface, interface_bytes_map)
@@ -638,14 +638,14 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     insert_datastream_receiving_device_query = """
     INSERT INTO autotestrealm.devices
     (
-     device_id, aliases, metadata, connected, last_connection, last_disconnection,
+     device_id, aliases, attributes, connected, last_connection, last_disconnection,
      first_registration, first_credentials_request, last_seen_ip, last_credentials_request_ip,
      total_received_msgs, total_received_bytes, inhibit_credentials_request,
      introspection, introspection_minor, exchanged_msgs_by_interface, exchanged_bytes_by_interface
     )
     VALUES
     (
-      :device_id, :aliases, :metadata, false, '2020-02-11 04:05+0020', '2020-02-10 04:05+0940',
+      :device_id, :aliases, :attributes, false, '2020-02-11 04:05+0020', '2020-02-10 04:05+0940',
       '2016-08-15 11:05+0121', '2016-08-20 11:05+0121', '198.51.100.81', '198.51.100.89',
       22000, 246, false,
       {'org.ServerOwnedIndividual': 0},
@@ -661,7 +661,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       |> DatabaseQuery.statement(insert_datastream_receiving_device_query)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:aliases, %{"display_name" => "receiving_device"})
-      |> DatabaseQuery.put(:metadata, %{"device_metadata_key" => "device_metadata_value"})
+      |> DatabaseQuery.put(:attributes, %{"device_attribute_key" => "device_attribute_value"})
       |> DatabaseQuery.put(:exchanged_msgs_by_interface, %{
         {"org.ServerOwnedIndividual", 0} => 16
       })
@@ -796,14 +796,14 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     insert_object_receiving_device_query = """
     INSERT INTO autotestrealm.devices
     (
-     device_id, aliases, metadata, connected, last_connection, last_disconnection,
+     device_id, aliases, attributes, connected, last_connection, last_disconnection,
      first_registration, first_credentials_request, last_seen_ip, last_credentials_request_ip,
      total_received_msgs, total_received_bytes, inhibit_credentials_request,
      introspection, introspection_minor, exchanged_msgs_by_interface, exchanged_bytes_by_interface
     )
     VALUES
     (
-      :device_id, :aliases, :metadata, false, '2020-02-11 04:05+0020', '2020-02-10 04:05+0940',
+      :device_id, :aliases, :attributes, false, '2020-02-11 04:05+0020', '2020-02-10 04:05+0940',
       '2016-08-15 11:05+0121', '2016-08-20 11:05+0121', '198.51.100.81', '198.51.100.89',
       45000, 1234, false,
       {'org.astarte-platform.genericsensors.ServerOwnedAggregateObj': 0},
@@ -819,7 +819,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       |> DatabaseQuery.statement(insert_object_receiving_device_query)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:aliases, %{"display_name" => "receiving_device"})
-      |> DatabaseQuery.put(:metadata, %{"obj_metadata_key" => "obj_metadata_value"})
+      |> DatabaseQuery.put(:attributes, %{"obj_attribute_key" => "obj_attribute_value"})
       |> DatabaseQuery.put(:exchanged_msgs_by_interface, %{
         {"org.astarte-platform.genericsensors.ServerOwnedAggregateObj", 0} => 16
       })

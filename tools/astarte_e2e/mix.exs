@@ -23,7 +23,7 @@ defmodule AstarteE2E.MixProject do
     [
       app: :astarte_e2e,
       version: "0.1.0",
-      elixir: "~> 1.10",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps()
@@ -49,8 +49,8 @@ defmodule AstarteE2E.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir", branch: "master"},
-      {:phoenix_gen_socket_client, "~> 3.0"},
+      {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir", branch: "release-1.0"},
+      {:phoenix_gen_socket_client, "~> 4.0"},
       {:websocket_client, "~> 1.2"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},

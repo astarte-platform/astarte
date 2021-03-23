@@ -96,7 +96,7 @@ CREATE TABLE <realm_name>.devices (
   exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
   last_credentials_request_ip inet,
   last_seen_ip inet,
-  metadata map<varchar, varchar>,
+  attributes map<varchar, varchar>,
 
   groups map<text, timeuuid>,
 
@@ -228,7 +228,7 @@ Devices table stores the list of all the devices for a certain realm and all the
 | `exchanged_bytes_by_interface`| `bigint`                              | Amount of exchanged messages bytes since the device registration.                                                                                                                                  |
 | `last_credentials_request_ip` | `inet`                                | Device IP address used during the last credential request.                                                                                                                                         |
 | `last_seen_ip`                | `inet`                                | Most recent device IP address.                                                                                                                                                                     |
-| `metadata`                    | `map<varchar, varchar>`               | Device metadata. It can contain arbitrary string key and values associated with the device.
+| `attributes`                  | `map<varchar, varchar>`               | Device attributes. It can contain arbitrary string key and values associated with the device.
 | `groups`                      | `map<text, timeuuid>`                 | Groups which the device belongs to, the key is the group name, and the value is its insertion timeuuid, which is used as part of the key on grouped_devices table.                                                                                                                                                                               |
 
 ## Schema changes
@@ -290,9 +290,9 @@ ADD (
 );
 ```
 
-### From v0.11 to 1.0
+### From v0.11 to v1.0.0-beta.1
 
-#### Realm Keyspace v0.11 Changes
+#### Realm Keyspace v1.0.0-beta.1 Changes
 
 * The `connected` field of the `devices` table is now saved with a TTL, so it automatically expires
   if it doesn't gets refreshed by the hearbeat sent by the broker. This behaviour was added to
@@ -304,5 +304,27 @@ ADD (
 ALTER TABLE devices
 ADD (
     metadata map<varchar, varchar>
+);
+```
+
+### From v1.0-beta.1 to v1.0.0
+
+#### Realm Keyspace v1.0.0 Changes
+
+* Rename the `metadata` to `attributes` in the `devices` table
+
+*Warning*: migrating data from the `metadata` column to the `attributes` one is possible but is out
+of scope of this guide since this change happened between development releases. The procedure below
+just removes and recreates the column *without migrating data*.
+
+```sql
+ALTER TABLE devices
+DROP metadata;
+```
+
+```sql
+ALTER TABLE devices
+ADD (
+    attributes map<varchar, varchar>
 );
 ```

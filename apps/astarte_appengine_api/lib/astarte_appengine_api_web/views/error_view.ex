@@ -66,8 +66,8 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Group not found"}}
   end
 
-  def render("422_metadata_key_not_found.json", _assigns) do
-    %{errors: %{detail: "Metadata key not found"}}
+  def render("422_attribute_key_not_found.json", _assigns) do
+    %{errors: %{detail: "Attribute key not found"}}
   end
 
   def render("409_group_already_exists.json", _assigns) do
@@ -86,8 +86,8 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Invalid alias"}}
   end
 
-  def render("422_invalid_metadata.json", _assigns) do
-    %{errors: %{detail: "Invalid metadata"}}
+  def render("422_invalid_attributes.json", _assigns) do
+    %{errors: %{detail: "Invalid attributes"}}
   end
 
   def render("500.json", _assigns) do

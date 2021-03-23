@@ -20,8 +20,8 @@ on:
     - '.github/workflows/astarte-end-to-end-test-workflow.yaml'
 
 env:
-  elixir_version: "1.10.3"
-  otp_version: "23.0"
+  elixir_version: "1.11.3"
+  otp_version: "23.2"
 
 jobs:
   end-to-end-test:
@@ -75,7 +75,7 @@ jobs:
       with:
         path: tools/astarte_e2e/_build
         key: build-${{ env.otp_version }}-${{ env.elixir_version }}
-    - uses: actions/setup-elixir@v1.5.0
+    - uses: erlef/setup-elixir@v1.6.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}

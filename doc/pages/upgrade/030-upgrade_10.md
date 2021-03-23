@@ -39,3 +39,24 @@ kubectl edit astarte -n astarte
 Find the `version` field in the Astarte Spec section and change it according to your needs. Once the
 yaml file will be saved, the Operator will take over ensuring the reconciliation of your Astarte
 instance to the requested version.
+
+### Caveats for Astarte Flow
+
+Currently, although [Astarte Flow](https://docs.astarte-platform.org/flow/) is a component of
+Astarte, it doesn't follow Astarte's release cycle. Therefore if you upgraded your Astarte instance
+to v1.0.0, Astarte Operator will try to deploy `astarte/astarte_flow:1.0.0` which is currently not
+existent.
+
+All you have to do to overcome this temporary limitation is to edit your Astarte resource by
+explicitly setting the Astarte Flow image you plan to use:
+```yaml
+spec:
+  ...
+  components:
+    ...
+    flow:
+      image: <the-astarte-flow-image>
+```
+
+All the available Astarte Flow's tags can be found
+[here](https://hub.docker.com/r/astarte/astarte_flow/tags?page=1&ordering=last_updated).

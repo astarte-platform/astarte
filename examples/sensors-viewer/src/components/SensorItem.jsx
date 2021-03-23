@@ -28,22 +28,22 @@ function SensorListItem(props) {
   const sensor_items = [
     {
       label: "Sensor Name",
-      value: _.get(props.available, "name", props.item)
+      value: _.get(props.sensor, "name", props.sensorId),
     },
     {
       label: "Sensor ID",
-      value: props.item
+      value: props.sensorId,
     },
     {
       label: "Sampling Period",
-      value: _.get(props.sampling, "samplingPeriod", "N/A")
+      value: _.get(props.sampling, "samplingPeriod", "N/A"),
     },
     {
       label: "Last Update",
-      value: moment(props.sensorValues[props.item].value.timestamp).format(
+      value: moment(props.sensorValues.value.timestamp).format(
         getLocaleFormat()
-      )
-    }
+      ),
+    },
   ];
   return (
     <Card className="main-card border-0 mb-4">
@@ -52,22 +52,22 @@ function SensorListItem(props) {
           className="text-dark border-0 font-weight-bold text-uppercase w-100 text-left p-0 text-decoration-none"
           as={Button}
           variant="link"
-          eventKey={props.item}
+          eventKey={props.sensorId}
         >
-          {_.get(props.available, "name", props.item)}
+          {_.get(props.sensor, "name", props.sensorId)}
           <img src={Images.down_arrow} alt={"down-arrow"} />
         </Accordion.Toggle>
       </Card.Header>
-      <Accordion.Collapse eventKey={props.item}>
+      <Accordion.Collapse eventKey={props.sensorId}>
         <Card.Body className="p-3">
           <ListGroup className="px-4 py-3 my-2 ">
             {sensor_items.map(listItem)}
             <ListGroup.Item className="temperature-list pt-4 border-0 pb-0 py-2 font-weight-normal bg-transparent text-uppercase">
               <h1>
-                {props.sensorValues[props.item].value.value}
+                {props.sensorValues.value.value}
                 <span className="text-dark">
                   {" "}
-                  {_.get(props.available, "unit", "")}
+                  {_.get(props.sensor, "unit", "")}
                 </span>
               </h1>
             </ListGroup.Item>
@@ -80,17 +80,17 @@ function SensorListItem(props) {
 
 export default function SensorItems({
   availableSensors,
-  sensorValues,
-  sensorSamplingRate
+  sensorsValues,
+  sensorSamplingRate,
 }) {
-  return Object.keys(sensorValues).map((item, index) => {
+  return Object.keys(sensorsValues).map((sensorId, index) => {
     return (
       <SensorListItem
         key={index}
-        item={item}
-        sensorValues={sensorValues}
-        available={availableSensors[item]}
-        sampling={sensorSamplingRate[item]}
+        sensorId={sensorId}
+        sensorValues={_.get(sensorsValues, sensorId)}
+        sensor={_.get(availableSensors, sensorId)}
+        sampling={_.get(sensorSamplingRate, sensorId)}
       />
     );
   });

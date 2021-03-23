@@ -1,5 +1,8 @@
 # Troubleshooting
 
+Be sure to check [known issues](095-known_issues.html) to see if your problem is already covered
+there.
+
 ## Devices
 
 ### Devices cannot connect to Astarte

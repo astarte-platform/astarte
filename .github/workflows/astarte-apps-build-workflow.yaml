@@ -18,8 +18,8 @@ on:
     - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
-  elixir_version: "1.10.3"
-  otp_version: "23.0"
+  elixir_version: "1.11.3"
+  otp_version: "23.2"
 
 jobs:
   test-dialyzer:
@@ -60,7 +60,7 @@ jobs:
         key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/setup-elixir@v1.5.0
+    - uses: erlef/setup-elixir@v1.6.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
@@ -92,10 +92,10 @@ jobs:
         - astarte_realm_management_api
         - astarte_trigger_engine
         database:
-        - "cassandra:3.11.6"
-        - "scylladb/scylla:4.1.rc2"
+        - "cassandra:3.11.10"
+        - "scylladb/scylla:4.4.rc1"
         rabbitmq:
-        - "rabbitmq:3.8-management"
+        - "rabbitmq:3.8.12-management"
     services:
       rabbitmq:
         image: ${{ matrix.rabbitmq }}
@@ -128,7 +128,7 @@ jobs:
         key: ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/setup-elixir@v1.5.0
+    - uses: erlef/setup-elixir@v1.6.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}

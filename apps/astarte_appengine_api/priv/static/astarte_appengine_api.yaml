@@ -41,7 +41,7 @@ info:
     email: info@ispirata.com
 externalDocs:
   description: User documentation
-  url: 'https://docs.astarte-platform.org/snapshot/050-query_device.html'
+  url: 'https://docs.astarte-platform.org/1.0/050-query_device.html'
 tags:
   - name: device
     description: >-
@@ -196,7 +196,7 @@ paths:
       tags:
         - device
       summary: Update a device writeable property
-      description: Update any of the writeable device properties such as device aliases, device metadata or credentials inhibited.
+      description: Update any of the writeable device properties such as device aliases, device attributes or credentials inhibited.
       operationId: updateDeviceStatus
       security:
         - JWT: []
@@ -292,7 +292,7 @@ paths:
       tags:
         - device
       summary: Update a device writeable property
-      description: Update any of the writeable device properties such as device aliases or device metadata.
+      description: Update any of the writeable device properties such as device aliases, device attributes or credentials inhibited.
       operationId: updateDeviceStatusByAlias
       security:
         - JWT: []
@@ -1074,10 +1074,10 @@ components:
           description: >-
             A set of aliases and their tags. Each alias has an unique tag that
             identifies its purpose.
-        metadata:
+        attributes:
           type: object
           description: >-
-            A set of metadata and their tags. Each metadata has an unique tag.
+            A set of attributes with their values. Each attribute has a unique key.
         introspection:
           type: object
           description: >-
@@ -1159,8 +1159,8 @@ components:
         aliases:
           serial_number: '1234567'
           display_name: my_device_name
-        metadata:
-          metadata_key: metadata_value
+        attributes:
+          attribute_key: attribute_value
         introspection:
           com.example.ExampleInterface:
             major: 2

@@ -21,12 +21,12 @@ function SensorGraph(props) {
       <Plot
         data={[
           {
-            x: graphData.map(item => item.timestamp),
-            y: graphData.map(item => item.value),
+            x: graphData.map((item) => item.timestamp),
+            y: graphData.map((item) => item.value),
             type: "scatter",
             mode: "lines+markers",
-            marker: { color: "#6aa8d8" }
-          }
+            marker: { color: "#6aa8d8" },
+          },
         ]}
         layout={{ width: 865, height: 500 }}
       />
@@ -39,7 +39,7 @@ class GraphComponent extends Component {
     graphData: [],
     min: null,
     max: null,
-    avg: null
+    avg: null,
   };
 
   componentDidMount() {
@@ -47,18 +47,18 @@ class GraphComponent extends Component {
   }
 
   setGraphValues(data) {
-    const values = data.map(data => data["value"]);
+    const values = data.map((data) => data["value"]);
     this.setState({
       graphData: data,
       min: _.min(values).toFixed(4),
       max: _.max(values).toFixed(4),
-      avg: _.round(_.meanBy(values), 2)
+      avg: _.round(_.meanBy(values), 2),
     });
   }
 
   fetch() {
     const { deviceID, interfaces, currentSensor } = this.props;
-    getSensorValueById(deviceID, interfaces, currentSensor).then(response => {
+    getSensorValueById(deviceID, interfaces, currentSensor).then((response) => {
       const data = _.takeRight(response.data.data, 1000);
       this.setGraphValues(data);
     });
@@ -71,18 +71,18 @@ class GraphComponent extends Component {
       {
         label: "Max",
         value: max,
-        unit: _.get(availableSensors, "unit")
+        unit: _.get(availableSensors, "unit"),
       },
       {
         label: "Min",
         value: min,
-        unit: _.get(availableSensors, "unit")
+        unit: _.get(availableSensors, "unit"),
       },
       {
         label: "Avg",
         value: avg,
-        unit: _.get(availableSensors, "unit")
-      }
+        unit: _.get(availableSensors, "unit"),
+      },
     ];
     return (
       <div className="main-card bg-white py-5">

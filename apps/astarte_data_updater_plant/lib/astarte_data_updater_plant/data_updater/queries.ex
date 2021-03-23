@@ -629,7 +629,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     with {:ok, result} <- DatabaseQuery.call(db_client, groups_query),
          [groups: groups] when is_list(groups) <- DatabaseResult.head(result) do
-      {:ok, Keyword.keys(groups)}
+      {:ok, :proplists.get_keys(groups)}
     else
       [groups: nil] ->
         {:ok, []}

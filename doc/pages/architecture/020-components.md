@@ -20,7 +20,7 @@ AppEngine is Astarte's main API endpoint for end users. AppEngine exposes a REST
 
 ## Realm Management
 
-Realm Management is an *administrator-like* API for configuring a Realm. It is used for managing Interfaces, Triggers, Devices and more.
+Realm Management is an *administrator-like* API for configuring a Realm. It is used for managing Interfaces and Triggers.
 
 ## Housekeeping
 

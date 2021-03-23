@@ -285,7 +285,7 @@ defmodule Astarte.Housekeeping.Queries do
       exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
       last_credentials_request_ip inet,
       last_seen_ip inet,
-      metadata map<varchar, varchar>,
+      attributes map<varchar, varchar>,
 
       groups map<text, timeuuid>,
 

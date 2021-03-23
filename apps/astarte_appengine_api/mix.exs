@@ -21,8 +21,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def project do
     [
       app: :astarte_appengine_api,
-      version: "1.0.0-beta.1",
-      elixir: "~> 1.10",
+      version: "1.0.0-beta.2",
+      elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -91,6 +91,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ex_lttb, "~> 0.3"},
       {:cyanide, "~> 1.0"},
       {:guardian, "~> 2.1"},
+      # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
+      {:ex_json_schema, "~> 0.7"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.13"},
       {:excoveralls, "~> 0.12", only: :test},

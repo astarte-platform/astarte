@@ -12,6 +12,25 @@ You will need a machine with at least 4GB of RAM, a recent 64-bit operating syst
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
 
+Due to ScyllaDB requirements, if you're working on a Linux machine you should make sure that `aio-max-nr` is at least `1048576`:
+
+```sh
+cat /proc/sys/fs/aio-max-nr
+1048576
+```
+
+If it's less than that, you'll need to edit your `/etc/sysctl.conf` file
+
+```
+fs.aio-max-nr = 1048576
+```
+
+and to persist this configuration
+
+```sh
+sudo sysctl -p
+```
+
 ## Checking prerequistes
 
 Docker version >= 19 is recommended:
@@ -122,7 +141,7 @@ Replace `http://example.com` with your target URL in the command below, you can 
       "type": "data_trigger",
       "on": "incoming_data",
       "interface_name": "org.astarte-platform.genericsensors.Values",
-      "interface_major": 0,
+      "interface_major": 1,
       "match_path": "/streamTest/value",
       "value_match_operator": ">",
       "known_value": 0.6
@@ -145,22 +164,24 @@ $ astartectl realm-management triggers ls --realm-management-url http://localhos
 
 ## Stream data
 
-If you already have an Astarte compliant device, you can configure it and connect it straight away, and it will just work with your new installation - provided you skip SSL checks on the broker's certificate. If you don't, you can use Astarte's `stream-qt5-test` to emulate an Astarte device and generate a `datastream`. You can do this either on the same machine where you are running Astarte, or from another machine or device on the same network.
-
-Depending on what your client supports, you can either compile `stream-qt5-test` (this will take some more time), or you can use a ready to use Docker container to launch it. Docker is the easiest and painless way, but this guide will cover both methods.
+If you already have an Astarte compliant device, you can configure it and connect it straight away,
+and it will just work with your new installation - provided you skip SSL checks on the broker's
+certificate. If you don't, you can use Astarte's `stream-qt5-test` to emulate an Astarte device and
+generate a `datastream`. You can do this either on the same machine where you are running Astarte,
+or from another machine or device on the same network.
 
 ### Using a container for stream-qt5-test
 
 Astarte's `stream-qt5-test` can be pulled from Docker Hub with:
 
 ```sh
-$ docker pull astarte/astarte-stream-qt5-test:1.0-snapshot
+$ docker pull astarte/astarte-stream-qt5-test:1.0.0-beta.1
 ```
 
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0-snapshot
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0.0-beta.1
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
@@ -168,33 +189,6 @@ This will generate a random datastream from a brand new, random Device ID. You c
 Refer to `stream-qt5-test` [README](https://github.com/astarte-platform/stream-qt5-test/blob/release-1.0/README.md) for more details on which variables can be passed to the container.
 
 Also, please note that the `--net="host"` parameter is required to make `localhost` work. If this is not desirable, you can change `PAIRING_HOST` to an host reachable from within the container network. Obviously, that parameter isn't required if you're running the container on a different machine and `PAIRING_HOST` is pointing to a different URL.
-
-## Building stream-qt5-test from source
-
-If your target platform does not support running containers, you can build `stream-qt5-test` from source. To do so, you will have to compile both Astarte Qt5 SDK and Astarte Qt5 Stream Test. Their main dependencies are `cmake`, `qtbase`, `mosquitto` and `openssl`. If you're on a Debian derivative, you can install them all with:
-
-```sh
-# apt-get install qt5-default qtbase5-dev libqt5sql5-sqlite libssl-dev libmosquittopp-dev cmake git build-essential
-```
-
-Once your dependencies are installed, compile your components:
-
-```sh
-$ git clone https://github.com/astarte-platform/astarte-device-sdk-qt5.git
-$ cd astarte-device-sdk-qt5
-$ mkdir build
-$ cd build
-$ cmake -DCMAKE_INSTALL_PREFIX=/usr ..
-$ make
-$ make install
-$ cd -
-$ git clone https://github.com/astarte-platform/stream-qt5-test.git
-$ cd stream-qt5-test
-$ qmake .
-$ make
-```
-
-You can now run `stream-qt5-test` from your last build directory. Refer to its [README](https://github.com/astarte-platform/stream-qt5-test/blob/release-1.0/README.md) (or to its sources) to learn about how to use it and which options are available.
 
 ## Grab your tea
 
@@ -206,7 +200,7 @@ $ astartectl appengine devices get-samples <your device id> org.astarte-platform
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
 
-Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt realm-management -k test_private.pem`. Grant a longer expiration by using the `-e` parameter to avoid being logged out too quickly.
+Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt all-realm-apis -k test_private.pem`. By default, `astartectl` will generate a token valid for 8 hours, but you can set a specific expiration by using the `-e <seconds>` parameter.
 
 From here on, you can use all of Astarte's APIs and features from your own installation. You can add devices, experiment with interfaces, or develop your own applications on top of Astarte's triggers or AppEngine's APIs. And have a lot of fun!
 

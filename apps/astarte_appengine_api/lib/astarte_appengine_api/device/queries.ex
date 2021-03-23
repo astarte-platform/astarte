@@ -589,7 +589,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     , first_credentials_request
     , last_credentials_request_ip
     , last_seen_ip
-    , metadata
+    , attributes
     , total_received_msgs
     , total_received_bytes
     , exchanged_msgs_by_interface
@@ -612,12 +612,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       first_credentials_request: first_credentials_request,
       last_credentials_request_ip: last_credentials_request_ip,
       last_seen_ip: last_seen_ip,
-      metadata: metadata,
+      attributes: attributes,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
       exchanged_msgs_by_interface: exchanged_msgs_by_interface,
       exchanged_bytes_by_interface: exchanged_bytes_by_interface,
-      groups: groups_map,
+      groups: groups_proplist,
       old_introspection: old_introspection,
       inhibit_credentials_request: credentials_inhibited
     ] = row
@@ -680,8 +680,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         }
       end)
 
-    # groups_map could be nil, default to empty keyword list
-    groups = Keyword.keys(groups_map || [])
+    # groups_proplist could be nil, default to empty keyword list
+    groups = :proplists.get_keys(groups_proplist || [])
 
     %DeviceStatus{
       id: Base.url_encode64(device_id, padding: false),
@@ -694,7 +694,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       first_credentials_request: millis_or_null_to_datetime!(first_credentials_request),
       last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
       last_seen_ip: ip_or_null_to_string(last_seen_ip),
-      metadata: Enum.into(metadata || [], %{}),
+      attributes: Enum.into(attributes || [], %{}),
       credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
@@ -854,18 +854,18 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def insert_metadata(client, device_id, metadata_key, metadata_value) do
-    insert_metadata_statement = """
+  def insert_attribute(client, device_id, attribute_key, attribute_value) do
+    insert_attribute_statement = """
     UPDATE devices
-    SET metadata[:metadata_key] = :metadata_value
+    SET attributes[:attribute_key] = :attribute_value
     WHERE device_id = :device_id
     """
 
     query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_metadata_statement)
-      |> DatabaseQuery.put(:metadata_key, metadata_key)
-      |> DatabaseQuery.put(:metadata_value, metadata_value)
+      |> DatabaseQuery.statement(insert_attribute_statement)
+      |> DatabaseQuery.put(:attribute_key, attribute_key)
+      |> DatabaseQuery.put(:attribute_value, attribute_value)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.consistency(:each_quorum)
 
@@ -882,35 +882,35 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def delete_metadata(client, device_id, metadata_key) do
-    retrieve_metadata_statement = """
-    SELECT metadata FROM devices WHERE device_id = :device_id
+  def delete_attribute(client, device_id, attribute_key) do
+    retrieve_attribute_statement = """
+    SELECT attributes FROM devices WHERE device_id = :device_id
     """
 
-    retrieve_metadata_query =
+    retrieve_attribute_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_metadata_statement)
+      |> DatabaseQuery.statement(retrieve_attribute_statement)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.consistency(:quorum)
 
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_metadata_query),
-         [metadata: metadata] <- DatabaseResult.head(result),
-         {^metadata_key, _metadata_value} <-
-           Enum.find(metadata || [], fn m -> match?({^metadata_key, _}, m) end) do
-      delete_metadata_statement = """
-        DELETE metadata[:metadata_key]
+    with {:ok, result} <- DatabaseQuery.call(client, retrieve_attribute_query),
+         [attributes: attributes] <- DatabaseResult.head(result),
+         {^attribute_key, _attribute_value} <-
+           Enum.find(attributes || [], fn m -> match?({^attribute_key, _}, m) end) do
+      delete_attribute_statement = """
+        DELETE attributes[:attribute_key]
         FROM devices
         WHERE device_id = :device_id
       """
 
-      delete_metadata_query =
+      delete_attribute_query =
         DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_metadata_statement)
-        |> DatabaseQuery.put(:metadata_key, metadata_key)
+        |> DatabaseQuery.statement(delete_attribute_statement)
+        |> DatabaseQuery.put(:attribute_key, attribute_key)
         |> DatabaseQuery.put(:device_id, device_id)
         |> DatabaseQuery.consistency(:each_quorum)
 
-      case DatabaseQuery.call(client, delete_metadata_query) do
+      case DatabaseQuery.call(client, delete_attribute_query) do
         {:ok, _result} ->
           :ok
 
@@ -924,7 +924,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       end
     else
       nil ->
-        {:error, :metadata_key_not_found}
+        {:error, :attribute_key_not_found}
 
       %{acc: _, msg: error_message} ->
         _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
