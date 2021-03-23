@@ -205,7 +205,7 @@ a green dot if it is currently connected, a red dot if it is currently disconnec
 connection event reports, if available, the date of the last connection or disconnection.
 
 A filter section is present on the side of the list to aid the search for specific devices,
-filtering the list by device ID, name, connection status, or configured metadata.
+filtering the list by device ID, name, connection status, or configured attributes.
 
 ### Registering a device
 
@@ -237,7 +237,7 @@ Here you can review and manage different info about your device.
   action which will require to register the device again to have a new Credential Secret.
 - **Aliases**: where you can manage custom aliases for the device. Note that setting a `name` alias
   will provide a name for the device.
-- **Metadata**: a dedicated section to attach arbitrary info to the device, in a key-value form.
+- **Attributes**: a dedicated section to attach arbitrary info to the device, in a key-value form.
 - **Groups**: where you can review and manage the Groups the device belongs to.
 - **Interfaces**: a list of all currently and previously used interfaces. Clicking on an interface's
   name will load a dedicated page to review data exchanged by the device through that interface.

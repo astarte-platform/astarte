@@ -67,8 +67,8 @@ Clicking on the Device ID will take you to its details page.
         "aliases": {
             "name": "device_a"
         },
-        "metadata": {
-            "metadata_key": "metadata_value"
+        "attributes": {
+            "attributes_key": "attributes_value"
         },
         "groups": [
             "my_group",
@@ -101,14 +101,19 @@ Through the API, it is also possible to get the Introspection of the device only
 
 This returns the Interfaces which the device reported in its Introspection *and* which are known to the Realm.
 
-Arbitrary information can be added to the device by means of `metadata`: they allow to store any number of string values associated to a corresponding string key.
-To set, modify and delete `metadata`, a `PATCH` on the device endpoint is required:
+Arbitrary information can be added to the device by means of `attributes`: they allow to store any
+number of string values associated to a corresponding string key.
+To set, modify and delete `attributes`, a `PATCH` on the device endpoint is required:
 
 ```
 PATCH api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA
 ```
 
-In the request body, the `data` JSON object should have a `metadata` key which bears a dictionary of strings. A valid request body which changes only device metadata, for example, is `{"data":{"metadata": {"<key>": "<value>"}}}`. To delete a metadata entry, set the value of the corresponding key to `null`. For example, POSTing `{"data":{"metadata": {"my_key": null}}}` will remove the `my_key` metadata entry from the device.
+In the request body, the `data` JSON object should have a `attributes` key which bears a dictionary
+of strings. A valid request body which changes only device attributes, for example, is
+`{"data":{"attributes": {"<key>": "<value>"}}}`. To delete an attribute entry, set the value of the
+corresponding key to `null`. For example, POSTing `{"data":{"attributes": {"my_key": null}}}` will
+remove the `my_key` attribute entry from the device.
 
 Depending on the aggregation and ownership of the Interface, you can `GET`/`PUT`/`POST` on the interface itself or one of its mappings,
 or use `astartectl` to perform the same operation on the command line. Some examples are:

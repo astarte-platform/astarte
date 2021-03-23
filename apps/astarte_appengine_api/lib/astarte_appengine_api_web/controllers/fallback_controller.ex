@@ -162,11 +162,11 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(Astarte.AppEngine.APIWeb.ErrorView, :"409_alias_already_in_use")
   end
 
-  def call(conn, {:error, :metadata_key_not_found}) do
+  def call(conn, {:error, :attribute_key_not_found}) do
     conn
     |> put_status(:unprocessable_entity)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"422_metadata_key_not_found")
+    |> render(:"422_attribute_key_not_found")
   end
 
   def call(conn, {:error, :mapping_not_found}) do
@@ -183,11 +183,11 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_invalid_alias")
   end
 
-  def call(conn, {:error, :invalid_metadata}) do
+  def call(conn, {:error, :invalid_attributes}) do
     conn
     |> put_status(:bad_request)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"422_invalid_metadata")
+    |> render(:"422_invalid_attributes")
   end
 
   # This is called when no JWT token is present
