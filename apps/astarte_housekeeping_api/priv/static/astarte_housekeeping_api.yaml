@@ -16,7 +16,7 @@ info:
     configuration. This API is usually accessible only to system administrators,
     and is not meant for the average user of Astarte, which should refer to
     Realm Management API instead.
-  version: 1.0.0-beta.1
+  version: 1.0.0-beta.2
   title: Astarte Housekeeping API
   contact:
     email: info@ispirata.com

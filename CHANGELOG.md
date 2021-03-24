@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.0.0-beta.2] - Unreleased
+## [1.0.0-beta.2] - 2021-03-24
 ### Fixed
 - [astarte_e2e] Fix alerting mechanism preventing "unknown" failures to be raised or linked.
 - [astarte_appengine_api] Allow retrieving data from interfaces with parametric endpoint and object
@@ -16,9 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - [astarte_e2e] Client disconnections are responsible for triggering a mail alert.
-- Run tests against RabbitMQ 3.8.12 and ScyllaDB 4.4-rc.1 / Cassandra 3.11.10.
+- Run tests against RabbitMQ 3.8.14 and ScyllaDB 4.4-rc.4 / Cassandra 3.11.10.
 - Update dependencies to latest available versions (see `mix.lock` files).
-- Update Elixir to 1.11 and OTP to 23.2.
+- Update Elixir to 1.11.4 and OTP to 23.2.
 - Rename device `metadata` to `attributes`. *This requires a manual intervention on the database*,
   see the [Schema Changes](https://docs.astarte-platform.org/1.0/090-database.html#schema-changes)
   documentation for additional information.
