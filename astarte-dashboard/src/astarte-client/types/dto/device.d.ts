@@ -24,8 +24,8 @@ export interface AstarteDeviceDTO {
   aliases?: {
     [alias: string]: string;
   };
-  metadata?: {
-    [metadataKey: string]: string;
+  attributes?: {
+    [attributeKey: string]: string;
   };
   introspection?: {
     [interfaceName: string]: {

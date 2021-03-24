@@ -69,34 +69,34 @@ describe('Devices page tests', () => {
       cy.get('table tbody tr td:nth-child(2)').should('contain', deviceName);
     });
 
-    it('correctly filters by metadata key', function () {
-      const metadata = this.devices.data[0].metadata;
-      const key = Object.keys(metadata)[0];
+    it('correctly filters by attribute key', function () {
+      const attributes = this.devices.data[0].attributes;
+      const key = Object.keys(attributes)[0];
 
-      cy.get('#filterMetadataKey').paste(key);
+      cy.get('#filterAttributeKey').paste(key);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', key);
     });
 
-    it('correctly filters by metadata value', function () {
-      const metadata = this.devices.data[0].metadata;
-      const value = Object.values(metadata)[0];
+    it('correctly filters by attribute value', function () {
+      const attributes = this.devices.data[0].attributes;
+      const value = Object.values(attributes)[0];
 
-      cy.get('#filterMetadataValue').paste(value);
+      cy.get('#filterAttributeValue').paste(value);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', value);
     });
 
-    it('correctly filters by both metadata key and value', function () {
-      const metadata = this.devices.data[0].metadata;
-      const key = Object.keys(metadata)[0];
-      const value = metadata[key];
+    it('correctly filters by both attribute key and value', function () {
+      const attributes = this.devices.data[0].attributes;
+      const key = Object.keys(attributes)[0];
+      const value = attributes[key];
 
-      cy.get('#filterMetadataKey').paste(key);
+      cy.get('#filterAttributeKey').paste(key);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', key);
 
-      cy.get('#filterMetadataValue').paste(value);
+      cy.get('#filterAttributeValue').paste(value);
       cy.get('table tbody tr').should('have.length', 1);
       cy.get('table tbody tr td:nth-child(2)').should('contain', value);
     });

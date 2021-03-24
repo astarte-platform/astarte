@@ -5,8 +5,8 @@
       "name": "my_device_name",
       "serial_number": "1234567"
     },
-    "metadata": {
-      "metadata_key": "metadata_value"
+    "attributes": {
+      "attribute_key": "attribute_value"
     },
     "introspection": {
       "com.example.ExampleInterface": {
