@@ -18,7 +18,7 @@ on:
     - '.github/workflows/astarte-apps-build-workflow.yaml'
 
 env:
-  elixir_version: "1.11.3"
+  elixir_version: "1.11.4"
   otp_version: "23.2"
 
 jobs:
@@ -93,9 +93,9 @@ jobs:
         - astarte_trigger_engine
         database:
         - "cassandra:3.11.10"
-        - "scylladb/scylla:4.4.rc1"
+        - "scylladb/scylla:4.4.rc4"
         rabbitmq:
-        - "rabbitmq:3.8.12-management"
+        - "rabbitmq:3.8.14-management"
     services:
       rabbitmq:
         image: ${{ matrix.rabbitmq }}
@@ -162,6 +162,6 @@ jobs:
         CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
     - name: Upload Coverage Results to CodeCov
       # Don't upload more than once per component
-      if: matrix.database == 'scylladb/scylla:4.1.rc2'
+      if: matrix.database == 'scylladb/scylla:4.4.rc4'
       working-directory: ./apps/${{ matrix.app }}
       run: bash <(curl -s https://codecov.io/bash)
