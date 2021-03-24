@@ -26,11 +26,13 @@ export interface AstarteIndividualDatastreamInterfaceValue {
   value: AstarteDataValue;
   timestamp: string;
 }
-export interface AstarteIndividualDatastreamInterfaceValues {
-  [subPath: string]:
-    | AstarteIndividualDatastreamInterfaceValues
-    | AstarteIndividualDatastreamInterfaceValue;
-}
+export type AstarteIndividualDatastreamInterfaceValues =
+  | AstarteIndividualDatastreamInterfaceValue[]
+  | {
+      [subPath: string]:
+        | AstarteIndividualDatastreamInterfaceValues
+        | AstarteIndividualDatastreamInterfaceValue;
+    };
 
 export type AstarteAggregatedDatastreamInterfaceValue = Array<{
   [key: string]: AstarteDataValue;

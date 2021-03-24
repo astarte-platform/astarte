@@ -216,7 +216,7 @@ class AstarteClient {
       devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
       devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
       deviceInfo:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
-      deviceData:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}`,
+      deviceData:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}?keep_milliseconds=true&since=${'since'}&since_after=${'sinceAfter'}&to=${'to'}&limit=${'limit'}`,
       groups:                astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups`,
       groupDevices:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
       deviceInGroup:         astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,
@@ -257,8 +257,8 @@ class AstarteClient {
   }
 
   setCredentials(params: { realm: string; token: string } | null): void {
-    this.config.realm = params?.realm || '';
-    this.token = params?.token || '';
+    this.config.realm = _.get(params, 'realm') || '';
+    this.token = _.get(params, 'token') || '';
   }
 
   async getConfigAuth(): Promise<{ publicKey: string }> {
@@ -416,11 +416,15 @@ class AstarteClient {
   async getDeviceData(params: {
     deviceId: AstarteDevice['id'];
     interfaceName: AstarteInterface['name'];
+    path?: string;
+    since?: string;
+    sinceAfter?: string;
+    to?: string;
+    limit?: number;
   }): Promise<AstarteInterfaceValues> {
     const response = await this.$get(
       this.apiConfig.deviceData({
-        deviceId: params.deviceId,
-        interfaceName: params.interfaceName,
+        ...params,
         ...this.config,
       }),
     );
@@ -428,7 +432,14 @@ class AstarteClient {
   }
 
   async getDeviceDataTree(
-    params: { deviceId: AstarteDevice['id'] } & InterfaceOrInterfaceNameParams,
+    params: {
+      deviceId: AstarteDevice['id'];
+      path?: string;
+      since?: string;
+      sinceAfter?: string;
+      to?: string;
+      limit?: number;
+    } & InterfaceOrInterfaceNameParams,
   ): Promise<
     | AstarteDataTreeNode<AstartePropertyData>
     | AstarteDataTreeNode<AstarteDatastreamIndividualData>
@@ -451,10 +462,16 @@ class AstarteClient {
     const interfaceValues = await this.getDeviceData({
       deviceId: params.deviceId,
       interfaceName: iface.name,
+      path: params.path,
+      since: params.since,
+      sinceAfter: params.sinceAfter,
+      to: params.to,
+      limit: params.limit,
     });
     return toAstarteDataTree({
       interface: iface,
       data: interfaceValues,
+      endpoint: params.path,
     });
   }
 

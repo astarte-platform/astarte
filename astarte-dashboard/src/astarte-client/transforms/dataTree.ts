@@ -47,6 +47,11 @@ const isIndividualDatastreamInterfaceValue = (
   value: unknown,
 ): value is AstarteIndividualDatastreamInterfaceValue => isAstarteDataValue(_.get(value, 'value'));
 
+const isIndividualDatastreamInterfaceValues = (
+  value: unknown,
+): value is AstarteIndividualDatastreamInterfaceValue[] =>
+  _.isArray(value) && value.every(isIndividualDatastreamInterfaceValue);
+
 const isAggregatedDatastreamInterfaceValue = (
   value: unknown,
 ): value is AstarteAggregatedDatastreamInterfaceValue => Array.isArray(value);
@@ -349,20 +354,31 @@ class AstarteDataTreeBranchNode<
 function toAstarteDataTree(params: {
   interface: AstarteInterface;
   data: AstarteInterfaceValues;
+  endpoint?: string;
 }):
   | AstarteDataTreeNode<AstartePropertyData>
   | AstarteDataTreeNode<AstarteDatastreamIndividualData>
   | AstarteDataTreeNode<AstarteDatastreamObjectData> {
   if (params.interface.type === 'properties') {
-    return new AstarteDataTreeBranchNode<AstartePropertyData>(params);
+    return toPropertiesTreeNode({
+      interface: params.interface,
+      data: params.data,
+      endpoint: params.endpoint || '',
+      parentNode: null,
+    });
   }
   if (params.interface.type === 'datastream' && params.interface.aggregation === 'individual') {
-    return new AstarteDataTreeBranchNode<AstarteDatastreamIndividualData>(params);
+    return toDatastreamIndividualTreeNode({
+      interface: params.interface,
+      data: params.data,
+      endpoint: params.endpoint || '',
+      parentNode: null,
+    });
   }
   return toDatastreamObjectTreeNode({
     interface: params.interface,
     data: params.data,
-    endpoint: '',
+    endpoint: params.endpoint || '',
     parentNode: null,
   });
 }
@@ -403,6 +419,22 @@ function toDatastreamIndividualTreeNode(params: {
 }):
   | AstarteDataTreeBranchNode<AstarteDatastreamIndividualData>
   | AstarteDataTreeLeafNode<AstarteDatastreamIndividualData> {
+  if (isIndividualDatastreamInterfaceValues(params.data)) {
+    const leafData: AstarteDatastreamIndividualData[] = params.data.map((dataValue) => ({
+      endpoint: params.endpoint,
+      timestamp: dataValue.timestamp,
+      ...({
+        value: dataValue.value,
+        type: getEndpointDataType(params.interface, params.endpoint),
+      } as AstarteDataTuple),
+    }));
+    return new AstarteDataTreeLeafNode<AstarteDatastreamIndividualData>({
+      interface: params.interface,
+      data: leafData,
+      endpoint: params.endpoint,
+      parentNode: params.parentNode,
+    });
+  }
   if (isIndividualDatastreamInterfaceValue(params.data)) {
     const leafData: AstarteDatastreamIndividualData[] = [
       {
