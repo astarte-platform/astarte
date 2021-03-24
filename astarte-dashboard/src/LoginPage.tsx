@@ -20,8 +20,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import { AstarteRealm, AstarteToken } from 'astarte-client';
-
-type LoginType = 'oauth' | 'token';
+import type { AuthOptions, LoginType } from 'ConfigManager';
 
 function isValidUrl(urlString: string): boolean {
   try {
@@ -59,15 +58,14 @@ interface TokenFormProps {
   canSwitchLoginType: boolean;
   defaultRealm: string;
   onSwitchLoginType: (loginType: LoginType) => void;
-  onLogin: (authUrl: string) => void;
 }
 
 const TokenForm = ({
   canSwitchLoginType,
   defaultRealm,
   onSwitchLoginType,
-  onLogin,
 }: TokenFormProps): React.ReactElement => {
+  const navigate = useNavigate();
   const [realm, setRealm] = useState(defaultRealm);
   const [jwt, setJwt] = useState('');
 
@@ -82,7 +80,7 @@ const TokenForm = ({
     event.stopPropagation();
     const searchParams = new URLSearchParams({ realm });
     const hashParams = new URLSearchParams({ access_token: jwt });
-    onLogin(`/auth?${searchParams}#${hashParams}`);
+    navigate(`/auth?${searchParams}#${hashParams}`);
   };
 
   const AstartectlLink = () => (
@@ -149,18 +147,18 @@ const TokenForm = ({
 interface OAuthFormProps {
   canSwitchLoginType: boolean;
   defaultRealm: string;
+  defaultOAuthURL: string;
   onSwitchLoginType: (loginType: LoginType) => void;
-  onLogin: (authUrl: string) => void;
 }
 
 const OAuthForm = ({
   canSwitchLoginType,
   onSwitchLoginType,
   defaultRealm,
-  onLogin,
+  defaultOAuthURL = '',
 }: OAuthFormProps): React.ReactElement => {
   const [realm, setRealm] = useState(defaultRealm);
-  const [providerUrl, setProviderUrl] = useState('');
+  const [providerUrl, setProviderUrl] = useState(defaultOAuthURL);
   const isValidRealm = AstarteRealm.isValidName(realm);
   const isValidProviderUrl = isValidUrl(providerUrl);
 
@@ -179,7 +177,7 @@ const OAuthForm = ({
       response_type: 'token',
       redirect_uri: dashboardLoginUrl.toString(),
     }).toString();
-    onLogin(oauthLoginUrl.toString());
+    window.location.href = oauthLoginUrl.toString();
   };
 
   return (
@@ -198,20 +196,22 @@ const OAuthForm = ({
           required
         />
       </Form.Group>
-      <Form.Group controlId="oauthProviderUrl">
-        <Form.Label>OAuth provider URL</Form.Label>
-        <Form.Control
-          type="text"
-          placeholder="Astarte Realm"
-          value={providerUrl}
-          onChange={(e) => {
-            setProviderUrl(e.target.value);
-          }}
-          isValid={providerUrl !== '' && isValidProviderUrl}
-          isInvalid={providerUrl !== '' && !isValidProviderUrl}
-          required
-        />
-      </Form.Group>
+      {!defaultOAuthURL && (
+        <Form.Group controlId="oauthProviderUrl">
+          <Form.Label>OAuth provider URL</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="https://auth.example.com"
+            value={providerUrl}
+            onChange={(e) => {
+              setProviderUrl(e.target.value);
+            }}
+            isValid={providerUrl !== '' && isValidProviderUrl}
+            isInvalid={providerUrl !== '' && !isValidProviderUrl}
+            required
+          />
+        </Form.Group>
+      )}
       <Button
         type="submit"
         variant="primary"
@@ -255,22 +255,21 @@ const LeftColumn = (): React.ReactElement => (
 );
 
 interface RightColumnProps {
-  canSwitchLoginType: boolean;
+  authOptions: AuthOptions;
   defaultRealm: string;
-  type: LoginType;
-  onLogin: (authUrl: string) => void;
+  defaultAuth: LoginType;
 }
 
 const RightColumn = ({
-  canSwitchLoginType,
+  authOptions,
   defaultRealm,
-  type,
-  onLogin,
+  defaultAuth,
 }: RightColumnProps): React.ReactElement => {
-  const [loginType, setLoginType] = useState(type);
+  const [loginType, setLoginType] = useState(defaultAuth);
   const handleLoginTypeSwitch = (newLoginType: LoginType) => {
     setLoginType(newLoginType);
   };
+  const canSwitchLoginType = authOptions.token.enabled && authOptions.oauth.enabled;
 
   return (
     <Col
@@ -282,16 +281,15 @@ const RightColumn = ({
       {loginType === 'oauth' ? (
         <OAuthForm
           defaultRealm={defaultRealm}
+          defaultOAuthURL={authOptions.oauth.oauthApiUrl || ''}
           canSwitchLoginType={canSwitchLoginType}
           onSwitchLoginType={handleLoginTypeSwitch}
-          onLogin={onLogin}
         />
       ) : (
         <TokenForm
           defaultRealm={defaultRealm}
           canSwitchLoginType={canSwitchLoginType}
           onSwitchLoginType={handleLoginTypeSwitch}
-          onLogin={onLogin}
         />
       )}
     </Col>
@@ -299,26 +297,20 @@ const RightColumn = ({
 };
 
 interface Props {
-  canSwitchLoginType: boolean;
+  authOptions: AuthOptions;
   defaultRealm: string;
-  type: LoginType;
+  defaultAuth: keyof AuthOptions;
 }
 
-export default ({ type, canSwitchLoginType, defaultRealm }: Props): React.ReactElement => {
-  const navigate = useNavigate();
-  return (
-    <Container fluid>
-      <Row>
-        <LeftColumn />
-        <RightColumn
-          type={type}
-          canSwitchLoginType={canSwitchLoginType}
-          defaultRealm={defaultRealm}
-          onLogin={(url) => {
-            navigate(url);
-          }}
-        />
-      </Row>
-    </Container>
-  );
-};
+export default ({ authOptions, defaultAuth, defaultRealm }: Props): React.ReactElement => (
+  <Container fluid>
+    <Row>
+      <LeftColumn />
+      <RightColumn
+        authOptions={authOptions}
+        defaultAuth={defaultAuth}
+        defaultRealm={defaultRealm}
+      />
+    </Row>
+  </Container>
+);

@@ -32,6 +32,7 @@ import NativeBlockWidget from './NativeBlockWidget';
 type GenerateModelEvent = Parameters<AbstractReactFactory['generateModel']>['0'] & {
   name: AstarteBlock['name'];
   type: AstarteBlock['type'];
+  onRemoveClick?: (node: NativeBlockModel) => void;
   onSettingsClick?: (...args: any[]) => void;
 };
 
@@ -54,11 +55,17 @@ class NativeBlockFactory extends AbstractReactFactory<BaseModel, DiagramEngine> 
     return <NativeBlockWidget engine={this.engine} node={node} hasSettings={hasSettings} />;
   }
 
-  generateModel({ name, type, onSettingsClick }: GenerateModelEvent): NativeBlockModel {
+  generateModel({
+    name,
+    type,
+    onRemoveClick,
+    onSettingsClick,
+  }: GenerateModelEvent): NativeBlockModel {
     const block = this.blockDefinitions.get(`${type}-${name}`);
     return new NativeBlockModel({
       name: block ? block.name : name,
       blockType: block ? block.type : type,
+      onRemoveClick,
       onSettingsClick,
     });
   }

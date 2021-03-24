@@ -1,3 +1,5 @@
+const _ = require('lodash');
+
 describe('Login tests', () => {
   it('successfully loads', () => {
     cy.visit('/login');
@@ -118,6 +120,66 @@ describe('Login tests', () => {
       cy.get('#main-navbar').contains('Logout').scrollIntoView().click();
 
       cy.wrap(localStorage).its('session').should('not.exist');
+    });
+  });
+
+  context('login form on multiple auth methods', () => {
+    beforeEach(() => {
+      cy.fixture('config/multiple_auth').as('config');
+    });
+
+    it('allows switching from OAuth to token login', function () {
+      const oauthLoginConfig = {
+        ...this.config,
+        default_auth: 'oauth',
+      };
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', oauthLoginConfig);
+      cy.visit('/login');
+      cy.contains('.btn-link', 'Switch to token login');
+    });
+
+    it('allows switching from token to OAuth login', function () {
+      const tokenLoginConfig = {
+        ...this.config,
+        default_auth: 'token',
+      };
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', tokenLoginConfig);
+      cy.visit('/login');
+      cy.contains('.btn-link', 'Switch to OAuth login');
+    });
+  });
+
+  context('OAuth login', () => {
+    beforeEach(() => {
+      cy.fixture('config/oauth').as('config');
+    });
+
+    it('does not show OAuth URL field when already configured', function () {
+      const config = _.cloneDeep(this.config);
+      config.auth[0].oauth_api_url = 'http://www.oauth.example.com';
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', config);
+      cy.visit('/login');
+
+      cy.get('input[id=astarteRealm]').should('be.empty');
+      cy.get('input[id=oauthProviderUrl]').should('not.exist');
+    });
+
+    /*
+      TODO: reenable when cypress adds support to multi-domain testing
+      see https://github.com/cypress-io/cypress/issues/944
+    */
+    it.skip('successfully redirect users', function () {
+      cy.dynamicIntercept('getUserConfig', 'GET', '/user-config/config.json', this.config);
+      cy.visit('/login');
+
+      cy.get('input[id=astarteRealm]').clear().paste('testrealm');
+      cy.get('input[id=oauthProviderUrl]').paste('http://www.oauth.example.com');
+      cy.get('.btn[type=submit]').click();
+
+      cy.url().should(
+        'eq',
+        'http://www.oauth.example.com/?client_id=astarte-dashboard&response_type=token&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth%3Frealm%3Dtestrealm%26authUrl%3Dhttp%253A%252F%252Fwww.oauth.example.com/login',
+      );
     });
   });
 });

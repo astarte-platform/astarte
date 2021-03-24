@@ -93,9 +93,9 @@ function Login(): React.ReactElement {
 
   return (
     <LoginPage
-      type={loginType}
-      canSwitchLoginType={config.auth.methods.length > 1}
+      authOptions={config.auth.methods}
       defaultRealm={config.auth.defaultRealm || ''}
+      defaultAuth={loginType}
     />
   );
 }
