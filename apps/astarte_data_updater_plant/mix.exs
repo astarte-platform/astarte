@@ -63,9 +63,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.0.0"},
-      {:astarte_data_access, "~> 1.0.0"},
-      {:astarte_rpc, "~> 1.0.0"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
@@ -73,7 +73,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       {:amqp, "~> 2.1"},
       {:castore, "~> 0.1.0"},
-      {:cyanide, "~> 1.0"},
+      {:cyanide, github: "ispirata/cyanide"},
       {:excoveralls, "~> 0.12", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},

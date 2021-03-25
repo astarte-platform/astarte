@@ -95,7 +95,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
                 "test2" => "ħełłø",
                 "test3" => 5.0,
                 "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => {0, <<0, 1, 2, 3>>}
+                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
               }, expected_timestamp, %{}}
   end
 
@@ -114,7 +114,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
                 "test2" => "ħełłø",
                 "test3" => 5.0,
                 "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => {0, <<0, 1, 2, 3>>}
+                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
               }, expected_timestamp, %{}}
   end
 
@@ -133,7 +133,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
                 "test2" => "ħełłø",
                 "test3" => 5.0,
                 "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => {0, <<0, 1, 2, 3>>}
+                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
               }, expected_timestamp, %{}}
   end
 
@@ -152,7 +152,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
                 "test2" => "ħełłø",
                 "test3" => 5.0,
                 "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => {0, <<0, 1, 2, 3>>}
+                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
               }, expected_timestamp, %{"meta" => 2}}
   end
 
