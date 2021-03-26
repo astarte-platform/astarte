@@ -20,7 +20,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import SingleCardPage from './ui/SingleCardPage';
 
@@ -43,7 +43,7 @@ export default (): React.ReactElement => {
     }
   }, [flow.config]);
 
-  const formAlerts = useAlerts();
+  const [formAlerts, formAlertsController] = useAlerts();
 
   const createFlow = useCallback(() => {
     setIsCreatingFlow(true);
@@ -58,7 +58,7 @@ export default (): React.ReactElement => {
       })
       .catch((err) => {
         setIsCreatingFlow(false);
-        formAlerts.showError(`Couldn't instantiate the Flow: ${err.message}`);
+        formAlertsController.showError(`Couldn't instantiate the Flow: ${err.message}`);
       });
   }, [
     setIsCreatingFlow,
@@ -67,7 +67,7 @@ export default (): React.ReactElement => {
     pipelineId,
     astarte.client,
     navigate,
-    formAlerts.showError,
+    formAlertsController,
   ]);
 
   const isValidFlowName = flow.name !== '';
@@ -107,7 +107,7 @@ export default (): React.ReactElement => {
 
   return (
     <SingleCardPage title="Flow Configuration" backLink="/pipelines">
-      <formAlerts.Alerts />
+      <AlertsBanner alerts={formAlerts} />
       {innerHTML}
     </SingleCardPage>
   );

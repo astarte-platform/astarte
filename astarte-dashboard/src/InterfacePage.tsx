@@ -21,7 +21,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
 import { AstarteInterface } from 'astarte-client';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import InterfaceEditor from './components/InterfaceEditor';
 import Empty from './components/Empty';
@@ -89,7 +89,7 @@ export default (): React.ReactElement => {
   const [isSourceVisible, setIsSourceVisible] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const actionAlerts = useAlerts();
+  const [actionAlerts, actionAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
   const pathParams = useParams();
@@ -136,16 +136,16 @@ export default (): React.ReactElement => {
     astarte.client
       .updateInterface(new AstarteInterface(interfaceDraft))
       .then(() => {
-        actionAlerts.showSuccess('Changes succesfully applied.');
+        actionAlertsController.showSuccess('Changes succesfully applied.');
       })
       .catch((err) => {
-        actionAlerts.showError(`Could not update interface: ${err.message}`);
+        actionAlertsController.showError(`Could not update interface: ${err.message}`);
       })
       .finally(() => {
         setIsUpdatingInterface(false);
         hideConfirmUpdateModal();
       });
-  }, [astarte.client, interfaceDraft, actionAlerts.showSuccess, actionAlerts.showError]);
+  }, [astarte.client, interfaceDraft, actionAlertsController]);
 
   const handleConfirmDeleteInterface = useCallback(() => {
     setIsDeletingInterface(true);
@@ -155,11 +155,18 @@ export default (): React.ReactElement => {
         navigate('/interfaces');
       })
       .catch((err) => {
-        actionAlerts.showError(`Could not delete interface: ${err.message}`);
+        actionAlertsController.showError(`Could not delete interface: ${err.message}`);
         setIsDeletingInterface(false);
         hideConfirmDeleteModal();
       });
-  }, [astarte.client, interfaceName, interfaceMajor, navigate, actionAlerts.showError]);
+  }, [
+    astarte.client,
+    hideConfirmUpdateModal,
+    interfaceName,
+    interfaceMajor,
+    navigate,
+    actionAlertsController,
+  ]);
 
   useEffect(() => {
     if (interfaceFetcher.value != null) {
@@ -177,7 +184,7 @@ export default (): React.ReactElement => {
         Interface Editor
       </h2>
       <div className="mt-4">
-        <actionAlerts.Alerts />
+        <AlertsBanner alerts={actionAlerts} />
         <WaitForData
           data={interfaceFetcher.value}
           status={interfaceFetcher.status}

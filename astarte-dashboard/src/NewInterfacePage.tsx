@@ -22,7 +22,7 @@ import { Button, Container, Row, Spinner } from 'react-bootstrap';
 import { AstarteInterface } from 'astarte-client';
 import _ from 'lodash';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import InterfaceEditor from './components/InterfaceEditor';
 import ConfirmModal from './components/modals/Confirm';
@@ -77,7 +77,7 @@ export default (): React.ReactElement => {
   const [isInstallingInterface, setIsInstallingInterface] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
-  const installationAlerts = useAlerts();
+  const [installationAlerts, installationAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
 
@@ -112,7 +112,7 @@ export default (): React.ReactElement => {
         navigate({ pathname: '/interfaces' });
       })
       .catch((err) => {
-        installationAlerts.showError(`Could not install interface: ${err.message}`);
+        installationAlertsController.showError(`Could not install interface: ${err.message}`);
         setIsInstallingInterface(false);
         hideConfirmInstallModal();
       });
@@ -122,7 +122,7 @@ export default (): React.ReactElement => {
     isInstallingInterface,
     navigate,
     hideConfirmInstallModal,
-    installationAlerts.showError,
+    installationAlertsController,
   ]);
 
   return (
@@ -132,7 +132,7 @@ export default (): React.ReactElement => {
         Interface Editor
       </h2>
       <div className="mt-4">
-        <installationAlerts.Alerts />
+        <AlertsBanner alerts={installationAlerts} />
         <InterfaceEditor onChange={handleInterfaceChange} isSourceVisible={isSourceVisible} />
         <Row className="justify-content-end m-0 mt-3">
           <Button variant="secondary" className="mr-2" onClick={handleToggleSourceVisibility}>

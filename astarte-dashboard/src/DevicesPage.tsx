@@ -25,7 +25,7 @@ import type { AstarteDevice } from 'astarte-client';
 
 import { Link, useNavigate } from 'react-router-dom';
 import SingleCardPage from './ui/SingleCardPage';
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import Empty from './components/Empty';
 import Highlight from './components/Highlight';
 import Icon from './components/Icon';
@@ -381,8 +381,6 @@ export default (): React.ReactElement => {
   const navigate = useNavigate();
   const astarte = useAstarte();
 
-  const pageAlerts = useAlerts();
-
   const fetchDevices = useCallback(
     async (
       params: {
@@ -446,7 +444,6 @@ export default (): React.ReactElement => {
 
   return (
     <SingleCardPage title="Devices">
-      <pageAlerts.Alerts />
       <WaitForData
         data={devicesFetcher.value}
         status={devicesFetcher.status}

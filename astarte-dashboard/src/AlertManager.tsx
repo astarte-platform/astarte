@@ -43,7 +43,7 @@ interface IAlertOptions {
   variant?: 'info' | 'danger' | 'warning' | 'success';
 }
 
-export interface IAlert {
+interface IAlert {
   id: UUIDv4;
   message: string;
   options: IAlertOptions;
@@ -51,7 +51,18 @@ export interface IAlert {
   close: () => void;
 }
 
-const useAlertsContext = ({ timeout }: HookConfig = {}) => {
+type IAlertsState = IAlert[];
+
+type AlertsController = {
+  close: (alert: IAlert) => void;
+  closeAll: () => void;
+  showSuccess: (message: string, options?: IAlertOptions) => void;
+  showWarning: (message: string, options?: IAlertOptions) => void;
+  showError: (message: string, options?: IAlertOptions) => void;
+  showInfo: (message: string, options?: IAlertOptions) => void;
+};
+
+const useAlerts: (config?: HookConfig) => [IAlertsState, AlertsController] = ({ timeout } = {}) => {
   const timersId = useRef<number[]>([]);
   const [alerts, setAlerts] = useState<IAlert[]>([]);
 
@@ -153,23 +164,22 @@ const useAlertsContext = ({ timeout }: HookConfig = {}) => {
     [show],
   );
 
-  return {
-    alerts,
-    close,
-    closeAll,
-    showSuccess,
-    showWarning,
-    showError,
-    showInfo,
-  };
+  const controller = useMemo(
+    () => ({
+      close,
+      closeAll,
+      showSuccess,
+      showWarning,
+      showError,
+      showInfo,
+    }),
+    [close, closeAll, showSuccess, showWarning, showError, showInfo],
+  );
+
+  return [alerts, controller];
 };
 
-type IAlertsContext = ReturnType<typeof useAlertsContext>;
-
-type IAlertsUtils = Omit<IAlertsContext, 'alerts'>;
-type IAlertsState = IAlertsContext['alerts'];
-
-const GlobalAlertsUtilsContext = createContext<React.RefObject<IAlertsUtils> | null>(null);
+const GlobalAlertsUtilsContext = createContext<React.RefObject<AlertsController> | null>(null);
 const GlobalAlertsStateContext = createContext<IAlertsState>([]);
 
 interface GlobalAlertsProviderProps {
@@ -180,25 +190,12 @@ const GlobalAlertsProvider = ({
   children,
   ...props
 }: GlobalAlertsProviderProps): React.ReactElement => {
-  const alertUtilsContext = useRef<IAlertsUtils | null>(null);
-  const {
-    alerts,
-    close,
-    closeAll,
-    showSuccess,
-    showWarning,
-    showError,
-    showInfo,
-  } = useAlertsContext({ timeout: 5000 });
+  const alertUtilsContext = useRef<AlertsController | null>(null);
+  const [alerts, alertsController] = useAlerts({
+    timeout: 5000,
+  });
 
-  alertUtilsContext.current = {
-    close,
-    closeAll,
-    showSuccess,
-    showWarning,
-    showError,
-    showInfo,
-  };
+  alertUtilsContext.current = alertsController;
 
   return (
     <GlobalAlertsUtilsContext.Provider value={alertUtilsContext} {...props}>
@@ -242,17 +239,15 @@ const AlertsBanner = ({ alerts }: AlertsBannerProps) => (
   </Row>
 );
 
-export const useAlerts = (): IAlertsContext & { Alerts: React.FC } => {
-  const alertsContext = useAlertsContext();
-  const Alerts = () => <AlertsBanner alerts={alertsContext.alerts} />;
-  return { ...alertsContext, Alerts };
+const useGlobalAlerts = (): AlertsController => {
+  const alertContext = useContext(GlobalAlertsUtilsContext) as React.RefObject<AlertsController>;
+  return useMemo(() => alertContext.current, [alertContext]) as AlertsController;
 };
 
-export const useGlobalAlerts = (): IAlertsUtils => {
-  const alertContext = useContext(GlobalAlertsUtilsContext) as React.RefObject<IAlertsUtils>;
-  return useMemo(() => alertContext.current, [alertContext]) as IAlertsUtils;
-};
+const useGlobalAlertsState = (): IAlertsState => useContext(GlobalAlertsStateContext);
 
-export const useGlobalAlertsState = (): IAlertsState => useContext(GlobalAlertsStateContext);
+export type { IAlert };
+
+export { AlertsBanner, useAlerts, useGlobalAlerts, useGlobalAlertsState };
 
 export default GlobalAlertsProvider;

@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Container, Row, Spinner } from 'react-bootstrap';
 import { AstarteTrigger } from 'astarte-client';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import TriggerEditor from './components/TriggerEditor';
 import BackButton from './ui/BackButton';
@@ -31,7 +31,7 @@ export default (): React.ReactElement => {
   const [isValidTrigger, setIsValidTrigger] = useState(false);
   const [isInstallingTrigger, setIsInstallingTrigger] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
-  const installationAlerts = useAlerts();
+  const [installationAlerts, installationAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
 
@@ -55,16 +55,16 @@ export default (): React.ReactElement => {
         navigate({ pathname: '/triggers' });
       })
       .catch((err) => {
-        installationAlerts.showError(`Could not install trigger: ${err.message}`);
+        installationAlertsController.showError(`Could not install trigger: ${err.message}`);
         setIsInstallingTrigger(false);
       });
-  }, [astarte.client, triggerDraft, isInstallingTrigger, navigate, installationAlerts.showError]);
+  }, [astarte.client, triggerDraft, isInstallingTrigger, navigate, installationAlertsController]);
 
   const handleTriggerEditorError = useCallback(
     (message: string) => {
-      installationAlerts.showError(message);
+      installationAlertsController.showError(message);
     },
-    [installationAlerts.showError],
+    [installationAlertsController],
   );
 
   return (
@@ -74,7 +74,7 @@ export default (): React.ReactElement => {
         Trigger Editor
       </h2>
       <div className="mt-4">
-        <installationAlerts.Alerts />
+        <AlertsBanner alerts={installationAlerts} />
         <TriggerEditor
           realm={astarte.realm}
           onChange={handleTriggerChange}

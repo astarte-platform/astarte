@@ -22,7 +22,7 @@ import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import _ from 'lodash';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import SingleCardPage from './ui/SingleCardPage';
 import Empty from './components/Empty';
@@ -36,7 +36,7 @@ export default (): React.ReactElement => {
   const pipelineFetcher = useFetch(() => astarte.client.getPipeline(pipelineId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingPipeline, setIsDeletingPipeline] = useState(false);
-  const deletionAlerts = useAlerts();
+  const [deletionAlerts, deletionAlertsController] = useAlerts();
   const navigate = useNavigate();
 
   const deletePipeline = useCallback(() => {
@@ -45,16 +45,16 @@ export default (): React.ReactElement => {
       .deletePipeline(pipelineId)
       .then(() => navigate('/pipelines'))
       .catch((err) => {
-        deletionAlerts.showError(`Couldn't delete pipeline: ${err.message}`);
+        deletionAlertsController.showError(`Couldn't delete pipeline: ${err.message}`);
         setIsDeletingPipeline(false);
         setShowDeleteModal(false);
       });
-  }, [astarte.client, pipelineId, navigate, deletionAlerts.showError]);
+  }, [astarte.client, pipelineId, navigate, deletionAlertsController]);
 
   return (
     <>
       <SingleCardPage title="Pipeline Details" backLink="/pipelines">
-        <deletionAlerts.Alerts />
+        <AlertsBanner alerts={deletionAlerts} />
         <WaitForData
           data={pipelineFetcher.value}
           status={pipelineFetcher.status}
