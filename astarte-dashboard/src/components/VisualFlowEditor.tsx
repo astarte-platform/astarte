@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ interface VisualFlowEditorProps {
   className?: string;
   blocks: AstarteBlock[];
   model: DiagramModel;
-  onNodeSettingsClick?: (...args: any[]) => void;
+  onNodeSettingsClick?: (node: NativeBlockModel) => void;
 }
 
 const VisualFlowEditor = ({

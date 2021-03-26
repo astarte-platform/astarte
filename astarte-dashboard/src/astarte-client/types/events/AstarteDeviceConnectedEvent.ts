@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,25 +17,35 @@
 */
 
 import _ from 'lodash';
-import { AstarteDeviceEvent } from './AstarteDeviceEvent';
+import * as yup from 'yup';
+
+import { AstarteDeviceEvent, AstarteDeviceEventDTO } from './AstarteDeviceEvent';
+
+type AstarteDeviceConnectedEventDTO = AstarteDeviceEventDTO & {
+  event: {
+    type: 'device_connected';
+    // eslint-disable-next-line camelcase
+    device_ip_address: string;
+  };
+};
+
+const validationSchema: yup.ObjectSchema<AstarteDeviceConnectedEventDTO['event']> = yup
+  .object({
+    type: yup.string().oneOf(['device_connected']).required(),
+    device_ip_address: yup.string().required(),
+  })
+  .required();
 
 export class AstarteDeviceConnectedEvent extends AstarteDeviceEvent {
   readonly ip: string;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private constructor(arg: any) {
+  private constructor(arg: unknown) {
     super(arg);
-    if (!arg.event || !_.isPlainObject(arg.event) || arg.event.type !== 'device_connected') {
-      throw new Error('Invalid event');
-    }
-    if (typeof arg.event.device_ip_address !== 'string') {
-      throw new Error('Invalid device ip address');
-    }
-    this.ip = arg.event.device_ip_address;
+    const event = validationSchema.validateSync(_.get(arg, 'event'));
+    this.ip = event.device_ip_address;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJSON(arg: any): AstarteDeviceConnectedEvent {
+  static fromJSON(arg: unknown): AstarteDeviceConnectedEvent {
     return new AstarteDeviceConnectedEvent(arg);
   }
 }

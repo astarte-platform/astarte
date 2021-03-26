@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Status = 'loading' | 'ok' | 'err';
 
-type FetchState<Data, FetchParams extends any[]> =
+type FetchState<Data, FetchParams extends unknown[]> =
   | {
       status: 'loading';
       value: Data | null;
@@ -40,7 +40,7 @@ type FetchState<Data, FetchParams extends any[]> =
       refresh: (...params: FetchParams) => Promise<void>;
     };
 
-const useFetch = <Data = any, FetchParams extends any[] = any[]>(
+const useFetch = <Data = unknown, FetchParams extends unknown[] = unknown[]>(
   fetchData: (...params: FetchParams) => Promise<Data>,
   ...initialFetchParams: FetchParams
 ): FetchState<Data, FetchParams> => {

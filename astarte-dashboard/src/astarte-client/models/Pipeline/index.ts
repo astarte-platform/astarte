@@ -23,9 +23,7 @@ export class AstartePipeline {
 
   description: string;
 
-  schema: {
-    [key: string]: any;
-  };
+  schema: Record<string, unknown>;
 
   source: string;
 

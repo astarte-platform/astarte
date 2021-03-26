@@ -19,12 +19,14 @@ import { AstarteDevice } from '../models/Device';
 import type { AstarteDeviceInterfaceStats } from '../models/Device';
 import type { AstarteDeviceDTO } from '../types';
 
-const fromInterfaceStatsDTO = (iface: any): AstarteDeviceInterfaceStats => ({
+const fromInterfaceStatsDTO = (
+  iface: NonNullable<AstarteDeviceDTO['previous_interfaces']>[number],
+): AstarteDeviceInterfaceStats => ({
   name: iface.name,
   major: iface.major,
   minor: iface.minor,
-  exchangedMessages: iface.exchanged_msgs,
-  exchangedBytes: iface.exchanged_bytes,
+  exchangedMessages: iface.exchanged_msgs || 0,
+  exchangedBytes: iface.exchanged_bytes || 0,
 });
 
 const toInterfaceStatsDTO = (iface: AstarteDeviceInterfaceStats) => ({

@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,39 +17,45 @@
 */
 
 import _ from 'lodash';
-import { AstarteDeviceEvent } from './AstarteDeviceEvent';
-import type { AstarteDataType } from '../dataType';
+import * as yup from 'yup';
+
+import { AstarteDeviceEvent, AstarteDeviceEventDTO } from './AstarteDeviceEvent';
+import type { AstarteDataValue } from '../dataType';
+
+type AstarteDeviceIncomingDataDTO = AstarteDeviceEventDTO & {
+  event: {
+    type: 'incoming_data';
+    interface: string;
+    path: string;
+    value: AstarteDataValue | Record<string, AstarteDataValue>;
+  };
+};
+
+const validationSchema: yup.ObjectSchema<AstarteDeviceIncomingDataDTO['event']> = yup
+  .object({
+    type: yup.string().oneOf(['incoming_data']).required(),
+    interface: yup.string().required(),
+    path: yup.string().required(),
+    value: yup.mixed().required(),
+  })
+  .required();
 
 export class AstarteDeviceIncomingDataEvent extends AstarteDeviceEvent {
   readonly interfaceName: string;
 
   readonly path: string;
 
-  readonly value: AstarteDataType;
+  readonly value: AstarteDataValue | Record<string, AstarteDataValue>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private constructor(arg: any) {
+  private constructor(arg: unknown) {
     super(arg);
-    if (!arg.event || !_.isPlainObject(arg.event) || arg.event.type !== 'incoming_data') {
-      throw new Error('Invalid event');
-    }
-    if (typeof arg.event.interface !== 'string') {
-      throw new Error('Invalid interface');
-    }
-    if (typeof arg.event.path !== 'string') {
-      throw new Error('Invalid path');
-    }
-    if (arg.event.value == null) {
-      throw new Error('Invalid sent value');
-    }
-
-    this.interfaceName = arg.event.interface;
-    this.path = arg.event.path;
-    this.value = arg.event.value;
+    const event = validationSchema.validateSync(_.get(arg, 'event'));
+    this.interfaceName = event.interface;
+    this.path = event.path;
+    this.value = event.value;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJSON(arg: any): AstarteDeviceIncomingDataEvent {
+  static fromJSON(arg: unknown): AstarteDeviceIncomingDataEvent {
     return new AstarteDeviceIncomingDataEvent(arg);
   }
 }

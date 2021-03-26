@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import type { ModalProps } from 'react-bootstrap';
 import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
 import JsonSchemaForm from '@rjsf/bootstrap-4';
-import type { WidgetProps } from '@rjsf/core';
+import type { WidgetProps, IChangeEvent } from '@rjsf/core';
 import type { ComponentProps } from 'react';
 
 const additionalMetaSchemas = [metaSchemaDraft04];
@@ -78,7 +78,7 @@ const TextWidget = ({
         <datalist id={`examples_${id}`}>
           {(schema.examples as string[])
             .concat(schema.default ? ([schema.default] as string[]) : [])
-            .map((example: any) => (
+            .map((example) => (
               // eslint-disable-next-line jsx-a11y/control-has-associated-label
               <option key={example} value={example} />
             ))}
@@ -115,7 +115,7 @@ interface Props {
   isConfirming?: boolean;
   liveValidate?: boolean;
   onCancel: () => void;
-  onConfirm: (formData: any) => void;
+  onConfirm: (formData: IChangeEvent['formData']) => void;
   schema: JsonSchemaFormProps['schema'];
   size?: ModalProps['size'];
   title: React.ReactNode;

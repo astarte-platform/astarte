@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -134,7 +134,7 @@ export default (): React.ReactElement => {
   }, [schemaObject, ajv]);
 
   const blockSettingsClickHandler = useCallback(
-    (e, node: NativeBlockModel) => {
+    (node: NativeBlockModel) => {
       const blockDefinition = blocks.find(
         (block) => node.name === block.name && node.blockType === block.type,
       );

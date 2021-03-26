@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,19 +17,29 @@
 */
 
 import _ from 'lodash';
-import { AstarteDeviceEvent } from './AstarteDeviceEvent';
+import * as yup from 'yup';
+
+import { AstarteDeviceEvent, AstarteDeviceEventDTO } from './AstarteDeviceEvent';
+
+type AstarteDeviceDisconnectedEventDTO = AstarteDeviceEventDTO & {
+  event: {
+    type: 'device_disconnected';
+  };
+};
+
+const validationSchema: yup.ObjectSchema<AstarteDeviceDisconnectedEventDTO['event']> = yup
+  .object({
+    type: yup.string().oneOf(['device_disconnected']).required(),
+  })
+  .required();
 
 export class AstarteDeviceDisconnectedEvent extends AstarteDeviceEvent {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private constructor(arg: any) {
+  private constructor(arg: unknown) {
     super(arg);
-    if (!arg.event || !_.isPlainObject(arg.event) || arg.event.type !== 'device_disconnected') {
-      throw new Error('Invalid event');
-    }
+    validationSchema.validateSync(_.get(arg, 'event'));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJSON(arg: any): AstarteDeviceDisconnectedEvent {
+  static fromJSON(arg: unknown): AstarteDeviceDisconnectedEvent {
     return new AstarteDeviceDisconnectedEvent(arg);
   }
 }

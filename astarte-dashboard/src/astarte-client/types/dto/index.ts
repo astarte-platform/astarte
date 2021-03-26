@@ -25,6 +25,7 @@ export type { AstartePipelineDTO } from './pipeline.d';
 export type { AstarteMappingDTO } from './mapping.d';
 export type { AstarteInterfaceDTO } from './interface.d';
 export type {
+  AstarteTransientTriggerDTO,
   AstarteTriggerDTO,
   AstarteTriggerHTTPActionDTO,
   AstarteTriggerAMQPActionDTO,

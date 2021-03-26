@@ -38,11 +38,11 @@ const generateConnectedDevicesProvider = (
       return {
         data: {
           connected: {
-            value: Number(devicesStats.connected_devices),
+            value: Number(devicesStats.connectedDevices),
             type: 'integer',
           },
           disconnected: {
-            value: Number(devicesStats.total_devices - devicesStats.connected_devices),
+            value: Number(devicesStats.totalDevices - devicesStats.connectedDevices),
             type: 'integer',
           },
         },

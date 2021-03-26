@@ -1,8 +1,7 @@
-/* eslint-disable camelcase */
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -18,40 +17,41 @@
 */
 
 import _ from 'lodash';
-import { AstarteDeviceEvent } from './AstarteDeviceEvent';
+import * as yup from 'yup';
+
+import { AstarteDeviceEvent, AstarteDeviceEventDTO } from './AstarteDeviceEvent';
+
+type AstarteDeviceUnsetPropertyDTO = AstarteDeviceEventDTO & {
+  event: {
+    type: 'incoming_data';
+    interface: string;
+    path: string;
+    value: null;
+  };
+};
+
+const validationSchema: yup.ObjectSchema<AstarteDeviceUnsetPropertyDTO['event']> = yup
+  .object({
+    type: yup.string().oneOf(['incoming_data']).required(),
+    interface: yup.string().required(),
+    path: yup.string().required(),
+    value: yup.mixed().defined().oneOf([null]),
+  })
+  .required();
 
 export class AstarteDeviceUnsetPropertyEvent extends AstarteDeviceEvent {
   readonly interfaceName: string;
 
   readonly path: string;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private constructor(arg: any) {
+  private constructor(arg: unknown) {
     super(arg);
-    if (
-      !arg.event ||
-      !_.isPlainObject(arg.event) ||
-      arg.event.type !== 'incoming_data' ||
-      arg.event.value !== null
-    ) {
-      throw new Error('Invalid event');
-    }
-    if (typeof arg.event.interface !== 'string') {
-      throw new Error('Invalid interface');
-    }
-    if (typeof arg.event.path !== 'string') {
-      throw new Error('Invalid path');
-    }
-    if (arg.event.value) {
-      throw new Error('Invalid sent value');
-    }
-
-    this.interfaceName = arg.event.interface;
-    this.path = arg.event.path;
+    const event = validationSchema.validateSync(_.get(arg, 'event'));
+    this.interfaceName = event.interface;
+    this.path = event.path;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJSON(arg: any): AstarteDeviceUnsetPropertyEvent {
+  static fromJSON(arg: unknown): AstarteDeviceUnsetPropertyEvent {
     return new AstarteDeviceUnsetPropertyEvent(arg);
   }
 }

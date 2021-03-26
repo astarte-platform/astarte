@@ -2,7 +2,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,33 +17,38 @@
    limitations under the License.
 */
 
-import _ from 'lodash';
+import * as yup from 'yup';
+
+type AstarteDeviceEventDTO = {
+  device_id: string;
+  timestamp: string;
+  event: Record<string, unknown>;
+};
+
+const astarteDeviceEventSchema: yup.ObjectSchema<AstarteDeviceEventDTO> = yup
+  .object({
+    device_id: yup.string().required(),
+    timestamp: yup.string().required(),
+    event: yup.object(),
+  })
+  .required();
 
 export abstract class AstarteDeviceEvent {
   readonly deviceId: string;
 
   readonly timestamp: Date;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  protected constructor(arg: any) {
-    if (!arg || !_.isPlainObject(arg)) {
-      throw new Error('Invalid argument');
-    }
+  protected constructor(arg: unknown) {
+    const event = astarteDeviceEventSchema.validateSync(arg);
 
-    if (!arg.device_id || typeof arg.device_id !== 'string') {
-      throw new Error('Invalid device id');
-    }
-
-    if (!arg.timestamp) {
-      throw new Error('Missing event timestamp');
-    }
-
-    const timestamp = new Date(arg.timestamp);
-    if (!arg.timestamp || Number.isNaN(timestamp.getTime())) {
+    const timestamp = new Date(event.timestamp);
+    if (Number.isNaN(timestamp.getTime())) {
       throw new Error('Invalid timestamp');
     }
 
-    this.deviceId = arg.device_id;
+    this.deviceId = event.device_id;
     this.timestamp = timestamp;
   }
 }
+
+export type { AstarteDeviceEventDTO };

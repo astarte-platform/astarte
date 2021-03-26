@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -33,13 +33,13 @@ function isEmptyValue(value: unknown): boolean {
   return !value;
 }
 
-function encodeValue(value: unknown): any {
+function encodeValue(value: unknown): string {
   if (Array.isArray(value)) {
-    const encodedValues: any[] = value.map((v) => encodeValue(v));
+    const encodedValues = value.map((v) => encodeValue(v));
     return `[${encodedValues.join(',')}]`;
   }
   if (typeof value === 'object' && value != null) {
-    const encodedValues: any[] = Object.entries(value).map(
+    const encodedValues = Object.entries(value).map(
       ([key, innerValue]) => `${key}: ${encodeValue(innerValue)}`,
     );
     return `{${encodedValues.join(',')}}`;
@@ -47,14 +47,14 @@ function encodeValue(value: unknown): any {
   if (typeof value === 'string') {
     return `"${value}"`;
   }
-  return value;
+  return `${value}`;
 }
 
 interface NativeBlockModelConfig {
   name: AstarteBlock['name'];
   blockType: AstarteBlock['type'];
   onRemoveClick?: (node: NativeBlockModel) => void;
-  onSettingsClick?: (...args: any[]) => void;
+  onSettingsClick?: (node: NativeBlockModel) => void;
 }
 
 class NativeBlockModel extends NodeModel {
@@ -64,7 +64,7 @@ class NativeBlockModel extends NodeModel {
 
   onRemoveClick: (node: NativeBlockModel) => void;
 
-  onSettingsClick: (...args: any[]) => void;
+  onSettingsClick: (node: NativeBlockModel) => void;
 
   properties: Record<string, unknown>;
 
