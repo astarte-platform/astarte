@@ -96,7 +96,7 @@ Also, we will need a JWT token to authenticate against Housekeeping. `generate-c
 Use `astartectl` to create a new Realm:
 
 ```sh
-$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_public.pem -k compose/astarte-keys/housekeeping_private.pem
+$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ --realm-public-key test_public.pem -k compose/astarte-keys/housekeeping_private.pem
 ```
 
 This creates a `test` realm, which should be ready to be used almost immediately. To ensure your realm is available and ready, check if it exists in Astarte by issuing:
