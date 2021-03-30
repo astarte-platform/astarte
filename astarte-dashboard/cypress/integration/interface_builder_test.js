@@ -798,9 +798,9 @@ describe('Interface builder tests', () => {
             `You are going to remove ${draftInterface.interface_name} v${draftInterface.version_major}. This might cause data loss, removed interfaces cannot be restored. Are you sure?`,
           );
           cy.contains(`Please type ${draftInterface.interface_name} to proceed.`);
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Remove').should('be.disabled');
           cy.get('#confirmInterfaceName').paste(draftInterface.interface_name);
-          cy.get('button').contains('Confirm').should('be.enabled').click();
+          cy.get('button').contains('Remove').should('be.enabled').click();
         });
         cy.wait('@deleteInterfaceRequest');
         cy.location('pathname').should('eq', '/interfaces');

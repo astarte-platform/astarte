@@ -1631,7 +1631,7 @@ renderDeleteInterfaceModal model =
                 , Button.disabled <| model.interface.name /= model.confirmInterfaceName
                 , Button.onClick <| CloseDeleteModal ModalOk
                 ]
-                [ text "Confirm" ]
+                [ text "Remove" ]
             ]
         |> Modal.view model.deleteModalVisibility
 

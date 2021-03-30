@@ -806,7 +806,7 @@ describe('Trigger builder tests', () => {
           );
           cy.get('.modal-body').contains(`Please type ${this.test_trigger.data.name} to proceed.`);
           cy.get('#confirmTriggerName').paste(this.test_trigger.data.name);
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Remove').click();
         });
         cy.wait('@deleteTriggerRequest');
         cy.location('pathname').should('eq', '/triggers');
