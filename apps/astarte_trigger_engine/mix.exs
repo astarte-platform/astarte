@@ -59,9 +59,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.0"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.0"}
+      {:astarte_core, "~> 1.0.0-beta.2"},
+      {:astarte_data_access, "~> 1.0.0-beta.2"}
     ]
   end
 

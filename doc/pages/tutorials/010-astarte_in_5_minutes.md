@@ -96,7 +96,7 @@ Also, we will need a JWT token to authenticate against Housekeeping. `generate-c
 Use `astartectl` to create a new Realm:
 
 ```sh
-$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_public.pem -k compose/astarte-keys/housekeeping_private.pem
+$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ --realm-public-key test_public.pem -k compose/astarte-keys/housekeeping_private.pem
 ```
 
 This creates a `test` realm, which should be ready to be used almost immediately. To ensure your realm is available and ready, check if it exists in Astarte by issuing:
@@ -127,7 +127,7 @@ We will also test Astarte's push capabilities with a trigger. This will send a P
 
 Due to how triggers work, it is fundamental to install the trigger before a device connects. Doing otherwise will cause the trigger to kick in at a later time, and as such no events will be streamed for a while.
 
-Replace `http://example.com` with your target URL in the command below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests. The resulting trigger would be:
+Replace `$TRIGGER_TARGET_URL` with your target URL in the example below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests. The resulting trigger would be:
 
 ```json
 {
@@ -175,13 +175,13 @@ or from another machine or device on the same network.
 Astarte's `stream-qt5-test` can be pulled from Docker Hub with:
 
 ```sh
-$ docker pull astarte/astarte-stream-qt5-test:1.0.0-beta.1
+$ docker pull astarte/astarte-stream-qt5-test:1.0.0-beta.2
 ```
 
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0.0-beta.1
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0.0-beta.2
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
