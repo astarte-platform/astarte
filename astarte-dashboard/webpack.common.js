@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const Autoprefixer = require('autoprefixer');
+const package = require('./package.json');
 
 module.exports = {
   output: {
@@ -51,6 +52,9 @@ module.exports = {
     }),
     new webpack.ProvidePlugin({
       process: 'process/browser',
+    }),
+    new webpack.DefinePlugin({
+      'process.env.REACT_APP_VERSION': JSON.stringify(package.version),
     }),
   ],
 };
