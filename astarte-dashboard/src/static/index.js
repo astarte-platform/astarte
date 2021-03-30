@@ -251,6 +251,7 @@ $.getJSON('/user-config/config.json', (result) => {
   const parameters = {
     config: dashboardConfig,
     previousSession: JSON.stringify(sessionManager.getSession()),
+    dashboardVersion: process.env.REACT_APP_VERSION,
   };
 
   // init app

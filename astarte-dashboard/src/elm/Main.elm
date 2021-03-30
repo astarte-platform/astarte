@@ -75,6 +75,7 @@ type alias Model =
     , session : Session
     , navbarState : Navbar.State
     , config : Config
+    , dashboardVersion : Maybe String
     , appEngineApiHealth : Maybe Bool
     , realmManagementApiHealth : Maybe Bool
     , pairingApiHealth : Maybe Bool
@@ -106,6 +107,10 @@ init jsParam location key =
                 |> Result.toMaybe
                 |> Maybe.andThen (Decode.decodeString Session.decoder >> Result.toMaybe)
 
+        dashboardVersion =
+            Decode.decodeValue (at [ "dashboardVersion" ] string) jsParam
+                |> Result.toMaybe
+
         initialSession =
             case previousSession of
                 Nothing ->
@@ -126,6 +131,7 @@ init jsParam location key =
             , session = updatedSession
             , navbarState = navbarState
             , config = configFromJavascript
+            , dashboardVersion = dashboardVersion
             , appEngineApiHealth = Nothing
             , realmManagementApiHealth = Nothing
             , pairingApiHealth = Nothing
@@ -761,7 +767,7 @@ view model =
                      else
                         [ Col.attrs [ id "main-navbar", Display.none ] ]
                     )
-                    [ renderNavbar model realmName ]
+                    [ renderNavbar model realmName model.dashboardVersion ]
                 , Grid.col
                     [ Col.attrs [ class "main-content vh-100 overflow-auto" ] ]
                     [ renderPage model model.selectedPage ]
@@ -778,8 +784,8 @@ view model =
 -}
 
 
-renderNavbar : Model -> String -> Html Msg
-renderNavbar model realm =
+renderNavbar : Model -> String -> Maybe String -> Html Msg
+renderNavbar model realm dashboardVersion =
     case model.config of
         Config.EditorOnly ->
             editorNavBar
@@ -793,6 +799,7 @@ renderNavbar model realm =
                 model.pairingApiHealth
                 model.flowApiHealth
                 config.enableFlowPreview
+                dashboardVersion
 
 
 editorNavBar : Html Msg
@@ -807,8 +814,8 @@ editorNavBar =
         ]
 
 
-standardNavBar : Page -> String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Bool -> Html Msg
-standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHealth enableFlowPreview =
+standardNavBar : Page -> String -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Maybe Bool -> Bool -> Maybe String -> Html Msg
+standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHealth enableFlowPreview dashboardVersion =
     [ [ dashboardBrand
       , renderNavbarLink
             "Home"
@@ -883,10 +890,19 @@ standardNavBar selectedPage realmName aeApiHealth rmApiHealth pApiHealth fApiHea
             Icons.Logout
             False
             (Route.Realm Route.Logout)
+      , dashboardVersion
+            |> Maybe.map navDashboardVersion
+            |> Maybe.withDefault (Html.text "")
       ]
     ]
         |> List.concat
         |> Html.nav [ class "nav navbar-dark flex-nowrap vh-100 overflow-auto", Flex.col ]
+
+
+navDashboardVersion : String -> Html Msg
+navDashboardVersion version =
+    div [ class "dashboard-version" ]
+        [ Html.text <| "Astarte Dashboard v" ++ version ]
 
 
 dashboardBrand : Html Msg

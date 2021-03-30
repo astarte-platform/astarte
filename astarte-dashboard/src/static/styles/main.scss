@@ -40,7 +40,7 @@ $navbar-color: $dark-blue;
 $navbar-padding-y: 0rem;
 $navbar-padding-x: 0rem;
 $nav-link-padding-y: 1rem;
-$nav-link-padding-x: 1.5rem;
+$nav-link-padding-x: 1.3rem;
 $code-color: $dark-blue;
 
 $form-feedback-icon-valid: none;
@@ -178,6 +178,12 @@ h6,
     margin: 1rem 0.5rem;
     border-color: rgba($navbar-dark-color, 0.2);
   }
+}
+
+.dashboard-version {
+  font-size: 0.65rem;
+  color: $navbar-dark-color;
+  padding: 1.2rem 0 1rem $nav-link-padding-x;
 }
 
 .nav-status {
