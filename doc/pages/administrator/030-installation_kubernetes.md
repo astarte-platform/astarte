@@ -16,7 +16,7 @@ Installing the Operator is as simple as
 ```bash
 helm repo add astarte https://helm.astarte-platform.org
 helm repo update
-helm install astarte-operator astarte/astarte-operator
+helm install astarte-operator astarte/astarte-operator -n kube-system
 ```
 
 This command will take care of installing all needed components for the Operator to run. This
