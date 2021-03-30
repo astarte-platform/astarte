@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2020 Ispirata Srl
+# Copyright 2017-2021 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ defmodule Astarte.DataAccess.Mixfile do
   def project do
     [
       app: :astarte_data_access,
-      version: "1.0.0-alpha.1",
-      elixir: "~> 1.10",
+      version: "1.0.0-beta.2",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -64,7 +64,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.0"}
+      {:astarte_core, "~> 1.0.0-beta.2"}
     ]
   end
 
