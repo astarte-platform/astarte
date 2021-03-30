@@ -20,7 +20,10 @@ detail all needed steps for installing `cert-manager` in the cluster in case it'
 
 ## Resource Requirements
 
-Depending on the kind of setup, Astarte might require different resource configurations when it comes to
-nodes. `astartectl` takes care of this with the `profiles` features, which inspects the Cluster and provides
-a set of ready made configurations for the Cluster. Besides this, Astarte requires a minimum of 3 physical
-nodes in case one is planning on a redundant setup.
+Depending on the kind of setup, Astarte might require different resource configurations when it
+comes to nodes. In addition, if one is planning on a redundant setup, a minimum of 3 physical nodes
+is required.
+
+To spin up a testing instance you should allocate at least 4 vCPU and 8GB of memory just for
+Astarte. Please keep in mind that additional applications running within the cluster and the
+Kubernetes overhead itself must be accounted when sizing your Astarte cluster.
