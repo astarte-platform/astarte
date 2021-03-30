@@ -6,6 +6,9 @@ chart](https://artifacthub.io/packages/helm/astarte/astarte-operator).
 Helm is intended to be used as the operator's lifecycle management tool, thus make sure you are
 ready with a working [Helm installation](https://helm.sh/docs/intro/install/).
 
+Please, before starting with the Operator's install procedure make sure that any
+[prerequisite](020-prerequisites.html) has been satisfied.
+
 ## Installation
 
 Installing the Operator is as simple as
