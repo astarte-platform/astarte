@@ -127,7 +127,7 @@ We will also test Astarte's push capabilities with a trigger. This will send a P
 
 Due to how triggers work, it is fundamental to install the trigger before a device connects. Doing otherwise will cause the trigger to kick in at a later time, and as such no events will be streamed for a while.
 
-Replace `http://example.com` with your target URL in the command below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests. The resulting trigger would be:
+Replace `$TRIGGER_TARGET_URL` with your target URL in the example below, you can use a Postbin service like [Mailgun Postbin](http://bin.mailgun.net) to generate a URL and see the POST requests. The resulting trigger would be:
 
 ```json
 {
