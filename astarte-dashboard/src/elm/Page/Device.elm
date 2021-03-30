@@ -1548,7 +1548,7 @@ renderErrorInfo errorEvent =
     in
     [ Html.span [] [ Html.text eventMsg ]
     , externalLinkAnchor
-        |> Maybe.map (docLink "https://docs.astarte-platform.org/snapshot/045-device_errors.html")
+        |> Maybe.map (docLink "https://docs.astarte-platform.org/1.0/045-device_errors.html")
         |> Maybe.withDefault (Html.text "")
     ]
 
