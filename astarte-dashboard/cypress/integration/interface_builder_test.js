@@ -74,7 +74,7 @@ const setupInterfaceEditorFromUI = (iface) => {
     cy.get('#interfaceDocumentation').scrollIntoView().paste(iface.doc);
   }
   (iface.mappings || []).forEach((mapping) => {
-    cy.get('button').contains('Add new mapping...').click();
+    cy.get('button').contains('Add mapping...').click();
     cy.get('.modal.show').within(() => {
       cy.get('#mappingEndpoint').scrollIntoView().clear().paste(mapping.endpoint);
       cy.get('#mappingType').scrollIntoView().select(mapping.type);
@@ -353,7 +353,7 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceDescription').should('be.enabled').and('be.empty');
         cy.get('label[for="interfaceDocumentation"]').contains('Documentation');
         cy.get('#interfaceDocumentation').should('be.enabled').and('be.empty');
-        cy.get('button').contains('Add new mapping...');
+        cy.get('button').contains('Add mapping...');
 
         // Select Datastream type
         cy.get('label').contains('Datastream').click();
@@ -388,9 +388,9 @@ describe('Interface builder tests', () => {
       it('displays correct Mapping editor depending on interface type', () => {
         // Properties interface
         cy.get('label').contains('Properties').click();
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('label[for="mappingEndpoint"]').contains('Endpoint');
           cy.get('#mappingEndpoint').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingType"]').contains('Type');
@@ -408,9 +408,9 @@ describe('Interface builder tests', () => {
         // Datastream Object interface
         cy.get('label').contains('Datastream').click();
         cy.get('label').contains('Object').click();
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('label[for="mappingEndpoint"]').contains('Endpoint');
           cy.get('#mappingEndpoint').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingType"]').contains('Type');
@@ -426,9 +426,9 @@ describe('Interface builder tests', () => {
         // Datastream Individual interface
         cy.get('label').contains('Datastream').click();
         cy.get('label').contains('Individual').click();
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('label[for="mappingEndpoint"]').contains('Endpoint');
           cy.get('#mappingEndpoint').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingType"]').contains('Type');
@@ -464,10 +464,10 @@ describe('Interface builder tests', () => {
       it('can add, edit and remove mappings', () => {
         const mappingEndpoint = '/mapping_endpoint';
 
-        // Add new mapping
-        cy.get('button').contains('Add new mapping...').click();
+        // Add Mapping
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('#mappingEndpoint').paste(mappingEndpoint);
           cy.get('#mappingType').select('double');
           cy.get('button').contains('Confirm').click();
@@ -477,13 +477,13 @@ describe('Interface builder tests', () => {
           cy.get('.badge').contains('double');
         });
 
-        // Edit mapping
+        // Edit Mapping
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
           cy.get('button').contains('Edit...').click();
         });
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Edit mapping');
+          cy.get('.modal-header').contains('Edit Mapping');
           cy.get('#mappingType').select('string');
           cy.get('button').contains('Confirm').click();
         });
@@ -511,9 +511,9 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceMajor').type('{selectall}0');
 
         // Add mapping
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('#mappingEndpoint').paste('/enpdoint');
           cy.get('button').contains('Confirm').click();
         });
@@ -575,7 +575,7 @@ describe('Interface builder tests', () => {
       });
 
       it('correctly reports errors in mapping editor for the endpoint field', () => {
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
           cy.get('#mappingEndpoint').clear();
           cy.get('#mappingEndpoint').should('have.class', 'is-invalid');
@@ -711,10 +711,10 @@ describe('Interface builder tests', () => {
 
           const mappingEndpoint = '/new_mapping_endpoint';
 
-          // Add new mapping
-          cy.get('button').contains('Add new mapping...').click();
+          // Add Mapping
+          cy.get('button').contains('Add mapping...').click();
           cy.get('.modal.show').within(() => {
-            cy.get('.modal-header').contains('Add new mapping');
+            cy.get('.modal-header').contains('Add Mapping');
             cy.get('#mappingEndpoint').paste(mappingEndpoint);
             cy.get('#mappingType').select('double');
             cy.get('button').contains('Confirm').click();
@@ -724,13 +724,13 @@ describe('Interface builder tests', () => {
             cy.get('.badge').contains('double');
           });
 
-          // Edit mapping
+          // Edit Mapping
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);
             cy.get('button').contains('Edit...').click();
           });
           cy.get('.modal.show').within(() => {
-            cy.get('.modal-header').contains('Edit mapping');
+            cy.get('.modal-header').contains('Edit Mapping');
             cy.get('#mappingType').select('string');
             cy.get('button').contains('Confirm').click();
           });

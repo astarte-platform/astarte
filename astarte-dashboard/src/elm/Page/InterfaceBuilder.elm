@@ -1208,7 +1208,7 @@ renderContent model interface interfaceEditMode accordionState =
                         , Button.onClick ShowAddMappingModal
                         ]
                         [ Icons.render Icons.Add [ Spacing.mr2 ]
-                        , text "Add new mapping..."
+                        , text "Add mapping..."
                         ]
                     , Accordion.config AccordionMsg
                         |> Accordion.withAnimation

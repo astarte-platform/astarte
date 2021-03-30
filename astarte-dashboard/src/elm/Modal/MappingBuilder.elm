@@ -239,10 +239,10 @@ view model =
         |> Modal.scrollableBody True
         |> Modal.h5 []
             [ if model.editMode then
-                text "Edit mapping"
+                text "Edit Mapping"
 
               else
-                text "Add new mapping"
+                text "Add Mapping"
             ]
         |> Modal.body []
             [ renderBody
