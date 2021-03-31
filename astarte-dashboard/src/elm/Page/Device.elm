@@ -259,7 +259,7 @@ update session msg model =
         OpenNewAliasPopup ->
             let
                 modal =
-                    NewAlias (AskKeyValue.init "Add Alias" "Tag" "Alias" AskKeyValue.Trimmed True) UpdateKeyValueModal
+                    NewAlias (AskKeyValue.init "Add Alias" "Tag" "Alias" AskKeyValue.Trimmed True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -269,7 +269,7 @@ update session msg model =
         OpenNewAttributePopup ->
             let
                 modal =
-                    NewAttribute (AskKeyValue.init "Add Attribute" "Key" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewAttribute (AskKeyValue.init "Add Attribute" "Key" "Value" AskKeyValue.AnyValue True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none

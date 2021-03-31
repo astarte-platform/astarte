@@ -629,7 +629,7 @@ describe('Trigger builder tests', () => {
           cy.get('#value').should('be.enabled').and('be.empty');
           cy.get('#key').paste('X-Custom-Header');
           cy.get('#value').paste('Header value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
         cy.get('table tr').contains('Header value');
@@ -690,7 +690,7 @@ describe('Trigger builder tests', () => {
           cy.get('#value').should('be.enabled').and('be.empty');
           cy.get('#key').paste('X-Custom-Header');
           cy.get('#value').paste('Header value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
         cy.get('table tr').contains('Header value');

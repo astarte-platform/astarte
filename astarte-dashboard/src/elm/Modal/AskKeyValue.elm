@@ -1,7 +1,7 @@
 {-
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,18 +46,20 @@ type alias Model =
     , key : String
     , value : String
     , valueValidation : ValueValidation
+    , confirmLabel: String
     , visibility : Modal.Visibility
     }
 
 
-init : String -> String -> String -> ValueValidation -> Bool -> Model
-init modalTitle keyLabel valueLabel valueValidation shown =
+init : String -> String -> String -> ValueValidation -> Bool -> String -> Model
+init modalTitle keyLabel valueLabel valueValidation shown confirmLabel =
     { title = modalTitle
     , keyLabel = keyLabel
     , valueLabel = valueLabel
     , key = ""
     , value = ""
     , valueValidation = valueValidation
+    , confirmLabel = confirmLabel
     , visibility =
         if shown then
             Modal.shown
@@ -170,7 +172,7 @@ view model =
                 , Button.disabled disableSubmit
                 , Button.onClick <| Close ModalOk
                 ]
-                [ Html.text "Confirm" ]
+                [ Html.text model.confirmLabel ]
             ]
         |> Modal.view model.visibility
         |> HtmlUtils.handleEnterKeyPress (Close ModalOk) (not disableSubmit)

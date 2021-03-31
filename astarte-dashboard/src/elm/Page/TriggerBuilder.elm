@@ -1025,7 +1025,7 @@ update session msg model =
         OpenNewHttpHeaderPopup ->
             let
                 modal =
-                    NewCustomHeader (AskKeyValue.init "Add Custom HTTP Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewCustomHeader (AskKeyValue.init "Add Custom HTTP Header" "Header" "Value" AskKeyValue.AnyValue True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -1071,7 +1071,7 @@ update session msg model =
         OpenNewAmqpHeaderPopup ->
             let
                 modal =
-                    NewAmqpStaticHeader (AskKeyValue.init "Add Custom AMQP Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewAmqpStaticHeader (AskKeyValue.init "Add Custom AMQP Header" "Header" "Value" AskKeyValue.AnyValue True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none

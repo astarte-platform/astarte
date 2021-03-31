@@ -281,15 +281,15 @@ describe('Device page tests', () => {
           .contains('Add Alias')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add').should('be.disabled');
             cy.get('input#key').paste('alias_key');
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add').should('be.disabled');
             cy.get('input#value').paste('alias_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+            cy.get('button').contains('Add').should('not.be.disabled').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
@@ -413,15 +413,15 @@ describe('Device page tests', () => {
           .contains('Add Attribute')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add').should('be.disabled');
             cy.get('input#key').paste('attribute_key');
-            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('button').contains('Add').should('not.be.disabled');
             cy.get('input#value').paste('attribute_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+            cy.get('button').contains('Add').should('not.be.disabled').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
