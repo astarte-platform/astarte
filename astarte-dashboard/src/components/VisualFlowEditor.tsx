@@ -33,11 +33,11 @@ const filterSortBlocks = (blocks: AstarteBlock[], type: AstarteBlock['type']) =>
     .sort((block1, block2) => (block1.name > block2.name ? 1 : -1));
 };
 
-interface BlockMenuItem {
+interface BlockMenuItemProps {
   block: AstarteBlock;
 }
 
-const BlockMenuItem = ({ block }: BlockMenuItem) => (
+const BlockMenuItem = ({ block }: BlockMenuItemProps) => (
   <div
     className={`block-item ${block.type}`}
     onDragStart={(e) => {
