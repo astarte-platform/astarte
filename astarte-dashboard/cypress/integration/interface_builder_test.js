@@ -117,7 +117,7 @@ const setupInterfaceEditorFromUI = (iface) => {
           cy.get('#mappingTTL').scrollIntoView().type(`{selectall}${databaseTTL}`);
         }
       }
-      cy.get('button').contains('Confirm').click();
+      cy.get('button').contains('Add').click();
     });
   });
 };
@@ -401,7 +401,7 @@ describe('Interface builder tests', () => {
           cy.get('#mappingDescription').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingDocumentation"]').contains('Documentation');
           cy.get('#mappingDocumentation').should('be.enabled').and('be.empty');
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Add').should('be.disabled');
           cy.get('button').contains('Cancel').click();
         });
 
@@ -419,7 +419,7 @@ describe('Interface builder tests', () => {
           cy.get('#mappingDescription').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingDocumentation"]').contains('Documentation');
           cy.get('#mappingDocumentation').should('be.enabled').and('be.empty');
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Add').should('be.disabled');
           cy.get('button').contains('Cancel').click();
         });
 
@@ -456,7 +456,7 @@ describe('Interface builder tests', () => {
           cy.get('label[for="mappingTTL"]').contains('TTL');
           cy.get('#mappingTTL').should('be.enabled').and('have.value', '60');
 
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Add').should('be.disabled');
           cy.get('button').contains('Cancel').click();
         });
       });
@@ -470,7 +470,7 @@ describe('Interface builder tests', () => {
           cy.get('.modal-header').contains('Add Mapping');
           cy.get('#mappingEndpoint').paste(mappingEndpoint);
           cy.get('#mappingType').select('double');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
@@ -515,7 +515,7 @@ describe('Interface builder tests', () => {
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Add Mapping');
           cy.get('#mappingEndpoint').paste('/enpdoint');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
 
         // Modal confirmation for draft version
@@ -717,7 +717,7 @@ describe('Interface builder tests', () => {
             cy.get('.modal-header').contains('Add Mapping');
             cy.get('#mappingEndpoint').paste(mappingEndpoint);
             cy.get('#mappingType').select('double');
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Add').click();
           });
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);

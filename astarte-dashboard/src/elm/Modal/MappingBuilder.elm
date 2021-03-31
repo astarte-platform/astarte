@@ -263,7 +263,12 @@ view model =
                 , Button.disabled <| not (InterfaceMapping.isValid model.interfaceMapping)
                 , Button.onClick <| Close ModalOk
                 ]
-                [ text "Confirm" ]
+                [ if model.editMode then
+                    text "Confirm"
+
+                else
+                    text "Add"
+                ]
             ]
         |> Modal.view model.visibility
 
