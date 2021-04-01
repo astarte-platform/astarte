@@ -15,6 +15,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+import _ from 'lodash';
 
 interface Props<Data> {
   data: Data | null;
@@ -35,13 +36,16 @@ const WaitForData = <Data = unknown>({
 }: Props<Data>): React.ReactElement | null => {
   switch (status) {
     case 'ok':
+      if (data == null) {
+        return fallback || null;
+      }
       return children(data as Data);
 
     case 'loading':
-      if (!showRefreshing && data) {
-        return children(data);
+      if (showRefreshing || _.isEmpty(data)) {
+        return fallback || null;
       }
-      return fallback || null;
+      return children(data as Data);
 
     case 'err':
       return errorFallback || null;

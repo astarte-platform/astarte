@@ -16,10 +16,14 @@
    limitations under the License.
 */
 
+import blocksSlice, { BlocksState } from './blocks';
+
 type StoreState = {
+  blocks: BlocksState;
 };
 
 const storeSlices = {
+  blocks: blocksSlice,
 } as const;
 
 export type { StoreState };

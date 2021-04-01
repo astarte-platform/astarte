@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,19 +16,19 @@
    limitations under the License.
 */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { AstarteCustomBlock } from 'astarte-client';
+import _ from 'lodash';
 
+import { actions, useStoreDispatch, useStoreSelector } from './store';
 import { AlertsBanner, useAlerts } from './AlertManager';
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import WaitForData from './components/WaitForData';
-import useFetch from './hooks/useFetch';
-import { useAstarte } from './AstarteManager';
 
 const blockTypeToLabel = {
   consumer: 'Consumer',
@@ -38,39 +38,48 @@ const blockTypeToLabel = {
 
 export default (): React.ReactElement => {
   const { blockId } = useParams();
-  const astarte = useAstarte();
-  const blockFetcher = useFetch(() => astarte.client.getBlock(blockId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const [deletionAlerts, deletionAlertsController] = useAlerts();
   const navigate = useNavigate();
+  const dispatch = useStoreDispatch();
+  const blockData = useStoreSelector((selectors) => selectors.block(blockId));
+  const blockStatus = useStoreSelector((selectors) => selectors.blockStatus(blockId));
+  const isDeletingBlock = useStoreSelector((selectors) => selectors.isDeletingBlock(blockId));
+
+  useEffect(() => {
+    dispatch(actions.blocks.get(blockId));
+  }, [dispatch, blockId]);
 
   const deleteBlock = useCallback(() => {
-    setIsDeletingBlock(true);
-    astarte.client
-      .deleteBlock(blockId)
-      .then(() => navigate('/blocks'))
-      .catch((err: Error) => {
-        setIsDeletingBlock(false);
-        deletionAlertsController.showError(`Couldn't delete block: ${err.message}`);
+    dispatch(actions.blocks.delete(blockId)).then((action) => {
+      if (action.meta.requestStatus === 'fulfilled') {
+        navigate('/blocks');
+      } else {
+        deletionAlertsController.showError(
+          `Couldn't delete block: ${_.get(action, 'error.message')}`,
+        );
         setShowDeleteModal(false);
-      });
-  }, [astarte.client, navigate, setIsDeletingBlock, blockId, deletionAlertsController]);
+      }
+    });
+  }, [dispatch, navigate, blockId, deletionAlertsController]);
 
   return (
     <>
       <SingleCardPage title="Block Details" backLink="/blocks">
         <AlertsBanner alerts={deletionAlerts} />
         <WaitForData
-          data={blockFetcher.value}
-          status={blockFetcher.status}
+          data={blockData}
+          status={blockStatus}
           fallback={
             <Container fluid className="text-center">
               <Spinner animation="border" role="status" />
             </Container>
           }
           errorFallback={
-            <Empty title="Couldn't load block source" onRetry={blockFetcher.refresh} />
+            <Empty
+              title="Couldn't load block source"
+              onRetry={() => dispatch(actions.blocks.get(blockId))}
+            />
           }
         >
           {(block) => (
@@ -97,7 +106,7 @@ export default (): React.ReactElement => {
           )}
         </WaitForData>
       </SingleCardPage>
-      {blockFetcher.status === 'ok' && blockFetcher.value instanceof AstarteCustomBlock && (
+      {blockStatus === 'ok' && blockData instanceof AstarteCustomBlock && (
         <Row className="justify-content-end m-3">
           <Button
             variant="danger"

@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,10 +19,11 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Row, Spinner } from 'react-bootstrap';
-import type { AstarteCustomBlock } from 'astarte-client';
+import { AstarteCustomBlock } from 'astarte-client';
+import _ from 'lodash';
 
+import { actions, useStoreDispatch, useStoreSelector } from './store';
 import { AlertsBanner, useAlerts } from './AlertManager';
-import { useAstarte } from './AstarteManager';
 import SingleCardPage from './ui/SingleCardPage';
 
 const isJSON = (string: string) => {
@@ -49,25 +50,28 @@ export default (): React.ReactElement => {
     schema: '',
   });
   const [isValidated, setIsValidated] = useState(false);
-  const [isCreatingBlock, setIsCreatingBlock] = useState(false);
   const [creationAlerts, creationAlertsController] = useAlerts();
-  const astarte = useAstarte();
   const navigate = useNavigate();
+  const dispatch = useStoreDispatch();
+  const isRegisteringBlock = useStoreSelector((selectors) =>
+    selectors.isRegisteringBlock(block.name),
+  );
 
   const createBlock = useCallback(() => {
-    setIsCreatingBlock(true);
-    const newBlock = {
+    const newBlock = new AstarteCustomBlock({
       ...block,
       schema: JSON.parse(block.schema.trim()),
-    };
-    astarte.client
-      .registerBlock(newBlock)
-      .then(() => navigate('/blocks'))
-      .catch((err) => {
-        setIsCreatingBlock(false);
-        creationAlertsController.showError(`Couldn't create block: ${err.message}`);
-      });
-  }, [astarte.client, block, creationAlertsController, navigate]);
+    });
+    dispatch(actions.blocks.register(newBlock)).then((action) => {
+      if (action.meta.requestStatus === 'fulfilled') {
+        navigate('/blocks');
+      } else {
+        creationAlertsController.showError(
+          `Couldn't create block: ${_.get(action, 'error.message')}`,
+        );
+      }
+    });
+  }, [dispatch, block, creationAlertsController, navigate]);
 
   const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name);
   const isValidBlockSource = block.source !== '';
@@ -142,10 +146,10 @@ export default (): React.ReactElement => {
       <Row className="justify-content-end m-3">
         <Button
           variant="primary"
-          onClick={isCreatingBlock ? undefined : handleSubmit}
-          disabled={isCreatingBlock || !isValidBlock}
+          onClick={isRegisteringBlock ? undefined : handleSubmit}
+          disabled={isRegisteringBlock || !isValidBlock}
         >
-          {isCreatingBlock && (
+          {isRegisteringBlock && (
             <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
           )}
           Create new block

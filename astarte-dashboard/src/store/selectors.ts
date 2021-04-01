@@ -19,6 +19,31 @@
 import type { StoreState } from './slices';
 
 const selectors = {
+  blocks: () => (state: StoreState) => state.blocks.blocks,
+  block: (name: string) => (state: StoreState) =>
+    state.blocks.blocks.find((block) => block.name === name) || null,
+  blocksError: () => (state: StoreState) => state.blocks.error || null,
+  blockError: (name: string) => (state: StoreState) => state.blocks.errorByBlock[name] || null,
+  blocksStatus: () => (state: StoreState) => state.blocks.status,
+  blockStatus: (name: string) => (state: StoreState) => {
+    if (
+      selectors.isRegisteringBlock(name)(state) ||
+      selectors.isUpdatingBlock(name)(state) ||
+      selectors.isDeletingBlock(name)(state)
+    ) {
+      return 'loading';
+    }
+    if (selectors.blockError(name)(state)) {
+      return 'err';
+    }
+    return 'ok';
+  },
+  isRegisteringBlock: (name: string) => (state: StoreState) =>
+    state.blocks.blocksBeingRegistered.includes(name),
+  isUpdatingBlock: (name: string) => (state: StoreState) =>
+    state.blocks.blocksBeingUpdated.includes(name),
+  isDeletingBlock: (name: string) => (state: StoreState) =>
+    state.blocks.blocksBeingDeleted.includes(name),
 } as const;
 
 export default selectors;
