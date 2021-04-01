@@ -553,7 +553,7 @@ describe('Device page tests', () => {
           .contains('Select Existing Group')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add to group').should('be.disabled');
             cy.contains('group3').click();
             cy.dynamicIntercept(
               'getDeviceRequest',
@@ -561,7 +561,7 @@ describe('Device page tests', () => {
               '/appengine/v1/*/devices/*',
               updatedDevice,
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Add to group').click();
           });
         cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
         cy.get('.card-header')
@@ -598,7 +598,7 @@ describe('Device page tests', () => {
           .contains('Select Existing Group')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add to group').should('be.disabled');
             cy.contains(groupName).click();
             cy.dynamicIntercept(
               'getDeviceRequest',
@@ -606,7 +606,7 @@ describe('Device page tests', () => {
               '/appengine/v1/*/devices/*',
               updatedDevice,
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Add to group').click();
           });
         cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
         cy.get('.card-header')
