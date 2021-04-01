@@ -631,7 +631,7 @@ describe('Interface builder tests', () => {
           }).as('installInterfaceRequest');
           setupInterfaceEditorFromUI(interfaceFixture.data);
           cy.get('button').contains('Install interface').click();
-          cy.get('.modal.show button').contains('Confirm').click();
+          cy.get('.modal.show button').contains('Install').click();
           cy.wait('@installInterfaceRequest')
             .its('request.body.data')
             .should('deep.eq', interfaceFixture.data);
@@ -833,7 +833,7 @@ describe('Interface builder tests', () => {
           cy.get('.modal.show').within(() => {
             cy.get('.modal-header').contains('Confirmation Required');
             cy.get('.modal-body').contains(`Update the interface ${newIface.interface_name}?`);
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
           cy.wait('@saveInterfaceRequest').its('request.body.data').should('deep.eq', newIface);
         });
@@ -881,7 +881,7 @@ describe('Interface builder tests', () => {
 
           // Interface should be saved without adding default values
           cy.get('button').contains('Apply changes').scrollIntoView().click();
-          cy.get('.modal.show button').contains('Confirm').click();
+          cy.get('.modal.show button').contains('Update').click();
           cy.wait('@saveNoDefaultsInterfaceRequest')
             .its('request.body.data')
             .should('deep.eq', newIface);
@@ -928,7 +928,7 @@ describe('Interface builder tests', () => {
 
           // Interface should be saved with default values stripped out
           cy.get('button').contains('Apply changes').scrollIntoView().click();
-          cy.get('.modal.show button').contains('Confirm').click();
+          cy.get('.modal.show button').contains('Update').click();
           cy.wait('@saveSpecifiedDefaultsInterfaceRequest')
             .its('request.body.data')
             .should('not.deep.eq', newIface);

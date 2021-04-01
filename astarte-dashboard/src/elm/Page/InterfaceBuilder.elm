@@ -1664,7 +1664,12 @@ renderConfirmModal model =
                 [ Button.primary
                 , Button.onClick <| CloseConfirmModal ModalOk
                 ]
-                [ text "Confirm" ]
+                [ if model.interfaceEditMode then
+                    text "Update"
+
+                else
+                    text "Install"
+                ]
             ]
         |> Modal.view model.confirmModalVisibility
 
