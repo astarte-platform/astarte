@@ -372,13 +372,13 @@ describe('Device page tests', () => {
           .parents('.modal')
           .within(() => {
             cy.get('input#value').clear();
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Update').should('be.disabled');
             cy.get('input#value').paste('alias_new_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
@@ -508,13 +508,13 @@ describe('Device page tests', () => {
           .parents('.modal')
           .within(() => {
             cy.get('input#value').clear();
-            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('button').contains('Update').should('not.be.disabled');
             cy.get('input#value').paste('attribute_new_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')

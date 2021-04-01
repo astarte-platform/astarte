@@ -1040,6 +1040,7 @@ update session msg model =
                         "Value"
                         AskSingleValue.AnyValue
                         True
+                        "Update"
 
                 modal =
                     EditCustomHeader modalModel UpdateSingleValueModal header
@@ -1086,6 +1087,7 @@ update session msg model =
                         "Value"
                         AskSingleValue.AnyValue
                         True
+                        "Update"
 
                 modal =
                     EditAmqpStaticHeader modalModel UpdateSingleValueModal header

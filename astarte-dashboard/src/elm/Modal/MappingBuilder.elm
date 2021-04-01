@@ -264,7 +264,7 @@ view model =
                 , Button.onClick <| Close ModalOk
                 ]
                 [ if model.editMode then
-                    text "Confirm"
+                    text "Update"
 
                 else
                     text "Add"

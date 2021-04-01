@@ -485,7 +485,7 @@ describe('Interface builder tests', () => {
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Edit Mapping');
           cy.get('#mappingType').select('string');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Update').click();
         });
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
@@ -732,7 +732,7 @@ describe('Interface builder tests', () => {
           cy.get('.modal.show').within(() => {
             cy.get('.modal-header').contains('Edit Mapping');
             cy.get('#mappingType').select('string');
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);

@@ -649,7 +649,7 @@ describe('Trigger builder tests', () => {
           cy.get('label[for="value"]').contains('Value');
           cy.get('#value').should('be.enabled').and('have.value', '');
           cy.get('#value').paste('Header new value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Update').click();
         });
         cy.get('table tr').contains('Header new value');
         cy.get('#triggerSource')
@@ -710,7 +710,7 @@ describe('Trigger builder tests', () => {
           cy.get('label[for="value"]').contains('Value');
           cy.get('#value').should('be.enabled').and('have.value', '');
           cy.get('#value').paste('Header new value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Update').click();
         });
         cy.get('table tr').contains('Header new value');
         cy.get('#triggerSource')

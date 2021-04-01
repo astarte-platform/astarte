@@ -480,7 +480,7 @@ update session msg model =
                     "Edit \"" ++ key ++ "\""
 
                 modal =
-                    EditAliasValue (AskSingleValue.init title "Alias" AskSingleValue.Trimmed True) UpdateSingleValueModal key
+                    EditAliasValue (AskSingleValue.init title "Alias" AskSingleValue.Trimmed True "Update") UpdateSingleValueModal key
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -493,7 +493,7 @@ update session msg model =
                     "Edit \"" ++ key ++ "\""
 
                 modal =
-                    EditAttributeValue (AskSingleValue.init title "Value" AskSingleValue.AnyValue True) UpdateSingleValueModal key
+                    EditAttributeValue (AskSingleValue.init title "Value" AskSingleValue.AnyValue True "Update") UpdateSingleValueModal key
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
