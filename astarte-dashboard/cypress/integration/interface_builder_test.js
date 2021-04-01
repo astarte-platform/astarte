@@ -461,7 +461,7 @@ describe('Interface builder tests', () => {
         });
       });
 
-      it('can add, edit and remove mappings', () => {
+      it('can add, edit and delete mappings', () => {
         const mappingEndpoint = '/mapping_endpoint';
 
         // Add Mapping
@@ -492,10 +492,10 @@ describe('Interface builder tests', () => {
           cy.get('.badge').contains('string');
         });
 
-        // Remove mapping
+        // Delete mapping
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
-          cy.get('button').contains('Remove').click();
+          cy.get('button').contains('Delete').click();
         });
         cy.get(`[data-testid="${mappingEndpoint}"]`).should('not.exist');
       });
@@ -694,12 +694,12 @@ describe('Interface builder tests', () => {
             .within(() => {
               cy.contains(iface.mappings[0].endpoint);
               cy.get('button').contains('Edit...').should('not.exist');
-              cy.get('button').contains('Remove').should('not.exist');
+              cy.get('button').contains('Delete').should('not.exist');
             });
         });
       });
 
-      it('can add, edit and remove new mappings', function () {
+      it('can add, edit and delete new mappings', function () {
         cy.fixture('test.astarte.NoDefaultsInterface').then(({ data: iface }) => {
           cy.intercept(
             'GET',
@@ -739,10 +739,10 @@ describe('Interface builder tests', () => {
             cy.get('.badge').contains('string');
           });
 
-          // Remove mapping
+          // Delete mapping
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);
-            cy.get('button').contains('Remove').click();
+            cy.get('button').contains('Delete').click();
           });
           cy.get(`[data-testid="${mappingEndpoint}"]`).should('not.exist');
         });
@@ -795,12 +795,12 @@ describe('Interface builder tests', () => {
         cy.get('button').contains('Delete interface').scrollIntoView().click();
         cy.get('.modal.show').within(() => {
           cy.contains(
-            `You are going to remove ${draftInterface.interface_name} v${draftInterface.version_major}. This might cause data loss, removed interfaces cannot be restored. Are you sure?`,
+            `You are going to delete ${draftInterface.interface_name} v${draftInterface.version_major}. This might cause data loss, deleted interfaces cannot be restored. Are you sure?`,
           );
           cy.contains(`Please type ${draftInterface.interface_name} to proceed.`);
-          cy.get('button').contains('Remove').should('be.disabled');
+          cy.get('button').contains('Delete').should('be.disabled');
           cy.get('#confirmInterfaceName').paste(draftInterface.interface_name);
-          cy.get('button').contains('Remove').should('be.enabled').click();
+          cy.get('button').contains('Delete').should('be.enabled').click();
         });
         cy.wait('@deleteInterfaceRequest');
         cy.location('pathname').should('eq', '/interfaces');

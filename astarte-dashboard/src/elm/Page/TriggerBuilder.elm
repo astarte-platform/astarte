@@ -1053,9 +1053,9 @@ update session msg model =
             let
                 modalModel =
                     ConfirmModal.init
-                        "Remove Header"
-                        (Html.text ("Remove custom header \"" ++ header ++ "\"?"))
-                        (Just "Remove header")
+                        "Delete Header"
+                        (Html.text ("Delete custom header \"" ++ header ++ "\"?"))
+                        (Just "Delete")
                         (Just ConfirmModal.Danger)
                         True
                         True
@@ -1099,9 +1099,9 @@ update session msg model =
             let
                 modalModel =
                     ConfirmModal.init
-                        "Remove Header"
-                        (Html.text ("Remove static header \"" ++ header ++ "\"?"))
-                        (Just "Remove header")
+                        "Delete Header"
+                        (Html.text ("Delete static header \"" ++ header ++ "\"?"))
+                        (Just "Delete")
                         (Just ConfirmModal.Danger)
                         True
                         True
@@ -2078,9 +2078,9 @@ renderDeleteTriggerModal triggerName confirmTriggerName =
             [ Form.form [ onSubmit (CloseDeleteModal ModalOk) ]
                 [ Form.row []
                     [ Form.col [ Col.sm12 ]
-                        [ text "You are going to remove "
+                        [ text "You are going to delete "
                         , b [] [ text <| triggerName ++ ". " ]
-                        , text "This might cause data loss, removed triggers cannot be restored. Are you sure?"
+                        , text "This might cause data loss, deleted triggers cannot be restored. Are you sure?"
                         ]
                     ]
                 , Form.row []
@@ -2113,7 +2113,7 @@ renderDeleteTriggerModal triggerName confirmTriggerName =
                 , Button.disabled <| triggerName /= confirmTriggerName
                 , Button.onClick <| CloseDeleteModal ModalOk
                 ]
-                [ text "Remove" ]
+                [ text "Delete" ]
             ]
         |> Modal.view Modal.shown
 

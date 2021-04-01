@@ -1584,7 +1584,7 @@ renderMappingHeader mapping =
                     [ Button.outlinePrimary
                     , Button.onClick <| RemoveMapping mapping
                     ]
-                    [ text "Remove" ]
+                    [ text "Delete" ]
                 ]
 
     else
@@ -1598,9 +1598,9 @@ renderDeleteInterfaceModal model =
         |> Modal.h5 [] [ text "Confirmation Required" ]
         |> Modal.body []
             [ Html.p []
-                [ Html.text "You are going to remove "
+                [ Html.text "You are going to delete "
                 , Html.b [] [ text <| model.interface.name ++ " v0. " ]
-                , Html.text "This might cause data loss, removed interfaces cannot be restored. Are you sure?"
+                , Html.text "This might cause data loss, deleted interfaces cannot be restored. Are you sure?"
                 ]
             , Html.p []
                 [ Html.text "Please type "
@@ -1631,7 +1631,7 @@ renderDeleteInterfaceModal model =
                 , Button.disabled <| model.interface.name /= model.confirmInterfaceName
                 , Button.onClick <| CloseDeleteModal ModalOk
                 ]
-                [ text "Remove" ]
+                [ text "Delete" ]
             ]
         |> Modal.view model.deleteModalVisibility
 
