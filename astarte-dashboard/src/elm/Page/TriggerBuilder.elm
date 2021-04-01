@@ -2109,7 +2109,7 @@ renderDeleteTriggerModal triggerName confirmTriggerName =
                 ]
                 [ text "Cancel" ]
             , Button.button
-                [ Button.primary
+                [ Button.danger
                 , Button.disabled <| triggerName /= confirmTriggerName
                 , Button.onClick <| CloseDeleteModal ModalOk
                 ]
