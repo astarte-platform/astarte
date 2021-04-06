@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-rc.0] - Unreleased
+### Added
+- [astarte_appengine_api] Add `/v1/<realm>/version` endpoint, returning the API application version.
+- [astarte_realm_management_api] Add `/v1/<realm>/version` endpoint, returning the API application
+  version.
+- [astarte_pairing_api] Add `/v1/<realm>/version` endpoint, returning the API application
+  version.
+- [astarte_housekeeping_api] Add `/v1/version` endpoint, returning the API application
+  version.
+
 ## [1.0.0-beta.2] - 2021-03-24
 ### Fixed
 - [astarte_e2e] Fix alerting mechanism preventing "unknown" failures to be raised or linked.

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2021 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,19 +16,12 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Router do
-  use Astarte.Housekeeping.APIWeb, :router
+defmodule Astarte.Pairing.APIWeb.VersionController do
+  use Astarte.Pairing.APIWeb, :controller
 
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
-  end
+  @version Mix.Project.config()[:version]
 
-  scope "/v1", Astarte.Housekeeping.APIWeb do
-    pipe_through :api
-
-    get "/version", VersionController, :show
-
-    resources "/realms", RealmController, except: [:new, :edit]
+  def show(conn, _params) do
+    render(conn, "show.json", %{version: @version})
   end
 end
