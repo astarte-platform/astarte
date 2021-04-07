@@ -89,7 +89,7 @@ const AliasesCard = ({
       )}
       <div className="mt-auto">
         <Button variant="primary" onClick={onNewAliasClick}>
-          Add new alias
+          Add alias
         </Button>
       </div>
     </Card.Body>

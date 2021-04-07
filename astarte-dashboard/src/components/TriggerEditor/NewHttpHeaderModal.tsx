@@ -48,6 +48,7 @@ const NewHttpHeaderModal = ({
   <FormModal
     title="Add Custom HTTP Header"
     schema={newHttpHeaderFormSchema}
+    confirmLabel="Add"
     onCancel={onCancel}
     onConfirm={onConfirm}
   />

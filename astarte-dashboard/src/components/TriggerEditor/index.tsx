@@ -27,8 +27,8 @@ import NewAmqpHeaderModal from './NewAmqpHeaderModal';
 import NewHttpHeaderModal from './NewHttpHeaderModal';
 import EditAmqpHeaderModal from './EditAmqpHeaderModal';
 import EditHttpHeaderModal from './EditHttpHeaderModal';
-import RemoveAmqpHeaderModal from './RemoveAmqpHeaderModal';
-import RemoveHttpHeaderModal from './RemoveHttpHeaderModal';
+import DeleteAmqpHeaderModal from './DeleteAmqpHeaderModal';
+import DeleteHttpHeaderModal from './DeleteHttpHeaderModal';
 
 const defaultTrigger: AstarteTrigger = {
   name: '',
@@ -68,8 +68,8 @@ type ActiveModal =
   | { modal: 'new-http-header' }
   | { modal: 'edit-amqp-header'; header: string }
   | { modal: 'edit-http-header'; header: string }
-  | { modal: 'remove-amqp-header'; header: string }
-  | { modal: 'remove-http-header'; header: string };
+  | { modal: 'delete-amqp-header'; header: string }
+  | { modal: 'delete-http-header'; header: string };
 
 interface Props {
   fetchInterfacesName: () => Promise<string[]>;
@@ -297,12 +297,12 @@ export default ({
     [activeModal],
   );
 
-  const handleRemoveActionAmqpHeader = useCallback((header: string) => {
-    setActiveModal({ modal: 'remove-amqp-header', header });
+  const handleDeleteActionAmqpHeader = useCallback((header: string) => {
+    setActiveModal({ modal: 'delete-amqp-header', header });
   }, []);
 
-  const handleConfirmRemoveAmqpHeaderModal = useCallback(() => {
-    if (activeModal != null && activeModal.modal === 'remove-amqp-header') {
+  const handleConfirmDeleteAmqpHeaderModal = useCallback(() => {
+    if (activeModal != null && activeModal.modal === 'delete-amqp-header') {
       handlePatchActionAmqpHeaders({ [activeModal.header]: undefined });
     }
     dismissModal();
@@ -334,12 +334,12 @@ export default ({
     [activeModal],
   );
 
-  const handleRemoveActionHttpHeader = useCallback((header: string) => {
-    setActiveModal({ modal: 'remove-http-header', header });
+  const handleDeleteActionHttpHeader = useCallback((header: string) => {
+    setActiveModal({ modal: 'delete-http-header', header });
   }, []);
 
-  const handleConfirmRemoveHttpHeaderModal = useCallback(() => {
-    if (activeModal != null && activeModal.modal === 'remove-http-header') {
+  const handleConfirmDeleteHttpHeaderModal = useCallback(() => {
+    if (activeModal != null && activeModal.modal === 'delete-http-header') {
       handlePatchActionHttpHeaders({ [activeModal.header]: undefined });
     }
     dismissModal();
@@ -451,8 +451,8 @@ export default ({
             onAddHttpHeader={handleAddActionHttpHeader}
             onEditAmqpHeader={handleEditActionAmqpHeader}
             onEditHttpHeader={handleEditActionHttpHeader}
-            onRemoveAmqpHeader={handleRemoveActionAmqpHeader}
-            onRemoveHttpHeader={handleRemoveActionHttpHeader}
+            onDeleteAmqpHeader={handleDeleteActionAmqpHeader}
+            onDeleteHttpHeader={handleDeleteActionHttpHeader}
             onChange={handleActionChange}
             realm={realm}
             validationErrors={actionValidationErrors}
@@ -487,11 +487,11 @@ export default ({
           onConfirm={handleConfirmEditAmqpHeaderModal}
         />
       )}
-      {activeModal != null && activeModal.modal === 'remove-amqp-header' && (
-        <RemoveAmqpHeaderModal
+      {activeModal != null && activeModal.modal === 'delete-amqp-header' && (
+        <DeleteAmqpHeaderModal
           targetHeader={activeModal.header}
           onCancel={dismissModal}
-          onConfirm={handleConfirmRemoveAmqpHeaderModal}
+          onConfirm={handleConfirmDeleteAmqpHeaderModal}
         />
       )}
       {activeModal != null && activeModal.modal === 'new-http-header' && (
@@ -504,11 +504,11 @@ export default ({
           onConfirm={handleConfirmEditHttpHeaderModal}
         />
       )}
-      {activeModal != null && activeModal.modal === 'remove-http-header' && (
-        <RemoveHttpHeaderModal
+      {activeModal != null && activeModal.modal === 'delete-http-header' && (
+        <DeleteHttpHeaderModal
           targetHeader={activeModal.header}
           onCancel={dismissModal}
-          onConfirm={handleConfirmRemoveHttpHeaderModal}
+          onConfirm={handleConfirmDeleteHttpHeaderModal}
         />
       )}
     </Row>

@@ -45,6 +45,7 @@ const InstallModal = ({
 }: InstallModalProps) => (
   <ConfirmModal
     title="Confirmation Required"
+    confirmLabel="Install"
     onCancel={onCancel}
     onConfirm={onConfirm}
     isConfirming={isInstallingInterface}

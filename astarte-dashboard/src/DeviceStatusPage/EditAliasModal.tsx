@@ -47,6 +47,7 @@ const EditAliasModal = ({
   <FormModal
     title={`Edit "${targetAlias}"`}
     schema={aliasValueFormSchema}
+    confirmLabel="Update"
     onCancel={onCancel}
     onConfirm={onConfirm}
     isConfirming={isUpdatingAlias}

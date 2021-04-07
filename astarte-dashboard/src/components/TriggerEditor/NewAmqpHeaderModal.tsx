@@ -48,6 +48,7 @@ const NewAmqpHeaderModal = ({
   <FormModal
     title="Add Custom AMQP Header"
     schema={newAmqpHeaderFormSchema}
+    confirmLabel="Add"
     onCancel={onCancel}
     onConfirm={onConfirm}
   />

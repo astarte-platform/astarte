@@ -23,22 +23,22 @@ import type { AstarteDevice } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
 import Icon from '../components/Icon';
 
-interface MetadataKeyValuePair {
+interface AttributeKeyValuePair {
   key: string;
   value: string;
 }
 
-interface MetadataTableProps {
-  metadata: Map<string, string>;
-  onEditMetadataClick: (key: string) => void;
-  onRemoveMetadataClick: ({ key, value }: MetadataKeyValuePair) => void;
+interface AttributesTableProps {
+  attributes: Map<string, string>;
+  onEditAttributeClick: (key: string) => void;
+  onRemoveAttributeClick: ({ key, value }: AttributeKeyValuePair) => void;
 }
 
-const MetadataTable = ({
-  metadata,
-  onEditMetadataClick,
-  onRemoveMetadataClick,
-}: MetadataTableProps): React.ReactElement => (
+const AttributesTable = ({
+  attributes,
+  onEditAttributeClick,
+  onRemoveAttributeClick,
+}: AttributesTableProps): React.ReactElement => (
   <Table responsive>
     <thead>
       <tr>
@@ -48,7 +48,7 @@ const MetadataTable = ({
       </tr>
     </thead>
     <tbody>
-      {Array.from(metadata.entries()).map(([key, value]) => (
+      {Array.from(attributes.entries()).map(([key, value]) => (
         <tr key={key}>
           <td>{key}</td>
           <td>{value}</td>
@@ -56,9 +56,9 @@ const MetadataTable = ({
             <Icon
               icon="edit"
               className="color-grey mr-2"
-              onClick={() => onEditMetadataClick(key)}
+              onClick={() => onEditAttributeClick(key)}
             />
-            <Icon icon="erase" onClick={() => onRemoveMetadataClick({ key, value })} />
+            <Icon icon="erase" onClick={() => onRemoveAttributeClick({ key, value })} />
           </td>
         </tr>
       ))}
@@ -66,38 +66,38 @@ const MetadataTable = ({
   </Table>
 );
 
-interface MetadataCardProps {
+interface AttributesCardProps {
   device: AstarteDevice;
-  onNewMetadataClick: () => void;
-  onEditMetadataClick: (key: string) => void;
-  onRemoveMetadataClick: ({ key, value }: MetadataKeyValuePair) => void;
+  onNewAttributeClick: () => void;
+  onEditAttributeClick: (key: string) => void;
+  onRemoveAttributeClick: ({ key, value }: AttributeKeyValuePair) => void;
 }
 
-const MetadataCard = ({
+const AttributesCard = ({
   device,
-  onNewMetadataClick,
-  onEditMetadataClick,
-  onRemoveMetadataClick,
-}: MetadataCardProps): React.ReactElement => (
+  onNewAttributeClick,
+  onEditAttributeClick,
+  onRemoveAttributeClick,
+}: AttributesCardProps): React.ReactElement => (
   <FullHeightCard xs={12} md={6} className="mb-4">
-    <Card.Header as="h5">Metadata</Card.Header>
+    <Card.Header as="h5">Attributes</Card.Header>
     <Card.Body className="d-flex flex-column">
-      {device.metadata.size > 0 ? (
-        <MetadataTable
-          metadata={device.metadata}
-          onEditMetadataClick={onEditMetadataClick}
-          onRemoveMetadataClick={onRemoveMetadataClick}
+      {device.attributes.size > 0 ? (
+        <AttributesTable
+          attributes={device.attributes}
+          onEditAttributeClick={onEditAttributeClick}
+          onRemoveAttributeClick={onRemoveAttributeClick}
         />
       ) : (
-        <p>Device has no metadata</p>
+        <p>Device has no attribute</p>
       )}
       <div className="mt-auto">
-        <Button variant="primary" onClick={onNewMetadataClick}>
-          Add new item
+        <Button variant="primary" onClick={onNewAttributeClick}>
+          Add attribute
         </Button>
       </div>
     </Card.Body>
   </FullHeightCard>
 );
 
-export default MetadataCard;
+export default AttributesCard;

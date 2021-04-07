@@ -20,12 +20,12 @@ import React from 'react';
 import type { JSONSchema7 } from 'json-schema';
 import FormModal from '../components/modals/Form';
 
-interface MetadataKeyValue {
+interface AttributeKeyValue {
   key: string;
   value?: string;
 }
 
-const metadataFormSchema: JSONSchema7 = {
+const attributeFormSchema: JSONSchema7 = {
   type: 'object',
   required: ['key'],
   properties: {
@@ -40,24 +40,25 @@ const metadataFormSchema: JSONSchema7 = {
   },
 };
 
-interface NewMetadataModalProps {
+interface NewAttributeModalProps {
   onCancel: () => void;
-  onConfirm: ({ key, value }: MetadataKeyValue) => void;
-  isAddingMetadata: boolean;
+  onConfirm: ({ key, value }: AttributeKeyValue) => void;
+  isAddingAttribute: boolean;
 }
 
-const NewMetadataModal = ({
+const NewAttributeModal = ({
   onCancel,
   onConfirm,
-  isAddingMetadata,
-}: NewMetadataModalProps): React.ReactElement => (
+  isAddingAttribute,
+}: NewAttributeModalProps): React.ReactElement => (
   <FormModal
-    title="Add New Item"
-    schema={metadataFormSchema}
+    title="Add Attribute"
+    schema={attributeFormSchema}
+    confirmLabel="Add"
     onCancel={onCancel}
     onConfirm={onConfirm}
-    isConfirming={isAddingMetadata}
+    isConfirming={isAddingAttribute}
   />
 );
 
-export default NewMetadataModal;
+export default NewAttributeModal;

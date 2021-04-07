@@ -91,7 +91,7 @@ const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) =
         )}
         {onDelete && (
           <Button variant="outline-primary" onClick={onDelete}>
-            Remove
+            Delete
           </Button>
         )}
       </Accordion.Toggle>
@@ -202,7 +202,7 @@ const MappingModal = ({
   return (
     <Modal show size="lg" centered onHide={onCancel}>
       <Modal.Header closeButton>
-        <Modal.Title>{mapping != null ? 'Edit mapping' : 'Add new mapping'}</Modal.Title>
+        <Modal.Title>{mapping != null ? 'Edit Mapping' : 'Add Mapping'}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <MappingEditor
@@ -221,7 +221,7 @@ const MappingModal = ({
           onClick={() => onConfirm(mappingDraft)}
           disabled={!isValidMapping}
         >
-          Confirm
+          {mapping != null ? 'Update' : 'Add'}
         </Button>
       </Modal.Footer>
     </Modal>
@@ -940,7 +940,7 @@ export default ({
                     className="btn accordion-button w-100 mb-2"
                     onClick={handleAddMapping}
                   >
-                    <Icon icon="add" className="mr-2" /> Add new mapping...
+                    <Icon icon="add" className="mr-2" /> Add mapping...
                   </button>
                   {interfaceDraft.mappings.map((mapping, index) => {
                     const isExistingMapping = (initialData?.mappings || []).some(

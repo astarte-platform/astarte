@@ -100,7 +100,7 @@ describe('AstarteClient', () => {
       last_credentials_request_ip: null,
       last_disconnection: null,
       last_seen_ip: null,
-      metadata: {},
+      attributes: {},
       previous_interfaces: [],
       total_received_bytes: 0,
       total_received_msgs: 0,
