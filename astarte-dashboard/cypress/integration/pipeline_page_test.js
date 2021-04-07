@@ -57,8 +57,9 @@ describe('Pipeline page tests', () => {
       cy.get('.modal')
         .contains(`Delete pipeline ${this.pipeline.data.name}?`)
         .parents('.modal')
-        .as('deleteModal');
-      cy.get('@deleteModal').get('button').contains('Remove').click();
+        .within(() => {
+          cy.get('button').contains('Delete').click();
+        });
       cy.wait('@deletePipelineRequest');
       cy.location('pathname').should('eq', '/pipelines');
     });

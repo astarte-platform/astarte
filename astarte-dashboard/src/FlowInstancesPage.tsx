@@ -158,7 +158,7 @@ export default (): React.ReactElement => {
       {flowToConfirmDelete != null && (
         <ConfirmModal
           title="Warning"
-          confirmLabel="Remove"
+          confirmLabel="Delete"
           confirmVariant="danger"
           onCancel={handleModalCancel}
           onConfirm={deleteFlow}

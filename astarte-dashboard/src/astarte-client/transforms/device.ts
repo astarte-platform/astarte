@@ -48,7 +48,7 @@ export const fromAstarteDeviceDTO = (dto: AstarteDeviceDTO): AstarteDevice =>
         fromInterfaceStatsDTO({ name: interfaceName, ...iface }),
       ]),
     ),
-    metadata: new Map(Object.entries(dto.metadata || {})),
+    attributes: new Map(Object.entries(dto.attributes || {})),
     totalReceivedMessages: dto.total_received_msgs || 0,
     totalReceivedBytes: dto.total_received_bytes || 0,
     previousInterfaces: (dto.previous_interfaces || []).map(fromInterfaceStatsDTO),
@@ -73,7 +73,7 @@ export const toAstarteDeviceDTO = (obj: AstarteDevice): AstarteDeviceDTO => ({
   introspection: _.mapValues(Object.fromEntries(obj.introspection), (iface) =>
     toInterfaceStatsDTO(iface),
   ),
-  metadata: Object.fromEntries(obj.metadata),
+  attributes: Object.fromEntries(obj.attributes),
   total_received_msgs: obj.totalReceivedMessages || 0,
   total_received_bytes: obj.totalReceivedBytes || 0,
   previous_interfaces: (obj.previousInterfaces || []).map(toInterfaceStatsDTO),

@@ -63,8 +63,9 @@ describe('Block page tests', () => {
         cy.get('.modal')
           .contains(`Delete block ${this.customBlock.data.name}?`)
           .parents('.modal')
-          .as('deleteModal');
-        cy.get('@deleteModal').get('button').contains('Remove').click();
+          .within(() => {
+            cy.get('button').contains('Delete').click();
+          });
         cy.wait('@deleteBlockRequest');
         cy.location('pathname').should('eq', '/blocks');
       });

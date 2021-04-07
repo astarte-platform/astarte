@@ -38,8 +38,8 @@ interface DeviceFilters {
   showConnected?: boolean;
   showDisconnected?: boolean;
   showNeverConnected?: boolean;
-  metadataKey?: string;
-  metadataValue?: string;
+  attributeKey?: string;
+  attributeValue?: string;
   activeSinceDate?: Date;
 }
 
@@ -47,7 +47,7 @@ const DEVICES_PER_PAGE = 20;
 const DEVICES_PER_REQUEST = 100;
 const MAX_SHOWN_PAGES = 10;
 
-const matchMetadata = (
+const matchAttribute = (
   key: string,
   value: string,
   filterKey: string,
@@ -62,30 +62,30 @@ const matchMetadata = (
   return true;
 };
 
-interface MatchedMetadataProps {
+interface MatchedAttributesProps {
   filters: DeviceFilters;
-  metadata: AstarteDevice['metadata'];
+  attributes: AstarteDevice['attributes'];
 }
 
-const MatchedMetadata = ({
+const MatchedAttributes = ({
   filters,
-  metadata,
-}: MatchedMetadataProps): React.ReactElement | null => {
-  const { metadataKey = '', metadataValue = '' } = filters;
+  attributes,
+}: MatchedAttributesProps): React.ReactElement | null => {
+  const { attributeKey = '', attributeValue = '' } = filters;
 
-  if (metadataKey === '' && metadataValue === '') {
+  if (attributeKey === '' && attributeValue === '') {
     return null;
   }
 
   return (
     <>
-      {Array.from(metadata)
-        .filter(([key, value]) => matchMetadata(key, value, metadataKey, metadataValue))
+      {Array.from(attributes)
+        .filter(([key, value]) => matchAttribute(key, value, attributeKey, attributeValue))
         .map(([key, value]) => (
           <div key={key} style={{ overflowWrap: 'anywhere' }}>
-            <Highlight word={metadataKey}>{key}</Highlight>
+            <Highlight word={attributeKey}>{key}</Highlight>
             {': '}
-            <Highlight word={metadataValue}>{value}</Highlight>
+            <Highlight word={attributeValue}>{value}</Highlight>
           </div>
         ))}
     </>
@@ -123,7 +123,7 @@ const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
-        <MatchedMetadata filters={filters} metadata={device.metadata} />
+        <MatchedAttributes filters={filters} attributes={device.attributes} />
       </td>
       <td>{lastEvent}</td>
     </tr>
@@ -155,8 +155,8 @@ const DeviceTable = ({ deviceList, filters }: DeviceTableProps): React.ReactElem
 const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
   const {
     deviceId = '',
-    metadataKey = '',
-    metadataValue = '',
+    attributeKey = '',
+    attributeValue = '',
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
@@ -182,9 +182,9 @@ const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
   }
 
   if (
-    (metadataKey !== '' || metadataValue !== '') &&
-    !Array.from(device.metadata).some(([key, value]) =>
-      matchMetadata(key, value, metadataKey, metadataValue),
+    (attributeKey !== '' || attributeValue !== '') &&
+    !Array.from(device.attributes).some(([key, value]) =>
+      matchAttribute(key, value, attributeKey, attributeValue),
     )
   ) {
     return false;
@@ -275,8 +275,8 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
-    metadataKey = '',
-    metadataValue = '',
+    attributeKey = '',
+    attributeValue = '',
     activeSinceDate,
   } = filters;
 
@@ -348,25 +348,25 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
         </div>
       </Form.Group>
       <div className="mb-2">
-        <b>Metadata</b>
+        <b>Attributes</b>
       </div>
-      <Form.Group controlId="filterMetadataKey" className="mb-2">
+      <Form.Group controlId="filterAttributeKey" className="mb-2">
         <Form.Label>Key</Form.Label>
         <Form.Control
           type="text"
-          value={metadataKey}
+          value={attributeKey}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            onUpdateFilters({ ...filters, metadataKey: e.target.value })
+            onUpdateFilters({ ...filters, attributeKey: e.target.value })
           }
         />
       </Form.Group>
-      <Form.Group controlId="filterMetadataValue" className="mb-4">
+      <Form.Group controlId="filterAttributeValue" className="mb-4">
         <Form.Label>Value</Form.Label>
         <Form.Control
           type="text"
-          value={metadataValue}
+          value={attributeValue}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            onUpdateFilters({ ...filters, metadataValue: e.target.value })
+            onUpdateFilters({ ...filters, attributeValue: e.target.value })
           }
         />
       </Form.Group>
