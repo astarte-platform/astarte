@@ -103,7 +103,7 @@ view model =
                 , Button.disabled <| String.isEmpty model.selectedGroup
                 , Button.onClick <| Close ModalOk
                 ]
-                [ Html.text "Confirm" ]
+                [ Html.text "Add to group" ]
             ]
         |> Modal.view model.visibility
 

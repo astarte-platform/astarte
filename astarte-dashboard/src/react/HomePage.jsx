@@ -180,7 +180,7 @@ const InterfacesCard = ({ interfaceList, onInterfaceClick, onInstallInterfaceCli
           </Card.Text>
           <Card.Text>
             <a
-              href="https://docs.astarte-platform.org/snapshot/030-interface.html"
+              href="https://docs.astarte-platform.org/1.0/030-interface.html"
               target="_blank"
               rel="noreferrer"
             >
@@ -218,7 +218,7 @@ const TriggersCard = ({ triggerList, onInstallTriggerClick }) => (
           </Card.Text>
           <Card.Text>
             <a
-              href="https://docs.astarte-platform.org/snapshot/060-using_triggers.html"
+              href="https://docs.astarte-platform.org/1.0/060-using_triggers.html"
               target="_blank"
               rel="noreferrer"
             >

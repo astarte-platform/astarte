@@ -62,7 +62,7 @@ describe('Flows page tests', () => {
       cy.wait(['@getFlows', '@getFlow']);
       cy.get('.main-content table tbody tr:nth-child(1) .btn.btn-danger').click();
       cy.get('[role="dialog"]').contains(`Delete flow ${this.flow.data.name}?`);
-      cy.get('[role="dialog"] button').contains('Remove').click();
+      cy.get('[role="dialog"] button').contains('Delete').click();
       cy.get('[role="dialog"]').should('not.exist');
       cy.location('pathname').should('eq', '/flows');
     });

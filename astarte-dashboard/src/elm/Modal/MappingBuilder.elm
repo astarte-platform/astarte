@@ -239,10 +239,10 @@ view model =
         |> Modal.scrollableBody True
         |> Modal.h5 []
             [ if model.editMode then
-                text "Edit mapping"
+                text "Edit Mapping"
 
               else
-                text "Add new mapping"
+                text "Add Mapping"
             ]
         |> Modal.body []
             [ renderBody
@@ -263,7 +263,12 @@ view model =
                 , Button.disabled <| not (InterfaceMapping.isValid model.interfaceMapping)
                 , Button.onClick <| Close ModalOk
                 ]
-                [ text "Confirm" ]
+                [ if model.editMode then
+                    text "Update"
+
+                else
+                    text "Add"
+                ]
             ]
         |> Modal.view model.visibility
 

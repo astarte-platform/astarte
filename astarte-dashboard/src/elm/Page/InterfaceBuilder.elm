@@ -1208,7 +1208,7 @@ renderContent model interface interfaceEditMode accordionState =
                         , Button.onClick ShowAddMappingModal
                         ]
                         [ Icons.render Icons.Add [ Spacing.mr2 ]
-                        , text "Add new mapping..."
+                        , text "Add mapping..."
                         ]
                     , Accordion.config AccordionMsg
                         |> Accordion.withAnimation
@@ -1584,7 +1584,7 @@ renderMappingHeader mapping =
                     [ Button.outlinePrimary
                     , Button.onClick <| RemoveMapping mapping
                     ]
-                    [ text "Remove" ]
+                    [ text "Delete" ]
                 ]
 
     else
@@ -1598,9 +1598,9 @@ renderDeleteInterfaceModal model =
         |> Modal.h5 [] [ text "Confirmation Required" ]
         |> Modal.body []
             [ Html.p []
-                [ Html.text "You are going to remove "
+                [ Html.text "You are going to delete "
                 , Html.b [] [ text <| model.interface.name ++ " v0. " ]
-                , Html.text "This might cause data loss, removed interfaces cannot be restored. Are you sure?"
+                , Html.text "This might cause data loss, deleted interfaces cannot be restored. Are you sure?"
                 ]
             , Html.p []
                 [ Html.text "Please type "
@@ -1627,11 +1627,11 @@ renderDeleteInterfaceModal model =
                 ]
                 [ text "Cancel" ]
             , Button.button
-                [ Button.primary
+                [ Button.danger
                 , Button.disabled <| model.interface.name /= model.confirmInterfaceName
                 , Button.onClick <| CloseDeleteModal ModalOk
                 ]
-                [ text "Confirm" ]
+                [ text "Delete" ]
             ]
         |> Modal.view model.deleteModalVisibility
 
@@ -1664,7 +1664,12 @@ renderConfirmModal model =
                 [ Button.primary
                 , Button.onClick <| CloseConfirmModal ModalOk
                 ]
-                [ text "Confirm" ]
+                [ if model.interfaceEditMode then
+                    text "Update"
+
+                else
+                    text "Install"
+                ]
             ]
         |> Modal.view model.confirmModalVisibility
 

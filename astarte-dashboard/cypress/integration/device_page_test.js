@@ -50,14 +50,14 @@ describe('Device page tests', () => {
           .next()
           .within(() => {
             cy.contains('Device has no aliases');
-            cy.contains('Add new alias').should('exist').and('not.be.disabled');
+            cy.contains('Add alias').should('exist').and('not.be.disabled');
           });
 
         cy.contains('Attributes')
           .next()
           .within(() => {
             cy.contains('Device has no attribute');
-            cy.contains('Add new item').should('exist').and('not.be.disabled');
+            cy.contains('Add attribute').should('exist').and('not.be.disabled');
           });
 
         cy.contains('Groups')
@@ -116,7 +116,7 @@ describe('Device page tests', () => {
             Object.entries(this.deviceDetailed.data.aliases).forEach(([aliasKey, aliasValue]) => {
               cy.contains(aliasKey).next().contains(aliasValue);
             });
-            cy.contains('Add new alias').should('not.be.disabled');
+            cy.contains('Add alias').should('not.be.disabled');
           });
 
         cy.contains('Attributes')
@@ -127,7 +127,7 @@ describe('Device page tests', () => {
                 cy.contains(attributeKey).next().contains(attributeValue);
               },
             );
-            cy.contains('Add new item').should('not.be.disabled');
+            cy.contains('Add attribute').should('not.be.disabled');
           });
 
         cy.contains('Groups')
@@ -275,21 +275,21 @@ describe('Device page tests', () => {
           .contains('Aliases')
           .parents('.card')
           .within(() => {
-            cy.contains('Add new alias').should('exist').and('not.be.disabled').click();
+            cy.contains('Add alias').should('exist').and('not.be.disabled').click();
           });
         cy.get('.modal-header')
-          .contains('Add New Alias')
+          .contains('Add Alias')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add').should('be.disabled');
             cy.get('input#key').paste('alias_key');
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add').should('be.disabled');
             cy.get('input#value').paste('alias_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+            cy.get('button').contains('Add').should('not.be.disabled').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
@@ -372,13 +372,13 @@ describe('Device page tests', () => {
           .parents('.modal')
           .within(() => {
             cy.get('input#value').clear();
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Update').should('be.disabled');
             cy.get('input#value').paste('alias_new_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
@@ -407,21 +407,21 @@ describe('Device page tests', () => {
           .contains('Attributes')
           .parents('.card')
           .within(() => {
-            cy.contains('Add new item').should('exist').and('not.be.disabled').click();
+            cy.contains('Add attribute').should('exist').and('not.be.disabled').click();
           });
         cy.get('.modal-header')
-          .contains('Add New Item')
+          .contains('Add Attribute')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add').should('be.disabled');
             cy.get('input#key').paste('attribute_key');
-            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('button').contains('Add').should('not.be.disabled');
             cy.get('input#value').paste('attribute_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').should('not.be.disabled').click();
+            cy.get('button').contains('Add').should('not.be.disabled').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
@@ -440,7 +440,10 @@ describe('Device page tests', () => {
 
     it('correctly removes a device attribute', function () {
       const device = _.merge({}, this.device);
-      device.data.attributes = { attribute_key1: 'attribute_value1', attribute_key2: 'attribute_value2' };
+      device.data.attributes = {
+        attribute_key1: 'attribute_value1',
+        attribute_key2: 'attribute_value2',
+      };
       const updatedDevice = _.merge({}, this.device);
       updatedDevice.data.attributes = { attribute_key1: 'attribute_value1' };
       cy.intercept('GET', '/appengine/v1/*/devices/*', device);
@@ -458,7 +461,7 @@ describe('Device page tests', () => {
             cy.get('table tbody tr:nth(1) i.fa-eraser').click();
           });
         cy.get('.modal-header')
-          .contains('Delete Item')
+          .contains('Delete Attribute')
           .parents('.modal')
           .within(() => {
             cy.contains('Do you want to delete attribute_key2 from attributes?');
@@ -505,13 +508,13 @@ describe('Device page tests', () => {
           .parents('.modal')
           .within(() => {
             cy.get('input#value').clear();
-            cy.get('button').contains('Confirm').should('not.be.disabled');
+            cy.get('button').contains('Update').should('not.be.disabled');
             cy.get('input#value').paste('attribute_new_value');
             cy.intercept('GET', '/appengine/v1/*/devices/*', updatedDevice);
             cy.intercept('PATCH', '/appengine/v1/*/devices/*', updatedDevice).as(
               'updateDeviceRequest',
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
@@ -550,7 +553,7 @@ describe('Device page tests', () => {
           .contains('Select Existing Group')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add to group').should('be.disabled');
             cy.contains('group3').click();
             cy.dynamicIntercept(
               'getDeviceRequest',
@@ -558,7 +561,7 @@ describe('Device page tests', () => {
               '/appengine/v1/*/devices/*',
               updatedDevice,
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Add to group').click();
           });
         cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
         cy.get('.card-header')
@@ -595,7 +598,7 @@ describe('Device page tests', () => {
           .contains('Select Existing Group')
           .parents('.modal')
           .within(() => {
-            cy.get('button').contains('Confirm').should('be.disabled');
+            cy.get('button').contains('Add to group').should('be.disabled');
             cy.contains(groupName).click();
             cy.dynamicIntercept(
               'getDeviceRequest',
@@ -603,7 +606,7 @@ describe('Device page tests', () => {
               '/appengine/v1/*/devices/*',
               updatedDevice,
             );
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Add to group').click();
           });
         cy.wait(['@updateGroupRequest', '@getDeviceRequest']);
         cy.get('.card-header')

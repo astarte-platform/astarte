@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0-rc.0] - Unreleased
 ### Added
 - Display Astarte Dashboard version in the navigation menu.
+### Changed
+- Improve naming for buttons and modals for better usability.
 
 ## [1.0.0-beta.2] - 2021-03-24
 ### Fixed

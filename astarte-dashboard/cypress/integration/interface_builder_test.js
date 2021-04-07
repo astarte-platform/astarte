@@ -74,7 +74,7 @@ const setupInterfaceEditorFromUI = (iface) => {
     cy.get('#interfaceDocumentation').scrollIntoView().paste(iface.doc);
   }
   (iface.mappings || []).forEach((mapping) => {
-    cy.get('button').contains('Add new mapping...').click();
+    cy.get('button').contains('Add mapping...').click();
     cy.get('.modal.show').within(() => {
       cy.get('#mappingEndpoint').scrollIntoView().clear().paste(mapping.endpoint);
       cy.get('#mappingType').scrollIntoView().select(mapping.type);
@@ -117,7 +117,7 @@ const setupInterfaceEditorFromUI = (iface) => {
           cy.get('#mappingTTL').scrollIntoView().type(`{selectall}${databaseTTL}`);
         }
       }
-      cy.get('button').contains('Confirm').click();
+      cy.get('button').contains('Add').click();
     });
   });
 };
@@ -353,7 +353,7 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceDescription').should('be.enabled').and('be.empty');
         cy.get('label[for="interfaceDocumentation"]').contains('Documentation');
         cy.get('#interfaceDocumentation').should('be.enabled').and('be.empty');
-        cy.get('button').contains('Add new mapping...');
+        cy.get('button').contains('Add mapping...');
 
         // Select Datastream type
         cy.get('label').contains('Datastream').click();
@@ -388,9 +388,9 @@ describe('Interface builder tests', () => {
       it('displays correct Mapping editor depending on interface type', () => {
         // Properties interface
         cy.get('label').contains('Properties').click();
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('label[for="mappingEndpoint"]').contains('Endpoint');
           cy.get('#mappingEndpoint').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingType"]').contains('Type');
@@ -401,16 +401,16 @@ describe('Interface builder tests', () => {
           cy.get('#mappingDescription').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingDocumentation"]').contains('Documentation');
           cy.get('#mappingDocumentation').should('be.enabled').and('be.empty');
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Add').should('be.disabled');
           cy.get('button').contains('Cancel').click();
         });
 
         // Datastream Object interface
         cy.get('label').contains('Datastream').click();
         cy.get('label').contains('Object').click();
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('label[for="mappingEndpoint"]').contains('Endpoint');
           cy.get('#mappingEndpoint').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingType"]').contains('Type');
@@ -419,16 +419,16 @@ describe('Interface builder tests', () => {
           cy.get('#mappingDescription').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingDocumentation"]').contains('Documentation');
           cy.get('#mappingDocumentation').should('be.enabled').and('be.empty');
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Add').should('be.disabled');
           cy.get('button').contains('Cancel').click();
         });
 
         // Datastream Individual interface
         cy.get('label').contains('Datastream').click();
         cy.get('label').contains('Individual').click();
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('label[for="mappingEndpoint"]').contains('Endpoint');
           cy.get('#mappingEndpoint').should('be.enabled').and('be.empty');
           cy.get('label[for="mappingType"]').contains('Type');
@@ -456,46 +456,46 @@ describe('Interface builder tests', () => {
           cy.get('label[for="mappingTTL"]').contains('TTL');
           cy.get('#mappingTTL').should('be.enabled').and('have.value', '60');
 
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Add').should('be.disabled');
           cy.get('button').contains('Cancel').click();
         });
       });
 
-      it('can add, edit and remove mappings', () => {
+      it('can add, edit and delete mappings', () => {
         const mappingEndpoint = '/mapping_endpoint';
 
-        // Add new mapping
-        cy.get('button').contains('Add new mapping...').click();
+        // Add Mapping
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('#mappingEndpoint').paste(mappingEndpoint);
           cy.get('#mappingType').select('double');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
           cy.get('.badge').contains('double');
         });
 
-        // Edit mapping
+        // Edit Mapping
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
           cy.get('button').contains('Edit...').click();
         });
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Edit mapping');
+          cy.get('.modal-header').contains('Edit Mapping');
           cy.get('#mappingType').select('string');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Update').click();
         });
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
           cy.get('.badge').contains('string');
         });
 
-        // Remove mapping
+        // Delete mapping
         cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
           cy.contains(mappingEndpoint);
-          cy.get('button').contains('Remove').click();
+          cy.get('button').contains('Delete').click();
         });
         cy.get(`[data-testid="${mappingEndpoint}"]`).should('not.exist');
       });
@@ -511,11 +511,11 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceMajor').type('{selectall}0');
 
         // Add mapping
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Add new mapping');
+          cy.get('.modal-header').contains('Add Mapping');
           cy.get('#mappingEndpoint').paste('/enpdoint');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
 
         // Modal confirmation for draft version
@@ -575,7 +575,7 @@ describe('Interface builder tests', () => {
       });
 
       it('correctly reports errors in mapping editor for the endpoint field', () => {
-        cy.get('button').contains('Add new mapping...').click();
+        cy.get('button').contains('Add mapping...').click();
         cy.get('.modal.show').within(() => {
           cy.get('#mappingEndpoint').clear();
           cy.get('#mappingEndpoint').should('have.class', 'is-invalid');
@@ -631,7 +631,7 @@ describe('Interface builder tests', () => {
           }).as('installInterfaceRequest');
           setupInterfaceEditorFromUI(interfaceFixture.data);
           cy.get('button').contains('Install interface').click();
-          cy.get('.modal.show button').contains('Confirm').click();
+          cy.get('.modal.show button').contains('Install').click();
           cy.wait('@installInterfaceRequest')
             .its('request.body.data')
             .should('deep.eq', interfaceFixture.data);
@@ -694,12 +694,12 @@ describe('Interface builder tests', () => {
             .within(() => {
               cy.contains(iface.mappings[0].endpoint);
               cy.get('button').contains('Edit...').should('not.exist');
-              cy.get('button').contains('Remove').should('not.exist');
+              cy.get('button').contains('Delete').should('not.exist');
             });
         });
       });
 
-      it('can add, edit and remove new mappings', function () {
+      it('can add, edit and delete new mappings', function () {
         cy.fixture('test.astarte.NoDefaultsInterface').then(({ data: iface }) => {
           cy.intercept(
             'GET',
@@ -711,38 +711,38 @@ describe('Interface builder tests', () => {
 
           const mappingEndpoint = '/new_mapping_endpoint';
 
-          // Add new mapping
-          cy.get('button').contains('Add new mapping...').click();
+          // Add Mapping
+          cy.get('button').contains('Add mapping...').click();
           cy.get('.modal.show').within(() => {
-            cy.get('.modal-header').contains('Add new mapping');
+            cy.get('.modal-header').contains('Add Mapping');
             cy.get('#mappingEndpoint').paste(mappingEndpoint);
             cy.get('#mappingType').select('double');
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Add').click();
           });
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);
             cy.get('.badge').contains('double');
           });
 
-          // Edit mapping
+          // Edit Mapping
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);
             cy.get('button').contains('Edit...').click();
           });
           cy.get('.modal.show').within(() => {
-            cy.get('.modal-header').contains('Edit mapping');
+            cy.get('.modal-header').contains('Edit Mapping');
             cy.get('#mappingType').select('string');
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);
             cy.get('.badge').contains('string');
           });
 
-          // Remove mapping
+          // Delete mapping
           cy.get(`[data-testid="${mappingEndpoint}"]`).within(() => {
             cy.contains(mappingEndpoint);
-            cy.get('button').contains('Remove').click();
+            cy.get('button').contains('Delete').click();
           });
           cy.get(`[data-testid="${mappingEndpoint}"]`).should('not.exist');
         });
@@ -795,12 +795,12 @@ describe('Interface builder tests', () => {
         cy.get('button').contains('Delete interface').scrollIntoView().click();
         cy.get('.modal.show').within(() => {
           cy.contains(
-            `You are going to remove ${draftInterface.interface_name} v${draftInterface.version_major}. This might cause data loss, removed interfaces cannot be restored. Are you sure?`,
+            `You are going to delete ${draftInterface.interface_name} v${draftInterface.version_major}. This might cause data loss, deleted interfaces cannot be restored. Are you sure?`,
           );
           cy.contains(`Please type ${draftInterface.interface_name} to proceed.`);
-          cy.get('button').contains('Confirm').should('be.disabled');
+          cy.get('button').contains('Delete').should('be.disabled');
           cy.get('#confirmInterfaceName').paste(draftInterface.interface_name);
-          cy.get('button').contains('Confirm').should('be.enabled').click();
+          cy.get('button').contains('Delete').should('be.enabled').click();
         });
         cy.wait('@deleteInterfaceRequest');
         cy.location('pathname').should('eq', '/interfaces');
@@ -833,7 +833,7 @@ describe('Interface builder tests', () => {
           cy.get('.modal.show').within(() => {
             cy.get('.modal-header').contains('Confirmation Required');
             cy.get('.modal-body').contains(`Update the interface ${newIface.interface_name}?`);
-            cy.get('button').contains('Confirm').click();
+            cy.get('button').contains('Update').click();
           });
           cy.wait('@saveInterfaceRequest').its('request.body.data').should('deep.eq', newIface);
         });
@@ -881,7 +881,7 @@ describe('Interface builder tests', () => {
 
           // Interface should be saved without adding default values
           cy.get('button').contains('Apply changes').scrollIntoView().click();
-          cy.get('.modal.show button').contains('Confirm').click();
+          cy.get('.modal.show button').contains('Update').click();
           cy.wait('@saveNoDefaultsInterfaceRequest')
             .its('request.body.data')
             .should('deep.eq', newIface);
@@ -928,7 +928,7 @@ describe('Interface builder tests', () => {
 
           // Interface should be saved with default values stripped out
           cy.get('button').contains('Apply changes').scrollIntoView().click();
-          cy.get('.modal.show button').contains('Confirm').click();
+          cy.get('.modal.show button').contains('Update').click();
           cy.wait('@saveSpecifiedDefaultsInterfaceRequest')
             .its('request.body.data')
             .should('not.deep.eq', newIface);

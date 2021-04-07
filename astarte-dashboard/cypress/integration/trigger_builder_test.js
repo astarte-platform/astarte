@@ -629,7 +629,7 @@ describe('Trigger builder tests', () => {
           cy.get('#value').should('be.enabled').and('be.empty');
           cy.get('#key').paste('X-Custom-Header');
           cy.get('#value').paste('Header value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
         cy.get('table tr').contains('Header value');
@@ -649,7 +649,7 @@ describe('Trigger builder tests', () => {
           cy.get('label[for="value"]').contains('Value');
           cy.get('#value').should('be.enabled').and('have.value', '');
           cy.get('#value').paste('Header new value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Update').click();
         });
         cy.get('table tr').contains('Header new value');
         cy.get('#triggerSource')
@@ -664,9 +664,9 @@ describe('Trigger builder tests', () => {
         // Delete http header
         cy.get('table tr').contains('X-Custom-Header').parents('tr').get('i.fa-eraser').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Remove Header');
-          cy.get('.modal-body').contains('Remove custom header "X-Custom-Header"?');
-          cy.get('button').contains('Remove header').click();
+          cy.get('.modal-header').contains('Delete Header');
+          cy.get('.modal-body').contains('Delete custom header "X-Custom-Header"?');
+          cy.get('button').contains('Delete').click();
         });
         cy.contains('X-Custom-Header').should('not.be.visible');
         cy.get('#triggerSource')
@@ -690,7 +690,7 @@ describe('Trigger builder tests', () => {
           cy.get('#value').should('be.enabled').and('be.empty');
           cy.get('#key').paste('X-Custom-Header');
           cy.get('#value').paste('Header value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Add').click();
         });
         cy.get('table tr').contains('X-Custom-Header');
         cy.get('table tr').contains('Header value');
@@ -710,7 +710,7 @@ describe('Trigger builder tests', () => {
           cy.get('label[for="value"]').contains('Value');
           cy.get('#value').should('be.enabled').and('have.value', '');
           cy.get('#value').paste('Header new value');
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Update').click();
         });
         cy.get('table tr').contains('Header new value');
         cy.get('#triggerSource')
@@ -725,9 +725,9 @@ describe('Trigger builder tests', () => {
         // Delete amqp header
         cy.get('table tr').contains('X-Custom-Header').parents('tr').get('i.fa-eraser').click();
         cy.get('.modal.show').within(() => {
-          cy.get('.modal-header').contains('Remove Header');
-          cy.get('.modal-body').contains('Remove static header "X-Custom-Header"?');
-          cy.get('button').contains('Remove header').click();
+          cy.get('.modal-header').contains('Delete Header');
+          cy.get('.modal-body').contains('Delete static header "X-Custom-Header"?');
+          cy.get('button').contains('Delete').click();
         });
         cy.contains('X-Custom-Header').should('not.be.visible');
         cy.get('#triggerSource')
@@ -802,11 +802,11 @@ describe('Trigger builder tests', () => {
         cy.get('.modal.show').within(() => {
           cy.get('.modal-header').contains('Confirmation Required');
           cy.get('.modal-body').contains(
-            `You are going to remove ${this.test_trigger.data.name}. This might cause data loss, removed triggers cannot be restored. Are you sure?`,
+            `You are going to delete ${this.test_trigger.data.name}. This might cause data loss, deleted triggers cannot be restored. Are you sure?`,
           );
           cy.get('.modal-body').contains(`Please type ${this.test_trigger.data.name} to proceed.`);
           cy.get('#confirmTriggerName').paste(this.test_trigger.data.name);
-          cy.get('button').contains('Confirm').click();
+          cy.get('button').contains('Delete').click();
         });
         cy.wait('@deleteTriggerRequest');
         cy.location('pathname').should('eq', '/triggers');

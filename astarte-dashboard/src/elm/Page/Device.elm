@@ -259,7 +259,7 @@ update session msg model =
         OpenNewAliasPopup ->
             let
                 modal =
-                    NewAlias (AskKeyValue.init "Add New Alias" "Tag" "Alias" AskKeyValue.Trimmed True) UpdateKeyValueModal
+                    NewAlias (AskKeyValue.init "Add Alias" "Tag" "Alias" AskKeyValue.Trimmed True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -269,7 +269,7 @@ update session msg model =
         OpenNewAttributePopup ->
             let
                 modal =
-                    NewAttribute (AskKeyValue.init "Add New Item" "Key" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewAttribute (AskKeyValue.init "Add Attribute" "Key" "Value" AskKeyValue.AnyValue True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -480,7 +480,7 @@ update session msg model =
                     "Edit \"" ++ key ++ "\""
 
                 modal =
-                    EditAliasValue (AskSingleValue.init title "Alias" AskSingleValue.Trimmed True) UpdateSingleValueModal key
+                    EditAliasValue (AskSingleValue.init title "Alias" AskSingleValue.Trimmed True "Update") UpdateSingleValueModal key
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -493,7 +493,7 @@ update session msg model =
                     "Edit \"" ++ key ++ "\""
 
                 modal =
-                    EditAttributeValue (AskSingleValue.init title "Value" AskSingleValue.AnyValue True) UpdateSingleValueModal key
+                    EditAttributeValue (AskSingleValue.init title "Value" AskSingleValue.AnyValue True "Update") UpdateSingleValueModal key
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -503,7 +503,7 @@ update session msg model =
         RemoveAttribute key _ ->
             let
                 title =
-                    "Delete Item"
+                    "Delete Attribute"
 
                 body =
                     Html.text ("Do you want to delete " ++ key ++ " from attributes?")
@@ -1229,7 +1229,7 @@ deviceAliasesCard device width =
             [ Button.primary
             , Button.onClick OpenNewAliasPopup
             ]
-            [ Html.text "Add new alias" ]
+            [ Html.text "Add alias" ]
         ]
 
 
@@ -1242,7 +1242,7 @@ deviceAttributesCard device width =
             [ Button.primary
             , Button.onClick OpenNewAttributePopup
             ]
-            [ Html.text "Add new item" ]
+            [ Html.text "Add attribute" ]
         ]
 
 
@@ -1548,7 +1548,7 @@ renderErrorInfo errorEvent =
     in
     [ Html.span [] [ Html.text eventMsg ]
     , externalLinkAnchor
-        |> Maybe.map (docLink "https://docs.astarte-platform.org/snapshot/045-device_errors.html")
+        |> Maybe.map (docLink "https://docs.astarte-platform.org/1.0/045-device_errors.html")
         |> Maybe.withDefault (Html.text "")
     ]
 

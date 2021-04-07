@@ -1025,7 +1025,7 @@ update session msg model =
         OpenNewHttpHeaderPopup ->
             let
                 modal =
-                    NewCustomHeader (AskKeyValue.init "Add Custom HTTP Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewCustomHeader (AskKeyValue.init "Add Custom HTTP Header" "Header" "Value" AskKeyValue.AnyValue True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -1040,6 +1040,7 @@ update session msg model =
                         "Value"
                         AskSingleValue.AnyValue
                         True
+                        "Update"
 
                 modal =
                     EditCustomHeader modalModel UpdateSingleValueModal header
@@ -1053,9 +1054,9 @@ update session msg model =
             let
                 modalModel =
                     ConfirmModal.init
-                        "Remove Header"
-                        (Html.text ("Remove custom header \"" ++ header ++ "\"?"))
-                        (Just "Remove header")
+                        "Delete Header"
+                        (Html.text ("Delete custom header \"" ++ header ++ "\"?"))
+                        (Just "Delete")
                         (Just ConfirmModal.Danger)
                         True
                         True
@@ -1071,7 +1072,7 @@ update session msg model =
         OpenNewAmqpHeaderPopup ->
             let
                 modal =
-                    NewAmqpStaticHeader (AskKeyValue.init "Add Custom AMQP Header" "Header" "Value" AskKeyValue.AnyValue True) UpdateKeyValueModal
+                    NewAmqpStaticHeader (AskKeyValue.init "Add Custom AMQP Header" "Header" "Value" AskKeyValue.AnyValue True "Add") UpdateKeyValueModal
             in
             ( { model | currentModal = Just modal }
             , Cmd.none
@@ -1086,6 +1087,7 @@ update session msg model =
                         "Value"
                         AskSingleValue.AnyValue
                         True
+                        "Update"
 
                 modal =
                     EditAmqpStaticHeader modalModel UpdateSingleValueModal header
@@ -1099,9 +1101,9 @@ update session msg model =
             let
                 modalModel =
                     ConfirmModal.init
-                        "Remove Header"
-                        (Html.text ("Remove static header \"" ++ header ++ "\"?"))
-                        (Just "Remove header")
+                        "Delete Header"
+                        (Html.text ("Delete static header \"" ++ header ++ "\"?"))
+                        (Just "Delete")
                         (Just ConfirmModal.Danger)
                         True
                         True
@@ -2078,9 +2080,9 @@ renderDeleteTriggerModal triggerName confirmTriggerName =
             [ Form.form [ onSubmit (CloseDeleteModal ModalOk) ]
                 [ Form.row []
                     [ Form.col [ Col.sm12 ]
-                        [ text "You are going to remove "
+                        [ text "You are going to delete "
                         , b [] [ text <| triggerName ++ ". " ]
-                        , text "This might cause data loss, removed triggers cannot be restored. Are you sure?"
+                        , text "This might cause data loss, deleted triggers cannot be restored. Are you sure?"
                         ]
                     ]
                 , Form.row []
@@ -2109,11 +2111,11 @@ renderDeleteTriggerModal triggerName confirmTriggerName =
                 ]
                 [ text "Cancel" ]
             , Button.button
-                [ Button.primary
+                [ Button.danger
                 , Button.disabled <| triggerName /= confirmTriggerName
                 , Button.onClick <| CloseDeleteModal ModalOk
                 ]
-                [ text "Confirm" ]
+                [ text "Delete" ]
             ]
         |> Modal.view Modal.shown
 
