@@ -75,7 +75,7 @@ const AddToGroupModal = ({
           {isAddingToGroup && (
             <Spinner className="mr-2" size="sm" animation="border" role="status" />
           )}
-          Confirm
+          Add to group
         </Button>
       </Modal.Footer>
     </Modal>

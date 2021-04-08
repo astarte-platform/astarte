@@ -112,7 +112,7 @@ export default (): React.ReactElement => {
       {showDeleteModal && (
         <ConfirmModal
           title="Warning"
-          confirmLabel="Remove"
+          confirmLabel="Delete"
           confirmVariant="danger"
           onCancel={() => setShowDeleteModal(false)}
           onConfirm={deletePipeline}

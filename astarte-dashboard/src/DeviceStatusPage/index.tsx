@@ -30,7 +30,7 @@ import { useAstarte } from '../AstarteManager';
 
 import DeviceInfoCard from './DeviceInfoCard';
 import AliasesCard from './AliasesCard';
-import MetadataCard from './MetadataCard';
+import AttributesCard from './AttributesCard';
 import GroupsCard from './GroupsCard';
 import IntrospectionCard from './IntrospectionCard';
 import PreviousInterfacesCard from './PreviousInterfacesCard';
@@ -41,8 +41,8 @@ import DeviceLiveEventsCard from './DeviceLiveEventsCard';
 import AddToGroupModal from './AddToGroupModal';
 import NewAliasModal from './NewAliasModal';
 import EditAliasModal from './EditAliasModal';
-import NewMetadataModal from './NewMetadataModal';
-import EditMetadataModal from './EditMetadataModal';
+import NewAttributeModal from './NewAttributeModal';
+import EditAttributeModal from './EditAttributeModal';
 import ConfirmModal from '../components/modals/Confirm';
 
 type WipeCredentialsModalT = {
@@ -73,22 +73,22 @@ type DeleteAliasModalT = {
   aliasValue: string;
 };
 
-type NewMetadataModalT = {
-  kind: 'new_metadata_modal';
-  isAddingMetadata: boolean;
+type NewAttributeModalT = {
+  kind: 'new_attribute_modal';
+  isAddingAttribute: boolean;
 };
 
-type EditMetadataModalT = {
-  kind: 'edit_metadata_modal';
-  isUpdatingMetadata: boolean;
-  targetMetadata: string;
+type EditAttributeModalT = {
+  kind: 'edit_attribute_modal';
+  isUpdatingAttribute: boolean;
+  targetAttribute: string;
 };
 
-type DeleteMetadataModalT = {
-  kind: 'delete_metadata_modal';
-  isDeletingMetadata: boolean;
-  metadataKey: string;
-  metadataValue: string;
+type DeleteAttributeModalT = {
+  kind: 'delete_attribute_modal';
+  isDeletingAttribute: boolean;
+  attributeKey: string;
+  attributeValue: string;
 };
 
 type ReregisterDeviceModalT = {
@@ -115,16 +115,16 @@ function isDeleteAliasModal(modal: PageModal): modal is DeleteAliasModalT {
   return modal.kind === 'delete_alias_modal';
 }
 
-function isNewMetadataModal(modal: PageModal): modal is NewMetadataModalT {
-  return modal.kind === 'new_metadata_modal';
+function isNewAttributeModal(modal: PageModal): modal is NewAttributeModalT {
+  return modal.kind === 'new_attribute_modal';
 }
 
-function isEditMetadataModal(modal: PageModal): modal is EditMetadataModalT {
-  return modal.kind === 'edit_metadata_modal';
+function isEditAttributeModal(modal: PageModal): modal is EditAttributeModalT {
+  return modal.kind === 'edit_attribute_modal';
 }
 
-function isDeleteMetadataModal(modal: PageModal): modal is DeleteMetadataModalT {
-  return modal.kind === 'delete_metadata_modal';
+function isDeleteAttributeModal(modal: PageModal): modal is DeleteAttributeModalT {
+  return modal.kind === 'delete_attribute_modal';
 }
 
 function isDeviceReregistrationModal(modal: PageModal): modal is ReregisterDeviceModalT {
@@ -137,9 +137,9 @@ type PageModal =
   | NewAliasModalT
   | EditAliasModalT
   | DeleteAliasModalT
-  | NewMetadataModalT
-  | EditMetadataModalT
-  | DeleteMetadataModalT
+  | NewAttributeModalT
+  | EditAttributeModalT
+  | DeleteAttributeModalT
   | ReregisterDeviceModalT;
 
 export default (): React.ReactElement => {
@@ -241,32 +241,32 @@ export default (): React.ReactElement => {
     [astarte.client, deviceId],
   );
 
-  const handleMetadataUpdate = useCallback(
+  const handleAttributeUpdate = useCallback(
     (key, value) => {
       astarte.client
-        .insertDeviceMetadata(deviceId, key, value)
+        .insertDeviceAttribute(deviceId, key, value)
         .then(() => {
           dismissModal();
           deviceFetcher.refresh();
         })
         .catch(() => {
-          devicePageAlers.showError(`Couldn't update the device metadata`);
+          devicePageAlers.showError(`Couldn't update the device attribute`);
           dismissModal();
         });
     },
     [astarte.client, deviceId],
   );
 
-  const handleMetadataDeletion = useCallback(
+  const handleAttributeDeletion = useCallback(
     (key) => {
       astarte.client
-        .deleteDeviceMetadata(deviceId, key)
+        .deleteDeviceAttribute(deviceId, key)
         .then(() => {
           dismissModal();
           deviceFetcher.refresh();
         })
         .catch(() => {
-          devicePageAlers.showError(`Couldn't delete the device metadata`);
+          devicePageAlers.showError(`Couldn't delete the device attribute`);
           dismissModal();
         });
     },
@@ -338,27 +338,27 @@ export default (): React.ReactElement => {
                   })
                 }
               />
-              <MetadataCard
+              <AttributesCard
                 device={device}
-                onNewMetadataClick={() =>
+                onNewAttributeClick={() =>
                   setActiveModal({
-                    kind: 'new_metadata_modal',
-                    isAddingMetadata: false,
+                    kind: 'new_attribute_modal',
+                    isAddingAttribute: false,
                   })
                 }
-                onEditMetadataClick={(metadata) =>
+                onEditAttributeClick={(attribute) =>
                   setActiveModal({
-                    kind: 'edit_metadata_modal',
-                    targetMetadata: metadata,
-                    isUpdatingMetadata: false,
+                    kind: 'edit_attribute_modal',
+                    targetAttribute: attribute,
+                    isUpdatingAttribute: false,
                   })
                 }
-                onRemoveMetadataClick={({ key, value }) =>
+                onRemoveAttributeClick={({ key, value }) =>
                   setActiveModal({
-                    kind: 'delete_metadata_modal',
-                    metadataKey: key,
-                    metadataValue: value,
-                    isDeletingMetadata: false,
+                    kind: 'delete_attribute_modal',
+                    attributeKey: key,
+                    attributeValue: value,
+                    isDeletingAttribute: false,
                   })
                 }
               />
@@ -448,40 +448,40 @@ export default (): React.ReactElement => {
           <p>{`Delete alias "${activeModal.aliasValue}"?`}</p>
         </ConfirmModal>
       )}
-      {activeModal && isNewMetadataModal(activeModal) && (
-        <NewMetadataModal
+      {activeModal && isNewAttributeModal(activeModal) && (
+        <NewAttributeModal
           onCancel={dismissModal}
           onConfirm={({ key, value }) => {
-            setActiveModal({ ...activeModal, isAddingMetadata: true });
-            handleMetadataUpdate(key, value);
+            setActiveModal({ ...activeModal, isAddingAttribute: true });
+            handleAttributeUpdate(key, value);
           }}
-          isAddingMetadata={activeModal.isAddingMetadata}
+          isAddingAttribute={activeModal.isAddingAttribute}
         />
       )}
-      {activeModal && isEditMetadataModal(activeModal) && (
-        <EditMetadataModal
+      {activeModal && isEditAttributeModal(activeModal) && (
+        <EditAttributeModal
           onCancel={dismissModal}
           onConfirm={({ value }) => {
-            setActiveModal({ ...activeModal, isUpdatingMetadata: true });
-            handleMetadataUpdate(activeModal.targetMetadata, value);
+            setActiveModal({ ...activeModal, isUpdatingAttribute: true });
+            handleAttributeUpdate(activeModal.targetAttribute, value);
           }}
-          targetMetadata={activeModal.targetMetadata}
-          isUpdatingMetadata={activeModal.isUpdatingMetadata}
+          targetAttribute={activeModal.targetAttribute}
+          isUpdatingAttribute={activeModal.isUpdatingAttribute}
         />
       )}
-      {activeModal && isDeleteMetadataModal(activeModal) && (
+      {activeModal && isDeleteAttributeModal(activeModal) && (
         <ConfirmModal
-          title="Delete Item"
+          title="Delete Attribute"
           confirmLabel="Delete"
           confirmVariant="danger"
           onCancel={dismissModal}
           onConfirm={() => {
-            setActiveModal({ ...activeModal, isDeletingMetadata: true });
-            handleMetadataDeletion(activeModal.metadataKey);
+            setActiveModal({ ...activeModal, isDeletingAttribute: true });
+            handleAttributeDeletion(activeModal.attributeKey);
           }}
-          isConfirming={activeModal.isDeletingMetadata}
+          isConfirming={activeModal.isDeletingAttribute}
         >
-          <p>{`Do you want to delete ${activeModal.metadataKey} from metadata?`}</p>
+          <p>{`Do you want to delete ${activeModal.attributeKey} from attributes?`}</p>
         </ConfirmModal>
       )}
       {activeModal && isDeviceReregistrationModal(activeModal) && (

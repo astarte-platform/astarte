@@ -20,26 +20,26 @@ import React from 'react';
 
 import ConfirmModal from '../modals/Confirm';
 
-interface RemoveAmqpHeaderModalProps {
+interface DeleteAmqpHeaderModalProps {
   targetHeader: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-const RemoveAmqpHeaderModal = ({
+const DeleteAmqpHeaderModal = ({
   targetHeader,
   onCancel,
   onConfirm,
-}: RemoveAmqpHeaderModalProps): React.ReactElement => (
+}: DeleteAmqpHeaderModalProps): React.ReactElement => (
   <ConfirmModal
-    title="Remove Header"
-    confirmLabel="Remove header"
+    title="Delete Header"
+    confirmLabel="Delete"
     confirmVariant="danger"
     onCancel={onCancel}
     onConfirm={onConfirm}
   >
-    <p>Remove static header &quot;{targetHeader}&quot;?</p>
+    <p>Delete static header &quot;{targetHeader}&quot;?</p>
   </ConfirmModal>
 );
 
-export default RemoveAmqpHeaderModal;
+export default DeleteAmqpHeaderModal;

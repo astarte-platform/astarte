@@ -12,9 +12,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Major rework for the Interface Editor.
 - Major rework for the Trigger Editor.
 
-## [1.0.0-beta.2] - Unreleased
+## [1.0.0-rc.0] - Unreleased
+### Added
+- Display Astarte Dashboard version in the navigation menu.
+### Changed
+- Improve naming for buttons and modals for better usability.
+
+## [1.0.0-beta.2] - 2021-03-24
 ### Fixed
 - Hide login image column on small screen devices.
+### Changed
+- Device metadata are called device attributes now. Astarte >= 1.0.0-beta.2 is required.
 
 ## [1.0.0-beta.1] - 2021-02-15
 ### Added

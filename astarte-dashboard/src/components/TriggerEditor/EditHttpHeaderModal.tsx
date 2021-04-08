@@ -45,6 +45,7 @@ const EditHttpHeaderModal = ({
   <FormModal
     title={`Edit Value for Header "${targetHeader}"`}
     schema={editHttpHeaderFormSchema}
+    confirmLabel="Update"
     onCancel={onCancel}
     onConfirm={onConfirm}
   />

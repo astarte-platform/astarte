@@ -388,19 +388,19 @@ class AstarteClient {
     });
   }
 
-  async insertDeviceMetadata(
+  async insertDeviceAttribute(
     deviceId: AstarteDevice['id'],
-    metadataKey: string,
-    metadataValue: string,
+    attributeKey: string,
+    attributeValue: string,
   ): Promise<void> {
     await this.$patch(this.apiConfig.deviceInfo({ deviceId, ...this.config }), {
-      metadata: { [metadataKey]: metadataValue },
+      attributes: { [attributeKey]: attributeValue },
     });
   }
 
-  async deleteDeviceMetadata(deviceId: AstarteDevice['id'], metadataKey: string): Promise<void> {
+  async deleteDeviceAttribute(deviceId: AstarteDevice['id'], attributeKey: string): Promise<void> {
     await this.$patch(this.apiConfig.deviceInfo({ deviceId, ...this.config }), {
-      metadata: { [metadataKey]: null },
+      attributes: { [attributeKey]: null },
     });
   }
 

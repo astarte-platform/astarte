@@ -53,17 +53,18 @@ const DeleteModal = ({
     <ConfirmModal
       title="Confirmation Required"
       confirmVariant="danger"
+      confirmLabel="Delete"
       onCancel={onCancel}
       onConfirm={onConfirm}
       isConfirming={isDeletingInterface}
       disabled={!canDelete}
     >
       <p>
-        You are going to remove&nbsp;
+        You are going to delete&nbsp;
         <b>
           {interfaceName} v{interfaceMajor}
         </b>
-        . This might cause data loss, removed interfaces cannot be restored. Are you sure?
+        . This might cause data loss, deleted interfaces cannot be restored. Are you sure?
       </p>
       <p>
         Please type <b>{interfaceName}</b> to proceed.
@@ -240,6 +241,7 @@ export default (): React.ReactElement => {
               {showUpdateModal && (
                 <ConfirmModal
                   title="Confirmation Required"
+                  confirmLabel="Update"
                   onCancel={hideConfirmUpdateModal}
                   onConfirm={handleConfirmUpdateInterface}
                   isConfirming={isUpdatingInterface}

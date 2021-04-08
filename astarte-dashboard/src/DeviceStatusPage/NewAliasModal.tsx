@@ -52,8 +52,9 @@ const NewAliasModal = ({
   isAddingAlias,
 }: NewAliasModalProps): React.ReactElement => (
   <FormModal
-    title="Add New Alias"
+    title="Add Alias"
     schema={aliasFormSchema}
+    confirmLabel="Add"
     onCancel={onCancel}
     onConfirm={onConfirm}
     isConfirming={isAddingAlias}

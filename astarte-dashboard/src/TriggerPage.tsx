@@ -45,14 +45,15 @@ const DeleteModal = ({ triggerName, onCancel, onConfirm, isDeletingTrigger }: De
     <ConfirmModal
       title="Confirmation Required"
       confirmVariant="danger"
+      confirmLabel="Delete"
       onCancel={onCancel}
       onConfirm={onConfirm}
       isConfirming={isDeletingTrigger}
       disabled={!canDelete}
     >
       <p>
-        You are going to remove&nbsp;
-        <b>{triggerName}</b>. This might cause data loss, removed triggers cannot be restored. Are
+        You are going to delete&nbsp;
+        <b>{triggerName}</b>. This might cause data loss, deleted triggers cannot be restored. Are
         you sure?
       </p>
       <p>

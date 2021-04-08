@@ -20,37 +20,38 @@ import React from 'react';
 import type { JSONSchema7 } from 'json-schema';
 import FormModal from '../components/modals/Form';
 
-const metadataValueFormSchema: JSONSchema7 = {
+const attributeValueFormSchema: JSONSchema7 = {
   type: 'object',
   required: ['value'],
   properties: {
     value: {
-      title: 'Metadata',
+      title: 'Attribute',
       type: 'string',
     },
   },
 };
 
-interface EditMetadataModalProps {
+interface EditAttributeModalProps {
   onCancel: () => void;
   onConfirm: ({ value }: { value: string }) => void;
-  targetMetadata: string;
-  isUpdatingMetadata: boolean;
+  targetAttribute: string;
+  isUpdatingAttribute: boolean;
 }
 
-const EditMetadataModal = ({
+const EditAttributeModal = ({
   onCancel,
   onConfirm,
-  targetMetadata,
-  isUpdatingMetadata,
-}: EditMetadataModalProps): React.ReactElement => (
+  targetAttribute,
+  isUpdatingAttribute,
+}: EditAttributeModalProps): React.ReactElement => (
   <FormModal
-    title={`Edit "${targetMetadata}"`}
-    schema={metadataValueFormSchema}
+    title={`Edit "${targetAttribute}"`}
+    schema={attributeValueFormSchema}
+    confirmLabel="Update"
     onCancel={onCancel}
     onConfirm={onConfirm}
-    isConfirming={isUpdatingMetadata}
+    isConfirming={isUpdatingAttribute}
   />
 );
 
-export default EditMetadataModal;
+export default EditAttributeModal;

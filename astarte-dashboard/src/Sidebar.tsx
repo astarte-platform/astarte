@@ -43,6 +43,16 @@ const SidebarApiStatus = ({ healthy, realm }: SidebarApiStatusProps) => (
   </NavItem>
 );
 
+interface SidebarAppInfoProps {
+  appVersion: string;
+}
+
+const SidebarAppInfo = ({ appVersion }: SidebarAppInfoProps) => (
+  <NavItem className="dashboard-version">
+    <p>{`Astarte Dashboard v${appVersion}`}</p>
+  </NavItem>
+);
+
 const SidebarBrand = () => (
   <Link to="/" className="nav-brand mb-3">
     <img alt="Astarte logo" src="/static/img/logo.svg" className="brand-logo" />
@@ -88,6 +98,7 @@ const Sidebar = ({ children }: Props): React.ReactElement => (
 );
 
 Sidebar.ApiStatus = SidebarApiStatus;
+Sidebar.AppInfo = SidebarAppInfo;
 Sidebar.Brand = SidebarBrand;
 Sidebar.Item = SidebarItem;
 Sidebar.Separator = SidebarSeparator;

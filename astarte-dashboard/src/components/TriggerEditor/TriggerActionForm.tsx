@@ -41,8 +41,8 @@ interface TriggerActionFormProps {
   onAddHttpHeader: () => void;
   onEditAmqpHeader: (header: string) => void;
   onEditHttpHeader: (header: string) => void;
-  onRemoveAmqpHeader: (header: string) => void;
-  onRemoveHttpHeader: (header: string) => void;
+  onDeleteAmqpHeader: (header: string) => void;
+  onDeleteHttpHeader: (header: string) => void;
   onChange: (action: AstarteTrigger['action']) => void;
   realm?: string | null;
   validationErrors?: { [key: string]: string };
@@ -55,8 +55,8 @@ const TriggerActionForm = ({
   onAddHttpHeader,
   onEditAmqpHeader,
   onEditHttpHeader,
-  onRemoveAmqpHeader,
-  onRemoveHttpHeader,
+  onDeleteAmqpHeader,
+  onDeleteHttpHeader,
   onChange,
   realm,
   validationErrors = {},
@@ -325,7 +325,7 @@ const TriggerActionForm = ({
                                 onClick={() => onEditHttpHeader(headerName)}
                                 className="color-grey mr-2"
                               />
-                              <Icon icon="erase" onClick={() => onRemoveHttpHeader(headerName)} />
+                              <Icon icon="erase" onClick={() => onDeleteHttpHeader(headerName)} />
                             </td>
                           )}
                         </tr>
@@ -479,7 +479,7 @@ const TriggerActionForm = ({
                                 onClick={() => onEditAmqpHeader(headerName)}
                                 className="color-grey mr-2"
                               />
-                              <Icon icon="erase" onClick={() => onRemoveAmqpHeader(headerName)} />
+                              <Icon icon="erase" onClick={() => onDeleteAmqpHeader(headerName)} />
                             </td>
                           )}
                         </tr>

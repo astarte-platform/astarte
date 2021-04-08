@@ -45,6 +45,7 @@ const EditAmqpHeaderModal = ({
   <FormModal
     title={`Edit Value for Header "${targetHeader}"`}
     schema={editAmqpHeaderFormSchema}
+    confirmLabel="Update"
     onCancel={onCancel}
     onConfirm={onConfirm}
   />

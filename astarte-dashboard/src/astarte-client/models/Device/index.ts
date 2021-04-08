@@ -33,7 +33,7 @@ export interface AstarteDeviceObject {
 
   aliases: Map<string, string>;
 
-  metadata: Map<string, string>;
+  attributes: Map<string, string>;
 
   isConnected: boolean;
 
@@ -100,11 +100,11 @@ const astarteDeviceObjectSchema: yup.ObjectSchema<AstarteDeviceObject> = yup
         '${path} must be a Map of string -> string',
         generateMapValidation(yup.string().required(), yup.string().required()),
       ),
-    metadata: yup
-      .mixed<AstarteDeviceObject['metadata']>()
+    attributes: yup
+      .mixed<AstarteDeviceObject['attributes']>()
       .required()
       .test(
-        'metadata-values',
+        'attributes-values',
         '${path} must be a Map of string -> string',
         generateMapValidation(yup.string().required(), yup.string().required()),
       ),
@@ -138,7 +138,7 @@ export class AstarteDevice {
 
   aliases: Map<string, string>;
 
-  metadata: Map<string, string>;
+  attributes: Map<string, string>;
 
   isConnected: boolean;
 
@@ -170,7 +170,7 @@ export class AstarteDevice {
     const validatedObj = astarteDeviceObjectSchema.validateSync(obj);
     this.id = validatedObj.id;
     this.aliases = validatedObj.aliases;
-    this.metadata = validatedObj.metadata;
+    this.attributes = validatedObj.attributes;
     this.isConnected = validatedObj.isConnected;
     this.introspection = validatedObj.introspection;
     this.totalReceivedMessages = validatedObj.totalReceivedMessages;

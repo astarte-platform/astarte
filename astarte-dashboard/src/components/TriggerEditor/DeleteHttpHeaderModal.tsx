@@ -20,26 +20,26 @@ import React from 'react';
 
 import ConfirmModal from '../modals/Confirm';
 
-interface RemoveHttpHeaderModalProps {
+interface DeleteHttpHeaderModalProps {
   targetHeader: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-const RemoveHttpHeaderModal = ({
+const DeleteHttpHeaderModal = ({
   targetHeader,
   onCancel,
   onConfirm,
-}: RemoveHttpHeaderModalProps): React.ReactElement => (
+}: DeleteHttpHeaderModalProps): React.ReactElement => (
   <ConfirmModal
-    title="Remove Header"
-    confirmLabel="Remove header"
+    title="Delete Header"
+    confirmLabel="Delete"
     confirmVariant="danger"
     onCancel={onCancel}
     onConfirm={onConfirm}
   >
-    <p>Remove custom header &quot;{targetHeader}&quot;?</p>
+    <p>Delete custom header &quot;{targetHeader}&quot;?</p>
   </ConfirmModal>
 );
 
-export default RemoveHttpHeaderModal;
+export default DeleteHttpHeaderModal;
