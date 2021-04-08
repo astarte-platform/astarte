@@ -17,7 +17,7 @@
 */
 
 import axios from 'axios';
-import { Socket as PhoenixSocket } from 'phoenix';
+import { Channel, Socket } from 'phoenix';
 import _ from 'lodash';
 
 import {
@@ -46,6 +46,7 @@ import type {
   AstartePropertyData,
   AstarteDatastreamIndividualData,
   AstarteDatastreamObjectData,
+  AstarteTransientTriggerDTO,
 } from './types';
 import { AstarteDeviceEvent, decodeEvent } from './types/events';
 
@@ -56,8 +57,6 @@ export interface AstarteInterfaceDescriptor {
   major: number;
   minor: number;
 }
-type Channel = any;
-type Trigger = any;
 
 type InterfaceOrInterfaceNameParams =
   | { interfaceName: AstarteInterface['name'] }
@@ -65,21 +64,21 @@ type InterfaceOrInterfaceNameParams =
 
 // Wrap phoenix lib calls in promise for async handling
 async function openNewSocketConnection(
-  connectionParams: any,
-  onErrorHanlder: any,
-  onCloseHandler: any,
-): Promise<PhoenixSocket> {
+  connectionParams: { socketUrl: string; realm: string; token: string },
+  onErrorHanlder: () => void,
+  onCloseHandler: () => void,
+): Promise<Socket> {
   const { socketUrl, realm, token } = connectionParams;
 
   return new Promise((resolve) => {
-    const phoenixSocket = new PhoenixSocket(socketUrl, {
+    const phoenixSocket = new Socket(socketUrl, {
       params: {
         realm,
         token,
       },
     });
-    phoenixSocket.onError((e: any) => onErrorHanlder(e));
-    phoenixSocket.onClose((e: any) => onCloseHandler(e));
+    phoenixSocket.onError(onErrorHanlder);
+    phoenixSocket.onClose(onCloseHandler);
     phoenixSocket.onOpen(() => {
       resolve(phoenixSocket);
     });
@@ -87,7 +86,7 @@ async function openNewSocketConnection(
   });
 }
 
-async function joinChannel(phoenixSocket: PhoenixSocket, channelString: string): Promise<Channel> {
+async function joinChannel(phoenixSocket: Socket, channelString: string): Promise<Channel> {
   return new Promise((resolve, reject) => {
     const channel = phoenixSocket.channel(channelString, {});
     channel
@@ -95,7 +94,7 @@ async function joinChannel(phoenixSocket: PhoenixSocket, channelString: string):
       .receive('ok', () => {
         resolve(channel);
       })
-      .receive('error', (err: any) => {
+      .receive('error', (err: unknown) => {
         reject(err);
       });
   });
@@ -108,42 +107,39 @@ async function leaveChannel(channel: Channel): Promise<void> {
       .receive('ok', () => {
         resolve();
       })
-      .receive('error', (err: any) => {
+      .receive('error', (err: unknown) => {
         reject(err);
       });
   });
 }
 
-async function registerTrigger(channel: Channel, triggerPayload: Trigger): Promise<void> {
+async function registerTrigger(
+  channel: Channel,
+  triggerPayload: AstarteTransientTriggerDTO,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     channel
       .push('watch', triggerPayload)
       .receive('ok', () => {
         resolve();
       })
-      .receive('error', (err: any) => {
+      .receive('error', (err: unknown) => {
         reject(err);
       });
   });
 }
 
-function astarteAPIurl(strings: any, baseUrl: any, ...keys: any) {
-  return (...values: any) => {
-    const dict = values[values.length - 1] || {};
-    const result = [strings[1]];
-    keys.forEach((key: any, i: any) => {
-      const value = Number.isInteger(key) ? values[key] : dict[key];
-      result.push(value, strings[i + 2]);
-    });
-    return new URL(result.join(''), baseUrl);
+function astarteAPIurl(strings: TemplateStringsArray, baseUrl: string, ...keys: string[]) {
+  return (params: Record<string, unknown> = {}) => {
+    const values = keys.map((key) => params[key]);
+    const endpointUrl = _.flatten(_.zip(strings.slice(1), values)).join('');
+    return new URL(endpointUrl, baseUrl).toString();
   };
 }
 
 interface AstarteClientConfig {
   appEngineApiUrl: string;
   flowApiUrl: string;
-  onSocketClose?: () => any;
-  onSocketError?: () => any;
   pairingApiUrl: string;
   realm?: string;
   realmManagementApiUrl: string;
@@ -153,21 +149,17 @@ interface AstarteClientConfig {
 class AstarteClient {
   private config: { realm: string };
 
-  private apiConfig: any;
+  private apiConfig: Record<string, (params?: Record<string, unknown>) => string>;
 
   private joinedChannels: {
     [roomName: string]: Channel;
   };
 
   private listeners: {
-    [eventName: string]: Array<() => any>;
+    [eventName: string]: Array<() => void>;
   };
 
-  private onSocketClose?: () => any;
-
-  private onSocketError?: () => any;
-
-  private phoenixSocket: PhoenixSocket | null;
+  private phoenixSocket: Socket | null;
 
   private token: string;
 
@@ -177,9 +169,6 @@ class AstarteClient {
     };
 
     this.token = config.token || '';
-
-    this.onSocketClose = config.onSocketClose;
-    this.onSocketError = config.onSocketError;
 
     this.phoenixSocket = null;
     this.joinedChannels = {};
@@ -339,9 +328,12 @@ class AstarteClient {
     await this.$post(this.apiConfig.triggers(this.config), toAstarteTriggerDTO(trigger));
   }
 
-  async getDevicesStats(): Promise<any> {
+  async getDevicesStats(): Promise<{ connectedDevices: number; totalDevices: number }> {
     const response = await this.$get(this.apiConfig.devicesStats(this.config));
-    return response.data;
+    return {
+      connectedDevices: response.data.connected_devices,
+      totalDevices: response.data.total_devices,
+    };
   }
 
   async getDevices(params: {
@@ -350,12 +342,13 @@ class AstarteClient {
     limit?: number;
   }): Promise<{ devices: AstarteDevice[]; nextToken: string | null }> {
     const endpointUri = new URL(this.apiConfig.devices(this.config));
-    const query: any = {};
+    // eslint-disable-next-line camelcase
+    const query: { details?: string; limit?: string; from_token?: string } = {};
     if (params.details) {
-      query.details = true;
+      query.details = true.toString();
     }
     if (params.limit) {
-      query.limit = params.limit;
+      query.limit = params.limit.toString();
     }
     if (params.from) {
       query.from_token = params.from;
@@ -565,7 +558,13 @@ class AstarteClient {
     introspection?: { [interfaceName: string]: AstarteInterfaceDescriptor };
   }): Promise<{ credentialsSecret: string }> {
     const { deviceId, introspection } = params;
-    const requestBody: any = {
+    type RequestBody = {
+      // eslint-disable-next-line camelcase
+      hw_id: string;
+      // eslint-disable-next-line camelcase
+      initial_introspection?: Record<string, { major: number; minor: number }>;
+    };
+    const requestBody: RequestBody = {
       hw_id: deviceId,
     };
     if (introspection) {
@@ -597,7 +596,7 @@ class AstarteClient {
   async createNewFlowInstance(params: {
     name: AstarteFlow['name'];
     pipeline: string;
-    config: { [key: string]: any };
+    config: { [key: string]: unknown };
   }): Promise<void> {
     await this.$post(this.apiConfig.flows(this.config), params);
   }
@@ -622,16 +621,11 @@ class AstarteClient {
     return new AstartePipeline(fromAstartePipelineDTO(response.data));
   }
 
-  async getPipelineSource(pipelineId: any): Promise<any> {
-    const response = await this.$get(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
-    return response.data;
-  }
-
   async registerPipeline(pipeline: AstartePipeline): Promise<void> {
     await this.$post(this.apiConfig.pipelines(this.config), toAstartePipelineDTO(pipeline));
   }
 
-  async deletePipeline(pipelineId: any): Promise<void> {
+  async deletePipeline(pipelineId: string): Promise<void> {
     await this.$delete(this.apiConfig.pipelineSource({ ...this.config, pipelineId }));
   }
 
@@ -671,27 +665,23 @@ class AstarteClient {
     await this.$delete(this.apiConfig.blockSource({ ...this.config, blockId }));
   }
 
-  async getRealmManagementHealth(): Promise<any> {
-    const response = await this.$get(this.apiConfig.realmManagementHealth(this.config));
-    return response.data;
+  async getRealmManagementHealth(): Promise<void> {
+    await this.$get(this.apiConfig.realmManagementHealth(this.config));
   }
 
-  async getAppengineHealth(): Promise<any> {
-    const response = await this.$get(this.apiConfig.appengineHealth(this.config));
-    return response.data;
+  async getAppengineHealth(): Promise<void> {
+    await this.$get(this.apiConfig.appengineHealth(this.config));
   }
 
-  async getPairingHealth(): Promise<any> {
-    const response = await this.$get(this.apiConfig.pairingHealth(this.config));
-    return response.data;
+  async getPairingHealth(): Promise<void> {
+    await this.$get(this.apiConfig.pairingHealth(this.config));
   }
 
-  async getFlowHealth(): Promise<any> {
-    const response = await this.$get(this.apiConfig.flowHealth(this.config));
-    return response.data;
+  async getFlowHealth(): Promise<void> {
+    await this.$get(this.apiConfig.flowHealth(this.config));
   }
 
-  private async $get(url: string): Promise<any> {
+  private async $get(url: string) {
     return axios({
       method: 'get',
       url,
@@ -702,7 +692,7 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
-  private async $post(url: string, data: any): Promise<any> {
+  private async $post(url: string, data: unknown) {
     return axios({
       method: 'post',
       url,
@@ -716,7 +706,7 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
-  private async $put(url: string, data: any): Promise<any> {
+  private async $put(url: string, data: unknown) {
     return axios({
       method: 'put',
       url,
@@ -730,7 +720,7 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
-  private async $patch(url: string, data: any): Promise<any> {
+  private async $patch(url: string, data: unknown) {
     return axios({
       method: 'patch',
       url,
@@ -744,7 +734,7 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
-  private async $delete(url: string): Promise<any> {
+  private async $delete(url: string) {
     return axios({
       method: 'delete',
       url,
@@ -755,7 +745,7 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
-  private async openSocketConnection(): Promise<PhoenixSocket> {
+  private async openSocketConnection(): Promise<Socket> {
     if (this.phoenixSocket) {
       return Promise.resolve(this.phoenixSocket);
     }
@@ -766,7 +756,7 @@ class AstarteClient {
     return new Promise((resolve) => {
       openNewSocketConnection(
         {
-          socketUrl,
+          socketUrl: socketUrl.toString(),
           realm: this.config.realm,
           token: this.token,
         },
@@ -815,7 +805,7 @@ class AstarteClient {
       return Promise.reject(new Error("Can't listen for room events before joining it first"));
     }
 
-    channel.on('new_event', (jsonEvent: any) => {
+    channel.on('new_event', (jsonEvent: unknown) => {
       const decodedEvent = decodeEvent(jsonEvent);
 
       if (decodedEvent) {
@@ -827,7 +817,10 @@ class AstarteClient {
     return Promise.resolve();
   }
 
-  async registerVolatileTrigger(roomName: string, triggerPayload: Trigger): Promise<void> {
+  async registerVolatileTrigger(
+    roomName: string,
+    triggerPayload: AstarteTransientTriggerDTO,
+  ): Promise<void> {
     const channel = this.joinedChannels[roomName];
     if (!channel) {
       return Promise.reject(new Error("Room not joined, couldn't register trigger"));
@@ -847,7 +840,7 @@ class AstarteClient {
     });
   }
 
-  get joinedRooms(): any[] {
+  get joinedRooms(): string[] {
     const rooms: string[] = [];
     Object.keys(this.joinedChannels).forEach((roomName) => {
       rooms.push(roomName);

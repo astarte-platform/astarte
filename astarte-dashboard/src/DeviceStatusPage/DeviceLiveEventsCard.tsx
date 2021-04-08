@@ -75,7 +75,7 @@ function watchDeviceEvents({
           on: 'device_connected',
           device_id: deviceId,
         },
-      };
+      } as const;
 
       const disconnectionTriggerPayload = {
         name: `disconnectiontrigger-${deviceId}`,
@@ -85,7 +85,7 @@ function watchDeviceEvents({
           on: 'device_disconnected',
           device_id: deviceId,
         },
-      };
+      } as const;
 
       const errorTriggerPayload = {
         name: `errortrigger-${deviceId}`,
@@ -95,7 +95,7 @@ function watchDeviceEvents({
           on: 'device_error',
           device_id: deviceId,
         },
-      };
+      } as const;
 
       const dataTriggerPayload = {
         name: `datatrigger-${deviceId}`,
@@ -107,7 +107,7 @@ function watchDeviceEvents({
           value_match_operator: '*',
           match_path: '/*',
         },
-      };
+      } as const;
 
       astarte
         .registerVolatileTrigger(roomName, connectionTriggerPayload)

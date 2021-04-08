@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -33,11 +33,11 @@ const filterSortBlocks = (blocks: AstarteBlock[], type: AstarteBlock['type']) =>
     .sort((block1, block2) => (block1.name > block2.name ? 1 : -1));
 };
 
-interface BlockMenuItem {
+interface BlockMenuItemProps {
   block: AstarteBlock;
 }
 
-const BlockMenuItem = ({ block }: BlockMenuItem) => (
+const BlockMenuItem = ({ block }: BlockMenuItemProps) => (
   <div
     className={`block-item ${block.type}`}
     onDragStart={(e) => {
@@ -82,7 +82,7 @@ interface VisualFlowEditorProps {
   className?: string;
   blocks: AstarteBlock[];
   model: DiagramModel;
-  onNodeSettingsClick?: (...args: any[]) => void;
+  onNodeSettingsClick?: (node: NativeBlockModel) => void;
 }
 
 const VisualFlowEditor = ({

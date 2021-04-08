@@ -99,7 +99,7 @@ type AstarteContextValue = {
   logout: () => void;
 };
 
-const AstarteContext: React.Context<AstarteContextValue> = createContext(null) as any;
+const AstarteContext = createContext<AstarteContextValue | null>(null);
 
 interface AstarteProviderProps {
   children: React.ReactNode;
@@ -166,7 +166,13 @@ const AstarteProvider = ({
   );
 };
 
-const useAstarte = (): AstarteContextValue => useContext(AstarteContext);
+const useAstarte = (): AstarteContextValue => {
+  const contextValue = useContext(AstarteContext);
+  if (contextValue == null) {
+    throw new Error('AstarteContext has not been Provided');
+  }
+  return contextValue;
+};
 
 export { useAstarte };
 

@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -17,69 +17,60 @@
 */
 
 import _ from 'lodash';
-import { AstarteDeviceEvent } from './AstarteDeviceEvent';
+import * as yup from 'yup';
 
-type DeviceErrorName =
-  | 'write_on_server_owned_interface'
-  | 'invalid_interface'
-  | 'invalid_path'
-  | 'mapping_not_found'
-  | 'interface_loading_failed'
-  | 'ambiguous_path'
-  | 'undecodable_bson_payload'
-  | 'unexpected_value_type'
-  | 'value_size_exceeded'
-  | 'unexpected_object_key'
-  | 'invalid_introspection'
-  | 'unexpected_control_message'
-  | 'device_session_not_found'
-  | 'resend_interface_properties_failed'
-  | 'empty_cache_error';
+import { AstarteDeviceEvent, AstarteDeviceEventDTO } from './AstarteDeviceEvent';
 
-function isValidName(name: string): name is DeviceErrorName {
-  switch (name) {
-    case 'write_on_server_owned_interface':
-    case 'invalid_interface':
-    case 'invalid_path':
-    case 'mapping_not_found':
-    case 'interface_loading_failed':
-    case 'ambiguous_path':
-    case 'undecodable_bson_payload':
-    case 'unexpected_value_type':
-    case 'value_size_exceeded':
-    case 'unexpected_object_key':
-    case 'invalid_introspection':
-    case 'unexpected_control_message':
-    case 'device_session_not_found':
-    case 'resend_interface_properties_failed':
-    case 'empty_cache_error':
-      return true;
+const deviceErrorNames = [
+  'write_on_server_owned_interface',
+  'invalid_interface',
+  'invalid_path',
+  'mapping_not_found',
+  'interface_loading_failed',
+  'ambiguous_path',
+  'undecodable_bson_payload',
+  'unexpected_value_type',
+  'value_size_exceeded',
+  'unexpected_object_key',
+  'invalid_introspection',
+  'unexpected_control_message',
+  'device_session_not_found',
+  'resend_interface_properties_failed',
+  'empty_cache_error',
+] as const;
 
-    default:
-      return false;
-  }
-}
+type DeviceErrorName = typeof deviceErrorNames[number];
+
+type AstarteDeviceErrorEventDTO = AstarteDeviceEventDTO & {
+  event: {
+    type: 'device_error';
+    // eslint-disable-next-line camelcase
+    error_name: DeviceErrorName;
+    metadata: unknown;
+  };
+};
+
+const validationSchema: yup.ObjectSchema<AstarteDeviceErrorEventDTO['event']> = yup
+  .object({
+    type: yup.string().oneOf(['device_error']).required(),
+    error_name: yup.string().oneOf(deviceErrorNames).required(),
+    metadata: yup.object(),
+  })
+  .required();
 
 export class AstarteDeviceErrorEvent extends AstarteDeviceEvent {
   readonly errorName: DeviceErrorName;
 
   readonly metadata: unknown;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private constructor(arg: any) {
+  private constructor(arg: unknown) {
     super(arg);
-    if (!arg.event || !_.isPlainObject(arg.event) || arg.event.type !== 'device_error') {
-      throw new Error('Invalid event');
-    }
-    if (typeof arg.event.error_name !== 'string' && !isValidName(arg.event.error_name)) {
-      throw new Error('Invalid device error');
-    }
-    this.errorName = arg.event.error_name;
-    this.metadata = arg.event.metadata;
+    const event = validationSchema.validateSync(_.get(arg, 'event'));
+    this.errorName = event.error_name;
+    this.metadata = event.metadata;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static fromJSON(arg: any): AstarteDeviceErrorEvent {
+  static fromJSON(arg: unknown): AstarteDeviceErrorEvent {
     return new AstarteDeviceErrorEvent(arg);
   }
 }

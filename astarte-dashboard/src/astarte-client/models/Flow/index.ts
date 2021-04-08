@@ -23,9 +23,7 @@ export class AstarteFlow {
 
   pipeline: string;
 
-  config?: {
-    [key: string]: any;
-  };
+  config?: Record<string, unknown>;
 
   constructor(flow: AstarteFlowDTO) {
     this.name = flow.name;

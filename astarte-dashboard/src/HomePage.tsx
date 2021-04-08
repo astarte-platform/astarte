@@ -372,7 +372,7 @@ export default (): React.ReactElement => {
           />
         </Col>
         <WaitForData data={devicesStats.value} status={devicesStats.status}>
-          {({ connected_devices: connectedDevices, total_devices: totalDevices }) => (
+          {({ connectedDevices, totalDevices }) => (
             <Col xs={6} className={cellSpacingClass}>
               <DevicesCard
                 connectedDevices={connectedDevices}

@@ -47,7 +47,7 @@ type ConfigContextValue = {
   };
 };
 
-const ConfigContext: React.Context<ConfigContextValue> = createContext(null) as any;
+const ConfigContext = createContext<ConfigContextValue | null>(null);
 
 interface ConfigProviderProps {
   children: React.ReactNode;
@@ -98,7 +98,13 @@ const ConfigProvider = ({
   );
 };
 
-const useConfig = (): ConfigContextValue => useContext(ConfigContext);
+const useConfig = (): ConfigContextValue => {
+  const contextValue = useContext(ConfigContext);
+  if (contextValue == null) {
+    throw new Error('ConfigContext has not been Provided');
+  }
+  return contextValue;
+};
 
 export { useConfig };
 

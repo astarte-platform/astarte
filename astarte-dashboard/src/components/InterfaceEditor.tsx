@@ -361,10 +361,10 @@ export default ({
   const [mappingToEditIndex, setMappingToEditIndex] = useState(0);
 
   const parseAstarteInterfaceJSON = useCallback(
-    (json: any): AstarteInterface | null => {
+    (json: unknown): AstarteInterface | null => {
       let parsedInterface: AstarteInterface;
       try {
-        parsedInterface = AstarteInterface.fromJSON(json);
+        parsedInterface = AstarteInterface.fromJSON(json as any);
       } catch {
         throw new Error('Invalid interface');
       }

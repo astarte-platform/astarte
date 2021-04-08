@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /*
    This file is part of Astarte.
 

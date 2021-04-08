@@ -72,4 +72,16 @@ interface AstarteTriggerDTO {
   simple_triggers: AstarteSimpleTriggerDTO[];
 }
 
-export { AstarteTriggerDTO, AstarteTriggerHTTPActionDTO, AstarteTriggerAMQPActionDTO };
+interface AstarteTransientTriggerDTO {
+  name: string;
+  device_id?: string;
+  group_name?: string;
+  simple_trigger: AstarteSimpleTriggerDTO;
+}
+
+export {
+  AstarteTransientTriggerDTO,
+  AstarteTriggerDTO,
+  AstarteTriggerHTTPActionDTO,
+  AstarteTriggerAMQPActionDTO,
+};

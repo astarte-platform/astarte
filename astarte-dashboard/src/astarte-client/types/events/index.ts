@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020 Ispirata Srl
+  Copyright 2020-2021 Ispirata Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -23,8 +23,7 @@ import { AstarteDeviceErrorEvent } from './AstarteDeviceErrorEvent';
 import { AstarteDeviceIncomingDataEvent } from './AstarteDeviceIncomingDataEvent';
 import { AstarteDeviceUnsetPropertyEvent } from './AstarteDeviceUnsetPropertyEvent';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function decodeEvent(arg: any): AstarteDeviceEvent | null {
+function decodeEvent(arg: unknown): AstarteDeviceEvent | null {
   return decodeAnyOf(
     [
       AstarteDeviceConnectedEvent.fromJSON,
@@ -37,11 +36,9 @@ function decodeEvent(arg: any): AstarteDeviceEvent | null {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventDecoder = (arg: any) => AstarteDeviceEvent;
+type EventDecoder = (arg: unknown) => AstarteDeviceEvent;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function decodeAnyOf(decoders: EventDecoder[], value: any): AstarteDeviceEvent | null {
+function decodeAnyOf(decoders: EventDecoder[], value: unknown): AstarteDeviceEvent | null {
   let decodedValue = null;
 
   for (let i = 0; i < decoders.length && decodedValue === null; i += 1) {
