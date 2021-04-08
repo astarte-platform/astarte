@@ -315,16 +315,17 @@ ADD (
 
 *Warning*: migrating data from the `metadata` column to the `attributes` one is possible but is out
 of scope of this guide since this change happened between development releases. The procedure below
-just removes and recreates the column *without migrating data*.
-
-```sql
-ALTER TABLE devices
-DROP metadata;
-```
+just creates the new column and then deletes the old one *without migrating data*. You're free to
+implement a migration procedure between the two steps.
 
 ```sql
 ALTER TABLE devices
 ADD (
     attributes map<varchar, varchar>
 );
+```
+
+```sql
+ALTER TABLE devices
+DROP metadata;
 ```
