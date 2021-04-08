@@ -32,6 +32,8 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   scope "/v1/:realm_name", Astarte.AppEngine.APIWeb do
     pipe_through :api
 
+    get "/version", VersionController, :show
+
     scope "/stats" do
       get "/devices", StatsController, :show_devices_stats
     end
