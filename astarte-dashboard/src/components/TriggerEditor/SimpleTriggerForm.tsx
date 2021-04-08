@@ -314,7 +314,7 @@ const SimpleTriggerForm = ({
         {triggerConditionToLabel[option]}
       </option>
     ));
-  }, [isDeviceTrigger, triggerInterfaceType]);
+  }, [isDeviceTrigger, triggerInterfaceType, triggerInterfaceAggregation]);
 
   const renderInterfaceNameOptions = useCallback(() => {
     const options = interfacesName.map((ifaceName) => (

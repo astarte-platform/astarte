@@ -422,23 +422,29 @@ export default ({
     [],
   );
 
-  const handleInterfaceTypeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.currentTarget;
-    const type = value as AstarteInterface['type'];
-    const aggregation = type === 'datastream' ? 'individual' : undefined;
-    clearMappingsOptions({ type, aggregation });
-    setInterfaceDraft((draft) => ({ ...draft, type, aggregation }));
-  }, []);
+  const handleInterfaceTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.currentTarget;
+      const type = value as AstarteInterface['type'];
+      const aggregation = type === 'datastream' ? 'individual' : undefined;
+      clearMappingsOptions({ type, aggregation });
+      setInterfaceDraft((draft) => ({ ...draft, type, aggregation }));
+    },
+    [clearMappingsOptions],
+  );
 
-  const handleInterfaceAggregationChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.currentTarget;
-    const aggregation = value as AstarteInterface['aggregation'];
-    clearMappingsOptions({ type: 'datastream', aggregation });
-    setInterfaceDraft((draft) => ({
-      ...draft,
-      aggregation,
-    }));
-  }, []);
+  const handleInterfaceAggregationChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.currentTarget;
+      const aggregation = value as AstarteInterface['aggregation'];
+      clearMappingsOptions({ type: 'datastream', aggregation });
+      setInterfaceDraft((draft) => ({
+        ...draft,
+        aggregation,
+      }));
+    },
+    [clearMappingsOptions],
+  );
 
   const handleInterfaceOwnershipChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.currentTarget;
@@ -551,36 +557,39 @@ export default ({
     [mappingToEditIndex, datastreamOptions, interfaceDraft.type, interfaceDraft.aggregation],
   );
 
-  const handleInterfaceSourceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setInterfaceSource(value);
-    if (!checkValidJSONText(value)) {
-      return;
-    }
-    let parsedInterface: AstarteInterface | null;
-    try {
-      parsedInterface = parseAstarteInterfaceJSON(JSON.parse(value));
-    } catch {
-      parsedInterface = null;
-    }
-    if (!parsedInterface) {
-      return;
-    }
-    setInterfaceDraft(parsedInterface);
-    const mapping: AstarteMapping | undefined = _.get(parsedInterface, 'mappings.0');
-    if (parsedInterface.type === 'datastream' && parsedInterface.aggregation === 'object') {
-      setDatastreamOptions({
-        reliability: mapping?.reliability,
-        retention: mapping?.retention,
-        expiry: mapping?.expiry,
-        databaseRetentionPolicy: mapping?.databaseRetentionPolicy,
-        databaseRetentionTtl: mapping?.databaseRetentionTtl,
-        explicitTimestamp: mapping?.explicitTimestamp,
-      });
-    } else {
-      setDatastreamOptions({});
-    }
-  }, []);
+  const handleInterfaceSourceChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.target;
+      setInterfaceSource(value);
+      if (!checkValidJSONText(value)) {
+        return;
+      }
+      let parsedInterface: AstarteInterface | null;
+      try {
+        parsedInterface = parseAstarteInterfaceJSON(JSON.parse(value));
+      } catch {
+        parsedInterface = null;
+      }
+      if (!parsedInterface) {
+        return;
+      }
+      setInterfaceDraft(parsedInterface);
+      const mapping: AstarteMapping | undefined = _.get(parsedInterface, 'mappings.0');
+      if (parsedInterface.type === 'datastream' && parsedInterface.aggregation === 'object') {
+        setDatastreamOptions({
+          reliability: mapping?.reliability,
+          retention: mapping?.retention,
+          expiry: mapping?.expiry,
+          databaseRetentionPolicy: mapping?.databaseRetentionPolicy,
+          databaseRetentionTtl: mapping?.databaseRetentionTtl,
+          explicitTimestamp: mapping?.explicitTimestamp,
+        });
+      } else {
+        setDatastreamOptions({});
+      }
+    },
+    [parseAstarteInterfaceJSON],
+  );
 
   useEffect(() => {
     setInterfaceDraft((draft) => {
@@ -619,7 +628,7 @@ export default ({
     if (onChange) {
       onChange(interfaceDraft, isValidInterface);
     }
-  }, [interfaceDraft, isValidInterface]);
+  }, [interfaceDraft, isValidInterface, onChange]);
 
   const interfaceValidationWarnings = computeInterfaceWarnings(interfaceDraft);
 

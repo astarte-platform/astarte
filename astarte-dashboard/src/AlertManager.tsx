@@ -125,7 +125,7 @@ const useAlerts: (config?: HookConfig) => [IAlertsState, AlertsController] = ({ 
       };
       return show(message, opts);
     },
-    [show],
+    [show, timeout],
   );
 
   const showWarning = useCallback(
@@ -137,7 +137,7 @@ const useAlerts: (config?: HookConfig) => [IAlertsState, AlertsController] = ({ 
       };
       return show(message, opts);
     },
-    [show],
+    [show, timeout],
   );
 
   const showError = useCallback(
@@ -149,7 +149,7 @@ const useAlerts: (config?: HookConfig) => [IAlertsState, AlertsController] = ({ 
       };
       return show(message, opts);
     },
-    [show],
+    [show, timeout],
   );
 
   const showInfo = useCallback(
@@ -161,7 +161,7 @@ const useAlerts: (config?: HookConfig) => [IAlertsState, AlertsController] = ({ 
       };
       return show(message, opts);
     },
-    [show],
+    [show, timeout],
   );
 
   const controller = useMemo(

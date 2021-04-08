@@ -58,11 +58,14 @@ const ConfirmModal = ({
   size = 'lg',
   title,
 }: Props): React.ReactElement => {
-  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' && confirmOnEnter && !isConfirming) {
-      onConfirm();
-    }
-  }, []);
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Enter' && confirmOnEnter && !isConfirming) {
+        onConfirm();
+      }
+    },
+    [confirmOnEnter, isConfirming, onConfirm],
+  );
 
   return (
     <div onKeyDown={handleKeyDown}>

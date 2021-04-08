@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Badge, Card } from 'react-bootstrap';
 
 import AstarteClient, {
@@ -338,19 +338,25 @@ const DeviceLiveEventsView = ({
     setDeviceEvents((oldEvents: RenderableEvent[]) => [...oldEvents, event]);
   };
 
-  const sendErrorMessage = (errorMessage: string) =>
-    registerEvent({
-      message: errorMessage,
-      level: 'error',
-      timestamp: Date.now(),
-    });
+  const sendErrorMessage = useCallback(
+    (errorMessage: string) =>
+      registerEvent({
+        message: errorMessage,
+        level: 'error',
+        timestamp: Date.now(),
+      }),
+    [],
+  );
 
-  const sendInfoMessage = (infoMessage: string) =>
-    registerEvent({
-      message: infoMessage,
-      level: 'info',
-      timestamp: Date.now(),
-    });
+  const sendInfoMessage = useCallback(
+    (infoMessage: string) =>
+      registerEvent({
+        message: infoMessage,
+        level: 'info',
+        timestamp: Date.now(),
+      }),
+    [],
+  );
 
   useEffect(() => {
     const handleSocketError = () => sendErrorMessage('Astarte channels communication error');
@@ -374,7 +380,7 @@ const DeviceLiveEventsView = ({
         astarte.leaveRoom(room);
       });
     };
-  }, [deviceId, astarte]);
+  }, [deviceId, astarte, sendErrorMessage, sendInfoMessage]);
 
   return (
     <div className="device-event-container p-3">

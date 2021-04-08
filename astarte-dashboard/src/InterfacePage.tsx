@@ -145,7 +145,7 @@ export default (): React.ReactElement => {
         setIsUpdatingInterface(false);
         hideConfirmUpdateModal();
       });
-  }, [astarte.client, interfaceDraft, actionAlertsController]);
+  }, [astarte.client, interfaceDraft, actionAlertsController, hideConfirmUpdateModal]);
 
   const handleConfirmDeleteInterface = useCallback(() => {
     setIsDeletingInterface(true);
@@ -161,7 +161,7 @@ export default (): React.ReactElement => {
       });
   }, [
     astarte.client,
-    hideConfirmUpdateModal,
+    hideConfirmDeleteModal,
     interfaceName,
     interfaceMajor,
     navigate,

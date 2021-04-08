@@ -406,7 +406,7 @@ export default (): React.ReactElement => {
       }
       return { devices: updatedDevices, nextToken };
     },
-    [astarte.client],
+    [astarte.client, activePage],
   );
 
   const devicesFetcher = useFetch(fetchDevices, {});

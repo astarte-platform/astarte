@@ -96,7 +96,7 @@ const VisualFlowEditor = ({
 
   useEffect(() => {
     nodeFactory.updateDefinitions(blocks);
-  }, [blocks]);
+  }, [blocks, nodeFactory]);
 
   const addBlock = useCallback(
     (name, type, position) => {
@@ -113,7 +113,7 @@ const VisualFlowEditor = ({
       model.addNode(newNode);
       engine.repaintCanvas();
     },
-    [onNodeSettingsClick],
+    [engine, model, nodeFactory, onNodeSettingsClick],
   );
 
   return (

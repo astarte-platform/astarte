@@ -106,7 +106,7 @@ export default (): React.ReactElement => {
         setIsDeletingTrigger(false);
         hideConfirmDeleteModal();
       });
-  }, [astarte.client, triggerName, navigate, deletionAlertsController]);
+  }, [astarte.client, triggerName, navigate, deletionAlertsController, hideConfirmDeleteModal]);
 
   const handleTriggerEditorError = useCallback(
     (message: string) => {

@@ -82,7 +82,7 @@ export default (): React.ReactElement => {
       .catch((error) => {
         formAlertsController.showError(`Couldn't retrieve block descriptions: ${error.message}`);
       });
-  }, [astarte.client]);
+  }, [astarte.client, formAlertsController]);
 
   const schemaObject = useMemo(() => {
     if (pipeline.schema === '') {
@@ -131,7 +131,7 @@ export default (): React.ReactElement => {
     } catch (e) {
       return false;
     }
-  }, [schemaObject, ajv]);
+  }, [schemaObject]);
 
   const blockSettingsClickHandler = useCallback(
     (node: NativeBlockModel) => {
@@ -162,7 +162,7 @@ export default (): React.ReactElement => {
         />,
       );
     },
-    [blocks],
+    [blocks, editorModel],
   );
 
   const sourceConversionHandler = () => {

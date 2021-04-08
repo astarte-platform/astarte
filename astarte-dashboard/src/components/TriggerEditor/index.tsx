@@ -280,7 +280,7 @@ export default ({
       handlePatchActionAmqpHeaders({ [formData.key]: formData.value || '' });
       dismissModal();
     },
-    [],
+    [dismissModal, handlePatchActionAmqpHeaders],
   );
 
   const handleEditActionAmqpHeader = useCallback((header: string) => {
@@ -294,7 +294,7 @@ export default ({
       }
       dismissModal();
     },
-    [activeModal],
+    [activeModal, dismissModal, handlePatchActionAmqpHeaders],
   );
 
   const handleDeleteActionAmqpHeader = useCallback((header: string) => {
@@ -306,7 +306,7 @@ export default ({
       handlePatchActionAmqpHeaders({ [activeModal.header]: undefined });
     }
     dismissModal();
-  }, [activeModal]);
+  }, [activeModal, dismissModal, handlePatchActionAmqpHeaders]);
 
   const handleAddActionHttpHeader = useCallback(() => {
     setActiveModal({ modal: 'new-http-header' });
@@ -317,7 +317,7 @@ export default ({
       handlePatchActionHttpHeaders({ [formData.key]: formData.value || '' });
       dismissModal();
     },
-    [],
+    [dismissModal, handlePatchActionHttpHeaders],
   );
 
   const handleEditActionHttpHeader = useCallback((header: string) => {
@@ -331,7 +331,7 @@ export default ({
       }
       dismissModal();
     },
-    [activeModal],
+    [activeModal, dismissModal, handlePatchActionHttpHeaders],
   );
 
   const handleDeleteActionHttpHeader = useCallback((header: string) => {
@@ -343,37 +343,40 @@ export default ({
       handlePatchActionHttpHeaders({ [activeModal.header]: undefined });
     }
     dismissModal();
-  }, [activeModal]);
+  }, [activeModal, dismissModal, handlePatchActionHttpHeaders]);
 
-  const handleTriggerSourceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setTriggerSource(value);
-    let triggerSourceJSON: Record<string, unknown> | null = null;
-    try {
-      triggerSourceJSON = JSON.parse(value);
-    } catch {
-      triggerSourceJSON = null;
-    }
-    if (!triggerSourceJSON) {
-      setTriggerSourceError('Invalid JSON');
-      return;
-    }
-    let trigger: AstarteTrigger | null = null;
-    try {
-      trigger = AstarteTrigger.fromJSON(triggerSourceJSON as any);
-    } catch {
-      trigger = null;
-    }
-    if (!trigger) {
-      setTriggerSourceError('Invalid Trigger');
-      return;
-    }
-    if (_.get(trigger, 'simpleTriggers[0].type') === 'data_trigger') {
-      handleFetchInterfacesForTrigger(trigger).then(setTriggerDraft);
-    } else {
-      setTriggerDraft(trigger);
-    }
-  }, []);
+  const handleTriggerSourceChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.target;
+      setTriggerSource(value);
+      let triggerSourceJSON: Record<string, unknown> | null = null;
+      try {
+        triggerSourceJSON = JSON.parse(value);
+      } catch {
+        triggerSourceJSON = null;
+      }
+      if (!triggerSourceJSON) {
+        setTriggerSourceError('Invalid JSON');
+        return;
+      }
+      let trigger: AstarteTrigger | null = null;
+      try {
+        trigger = AstarteTrigger.fromJSON(triggerSourceJSON as any);
+      } catch {
+        trigger = null;
+      }
+      if (!trigger) {
+        setTriggerSourceError('Invalid Trigger');
+        return;
+      }
+      if (_.get(trigger, 'simpleTriggers[0].type') === 'data_trigger') {
+        handleFetchInterfacesForTrigger(trigger).then(setTriggerDraft);
+      } else {
+        setTriggerDraft(trigger);
+      }
+    },
+    [handleFetchInterfacesForTrigger],
+  );
 
   useEffect(() => {
     const formattedTriggerSource = formatJSON(AstarteTrigger.toJSON(triggerDraft));
@@ -395,7 +398,7 @@ export default ({
       const isValidTrigger = _.isEmpty(validationErrors);
       onChange(triggerDraft, isValidTrigger);
     }
-  }, [triggerDraft, realm, triggerInterface]);
+  }, [onChange, triggerDraft, realm, triggerInterface]);
 
   useEffect(() => {
     if (initialData) {
@@ -403,7 +406,7 @@ export default ({
     } else {
       handleFetchInterfacesName();
     }
-  }, []);
+  }, [handleFetchInterfacesForTrigger, handleFetchInterfacesName, initialData]);
 
   return (
     <Row>

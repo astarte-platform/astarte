@@ -175,7 +175,7 @@ export default (): React.ReactElement => {
           );
         });
     },
-    [astarte.client, deviceId],
+    [astarte.client, deviceId, devicePageAlersController],
   );
 
   const wipeDeviceCredentials = useCallback(() => {
@@ -188,7 +188,7 @@ export default (): React.ReactElement => {
         devicePageAlersController.showError(`Couldn't wipe the device credential secret`);
         dismissModal();
       });
-  }, [astarte.client, deviceId]);
+  }, [astarte.client, deviceId, dismissModal, devicePageAlersController]);
 
   const addDeviceToGroup = useCallback(
     (groupName) => {
@@ -206,7 +206,7 @@ export default (): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte.client],
+    [astarte.client, deviceId, devicePageAlersController, dismissModal],
   );
 
   const handleAliasUpdate = useCallback(
@@ -222,7 +222,7 @@ export default (): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte.client, deviceId],
+    [astarte.client, deviceId, devicePageAlersController, dismissModal],
   );
 
   const handleAliasDeletion = useCallback(
@@ -238,7 +238,7 @@ export default (): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte.client, deviceId],
+    [astarte.client, deviceId, devicePageAlersController, dismissModal],
   );
 
   const handleAttributeUpdate = useCallback(
@@ -254,7 +254,7 @@ export default (): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte.client, deviceId],
+    [astarte.client, deviceId, devicePageAlersController, dismissModal],
   );
 
   const handleAttributeDeletion = useCallback(
@@ -270,7 +270,7 @@ export default (): React.ReactElement => {
           dismissModal();
         });
     },
-    [astarte.client, deviceId],
+    [astarte.client, deviceId, devicePageAlersController, dismissModal],
   );
 
   return (

@@ -64,7 +64,7 @@ interface ExchangedBytesCardProps {
 const ExchangedBytesCard = ({ astarte, device }: ExchangedBytesCardProps): React.ReactElement => {
   const deviceStatsProvider = useMemo(
     () => getDeviceStats(astarte, { deviceId: device.id, stats: 'exchangedBytes' }),
-    [astarte],
+    [astarte, device.id],
   );
   const fullList = Array.from(device.introspection.values()).concat(device.previousInterfaces);
   const totalBytes = device.totalReceivedBytes;
