@@ -19,6 +19,9 @@ When interacting with Astarte as a User, you have several options to choose from
   API automations for several operations. Currently, the main API client available is [astarte-go](https://github.com/astarte-platform/astarte-go).
 * Astarte APIs: The base APIs are the lower level interaction layer. They are accessible, in standard installations, at `api.<base Astarte URL>/<apiset>`, and are
   the main mean of interaction upon which all other clients are based upon.
+* [Grafana Datasource Plugin for Astarte](080-grafana_datasource.md): Thanks to the Astarte Datasource Plugin, data coming from Astarte
+  may be visualised in custom dashboards provided by Grafana, the open source observability platform.
+
 
 Depending on the context, you might want to choose what suits you best. Over the course of the documentation, several examples will be provided with
 interaction means.
