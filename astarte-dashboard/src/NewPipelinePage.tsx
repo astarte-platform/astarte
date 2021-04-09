@@ -25,7 +25,7 @@ import { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 import _ from 'lodash';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import FormModal from './components/modals/Form';
 import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/VisualFlowEditor';
@@ -55,7 +55,7 @@ export default (): React.ReactElement => {
     source: '',
     schema: '',
   });
-  const formAlerts = useAlerts();
+  const [formAlerts, formAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
 
@@ -80,9 +80,9 @@ export default (): React.ReactElement => {
         }
       })
       .catch((error) => {
-        formAlerts.showError(`Couldn't retrieve block descriptions: ${error.message}`);
+        formAlertsController.showError(`Couldn't retrieve block descriptions: ${error.message}`);
       });
-  }, [astarte.client]);
+  }, [astarte.client, formAlertsController]);
 
   const schemaObject = useMemo(() => {
     if (pipeline.schema === '') {
@@ -110,13 +110,13 @@ export default (): React.ReactElement => {
       .then(() => navigate('/pipelines'))
       .catch((err) => {
         setIsCreatingPipeline(false);
-        formAlerts.showError(`Couldn't create pipeline: ${err.message}`);
+        formAlertsController.showError(`Couldn't create pipeline: ${err.message}`);
       });
   }, [
     astarte.client,
     navigate,
     setIsCreatingPipeline,
-    formAlerts.showError,
+    formAlertsController,
     pipeline,
     schemaObject,
   ]);
@@ -131,7 +131,7 @@ export default (): React.ReactElement => {
     } catch (e) {
       return false;
     }
-  }, [schemaObject, ajv]);
+  }, [schemaObject]);
 
   const blockSettingsClickHandler = useCallback(
     (node: NativeBlockModel) => {
@@ -162,7 +162,7 @@ export default (): React.ReactElement => {
         />,
       );
     },
-    [blocks],
+    [blocks, editorModel],
   );
 
   const sourceConversionHandler = () => {
@@ -170,7 +170,7 @@ export default (): React.ReactElement => {
       const pipelineSource = nodeModelToSource(editorModel);
       setPipeline({ ...pipeline, source: pipelineSource });
     } catch (error) {
-      formAlerts.showError(error.message);
+      formAlertsController.showError(error.message);
     }
   };
 
@@ -184,7 +184,7 @@ export default (): React.ReactElement => {
       backLink="/pipelines"
       docsLink="https://docs.astarte-platform.org/flow/snapshot/"
     >
-      <formAlerts.Alerts />
+      <AlertsBanner alerts={formAlerts} />
       <Form>
         <Form.Group controlId="pipeline-name">
           <Form.Label>Name</Form.Label>

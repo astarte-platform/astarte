@@ -22,7 +22,7 @@ import { Button, Col, Container, Row, Spinner } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { AstarteCustomBlock } from 'astarte-client';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
@@ -42,7 +42,7 @@ export default (): React.ReactElement => {
   const blockFetcher = useFetch(() => astarte.client.getBlock(blockId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingBlock, setIsDeletingBlock] = useState(false);
-  const deletionAlerts = useAlerts();
+  const [deletionAlerts, deletionAlertsController] = useAlerts();
   const navigate = useNavigate();
 
   const deleteBlock = useCallback(() => {
@@ -52,15 +52,15 @@ export default (): React.ReactElement => {
       .then(() => navigate('/blocks'))
       .catch((err: Error) => {
         setIsDeletingBlock(false);
-        deletionAlerts.showError(`Couldn't delete block: ${err.message}`);
+        deletionAlertsController.showError(`Couldn't delete block: ${err.message}`);
         setShowDeleteModal(false);
       });
-  }, [astarte.client, navigate, setIsDeletingBlock, blockId, deletionAlerts.showError]);
+  }, [astarte.client, navigate, setIsDeletingBlock, blockId, deletionAlertsController]);
 
   return (
     <>
       <SingleCardPage title="Block Details" backLink="/blocks">
-        <deletionAlerts.Alerts />
+        <AlertsBanner alerts={deletionAlerts} />
         <WaitForData
           data={blockFetcher.value}
           status={blockFetcher.status}

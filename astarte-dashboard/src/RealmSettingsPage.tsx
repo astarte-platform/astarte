@@ -23,7 +23,7 @@ import { Button, Container, Form, Spinner } from 'react-bootstrap';
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 
 import WaitForData from './components/WaitForData';
@@ -77,7 +77,7 @@ export default (): React.ReactElement => {
   const [draftRealmSettings, setDraftRealmSettings] = useState<RealmSettings | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
-  const formAlerts = useAlerts();
+  const [formAlerts, formAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
 
@@ -108,7 +108,7 @@ export default (): React.ReactElement => {
       .catch((err) => {
         setIsUpdatingSettings(false);
         dismissModal();
-        formAlerts.showError(err.message);
+        formAlertsController.showError(err.message);
       });
   }, [
     setIsUpdatingSettings,
@@ -116,12 +116,12 @@ export default (): React.ReactElement => {
     draftRealmSettings,
     navigate,
     dismissModal,
-    formAlerts.showError,
+    formAlertsController,
   ]);
 
   return (
     <SingleCardPage title="Realm Settings">
-      <formAlerts.Alerts />
+      <AlertsBanner alerts={formAlerts} />
       <WaitForData
         data={authConfigFetcher.value}
         status={authConfigFetcher.status}

@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Form, Row, Spinner } from 'react-bootstrap';
 import type { AstarteCustomBlock } from 'astarte-client';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import SingleCardPage from './ui/SingleCardPage';
 
@@ -50,7 +50,7 @@ export default (): React.ReactElement => {
   });
   const [isValidated, setIsValidated] = useState(false);
   const [isCreatingBlock, setIsCreatingBlock] = useState(false);
-  const creationAlerts = useAlerts();
+  const [creationAlerts, creationAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
 
@@ -65,9 +65,9 @@ export default (): React.ReactElement => {
       .then(() => navigate('/blocks'))
       .catch((err) => {
         setIsCreatingBlock(false);
-        creationAlerts.showError(`Couldn't create block: ${err.message}`);
+        creationAlertsController.showError(`Couldn't create block: ${err.message}`);
       });
-  }, [astarte.client, block, creationAlerts.showError, navigate]);
+  }, [astarte.client, block, creationAlertsController, navigate]);
 
   const isValidBlockName = /^[a-zA-Z][a-zA-Z0-9-_]*$/.test(block.name);
   const isValidBlockSource = block.source !== '';
@@ -86,7 +86,7 @@ export default (): React.ReactElement => {
   return (
     <>
       <SingleCardPage title="New Block" backLink="/blocks">
-        <creationAlerts.Alerts />
+        <AlertsBanner alerts={creationAlerts} />
         <Form noValidate>
           <Form.Group controlId="block-name">
             <Form.Label>Name</Form.Label>

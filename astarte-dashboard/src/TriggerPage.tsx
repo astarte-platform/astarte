@@ -20,7 +20,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
 import TriggerEditor from './components/TriggerEditor';
@@ -75,7 +75,7 @@ export default (): React.ReactElement => {
   const [isDeletingTrigger, setIsDeletingTrigger] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const deletionAlerts = useAlerts();
+  const [deletionAlerts, deletionAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
   const { triggerName } = useParams();
@@ -102,17 +102,17 @@ export default (): React.ReactElement => {
         navigate('/triggers');
       })
       .catch((err) => {
-        deletionAlerts.showError(`Could not delete trigger: ${err.message}`);
+        deletionAlertsController.showError(`Could not delete trigger: ${err.message}`);
         setIsDeletingTrigger(false);
         hideConfirmDeleteModal();
       });
-  }, [astarte.client, triggerName, navigate, deletionAlerts.showError]);
+  }, [astarte.client, triggerName, navigate, deletionAlertsController, hideConfirmDeleteModal]);
 
   const handleTriggerEditorError = useCallback(
     (message: string) => {
-      deletionAlerts.showError(message);
+      deletionAlertsController.showError(message);
     },
-    [deletionAlerts.showError],
+    [deletionAlertsController],
   );
 
   return (
@@ -122,7 +122,7 @@ export default (): React.ReactElement => {
         Trigger Editor
       </h2>
       <div className="mt-4">
-        <deletionAlerts.Alerts />
+        <AlertsBanner alerts={deletionAlerts} />
         <WaitForData
           data={triggerFetcher.value}
           status={triggerFetcher.status}

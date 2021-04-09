@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Container, Form, InputGroup, Spinner } from 'react-bootstrap';
 import type { AstarteDevice } from 'astarte-client';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
 import Icon from './components/Icon';
@@ -96,7 +96,7 @@ export default (): React.ReactElement => {
   const devicesFetcher = useFetch(() =>
     astarte.client.getDevices({ details: true }).then(({ devices }) => devices),
   );
-  const formAlerts = useAlerts();
+  const [formAlerts, formAlertsController] = useAlerts();
   const navigate = useNavigate();
 
   const createGroup = (event: React.FormEvent<HTMLElement>) => {
@@ -111,7 +111,7 @@ export default (): React.ReactElement => {
         navigate({ pathname: '/groups' });
       })
       .catch((err) => {
-        formAlerts.showError(`Could not create group: ${err.message}`);
+        formAlertsController.showError(`Could not create group: ${err.message}`);
         setIsCreatingGroup(false);
       });
   };
@@ -135,7 +135,7 @@ export default (): React.ReactElement => {
 
   return (
     <SingleCardPage title="Create a New Group" backLink="/groups">
-      <formAlerts.Alerts />
+      <AlertsBanner alerts={formAlerts} />
       <WaitForData
         data={devicesFetcher.value}
         status={devicesFetcher.status}

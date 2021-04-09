@@ -73,7 +73,7 @@ const SidebarItem = ({ icon, label, link }: SidebarItemProps) => {
       return location.pathname === '/' || location.pathname === '/home';
     }
     return location.pathname.startsWith(link);
-  }, [location.pathname]);
+  }, [link, location.pathname]);
 
   return (
     <NavLink as={Link} to={link} active={isSelected}>

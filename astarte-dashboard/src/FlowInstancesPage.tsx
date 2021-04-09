@@ -21,7 +21,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Container, Spinner, Table } from 'react-bootstrap';
 import type { AstarteFlow } from 'astarte-client';
 
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import Icon from './components/Icon';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
@@ -87,7 +87,7 @@ const InstancesTable = ({ instances, onDelete }: InstancesTableProps): React.Rea
 export default (): React.ReactElement => {
   const [flowToConfirmDelete, setFlowToConfirmDelete] = useState<AstarteFlow['name'] | null>(null);
   const [isDeletingFlow, setIsDeletingFlow] = useState(false);
-  const deletionAlerts = useAlerts();
+  const [deletionAlerts, deletionAlertsController] = useAlerts();
   const navigate = useNavigate();
   const astarte = useAstarte();
 
@@ -120,7 +120,7 @@ export default (): React.ReactElement => {
       })
       .catch((err) => {
         setIsDeletingFlow(false);
-        deletionAlerts.showError(`Could not delete flow instance: ${err.message}`);
+        deletionAlertsController.showError(`Could not delete flow instance: ${err.message}`);
       });
   }, [
     astarte.client,
@@ -128,7 +128,7 @@ export default (): React.ReactElement => {
     setFlowToConfirmDelete,
     setIsDeletingFlow,
     instancesFetcher.refresh,
-    deletionAlerts.showError,
+    deletionAlertsController,
   ]);
 
   const handleModalCancel = useCallback(() => {
@@ -137,7 +137,7 @@ export default (): React.ReactElement => {
 
   return (
     <SingleCardPage title="Running Flows">
-      <deletionAlerts.Alerts />
+      <AlertsBanner alerts={deletionAlerts} />
       <WaitForData
         data={instancesFetcher.value}
         status={instancesFetcher.status}

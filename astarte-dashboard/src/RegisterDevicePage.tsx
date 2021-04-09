@@ -29,7 +29,7 @@ import ConfirmModal from './components/modals/Confirm';
 import FormModal from './components/modals/Form';
 import SingleCardPage from './ui/SingleCardPage';
 import { byteArrayToUrlSafeBase64, urlSafeBase64ToByteArray } from './Base64';
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 
 /* TODO use clipboard API
@@ -266,7 +266,7 @@ export default (): React.ReactElement => {
   const [isRegisteringDevice, setRegisteringDevice] = useState(false);
   const [showNamespaceModal, setShowNamespaceModal] = useState(false);
   const [showCredentialSecretModal, setShowCredentialSecretModal] = useState(false);
-  const registrationAlerts = useAlerts();
+  const [registrationAlerts, registrationAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
 
@@ -297,7 +297,7 @@ export default (): React.ReactElement => {
       })
       .catch((err) => {
         setRegisteringDevice(false);
-        registrationAlerts.showError(`Couldn't register device: ${err.message}`);
+        registrationAlertsController.showError(`Couldn't register device: ${err.message}`);
       });
   };
 
@@ -315,7 +315,7 @@ export default (): React.ReactElement => {
 
   return (
     <SingleCardPage title="Register Device" backLink="/devices">
-      <registrationAlerts.Alerts />
+      <AlertsBanner alerts={registrationAlerts} />
       <Form onSubmit={registerDevice}>
         <Form.Row className="mb-2">
           <Form.Group as={Col} controlId="deviceIdInput">
