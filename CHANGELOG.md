@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_housekeeping_api] Add `/v1/version` endpoint, returning the API application
   version.
 
+### Changed
+- [astarte_realm_management] Make `amqp_routing_key` mandatory in AMQP actions.
+
 ## [1.0.0-beta.2] - 2021-03-24
 ### Fixed
 - [astarte_e2e] Fix alerting mechanism preventing "unknown" failures to be raised or linked.
