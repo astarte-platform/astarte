@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2021 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
    limitations under the License.
 */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
 import { AstarteNativeBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
+import { actions, useStoreDispatch, useStoreSelector } from './store';
 import WaitForData from './components/WaitForData';
 import Empty from './components/Empty';
-import useFetch from './hooks/useFetch';
-import { useAstarte } from './AstarteManager';
 
 interface NewBlockCardProps {
   onCreate: () => void;
@@ -80,9 +79,14 @@ function BlockCard({ block, onShow }: BlockCardProps) {
 }
 
 export default (): React.ReactElement => {
-  const astarte = useAstarte();
-  const blocksFetcher = useFetch(astarte.client.getBlocks);
   const navigate = useNavigate();
+  const dispatch = useStoreDispatch();
+  const blocksData = useStoreSelector((selectors) => selectors.blocks());
+  const blocksStatus = useStoreSelector((selectors) => selectors.blocksStatus());
+
+  useEffect(() => {
+    dispatch(actions.blocks.getList());
+  }, [dispatch]);
 
   return (
     <Container fluid className="p-3">
@@ -90,15 +94,18 @@ export default (): React.ReactElement => {
       <CardDeck className="mt-4">
         <NewBlockCard onCreate={() => navigate('/blocks/new')} />
         <WaitForData
-          data={blocksFetcher.value}
-          status={blocksFetcher.status}
+          data={blocksData}
+          status={blocksStatus}
           fallback={
             <Container fluid className="text-center">
               <Spinner animation="border" role="status" />
             </Container>
           }
           errorFallback={
-            <Empty title="Couldn't load available blocks" onRetry={blocksFetcher.refresh} />
+            <Empty
+              title="Couldn't load available blocks"
+              onRetry={() => dispatch(actions.blocks.getList())}
+            />
           }
         >
           {(blocks) => (
