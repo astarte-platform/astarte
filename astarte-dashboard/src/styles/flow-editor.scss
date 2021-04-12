@@ -28,12 +28,14 @@ $block-radius: 5px;
   height: 40em;
   display: flex;
   min-height: 100%;
+  max-height: 60vh;
 
   .flow-editor-sidebar {
     display: flex;
     flex-direction: column;
     padding: 0.5em;
     border-right: 1px solid lightgrey;
+    overflow-y: auto;
 
     .block-label {
       margin-top: 1em;
