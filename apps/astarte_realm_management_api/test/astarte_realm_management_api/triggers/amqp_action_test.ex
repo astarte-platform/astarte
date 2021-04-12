@@ -67,7 +67,24 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
             }} == out
   end
 
-  test "an empty routing key is accepted" do
+  test "amqp_routing_key is mandatory" do
+    input = %{
+      "amqp_exchange" => "astarte_events_test_custom_exchange",
+      "amqp_message_persistent" => true,
+      "amqp_message_expiration_ms" => 5000,
+      "amqp_message_priority" => 3
+    }
+
+    out =
+      %AMQPAction{}
+      |> AMQPAction.changeset(input, realm_name: "test")
+      |> Changeset.apply_action(:insert)
+
+    assert {:error, %Changeset{errors: errors, valid?: false}} = out
+    assert errors[:amqp_routing_key] == {"can't be blank", [validation: :required]}
+  end
+
+  test "an empty routing key is not accepted" do
     input = %{
       "amqp_exchange" => "astarte_events_test_custom_exchange",
       "amqp_routing_key" => "",
@@ -81,14 +98,8 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
       |> AMQPAction.changeset(input, realm_name: "test")
       |> Changeset.apply_action(:insert)
 
-    assert {:ok,
-            %AMQPAction{
-              amqp_exchange: "astarte_events_test_custom_exchange",
-              amqp_routing_key: "",
-              amqp_message_persistent: true,
-              amqp_message_expiration_ms: 5000,
-              amqp_message_priority: 3
-            }} == out
+    assert {:error, %Changeset{errors: errors, valid?: false}} = out
+    assert errors[:amqp_routing_key] == {"can't be blank", [validation: :required]}
   end
 
   test "amqp_exchange must contain realm_name" do
@@ -244,34 +255,6 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
     assert jason_out_map == %{
              "amqp_exchange" => "astarte_events_test_custom_exchange",
              "amqp_routing_key" => "test_routing_key",
-             "amqp_message_persistent" => false,
-             "amqp_message_expiration_ms" => 5000
-           }
-  end
-
-  test "empty routing key is encoded to empty string" do
-    input = %{
-      "amqp_exchange" => "astarte_events_test_custom_exchange",
-      "amqp_routing_key" => "",
-      "amqp_message_persistent" => false,
-      "amqp_message_expiration_ms" => 5000
-    }
-
-    out =
-      %AMQPAction{}
-      |> AMQPAction.changeset(input, realm_name: "test")
-      |> Changeset.apply_action(:insert)
-
-    assert {:ok, action} = out
-
-    jason_out_map =
-      action
-      |> Jason.encode!()
-      |> Jason.decode!()
-
-    assert jason_out_map == %{
-             "amqp_exchange" => "astarte_events_test_custom_exchange",
-             "amqp_routing_key" => "",
              "amqp_message_persistent" => false,
              "amqp_message_expiration_ms" => 5000
            }

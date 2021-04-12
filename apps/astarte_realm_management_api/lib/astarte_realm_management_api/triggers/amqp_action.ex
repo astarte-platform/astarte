@@ -26,7 +26,7 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPAction do
   @primary_key false
   embedded_schema do
     field :amqp_exchange, :string
-    field :amqp_routing_key, :string, default: ""
+    field :amqp_routing_key, :string
     field :amqp_static_headers, {:map, :string}
     field :amqp_message_expiration_ms, :integer
     field :amqp_message_priority, :integer
@@ -36,9 +36,10 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPAction do
   @mandatory_attrs [
     :amqp_exchange,
     :amqp_message_expiration_ms,
-    :amqp_message_persistent
+    :amqp_message_persistent,
+    :amqp_routing_key
   ]
-  @all_attrs [:amqp_static_headers, :amqp_message_priority, :amqp_routing_key] ++ @mandatory_attrs
+  @all_attrs [:amqp_static_headers, :amqp_message_priority] ++ @mandatory_attrs
 
   @doc false
   def changeset(%AMQPAction{} = amqp_action, attrs, opts) do
