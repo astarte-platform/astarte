@@ -27,6 +27,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   """
 
   @max_backoff_exponent 8
+  @max_rand trunc(:math.pow(2, 32) - 1)
 
   use Astarte.Core.Triggers.SimpleEvents
 
@@ -43,12 +44,12 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      device_connected(target, realm, device_id, ip_address, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      device_connected(target, realm, device_id, ip_address, timestamp, policy) == :ok
     end)
   end
 
-  def device_connected(target, realm, device_id, ip_address, timestamp) do
+  def device_connected(target, realm, device_id, ip_address, timestamp, policy) do
     %DeviceConnectedEvent{device_ip_address: ip_address}
     |> make_simple_event(
       :device_connected_event,
@@ -58,16 +59,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def device_disconnected(targets, realm, device_id, timestamp) when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      device_disconnected(target, realm, device_id, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      device_disconnected(target, realm, device_id, timestamp, policy) == :ok
     end)
   end
 
-  def device_disconnected(target, realm, device_id, timestamp) do
+  def device_disconnected(target, realm, device_id, timestamp, policy) do
     %DeviceDisconnectedEvent{}
     |> make_simple_event(
       :device_disconnected_event,
@@ -77,17 +78,25 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def device_error(targets, realm, device_id, error_name, error_metadata, timestamp)
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      device_error(target, realm, device_id, error_name, error_metadata, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      device_error(target, realm, device_id, error_name, error_metadata, timestamp, policy) == :ok
     end)
   end
 
-  def device_error(target, realm, device_id, error_name, error_metadata, timestamp) do
+  def device_error(
+        target,
+        realm,
+        device_id,
+        error_name,
+        error_metadata,
+        timestamp,
+        policy
+      ) do
     metadata_kw = Enum.into(error_metadata, [])
 
     %DeviceErrorEvent{error_name: error_name, metadata: metadata_kw}
@@ -99,17 +108,27 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def incoming_data(targets, realm, device_id, interface, path, bson_value, timestamp)
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      incoming_data(target, realm, device_id, interface, path, bson_value, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      incoming_data(target, realm, device_id, interface, path, bson_value, timestamp, policy) ==
+        :ok
     end)
   end
 
-  def incoming_data(target, realm, device_id, interface, path, bson_value, timestamp) do
+  def incoming_data(
+        target,
+        realm,
+        device_id,
+        interface,
+        path,
+        bson_value,
+        timestamp,
+        policy
+      ) do
     %IncomingDataEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(
       :incoming_data_event,
@@ -119,18 +138,24 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def incoming_introspection(targets, realm, device_id, introspection, timestamp)
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      incoming_introspection(target, realm, device_id, introspection, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      incoming_introspection(target, realm, device_id, introspection, timestamp, policy) == :ok
     end)
   end
 
-  def incoming_introspection(target, realm, device_id, introspection, timestamp) do
-    # TODO check that introspection is a string here
+  def incoming_introspection(
+        target,
+        realm,
+        device_id,
+        introspection,
+        timestamp,
+        policy
+      ) do
     %IncomingIntrospectionEvent{introspection: introspection}
     |> make_simple_event(
       :incoming_introspection_event,
@@ -140,7 +165,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def interface_added(
@@ -153,7 +178,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         timestamp
       )
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
+    execute_all_ok(targets, fn {target, policy} ->
       interface_added(
         target,
         realm,
@@ -161,11 +186,22 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         major_version,
         minor_version,
-        timestamp
+        timestamp,
+        policy
       ) == :ok
     end)
   end
 
+  @spec interface_added(
+          Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget.t(),
+          any,
+          any,
+          any,
+          any,
+          any,
+          any,
+          any
+        ) :: :ok
   def interface_added(
         target,
         realm,
@@ -173,7 +209,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         interface,
         major_version,
         minor_version,
-        timestamp
+        timestamp,
+        policy
       ) do
     %InterfaceAddedEvent{
       interface: interface,
@@ -188,7 +225,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def interface_minor_updated(
@@ -202,7 +239,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         timestamp
       )
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
+    execute_all_ok(targets, fn {target, policy} ->
       interface_minor_updated(
         target,
         realm,
@@ -211,7 +248,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         major_version,
         old_minor,
         new_minor,
-        timestamp
+        timestamp,
+        policy
       ) == :ok
     end)
   end
@@ -224,7 +262,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         major_version,
         old_minor,
         new_minor,
-        timestamp
+        timestamp,
+        policy
       ) do
     %InterfaceMinorUpdatedEvent{
       interface: interface,
@@ -240,17 +279,26 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def interface_removed(targets, realm, device_id, interface, major_version, timestamp)
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      interface_removed(target, realm, device_id, interface, major_version, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      interface_removed(target, realm, device_id, interface, major_version, timestamp, policy) ==
+        :ok
     end)
   end
 
-  def interface_removed(target, realm, device_id, interface, major_version, timestamp) do
+  def interface_removed(
+        target,
+        realm,
+        device_id,
+        interface,
+        major_version,
+        timestamp,
+        policy
+      ) do
     %InterfaceRemovedEvent{interface: interface, major_version: major_version}
     |> make_simple_event(
       :interface_removed_event,
@@ -260,17 +308,27 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def path_created(targets, realm, device_id, interface, path, bson_value, timestamp)
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      path_created(target, realm, device_id, interface, path, bson_value, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      path_created(target, realm, device_id, interface, path, bson_value, timestamp, policy) ==
+        :ok
     end)
   end
 
-  def path_created(target, realm, device_id, interface, path, bson_value, timestamp) do
+  def path_created(
+        target,
+        realm,
+        device_id,
+        interface,
+        path,
+        bson_value,
+        timestamp,
+        policy
+      ) do
     %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
     |> make_simple_event(
       :path_created_event,
@@ -280,16 +338,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def path_removed(targets, realm, device_id, interface, path, timestamp) when is_list(targets) do
-    execute_all_ok(targets, fn target ->
-      path_removed(target, realm, device_id, interface, path, timestamp) == :ok
+    execute_all_ok(targets, fn {target, policy} ->
+      path_removed(target, realm, device_id, interface, path, timestamp, policy) == :ok
     end)
   end
 
-  def path_removed(target, realm, device_id, interface, path, timestamp) do
+  def path_removed(target, realm, device_id, interface, path, timestamp, policy) do
     %PathRemovedEvent{interface: interface, path: path}
     |> make_simple_event(
       :path_removed_event,
@@ -299,7 +357,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def value_change(
@@ -313,7 +371,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         timestamp
       )
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
+    execute_all_ok(targets, fn {target, policy} ->
       value_change(
         target,
         realm,
@@ -322,7 +380,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         path,
         old_bson_value,
         new_bson_value,
-        timestamp
+        timestamp,
+        policy
       ) ==
         :ok
     end)
@@ -336,7 +395,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         path,
         old_bson_value,
         new_bson_value,
-        timestamp
+        timestamp,
+        policy
       ) do
     %ValueChangeEvent{
       interface: interface,
@@ -352,7 +412,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   def value_change_applied(
@@ -366,7 +426,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         timestamp
       )
       when is_list(targets) do
-    execute_all_ok(targets, fn target ->
+    execute_all_ok(targets, fn {target, policy} ->
       value_change_applied(
         target,
         realm,
@@ -375,7 +435,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         path,
         old_bson_value,
         new_bson_value,
-        timestamp
+        timestamp,
+        policy
       ) == :ok
     end)
   end
@@ -388,7 +449,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         path,
         old_bson_value,
         new_bson_value,
-        timestamp
+        timestamp,
+        policy
       ) do
     %ValueChangeAppliedEvent{
       interface: interface,
@@ -404,7 +466,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       device_id,
       timestamp
     )
-    |> dispatch_event(target)
+    |> dispatch_event(target, policy)
   end
 
   defp make_simple_event(
@@ -463,14 +525,18 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     |> wait_backoff_and_publish(1, exchange, routing_key, payload, opts)
   end
 
-  defp dispatch_event(simple_event = %SimpleEvent{}, %AMQPTriggerTarget{
-         exchange: target_exchange,
-         routing_key: routing_key,
-         static_headers: static_headers,
-         message_expiration_ms: message_expiration_ms,
-         message_priority: message_priority,
-         message_persistent: message_persistent
-       }) do
+  defp dispatch_event(
+         simple_event = %SimpleEvent{},
+         %AMQPTriggerTarget{
+           exchange: target_exchange,
+           routing_key: routing_key,
+           static_headers: static_headers,
+           message_expiration_ms: message_expiration_ms,
+           message_priority: message_priority,
+           message_persistent: message_persistent
+         },
+         policy_name
+       ) do
     {event_type, _event_struct} = simple_event.event
 
     exchange = target_exchange || Config.events_exchange_name!()
@@ -494,10 +560,20 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       | static_headers
     ]
 
+    {routing_key, headers} =
+      update_if_has_policy(
+        routing_key,
+        headers,
+        simple_event.realm,
+        policy_name
+      )
+
     opts_with_nil = [
       expiration: message_expiration_ms && to_string(message_expiration_ms),
       priority: message_priority,
-      persistent: message_persistent
+      persistent: message_persistent,
+      message_id:
+        generate_message_id(simple_event.realm, simple_event.device_id, simple_event.timestamp)
     ]
 
     opts = Enum.filter(opts_with_nil, fn {_k, v} -> v != nil end)
@@ -505,6 +581,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     payload = SimpleEvent.encode(simple_event)
 
     result = wait_ok_publish(exchange, routing_key, payload, [{:headers, headers} | opts])
+
+    Logger.debug("headers: #{inspect(headers)}, routing key: #{inspect(routing_key)}")
 
     :telemetry.execute(
       [:astarte, :data_updater_plant, :triggers_handler, :published_event],
@@ -521,5 +599,45 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   defp compute_backoff_time(current_attempt) do
     minimum_duration = (1 <<< current_attempt) * 1000
     minimum_duration + round(minimum_duration * 0.25 * :rand.uniform())
+  end
+
+  defp generate_message_id(realm, device_id, timestamp) do
+    realm_trunc = String.slice(realm, 0..63)
+    device_id_trunc = String.slice(device_id, 0..15)
+    timestamp_hex_str = Integer.to_string(timestamp, 16)
+    rnd = Enum.random(0..@max_rand) |> Integer.to_string(16)
+
+    "#{realm_trunc}-#{device_id_trunc}-#{timestamp_hex_str}-#{rnd}"
+  end
+
+  defp update_if_has_policy(
+         "trigger_engine",
+         headers,
+         realm,
+         policy_name
+       ) do
+    policy_name = policy_name || "@default"
+
+    headers = [
+      {"x_astarte_trigger_policy", policy_name}
+      | headers
+    ]
+
+    routing_key = generate_routing_key(realm, policy_name)
+
+    {routing_key, headers}
+  end
+
+  defp update_if_has_policy(
+         routing_key,
+         headers,
+         _realm,
+         _policy_name
+       ) do
+    {routing_key, headers}
+  end
+
+  defp generate_routing_key(realm, policy) do
+    "#{realm}_#{policy}"
   end
 end
