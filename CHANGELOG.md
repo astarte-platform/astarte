@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - [astarte_realm_management] Make `amqp_routing_key` mandatory in AMQP actions.
 
+### Fixed
+- [astarte_appengine_api] Don't crash when an interface contains `null` values, just show them as
+  `null` in the resulting JSON.
+
 ## [1.0.0-beta.2] - 2021-03-24
 ### Fixed
 - [astarte_e2e] Fix alerting mechanism preventing "unknown" failures to be raised or linked.
