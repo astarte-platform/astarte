@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Don't crash when an interface contains `null` values, just show them as
   `null` in the resulting JSON.
+- [astarte_realm_management] Fix log noise due to Cassandra warnings when checking health 
+  (see [#420](https://github.com/astarte-platform/astarte/issues/420)).
 
 ## [1.0.0-beta.2] - 2021-03-24
 ### Fixed

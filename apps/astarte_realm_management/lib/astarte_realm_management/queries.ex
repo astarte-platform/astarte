@@ -209,18 +209,33 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def check_astarte_health(client, consistency) do
-    realms_count_statement = """
-    SELECT COUNT(*)
-    FROM astarte.realms
+    schema_statement = """
+      SELECT count(value)
+      FROM astarte.kv_store
+      WHERE group='astarte' AND key='schema_version'
     """
 
-    realms_count_statement =
+    # no-op, just to check if nodes respond
+    # no realm name can contain '_', '^'
+    realms_statement = """
+    SELECT *
+    FROM astarte.realms
+    WHERE realm_name='_invalid^name_'
+    """
+
+    schema_query =
       DatabaseQuery.new()
-      |> DatabaseQuery.statement(realms_count_statement)
+      |> DatabaseQuery.statement(schema_statement)
       |> DatabaseQuery.consistency(consistency)
 
-    with {:ok, result} <- DatabaseQuery.call(client, realms_count_statement),
-         [count: _count] <- DatabaseResult.head(result) do
+    realms_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(realms_statement)
+      |> DatabaseQuery.consistency(consistency)
+
+    with {:ok, result} <- DatabaseQuery.call(client, schema_query),
+         ["system.count(value)": _count] <- DatabaseResult.head(result),
+         {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
       :ok
     else
       %{acc: _, msg: err_msg} ->
@@ -801,19 +816,30 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def check_astarte_health(consistency) do
-    query = """
-    SELECT COUNT(*)
+    schema_statement = """
+      SELECT count(value)
+      FROM astarte.kv_store
+      WHERE group='astarte' AND key='schema_version'
+    """
+
+    # no-op, just to check if nodes respond
+    # no realm name can contain '_', '^'
+    realms_statement = """
+    SELECT *
     FROM astarte.realms
+    WHERE realm_name='_invalid^name_'
     """
 
     with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency),
-         {:ok, _} <- Enum.fetch(page, 0) do
+           Xandra.Cluster.execute(:xandra, schema_statement, %{}, consistency: consistency),
+         {:ok, _} <- Enum.fetch(page, 0),
+         {:ok, %Xandra.Page{} = _page} <-
+           Xandra.Cluster.execute(:xandra, realms_statement, %{}, consistency: consistency) do
       :ok
     else
       :error ->
         _ =
-          Logger.warn("Cannot retrieve count for astarte.realms table.",
+          Logger.warn("Cannot retrieve health query data.",
             tag: "health_check_error"
           )
 
