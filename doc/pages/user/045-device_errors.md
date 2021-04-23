@@ -50,9 +50,13 @@ but an integer value was received instead).
 The value of the message exceeds the maximum size of its type. The size limitations of the types are
 documented [here](030-interface.html#supported-data-types).
 
-## `unexpected_object_key`
+## `unexpected_object_keys`
 
-An object aggregated value with an unexpected key was received.
+An object aggregated value with unexpected keys was received.
+
+## `missing_object_keys`
+
+An object aggregated value with missing keys was received.
 
 ## `invalid_introspection`
 

@@ -220,6 +220,19 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 60 * 60 * 1_000
 
+  @envdoc """
+  If true, Data Updater Plant accepts object aggregations with missing keys. This behaviour
+  is here just to help during the transition since old versions of Data Updater Plant incorrectly
+  accepted incomplete object aggregations and will be removed in future releases.
+  Defaults to false.
+  """
+  app_env :accept_incomplete_objects,
+          :astarte_data_updater_plant,
+          :accept_incomplete_objects,
+          os_env: "DATA_UPDATER_PLANT_ACCEPT_INCOMPLETE_OBJECTS",
+          type: :boolean,
+          default: false
+
   @doc """
   Returns the AMQP data consumer connection options
   """

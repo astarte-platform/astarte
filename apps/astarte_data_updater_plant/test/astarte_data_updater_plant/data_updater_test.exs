@@ -713,7 +713,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:49+00:00")
     )
 
-    payload1 = Cyanide.encode!(%{"string" => "Hello World');"})
+    payload1 = Cyanide.encode!(%{"value" => 3.2, "string" => "Hello World');"})
 
     DataUpdater.handle_data(
       realm,
@@ -725,7 +725,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:50+00:00")
     )
 
-    payload2 = Cyanide.encode!(%{"v" => %{"value" => 0}})
+    payload2 = Cyanide.encode!(%{"v" => %{"value" => 0, "string" => "old format"}})
 
     DataUpdater.handle_data(
       realm,
@@ -737,8 +737,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:51+00:00")
     )
 
-    # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
-    payload3 = Cyanide.encode!(%{"string" => "zzz"})
+    payload3 = Cyanide.encode!(%{"value" => 3.3, "string" => "zzz"})
 
     DataUpdater.handle_data(
       realm,
@@ -750,7 +749,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-09-30T07:13:00+00:00")
     )
 
-    payload4 = Cyanide.encode!(%{})
+    payload4 = Cyanide.encode!(%{"string" => "foobar", "value" => 123.45})
 
     DataUpdater.handle_data(
       realm,
@@ -814,14 +813,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                reception_timestamp: 1_509_007_730_000,
                reception_timestamp_submillis: 0,
                v_string: "Hello World');",
-               v_value: nil
+               v_value: 3.2
              ],
              [
                device_id: device_id,
                path: "/",
                reception_timestamp: 1_509_007_731_000,
                reception_timestamp_submillis: 0,
-               v_string: nil,
+               v_string: "old format",
                v_value: 0.0
              ],
              [
@@ -829,8 +828,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                path: "/",
                reception_timestamp: 1_509_347_580_000,
                reception_timestamp_submillis: 0,
-               v_string: nil,
-               v_value: nil
+               v_string: "foobar",
+               v_value: 123.45
              ]
            ]
 
@@ -1007,14 +1006,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert device_row == [
              connected: false,
              total_received_msgs: 45015,
-             total_received_bytes: 4_500_796,
+             total_received_bytes: 4_500_883,
              exchanged_msgs_by_interface: [
                {["com.example.TestObject", 1], 5},
                {["com.test.LCDMonitor", 1], 6},
                {["com.test.SimpleStreamTest", 1], 1}
              ],
              exchanged_bytes_by_interface: [
-               {["com.example.TestObject", 1], 243},
+               {["com.example.TestObject", 1], 330},
                {["com.test.LCDMonitor", 1], 291},
                {["com.test.SimpleStreamTest", 1], 45}
              ]
