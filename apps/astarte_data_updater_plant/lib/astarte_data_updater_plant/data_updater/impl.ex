@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
+  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
@@ -801,9 +802,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         update_stats(new_state, interface, nil, path, payload)
 
-      {:error, :unexpected_object_key} ->
-        Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.",
-          tag: "unexcpected_object_key"
+      {:error, :missing_object_keys} ->
+        Logger.warn("Object with missing keys sent to #{interface}#{path}.",
+          tag: "missing_object_keys"
         )
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
@@ -825,7 +826,38 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         execute_device_error_triggers(
           new_state,
-          "unexpected_object_key",
+          "missing_object_keys",
+          error_metadata,
+          timestamp
+        )
+
+        update_stats(new_state, interface, nil, path, payload)
+
+      {:error, :unexpected_object_keys} ->
+        Logger.warn("Object with unexpected keys sent to #{interface}#{path}.",
+          tag: "unexpected_object_keys"
+        )
+
+        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{realm: new_state.realm}
+        )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "interface" => inspect(interface),
+          "path" => inspect(path),
+          "base64_payload" => base64_payload
+        }
+
+        execute_device_error_triggers(
+          new_state,
+          "unexpected_object_keys",
           error_metadata,
           timestamp
         )
@@ -900,18 +932,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def validate_value_type(%{} = expected_types, %{} = object) do
-    Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
-      with {:ok, expected_type} <- Map.fetch(expected_types, key),
-           :ok <- ValueType.validate_value(expected_type, value) do
-        {:cont, :ok}
-      else
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-
-        :error ->
-          {:halt, {:error, :unexpected_object_key}}
-      end
-    end)
+    with :ok <- validate_object_keys(expected_types, object) do
+      Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
+        with {:ok, expected_type} <- Map.fetch(expected_types, key),
+             :ok <- ValueType.validate_value(expected_type, value) do
+          {:cont, :ok}
+        else
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+      end)
+    end
   end
 
   # TODO: we should test for this kind of unexpected messages
@@ -931,6 +962,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       ValueType.validate_value(expected_type, value)
     else
       :ok
+    end
+  end
+
+  defp validate_object_keys(expected_types, object)
+       when is_map(expected_types) and is_map(object) do
+    expected_keys = MapSet.new(Map.keys(expected_types))
+    object_keys = MapSet.new(Map.keys(object))
+
+    missing_keys = MapSet.difference(expected_keys, object_keys)
+    extra_keys = MapSet.difference(object_keys, expected_keys)
+
+    cond do
+      MapSet.size(missing_keys) > 0 and not Config.accept_incomplete_objects!() ->
+        Logger.warn(
+          "Missing object keys: #{inspect(MapSet.to_list(missing_keys))}.",
+          tag: "missing_object_keys_set"
+        )
+
+        {:error, :missing_object_keys}
+
+      MapSet.size(extra_keys) > 0 ->
+        Logger.warn(
+          "Unexpected object keys: #{inspect(MapSet.to_list(extra_keys))}.",
+          tag: "unexpected_object_keys_set"
+        )
+
+        {:error, :unexpected_object_keys}
+
+      true ->
+        :ok
     end
   end
 

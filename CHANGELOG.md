@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Don't crash when an interface contains `null` values, just show them as
   `null` in the resulting JSON.
+- [astarte_data_updater_plant] **Breaking**: stop accepting object aggregations which do not contain
+  all the required keys. Setting the `DATA_UPDATER_PLANT_ACCEPT_INCOMPLETE_OBJECTS` environment
+  variable to `true` it's possible to maintain the old behaviour during the transition phase, while
+  fixing the issue on the device side.
 
 ## [1.0.0-beta.2] - 2021-03-24
 ### Fixed
