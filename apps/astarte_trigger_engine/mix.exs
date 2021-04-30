@@ -73,7 +73,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 1.4"},
+      {:amqp, "~> 2.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 0.1.0"},
       {:cyanide, "~> 1.0"},
