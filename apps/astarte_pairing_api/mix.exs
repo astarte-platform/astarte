@@ -71,7 +71,7 @@ defmodule Astarte.Pairing.API.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, "~> 1.0.0-beta.2"},
-      {:astarte_rpc, "~> 1.0.0-beta.2"}
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-1.0"}
     ]
   end
 

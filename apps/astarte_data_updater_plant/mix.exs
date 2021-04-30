@@ -65,13 +65,13 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       {:astarte_core, "~> 1.0.0-beta.2"},
       {:astarte_data_access, "~> 1.0.0-beta.2"},
-      {:astarte_rpc, "~> 1.0.0-beta.2"}
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-1.0"}
     ]
   end
 
   defp deps do
     [
-      {:amqp, "~> 1.4"},
+      {:amqp, "~> 2.1"},
       {:castore, "~> 0.1.0"},
       {:cyanide, "~> 1.0"},
       {:excoveralls, "~> 0.12", only: :test},
