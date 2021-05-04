@@ -287,6 +287,41 @@ Created` or an error. Apart from the very same errors that could be triggered up
 Update will also fail if the interface doesn't provide a compatible upgrade path from the previously
 installed minor.
 
+### Interface update limitations
+
+#### Major version updates
+
+Major version updates have no intrinsic limitations as they are not meant to ensure compatibility
+with older versions of the same interface. Therefore, if you plan to bump your interface major you
+are allowed to update your interface at your preference. Please, refer to the [Interface Design
+Guide](029-interface_design_guide.html) to follow the best practices while developing your new
+updated interface.
+
+#### Minor version updates
+
+Minor version updates are conceived to guarantee retro-compatibility and, as such, they allows only
+for a limited subset of update operations.
+
+Currently, based on the interface type and aggregation, different update capabilities are provided:
+
+- `properties`:
+  - at interface root level, `doc` and `description` updates are allowed;
+  - at mapping level, `doc` and `description` updates are allowed. Moreover, an arbitrary number of
+    new mappings can be added;
+
+- `individual datastream`:
+  - at interface root level, `doc` and `description` updates are allowed;
+  - at mapping level, `doc`, `description` and `explicit_timestamp` updates are allowed. Moreover,
+    an arbitrary number of new mappings can be added;
+
+- `object aggregated datastream`:
+  - currently, due to a limitation in how data are stored within Cassandra, the `doc`, `descriprion`
+    and `explicit-timestamp` fields *can not* be updated;
+  - at mapping level, an arbitrary number of mappings can be added.
+
+Where not explicitly stated, all the other values are to be considered as not updatable. In case you
+need to update one of those fields, please consider updating your interface major version.
+
 ## Interfaces lifecycle
 
 Interfaces are versioned through a semantic versioning-like mechanism. A Realm can hold any number
