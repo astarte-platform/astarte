@@ -135,6 +135,50 @@ You can then proceed to install a new interface with the same name and major ver
 conflict. *Remember to remove the interface also on the device side, otherwise devices will keep
 getting disconnected if they try to publish on the deleted interface.*
 
+## Backup your Astarte resources
+
+Backing up your Astarte resources is crucial in all those cases in which your Astarte instance has
+to be restored after an unforeseen event (e.g. accidental deletion of resources, deletion of the
+Operator - as it will be discussed later on - etc.).
+
+A full recovery of your Astarte instance along with all the persisted data is possible **if and only
+if** your Cassandra/Scylla instance is deployed independently from Astarte, i.e. it must be deployed
+outside of the Astarte CR scope. If this condition is met, all the data are persisted into the
+database even when Astarte is deleted from your cluster.
+
+To restore your Astarte instance all you have to do is saving the following resources:
++ Astarte CR;
++ AstarteVoyagerIngress CR;
++ CA certificate and key;
+
+and, assuming that your Astarte's name is `astarte` and that it is deployed within the `astarte`
+namespace, it can be done simply executing the following commands:
+```bash
+kubectl get astarte -n astarte -o yaml > astarte-backup.yaml
+kubectl get avi -n astarte -o yaml > avi-backup.yaml
+kubectl get astarte-devices-ca -n astarte -o yaml > astarte-devices-ca-backup.yaml
+```
+
+## Restore your backed up Astarte instance
+
+To restore your Astarte instance simply apply the resources you saved as described
+[here](#backup-your-astarte-resources). Please, be aware that the order of the operations matters.
+
+```bash
+kubectl apply -f astarte-devices-ca-backup.yaml
+kubectl apply -f astarte-backup.yaml
+```
+
+And when your Astarte resource is ready:
+
+```bash
+kubectl apply -f avi-backup.yaml
+```
+
+At the end of this step, your cluster is restored. Please, notice that the external IP of the
+ingress services might have changed. Take action to ensure that the changes of the IP are reflected
+anywhere appropriate in your deployment.
+
 ## Handling Astarte when uninstalling the Operator
 
 Installing the Astarte Operator is as simple as installing its Helm chart. Even if the
@@ -161,31 +205,15 @@ Therefore, when the Operator is uninstalled all the CRDs are seen as orphaned an
 controller automatically set them as ready to be deleted. Thus, when the Operator is uninstalled you
 end up with the following situation:
 - Flow and AstarteVoyagerIngress CRDs are deleted, along with the custom resources depending on
-  them;
+  said CRDs;
 - Astarte CRD is marked for deletion, but its removal is postponed until the moment in which the
   Astarte finalizer is executed.
 
 ### Backup your resources
 
-Even if removing the Operator potentially can destroy your Astarte instance, there is a way to
-restore it avoiding any data loss **if and only if** the following condition is satisfied: Cassandra
-must be deployed independently from Astarte, i.e. it must be deployed outside of the Astarte CR
-scope. If this condition is met, all the data are persisted into the database even when Astarte is
-deleted from your cluster.
-
-Before uninstalling the Operator, in order to restore your Astarte instance the following resources
-must be saved:
-- Astarte CR
-- AstarteVoyagerIngress CR
-- CA certificate and key
-
-Assuming that your Astarte's name is `astarte` and that it resides in the `astarte` namespace,
-the resources can be saved with the following:
-```bash
-kubectl get astarte -n astarte -o yaml > astarte-backup.yaml
-kubectl get avi -n astarte -o yaml > avi-backup.yaml
-kubectl get astarte-devices-ca -n astarte -o yaml > astarte-devices-ca-backup.yaml
-```
+Even if removing the Operator can potentially destroy your Astarte instance, there is a way to
+restore it avoiding any data loss. Please, refer to [this dedicated
+section](#backup-your-astarte-resources) to understand how to backup your resources.
 
 ### Uninstall the Operator
 
@@ -218,20 +246,8 @@ to restore the Astarte resources.
 
 ### Apply backed up resources
 
-To restore your Astarte instance simply apply the resources you saved in the [previous step](#backup-your-resources). Please,
-be aware that the order of the operations matters.
-```bash
-kubectl apply -f astarte-devices-ca-backup.yaml
-kubectl apply -f astarte-backup.yaml
-```
-And when your Astarte resource is ready:
-```bash
-kubectl apply -f avi-backup.yaml
-```
-
-At the end of this step, your cluster is restored. Please, notice that the external IP of the
-ingress services might have changed. Take action to ensure that the changes of the IP are reflected
-anywhere appropriate in your deployment.
+To restore your Astarte instance simply follow the instructions outlined
+[here](#restore-your-backed-up-astarte-instance).
 
 ### Conclusion
 
