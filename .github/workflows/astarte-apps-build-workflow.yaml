@@ -24,7 +24,7 @@ env:
 jobs:
   test-dialyzer:
     name: Check Dialyzer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -74,7 +74,7 @@ jobs:
 
   test-coverage:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     # Wait for Dialyzer to give it a go before building
     needs:
       - test-dialyzer
