@@ -75,7 +75,7 @@ jobs:
       with:
         path: tools/astarte_e2e/_build
         key: build-${{ env.otp_version }}-${{ env.elixir_version }}
-    - uses: erlef/setup-elixir@v1.6.0
+    - uses: erlef/setup-beam@v1.7.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
