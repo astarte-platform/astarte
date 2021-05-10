@@ -26,7 +26,7 @@ env:
 jobs:
   end-to-end-test:
     name: End-to-end Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - name: Initialize docker-compose files
@@ -75,7 +75,7 @@ jobs:
       with:
         path: tools/astarte_e2e/_build
         key: build-${{ env.otp_version }}-${{ env.elixir_version }}
-    - uses: erlef/setup-elixir@v1.6.0
+    - uses: erlef/setup-beam@v1.7.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
