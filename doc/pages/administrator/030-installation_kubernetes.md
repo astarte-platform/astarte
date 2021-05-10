@@ -32,17 +32,35 @@ from. Please refer to the [Upgrade Guide](000-upgrade_index.html) section that f
 
 ## Uninstalling the Operator
 
-To uninstall the Operator, use the dedicated `helm uninstall` command.
+**WARNING** - *Understanding the consequences of the uninstall procedure is fundamental to avoid
+catastrophic aftermaths. Please read carefully this section to understand how the uninstall
+procedure may impact your Astarte instance.*
+
+Be aware that the following statements hold:
+1) the Astarte's CRDs are installed and handled by the Operator's Helm chart;
+2) uninstalling the Operator causes the Astarte's CRDs to be marked for deletion;
+3) the deletion of CRDs leads to the destruction of all the Kubernetes instances of the CRDs (i.e.
+Astarte will be destroyed).
+
+The [Advanced Operations
+section](095-advanced-operations.html#handling-astarte-when-uninstalling-the-operator) outlines all
+the relevant information to handle your Astarte instance when uninstalling the Operator, explains
+how to recover your Astarte instance and highlights in a more exhaustive way what's happening under
+the hood.
+
+To uninstall the Operator, use the dedicated `helm uninstall` command. This operation is responsible
+for the deletion of both RBACs and the Operator's deployment itself. Moreover, all the CRDs
+installed by the Operator's Helm chart are marked for deletion.
 
 ```bash
-helm uninstall astarte-operator
+helm uninstall astarte-operator -n kube-system
 ```
 
-Uninstalling the Operator can be performed even if an Astarte instance is still active in the
-cluster. The result of this operation consists in the deletion of RBACs and of the Operator's
-deployment itself.
+So, what should you expect after uninstalling the Operator?
 
-*Note: CRDs are not affected by the uninstall procedure as, according to Helm's choices, forcing
-their removal may lead to unwanted and (in some cases) catastrophic aftermaths. In case you want to
-remove any of the CRDs, you will be responsible for their handling: be sure you know what you are
-doing and act very carefully as you may end up with a broken cluster.*
+After executing the `helm uninstall` command your Operator's deployment will be destroyed, along
+with the `AstarteVoyagerIngress` and `Flow` CRDs and resources (when they exist). Both the Astarte
+CRD and its instance will not be immediately destroyed as their deletion is allowed after the
+Astarte finalizer is executed. Please refer to the [Advanced Operations
+section](095-advanced-operations.html#handling-astarte-when-uninstalling-the-operator) to learn how
+to handle your Astarte instance and how to restore its functionalities.
