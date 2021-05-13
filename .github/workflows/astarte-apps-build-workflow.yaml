@@ -24,7 +24,7 @@ env:
 jobs:
   test-dialyzer:
     name: Check Dialyzer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     strategy:
       fail-fast: false
       matrix:
@@ -60,7 +60,7 @@ jobs:
         key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/setup-elixir@v1.5.0
+    - uses: erlef/setup-beam@v1.7.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
@@ -74,7 +74,7 @@ jobs:
 
   test-coverage:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     # Wait for Dialyzer to give it a go before building
     needs:
       - test-dialyzer
@@ -129,7 +129,7 @@ jobs:
         key: ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/setup-elixir@v1.5.0
+    - uses: erlef/setup-beam@v1.7.0
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
