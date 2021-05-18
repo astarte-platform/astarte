@@ -156,7 +156,7 @@ namespace, it can be done simply executing the following commands:
 ```bash
 kubectl get astarte -n astarte -o yaml > astarte-backup.yaml
 kubectl get avi -n astarte -o yaml > avi-backup.yaml
-kubectl get astarte-devices-ca -n astarte -o yaml > astarte-devices-ca-backup.yaml
+kubectl get secret astarte-devices-ca -n astarte -o yaml > astarte-devices-ca-backup.yaml
 ```
 
 ## Restore your backed up Astarte instance
