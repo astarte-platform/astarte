@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - Unreleased
+### Changed
+- Document future removal of Astarte Operator's support for Cassandra.
+
 ## [1.0.0-rc.0] - 2021-05-10
 ### Added
 - [astarte_appengine_api] Add `/v1/<realm>/version` endpoint, returning the API application version.
