@@ -53,13 +53,15 @@ $ helm install \
 
 This will install `cert-manager` 1.1.0 and its CRDs in the cluster.
 
-## External Cassandra
+## External Cassandra / Scylla
 
 In production deployments, it is strongly advised to have a separate Cassandra cluster interacting
 with the Kubernetes installation. This is due to the fact that Cassandra Administration is a
 critical topic, especially with mission critical workloads. Astarte Operator includes only basic
-management of Cassandra, and as such it should not be relied upon when dealing with production
-environments.
+management of Cassandra, which is deprecated since v1.0 and as such it should not be relied upon
+when dealing with production environments. Furthermore, in the near future, Cassandra support is
+planned to be removed from Astarte Operator in favor of the adoption of a dedicated Kubernetes
+Operator (e.g. [Scylla Operator](https://operator.docs.scylladb.com/stable/generic.html)).
 
 In case an external Cassandra cluster is deployed, be aware that Astarte lives on the assumption it
 will be the only application managing the Cluster - as such, it is strongly advised to have a
