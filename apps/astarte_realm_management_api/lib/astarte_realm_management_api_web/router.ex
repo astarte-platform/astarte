@@ -26,6 +26,8 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
   scope "/v1", Astarte.RealmManagement.APIWeb do
     pipe_through :api
 
+    get "/:realm_name/version", VersionController, :show
+
     get "/:realm_name/interfaces/:id", InterfaceVersionController, :index
     resources "/:realm_name/interfaces", InterfaceController, only: [:index, :create]
     get "/:realm_name/interfaces/:id/:major_version", InterfaceController, :show

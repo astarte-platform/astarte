@@ -45,3 +45,12 @@ group resource.
 In the long term a minor semantic change is going to employed, therefore currently we discourage
 emitting long living tokens which allow a non-root user to manage groups (i.e. create and modify
 them) since the current tokens could become incompatible with future changes.
+
+## Ghost connected devices
+
+In some circumstances, prior to Astarte `v1.0`, a device might be mistakenly reported as connected.
+This bug has been fixed in `v1.0`, however this bug may still affect devices that have connected
+last time while using `v0.11` (prior to the upgrade to `v1.0`).
+This issue is likely to happen when upgrading to `v1.0` since it might be caused by VerneMQ
+shutdown.
+A device reconnection fixes this issue, and the connection state will always be reliably reported.

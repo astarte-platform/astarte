@@ -495,6 +495,7 @@ This is a minimal configuration object representing an
 ```json
 {
   "amqp_exchange": "astarte_events_<realm-name>_<exchange-suffix>",
+  "amqp_routing_key": "my_routing_key",
   "amqp_message_expiration_ms": <expiration in milliseconds>,
   "amqp_message_persistent": <true when disk persistency is used>
 }
@@ -507,7 +508,7 @@ It is possible to configure more advanced AMQP 0-9-1 actions:
   "amqp_exchange": "astarte_events_myrealm_myexchange",
   "amqp_routing_key": "my routing key",
   "amqp_static_headers": {
-    "key": "calue"
+    "key": "value"
   },
   "amqp_message_expiration_ms": 10000,
   "amqp_message_priority": 0,

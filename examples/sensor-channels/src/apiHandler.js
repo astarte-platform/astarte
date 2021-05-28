@@ -8,7 +8,7 @@ const ENDPOINT = {
   device_id: "devices/:id?",
   interface_by_alias: "devices/:device_alias/interfaces/:interface/",
   interface_by_id: "devices/:device_id/interfaces/:interface/",
-  interface_id_path: "devices/:device_id/interfaces/:interface/:sensor_id/:key"
+  interface_id_path: "devices/:device_id/interfaces/:interface/:sensor_id/:key",
 };
 
 export default class ApiHandler {
@@ -31,7 +31,7 @@ export default class ApiHandler {
   getHeaders() {
     return {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.token}`
+      Authorization: `Bearer ${this.token}`,
     };
   }
 
@@ -68,15 +68,15 @@ export default class ApiHandler {
   getDeviceDataById(device, params = {}) {
     const URL = this.getAPIUrl("device_id", { id: device });
     return this.GET(URL, params)
-      .then(response => Promise.resolve(response.data.data))
-      .catch(err => Promise.reject(err));
+      .then((response) => Promise.resolve(response.data.data))
+      .catch((err) => Promise.reject(err));
   }
 
   getDeviceDataByAlias(alias, params = {}) {
     const URL = this.getAPIUrl("device_alias", { device_alias: alias });
     return this.GET(URL, params)
-      .then(response => Promise.resolve(response.data.data))
-      .catch(err => Promise.reject(err));
+      .then((response) => Promise.resolve(response.data.data))
+      .catch((err) => Promise.reject(err));
   }
 
   getSensorValueById(id, interfaces, sensor_id, key, params = {}) {
@@ -84,7 +84,7 @@ export default class ApiHandler {
       device_id: id,
       interface: interfaces,
       sensor_id: sensor_id,
-      key: key
+      key: key,
     });
     return this.GET(URL, params);
   }
@@ -92,9 +92,9 @@ export default class ApiHandler {
   getInterfaceById(device_id, interface_id, params = {}) {
     const URL = this.getAPIUrl("interface_by_id", {
       device_id: device_id,
-      interface: interface_id
+      interface: interface_id,
     });
-    return this.GET(URL, params).then(response => response.data.data);
+    return this.GET(URL, params).then((response) => response.data.data);
   }
 
   connectSocket(params) {
@@ -104,14 +104,14 @@ export default class ApiHandler {
       onInComingData,
       onOpenConnection = () => {},
       onCloseConnection = () => {},
-      onErrorConnection = () => {}
+      onErrorConnection = () => {},
     } = params;
     const socketUrl = this.getWSUrl();
     const socketParams = {
       params: {
         realm: this.realm,
-        token: this.token
-      }
+        token: this.token,
+      },
     };
     const phoenixSocket = new Socket(socketUrl, socketParams);
     phoenixSocket.onOpen(onOpenConnection);
@@ -120,21 +120,19 @@ export default class ApiHandler {
     phoenixSocket.onMessage(onInComingData);
     phoenixSocket.connect();
 
-    const room_name = Math.random()
-      .toString(36)
-      .substring(7);
+    const room_name = Math.random().toString(36).substring(7);
     const channel = phoenixSocket.channel(
       `rooms:${this.realm}:${device}_${room_name}`,
       { token: this.token }
     );
-    channel.join().receive("ok", response => {
+    channel.join().receive("ok", (response) => {
       channel.push("watch", this.getConnectionTriggerPayload(device));
       channel.push("watch", this.getDisconnectionTriggerPayload(device));
       channel.push(
         "watch",
         this.getValueTriggerPayload({
           device,
-          interfaceName
+          interfaceName,
         })
       );
     });
@@ -152,8 +150,8 @@ export default class ApiHandler {
       simple_trigger: {
         type: "device_trigger",
         on: "device_connected",
-        device_id: device
-      }
+        device_id: device,
+      },
     };
   }
 
@@ -164,8 +162,8 @@ export default class ApiHandler {
       simple_trigger: {
         type: "device_trigger",
         on: "device_disconnected",
-        device_id: device
-      }
+        device_id: device,
+      },
     };
   }
 
@@ -174,7 +172,7 @@ export default class ApiHandler {
       device,
       interfaceName,
       value_match_operator = "*",
-      known_value = 0
+      known_value = 0,
     } = params;
     return {
       name: `valueTrigger-${device}`,
@@ -183,11 +181,11 @@ export default class ApiHandler {
         type: "data_trigger",
         on: "incoming_data",
         interface_name: interfaceName,
-        interface_major: 0,
+        interface_major: 1,
         match_path: "/*",
         known_value: known_value,
-        value_match_operator: value_match_operator
-      }
+        value_match_operator: value_match_operator,
+      },
     };
   }
 }

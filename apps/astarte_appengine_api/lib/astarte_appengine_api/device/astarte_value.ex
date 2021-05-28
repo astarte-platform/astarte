@@ -64,12 +64,10 @@ defmodule Astarte.AppEngine.API.Device.AstarteValue do
     end
   end
 
+  # Allow :null values, converting them to `nil`. They shouldn't be there in the first place,
+  # but if they are it's better to display null than preventing the user to query the interface
   def to_json_friendly(:null, _value_type, _opts) do
-    raise ArgumentError, message: "invalid argument :null"
-  end
-
-  def to_json_friendly(nil, _value_type, _opts) do
-    raise ArgumentError, message: "invalid nil argument"
+    nil
   end
 
   def to_json_friendly(value, _value_type, _opts) do

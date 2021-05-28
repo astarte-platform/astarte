@@ -6,7 +6,7 @@ import {
   FormControl,
   InputGroup,
   Row,
-  Spinner
+  Spinner,
 } from "react-bootstrap";
 import CredentialsModal from "./CredentialsModal";
 
@@ -14,9 +14,9 @@ import ApiHandler from "../apiHandler";
 import SensorSamplingUpdate from "./SensorSamplingUpdate";
 
 const _ = require("lodash");
-const CONSTANT = {
+const INTERFACES = {
   VALUES: "Values",
-  SAMPLING_RATE: "SamplingRate"
+  SAMPLING_RATE: "SamplingRate",
 };
 
 class SensorViewer extends Component {
@@ -28,10 +28,10 @@ class SensorViewer extends Component {
     sensorSamplingRate: {},
     loading: false,
     astarte: null,
-    samplingRateInterface: null
+    samplingRateInterface: null,
   };
 
-  handleChange = e => {
+  handleChange = (e) => {
     e.preventDefault();
     this.setState({ [e.target.name]: e.target.value });
   };
@@ -62,45 +62,43 @@ class SensorViewer extends Component {
       this.setState({ loading: true });
       astarte
         .getDevice(device)
-        .then(response => this.setInterfaces(response))
-        .catch(error => this.handleError(error));
+        .then((response) => this.setInterfaces(response))
+        .catch((error) => this.handleError(error));
     }
   };
 
-  setInterfaces = res => {
+  setInterfaces = (res) => {
     const { astarte } = this.state;
     const id = res.id;
     const interfaces = Object.keys(res.introspection);
-    const samplingIndex = interfaces.findIndex(
-      key => key.search(CONSTANT.SAMPLING_RATE) > -1
+    const samplingRateInterface = interfaces.find(
+      (key) => key.search(INTERFACES.SAMPLING_RATE) > -1
     );
-    const samplingRateInterface = interfaces[samplingIndex];
-    const valueIndex = interfaces.findIndex(
-      key => key.search(CONSTANT.VALUES) > -1
+    const valueInterface = interfaces.find(
+      (key) => key.search(INTERFACES.VALUES) > -1
     );
-    const valueInterface = interfaces[valueIndex];
     this.setState({
       data: res,
       loading: false,
       device: id,
-      samplingRateInterface: samplingRateInterface
+      samplingRateInterface: samplingRateInterface,
     });
-    astarte.getInterfaceById(id, valueInterface).then(response => {
+    astarte.getInterfaceById(id, valueInterface).then((response) => {
       this.setState({ sensorValues: response });
     });
-    astarte.getInterfaceById(id, samplingRateInterface).then(response => {
+    astarte.getInterfaceById(id, samplingRateInterface).then((response) => {
       this.setState({ sensorSamplingRate: response });
     });
   };
 
   refreshSamplingRate = (id, interfaces) => {
     const { astarte } = this.state;
-    astarte.getInterfaceById(id, interfaces).then(response => {
+    astarte.getInterfaceById(id, interfaces).then((response) => {
       this.setState({ sensorSamplingRate: response });
     });
   };
 
-  setCredentials = config => {
+  setCredentials = (config) => {
     const astarte = new ApiHandler(config);
     localStorage.AstarteConfig = JSON.stringify(config);
     this.setState({ astarte, visible: false });
@@ -114,7 +112,7 @@ class SensorViewer extends Component {
       sensorSamplingRate,
       loading,
       samplingRateInterface,
-      astarte
+      astarte,
     } = this.state;
     return (
       <Container className="px-0 py-4" fluid>

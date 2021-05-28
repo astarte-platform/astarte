@@ -7,15 +7,15 @@ class CredentialsModal extends Component {
     this.state = {
       realm: undefined,
       token: undefined,
-      endpoint: undefined
+      endpoint: undefined,
     };
   }
-  handleValue = e => {
+  handleValue = (e) => {
     e.preventDefault();
     this.setState({ [e.target.name]: e.target.value });
   };
 
-  handleSubmit = e => {
+  handleSubmit = (e) => {
     const form = e.currentTarget;
     e.preventDefault();
     if (form.checkValidity() === false) {

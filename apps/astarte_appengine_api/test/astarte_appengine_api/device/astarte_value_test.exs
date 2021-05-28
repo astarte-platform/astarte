@@ -82,13 +82,9 @@ defmodule Astarte.AppEngine.API.AstarteValueTest do
     assert AstarteValue.to_json_friendly(true, :boolean, []) == true
   end
 
-  test "json friendly fails on unsupported argument" do
-    assert_raise ArgumentError, fn ->
-      assert AstarteValue.to_json_friendly(:null, :string, [])
-    end
+  test "json friendly returns nil on nil-like argument" do
+    assert AstarteValue.to_json_friendly(:null, :string, []) == nil
 
-    assert_raise ArgumentError, fn ->
-      assert AstarteValue.to_json_friendly(nil, :string, [])
-    end
+    assert AstarteValue.to_json_friendly(nil, :string, []) == nil
   end
 end

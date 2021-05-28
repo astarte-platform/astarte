@@ -281,11 +281,11 @@ The following structure, instead, is deprecated:
 
 `datastream` interfaces are highly tunable, depending on the kind of
 data they are representing: it is possible to fine tune several aspects of how data is stored,
-transferred and indexed. The following properties can be set either at interface level, making them
-the default for each mapping, or at mapping level, overriding any interface-wide setting.
+transferred and indexed. The following properties can be set at mapping level.
 
-> NOTE: In case the interface is aggregated, overriding any additional properties at mapping level
-> does not have any effect, and might cause a validation error.
+> NOTE: In case the interface is aggregated, additional properties must
+> be the same for each mapping.
+
 
 * `explicit_timestamp`: By default, Astarte associates a timestamp to data whenever it is collected
   (or - when the message hits the data collection stage). However, when setting this property to

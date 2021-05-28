@@ -4,20 +4,20 @@
   "private": true,
   "dependencies": {
     "axios": "^0.21.1",
-    "bootstrap": "^4.4.1",
+    "bootstrap": "^4.6.0",
     "named-urls": "^2.0.0",
-    "phoenix": "^1.4.12",
-    "react": "^16.12.0",
-    "react-bootstrap": "^1.0.1",
-    "react-dom": "^16.12.0",
-    "react-scripts": "3.4.1"
+    "phoenix": "^1.5.7",
+    "react": "^17.0.1",
+    "react-bootstrap": "^1.5.0",
+    "react-dom": "^17.0.1",
+    "react-scripts": "^4.0.2"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "format-js": "prettier --write \"src/**/*.js\""
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\""
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -35,6 +35,6 @@
     ]
   },
   "devDependencies": {
-    "prettier": "^1.19.1"
+    "prettier": "^2.2.1"
   }
 }

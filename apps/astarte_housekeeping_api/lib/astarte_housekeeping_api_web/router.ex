@@ -27,6 +27,8 @@ defmodule Astarte.Housekeeping.APIWeb.Router do
   scope "/v1", Astarte.Housekeeping.APIWeb do
     pipe_through :api
 
+    get "/version", VersionController, :show
+
     resources "/realms", RealmController, except: [:new, :edit]
   end
 end
