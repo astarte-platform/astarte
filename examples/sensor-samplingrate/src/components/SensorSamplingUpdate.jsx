@@ -7,7 +7,7 @@ import {
   FormControl,
   FormGroup,
   Row,
-  Spinner
+  Spinner,
 } from "react-bootstrap";
 import CredentialsModal from "./CredentialsModal";
 import SensorItems from "./SensorItem";
@@ -18,7 +18,7 @@ class SensorSamplingUpdate extends Component {
     this.state = {
       loading: false,
       visible: false,
-      current: null
+      current: null,
     };
   }
 
@@ -28,19 +28,19 @@ class SensorSamplingUpdate extends Component {
     if (keys.length > 0) this.setState({ current: keys[0], sensor: keys[0] });
   }
 
-  handleChange = e => {
+  handleChange = (e) => {
     this.setState({ [e.target.name]: e.target.value });
   };
-  handleSensor = e => {
+  handleSensor = (e) => {
     this.setState({
       [e.target.name]: e.target.value,
-      current: e.target.value
+      current: e.target.value,
     });
   };
-  handleCheckbox = e => {
+  handleCheckbox = (e) => {
     this.setState({ [e.target.name]: e.target.checked });
   };
-  handleError = err => {
+  handleError = (err) => {
     if (err.response.status === 403) {
       this.setState({ visible: true, loading: false });
     }
@@ -57,7 +57,7 @@ class SensorSamplingUpdate extends Component {
       data,
       astarte,
       samplingRateInterface,
-      refreshSamplingRate
+      refreshSamplingRate,
     } = this.props;
     if (sensor && (status === "enable" || samplingRateStatus)) {
       this.setState({ loading: true });
@@ -69,14 +69,15 @@ class SensorSamplingUpdate extends Component {
           key: "samplingPeriod",
           unset: samplingRateStatus,
           params: {
-            data: parseInt(samplingRate)
-          }
+            data: parseInt(samplingRate),
+          },
         })
+        .catch((err) => this.handleError(err))
         .then(() => {
           refreshSamplingRate(data.id, samplingRateInterface);
-          this.setState({ loading: false });
         })
-        .catch(err => this.handleError(err));
+        .catch((err) => this.handleError(err))
+        .finally(() => this.setState({ loading: false }));
     }
   };
 
@@ -86,7 +87,7 @@ class SensorSamplingUpdate extends Component {
       data,
       astarte,
       samplingRateInterface,
-      refreshSamplingRate
+      refreshSamplingRate,
     } = this.props;
     if (sensor && status) {
       this.setState({ loading: true });
@@ -98,14 +99,15 @@ class SensorSamplingUpdate extends Component {
           key: "enable",
           unset: status === "unset",
           params: {
-            data: status === "enable"
-          }
+            data: status === "enable",
+          },
         })
+        .catch((err) => this.handleError(err))
         .then(() => {
           refreshSamplingRate(data.id, samplingRateInterface);
-          this.setState({ loading: false });
         })
-        .catch(err => this.handleError(err));
+        .catch((err) => this.handleError(err))
+        .finally(() => this.setState({ loading: false }));
     }
   };
 
@@ -116,7 +118,7 @@ class SensorSamplingUpdate extends Component {
       visible,
       current,
       status,
-      samplingRateStatus
+      samplingRateStatus,
     } = this.state;
     return (
       <Col xs={12} className="border-separate">
@@ -132,13 +134,10 @@ class SensorSamplingUpdate extends Component {
                   name="sensor"
                   required
                   onChange={this.handleSensor}
+                  value={this.sensor}
                 >
-                  {Object.keys(sensorValues).map((item, index) => {
-                    return (
-                      <option selected={!index} key={index}>
-                        {item}
-                      </option>
-                    );
+                  {Object.keys(sensorValues).map((sensorId) => {
+                    return <option key={sensorId}>{sensorId}</option>;
                   })}
                 </FormControl>
               </FormGroup>

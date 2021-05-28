@@ -10,3 +10,7 @@ This is a collection of examples that shows how to interact with Astarte in comm
   and their data.
 - [sensor-graph](sensor-graph): sample web page in React to plot data coming from a sensor of a
   device.
+- [sensor-channels](sensor-channels): sample web page in React to show live data streamed in real
+  time from a device sensors.
+- [sensor-samplingrate](sensor-samplingrate): sample web page in React to show sensors of a device
+  and configure them

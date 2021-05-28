@@ -30,12 +30,12 @@ function SensorListItem(props) {
   const sensor_items = [
     {
       label: "Sampling",
-      value: statusToString(status)
+      value: statusToString(status),
     },
     {
       label: "Sampling Period",
-      value: _.get(props.sampling, "samplingPeriod", "Auto")
-    }
+      value: _.get(props.sampling, "samplingPeriod", "Auto"),
+    },
   ];
   return (
     <Accordion defaultActiveKey={props.item}>
@@ -65,7 +65,7 @@ function SensorListItem(props) {
 export default function SensorItems(props) {
   const { sensorValues, sensorSamplingRate, current } = props;
   return Object.keys(sensorValues)
-    .filter(item => item === current)
+    .filter((item) => item === current)
     .map((item, index) => {
       return (
         <SensorListItem
