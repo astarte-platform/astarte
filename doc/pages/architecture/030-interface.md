@@ -283,7 +283,7 @@ The following structure, instead, is deprecated:
 data they are representing: it is possible to fine tune several aspects of how data is stored,
 transferred and indexed. The following properties can be set at mapping level.
 
-> NOTE: In case the interface is aggregated, additional properties must 
+> NOTE: In case the interface is aggregated, additional properties must
 > be the same for each mapping.
 
 
