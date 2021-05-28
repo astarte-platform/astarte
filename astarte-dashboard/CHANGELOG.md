@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Major rework for the Interface Editor.
 - Major rework for the Trigger Editor.
 
-## [1.0.0-rc.0] - Unreleased
+## [1.0.0-rc.0] - 2021-05-05
 ### Added
 - Display Astarte Dashboard version in the navigation menu.
 ### Changed
