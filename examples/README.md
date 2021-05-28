@@ -14,3 +14,5 @@ This is a collection of examples that shows how to interact with Astarte in comm
   time from a device sensors.
 - [sensor-samplingrate](sensor-samplingrate): sample web page in React to show sensors of a device
   and configure them
+- [sensor-geolocation](sensor-geolocation): sample web page in React to show positional data coming
+  from GPS sensors on a map.
