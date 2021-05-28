@@ -115,6 +115,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - [appengine_api] Remove deprecated not versioned socket route.
 
+## [0.11.5] - Unreleased
+- [realm_management] Avoid deleting all interfaces sharing the same name by mistake, only the v0
+  interface can be deleted.
+
 ## [0.11.4] - 2021-01-26
 ### Fixed
 - Avoid creating an `housekeeping_public.pem` directory if `docker-compose up` doesn't find the

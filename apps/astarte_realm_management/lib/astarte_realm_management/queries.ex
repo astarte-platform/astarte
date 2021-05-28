@@ -485,12 +485,14 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.put(:interface_id, interface_id)
       |> DatabaseQuery.consistency(:each_quorum)
 
-    delete_interface_statement = "DELETE FROM interfaces WHERE name=:name"
+    delete_interface_statement =
+      "DELETE FROM interfaces WHERE name=:name AND major_version=:major"
 
     delete_interface =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(delete_interface_statement)
       |> DatabaseQuery.put(:name, interface_name)
+      |> DatabaseQuery.put(:major, interface_major_version)
       |> DatabaseQuery.consistency(:each_quorum)
 
     # TODO: use a batch here

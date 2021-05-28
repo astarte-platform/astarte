@@ -42,7 +42,11 @@ cqlsh:test> SELECT interface_id FROM interfaces
 
 ### Delete the interface
 
-After you retrieve the interface id, you can delete the interface 
+*WARNING: This is a destructive step that will erase the correlation between the Interface name and
+internal ID. Before proceeding, ensure you saved the interface ID, or you will end up with dangling
+data. Further steps in this guide will require the interface ID.*
+
+To delete the interface,
 
 ```
 cqlsh:test> DELETE FROM interfaces
