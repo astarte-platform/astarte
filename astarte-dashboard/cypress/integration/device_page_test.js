@@ -794,6 +794,26 @@ describe('Device page tests', () => {
             cy.contains('/some/endpoint1');
             cy.contains('42');
 
+            const randomValue = Math.random().toFixed(2);
+            cy.sendWebSocketDeviceEvent({
+              deviceId: this.device.data.id,
+              event: {
+                type: 'incoming_data',
+                interface: 'com.domain.AggregatedInterfaceName',
+                path: '/some/endpoint',
+                value: {
+                  a: "test",
+                  b: 2,
+                  c: randomValue,
+                },
+              },
+            });
+            cy.contains('incoming data');
+            cy.contains('com.domain.AggregatedInterfaceName');
+            cy.contains('/some/endpoint');
+            cy.contains('test');
+            cy.contains(randomValue);
+
             cy.sendWebSocketDeviceEvent({
               deviceId: this.device.data.id,
               event: {
