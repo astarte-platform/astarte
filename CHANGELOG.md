@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.0.0] - Unreleased
+### Added
+- Add support for volatile triggers on interfaces with object aggregation.
+
 ### Changed
 - Document future removal of Astarte Operator's support for Cassandra.
 
