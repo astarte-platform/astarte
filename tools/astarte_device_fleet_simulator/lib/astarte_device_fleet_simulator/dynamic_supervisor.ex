@@ -16,24 +16,18 @@
 # limitations under the License.
 #
 
-defmodule AstarteDeviceFleetSimulator.Application do
-  @moduledoc false
+defmodule AstarteDeviceFleetSimulator.DynamicSupervisor do
+  use DynamicSupervisor
 
-  use Application
+  def start_link(args) do
+    DynamicSupervisor.start_link(__MODULE__, args, name: __MODULE__)
+  end
 
-  require Logger
+  def start_device(child) do
+    DynamicSupervisor.start_child(__MODULE__, child)
+  end
 
-  alias AstarteDeviceFleetSimulator.{Config, DynamicSupervisor, Scheduler}
-
-  @impl true
-  def start(_type, _args) do
-    children = [
-      {Registry, keys: :unique, name: AstarteDeviceFleetSimulator.Registry},
-      {DynamicSupervisor, strategy: :one_for_one, name: DynamicSupervisor},
-      {Scheduler, Config.scheduler_opts()}
-    ]
-
-    opts = [strategy: :one_for_all, name: __MODULE__]
-    Supervisor.start_link(children, opts)
+  def init(_args) do
+    DynamicSupervisor.init(strategy: :one_for_one)
   end
 end
