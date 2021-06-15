@@ -1426,25 +1426,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     if Map.has_key?(new_state.interface_ids_to_name, object_id) do
       interface_name = Map.get(new_state.interface_ids_to_name, object_id)
-
-      %InterfaceDescriptor{automaton: automaton, aggregation: aggregation} =
-        new_state.interfaces[interface_name]
+      %InterfaceDescriptor{automaton: automaton} = new_state.interfaces[interface_name]
 
       case trigger do
         {:data_trigger, %ProtobufDataTrigger{match_path: "/*"}} ->
-          if aggregation == :individual do
-            {:ok, load_trigger(new_state, trigger, target)}
-          else
-            {{:error, :unsupported_interface_aggregation}, state}
-          end
+          {:ok, load_trigger(new_state, trigger, target)}
 
         {:data_trigger, %ProtobufDataTrigger{match_path: match_path}} ->
           with {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
-            if aggregation == :individual do
-              {:ok, load_trigger(new_state, trigger, target)}
-            else
-              {{:error, :unsupported_interface_aggregation}, state}
-            end
+            {:ok, load_trigger(new_state, trigger, target)}
           else
             {:guessed, _} ->
               # State rollback here
@@ -1466,15 +1456,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: "/*"
          }} ->
-          with {:ok, db_client} <-
-                 Database.connect(realm: state.realm),
-               {:ok, %InterfaceDescriptor{aggregation: :individual}} <-
-                 InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major) do
+          with {:ok, db_client} <- Database.connect(realm: state.realm),
+               :ok <- InterfaceQueries.check_if_interface_exists(db_client, interface_name, major) do
             {:ok, new_state}
           else
-            {:ok, %InterfaceDescriptor{aggregation: :object}} ->
-              {{:error, :unsupported_interface_aggregation}, state}
-
             {:error, reason} ->
               # State rollback here
               {{:error, reason}, state}
@@ -1486,23 +1471,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: match_path
          }} ->
-          with {:ok, db_client} <-
-                 Database.connect(realm: state.realm),
-               {:ok, %InterfaceDescriptor{automaton: automaton, aggregation: :individual}} <-
+          with {:ok, db_client} <- Database.connect(realm: state.realm),
+               {:ok, %InterfaceDescriptor{automaton: automaton}} <-
                  InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
             {:ok, new_state}
           else
             {:error, :not_found} ->
-              # State rollback here
               {{:error, :invalid_match_path}, state}
 
             {:guessed, _} ->
-              # State rollback here
               {{:error, :invalid_match_path}, state}
-
-            {:ok, %InterfaceDescriptor{aggregation: :object}} ->
-              {{:error, :unsupported_interface_aggregation}, state}
 
             {:error, reason} ->
               # State rollback here
