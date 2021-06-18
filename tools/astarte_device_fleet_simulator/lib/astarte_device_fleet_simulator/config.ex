@@ -94,7 +94,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
   app_env(:test_duration_s, :astarte_device_fleet_simulator, :test_duration_s,
     os_env: "DEVICE_FLEET_TEST_DURATION",
     type: :pos_integer,
-    default: 10
+    default: 30
   )
 
   @envdoc "The path of the interface to which data are sent."
@@ -118,19 +118,22 @@ defmodule AstarteDeviceFleetSimulator.Config do
     default: 2
   )
 
-  defp generate_websocket_url(appengine_url) do
-    cond do
-      String.starts_with?(appengine_url, "https://") ->
-        String.replace_prefix(appengine_url, "https://", "wss://")
+  @envdoc "Allow already connected Astarte devices to send messages while others are still connecting. Defaults to false."
+  app_env(
+    :allow_messages_while_spawning,
+    :astarte_device_fleet_simulator,
+    :allow_messages_while_spawning,
+    os_env: "DEVICE_FLEET_ALLOW_MESSAGES_WHILE_SPAWINING",
+    type: :boolean,
+    default: false
+  )
 
-      String.starts_with?(appengine_url, "http://") ->
-        String.replace_prefix(appengine_url, "http://", "ws://")
-
-      true ->
-        ""
-    end
-    |> String.trim("/")
-  end
+  @envdoc "Fleet simulator instance ID, used when deploying multiple fleet simulator instances. Defaults to `astarte-fleet-simulator`"
+  app_env(:instance_id, :astarte_device_fleet_simulator, :instance_id,
+    os_env: "DEVICE_FLEET_INSTANCE_ID",
+    type: :binary,
+    default: "astarte-fleet-simulator"
+  )
 
   @spec device_opts() :: device_options()
   def device_opts do
@@ -147,7 +150,8 @@ defmodule AstarteDeviceFleetSimulator.Config do
     [
       device_count: device_count!(),
       test_duration_s: test_duration_s!() * 1000,
-      spawn_interval_s: spawn_interval_s!() * 1000
+      spawn_interval_s: spawn_interval_s!() * 1000,
+      allow_messages_while_spawning: allow_messages_while_spawning!()
     ]
   end
 

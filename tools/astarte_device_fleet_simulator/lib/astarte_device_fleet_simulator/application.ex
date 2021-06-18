@@ -23,17 +23,26 @@ defmodule AstarteDeviceFleetSimulator.Application do
 
   require Logger
 
-  alias AstarteDeviceFleetSimulator.{Config, DynamicSupervisor, Scheduler}
+  alias AstarteDeviceFleetSimulator.{Config, DynamicSupervisor, Scheduler, DeviceNameUtils}
 
   @impl true
   def start(_type, _args) do
     children = [
-      {Registry, keys: :unique, name: AstarteDeviceFleetSimulator.Registry},
+      {DeviceNameUtils, []},
+      {Registry,
+       keys: :duplicate,
+       name: AstarteDeviceFleetSimulator.Registry,
+       partitions: System.schedulers_online()},
       {DynamicSupervisor, strategy: :one_for_one, name: DynamicSupervisor},
       {Scheduler, Config.scheduler_opts()}
     ]
 
     opts = [strategy: :one_for_all, name: __MODULE__]
     Supervisor.start_link(children, opts)
+  end
+
+  @impl true
+  def stop(_state) do
+    System.stop(0)
   end
 end

@@ -36,32 +36,66 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
 
   @impl true
   def handle_continue(:init_messages, state) do
-    Process.send_after(self(), :spawn, state.spawn_interval_s)
-    Process.send_after(self(), :terminate, state.test_duration_s)
-    {:noreply, state}
-  end
+    # not waiting all devices
+    if state.allow_messages_while_spawning do
+      check_scheduler_opts(state)
 
-  def handle_info(:spawn, %{device_count: 0} = state) do
-    Logger.info("Device spawn ended.")
+      Process.send_after(self(), :terminate, state.test_duration_s)
+    end
+
+    Logger.info("Begin device spawn.")
+    Process.send(self(), :spawn, [])
+
     {:noreply, state}
   end
 
   @impl true
+  def handle_cast(:device_spawn_end, state) do
+    Logger.info("Device spawn ended.")
+
+    # waiting all devices
+    if not state.allow_messages_while_spawning do
+      Process.send_after(self(), :terminate, state.test_duration_s)
+
+      Registry.dispatch(AstarteDeviceFleetSimulator.Registry, "device", fn entries ->
+        for {pid, _} <- entries, do: :gen_statem.cast(pid, :begin_publishing)
+      end)
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:spawn, %{device_count: 0} = state) do
+    {:noreply, state}
+  end
+
   def handle_info(:spawn, state) do
     Process.send_after(self(), :spawn, state.spawn_interval_s)
-    spawn_device(state.device_count)
+    spawn_device(state.device_count, state.allow_messages_while_spawning)
     {:noreply, %{state | device_count: state.device_count - 1}}
   end
 
-  def handle_info(:terminate, state) do
-    Logger.info("Simulation has ended successfully.")
-
+  def handle_info(:terminate, _state) do
+    Logger.info("Simulation ended successfully.")
     System.stop(0)
-    {:stop, {:shutdown, :simulation_ended}, state}
+    {:stop, {:shutdown, :simulation_ended}, %{}}
   end
 
-  defp spawn_device(device_count) do
-    child = {Device, [device_count: device_count]}
+  defp spawn_device(device_count, skip_waiting) do
+    child = {Device, %{device_count: device_count, skip_waiting: skip_waiting}}
     DynamicSupervisor.start_device(child)
+  end
+
+  defp check_scheduler_opts(%{
+         device_count: device_count,
+         test_duration_s: test_duration_s,
+         spawn_interval_s: spawn_interval_s
+       }) do
+    if test_duration_s <= device_count * spawn_interval_s do
+      Logger.warning("Device spawn will not end before the end of the test. Errors may occur.",
+        tag: "device_spawn_time_greater_than_test_duration"
+      )
+    end
   end
 end

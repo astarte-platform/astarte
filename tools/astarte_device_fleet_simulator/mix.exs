@@ -40,10 +40,11 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_device, "~> 1.0.0-rc.0"},
+      {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
       {:skogsra, "~> 2.3"},
       {:logfmt, "~> 3.3"},
-      {:pretty_log, "~> 0.1"}
+      {:pretty_log, "~> 0.1"},
+      {:elixir_uuid, "~> 1.2"}
     ]
   end
 end

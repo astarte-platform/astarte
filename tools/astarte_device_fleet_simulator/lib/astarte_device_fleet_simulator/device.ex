@@ -17,13 +17,16 @@
 #
 
 defmodule AstarteDeviceFleetSimulator.Device do
+  use Bitwise, operators_only: true
+
   @behaviour :gen_statem
 
   require Logger
 
-  alias Astarte.API.Pairing
   alias Astarte.Device
   alias AstarteDeviceFleetSimulator.Config
+
+  @max_backoff_exponent 10
 
   @impl true
   def callback_mode() do
@@ -34,19 +37,18 @@ defmodule AstarteDeviceFleetSimulator.Device do
 
   def start_link(args) do
     with {:ok, pid} <- :gen_statem.start_link(__MODULE__, args, []) do
-      Logger.info("Started device process with pid #{inspect(pid)}.", tag: "process_started")
+      Logger.info("Started device process with pid #{inspect(pid)}.",
+        tag: "device_process_started"
+      )
 
       {:ok, pid}
     end
   end
 
   @impl true
-  def init(_args) do
-    # timeout?
-    # check if it fits
-    # Process.flag(:trap_exit, true)
-    actions = [{:next_event, :internal, :register}]
-    {:ok, :registering, %{}, actions}
+  def init(args) do
+    actions = [{:next_event, :internal, :start}]
+    {:ok, :setup, args, actions}
   end
 
   def child_spec(opts) do
@@ -54,12 +56,12 @@ defmodule AstarteDeviceFleetSimulator.Device do
       id: __MODULE__,
       start: {__MODULE__, :start_link, [opts]},
       type: :worker,
-      restart: :permanent,
+      restart: :transient,
       shutdown: 500
     }
   end
 
-  def registering(:internal, :register, _data) do
+  def setup(:internal, :start, data) do
     realm = Config.realm!()
     interface_provider = Config.standard_interface_provider!()
     path = Config.path!()
@@ -68,37 +70,48 @@ defmodule AstarteDeviceFleetSimulator.Device do
     ignore_ssl_errors = Config.ignore_ssl_errors!()
 
     device_id =
-      :crypto.strong_rand_bytes(16)
-      |> Base.url_encode64(padding: false)
+      AstarteDeviceFleetSimulator.DeviceNameUtils.generate_device_name(data.device_count)
 
-    with {:ok, %{body: %{"data" => %{"credentials_secret" => credentials_secret}}}} <-
-           Pairing.client(pairing_url, realm,
-             auth_token: auth_token,
-             ignore_ssl_errors: ignore_ssl_errors
-           )
-           |> Pairing.Agent.register_device(device_id),
-         {:ok, _} <-
-           Astarte.Device.start_link(
-             Config.device_opts() ++
-               [device_id: device_id, credentials_secret: credentials_secret]
-           ) do
-      {:next_state, :connecting,
-       %{
-         device_id: device_id,
-         credentials_secret: credentials_secret,
-         realm: realm,
-         interface_provider: interface_provider,
-         path: path
-       }, connecting_action()}
-    else
-      {:error, reason} ->
-        Logger.error(reason)
-        # timeout?
-        {:keep_state_and_data}
-    end
+    client =
+      Astarte.API.Pairing.client(pairing_url, realm,
+        auth_token: auth_token,
+        ignore_ssl_errors: ignore_ssl_errors
+      )
+
+    new_data =
+      Map.merge(data, %{
+        realm: realm,
+        interface_provider: interface_provider,
+        path: path,
+        pairing_url: pairing_url,
+        device_id: device_id,
+        client: client
+      })
+
+    actions = [{:next_event, :internal, :unregister}]
+    {:keep_state, new_data, actions}
   end
 
-  def connecting(
+  def setup(:internal, :unregister, data) do
+    Logger.info("Unregistering credentials for device #{data.device_id}.",
+      tag: "device_unregistering_started"
+    )
+
+    Astarte.API.Pairing.Agent.unregister_device(data.client, data.device_id)
+    actions = [{:next_event, :internal, :register}]
+    {:keep_state, data, actions}
+  end
+
+  def setup(:internal, :register, data) do
+    Logger.info("Registering device #{data.device_id}.", tag: "device_registering_started")
+    do_register(0, data)
+  end
+
+  def setup({:timeout, :register}, {retry_times}, data) do
+    do_register(retry_times, data)
+  end
+
+  def setup(
         :internal,
         :connect,
         %{
@@ -111,23 +124,81 @@ defmodule AstarteDeviceFleetSimulator.Device do
          # blocking
          :ok <-
            Device.wait_for_connection(device_pid) do
+      {:ok, _} = Registry.register(AstarteDeviceFleetSimulator.Registry, "device", [])
+
       new_data =
         Map.merge(data, %{
           interface: interface,
           publication_interval_ms: Config.publication_interval_ms!()
         })
 
-      [path: path, value: value, qos: qos] = Config.message_opts()
+      if not data.skip_waiting do
+        # waiting for all devices before running
+        Task.start(fn ->
+          if Registry.count(AstarteDeviceFleetSimulator.Registry) == Config.device_count!() do
+            GenServer.cast(AstarteDeviceFleetSimulator.Scheduler, :device_spawn_end)
+          end
+        end)
 
-      {:next_state, :running, new_data,
-       publish_action(Config.publication_interval_ms!(), path, value, qos)}
+        Logger.info("#{data.device_id} ready to start sending messages", tag: "device_ready")
+        {:next_state, :waiting, new_data}
+      else
+        # not waiting for all devices
+        Logger.info("#{data.device_id} started sending messages", tag: "device_sending_started")
+        [path: path, value: value, qos: qos] = Config.message_opts()
+
+        {:next_state, :running, new_data,
+         publish_action(Config.publication_interval_ms!(), path, value, qos)}
+      end
     end
+  end
+
+  def waiting(:cast, :begin_publishing, data) do
+    Logger.info("#{data.device_id} started sending messages", tag: "device_sending_started")
+
+    [path: path, value: value, qos: qos] = Config.message_opts()
+
+    {:next_state, :running, data,
+     publish_action(Config.publication_interval_ms!(), path, value, qos)}
   end
 
   def running({:timeout, :publish}, {path, value, qos}, data) do
     {:ok, device_pid} = fetch_device_pid(data.realm, data.device_id)
     Task.start(fn -> send_datastream(device_pid, data.interface, path, value, qos) end)
     {:keep_state_and_data, publish_action(data.publication_interval_ms, path, value, qos)}
+  end
+
+  defp do_register(retry_times, data) do
+    with {:ok, %{body: %{"data" => %{"credentials_secret" => credentials_secret}}}} <-
+           Astarte.API.Pairing.Agent.register_device(data.client, data.device_id),
+         {:ok, _} <-
+           Astarte.Device.start_link(
+             Config.device_opts() ++
+               [device_id: data.device_id, credentials_secret: credentials_secret]
+           ) do
+      {:keep_state,
+       %{
+         client: data.client,
+         device_id: data.device_id,
+         credentials_secret: credentials_secret,
+         realm: data.realm,
+         interface_provider: data.interface_provider,
+         path: data.path,
+         skip_waiting: data.skip_waiting
+       }, connecting_action()}
+    else
+      {:error, reason} ->
+        Logger.error(reason)
+        # TODO exponential backoff
+        backoff_time = :rand.uniform(10 * 1000) + 30_000
+        Logger.debug("Backing off in #{backoff_time}")
+
+        new_retry_times =
+          if retry_times < @max_backoff_exponent, do: retry_times + 1, else: retry_times
+
+        backoff_action = register_action(backoff_time, new_retry_times)
+        {:keep_state_and_data, backoff_action}
+    end
   end
 
   defp fetch_device_pid(realm, device_id) do
@@ -154,6 +225,10 @@ defmodule AstarteDeviceFleetSimulator.Device do
 
   defp connecting_action() do
     [{:next_event, :internal, :connect}]
+  end
+
+  defp register_action(backoff_time, try_times) do
+    [{{:timeout, :register}, backoff_time, {try_times}}]
   end
 
   defp fetch_interface_names do
