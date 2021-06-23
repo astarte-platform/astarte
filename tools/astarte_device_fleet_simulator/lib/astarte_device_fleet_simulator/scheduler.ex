@@ -21,7 +21,6 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
 
   require Logger
 
-  alias AstarteDeviceFleetSimulator.DynamicSupervisor
   alias AstarteDeviceFleetSimulator.Device
   alias AstarteDeviceFleetSimulator.Config
 
@@ -58,7 +57,7 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
       Process.send_after(self(), :terminate, state.test_duration_s)
 
       Registry.dispatch(AstarteDeviceFleetSimulator.Registry, "device", fn entries ->
-        for {pid, _} <- entries, do: :gen_statem.cast(pid, :begin_publishing)
+        Enum.each(entries, fn {pid, _} -> :gen_statem.cast(pid, :begin_publishing) end)
       end)
     end
 
@@ -71,7 +70,7 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
   end
 
   def handle_info(:spawn, state) do
-    Process.send_after(self(), :spawn, state.spawn_interval_s)
+    Process.send_after(self(), :spawn, state.spawn_interval_ms)
     spawn_device(state.device_count, state.allow_messages_while_spawning)
     {:noreply, %{state | device_count: state.device_count - 1}}
   end
@@ -84,15 +83,15 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
 
   defp spawn_device(device_count, skip_waiting) do
     child = {Device, %{device_count: device_count, skip_waiting: skip_waiting}}
-    DynamicSupervisor.start_device(child)
+    DynamicSupervisor.start_child(DeviceSupervisor, child)
   end
 
   defp check_scheduler_opts(%{
          device_count: device_count,
          test_duration_s: test_duration_s,
-         spawn_interval_s: spawn_interval_s
+         spawn_interval_ms: spawn_interval_ms
        }) do
-    if test_duration_s <= device_count * spawn_interval_s do
+    if test_duration_s <= device_count * spawn_interval_ms / 1000 do
       Logger.warning("Device spawn will not end before the end of the test. Errors may occur.",
         tag: "device_spawn_time_greater_than_test_duration"
       )

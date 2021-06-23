@@ -25,15 +25,18 @@ defmodule AstarteDeviceFleetSimulator.Device do
 
   alias Astarte.Device
   alias AstarteDeviceFleetSimulator.Config
+  alias AstarteDeviceFleetSimulator.Scheduler
+  alias AstarteDeviceFleetSimulator.DeviceNameUtils
+  alias Astarte.API.Pairing
+  alias Astarte.API.Pairing.Agent
 
-  @max_backoff_exponent 10
+  @backoff_randomization_factor 0.25
+  @max_backoff_exponent 9
 
   @impl true
   def callback_mode() do
     [:state_functions]
   end
-
-  # API
 
   def start_link(args) do
     with {:ok, pid} <- :gen_statem.start_link(__MODULE__, args, []) do
@@ -69,11 +72,10 @@ defmodule AstarteDeviceFleetSimulator.Device do
     pairing_url = Config.pairing_url!()
     ignore_ssl_errors = Config.ignore_ssl_errors!()
 
-    device_id =
-      AstarteDeviceFleetSimulator.DeviceNameUtils.generate_device_name(data.device_count)
+    device_id = DeviceNameUtils.generate_device_name(data.device_count)
 
     client =
-      Astarte.API.Pairing.client(pairing_url, realm,
+      Pairing.client(pairing_url, realm,
         auth_token: auth_token,
         ignore_ssl_errors: ignore_ssl_errors
       )
@@ -97,7 +99,7 @@ defmodule AstarteDeviceFleetSimulator.Device do
       tag: "device_unregistering_started"
     )
 
-    Astarte.API.Pairing.Agent.unregister_device(data.client, data.device_id)
+    Agent.unregister_device(data.client, data.device_id)
     actions = [{:next_event, :internal, :register}]
     {:keep_state, data, actions}
   end
@@ -107,7 +109,7 @@ defmodule AstarteDeviceFleetSimulator.Device do
     do_register(0, data)
   end
 
-  def setup({:timeout, :register}, {retry_times}, data) do
+  def setup({:timeout, :register}, retry_times, data) do
     do_register(retry_times, data)
   end
 
@@ -132,23 +134,21 @@ defmodule AstarteDeviceFleetSimulator.Device do
           publication_interval_ms: Config.publication_interval_ms!()
         })
 
-      if not data.skip_waiting do
-        # waiting for all devices before running
-        Task.start(fn ->
-          if Registry.count(AstarteDeviceFleetSimulator.Registry) == Config.device_count!() do
-            GenServer.cast(AstarteDeviceFleetSimulator.Scheduler, :device_spawn_end)
-          end
-        end)
+      if Registry.count(AstarteDeviceFleetSimulator.Registry) == Config.device_count!() do
+        GenServer.cast(Scheduler, :device_spawn_end)
+      end
 
+      if not data.skip_waiting do
+        # wait for all other devices before running
         Logger.info("#{data.device_id} ready to start sending messages", tag: "device_ready")
         {:next_state, :waiting, new_data}
       else
-        # not waiting for all devices
+        # do not wait for all devices
         Logger.info("#{data.device_id} started sending messages", tag: "device_sending_started")
         [path: path, value: value, qos: qos] = Config.message_opts()
 
         {:next_state, :running, new_data,
-         publish_action(Config.publication_interval_ms!(), path, value, qos)}
+         [publish_action(Config.publication_interval_ms!(), path, value, qos)]}
       end
     end
   end
@@ -159,18 +159,18 @@ defmodule AstarteDeviceFleetSimulator.Device do
     [path: path, value: value, qos: qos] = Config.message_opts()
 
     {:next_state, :running, data,
-     publish_action(Config.publication_interval_ms!(), path, value, qos)}
+     [publish_action(Config.publication_interval_ms!(), path, value, qos)]}
   end
 
   def running({:timeout, :publish}, {path, value, qos}, data) do
     {:ok, device_pid} = fetch_device_pid(data.realm, data.device_id)
     Task.start(fn -> send_datastream(device_pid, data.interface, path, value, qos) end)
-    {:keep_state_and_data, publish_action(data.publication_interval_ms, path, value, qos)}
+    {:keep_state_and_data, [publish_action(data.publication_interval_ms, path, value, qos)]}
   end
 
   defp do_register(retry_times, data) do
     with {:ok, %{body: %{"data" => %{"credentials_secret" => credentials_secret}}}} <-
-           Astarte.API.Pairing.Agent.register_device(data.client, data.device_id),
+           Agent.register_device(data.client, data.device_id),
          {:ok, _} <-
            Astarte.Device.start_link(
              Config.device_opts() ++
@@ -185,19 +185,16 @@ defmodule AstarteDeviceFleetSimulator.Device do
          interface_provider: data.interface_provider,
          path: data.path,
          skip_waiting: data.skip_waiting
-       }, connecting_action()}
+       }, [connecting_action()]}
     else
       {:error, reason} ->
-        Logger.error(reason)
-        # TODO exponential backoff
-        backoff_time = :rand.uniform(10 * 1000) + 30_000
-        Logger.debug("Backing off in #{backoff_time}")
+        Logger.error(inspect(reason))
+        backoff_time = compute_backoff_time(retry_times)
 
         new_retry_times =
           if retry_times < @max_backoff_exponent, do: retry_times + 1, else: retry_times
 
-        backoff_action = register_action(backoff_time, new_retry_times)
-        {:keep_state_and_data, backoff_action}
+        {:keep_state_and_data, [register_action(backoff_time, new_retry_times)]}
     end
   end
 
@@ -218,17 +215,15 @@ defmodule AstarteDeviceFleetSimulator.Device do
   end
 
   defp publish_action(publication_rate, path, value, qos) do
-    [
-      {{:timeout, :publish}, publication_rate, {path, value, qos}}
-    ]
+    {{:timeout, :publish}, publication_rate, {path, value, qos}}
   end
 
-  defp connecting_action() do
-    [{:next_event, :internal, :connect}]
+  defp connecting_action do
+    {:next_event, :internal, :connect}
   end
 
-  defp register_action(backoff_time, try_times) do
-    [{{:timeout, :register}, backoff_time, {try_times}}]
+  defp register_action(backoff_time, retry_times) do
+    {{:timeout, :register}, backoff_time, retry_times}
   end
 
   defp fetch_interface_names do
@@ -248,5 +243,10 @@ defmodule AstarteDeviceFleetSimulator.Device do
       error ->
         Logger.error("Interfaces names cannot be retrieved. Reason: #{inspect(error)}")
     end
+  end
+
+  defp compute_backoff_time(current_attempt) do
+    minimum_duration = (1 <<< current_attempt) * 1000
+    minimum_duration + round(minimum_duration * @backoff_randomization_factor * :rand.uniform())
   end
 end

@@ -21,9 +21,10 @@ defmodule AstarteDeviceFleetSimulator.Config do
   require Logger
 
   @type scheduler_option ::
-          {:device_count_s, integer()}
+          {:device_count, integer()}
           | {:test_duration_s, integer()}
-          | {:spawn_interval_s, integer()}
+          | {:spawn_interval_ms, integer()}
+          | {:allow_messages_while_spawning, boolean()}
 
   @type message_option ::
           {:path, binary()}
@@ -48,13 +49,6 @@ defmodule AstarteDeviceFleetSimulator.Config do
     default: false
   )
 
-  @envdoc "Astarte Broker URL (e.g. https://broker.astarte.example.com/)."
-  app_env(:broker_url, :astarte_device_fleet_simulator, :broker_url,
-    os_env: "DEVICE_FLEET_BROKER_URL",
-    type: :binary,
-    required: true
-  )
-
   @envdoc "Realm name."
   app_env(:realm, :astarte_device_fleet_simulator, :realm,
     os_env: "DEVICE_FLEET_REALM",
@@ -70,10 +64,10 @@ defmodule AstarteDeviceFleetSimulator.Config do
   )
 
   @envdoc "Time interval between consecutive spawns of Astarte devices (in seconds)."
-  app_env(:spawn_interval_s, :astarte_device_fleet_simulator, :spawn_interval_s,
-    os_env: "DEVICE_FLEET_SPAWN_INTERVAL_SECONDS",
+  app_env(:spawn_interval_ms, :astarte_device_fleet_simulator, :spawn_interval_ms,
+    os_env: "DEVICE_FLEET_SPAWN_INTERVAL_MILLISECONDS",
     type: :pos_integer,
-    default: 1
+    default: 1000
   )
 
   @envdoc "Time interval between messages from a single Astarte devices (in milliseconds)."
@@ -90,9 +84,9 @@ defmodule AstarteDeviceFleetSimulator.Config do
     default: 10
   )
 
-  @envdoc "The length of the test (in seconds)."
+  @envdoc "The duration of the test (in seconds)."
   app_env(:test_duration_s, :astarte_device_fleet_simulator, :test_duration_s,
-    os_env: "DEVICE_FLEET_TEST_DURATION",
+    os_env: "DEVICE_FLEET_TEST_DURATION_SECONDS",
     type: :pos_integer,
     default: 30
   )
@@ -123,12 +117,14 @@ defmodule AstarteDeviceFleetSimulator.Config do
     :allow_messages_while_spawning,
     :astarte_device_fleet_simulator,
     :allow_messages_while_spawning,
-    os_env: "DEVICE_FLEET_ALLOW_MESSAGES_WHILE_SPAWINING",
+    os_env: "DEVICE_FLEET_ALLOW_MESSAGES_WHILE_SPAWNING",
     type: :boolean,
     default: false
   )
 
-  @envdoc "Fleet simulator instance ID, used when deploying multiple fleet simulator instances. Defaults to `astarte-fleet-simulator`"
+  @envdoc "Fleet simulator instance ID, used to generate valid Astarte device ids.
+  When deploying multiple fleet simulator instances, it must be different for each instance
+  in order to avoid device id collisions. Defaults to `astarte-fleet-simulator`."
   app_env(:instance_id, :astarte_device_fleet_simulator, :instance_id,
     os_env: "DEVICE_FLEET_INSTANCE_ID",
     type: :binary,
@@ -150,7 +146,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
     [
       device_count: device_count!(),
       test_duration_s: test_duration_s!() * 1000,
-      spawn_interval_s: spawn_interval_s!() * 1000,
+      spawn_interval_ms: spawn_interval_ms!(),
       allow_messages_while_spawning: allow_messages_while_spawning!()
     ]
   end
