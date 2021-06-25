@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [realm_management] Avoid deleting all interfaces sharing the same name by mistake, only the v0
   interface can be deleted.
+- [data_updater_plant] Use a reasonable backoff time (at most around 5 minutes) when publishing 
+  to RabbitMQ.
 
 ## [0.11.4] - 2021-01-26
 ### Fixed
