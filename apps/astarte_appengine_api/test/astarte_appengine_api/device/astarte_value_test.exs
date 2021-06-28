@@ -82,9 +82,8 @@ defmodule Astarte.AppEngine.API.AstarteValueTest do
     assert AstarteValue.to_json_friendly(true, :boolean, []) == true
   end
 
-  test "json friendly returns nil on nil-like argument" do
-    assert AstarteValue.to_json_friendly(:null, :string, []) == nil
-
-    assert AstarteValue.to_json_friendly(nil, :string, []) == nil
+  test "json friendly returns nil on nil-like argument, skipping conversions" do
+    assert AstarteValue.to_json_friendly(:null, :longinteger, []) == nil
+    assert AstarteValue.to_json_friendly(nil, :binaryblob, []) == nil
   end
 end
