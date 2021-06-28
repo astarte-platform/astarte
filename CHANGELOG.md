@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Document future removal of Astarte Operator's support for Cassandra.
 
+### Fixed
+- [astarte_appengine_api] Fix the support for `null` values in interfaces, the fix contained in
+`1.0.0-rc.0` was incomplete.
+
 ## [1.0.0-rc.0] - 2021-05-10
 ### Added
 - [astarte_appengine_api] Add `/v1/<realm>/version` endpoint, returning the API application version.

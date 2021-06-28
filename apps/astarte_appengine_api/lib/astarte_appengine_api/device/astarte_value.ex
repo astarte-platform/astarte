@@ -16,6 +16,18 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.AstarteValue do
+  # Match on nil values, skipping any conversion. This is needed to handle missing endpoints in
+  # object aggregations, which are allowed due to semantic versioning (i.e. data sent from a
+  # previous minor version doesn't contain data on new endpoints)
+  def to_json_friendly(nil, _value_type, _opts) do
+    nil
+  end
+
+  # Allow :null values, converting them to `nil`. See comment above.
+  def to_json_friendly(:null, _value_type, _opts) do
+    nil
+  end
+
   def to_json_friendly(value, :longinteger, opts) do
     cond do
       opts[:allow_bigintegers] ->
@@ -62,12 +74,6 @@ defmodule Astarte.AppEngine.API.Device.AstarteValue do
     for item <- value do
       to_json_friendly(item, :datetime, opts)
     end
-  end
-
-  # Allow :null values, converting them to `nil`. They shouldn't be there in the first place,
-  # but if they are it's better to display null than preventing the user to query the interface
-  def to_json_friendly(:null, _value_type, _opts) do
-    nil
   end
 
   def to_json_friendly(value, _value_type, _opts) do
