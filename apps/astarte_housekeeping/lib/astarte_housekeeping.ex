@@ -23,6 +23,10 @@ defmodule Astarte.Housekeeping do
 
   use Application
 
+  require Logger
+
+  @app_version Mix.Project.config()[:version]
+
   def start(_type, _args) do
     Config.validate!()
     RPCConfig.validate!()
@@ -38,6 +42,8 @@ defmodule Astarte.Housekeeping do
       :ignore_rabbitmq_progress_reports,
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
+
+    Logger.info("Starting application v#{@app_version}.", tag: "housekeeping_app_start")
 
     opts = [strategy: :one_for_one, name: Astarte.Housekeeping.Supervisor]
     Supervisor.start_link(children, opts)

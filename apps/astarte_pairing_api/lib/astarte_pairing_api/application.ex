@@ -23,6 +23,8 @@ defmodule Astarte.Pairing.API.Application do
   alias Astarte.Pairing.API.Config
   alias Astarte.RPC.Config, as: RPCConfig
 
+  @app_version Mix.Project.config()[:version]
+
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
@@ -32,7 +34,7 @@ defmodule Astarte.Pairing.API.Application do
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    Logger.info("Starting application.", tag: "pairing_api_start")
+    Logger.info("Starting application v#{@app_version}.", tag: "pairing_api_start")
 
     Config.validate!()
     RPCConfig.validate()
