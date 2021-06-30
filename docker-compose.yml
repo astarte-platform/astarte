@@ -1,7 +1,7 @@
 version: '2.3'
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:1.0.0-rc.0
+    image: astarte/astarte_housekeeping:1.0.0
     build:
       context: apps/astarte_housekeeping
     env_file:
@@ -14,7 +14,7 @@ services:
       - "scylla"
 
   astarte-housekeeping-api:
-    image: astarte/astarte_housekeeping_api:1.0.0-rc.0
+    image: astarte/astarte_housekeeping_api:1.0.0
     build:
       context: apps/astarte_housekeeping_api
     env_file:
@@ -32,7 +32,7 @@ services:
       - "rabbitmq"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:1.0.0-rc.0
+    image: astarte/astarte_realm_management:1.0.0
     build:
       context: apps/astarte_realm_management
     env_file:
@@ -45,7 +45,7 @@ services:
       - "scylla"
 
   astarte-realm-management-api:
-    image: astarte/astarte_realm_management_api:1.0.0-rc.0
+    image: astarte/astarte_realm_management_api:1.0.0
     build:
       context: apps/astarte_realm_management_api
     env_file:
@@ -57,7 +57,7 @@ services:
       - "rabbitmq"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:1.0.0-rc.0
+    image: astarte/astarte_pairing:1.0.0
     build:
       context: apps/astarte_pairing
     env_file:
@@ -72,7 +72,7 @@ services:
       - "scylla"
 
   astarte-pairing-api:
-    image: astarte/astarte_pairing_api:1.0.0-rc.0
+    image: astarte/astarte_pairing_api:1.0.0
     build:
       context: apps/astarte_pairing_api
     env_file:
@@ -84,7 +84,7 @@ services:
       - "rabbitmq"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:1.0.0-rc.0
+    image: astarte/astarte_appengine_api:1.0.0
     build:
       context: apps/astarte_appengine_api
     env_file:
@@ -102,7 +102,7 @@ services:
       - "scylla"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:1.0.0-rc.0
+    image: astarte/astarte_data_updater_plant:1.0.0
     build:
       context: apps/astarte_data_updater_plant
     env_file:
@@ -122,7 +122,7 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:1.0.0-rc.0
+    image: astarte/astarte_trigger_engine:1.0.0
     build:
       context: apps/astarte_trigger_engine
     env_file:
@@ -137,7 +137,7 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:1.0.0-rc.0
+    image: astarte/astarte-dashboard:1.0.0
     ports:
       - "4040:80"
     volumes:
@@ -147,7 +147,7 @@ services:
       - "astarte-appengine-api"
 
   astarte-grafana:
-    image: astarte/grafana:1.0.0-rc.0
+    image: astarte/grafana:1.0.0
     ports:
       - "3000:3000"
     depends_on:
@@ -155,7 +155,7 @@ services:
 
   # RabbitMQ
   rabbitmq:
-    image: rabbitmq:3.8
+    image: rabbitmq:3.8.16-management
     restart: on-failure
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
@@ -172,13 +172,13 @@ services:
 
   # Scylla
   scylla:
-    image: scylladb/scylla:4.1.rc2
+    image: scylladb/scylla:4.4.3
     volumes:
       - scylla-data:/var/lib/scylla
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:1.0.0-rc.0
+    image: astarte/vernemq:1.0.0
     env_file:
      - ./compose.env
     environment:
