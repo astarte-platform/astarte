@@ -151,7 +151,7 @@ services:
     volumes:
       - postgresql-data:/var/lib/postgresql/data
   cfssl:
-    image: astarte/cfssl
+    image: astarte/cfssl:1.4.1-astarte.0
     depends_on:
       - "postgresql"
     volumes:
