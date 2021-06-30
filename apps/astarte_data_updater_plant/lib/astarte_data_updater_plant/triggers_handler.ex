@@ -26,7 +26,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   by the Trigger targets
   """
 
-  @max_backoff_exponent 10
+  @max_backoff_exponent 8
 
   use Astarte.Core.Triggers.SimpleEvents
 
@@ -442,7 +442,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
 
-    :rand.uniform(1 <<< (retry * 1000))
+    retry
+    |> compute_backoff_time()
     |> :timer.sleep()
 
     next_retry =
@@ -514,5 +515,10 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     )
 
     result
+  end
+
+  defp compute_backoff_time(current_attempt) do
+    minimum_duration = (1 <<< current_attempt) * 1000
+    minimum_duration + round(minimum_duration * 0.25 * :rand.uniform())
   end
 end
