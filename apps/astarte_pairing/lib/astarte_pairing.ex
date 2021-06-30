@@ -28,6 +28,8 @@ defmodule Astarte.Pairing do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.RPC.Protocol.Pairing, as: Protocol
 
+  @app_version Mix.Project.config()[:version]
+
   def start(_type, _args) do
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
@@ -35,7 +37,7 @@ defmodule Astarte.Pairing do
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    Logger.info("Starting application", tag: "pairing_app_start")
+    Logger.info("Starting application v#{@app_version}.", tag: "pairing_app_start")
 
     DataAccessConfig.validate!()
     Config.validate!()

@@ -26,6 +26,8 @@ defmodule Astarte.RealmManagement do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.RPC.Config, as: RPCConfig
 
+  @app_version Mix.Project.config()[:version]
+
   def start(_type, _args) do
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
@@ -33,7 +35,7 @@ defmodule Astarte.RealmManagement do
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    _ = Logger.info("Starting application.", tag: "realm_management_app_start")
+    _ = Logger.info("Starting application v#{@app_version}.", tag: "realm_management_app_start")
 
     Config.validate!()
     DataAccessConfig.validate!()

@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.0] - Unreleased
 ### Changed
 - Document future removal of Astarte Operator's support for Cassandra.
+- Log application version when starting.
 
 ## [1.0.0-rc.0] - 2021-05-10
 ### Added
