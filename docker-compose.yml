@@ -155,7 +155,7 @@ services:
 
   # RabbitMQ
   rabbitmq:
-    image: rabbitmq:3.8
+    image: rabbitmq:3.8.16-management
     restart: on-failure
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
