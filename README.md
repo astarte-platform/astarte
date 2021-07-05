@@ -30,14 +30,14 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 **This is the master branch, which is not guaranteed to always be in a usable state.**
 
-**For production purposes we recommend using the latest stable release (currently [v0.11.4](https://github.com/astarte-platform/astarte/tree/release-0.11)), this branch should be used only for 1.1 development activities.**
+**For production purposes we recommend using the latest stable release (currently [v1.0.0](https://github.com/astarte-platform/astarte/tree/release-1.0)), this branch should be used only for 1.1 development activities.**
 
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
 [Docker](https://www.docker.com/), and simply:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git -b v1.0.0 && cd astarte
-$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.0.0
+$ git clone https://github.com/astarte-platform/astarte.git && cd astarte
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:snapshot
 $ docker-compose up -d
 ```
 
