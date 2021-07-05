@@ -36,8 +36,8 @@ Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make 
 [Docker](https://www.docker.com/), and simply:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git -b v1.0.0-rc.0 && cd astarte
-$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
+$ git clone https://github.com/astarte-platform/astarte.git -b v1.0.0 && cd astarte
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.0.0
 $ docker-compose up -d
 ```
 

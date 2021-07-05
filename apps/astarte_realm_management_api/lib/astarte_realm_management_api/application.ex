@@ -21,6 +21,8 @@ defmodule Astarte.RealmManagement.API.Application do
 
   require Logger
 
+  @app_version Mix.Project.config()[:version]
+
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
@@ -30,7 +32,7 @@ defmodule Astarte.RealmManagement.API.Application do
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    Logger.info("Starting application", tag: "realm_management_api_start")
+    Logger.info("Starting application v#{@app_version}.", tag: "realm_management_api_start")
 
     children = [
       Astarte.RealmManagement.APIWeb.Telemetry,

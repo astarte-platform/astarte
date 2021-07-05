@@ -26,6 +26,8 @@ defmodule Astarte.TriggerEngine.Application do
   alias Astarte.TriggerEngine.Config
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 
+  @app_version Mix.Project.config()[:version]
+
   def start(_type, _args) do
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
@@ -33,7 +35,7 @@ defmodule Astarte.TriggerEngine.Application do
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    Logger.info("Starting application", tag: "trigger_engine_app_start")
+    Logger.info("Starting application v#{@app_version}.", tag: "trigger_engine_app_start")
 
     Config.validate!()
     DataAccessConfig.validate!()

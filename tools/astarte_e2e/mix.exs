@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2021 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ defmodule AstarteE2E.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_device, "~> 1.0.0-rc.0"},
+      {:astarte_device, "~> 1.0.0"},
       {:phoenix_gen_socket_client, "~> 4.0"},
       {:websocket_client, "~> 1.2"},
       {:jason, "~> 1.0"},

@@ -243,7 +243,7 @@ CRD and its resources.
 Even if it might look like the status of the cluster is compromised, a simple command reestablishes
 the order:
 ```bash
-helm upgrade --install astarte-operator astarte/astarte-operator --devel -n kube-system
+helm upgrade --install astarte-operator astarte/astarte-operator -n kube-system
 ```
 This command simply upgrades the Operator and, as a result, installs the missing CRDs. Now it's time
 to restore the Astarte resources.

@@ -6,7 +6,7 @@ Astarte Operator's upgrade procedure is handled by Helm. To upgrade the Helm cha
 dedicated `helm upgrade` command:
 
 ```bash
-helm upgrade astarte-operator astarte/astarte-operator --devel
+helm upgrade astarte-operator astarte/astarte-operator
 ```
 
 The optional `--version` switch allows to specify the version to upgrade to - when not specified,
@@ -21,7 +21,7 @@ referenced by the chart is changed. You can check the Operator's tag binded to t
 running:
 
 ```bash
-helm show values astarte/astarte-operator --devel
+helm show values astarte/astarte-operator
 ```
 
 As usual, you can use the usual `--version` flag to point to a specific chart version.
