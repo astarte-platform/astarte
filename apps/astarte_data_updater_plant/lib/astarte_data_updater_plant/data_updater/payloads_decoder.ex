@@ -40,7 +40,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
           bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
           {bson_value, bson_timestamp, %{}}
 
-        {:ok, %{"v" => {0 = _subtype, <<>> = _bin}}} ->
+        {:ok, %{"v" => %Cyanide.Binary{data: <<>>}}} ->
           {nil, nil, nil}
 
         {:ok, %{"v" => bson_value}} ->

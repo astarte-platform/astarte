@@ -141,8 +141,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   defp extract_bson_value(bson_value) do
     case Cyanide.decode!(bson_value) do
-      # TODO: update this when Cyanide decodes binaries to %Cyanide.Binary{}
-      %{"v" => {_bin_subtype, binary}} ->
+      %{"v" => %Cyanide.Binary{data: binary}} ->
         Base.encode64(binary)
 
       %{"v" => value} ->
