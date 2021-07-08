@@ -2,8 +2,6 @@
 
 <img align="right" src="assets/mascot_architecture.svg" style="border:20px solid transparent" alt="Join Puppy Lion and have some fun with Astarte!" width="40%" />
 
-**This documentation page describes a development version, for production systems please use the [stable version](https://docs.astarte-platform.org/latest) instead.**
-
 Astarte is a collection of components written in [Elixir](http://elixir-lang.org/) meant to orchestrate and pilot a number of 3rd party components. These components include:
 
 * One or more ingresses (the most popular implementation being an MQTT broker)
