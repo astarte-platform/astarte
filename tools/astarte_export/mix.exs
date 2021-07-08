@@ -4,7 +4,7 @@ defmodule AstarteExport.MixProject do
   def project do
     [
       app: :astarte_export,
-      version: "1.0.0",
+      version: "1.1.0-dev",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -36,8 +36,8 @@ defmodule AstarteExport.MixProject do
   defp deps do
     [
       {:xandra, "~> 0.13"},
-      {:astarte_core, "~> 1.0.0"},
-      {:astarte_data_access, "~> 1.0.0"},
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
       {:distillery, "~> 2.0.0"},
       {:pretty_log, "~> 0.1.0"},
       {:xml_stream_writer, "~> 0.1"},

@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def project do
     [
       app: :astarte_appengine_api,
-      version: "1.0.0",
+      version: "1.1.0-dev",
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -70,9 +70,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.0.0"},
-      {:astarte_data_access, "~> 1.0.0"},
-      {:astarte_rpc, "~> 1.0.0"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
@@ -88,7 +88,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:jason, "~> 1.2"},
       {:cors_plug, "~> 2.0"},
       {:ex_lttb, "~> 0.3"},
-      {:cyanide, "~> 1.0"},
+      {:cyanide, github: "ispirata/cyanide"},
       {:guardian, "~> 2.1"},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.7"},

@@ -27,7 +27,6 @@ you'd like to install, in this case v1.0:
 ```bash
 git clone https://github.com/astarte-platform/astarte-kubernetes-operator.git
 cd astarte-kubernetes-operator
-git checkout v1.0.0
 ```
 
 ## Install RBACs and CRDs
