@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Correctly serialize events containing datetime and array values.
 - [astarte_trigger_engine] Correctly serialize events containing datetime and array values.
+- [astarte_data_updater_plant] Don't crash when receiving `binaryblobarray` and `datetimearray`
+  values.
 
 ## [1.0.0] - 2021-06-30
 ### Added
