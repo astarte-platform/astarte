@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - Unreleased
+### Fixed
+- [astarte_appengine_api] Correctly serialize events containing datetime and array values.
+- [astarte_trigger_engine] Correctly serialize events containing datetime and array values.
+- [astarte_data_updater_plant] Don't crash when receiving `binaryblobarray` and `datetimearray`
+  values.
+
 ## [1.0.0] - 2021-06-30
 ### Added
 - Add support for volatile triggers on interfaces with object aggregation.
