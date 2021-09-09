@@ -27,7 +27,7 @@ interface AstarteTokenObject {
   a_aea?: string[];
   a_ch?: string[];
   a_f?: string[];
-  a_hka?: string[];
+  a_ha?: string[];
   a_pa?: string[];
   a_rma?: string[];
 }
@@ -71,7 +71,7 @@ const astarteTokenObjectSchema: yup.ObjectSchema<AstarteTokenObject> = yup
     a_aea: yup.array(yup.string().required().matches(httpClaimRegex)),
     a_ch: yup.array(yup.string().required().matches(channelsClaimRegex)),
     a_f: yup.array(yup.string().required().matches(httpClaimRegex)),
-    a_hka: yup.array(yup.string().required().matches(httpClaimRegex)),
+    a_ha: yup.array(yup.string().required().matches(httpClaimRegex)),
     a_pa: yup.array(yup.string().required().matches(httpClaimRegex)),
     a_rma: yup.array(yup.string().required().matches(httpClaimRegex)),
   })
@@ -99,7 +99,7 @@ export class AstarteToken {
       appEngine: (tokenObj.a_aea || []).map((claim) => parseClaim(httpClaimRegex, claim)),
       channels: (tokenObj.a_ch || []).map((claim) => parseClaim(channelsClaimRegex, claim)),
       flow: (tokenObj.a_f || []).map((claim) => parseClaim(httpClaimRegex, claim)),
-      houseKeeping: (tokenObj.a_hka || []).map((claim) => parseClaim(httpClaimRegex, claim)),
+      houseKeeping: (tokenObj.a_ha || []).map((claim) => parseClaim(httpClaimRegex, claim)),
       pairing: (tokenObj.a_pa || []).map((claim) => parseClaim(httpClaimRegex, claim)),
       realmManagement: (tokenObj.a_rma || []).map((claim) => parseClaim(httpClaimRegex, claim)),
     };
