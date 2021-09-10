@@ -208,6 +208,7 @@ defmodule AstarteDeviceFleetSimulator.Device do
   defp send_datastream(device_pid, interface, path, value, qos) do
     Logger.debug("Sending #{value} on interface #{interface}, path #{path}, qos #{qos}")
 
+    # blocking if qos != 0
     case Astarte.Device.send_datastream(device_pid, interface, path, value, qos: qos) do
       :ok -> :ok
       {:error, reason} -> Logger.error(inspect(reason))
