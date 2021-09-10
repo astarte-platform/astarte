@@ -84,7 +84,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
       {:observer_cli, "~> 1.5"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"}
     ]
   end
 end

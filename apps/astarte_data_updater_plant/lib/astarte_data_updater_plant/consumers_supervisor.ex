@@ -21,7 +21,7 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
   require Logger
 
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
-  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.ConnectionPoolUtils
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -33,7 +33,9 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
 
     children = [
       {Registry, [keys: :unique, name: Registry.AMQPDataConsumer]},
-      {AMQPDataConsumer.ConnectionManager, amqp_opts: Config.amqp_consumer_options!()},
+      {ExRabbitPool.PoolSupervisor,
+       rabbitmq_config: ConnectionPoolUtils.amqp_consumer_config(),
+       connection_pools: [ConnectionPoolUtils.pool_config(:consumers_pool)]},
       AMQPDataConsumer.Supervisor
     ]
 

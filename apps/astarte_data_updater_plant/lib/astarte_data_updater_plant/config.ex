@@ -165,6 +165,12 @@ defmodule Astarte.DataUpdaterPlant.Config do
           os_env: "DATA_UPDATER_PLANT_AMQP_PRODUCER_SSL_CUSTOM_SNI",
           type: :binary
 
+  @envdoc "The number queues per single RabbitMQ connection."
+  app_env :queues_per_connection, :astarte_data_updater_plant, :amqp_queues_per_connection,
+    os_env: "DATA_UPDATER_PLANT_AMQP_QUEUES_PER_CONNECTION",
+    type: :integer,
+    default: 8
+
   @envdoc "The prefix used to contruct data queue names, together with queue indexes."
   app_env :data_queue_prefix, :astarte_data_updater_plant, :amqp_data_queue_prefix,
     os_env: "DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_PREFIX",
@@ -230,7 +236,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
       username: amqp_consumer_username!(),
       password: amqp_consumer_password!(),
       virtual_host: amqp_consumer_virtual_host!(),
-      port: amqp_consumer_port!()
+      port: amqp_consumer_port!(),
+      channels: 0
     ]
     |> populate_consumer_ssl_options()
   end
@@ -318,7 +325,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
       username: amqp_producer_username,
       password: amqp_producer_password,
       virtual_host: amqp_producer_virtual_host,
-      port: amqp_producer_port
+      port: amqp_producer_port,
+      channels: 1
     ]
     |> populate_producer_ssl_options()
   end
@@ -375,6 +383,11 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   def data_updater_deactivation_interval_ms! do
     device_heartbeat_interval_ms!() * 3
+  end
+
+  def amqp_connections_number!() do
+    (data_queue_total_count!() / queues_per_connection!())
+    |> Kernel.round()
   end
 
   @doc """

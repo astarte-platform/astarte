@@ -82,7 +82,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   defp rabbitmq_connect(retry \\ true) do
-    with {:ok, conn} <- Connection.open(Config.amqp_producer_options!()),
+    with {:ok, conn} <- ExRabbitPool.get_connection(:producers_pool),
          {:ok, chan} <- Channel.open(conn),
          :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true),
          # Get notifications when the chan or connection goes down

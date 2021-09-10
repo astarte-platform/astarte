@@ -26,7 +26,6 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   alias AMQP.Queue
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.AMQPDataConsumer.ConnectionManager
 
   @msg_type_header "x_astarte_msg_type"
   @realm_header "x_astarte_realm"
@@ -170,11 +169,9 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   end
 
   def handle_info({:async_init, queue_name}, _state) do
-    # This will block until Rabbit connection is up
-    rabbitmq_connection = ConnectionManager.get_connection()
+    {:ok, rabbitmq_connection} = ExRabbitPool.get_connection(:consumers_pool)
 
     {:ok, chan} = initialize_chan(rabbitmq_connection, queue_name)
-
     {:noreply, chan}
   end
 

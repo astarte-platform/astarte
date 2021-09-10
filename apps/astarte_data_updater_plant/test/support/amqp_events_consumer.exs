@@ -95,7 +95,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
   end
 
   defp rabbitmq_connect(retry \\ true) do
-    with {:ok, conn} <- Connection.open(AMQPTestHelper.amqp_consumer_options()),
+    with {:ok, conn} <- ExRabbitPool.get_connection(:consumers_pool),
          # Get notifications when the connection goes down
          Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),

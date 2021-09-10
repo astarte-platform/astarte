@@ -41,7 +41,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @ip_address "2.3.4.5"
 
   setup_all do
-    {:ok, conn} = Connection.open(Config.amqp_producer_options!())
+    # {:ok, conn} = Connection.open(Config.amqp_producer_options!())
+    {:ok, conn} = ExRabbitPool.get_connection(:producers_pool)
     {:ok, chan} = Channel.open(conn)
     {:ok, _queue} = Queue.declare(chan, @queue_name)
     :ok = Queue.bind(chan, @queue_name, Config.events_exchange_name!(), routing_key: @routing_key)
