@@ -90,6 +90,10 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
         tags: [:realm]
       ),
       counter("astarte.data_updater_plant.data_updater.detected_crash.count"),
+      last_value("astarte.data_updater_plant.data_updater.handle_data.duration",
+        tags: [:realm],
+        unit: {:native, :millisecond}
+      ),
       last_value("astarte.data_updater_plant.service.health",
         tags: [:status],
         description: "Service state: 1 if good, 0 if not."

@@ -68,7 +68,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
+      start = System.monotonic_time()
+
       new_state = Impl.handle_data(state, interface, path, payload, message_id, timestamp)
+
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :data_updater, :handle_data],
+        %{duration: System.monotonic_time() - start},
+        %{realm: state.realm}
+      )
+
       {:noreply, new_state, timeout}
     else
       {:noreply, state, timeout}
