@@ -1338,7 +1338,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp get_interface_values_from_path([], _metadata, _path, _only_path) do
-    {:ok, %{}}
+    {:ok, %InterfaceValues{data: %{}}}
   end
 
   defp get_interface_values_from_path(values, metadata, path, only_path) when is_list(values) do
