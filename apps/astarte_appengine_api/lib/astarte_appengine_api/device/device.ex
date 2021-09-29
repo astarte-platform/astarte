@@ -1068,14 +1068,7 @@ defmodule Astarte.AppEngine.API.Device do
         if String.starts_with?(row[:path], path) do
           [{:path, row_path}] = row
 
-          simplified_path = simplify_path(path, row_path)
-
-          [
-            {:value_timestamp, tstamp},
-            {:reception_timestamp, reception},
-            _,
-            {_, v}
-          ] =
+          last_value =
             Queries.last_datastream_value!(
               client,
               device_id,
@@ -1086,28 +1079,41 @@ defmodule Astarte.AppEngine.API.Device do
               opts
             )
 
-          nice_value =
-            AstarteValue.to_json_friendly(
-              v,
-              ValueType.from_int(endpoint_row[:value_type]),
-              allow_bigintegers: true
-            )
+          case last_value do
+            :empty_dataset ->
+              %{}
 
-          Map.put(values_map, simplified_path, %{
-            "value" => nice_value,
-            "timestamp" =>
-              AstarteValue.to_json_friendly(
-                tstamp,
-                :datetime,
-                keep_milliseconds: opts.keep_milliseconds
-              ),
-            "reception_timestamp" =>
-              AstarteValue.to_json_friendly(
-                reception,
-                :datetime,
-                keep_milliseconds: opts.keep_milliseconds
-              )
-          })
+            [
+              {:value_timestamp, tstamp},
+              {:reception_timestamp, reception},
+              _,
+              {_, v}
+            ] ->
+              simplified_path = simplify_path(path, row_path)
+
+              nice_value =
+                AstarteValue.to_json_friendly(
+                  v,
+                  ValueType.from_int(endpoint_row[:value_type]),
+                  allow_bigintegers: true
+                )
+
+              Map.put(values_map, simplified_path, %{
+                "value" => nice_value,
+                "timestamp" =>
+                  AstarteValue.to_json_friendly(
+                    tstamp,
+                    :datetime,
+                    keep_milliseconds: opts.keep_milliseconds
+                  ),
+                "reception_timestamp" =>
+                  AstarteValue.to_json_friendly(
+                    reception,
+                    :datetime,
+                    keep_milliseconds: opts.keep_milliseconds
+                  )
+              })
+          end
         else
           values_map
         end
@@ -1332,7 +1338,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp get_interface_values_from_path([], _metadata, _path, _only_path) do
-    {:ok, %{}}
+    {:ok, %InterfaceValues{data: %{}}}
   end
 
   defp get_interface_values_from_path(values, metadata, path, only_path) when is_list(values) do

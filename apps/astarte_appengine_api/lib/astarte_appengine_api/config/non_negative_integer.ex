@@ -37,6 +37,10 @@ defmodule Astarte.AppEngine.API.Config.NonNegativeInteger do
     end
   end
 
+  def cast(value) when is_integer(value) do
+    if value >= 0, do: {:ok, value}, else: {:ok, 0}
+  end
+
   def cast(_) do
     :error
   end

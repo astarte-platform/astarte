@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - [astarte_appengine_api] Correctly serialize events containing datetime and array values.
+- [astarte_appengine_api] Do not fail when querying `datastream` interfaces data with `since`, 
+`to`, `sinceAfter` params if result is empty. Fix [#552](https://github.com/astarte-platform/astarte/issues/552). 
 - [astarte_trigger_engine] Correctly serialize events containing datetime and array values.
 - [astarte_data_updater_plant] Don't crash when receiving `binaryblobarray` and `datetimearray`
   values.
