@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 `to`, `sinceAfter` params if result is empty. Fix [#552](https://github.com/astarte-platform/astarte/issues/552). 
 - [astarte_appengine_api] Consider microseconds when using timestamps.
   Fix [#620](https://github.com/astarte-platform/astarte/issues/620).
+- [astarte_appengine_api] Don't crash when removing an alias with non-existing tag. 
+  Fix [495](https://github.com/astarte-platform/astarte/issues/495).
 - [astarte_trigger_engine] Correctly serialize events containing datetime and array values.
 - [astarte_data_updater_plant] Don't crash when receiving `binaryblobarray` and `datetimearray`
   values.
