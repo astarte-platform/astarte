@@ -879,48 +879,36 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
-    {status, result} =
-      List.foldl(endpoint_ids, {:ok, %{}}, fn endpoint_id, {status, values} ->
-        if status == :ok do
-          endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
+    result =
+      List.foldl(endpoint_ids, %{}, fn endpoint_id, values ->
+        endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
 
-          value =
-            retrieve_endpoint_values(
-              client,
-              device_id,
-              :individual,
-              :properties,
-              interface_row,
-              endpoint_id,
-              endpoint_row,
-              path,
-              opts
-            )
+        value =
+          retrieve_endpoint_values(
+            client,
+            device_id,
+            :individual,
+            :properties,
+            interface_row,
+            endpoint_id,
+            endpoint_row,
+            path,
+            opts
+          )
 
-          if value != %{} do
-            {:ok, Map.merge(values, value)}
-          else
-            {:error, :path_not_found}
-          end
-        else
-          {status, values}
-        end
+        Map.merge(values, value)
       end)
 
-    if status == :ok do
-      individual_value = Map.get(result, "")
+    individual_value = Map.get(result, "")
 
-      data =
-        if individual_value != nil do
-          individual_value
-        else
-          MapTree.inflate_tree(result)
-        end
+    data =
+      if individual_value != nil do
+        individual_value
+      else
+        MapTree.inflate_tree(result)
+      end
 
-      {:ok, %InterfaceValues{data: data}}
-    else
-      {:error, result}
-    end
+    {:ok, %InterfaceValues{data: data}}
   end
 
   defp do_get_interface_values!(
