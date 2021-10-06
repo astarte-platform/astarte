@@ -381,7 +381,9 @@ defmodule Astarte.RealmManagement.EngineTest do
             "type": "double",
             "explicit_timestamp": false,
             "description": "Updated description.",
-            "doc": "Updated docs."
+            "doc": "Updated docs.",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 60
         }
     ]
   }
