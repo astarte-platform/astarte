@@ -22,9 +22,9 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions do
 
   @primary_key false
   embedded_schema do
-    field :since, :utc_datetime
-    field :since_after, :utc_datetime
-    field :to, :utc_datetime
+    field :since, :utc_datetime_usec
+    field :since_after, :utc_datetime_usec
+    field :to, :utc_datetime_usec
     field :limit, :integer
     field :downsample_to, :integer
     field :downsample_key, :string
