@@ -175,7 +175,7 @@ const IndividualDatastreamTable = ({ data }) => {
 const IndividualDatastreamRow = ({ path, value, timestamp }) => (
   <tr>
     <td>{path}</td>
-    <td>{value}</td>
+    <td>{value.toString()}</td>
     <td>{new Date(timestamp).toLocaleString()}</td>
   </tr>
 );
