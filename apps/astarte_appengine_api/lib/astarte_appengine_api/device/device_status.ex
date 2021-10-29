@@ -28,10 +28,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :aliases, {:map, :string}
     field :introspection, :map
     field :connected, :boolean
-    field :last_connection, :utc_datetime
-    field :last_disconnection, :utc_datetime
-    field :first_registration, :utc_datetime
-    field :first_credentials_request, :utc_datetime
+    field :last_connection, :utc_datetime_usec
+    field :last_disconnection, :utc_datetime_usec
+    field :first_registration, :utc_datetime_usec
+    field :first_credentials_request, :utc_datetime_usec
     field :last_credentials_request_ip
     field :last_seen_ip
     field :attributes, {:map, :string}

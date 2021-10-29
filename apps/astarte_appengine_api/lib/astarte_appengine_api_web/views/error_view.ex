@@ -82,6 +82,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Alias already in use"}}
   end
 
+  def render("422_alias_tag_not_found.json", _assigns) do
+    %{errors: %{detail: "Alias tag not found"}}
+  end
+
   def render("422_invalid_alias.json", _assigns) do
     %{errors: %{detail: "Invalid alias"}}
   end
