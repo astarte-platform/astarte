@@ -127,7 +127,7 @@ For example, to run it locally on port 4040, you can use the following command:
 docker run \
   -p 4040:80 \
   -v /absolute/path/to/config.json:/usr/share/nginx/html/user-config/config.json \
-  astarte/astarte-dashboard:1.0-snapshot
+  astarte/astarte-dashboard:snapshot
 ```
 
 
