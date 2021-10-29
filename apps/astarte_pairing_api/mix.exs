@@ -86,7 +86,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:phoenix_ecto, "~> 4.0"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},
-      {:remote_ip, "~> 0.2"},
+      {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.12", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
