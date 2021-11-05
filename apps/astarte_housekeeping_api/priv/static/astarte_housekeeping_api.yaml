@@ -34,7 +34,7 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
+        '201':
           description: Success
           content:
             application/json:
