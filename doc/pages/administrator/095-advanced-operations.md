@@ -1,8 +1,17 @@
 # Advanced operations
 
-This section provides guides to perform some operations that have to be perfomed manually since they
-could result in data loss or other type of irrecoverable damage. *Always be careful while performing
-these operations*
+This section provides guidance on some delicate operations that must be performed manually as they
+could potentially result in data loss or other types of irrecoverable damage.
+
+*Always be careful while performing these operations!*
+
+Advanced operations are described in the following sections:
+- [Manual deletion of interfaces](#manual-deletion-of-interfaces)
+- [Manual deletion of a device](#manual-deletion-of-a-device)
+- [How to backup your Astarte resources](#backup-your-astarte-resources)
+- [How to restore your backed up Astarte instance](#restore-your-backed-up-astarte-instance)
+- [Handling Astarte when uninstalling the
+  Operator](#handling-astarte-when-uninstalling-the-operator)
 
 ## Manual deletion of interfaces
 
@@ -139,6 +148,224 @@ You can then proceed to install a new interface with the same name and major ver
 conflict. *Remember to remove the interface also on the device side, otherwise devices will keep
 getting disconnected if they try to publish on the deleted interface.*
 
+---
+
+## Manual deletion of a device
+
+Currently, the Astarte API allows for the unregistration and the inhibition of a specific device. If
+you want to entirely delete a device from your realm along with its data, a manual procedure is
+required.
+
+This section assumes:
+- that you have `cqlsh` connected to the Cassandra/ScyllaDB instance that your Astarte is using;
+- that you have `astartectl` installed on your machine.
+
+***Please keep in mind that this is a destructive procedure. Before moving on, ensure you saved your
+device ID or you might end up with dangling data and possibly a damaged Astarte deployment.***
+
+### Retrieve the device uuid
+
+To interact with the device and its data, the device uuid must be retrieved. Assuming that the
+id of the device to be deleted is `k3oPTXaGGGGGGGGGGGGGGG`, its uuid can be obtained with the
+following:
+
+```bash
+$ astartectl utils device-id to-uuid k3oPTXaGGGGGGGGGGGGGGG
+937a0f4d-7686-1861-8618-618618618618
+```
+
+Please, make sure not to lose the device uuid as it will be employed in all the following steps of
+this section.
+
+### Switch to the target keyspace
+
+The keyspace has the same name of the realm, in our case it is `test`.
+
+```
+cqlsh> use test;
+```
+
+### Delete device data on a specific interface
+
+Depending on the interface type and aggregation, data published by the device is stored into
+different tables:
+
+- data published over an individual datastream interface are available within the
+  `individual_datastreams` table;
+- data published over an individual properties interface are available within the
+  `individual_properties` table;
+- data published over an object datastream interfaces are stored in a dedicated table whose name is
+  built starting from the interface name: e.g. an interface called `com.test.Sensors` with major
+  version 1 creates a `com_test_sensors_v1` table in the realm keyspace.
+
+#### Delete device data from an `individual_datastreams` interface
+
+The first step consists in finding all the relevant primary keys for the device. To do so, simply
+run:
+
+```
+cqlsh:test> SELECT DISTINCT device_id, interface_id, endpoint_id, path FROM individual_datastreams
+  WHERE device_id=937a0f4d-7686-1861-8618-618618618618 ALLOW FILTERING;
+```
+
+The output will show a set of primary keys of data belonging to your device:
+```
+ device_id                            | interface_id                         | endpoint_id                          | path
+--------------------------------------|--------------------------------------|--------------------------------------|-------------
+ 937a0f4d-7686-1861-8618-618618618618 | c238b244-b90f-4c6d-f276-25768bf6abac | 33751412-3e77-ad1f-ad57-280cc9fad581 | /test/value
+ 937a0f4d-7686-1861-8618-618618618618 | 1e6fb841-9ee3-0e60-72ed-1f55b334b832 | 33751412-3e77-ad1f-ad57-280cc9fad581 | /foo/value
+ ...
+```
+
+It is now time to perform the actual data deletion: to do so, repeat the following instruction
+iterating over every combination of primary keys as obtained from the output of the previous
+command:
+```
+cqlsh:test> DELETE FROM individual_datastreams
+  WHERE device_id=937a0f4d-7686-1861-8618-618618618618
+  AND interface_id=c238b244-b90f-4c6d-f276-25768bf6abac
+  AND endpoint_id=33751412-3e77-ad1f-ad57-280cc9fad581
+  AND path='/test/value';
+```
+
+#### Delete device data from an `individual_properties` interface
+
+The procedure for deleting device data from an individual properties interface is the same as the
+one described in the individual datastreams subsection. You just have to perform operations on the
+`individual_properties` table.
+
+#### Delete device data for object datastreams
+
+The first step consists in retrieving the primary keys for the device. For this particular example
+the sample interface named `com.test.Sensors` with major version `v1` is employed. Please note that
+the upcoming steps must be repeated for each object datastream interface installed in your realm.
+
+```
+cqlsh:test> SELECT DISTINCT device_id, path FROM com_test_sensors_v1 WHERE
+  device_id=937a0f4d-7686-1861-8618-618618618618 ALLOW FILTERING;
+```
+
+The output will show something like:
+```
+ device_id                            | path
+--------------------------------------+------
+ 937a0f4d-7686-1861-8618-618618618618 | /foo
+ ...
+```
+
+It is now time to perform the actual data deletion:
+
+```
+cqlsh:test> DELETE FROM com_test_sensors_v1
+  WHERE device_id=937a0f4d-7686-1861-8618-618618618618
+  AND path='/foo';
+```
+
+### Delete device aliases
+
+If your device has one or more aliases you will find them in the `names` table.
+
+First, you have to find the primary key for the device:
+
+```
+cqlsh:test> SELECT object_name FROM names
+  WHERE object_uuid=937a0f4d-7686-1861-8618-618618618618 ALLOW FILTERING;
+```
+
+If your device has any aliases, the output will show
+```
+ object_name
+----------------
+ my-device-alias
+ ...
+```
+
+Thus, you can delete the alias simply executing:
+```
+cqlsh:test> DELETE FROM names WHERE object_name='my-device-alias';
+```
+
+### Delete the device from groups
+
+To delete the device from a device group let's find the needed keys:
+```
+SELECT group_name, insertion_uuid, device_id
+  FROM grouped_devices
+  WHERE device_id=937a0f4d-7686-1861-8618-618618618618
+  ALLOW FILTERING;
+```
+
+If the device is contained in one or more groups, the output will be:
+
+```
+ group_name | insertion_uuid                       | device_id
+------------+--------------------------------------+--------------------------------------
+   my-group | c1a0dade-43bc-11ec-95be-41f7663270b3 | 937a0f4d-7686-1861-8618-618618618618
+   ...
+```
+
+The actual deletion can be performed with:
+```
+cqlsh:test> DELETE FROM grouped_devices
+  WHERE group_name='my-group'
+  AND insertion_uuid=c1a0dade-43bc-11ec-95be-41f7663270b3
+  AND device_id=937a0f4d-7686-1861-8618-618618618618;
+```
+
+### Delete entries from `kv_store`
+
+If your device is publishing over one or more interfaces with version `v0`, you will need to handle
+also the `kv_store` table.
+
+Retrieve all the entries that must be handled:
+
+```
+cqlsh:test> SELECT group, key FROM kv_store WHERE key='937a0f4d-7686-1861-8618-618618618618' ALLOW
+  FILTERING;
+```
+
+The output of the query will show something similar to
+
+```
+ group                                                   | key
+---------------------------------------------------------+------------------------
+             devices-by-interface-com.test.Sensor-v0 | k3oPTXaGGGGGGGGGGGGGGG
+   devices-with-data-on-interface-com.test.Sensor-v0 | k3oPTXaGGGGGGGGGGGGGGG
+   ...
+```
+
+To remove the entries, simply execute the following queries to remove the proper rows from the
+table. Please, make sure to remove all the entries referencing your device ID.
+
+```
+cqlsh:test> DELETE FROM kv_store
+  WHERE group='devices-by-interface-com.test.Sensor-v0'
+  AND key='fXBxAijfRjuJuc-ilMM90Q';
+
+cqlsh:test> DELETE FROM kv_store
+  WHERE group='devices-with-data-on-interface-com.test.Sensor-v0'
+  AND key='fXBxAijfRjuJuc-ilMM90Q';
+```
+
+### Eventually delete your device
+
+Deleting your device from the devices table is as simple as
+
+```
+cqlsh:test> DELETE FROM devices WHERE device_id=937a0f4d-7686-1861-8618-618618618618;
+```
+
+### Conclusions
+
+If you managed to remove all the device-related entries as described in the previous sections, then
+your device and its data have been properly deleted from Astarte.
+
+Before trying to reconnect your device you **must** make sure that the SSL certificate and all
+the credentials onboard your device are deleted. This is crucial for ensuring that new data
+published by the device can be properly ingested and processed by Astarte.
+
+---
+
 ## Backup your Astarte resources
 
 Backing up your Astarte resources is crucial in all those cases in which your Astarte instance has
@@ -163,6 +390,8 @@ kubectl get avi -n astarte -o yaml > avi-backup.yaml
 kubectl get secret astarte-devices-ca -n astarte -o yaml > astarte-devices-ca-backup.yaml
 ```
 
+---
+
 ## Restore your backed up Astarte instance
 
 To restore your Astarte instance simply apply the resources you saved as described
@@ -182,6 +411,8 @@ kubectl apply -f avi-backup.yaml
 At the end of this step, your cluster is restored. Please, notice that the external IP of the
 ingress services might have changed. Take action to ensure that the changes of the IP are reflected
 anywhere appropriate in your deployment.
+
+---
 
 ## Handling Astarte when uninstalling the Operator
 
