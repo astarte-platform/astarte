@@ -18,16 +18,16 @@ Advanced operations are described in the following sections:
 Right now, Astarte only allows deleting draft interfaces, i.e. interfaces with major version `0` and
 not used by any device.
 
-If you want to delete an interface that already has published data, you must proceed manually with
-the steps described below. In this guide we're going to assume that you're trying to delete the
+If you want to delete an interface that has already published data, you must proceed manually with
+the steps described below. This guide assumes the aim of the operation is deleting the
 `org.astarte-platform.genericsensors.Values` interface in the `test` realm.
 
-The guide requires that you have [`cqlsh`](https://cassandra.apache.org/doc/latest/tools/cqlsh.html)
+The guide requires that [`cqlsh`](https://cassandra.apache.org/doc/latest/tools/cqlsh.html) is
 connected to the Cassandra/ScyllaDB instance that your Astarte instance is using.
 
 ### Switch to the target keyspace
 
-The keyspace has the same name of the realm, in our case it's `test`
+The keyspace has the same name of the realm, in this case it is `test`:
 
 ```
 cqlsh> use test;
@@ -41,7 +41,7 @@ cqlsh:test> SELECT interface_id FROM interfaces
   AND major_version = 1;
 ```
 
-`cqlsh` will reply with the interface id
+`cqlsh` will reply with the interface id:
 
 ```
  interface_id
@@ -63,8 +63,8 @@ cqlsh:test> DELETE FROM interfaces
   AND major_version = 1;
 ```
 
-*Keep in mind that after this step, all existing devices that try to publish on this interface will
-be disconnected as soon as they try to do so.*
+*Keep in mind that after this step, all existing devices that attempt to publish on this interface
+will be disconnected as soon as they try to do so.*
 
 ### Delete interface data
 
@@ -77,20 +77,21 @@ The interface data is stored in a different place depending on the interface typ
   the interface (e.g. an interface called `com.test.Sensors` with major version `1` creates a
   `com_test_sensors_v1` table in the realm keyspace).
 
-To delete data from object datastreams, you just need to `DROP` the table where the data is stored.
+To delete data from object datastreams, a simple `DROP` of the table where the data is stored is
+needed.
 
 Deleting data from individual interfaces requires more steps. In this example the interface is an
-individual datastream, but the procedure for individual properties is the same, but using the
+individual datastream, but the procedure for individual properties is the same, but concerns the
 `individual_properties` table instead.
 
-To delete the interface data, first you have to find all the relevant primary keys
+To delete the interface data, first all relevant primary keys must be found:
 
 ```
 cqlsh:test> SELECT DISTINCT device_id, interface_id, endpoint_id, path FROM individual_datastreams
   WHERE interface_id=c238b244-b90f-4c6d-f276-25768bf6abac ALLOW FILTERING;
 ```
 
-This will return a set of primary keys of data belonging to that interface
+This will return a set of primary keys of data belonging to that interface:
 
 ```
  device_id                            | interface_id                         | endpoint_id                          | path
@@ -100,7 +101,7 @@ This will return a set of primary keys of data belonging to that interface
  ...
 ```
 
-After that, you have to delete all the data belonging to those primary keys
+After that, all data belonging to those primary keys must be deleted:
 
 ```
 cqlsh:test> DELETE FROM individual_datastreams
@@ -119,23 +120,23 @@ cqlsh:test> DELETE FROM individual_datastreams
 
 ### `devices-by-interface` cleanup
 
-If you're using this guide to remove an draft interface (i.e. with major version `0`) that can't be
-deleted since it has data on it, an additional step is required for a complete cleanup.
+If this guide is being used so as to remove a draft interface (i.e. with major version `0`) that
+cannot be deleted since it has data on it, an additional step is required for a complete cleanup.
 
 The information about which devices are using draft interfaces is kept in the `kv_store` table. You
-can inspect the groups with
+can inspect the groups with:
 
 ```
 cqlsh:test> SELECT group FROM kv_store;
 ```
 
-Inspecting the returned `group`s, you can easily identify which group has to be deleted, since it's
-the one with its name derived from the interface name. For example, if you're trying to remove all
-data from the `org.astarte-platform.genericevents.DeviceEvents v0.1` interface, the corresponding
-`group` in `kv_store` will be
+The group that has to be deleted may be easily identified by inspecting the returned `group`s, since
+it is the one with its name derived from the interface name. For example, if the purpose of the
+operation is removing all data from the `org.astarte-platform.genericevents.DeviceEvents v0.1`
+interface, the corresponding `group` in `kv_store` will be
 `devices-by-interface-org.astarte-platform.genericevents.DeviceEvents-v0`.
 
-After you identify the group, just remove all its entries with
+As the target group is identified, just remove all its entries with:
 
 ```
 cqlsh:test> DELETE FROM kv_store WHERE group='devices-by-interface-org.astarte-platform.genericevents.DeviceEvents-v0';
@@ -143,10 +144,10 @@ cqlsh:test> DELETE FROM kv_store WHERE group='devices-by-interface-org.astarte-p
 
 ### Conclusion
 
-After you end performing all the steps above, the interface will be completely removed from Astarte.
-You can then proceed to install a new interface with the same name and major version without any
-conflict. *Remember to remove the interface also on the device side, otherwise devices will keep
-getting disconnected if they try to publish on the deleted interface.*
+After performing all the steps above, the interface will be completely removed from Astarte. You can
+then proceed to install a new interface with the same name and major version without any conflict.
+*Remember to remove the interface also on the device side, otherwise devices will keep getting
+disconnected if they try to publish on the deleted interface.*
 
 ---
 
@@ -157,8 +158,8 @@ you want to entirely delete a device from your realm along with its data, a manu
 required.
 
 This section assumes:
-- that you have `cqlsh` connected to the Cassandra/ScyllaDB instance that your Astarte is using;
-- that you have `astartectl` installed on your machine.
+- that `cqlsh` is connected to the Cassandra/ScyllaDB instance that your Astarte is using;
+- that `astartectl` is installed on your machine.
 
 ***Please keep in mind that this is a destructive procedure. Before moving on, ensure you saved your
 device ID or you might end up with dangling data and possibly a damaged Astarte deployment.***
@@ -179,7 +180,7 @@ this section.
 
 ### Switch to the target keyspace
 
-The keyspace has the same name of the realm, in our case it is `test`.
+The keyspace takes its name from the realm, in this case it is `test`.
 
 ```
 cqlsh> use test;
@@ -192,11 +193,11 @@ different tables:
 
 - data published over an individual datastream interface are available within the
   `individual_datastreams` table;
-- data published over an individual properties interface are available within the
+- data published over an individual property interface are available within the
   `individual_properties` table;
-- data published over an object datastream interfaces are stored in a dedicated table whose name is
-  built starting from the interface name: e.g. an interface called `com.test.Sensors` with major
-  version 1 creates a `com_test_sensors_v1` table in the realm keyspace.
+- data published over an object datastream interfaces are stored in a dedicated table named after
+  the interface name: e.g. an interface called `com.test.Sensors` with major version 1 creates a
+  `com_test_sensors_v1` table in the realm keyspace.
 
 #### Delete device data from an `individual_datastreams` interface
 
@@ -230,8 +231,8 @@ cqlsh:test> DELETE FROM individual_datastreams
 
 #### Delete device data from an `individual_properties` interface
 
-The procedure for deleting device data from an individual properties interface is the same as the
-one described in the individual datastreams subsection. You just have to perform operations on the
+The procedure for deleting device data from an individual property interface is the same as the one
+described in the individual datastreams subsection. You just have to perform operations on the
 `individual_properties` table.
 
 #### Delete device data for object datastreams
@@ -368,13 +369,13 @@ published by the device can be properly ingested and processed by Astarte.
 
 ## Backup your Astarte resources
 
-Backing up your Astarte resources is crucial in all those cases in which your Astarte instance has
-to be restored after an unforeseen event (e.g. accidental deletion of resources, deletion of the
+Backing up your Astarte resources is crucial in all those cases when your Astarte instance has to be
+restored after an unforeseen event (e.g. accidental deletion of resources, deletion of the
 Operator - as it will be discussed later on - etc.).
 
 A full recovery of your Astarte instance along with all the persisted data is possible **if and only
 if** your Cassandra/Scylla instance is deployed independently from Astarte, i.e. it must be deployed
-outside of the Astarte CR scope. If this condition is met, all the data are persisted into the
+outside of the Astarte CR scope. Provided that this condition is met, all the data persist in the
 database even when Astarte is deleted from your cluster.
 
 To restore your Astarte instance all you have to do is saving the following resources:
@@ -382,8 +383,8 @@ To restore your Astarte instance all you have to do is saving the following reso
 + AstarteVoyagerIngress CR;
 + CA certificate and key;
 
-and, assuming that your Astarte's name is `astarte` and that it is deployed within the `astarte`
-namespace, it can be done simply executing the following commands:
+and, assuming that the name of your Astarte is `astarte` and that it is deployed within the
+`astarte` namespace, it can be done simply executing the following commands:
 ```bash
 kubectl get astarte -n astarte -o yaml > astarte-backup.yaml
 kubectl get avi -n astarte -o yaml > avi-backup.yaml
@@ -437,8 +438,8 @@ that improper operations may have catastrophic effects on your Astarte instance.
 
 The Operator's installation procedure marks all the Astarte CRDs as owned by the Operator itself.
 Therefore, when the Operator is uninstalled all the CRDs are seen as orphaned and the Kubernetes
-controller automatically set them as ready to be deleted. Thus, when the Operator is uninstalled you
-end up with the following situation:
+controller automatically sets them as ready to be deleted. Thus, when the Operator is uninstalled
+you end up with the following situation:
 - Flow and AstarteVoyagerIngress CRDs are deleted, along with the custom resources depending on
   said CRDs;
 - Astarte CRD is marked for deletion, but its removal is postponed until the moment in which the
@@ -468,16 +469,16 @@ installation is handled simply with an `helm install` command as explained
 [here](030-installation_kubernetes.html#installation).
 
 When the first reconciliation loop is executed, the Operator becomes aware that the Astarte resource
-is marked for deletion, so it executes the Astarte finalizer and eventually destroys the Astarte's
-CRD and its resources.
+is marked for deletion, so it executes the Astarte finalizer and eventually destroys Astarte's CRD
+and its resources.
 
 Even if it might look like the status of the cluster is compromised, a simple command reestablishes
-the order:
+order:
 ```bash
 helm upgrade --install astarte-operator astarte/astarte-operator -n kube-system
 ```
-This command simply upgrades the Operator and, as a result, installs the missing CRDs. Now it's time
-to restore the Astarte resources.
+This command simply upgrades the Operator and, as a result, installs the missing CRDs. Now it is
+time to restore the Astarte resources.
 
 ### Apply backed up resources
 
@@ -487,6 +488,5 @@ To restore your Astarte instance simply follow the instructions outlined
 ### Conclusion
 
 The procedure presented in the current section allows to handle the deletion of the Operator from
-your cluster without losing any of the Astarte's data. Currently some manual intervention is
-required to ensure that the integrity of your instance is not compromised by the uninstall
-procedure.
+your cluster without losing any of Astarte's data. Currently some manual intervention is required to
+ensure that the integrity of your instance is not compromised by the uninstall procedure.
