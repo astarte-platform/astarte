@@ -231,9 +231,29 @@ cqlsh:test> DELETE FROM individual_datastreams
 
 #### Delete device data from an `individual_properties` interface
 
-The procedure for deleting device data from an individual property interface is the same as the one
-described in the individual datastreams subsection. You just have to perform operations on the
-`individual_properties` table.
+The first step consists in retrieving the primary keys for the device. Just run:
+
+```
+cqlsh:test> SELECT DISTINCT device_id, interface_id FROM individual_properties
+  WHERE device_id = 937a0f4d-7686-1861-8618-618618618618 ALLOW FILTERING;
+```
+
+The output will be similar to the following one:
+```
+ device_id                            | interface_id
+--------------------------------------+--------------------------------------
+ 937a0f4d-7686-1861-8618-618618618618 | c238b244-b90f-4c6d-f276-25768bf6abac
+ 937a0f4d-7686-1861-8618-618618618618 | 8ed086db-0bcc-5a9f-2fc2-ddf49c35e87d
+ 937a0f4d-7686-1861-8618-618618618618 | c61879ce-c60c-adaf-c6b4-d04b1e1b14c4
+```
+
+To perform the actual data deletion, run the following query for each pair of `device_id` and
+`interface_id` obtained from the previous query:
+```
+cqlsh:test> DELETE FROM individual_properties
+  WHERE device_id = 937a0f4d-7686-1861-8618-618618618618
+  AND interface_id = c238b244-b90f-4c6d-f276-25768bf6abac;
+```
 
 #### Delete device data for object datastreams
 
