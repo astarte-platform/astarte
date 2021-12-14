@@ -41,15 +41,13 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @ip_address "2.3.4.5"
 
   setup_all do
-    # {:ok, conn} = Connection.open(Config.amqp_producer_options!())
-    {:ok, conn} = ExRabbitPool.get_connection(:producers_pool)
-    {:ok, chan} = Channel.open(conn)
+    conn_worker = ExRabbitPool.get_connection_worker(:producers_pool)
+    {:ok, chan} = ExRabbitPool.checkout_channel(conn_worker)
     {:ok, _queue} = Queue.declare(chan, @queue_name)
     :ok = Queue.bind(chan, @queue_name, Config.events_exchange_name!(), routing_key: @routing_key)
 
     on_exit(fn ->
-      Channel.close(chan)
-      Connection.close(conn)
+      ExRabbitPool.checkin_channel(conn_worker, chan)
     end)
 
     [chan: chan]

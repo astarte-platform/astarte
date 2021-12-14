@@ -88,12 +88,6 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
     {:noreply, new_state}
   end
 
-  def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
-  end
-
   defp rabbitmq_connect(retry \\ true) do
     with {:ok, conn} <- ExRabbitPool.get_connection(:consumers_pool),
          # Get notifications when the connection goes down
@@ -120,11 +114,9 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
     else
       {:error, reason} ->
         Logger.warn("RabbitMQ Connection error: #{inspect(reason)}")
-        maybe_retry(retry)
 
       :error ->
         Logger.warn("Unknown RabbitMQ connection error")
-        maybe_retry(retry)
     end
   end
 

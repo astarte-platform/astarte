@@ -390,6 +390,15 @@ defmodule Astarte.DataUpdaterPlant.Config do
     |> Kernel.round()
   end
 
+  def pool_config!(pool_id) do
+    [
+      name: {:local, pool_id},
+      worker_module: ExRabbitPool.Worker.RabbitConnection,
+      size: amqp_connections_number!(),
+      max_overflow: 0
+    ]
+  end
+
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """

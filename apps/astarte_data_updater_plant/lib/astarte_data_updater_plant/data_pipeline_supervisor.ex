@@ -24,7 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   alias Astarte.DataUpdaterPlant.RPC.Handler
 
   alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
-  alias Astarte.DataUpdaterPlant.ConnectionPoolUtils
+  alias Astarte.DataUpdaterPlant.Config
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -37,8 +37,8 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
       # we use different connections for producers and consumers
       {ExRabbitPool.PoolSupervisor,
-       rabbitmq_config: ConnectionPoolUtils.amqp_producer_config(),
-       connection_pools: [ConnectionPoolUtils.pool_config(:producers_pool)]},
+       rabbitmq_config: Config.amqp_producer_options!(),
+       connection_pools: [Config.pool_config!(:producers_pool)]},
       AMQPEventsProducer,
       ConsumersSupervisor,
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},

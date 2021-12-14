@@ -21,12 +21,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   use GenServer
 
   alias AMQP.Basic
-  alias AMQP.Channel
-  alias AMQP.Connection
   alias AMQP.Exchange
   alias Astarte.DataUpdaterPlant.Config
-
-  @connection_backoff 10000
 
   # API
 
@@ -45,70 +41,46 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   # Server callbacks
 
   def init(_args) do
-    rabbitmq_connect(false)
-  end
+    ExRabbitPool.with_channel(:producers_pool, fn
+      {:ok, channel} ->
+        case Exchange.declare(channel, Config.events_exchange_name!(), :direct, durable: true) do
+          :ok ->
+            {:ok, {}}
 
-  def terminate(_reason, %Channel{conn: conn} = chan) do
-    Channel.close(chan)
-    Connection.close(conn)
-  end
+          {:error, reason} ->
+            Logger.warn("RabbitMQ exchange declaration error: #{inspect(reason)}",
+              tag: "events_producer_exchange_err"
+            )
 
-  def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
-    reply = Basic.publish(chan, exchange, routing_key, payload, opts)
+            {:stop, :connection_failed}
+        end
 
-    {:reply, reply, chan}
-  end
-
-  def handle_call({:declare_exchange, exchange}, _from, chan) do
-    # TODO: we need to decide who is responsible of deleting the exchange once it is
-    # no longer needed
-    reply = Exchange.declare(chan, exchange, :direct, durable: true)
-
-    {:reply, reply, chan}
-  end
-
-  def handle_info(:try_to_connect, _state) do
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
-  end
-
-  def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
-      tag: "events_producer_conn_lost"
-    )
-
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
-  end
-
-  defp rabbitmq_connect(retry \\ true) do
-    with {:ok, conn} <- ExRabbitPool.get_connection(:producers_pool),
-         {:ok, chan} <- Channel.open(conn),
-         :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true),
-         # Get notifications when the chan or connection goes down
-         Process.monitor(chan.pid) do
-      {:ok, chan}
-    else
       {:error, reason} ->
         Logger.warn("RabbitMQ Connection error: #{inspect(reason)}",
           tag: "events_producer_conn_err"
         )
 
-        maybe_retry(retry)
-
-      :error ->
-        Logger.warn("Unknown RabbitMQ connection error", tag: "events_producer_conn_err")
-        maybe_retry(retry)
-    end
+        {:stop, :connection_failed}
+    end)
   end
 
-  defp maybe_retry(retry) do
-    if retry do
-      Logger.warn("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), :try_to_connect)
-      {:ok, :not_connected}
-    else
-      {:stop, :connection_failed}
-    end
+  def handle_call(
+        {:publish, exchange, routing_key, payload, opts},
+        _from,
+        state
+      ) do
+    ExRabbitPool.with_channel(:producers_pool, fn {:ok, channel} ->
+      reply = Basic.publish(channel, exchange, routing_key, payload, opts)
+      {:reply, reply, state}
+    end)
+  end
+
+  def handle_call({:declare_exchange, exchange}, _from, state) do
+    # TODO: we need to decide who is responsible of deleting the exchange once it is
+    # no longer needed
+    ExRabbitPool.with_channel(:producers_pool, fn {:ok, channel} ->
+      reply = Exchange.declare(channel, exchange, :direct, durable: true)
+      {:reply, reply, state}
+    end)
   end
 end
