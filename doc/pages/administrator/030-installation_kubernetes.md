@@ -14,9 +14,9 @@ Please, before starting with the Operator's install procedure make sure that any
 Installing the Operator is as simple as
 
 ```bash
-helm repo add astarte https://helm.astarte-platform.org
-helm repo update
-helm install astarte-operator astarte/astarte-operator -n kube-system
+$ helm repo add astarte https://helm.astarte-platform.org
+$ helm repo update
+$ helm install astarte-operator astarte/astarte-operator -n kube-system
 ```
 
 This command will take care of installing all needed components for the Operator to run. This
@@ -53,7 +53,7 @@ for the deletion of both RBACs and the Operator's deployment itself. Moreover, a
 installed by the Operator's Helm chart are marked for deletion.
 
 ```bash
-helm uninstall astarte-operator -n kube-system
+$ helm uninstall astarte-operator -n kube-system
 ```
 
 So, what should you expect after uninstalling the Operator?
