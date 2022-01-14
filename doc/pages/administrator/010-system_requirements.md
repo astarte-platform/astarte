@@ -6,11 +6,11 @@ the scope of this document.
 
 ## Kubernetes Requirements
 
-Astarte requires at least Kubernetes 1.16, and strives to be compatible with all newer Kubernetes versions.
+Astarte requires at least Kubernetes 1.19, and strives to be compatible with all newer Kubernetes versions.
 It is advised to consult Astarte Operator's compatibility matrix in the README to ensure a specific Kubernetes
 setup is supported.
 
-The Astarte Operator does not require any unstable feature gate in Kubernetes 1.16, and is actively tested
+The Astarte Operator does not require any unstable feature gate in Kubernetes 1.19, and is actively tested
 against KinD and major Managed Kubernetes installations on various Cloud Providers.
 
 ## Dependencies

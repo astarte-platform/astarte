@@ -12,18 +12,35 @@ In your local machine, you'll need two main tools:
 Ensure you have a `kubectl` version matching your target Kubernetes cluster version, and a recent
 `astartectl` version.
 
-## Voyager
+## NGINX
 
-Astarte currently features only one Managed Ingress, based on
-[Voyager](https://github.com/appscode/voyager). Voyager provides routing, SSL termination and more,
+Astarte currently features only one supported Managed Ingress, based on
+[NGINX](https://nginx.org/en/). NGINX provides routing, SSL termination and more,
 and as of today is the preferred/advised way to run Astarte in production.
 
-Astarte Operator is capable of interacting with Voyager through its dedicated
-`AstarteVoyagerIngress` resource, as long as the Voyager Operator is installed. Installing Voyager
-Operator is outside the scope of this guide, and you should refer to [Voyager's
-documentation](https://appscode.com/products/voyager/latest/setup/install/).
+Astarte Operator is capable of interacting with NGINX through its dedicated
+`AstarteDefaultIngress` resource, as long as an [NGINX ingress
+controller](https://kubernetes.github.io/ingress-nginx/) is installed. Installing the ingress
+controller is as simple as running a few `helm` commands:
+```bash
+$ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+$ helm repo update
+$ helm install ingress-nginx ingress-nginx/ingress-nginx -n ingress-nginx \
+    --set controller.service.externalTrafficPolicy=Local \
+    --create-namespace
+```
 
-You don't need to create Voyager ingresses yourself - just the Operator itself is enough.
+You don't need to create NGINX ingresses yourself - just the Operator itself is enough.
+
+## Voyager (deprecated)
+
+Until Astarte v1.0.0, the only supported Managed Ingress was the
+[Voyager](https://github.com/appscode/voyager) based `AstarteVoyagerIngress`. Starting from Dec the
+31st 2021, according to the [Voyager
+announcement](https://blog.byte.builders/post/voyager-v2021.09.15/), the support for Voyager will be
+dropped as stated [here](https://github.com/astarte-platform/astarte/issues/613). An alternative
+NGINX based Managed Ingress has been developed to replace the Voyager based solution (for reference,
+see the previous section).
 
 ## cert-manager
 

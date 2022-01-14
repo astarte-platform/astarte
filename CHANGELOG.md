@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.1] - Unreleased
 ### Added
 - [data_updater_plant] Add handle_data duration metric.
+- [doc] Add documentation for AstarteDefaultIngress.
+- [doc] Add deprecation notice for AstarteVoyagerIngress.
+- [doc] Add documentation for the handling of Astarte certificates.
+
+### Changed
+- [doc] Remove astartectl profiles from the possible deployment alternatives.
 
 ### Fixed
 - [astarte_appengine_api] Correctly serialize events containing datetime and array values.

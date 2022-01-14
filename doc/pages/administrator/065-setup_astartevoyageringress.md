@@ -1,4 +1,13 @@
-# Setting up the Ingress
+# Setting up the Astarte Voyager Ingress
+
+---
+**IMPORTANT**: Due to changes in Voyager policies and to the
+[announcement](https://blog.byte.builders/post/voyager-v2021.09.15/) that, starting from Dec 31st
+2021, it will not possible to pull older Voyager docker images the Astarte Voyager Ingress is
+deprecated and will be dropped in a future release (i.e.: `v1.1`). Please, consider using the NGINX
+based drop-in replacement for Astarte called
+[`AstarteDefaultIngress`](064-setup_astartedefaultingress.html).
+---
 
 Once your Cluster [is up and running](060-setup_cluster.html), to expose it to the outer world you
 need to set up an Ingress. Currently, the only managed and supported Ingress is based upon

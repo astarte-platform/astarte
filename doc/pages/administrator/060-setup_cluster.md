@@ -3,48 +3,25 @@
 Once the Astarte Operator [has been installed](030-installation_kubernetes.html), and any prerequisite
 [has been fulfilled](020-prerequisites.html), you can move forward and deploy an Astarte Cluster.
 
-## Using astartectl
-
-You can use `astartectl` to deploy an instance through the `astartectl cluster instances deploy` command.
-This is an interactive command that will inspect your cluster and provide you with a set of profiles that
-can be deployed. When you choose a Profile, you will be prompted with a number of questions that will
-be needed to configure your instance correctly. Upon completion, `astartectl` will prepare and execute the
-deployment automatically.
-
-## astartectl Profiles
-
-In `astartectl`, profiles allow for easy scaling, enhanced management, and automated upgrade upon release
-series without any action on behalf of the user. They're the way to go if you plan on having a standard,
-managed installation.
-
-`astartectl` comes packed with a set of default profiles, but you can write your own ones. Profiles can
-be either written as Go resources, or (in a much easier fashion) as `yaml` resources. You can have a look
-at the [Profiles schema here](https://github.com/astarte-platform/astartectl/blob/master/cmd/cluster/deployment/astarte_cluster_profile.go).
-
-### Writing your own profile
-
-This guide will be extended in the future, as more recent versions of `astartectl` will support loading yaml
-profiles.
-
 ## Using a standard Astarte CR
 
-If you do not want to use `astartectl` or Profiles, you can create your own Astarte Custom Resource. This gives you
-a higher degree of customization, allowing you to tweak any single parameter in the Astarte setup. The main
-Astarte CRD contains
-[extensive documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/master/deploy/crds/api.astarte-platform.org_astartes_crd.yaml)
-on the available fields in OpenAPIv3 format. Just create your Astarte Custom Resource, which will look something
-like this:
+The standard way of deploying an Astarte instance is by creating your own Astarte Custom Resource.
+This gives you an high degree of customization, allowing you to tweak any single parameter in the
+Astarte setup. The main Astarte CRD contains [extensive
+documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/release-1.0/config/crd/bases/api.astarte-platform.org_astartes.yaml)
+on the available fields in OpenAPIv3 format. Just create your Astarte Custom Resource, which will
+look something like this:
 
 ```yaml
 apiVersion: api.astarte-platform.org/v1alpha1
 kind: Astarte
 metadata:
-  name: example-minimal
+  name: astarte
   namespace: astarte
 spec:
   # This is the most minimal set of reasonable configuration to spin up an Astarte
   # instance with reasonable defaults and enough control over the deployment.
-  version: 1.0.0
+  version: 1.0.1
   api:
     host: "api.astarte.yourdomain.com" # MANDATORY
   rabbitmq:
@@ -55,6 +32,7 @@ spec:
       limits:
         cpu: 1
         memory: 1000M
+  # this configuration deploys cassandra in cluster. This is not advised for production environments
   cassandra:
     maxHeapSize: 1024M
     heapNewSize: 256M
@@ -69,6 +47,8 @@ spec:
         memory: 2048M
   vernemq:
     host: "broker.astarte.yourdomain.com"
+    ssListener: true
+    sslListenerCertSecretName: <your-tls-secret>
     resources:
       requests:
         cpu: 200m
@@ -98,5 +78,13 @@ spec:
         memory: 6144M
 ```
 
-You can simply apply this resource in your Kubernetes cluster with `kubectl apply -f`. The Operator will take
-over from there.
+Starting from Astarte v1.0.1, traffic coming to the broker is TLS terminated ad VerneMQ level. The
+two fields controlling this features, namely `sslListener` and `sslListenerCertSecretName` can be
+found within the `vernemq` section of the Astarte CR. In a nutshell, their meaning is:
+- `sslListener` controls whether TLS termination is enabled at VerneMQ level or not,
+- `sslListenerCertSecretName` is the name of TLS secret used for TLS termination (more on how to
+  deal with Astarte certificates [here](050-handling_certificates.html)). When `sslListener` is
+  true, the secret name **must** be set.
+
+You can simply apply this resource in your Kubernetes cluster with `kubectl apply -f`. The Operator
+will take over from there.
