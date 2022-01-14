@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [1.0.1] - Unreleased
+## [1.0.1] - 2021-12-17
 ### Added
 - [data_updater_plant] Add handle_data duration metric.
 - [doc] Add documentation for AstarteDefaultIngress.
@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_trigger_engine] Correctly serialize events containing datetime and array values.
 - [astarte_data_updater_plant] Don't crash when receiving `binaryblobarray` and `datetimearray`
   values.
+- Update Cyanide BSON library, in order to fix crash when handling ill-formed BSON arrays.
 
 ## [1.0.0] - 2021-06-30
 ### Added

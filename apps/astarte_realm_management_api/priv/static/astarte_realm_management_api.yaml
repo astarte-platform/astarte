@@ -15,7 +15,7 @@ info:
     Astarte's Realm Management API is the main mechanism to configure a Realm.
     It allows installing and managing Interfaces, Triggers and any configuration
     of the Realm itself.
-  version: 1.0.0
+  version: 1.0.1
   title: Astarte Realm Management API
   contact:
     email: info@ispirata.com
