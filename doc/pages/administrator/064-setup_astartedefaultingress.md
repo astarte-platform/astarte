@@ -158,5 +158,5 @@ In particular, assuming your API host was `api.astarte.yourdomain.com`:
 
 `AstarteDefaultIngress` has a number of advanced options that can be used to accommodate needs of
 the most diverse deployments. Consult the [CRD
-Documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/v1.0.1/config/crd/bases/ingress.astarte-platform.org_astartedefaultingresses.yaml)
+Documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/master/config/crd/bases/api.astarte-platform.org_astartevoyageringresses.yaml)
 to learn more.
