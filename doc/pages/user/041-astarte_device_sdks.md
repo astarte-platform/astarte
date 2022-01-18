@@ -100,7 +100,7 @@ This feature is not available yet on ESP32 and is WIP on Rust and Python.
 
 A device must be registered beforehand to obtain its `credentials-secret`.
 While there are some manual options (such as using the [`astartectl`](https://github.com/astarte-platform/astartectl) command
-or using the [`Astarte Dashboard`](https://docs.astarte-platform.org/snapshot/015-astarte_dashboard.html)), 
+or using the [`Astarte Dashboard`](015-astarte_dashboard.html)),
 almost all Astarte Device SDKs allow to programmatically register a Device. 
 For Go you can use the [astarte_go](https://github.com/astarte-platform/astarte-go) client.
 
