@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - [doc] Remove astartectl profiles from the possible deployment alternatives.
 
+### Changed
+- [astarte_realm_management] Allow changing `database_retention_policy` and `database_retention_ttl` 
+  on a minor interface upgrade. See [504](https://github.com/astarte-platform/astarte/issues/504).  
+
 ### Fixed
 - [astarte_appengine_api] Correctly serialize events containing datetime and array values.
 - [astarte_appengine_api] Do not fail when querying `datastream` interfaces data with `since`, 

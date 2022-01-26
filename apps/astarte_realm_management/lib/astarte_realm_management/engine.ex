@@ -323,11 +323,20 @@ defmodule Astarte.RealmManagement.Engine do
   defp is_mapping_updated?(mapping, upd_mapping) do
     mapping.explicit_timestamp != upd_mapping.explicit_timestamp or
       mapping.doc != upd_mapping.doc or
-      mapping.description != upd_mapping.description
+      mapping.description != upd_mapping.description or
+      mapping.database_retention_policy != upd_mapping.database_retention_policy or
+      mapping.database_retention_ttl != upd_mapping.database_retention_ttl
   end
 
   defp drop_mapping_negligible_fields(%Mapping{} = mapping) do
-    %{mapping | doc: nil, description: nil, explicit_timestamp: false}
+    %{
+      mapping
+      | doc: nil,
+        description: nil,
+        explicit_timestamp: false,
+        database_retention_policy: nil,
+        database_retention_ttl: :no_ttl
+    }
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do
