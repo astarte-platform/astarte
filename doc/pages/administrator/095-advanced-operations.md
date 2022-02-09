@@ -341,8 +341,7 @@ also the `kv_store` table.
 Retrieve all the entries that must be handled:
 
 ```
-cqlsh:test> SELECT group, key FROM kv_store WHERE key='937a0f4d-7686-1861-8618-618618618618' ALLOW
-  FILTERING;
+cqlsh:test> SELECT group, key FROM kv_store WHERE key='k3oPTXaGGGGGGGGGGGGGGG' ALLOW FILTERING;
 ```
 
 The output of the query will show something similar to
@@ -361,11 +360,11 @@ table. Please, make sure to remove all the entries referencing your device ID.
 ```
 cqlsh:test> DELETE FROM kv_store
   WHERE group='devices-by-interface-com.test.Sensor-v0'
-  AND key='fXBxAijfRjuJuc-ilMM90Q';
+  AND key='k3oPTXaGGGGGGGGGGGGGGG';
 
 cqlsh:test> DELETE FROM kv_store
   WHERE group='devices-with-data-on-interface-com.test.Sensor-v0'
-  AND key='fXBxAijfRjuJuc-ilMM90Q';
+  AND key='k3oPTXaGGGGGGGGGGGGGGG';
 ```
 
 ### Eventually delete your device
