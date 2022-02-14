@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - [realm_management] Accept `retention` and `expiry` updates when updating the minor version of an
   interface.
+  
+### Fixed
+- [realm_management] Accept allowed mapping updates in object aggregated interfaces without
+  crashing.
 
 ## [1.0.1] - 2021-12-17
 ### Added
