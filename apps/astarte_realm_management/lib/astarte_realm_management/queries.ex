@@ -431,6 +431,11 @@ defmodule Astarte.RealmManagement.Queries do
     execute_batch(client, insert_mapping_queries ++ [update_interface_query])
   end
 
+  def update_interface_storage(_client, _interface_descriptor, []) do
+    # No new mappings, nothing to do
+    :ok
+  end
+
   def update_interface_storage(
         client,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable, storage: table_name} =
