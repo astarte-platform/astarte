@@ -379,9 +379,10 @@ defmodule Astarte.RealmManagement.EngineTest do
         {
             "endpoint": "/%{sensor_id}/value",
             "type": "double",
-            "explicit_timestamp": false,
             "description": "Updated description.",
-            "doc": "Updated docs."
+            "doc": "Updated docs.",
+            "retention": "stored",
+            "expiry": 7200
         }
     ]
   }
@@ -402,7 +403,9 @@ defmodule Astarte.RealmManagement.EngineTest do
             "type": "string",
             "explicit_timestamp": false,
             "description": "Updated description.",
-            "doc": "Updated docs."
+            "doc": "Updated docs.",
+            "retention": "stored",
+            "expiry": 7200
         }
     ]
   }
@@ -702,7 +705,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              {:ok, [[major_version: 0, minor_version: 15]]}
   end
 
-  test "update explicit timestamp, doc and description for individual datastream interface" do
+  test "update explicit timestamp, doc, description, expiry and retention for individual datastream interface" do
     assert Engine.install_interface("autotestrealm", @test_interface_d_0) == :ok
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["org.astarte-platform.Values"]}
@@ -711,6 +714,11 @@ defmodule Astarte.RealmManagement.EngineTest do
              {:ok, [[major_version: 1, minor_version: 0]]}
 
     assert Engine.update_interface("autotestrealm", @test_interface_d_1) == :ok
+
+    {:ok, updated_interface} =
+      unpack_source(Engine.interface_source("autotestrealm", "org.astarte-platform.Values", 1))
+
+    assert {:ok, ^updated_interface} = unpack_source({:ok, @test_interface_d_1})
 
     assert Engine.list_interface_versions("autotestrealm", "org.astarte-platform.Values") ==
              {:ok, [[major_version: 1, minor_version: 1]]}
