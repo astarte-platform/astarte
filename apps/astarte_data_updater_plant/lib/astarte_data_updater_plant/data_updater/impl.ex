@@ -803,7 +803,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:error, :unexpected_object_key} ->
         Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.",
-          tag: "unexcpected_object_key"
+          tag: "unexpected_object_key"
         )
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
@@ -909,7 +909,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:halt, {:error, reason}}
 
         :error ->
-          Logger.warn("unexpected key #{inspect(key)} in object #{inspect(object)}.")
+          Logger.warn("Unexpected key #{inspect(key)} in object #{inspect(object)}.",
+            tag: "unexpected_object_key"
+          )
+
           {:halt, {:error, :unexpected_object_key}}
       end
     end)
