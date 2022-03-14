@@ -909,6 +909,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:halt, {:error, reason}}
 
         :error ->
+          Logger.warn("unexpected key #{inspect(key)} in object #{inspect(object)}.")
           {:halt, {:error, :unexpected_object_key}}
       end
     end)
