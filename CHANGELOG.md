@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   crashing.
 - [astarte_appengine_api] Handle server owned datetimearray values correctly.
 
+### Changed
+- [astarte_housekeeping] Allow to delete a realm only if all its devices are disconnected.
+  Realm deletion can still only be enabled with an environment variable (defaults to disabled).
+
 ## [1.0.1] - 2021-12-17
 ### Added
 - [data_updater_plant] Add handle_data duration metric.

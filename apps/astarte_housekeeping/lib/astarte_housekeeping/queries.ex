@@ -96,9 +96,8 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp do_delete_realm(realm_name) do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- validate_realm_name(realm_name),
-           :ok <- delete_realm_keyspace(conn, realm_name),
-           :ok <- remove_realm(conn, realm_name) do
+      with :ok <- verify_realm_deletion_preconditions(conn, realm_name),
+           :ok <- execute_realm_deletion(conn, realm_name) do
         :ok
       else
         {:error, reason} ->
@@ -111,6 +110,38 @@ defmodule Astarte.Housekeeping.Queries do
           {:error, reason}
       end
     end)
+  end
+
+  defp verify_realm_deletion_preconditions(conn, realm_name) do
+    with :ok <- validate_realm_name(realm_name),
+         :ok <- check_no_connected_devices(conn, realm_name) do
+      :ok
+    else
+      {:error, reason} ->
+        _ =
+          Logger.warn("Realm deletion preconditions are not satisfied: #{inspect(reason)}.",
+            tag: "realm_deletion_preconditions_rejected",
+            realm: realm_name
+          )
+
+        {:error, reason}
+    end
+  end
+
+  defp execute_realm_deletion(conn, realm_name) do
+    with :ok <- delete_realm_keyspace(conn, realm_name),
+         :ok <- remove_realm(conn, realm_name) do
+      :ok
+    else
+      {:error, reason} ->
+        _ =
+          Logger.warn("Cannot delete realm: #{inspect(reason)}.",
+            tag: "realm_deletion_failed",
+            realm: realm_name
+          )
+
+        {:error, reason}
+    end
   end
 
   defp do_create_realm(realm_name, public_key_pem, replication_map_str) do
@@ -156,6 +187,38 @@ defmodule Astarte.Housekeeping.Queries do
           )
 
         {:error, reason}
+    end
+  end
+
+  defp check_no_connected_devices(conn, realm_name) do
+    query = """
+    SELECT * FROM #{realm_name}.devices WHERE connected = true LIMIT 1 ALLOW FILTERING;
+    """
+
+    with {:ok, %Xandra.Page{} = page} <-
+           Xandra.execute(conn, query, %{}, consistency: :one) do
+      if Enum.empty?(page) do
+        :ok
+      else
+        _ =
+          Logger.warn("Realm #{realm_name} still has connected devices.",
+            tag: "connected_devices_present"
+          )
+
+        {:error, :connected_devices_present}
+      end
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
     end
   end
 
