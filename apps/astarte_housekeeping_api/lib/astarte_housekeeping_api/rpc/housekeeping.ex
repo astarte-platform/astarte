@@ -194,6 +194,12 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     {:error, :realm_deletion_disabled}
   end
 
+  defp extract_reply(
+         {:generic_error_reply, %GenericErrorReply{error_name: "connected_devices_present"}}
+       ) do
+    {:error, :connected_devices_present}
+  end
+
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 
