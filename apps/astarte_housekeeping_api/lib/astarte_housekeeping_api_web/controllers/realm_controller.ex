@@ -29,8 +29,16 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
     render(conn, "index.json", realms: realms)
   end
 
-  def create(conn, %{"data" => realm_params}) do
-    with {:ok, %Realm{} = realm} <- Realms.create_realm(realm_params) do
+  def create(conn, %{"data" => realm_params} = params) do
+    async_operation =
+      if Map.get(params, "async_operation") == "false" do
+        false
+      else
+        true
+      end
+
+    with {:ok, %Realm{} = realm} <-
+           Realms.create_realm(realm_params, async_operation: async_operation) do
       conn
       |> put_status(:created)
       |> put_resp_header("location", realm_path(conn, :show, realm))
@@ -51,8 +59,15 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    with :ok <- Realms.delete_realm(id) do
+  def delete(conn, %{"id" => id} = params) do
+    async_operation =
+      if Map.get(params, "async_operation") == "false" do
+        false
+      else
+        true
+      end
+
+    with :ok <- Realms.delete_realm(id, async_operation: async_operation) do
       send_resp(conn, :no_content, "")
     end
   end
