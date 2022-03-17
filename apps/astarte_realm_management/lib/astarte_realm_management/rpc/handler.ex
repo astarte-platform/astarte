@@ -140,6 +140,14 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
+  def encode_reply(_call_atom, :ok) do
+    msg = %GenericOkReply{
+      async_operation: false
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, msg}})}
+  end
+
   def encode_reply(_call_atom, {:ok, :started}) do
     msg = %GenericOkReply{
       async_operation: true

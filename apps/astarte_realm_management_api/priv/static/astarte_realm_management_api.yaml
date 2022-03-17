@@ -115,6 +115,7 @@ paths:
           required: false
           schema:
             type: boolean
+            default: true
       responses:
         '201':
           $ref: '#/components/responses/InstallInterface'
@@ -193,6 +194,7 @@ paths:
           required: false
           schema:
             type: boolean
+            default: true
       responses:
         '204':
           description: Success
@@ -248,6 +250,7 @@ paths:
           required: false
           schema:
             type: boolean
+            default: true
       responses:
         '204':
           description: Success
