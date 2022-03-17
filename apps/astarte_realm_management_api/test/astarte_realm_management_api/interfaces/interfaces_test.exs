@@ -84,6 +84,27 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       assert {:error, %Ecto.Changeset{errors: [type: _]}} =
                Interfaces.create_interface(@realm, @invalid_attrs)
     end
+
+    test "succeeds using a synchronous call" do
+      assert {:ok, %Interface{} = interface} =
+               Interfaces.create_interface(@realm, @valid_attrs, ascync_operation: false)
+
+      assert %Interface{
+               name: @interface_name,
+               major_version: @interface_major,
+               minor_version: 1,
+               type: :properties,
+               ownership: :device,
+               mappings: [mapping]
+             } = interface
+
+      assert %Mapping{
+               endpoint: "/test",
+               value_type: :integer
+             } = mapping
+
+      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(@realm)
+    end
   end
 
   describe "interface update" do
@@ -100,7 +121,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
         |> Map.put("version_minor", 10)
         |> Map.put("doc", doc)
 
-      assert {:ok, :started} ==
+      assert :ok ==
                Interfaces.update_interface(
                  @realm,
                  @interface_name,
@@ -151,6 +172,49 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
     test "fails with invalid attrs" do
       assert {:error, %Ecto.Changeset{errors: [type: _]}} =
                Interfaces.create_interface(@realm, @invalid_attrs)
+    end
+
+    test "succeeds with valid attrs using a synchronous call" do
+      doc = "some doc"
+
+      update_attrs =
+        @valid_attrs
+        |> Map.put("version_minor", 10)
+        |> Map.put("doc", doc)
+
+      assert :ok ==
+               Interfaces.update_interface(
+                 @realm,
+                 @interface_name,
+                 @interface_major,
+                 update_attrs,
+                 async_operation: false
+               )
+
+      assert {:ok, interface_source} =
+               Interfaces.get_interface(@realm, @interface_name, @interface_major)
+
+      assert {:ok, map} = Jason.decode(interface_source)
+
+      assert {:ok, interface} =
+               Interface.changeset(%Interface{}, map) |> Ecto.Changeset.apply_action(:insert)
+
+      assert %Interface{
+               name: "com.Some.Interface",
+               major_version: 2,
+               minor_version: 10,
+               type: :properties,
+               ownership: :device,
+               mappings: [mapping],
+               doc: ^doc
+             } = interface
+
+      assert %Mapping{
+               endpoint: "/test",
+               value_type: :integer
+             } = mapping
+
+      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(@realm)
     end
   end
 end
