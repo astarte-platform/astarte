@@ -125,6 +125,8 @@ paths:
       description: >
         Deletes a realm from Astarte. This feature must be explicitly enabled
         in the cluster, if it's disabled a 405 status code will be returned.
+        If there are connected devices present in the realm, a 422 status
+        code will be returned.
       operationId: deleteRealm
       security:
         - JWT: []
@@ -140,6 +142,8 @@ paths:
           description: Success
         '405':
           description: Realm deletion disabled
+        '422':
+          description: Connected devices present
 components:
   securitySchemes:
     JWT:
