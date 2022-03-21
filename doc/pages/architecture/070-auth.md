@@ -55,7 +55,7 @@ Supported token claims are:
 
 * `a_aea`: Defines the regular expressions for AppEngine API
 * `a_rma`: Defines the regular expressions for Realm Management API
-* `a_hka`: Defines the regular expressions for Housekeeping API
+* `a_ha`: Defines the regular expressions for Housekeeping API
 * `a_pa`: Defines the regular expressions for Pairing API
 * `a_ch`: Defines the regular expressions for Channels
 
