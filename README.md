@@ -28,6 +28,10 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 ## Let's try it!
 
+**This Astarte version has been discontinued and it is not supported anymore.**
+
+**Do not use this version on production systems, use a newer version instead.**
+
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
 [Docker](https://www.docker.com/), and simply:
 
