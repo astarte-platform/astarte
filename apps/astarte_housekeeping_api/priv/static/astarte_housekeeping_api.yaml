@@ -55,13 +55,23 @@ paths:
       summary: Create a realm
       description: >-
         Creates a new realm, based on the provided realm configuration.
-        Realm creation will be executed asynchronously - it is not guaranteed that
-        the requested realm will be available as soon as the API call returns,
-        but it is guaranteed that it will be eventually created if no errors are
-        returned and Astarte is operating normally.
+        Realm creation will be executed asynchronously by default - it is not
+        guaranteed that the requested realm will be available as soon as the
+        API call returns, but it is guaranteed that it will be eventually created
+        if no errors are returned and Astarte is operating normally.
+        You can perform the call synchronously by setting the async_operation query
+        param to false.
       operationId: createRealm
       security:
         - JWT: []
+      parameters:
+        - name: async_operation
+          in: query
+          description: Whether the operation should be carried out asynchronously.
+          required: false
+          schema:
+            type: boolean
+            default: true
       responses:
         '200':
           description: Success
@@ -126,7 +136,12 @@ paths:
         Deletes a realm from Astarte. This feature must be explicitly enabled
         in the cluster, if it's disabled a 405 status code will be returned.
         If there are connected devices present in the realm, a 422 status
-        code will be returned.
+        code will be returned. Realm deletion will be executed asynchronously
+        by default - it is not guaranteed that the realm will be deleted as
+        soon as the API call returns, but it is guaranteed that it will be
+        eventually removed if no errors are returned and Astarte is
+        operating normally. You can perform the call synchronously by setting
+        the async_operation parameter to false.
       operationId: deleteRealm
       security:
         - JWT: []
@@ -137,6 +152,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: async_operation
+          in: query
+          description: Whether the operation should be carried out asynchronously.
+          required: false
+          schema:
+            type: boolean
+            default: true
       responses:
         '204':
           description: Success
