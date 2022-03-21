@@ -11,6 +11,7 @@
 | Version | Supported          |
 | ------- | ------------------ |
 | 0.10    | :x:                |
+| 0.11    | :x:                |
 
 ## Reporting a Vulnerability
 
