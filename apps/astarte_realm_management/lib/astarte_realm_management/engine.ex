@@ -33,6 +33,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
   alias Astarte.RealmManagement.Engine
+  alias Astarte.RealmManagement.Engine.MappingUpdates
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Config
   alias CQEx.Client, as: DatabaseClient
@@ -138,10 +139,8 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, installed_interface} <- Interface.fetch_interface_descriptor(client, name, major),
          :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
-         {:ok, new_mappings} <- extract_updated_mappings(client, interface_doc),
+         {:ok, mapping_updates} <- extract_mapping_updates(client, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
-      new_mappings_list = Map.values(new_mappings)
-
       interface_update =
         Map.merge(installed_interface, interface_descriptor, fn _k, old, new ->
           new || old
@@ -152,7 +151,7 @@ defmodule Astarte.RealmManagement.Engine do
         Task.start_link(__MODULE__, :execute_interface_update, [
           client,
           interface_update,
-          new_mappings_list,
+          mapping_updates,
           automaton,
           description,
           doc
@@ -163,7 +162,7 @@ defmodule Astarte.RealmManagement.Engine do
         execute_interface_update(
           client,
           interface_update,
-          new_mappings_list,
+          mapping_updates,
           automaton,
           description,
           doc
@@ -215,7 +214,14 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def execute_interface_update(client, interface_descriptor, new_mappings, automaton, descr, doc) do
+  def execute_interface_update(
+        client,
+        interface_descriptor,
+        %MappingUpdates{} = mapping_updates,
+        automaton,
+        descr,
+        doc
+      ) do
     name = interface_descriptor.name
     major = interface_descriptor.major_version
 
@@ -226,8 +232,18 @@ defmodule Astarte.RealmManagement.Engine do
         tag: "update_interface_started"
       )
 
+    %MappingUpdates{new: new_mappings, updated: updated_mappings} = mapping_updates
+    all_changed_mappings = new_mappings ++ updated_mappings
+
     with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
-      Queries.update_interface(client, interface_descriptor, new_mappings, automaton, descr, doc)
+      Queries.update_interface(
+        client,
+        interface_descriptor,
+        all_changed_mappings,
+        automaton,
+        descr,
+        doc
+      )
     end
   end
 
@@ -273,7 +289,7 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp extract_updated_mappings(db_client, %{mappings: upd_mappings} = interface_doc) do
+  defp extract_mapping_updates(db_client, %{mappings: upd_mappings} = interface_doc) do
     descriptor = InterfaceDescriptor.from_interface(interface_doc)
 
     with {:ok, mappings_map} <-
@@ -289,7 +305,12 @@ defmodule Astarte.RealmManagement.Engine do
       {existing_mappings, new_mappings} = Map.split(upd_mappings_map, existing_endpoints)
 
       with {:ok, changed_mappings} <- extract_changed_mappings(mappings_map, existing_mappings) do
-        {:ok, Map.merge(new_mappings, changed_mappings)}
+        mapping_updates = %MappingUpdates{
+          new: Map.values(new_mappings),
+          updated: Map.values(changed_mappings)
+        }
+
+        {:ok, mapping_updates}
       end
     end
   end
@@ -323,11 +344,20 @@ defmodule Astarte.RealmManagement.Engine do
   defp is_mapping_updated?(mapping, upd_mapping) do
     mapping.explicit_timestamp != upd_mapping.explicit_timestamp or
       mapping.doc != upd_mapping.doc or
-      mapping.description != upd_mapping.description
+      mapping.description != upd_mapping.description or
+      mapping.retention != upd_mapping.retention or
+      mapping.expiry != upd_mapping.expiry
   end
 
   defp drop_mapping_negligible_fields(%Mapping{} = mapping) do
-    %{mapping | doc: nil, description: nil, explicit_timestamp: false}
+    %{
+      mapping
+      | doc: nil,
+        description: nil,
+        explicit_timestamp: false,
+        retention: nil,
+        expiry: nil
+    }
   end
 
   def delete_interface(realm_name, name, major, opts \\ []) do

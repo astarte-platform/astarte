@@ -36,24 +36,31 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     RealmManagement.get_interface(realm_name, interface_name, interface_major_version)
   end
 
-  def create_interface(realm_name, params) do
+  def create_interface(realm_name, params, opts \\ []) do
     changeset = Interface.changeset(%Interface{}, params)
 
     with {:ok, %Interface{} = interface} <- Ecto.Changeset.apply_action(changeset, :insert),
-         {:ok, interface_source} <- Jason.encode(interface),
-         {:ok, :started} <- RealmManagement.install_interface(realm_name, interface_source) do
-      {:ok, interface}
+         {:ok, interface_source} <- Jason.encode(interface) do
+      case RealmManagement.install_interface(realm_name, interface_source, opts) do
+        :ok -> {:ok, interface}
+        {:ok, :started} -> {:ok, interface}
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 
-  def update_interface(realm_name, interface_name, major_version, params) do
+  def update_interface(realm_name, interface_name, major_version, params, opts \\ []) do
     changeset = Interface.changeset(%Interface{}, params)
 
     with {:ok, %Interface{} = interface} <- Ecto.Changeset.apply_action(changeset, :insert),
          {:name_matches, true} <- {:name_matches, interface_name == interface.name},
          {:major_matches, true} <- {:major_matches, major_version == interface.major_version},
          {:ok, interface_source} <- Jason.encode(interface) do
-      RealmManagement.update_interface(realm_name, interface_source)
+      case RealmManagement.update_interface(realm_name, interface_source, opts) do
+        :ok -> :ok
+        {:ok, :started} -> :ok
+        {:error, reason} -> {:error, reason}
+      end
     else
       {:name_matches, false} ->
         {:error, :name_not_matching}
@@ -66,7 +73,21 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     end
   end
 
-  def delete_interface(realm_name, interface_name, interface_major_version, _attrs \\ %{}) do
-    RealmManagement.delete_interface(realm_name, interface_name, interface_major_version)
+  def delete_interface(
+        realm_name,
+        interface_name,
+        interface_major_version,
+        opts \\ []
+      ) do
+    case RealmManagement.delete_interface(
+           realm_name,
+           interface_name,
+           interface_major_version,
+           opts
+         ) do
+      :ok -> :ok
+      {:ok, :started} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   end
 end

@@ -40,15 +40,18 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   @rpc_client Config.rpc_client!()
   @destination Astarte.RPC.Protocol.Housekeeping.amqp_queue()
 
-  def create_realm(%Realm{
-        realm_name: realm_name,
-        jwt_public_key_pem: pem,
-        replication_class: "SimpleStrategy",
-        replication_factor: replication_factor
-      }) do
+  def create_realm(
+        %Realm{
+          realm_name: realm_name,
+          jwt_public_key_pem: pem,
+          replication_class: "SimpleStrategy",
+          replication_factor: replication_factor
+        },
+        opts
+      ) do
     %CreateRealm{
       realm: realm_name,
-      async_operation: true,
+      async_operation: Keyword.get(opts, :async_operation, true),
       jwt_public_key_pem: pem,
       replication_class: :SIMPLE_STRATEGY,
       replication_factor: replication_factor
@@ -59,15 +62,18 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     |> extract_reply()
   end
 
-  def create_realm(%Realm{
-        realm_name: realm_name,
-        jwt_public_key_pem: pem,
-        replication_class: "NetworkTopologyStrategy",
-        datacenter_replication_factors: replication_factors_map
-      }) do
+  def create_realm(
+        %Realm{
+          realm_name: realm_name,
+          jwt_public_key_pem: pem,
+          replication_class: "NetworkTopologyStrategy",
+          datacenter_replication_factors: replication_factors_map
+        },
+        opts
+      ) do
     %CreateRealm{
       realm: realm_name,
-      async_operation: true,
+      async_operation: Keyword.get(opts, :async_operation, true),
       jwt_public_key_pem: pem,
       replication_class: :NETWORK_TOPOLOGY_STRATEGY,
       datacenter_replication_factors: Enum.to_list(replication_factors_map)
@@ -86,8 +92,10 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     |> extract_reply()
   end
 
-  def delete_realm(realm_name) do
-    %DeleteRealm{realm: realm_name, async_operation: true}
+  def delete_realm(realm_name, opts) do
+    async_operation = Keyword.get(opts, :async_operation, true)
+
+    %DeleteRealm{realm: realm_name, async_operation: async_operation}
     |> encode_call(:delete_realm)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
@@ -192,6 +200,12 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
          {:generic_error_reply, %GenericErrorReply{error_name: "realm_deletion_disabled"}}
        ) do
     {:error, :realm_deletion_disabled}
+  end
+
+  defp extract_reply(
+         {:generic_error_reply, %GenericErrorReply{error_name: "connected_devices_present"}}
+       ) do
+    {:error, :connected_devices_present}
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do

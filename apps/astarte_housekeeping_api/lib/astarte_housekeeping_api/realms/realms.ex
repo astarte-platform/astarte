@@ -62,13 +62,13 @@ defmodule Astarte.Housekeeping.API.Realms do
       {:error, ...}
 
   """
-  def create_realm(attrs \\ %{}) do
+  def create_realm(attrs \\ %{}, opts \\ []) do
     changeset =
       %Realm{}
       |> Realm.changeset(attrs)
 
     with {:ok, %Realm{} = realm} <- Ecto.Changeset.apply_action(changeset, :insert) do
-      case Housekeeping.create_realm(realm) do
+      case Housekeeping.create_realm(realm, opts) do
         :ok -> {:ok, realm}
         {:ok, :started} -> {:ok, realm}
         {:error, reason} -> {:error, reason}
@@ -104,8 +104,8 @@ defmodule Astarte.Housekeeping.API.Realms do
       {:error, ...}
 
   """
-  def delete_realm(realm_name) do
-    case Housekeeping.delete_realm(realm_name) do
+  def delete_realm(realm_name, opts \\ []) do
+    case Housekeeping.delete_realm(realm_name, opts) do
       :ok -> :ok
       {:ok, :started} -> :ok
       {:error, reason} -> {:error, reason}

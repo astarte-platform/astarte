@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.2] - Unreleased
+### Added
+- [realm_management] Accept `retention` and `expiry` updates when updating the minor version of an
+  interface.
+- [astarte_realm_management_api] Allow synchronous requests for interface creation, update
+  and deletion using the `async_operation` option. Default to async calls.
+- [astarte_housekeeping_api] Allow synchronous requests for realm creation and deletion
+  using the `async_operation` option. Default to async calls.
+
+### Fixed
+- [realm_management] Accept allowed mapping updates in object aggregated interfaces without
+  crashing.
+- [astarte_appengine_api] Handle server owned datetimearray values correctly.
+
+### Changed
+- [astarte_housekeeping] Allow to delete a realm only if all its devices are disconnected.
+  Realm deletion can still only be enabled with an environment variable (defaults to disabled).
+
 ## [1.0.1] - 2021-12-17
 ### Added
 - [data_updater_plant] Add handle_data duration metric.
