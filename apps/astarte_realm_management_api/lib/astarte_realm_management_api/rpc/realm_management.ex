@@ -87,11 +87,11 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
-  def install_interface(realm_name, interface_json) do
+  def install_interface(realm_name, interface_json, opts) do
     %InstallInterface{
       realm_name: realm_name,
       interface_json: interface_json,
-      async_operation: true
+      async_operation: Keyword.get(opts, :async_operation, true)
     }
     |> encode_call(:install_interface)
     |> @rpc_client.rpc_call(@destination)
@@ -99,11 +99,11 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
-  def update_interface(realm_name, interface_json) do
+  def update_interface(realm_name, interface_json, opts) do
     %UpdateInterface{
       realm_name: realm_name,
       interface_json: interface_json,
-      async_operation: true
+      async_operation: Keyword.get(opts, :async_operation, true)
     }
     |> encode_call(:update_interface)
     |> @rpc_client.rpc_call(@destination)
@@ -111,12 +111,12 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
-  def delete_interface(realm_name, interface_name, interface_major_version) do
+  def delete_interface(realm_name, interface_name, interface_major_version, opts) do
     %DeleteInterface{
       realm_name: realm_name,
       interface_name: interface_name,
       interface_major_version: interface_major_version,
-      async_operation: true
+      async_operation: Keyword.get(opts, :async_operation, true)
     }
     |> encode_call(:delete_interface)
     |> @rpc_client.rpc_call(@destination)

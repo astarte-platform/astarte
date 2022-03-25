@@ -379,9 +379,10 @@ defmodule Astarte.RealmManagement.EngineTest do
         {
             "endpoint": "/%{sensor_id}/value",
             "type": "double",
-            "explicit_timestamp": false,
             "description": "Updated description.",
-            "doc": "Updated docs."
+            "doc": "Updated docs.",
+            "retention": "stored",
+            "expiry": 7200
         }
     ]
   }
@@ -402,7 +403,156 @@ defmodule Astarte.RealmManagement.EngineTest do
             "type": "string",
             "explicit_timestamp": false,
             "description": "Updated description.",
-            "doc": "Updated docs."
+            "doc": "Updated docs.",
+            "retention": "stored",
+            "expiry": 7200
+        }
+    ]
+  }
+  """
+
+  @test_interface_e_0 """
+  {
+    "interface_name": "com.autotest.AggregateValuesUpdate",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value1",
+            "type": "double",
+            "description": "Description.",
+            "doc": "Docs."
+        },
+        {
+            "endpoint": "/%{sensor_id}/value2",
+            "type": "double",
+            "description": "Description.",
+            "doc": "Docs."
+        }
+    ]
+  }
+  """
+
+  @test_interface_e_1 """
+  {
+    "interface_name": "com.autotest.AggregateValuesUpdate",
+    "version_major": 1,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value1",
+            "type": "double",
+            "explicit_timestamp": true,
+            "description": "Updated description.",
+            "doc": "Updated docs.",
+            "retention": "stored",
+            "expiry": 1000
+        },
+        {
+            "endpoint": "/%{sensor_id}/value2",
+            "type": "double",
+            "explicit_timestamp": true,
+            "description": "Other updated description.",
+            "doc": "Other updated docs.",
+            "retention": "stored",
+            "expiry": 1000
+        }
+    ]
+  }
+  """
+
+  @test_interface_e_incompatible_change """
+  {
+    "interface_name": "com.autotest.AggregateValuesUpdate",
+    "version_major": 1,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value1",
+            "type": "double",
+            "explicit_timestamp": true,
+            "description": "Updated description.",
+            "doc": "Updated docs.",
+            "retention": "stored",
+            "expiry": 1000
+        },
+        {
+            "endpoint": "/%{sensor_id}/value2",
+            "type": "double",
+            "explicit_timestamp": true,
+            "description": "Other updated description.",
+            "doc": "Other updated docs.",
+            "retention": "stored",
+            "expiry": 20000
+        }
+    ]
+  }
+  """
+
+  @test_interface_f_0 """
+  {
+    "interface_name": "com.autotest.AggregateValuesUpdateAndAdd",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value1",
+            "type": "string",
+            "description": "Description.",
+            "doc": "Docs."
+        }
+    ]
+  }
+  """
+
+  @test_interface_f_1 """
+  {
+    "interface_name": "com.autotest.AggregateValuesUpdateAndAdd",
+    "version_major": 1,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "The description.",
+    "doc": "The docs.",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/%{sensor_id}/value1",
+            "type": "string",
+            "explicit_timestamp": true,
+            "description": "Updated description.",
+            "doc": "Updated docs.",
+            "retention": "volatile",
+            "expiry": 2000
+        },
+        {
+            "endpoint": "/%{sensor_id}/value2",
+            "type": "double",
+            "explicit_timestamp": true,
+            "description": "New description.",
+            "doc": "New docs.",
+            "retention": "volatile",
+            "expiry": 2000
         }
     ]
   }
@@ -702,7 +852,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              {:ok, [[major_version: 0, minor_version: 15]]}
   end
 
-  test "update explicit timestamp, doc and description for individual datastream interface" do
+  test "update explicit timestamp, doc, description, expiry and retention for individual datastream interface" do
     assert Engine.install_interface("autotestrealm", @test_interface_d_0) == :ok
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["org.astarte-platform.Values"]}
@@ -712,6 +862,11 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.update_interface("autotestrealm", @test_interface_d_1) == :ok
 
+    {:ok, updated_interface} =
+      unpack_source(Engine.interface_source("autotestrealm", "org.astarte-platform.Values", 1))
+
+    assert {:ok, ^updated_interface} = unpack_source({:ok, @test_interface_d_1})
+
     assert Engine.list_interface_versions("autotestrealm", "org.astarte-platform.Values") ==
              {:ok, [[major_version: 1, minor_version: 1]]}
 
@@ -719,7 +874,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              {:error, :incompatible_endpoint_change}
   end
 
-  test "update object aggregated interface" do
+  test "update object aggregated interface adding an endpoint" do
     assert Engine.install_interface("autotestrealm", @test_draft_interface_b_0) == :ok
 
     assert unpack_source(Engine.interface_source("autotestrealm", "com.ObjectAggregation", 0)) ==
@@ -743,6 +898,59 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
 
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, []}
+  end
+
+  test "update explicit timestamp, doc, description, expiry and retention for object datastream interface" do
+    assert Engine.install_interface("autotestrealm", @test_interface_e_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") ==
+             {:ok, ["com.autotest.AggregateValuesUpdate"]}
+
+    assert Engine.list_interface_versions("autotestrealm", "com.autotest.AggregateValuesUpdate") ==
+             {:ok, [[major_version: 1, minor_version: 0]]}
+
+    assert Engine.update_interface("autotestrealm", @test_interface_e_1) == :ok
+
+    {:ok, updated_interface} =
+      unpack_source(
+        Engine.interface_source("autotestrealm", "com.autotest.AggregateValuesUpdate", 1)
+      )
+
+    assert {:ok, ^updated_interface} = unpack_source({:ok, @test_interface_e_1})
+
+    assert Engine.list_interface_versions("autotestrealm", "com.autotest.AggregateValuesUpdate") ==
+             {:ok, [[major_version: 1, minor_version: 1]]}
+
+    assert Engine.update_interface("autotestrealm", @test_interface_e_incompatible_change) ==
+             {:error, :invalid_interface_document}
+  end
+
+  test "update a mapping and add an endpoint in one shot for object datastream interface" do
+    assert Engine.install_interface("autotestrealm", @test_interface_f_0) == :ok
+
+    assert Engine.get_interfaces_list("autotestrealm") ==
+             {:ok, ["com.autotest.AggregateValuesUpdateAndAdd"]}
+
+    assert Engine.list_interface_versions(
+             "autotestrealm",
+             "com.autotest.AggregateValuesUpdateAndAdd"
+           ) ==
+             {:ok, [[major_version: 1, minor_version: 0]]}
+
+    assert Engine.update_interface("autotestrealm", @test_interface_f_1) == :ok
+
+    {:ok, updated_interface} =
+      unpack_source(
+        Engine.interface_source("autotestrealm", "com.autotest.AggregateValuesUpdateAndAdd", 1)
+      )
+
+    assert {:ok, ^updated_interface} = unpack_source({:ok, @test_interface_f_1})
+
+    assert Engine.list_interface_versions(
+             "autotestrealm",
+             "com.autotest.AggregateValuesUpdateAndAdd"
+           ) ==
+             {:ok, [[major_version: 1, minor_version: 1]]}
   end
 
   test "fail update missing interface" do

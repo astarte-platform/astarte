@@ -48,6 +48,13 @@ defmodule Astarte.Housekeeping.APIWeb.FallbackController do
     |> render(:realm_deletion_disabled)
   end
 
+  def call(conn, {:error, :connected_devices_present}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(ErrorView)
+    |> render(:connected_devices_present)
+  end
+
   def call(conn, {:error, :not_found}) do
     conn
     |> put_status(:not_found)

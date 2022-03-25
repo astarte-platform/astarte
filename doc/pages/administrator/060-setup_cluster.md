@@ -47,7 +47,7 @@ spec:
         memory: 2048M
   vernemq:
     host: "broker.astarte.yourdomain.com"
-    ssListener: true
+    sslListener: true
     sslListenerCertSecretName: <your-tls-secret>
     resources:
       requests:

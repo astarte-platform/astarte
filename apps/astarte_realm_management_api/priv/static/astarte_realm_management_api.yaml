@@ -102,10 +102,20 @@ paths:
       description: >-
         Install a new interface, or a newer major version for a given interface.
         Validation is performed, and an error is returned if interface cannot be
-        installed. The installation is performed asynchronously.
+        installed. The installation is performed asynchronously by default. You
+        can perform the call synchronously by setting the async_operation query
+        param to false.
       operationId: installInterface
       security:
         - JWT: []
+      parameters:
+        - name: async_operation
+          in: query
+          description: Whether the operation should be carried out asynchronously.
+          required: false
+          schema:
+            type: boolean
+            default: true
       responses:
         '201':
           $ref: '#/components/responses/InstallInterface'
@@ -168,14 +178,23 @@ paths:
       description: >-
         Replace an existing interface with a certain major version with a new
         one (that must have same major version and a higher minor version).
-        Server side validation is performed and the interface upgrade is
-        performed aynchronously. For more information about what is allowed when
-        updating an interface, see [the
+        Server side validation is performed. Interface upgrade is performed
+        asynchronously by default. You can perform the call synchronously by
+        setting the async_operation query param to false. For more information
+        about what is allowed when updating an interface, see [the
         doc](https://docs.astarte-platform.org/1.0/030-interface.html#versioning).
         This operation cannot be reverted.
       operationId: updateInterface
       security:
         - JWT: []
+      parameters:
+        - name: async_operation
+          in: query
+          description: Whether the operation should be carried out asynchronously.
+          required: false
+          schema:
+            type: boolean
+            default: true
       responses:
         '204':
           description: Success
@@ -218,10 +237,20 @@ paths:
       description: >-
         Delete an interface draft (a draft is an interface with major version
         0). An interface with a major version different than 0 should be
-        manually deleted.
+        manually deleted. Interface deletion is performed asynchronously by
+        default. You can perform the call synchronously by setting the
+        async_operation query param to false.
       operationId: deleteInterface
       security:
         - JWT: []
+      parameters:
+        - name: async_operation
+          in: query
+          description: Whether the operation should be carried out asynchronously.
+          required: false
+          schema:
+            type: boolean
+            default: true
       responses:
         '204':
           description: Success
