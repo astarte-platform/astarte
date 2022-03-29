@@ -12,6 +12,7 @@
 | ------- | ------------------ |
 | 0.10.x  | :x:                |
 | 0.11.x  | :x:                |
+| 1.0.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
