@@ -44,8 +44,12 @@ jobs:
         export DOCS_DIRNAME="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
         rm -rf docs/$DOCS_DIRNAME
         mkdir docs/$DOCS_DIRNAME
+        cd docs
+        # Restore Kubernetes Operator docs. Don't fail if they're not there.
+        git restore $DOCS_DIRNAME/astarte-kubernetes-operator || true
         # Restore Device SDK docs. Don't fail if they're not there.
-        cd docs && git restore $DOCS_DIRNAME/device-sdks || true && cd ..
+        git restore $DOCS_DIRNAME/device-sdks || true
+        cd ..
         cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
     - name: Checkout Swagger UI
       uses: actions/checkout@v2
