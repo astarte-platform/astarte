@@ -127,7 +127,7 @@ For example, to run it locally on port 4040, you can use the following command:
 docker run \
   -p 4040:80 \
   -v /absolute/path/to/config.json:/usr/share/nginx/html/user-config/config.json \
-  astarte/astarte-dashboard:1.0.1
+  astarte/astarte-dashboard:1.0.2
 ```
 
 
@@ -189,4 +189,4 @@ Distributed under the Apache2.0 License. See [LICENSE](LICENSE) for more informa
 
 
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[dashboard-home-screenshot]: https://github.com/astarte-platform/astarte/blob/v1.0.1/doc/images/astarte-dashboard-realm-overview.png
+[dashboard-home-screenshot]: https://github.com/astarte-platform/astarte/blob/v1.0.2/doc/images/astarte-dashboard-realm-overview.png
