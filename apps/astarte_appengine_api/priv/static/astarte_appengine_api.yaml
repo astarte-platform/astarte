@@ -707,7 +707,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        '204':
           description: Success
         '401':
           description: Realm doesn't exist or operation not allowed.
