@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - [astarte_housekeeping] Allow to delete a realm only if all its devices are disconnected.
   Realm deletion can still only be enabled with an environment variable (defaults to disabled).
+- Update CA store to 2022-03-21 version.
 
 ## [1.0.1] - 2021-12-17
 ### Added
