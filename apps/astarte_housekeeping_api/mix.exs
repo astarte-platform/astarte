@@ -69,7 +69,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, "~> 1.0.1"}
+      {:astarte_rpc, "~> 1.0.2"}
     ]
   end
 
