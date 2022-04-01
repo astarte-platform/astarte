@@ -1,7 +1,7 @@
 # Astarte
 
-![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=v1.0.1)
-[![codecov](https://codecov.io/gh/astarte-platform/astarte/tag/v1.0.1/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
+![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=v1.0.2)
+[![codecov](https://codecov.io/gh/astarte-platform/astarte/tag/v1.0.2/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
 
 <img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT
 platform focused on Data management and processing written in [Elixir](https://github.com/elixir-lang/elixir).
