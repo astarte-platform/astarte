@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [1.0.2] - Unreleased
+## [1.0.2] - 2022-04-01
 ### Added
 - [realm_management] Accept `retention` and `expiry` updates when updating the minor version of an
   interface.
