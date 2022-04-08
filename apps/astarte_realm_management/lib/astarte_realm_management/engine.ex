@@ -736,6 +736,11 @@ defmodule Astarte.RealmManagement.Engine do
           }
         }
       else
+        Logger.warn("Failed to get trigger.",
+          trigger_name: trigger_name,
+          tag: "get_trigger_fail"
+        )
+
         {:error, :cannot_retrieve_simple_trigger}
       end
     end
@@ -765,6 +770,11 @@ defmodule Astarte.RealmManagement.Engine do
       if delete_all_succeeded do
         Queries.delete_trigger(client, trigger_name)
       else
+        Logger.warn("Failed to delete trigger.",
+          trigger_name: trigger_name,
+          tag: "delete_trigger_fail"
+        )
+
         {:error, :cannot_delete_simple_trigger}
       end
     end
