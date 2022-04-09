@@ -6,7 +6,7 @@
     "axios": "^0.21.1",
     "bootstrap": "^4.6.0",
     "jquery": "^3.5.1",
-    "moment": "^2.29.1",
+    "moment": "^2.29.2",
     "named-urls": "^2.0.0",
     "plotly.js": "^1.58.4",
     "react": "^17.0.1",
