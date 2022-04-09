@@ -10,7 +10,7 @@
     "bootstrap": "^4.6.0",
     "i": "^0.3.6",
     "jquery": "^3.5.1",
-    "moment": "^2.29.1",
+    "moment": "^2.29.2",
     "named-urls": "^2.0.0",
     "react": "^17.0.1",
     "react-bootstrap": "^1.5.0",
