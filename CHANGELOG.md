@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   Fix [683](https://github.com/astarte-platform/astarte/issues/683).
 - [astarte_e2e] Allow setting custom subjects for alerting emails.
 - [astarte_e2e] Group in a single thread emails referencing the same failure_id.
+- [astarte_appengine_api] Make property unset succeed independently of whether there exist a device
+  session on the broker or not. Fix [#640](https://github.com/astarte-platform/astarte/issues/640).
 
 ## [1.0.2] - 2022-04-01
 ### Added
