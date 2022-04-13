@@ -30,7 +30,13 @@ $ helm install ingress-nginx ingress-nginx/ingress-nginx -n ingress-nginx \
     --create-namespace
 ```
 
-You don't need to create NGINX ingresses yourself - just the Operator itself is enough.
+Please, be aware that trying to deploy multiple ingress controllers in your cluster may result in all
+of them trying simultaneously to handle the Astarte ingress resource. Consider using ingress classes
+for avoiding confusing situations as outlined
+[here](https://kubernetes.github.io/ingress-nginx/user-guide/multiple-ingress/).
+
+In the end, you won't need to create NGINX ingresses yourself: the Astarte Operator itself will take
+care of this task.
 
 ## Voyager (deprecated)
 
