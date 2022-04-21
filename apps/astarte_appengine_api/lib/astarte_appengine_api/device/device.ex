@@ -1095,7 +1095,7 @@ defmodule Astarte.AppEngine.API.Device do
                 AstarteValue.to_json_friendly(
                   v,
                   ValueType.from_int(endpoint_row[:value_type]),
-                  allow_bigintegers: true
+                  fetch_biginteger_opts_or_default(opts)
                 )
 
               Map.put(values_map, simplified_path, %{
@@ -1305,7 +1305,7 @@ defmodule Astarte.AppEngine.API.Device do
          endpoint_id,
          endpoint_row,
          path,
-         _opts
+         opts
        ) do
     values =
       Queries.all_properties_for_endpoint!(
@@ -1325,7 +1325,7 @@ defmodule Astarte.AppEngine.API.Device do
             AstarteValue.to_json_friendly(
               row_value,
               ValueType.from_int(endpoint_row[:value_type]),
-              allow_bigintegers: true
+              fetch_biginteger_opts_or_default(opts)
             )
 
           Map.put(values_map, simplified_path, nice_value)
@@ -1719,6 +1719,23 @@ defmodule Astarte.AppEngine.API.Device do
       not_ok ->
         _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :database_error}
+    end
+  end
+
+  defp fetch_biginteger_opts_or_default(opts) do
+    allow_bigintegers = Map.get(opts, :allow_bigintegers)
+    allow_safe_bigintegers = Map.get(opts, :allow_safe_bigintegers)
+
+    cond do
+      allow_bigintegers ->
+        [allow_bigintegers: allow_bigintegers]
+
+      allow_safe_bigintegers ->
+        [allow_safe_bigintegers: allow_safe_bigintegers]
+
+      # Default allow_bigintegers to true in order to not break the existing API
+      true ->
+        [allow_bigintegers: true]
     end
   end
 end
