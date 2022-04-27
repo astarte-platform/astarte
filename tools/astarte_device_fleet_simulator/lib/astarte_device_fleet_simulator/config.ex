@@ -63,7 +63,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
     required: true
   )
 
-  @envdoc "Time interval between consecutive spawns of Astarte devices (in seconds)."
+  @envdoc "Time interval between consecutive spawns of Astarte devices (in milliseconds)."
   app_env(:spawn_interval_ms, :astarte_device_fleet_simulator, :spawn_interval_ms,
     os_env: "DEVICE_FLEET_SPAWN_INTERVAL_MILLISECONDS",
     type: :pos_integer,
@@ -73,7 +73,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
   @envdoc "Time interval between messages from a single Astarte devices (in milliseconds)."
   app_env(:publication_interval_ms, :astarte_device_fleet_simulator, :publication_interval_ms,
     os_env: "DEVICE_FLEET_PUBLICATION_INTERVAL_MILLISECONDS",
-    type: :integer,
+    type: :pos_integer,
     default: 1000
   )
 
@@ -108,7 +108,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
   @envdoc "The QoS mode for messages sent from Astarte devices."
   app_env(:qos, :astarte_device_fleet_simulator, :qos,
     os_env: "DEVICE_FLEET_QOS",
-    type: :pos_integer,
+    type: :non_neg_integer,
     default: 2
   )
 
@@ -145,7 +145,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
   def scheduler_opts do
     [
       device_count: device_count!(),
-      test_duration_s: test_duration_s!() * 1000,
+      test_duration_s: test_duration_s!(),
       spawn_interval_ms: spawn_interval_ms!(),
       allow_messages_while_spawning: allow_messages_while_spawning!()
     ]
