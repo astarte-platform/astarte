@@ -49,8 +49,9 @@ default configuration (installed in namespace `cert-manager` as `cert-manager`).
 `cert-manager` in your cluster already you don't need to take any action - otherwise, you will need
 to install it.
 
-Astarte is actively tested with `cert-manager` 1.1, but should work with any 1.0+ releases of
-`cert-manager`.
+Astarte is actively tested with `cert-manager` 1.7, but should work with any 1.0+ releases of
+`cert-manager`. If your `cert-manager` release is outdated, please consider upgrading to a newer
+version according to [this guide](https://cert-manager.io/docs/installation/upgrading/).
 
 [`cert-manager` documentation](https://cert-manager.io/docs/installation/) details all needed steps
 to have a working instance on your cluster - however, in case you won't be using `cert-manager` for
@@ -64,11 +65,11 @@ $ kubectl create namespace cert-manager
 $ helm install \
   cert-manager jetstack/cert-manager \
   --namespace cert-manager \
-  --version v1.1.0 \
+  --version v1.7.0 \
   --set installCRDs=true
 ```
 
-This will install `cert-manager` 1.1.0 and its CRDs in the cluster.
+This will install `cert-manager` 1.7.0 and its CRDs in the cluster.
 
 ## External Cassandra / Scylla
 
