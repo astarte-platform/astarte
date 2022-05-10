@@ -30,7 +30,7 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Value size exceeds size limits"}}
   end
 
-  def render("403_cannot_write_to_device_owned.json", _assigns) do
+  def render("405_cannot_write_to_device_owned.json", _assigns) do
     %{errors: %{detail: "Cannot write to device owned resource"}}
   end
 

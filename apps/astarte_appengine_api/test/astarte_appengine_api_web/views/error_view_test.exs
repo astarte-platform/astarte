@@ -26,8 +26,8 @@ defmodule Astarte.AppEngine.APIWeb.ErrorViewTest do
              %{errors: %{detail: "Bad request"}}
   end
 
-  test "renders 403_cannot_write_to_device_owned.json" do
-    assert render(Astarte.AppEngine.APIWeb.ErrorView, "403_cannot_write_to_device_owned.json", []) ==
+  test "renders 405_cannot_write_to_device_owned.json" do
+    assert render(Astarte.AppEngine.APIWeb.ErrorView, "405_cannot_write_to_device_owned.json", []) ==
              %{errors: %{detail: "Cannot write to device owned resource"}}
   end
 

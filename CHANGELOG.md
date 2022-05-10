@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Consider `allow_bigintegers` and `allow_safe_bigintegers` params
   when querying the root of individual datastream / properties interfaces.
   Fix [#630](https://github.com/astarte-platform/astarte/issues/630).
+- [astarte_appengine_api] Correctly return 405 "Cannot write to device owned resource" when
+  POSTing on device-owned interfaces. Fix [#264](https://github.com/astarte-platform/astarte/issues/264).
 
 ### Changed
 - [doc] Administrator Guide: bump cert-manager dependency to v1.7.0.
