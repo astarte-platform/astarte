@@ -125,9 +125,9 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
 
   def call(conn, {:error, :read_only_resource}) do
     conn
-    |> put_status(:forbidden)
+    |> put_status(:method_not_allowed)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"403_read_only_resource.json")
+    |> render(:"405_read_only_resource")
   end
 
   def call(conn, {:error, :unauthorized}) do

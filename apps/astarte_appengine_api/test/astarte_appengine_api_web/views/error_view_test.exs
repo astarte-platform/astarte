@@ -31,8 +31,8 @@ defmodule Astarte.AppEngine.APIWeb.ErrorViewTest do
              %{errors: %{detail: "Cannot write to device owned resource"}}
   end
 
-  test "renders 403_read_only_resource.json" do
-    assert render(Astarte.AppEngine.APIWeb.ErrorView, "403_read_only_resource.json", []) ==
+  test "renders 405_read_only_resource.json" do
+    assert render(Astarte.AppEngine.APIWeb.ErrorView, "405_read_only_resource.json", []) ==
              %{errors: %{detail: "Cannot write to read-only resource"}}
   end
 
