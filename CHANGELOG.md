@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - [doc] Administrator Guide: bump cert-manager dependency to v1.7.0.
+- [data_updater_plant] Increase the `declare_exchange` timeout to 60 sec.
 
 ## [1.0.2] - 2022-04-01
 ### Added
