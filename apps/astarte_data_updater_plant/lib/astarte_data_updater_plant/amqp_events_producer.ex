@@ -35,7 +35,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   def publish(exchange, routing_key, payload, opts) do
-    GenServer.call(__MODULE__, {:publish, exchange, routing_key, payload, opts})
+    # Use a longer timeout to allow RabbitMQ to process requests even if loaded
+    GenServer.call(__MODULE__, {:publish, exchange, routing_key, payload, opts}, 60_000)
   end
 
   def declare_exchange(exchange) do
