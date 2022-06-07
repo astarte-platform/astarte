@@ -39,7 +39,7 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
     if state.allow_messages_while_spawning do
       check_scheduler_opts(state)
 
-      Process.send_after(self(), :terminate, state.test_duration_s)
+      Process.send_after(self(), :terminate, state.test_duration_s * 1000)
     end
 
     Logger.info("Begin device spawn.")
@@ -54,7 +54,7 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
 
     # waiting all devices
     if not state.allow_messages_while_spawning do
-      Process.send_after(self(), :terminate, state.test_duration_s)
+      Process.send_after(self(), :terminate, state.test_duration_s * 1000)
 
       Registry.dispatch(AstarteDeviceFleetSimulator.Registry, "device", fn entries ->
         Enum.each(entries, fn {pid, _} -> :gen_statem.cast(pid, :begin_publishing) end)
