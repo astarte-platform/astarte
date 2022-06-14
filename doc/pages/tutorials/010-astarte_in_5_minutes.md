@@ -49,7 +49,7 @@ astartectl 1.0.x is recommended:
 
 ```sh
 $ astartectl version
-astartectl 1.0.0-beta.2
+astartectl 1.0.0
 ```
 
 This procedure has been tested on several systems, and is validated and maintained against
