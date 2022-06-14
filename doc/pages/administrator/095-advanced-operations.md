@@ -399,7 +399,8 @@ database even when Astarte is deleted from your cluster.
 
 To restore your Astarte instance all you have to do is saving the following resources:
 + Astarte CR;
-+ AstarteVoyagerIngress CR;
++ AstarteVoyagerIngress CR (if deployed);
++ AstarteDefaultIngress CR (if deployed);
 + CA certificate and key;
 
 and, assuming that the name of your Astarte is `astarte` and that it is deployed within the
@@ -407,6 +408,7 @@ and, assuming that the name of your Astarte is `astarte` and that it is deployed
 ```bash
 kubectl get astarte -n astarte -o yaml > astarte-backup.yaml
 kubectl get avi -n astarte -o yaml > avi-backup.yaml
+kubectl get adi -n astarte -o yaml > adi-backup.yaml
 kubectl get secret astarte-devices-ca -n astarte -o yaml > astarte-devices-ca-backup.yaml
 ```
 
@@ -422,10 +424,16 @@ kubectl apply -f astarte-devices-ca-backup.yaml
 kubectl apply -f astarte-backup.yaml
 ```
 
-And when your Astarte resource is ready:
+And when your Astarte resource is ready, to restore your AstarteVoyagerIngress:
 
 ```bash
 kubectl apply -f avi-backup.yaml
+```
+
+while to restore your AstarteDefaultIngress resource:
+
+```bash
+kubectl apply -f adi-backup.yaml
 ```
 
 At the end of this step, your cluster is restored. Please, notice that the external IP of the
