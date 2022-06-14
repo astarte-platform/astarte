@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.0.3] - Unreleased
+### Fixed
+- [astarte_appengine_api] Consider `allow_bigintegers` and `allow_safe_bigintegers` params
+  when querying the root of individual datastream / properties interfaces.
+  Fix [#630](https://github.com/astarte-platform/astarte/issues/630).
+- [astarte_appengine_api] Correctly return 405 "Cannot write to device owned resource" when
+  POSTing on device-owned interfaces. Fix [#264](https://github.com/astarte-platform/astarte/issues/264).
+- [astarte_appengine_api] Correctly return 405 "Cannot write to read-only resource" when
+  POSTing on incomplete paths of server-owned interfaces.
+
+### Changed
+- [doc] Administrator Guide: bump cert-manager dependency to v1.7.0.
+- [data_updater_plant] Increase the `declare_exchange` timeout to 60 sec.
+- [data_updater_plant] Increase the `publish` timeout to 60 sec for the AMQPEventsProducer.
+
 ## [1.0.2] - 2022-04-01
 ### Added
 - [realm_management] Accept `retention` and `expiry` updates when updating the minor version of an

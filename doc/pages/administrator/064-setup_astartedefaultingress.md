@@ -10,7 +10,7 @@ related Astarte [issue](https://github.com/astarte-platform/astarte/issues/613) 
 details).
 
 If you want to migrate away from AstarteVoyagerIngress to the new AstarteDefaultIngress, please
-refer to the procedure outlined [here](030-upgrade_100_101.html).
+refer to the procedure outlined [here](066-migrate_to_astartedefaultingress.html).
 
 ## Prerequisites
 
