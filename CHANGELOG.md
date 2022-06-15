@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   POSTing on device-owned interfaces. Fix [#264](https://github.com/astarte-platform/astarte/issues/264).
 - [astarte_appengine_api] Correctly return 405 "Cannot write to read-only resource" when
   POSTing on incomplete paths of server-owned interfaces.
+- [astarte_e2e] Fix ssl options handling so that the e2e client is aware of the CA.
 
 ### Changed
 - [doc] Administrator Guide: bump cert-manager dependency to v1.7.0.

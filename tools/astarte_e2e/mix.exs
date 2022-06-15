@@ -50,7 +50,8 @@ defmodule AstarteE2E.MixProject do
   defp deps do
     [
       {:astarte_device, "~> 1.0.2"},
-      {:phoenix_gen_socket_client, "~> 4.0"},
+      {:phoenix_gen_socket_client,
+       github: "J0/phoenix_gen_socket_client", ref: "5e8dee43a0fe877f747cf707baf0d45f713b223a"},
       {:websocket_client, "~> 1.2"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
