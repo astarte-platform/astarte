@@ -35,6 +35,26 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
     %{errors: %{detail: "Trigger already exists"}}
   end
 
+  def render("invalid_datastream_trigger.json", _assigns) do
+    %{errors: %{detail: "Invalid datastream trigger"}}
+  end
+
+  def render("unsupported_trigger_type.json", _assigns) do
+    %{errors: %{detail: "Unsupported trigger type"}}
+  end
+
+  def render("invalid_object_aggregation_trigger.json", _assigns) do
+    %{errors: %{detail: "Invalid object aggregation trigger"}}
+  end
+
+  def render("cannot_retrieve_simple_trigger.json", _assigns) do
+    %{errors: %{detail: "Could not get trigger"}}
+  end
+
+  def render("cannot_delete_simple_trigger.json", _assigns) do
+    %{errors: %{detail: "Could not delete trigger"}}
+  end
+
   def render("trigger.json", %{trigger: trigger}) do
     %{
       name: trigger.name,

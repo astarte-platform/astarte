@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [doc] Administrator Guide: bump cert-manager dependency to v1.7.0.
 - [data_updater_plant] Increase the `declare_exchange` timeout to 60 sec.
 - [data_updater_plant] Increase the `publish` timeout to 60 sec for the AMQPEventsProducer.
+- [astarte_realm_management_api] Do not crash when receiving trigger errors.
+  Fix [683](https://github.com/astarte-platform/astarte/issues/683).
 
 ## [1.0.2] - 2022-04-01
 ### Added
