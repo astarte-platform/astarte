@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [data_updater_plant] Increase the `publish` timeout to 60 sec for the AMQPEventsProducer.
 - [astarte_realm_management_api] Do not crash when receiving trigger errors.
   Fix [683](https://github.com/astarte-platform/astarte/issues/683).
+- [astarte_e2e] Allow setting custom subjects for alerting emails.
+- [astarte_e2e] Group in a single thread emails referencing the same failure_id.
 
 ## [1.0.2] - 2022-04-01
 ### Added
