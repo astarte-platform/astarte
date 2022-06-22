@@ -93,6 +93,7 @@ jobs:
         E2E_CHECK_INTERVAL_SECONDS: 5
         E2E_CHECK_REPETITIONS: 5
         E2E_MAILER_TO_ADDRESS: mail@example.com
+        E2E_MAIL_SUBJECT: "Subj: Astarte Notification"
       run: |
         mix run --no-halt
     - name: Check Docker
