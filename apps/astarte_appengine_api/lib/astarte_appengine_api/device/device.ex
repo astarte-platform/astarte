@@ -564,29 +564,6 @@ defmodule Astarte.AppEngine.API.Device do
     [type: :datastream, reliability: reliability]
   end
 
-  defp ensure_unset(realm, device_id, interface, path) do
-    with {:ok, %{local_matches: local_matches, remote_matches: remote_matches}} <-
-           DataTransmitter.unset_property(realm, device_id, interface, path) do
-      case local_matches + remote_matches do
-        0 ->
-          {:error, :cannot_push_to_device}
-
-        1 ->
-          :ok
-
-        matches when matches > 1 ->
-          # Multiple matches, we print a warning but we consider it ok
-          Logger.warn(
-            "Multiple matches while sending unset to device, " <>
-              "local_matches: #{local_matches}, remote_matches: #{remote_matches}",
-            tag: "publish_multiple_matches"
-          )
-
-          :ok
-      end
-    end
-  end
-
   defp ensure_publish(realm, device_id, interface, path, value, opts) do
     with {:ok, %{local_matches: local_matches, remote_matches: remote_matches}} <-
            publish_data(realm, device_id, interface, path, value, opts),
@@ -816,7 +793,10 @@ defmodule Astarte.AppEngine.API.Device do
 
       case interface_descriptor.type do
         :properties ->
-          ensure_unset(realm_name, device_id, interface, path)
+          # Do not check for matches, as the device receives the unset information anyway
+          # (either when it reconnects or in the /control/consumerProperties message).
+          # See https://github.com/astarte-platform/astarte/issues/640
+          DataTransmitter.unset_property(realm_name, device_id, interface, path)
 
         :datastream ->
           :ok
