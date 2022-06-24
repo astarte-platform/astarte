@@ -34,7 +34,7 @@ defmodule Astarte.Pairing.API.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
+      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -91,7 +91,7 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:skogsra, "~> 2.2"},
       {:cors_plug, "~> 2.0"},
       {:telemetry_metrics, "~> 0.4"},
