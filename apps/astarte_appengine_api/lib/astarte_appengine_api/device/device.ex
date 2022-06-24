@@ -793,10 +793,7 @@ defmodule Astarte.AppEngine.API.Device do
 
       case interface_descriptor.type do
         :properties ->
-          # Do not check for matches, as the device receives the unset information anyway
-          # (either when it reconnects or in the /control/consumerProperties message).
-          # See https://github.com/astarte-platform/astarte/issues/640
-          DataTransmitter.unset_property(realm_name, device_id, interface, path)
+          unset_property(realm_name, device_id, interface, path)
 
         :datastream ->
           :ok
@@ -810,6 +807,15 @@ defmodule Astarte.AppEngine.API.Device do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp unset_property(realm_name, device_id, interface, path) do
+    # Do not check for matches, as the device receives the unset information anyway
+    # (either when it reconnects or in the /control/consumerProperties message).
+    # See https://github.com/astarte-platform/astarte/issues/640
+    with {:ok, _} <- DataTransmitter.unset_property(realm_name, device_id, interface, path) do
+      :ok
     end
   end
 
