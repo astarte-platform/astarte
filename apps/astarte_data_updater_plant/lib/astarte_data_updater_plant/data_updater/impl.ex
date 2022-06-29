@@ -802,7 +802,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_object_key} ->
-        Logger.warn("Object has unexpected key: #{inspect(payload)} sent to #{interface}#{path}.",
+        base64_payload = Base.encode64(payload)
+
+        Logger.warn(
+          "Received object with unexpected key, object base64 is: #{base64_payload} sent to #{
+            interface
+          }#{path}.",
           tag: "unexpected_object_key"
         )
 
@@ -814,8 +819,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{},
           %{realm: new_state.realm}
         )
-
-        base64_payload = Base.encode64(payload)
 
         error_metadata = %{
           "interface" => inspect(interface),
