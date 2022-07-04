@@ -37,13 +37,6 @@ defmodule AstarteE2E.Client do
     device_id = Keyword.fetch!(opts, :device_id)
     check_repetitions = Keyword.fetch!(opts, :check_repetitions)
 
-    verify_option =
-      if Keyword.get(opts, :ignore_ssl_errors, false) do
-        :verify_none
-      else
-        :verify_peer
-      end
-
     remote_device = [
       url: url,
       realm: realm,
@@ -57,7 +50,7 @@ defmodule AstarteE2E.Client do
              __MODULE__,
              WebSocketClient,
              remote_device,
-             [transport_opts: [ssl_verify: verify_option]],
+             socket_options(opts),
              name: via_tuple(realm, device_id)
            ) do
       :telemetry.execute(
@@ -201,6 +194,25 @@ defmodule AstarteE2E.Client do
     room_name = Utils.random_string()
 
     "rooms:#{realm}:#{device_id}_#{room_name}"
+  end
+
+  defp socket_options(opts) do
+    if Keyword.get(opts, :ignore_ssl_errors, false) do
+      [transport_opts: [ssl_verify: :verify_none]]
+    else
+      [
+        transport_opts: [
+          ssl_verify: :verify_peer,
+          socket_opts: [
+            cacertfile: :certifi.cacertfile(),
+            customize_hostname_check: [
+              match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+            ],
+            depth: 10
+          ]
+        ]
+      ]
+    end
   end
 
   defp via_tuple(realm, device_id) do

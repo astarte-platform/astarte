@@ -33,7 +33,7 @@ defmodule Astarte.RealmManagement.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
+      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -81,7 +81,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:observer_cli, "~> 1.5"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false}
     ]
   end
 end
