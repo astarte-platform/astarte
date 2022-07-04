@@ -64,7 +64,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.0.2"}
+      {:astarte_core, "~> 1.0.3"}
     ]
   end
 
