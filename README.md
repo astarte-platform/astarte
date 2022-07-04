@@ -1,7 +1,7 @@
 # Astarte
 
-![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=v1.0.2)
-[![codecov](https://codecov.io/gh/astarte-platform/astarte/tag/v1.0.2/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
+![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=v1.0.3)
+[![codecov](https://codecov.io/gh/astarte-platform/astarte/tag/v1.0.3/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
 
 <img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT
 platform focused on Data management and processing written in [Elixir](https://github.com/elixir-lang/elixir).
@@ -32,8 +32,8 @@ Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make 
 [Docker](https://www.docker.com/), and simply:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git -b v1.0.0 && cd astarte
-$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.0.0
+$ git clone https://github.com/astarte-platform/astarte.git -b v1.0.3 && cd astarte
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.0.3
 $ docker-compose up -d
 ```
 
