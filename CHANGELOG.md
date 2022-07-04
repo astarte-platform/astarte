@@ -15,11 +15,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   POSTing on device-owned interfaces. Fix [#264](https://github.com/astarte-platform/astarte/issues/264).
 - [astarte_appengine_api] Correctly return 405 "Cannot write to read-only resource" when
   POSTing on incomplete paths of server-owned interfaces.
+- [astarte_e2e] Fix ssl options handling so that the e2e client is aware of the CA.
 
 ### Changed
 - [doc] Administrator Guide: bump cert-manager dependency to v1.7.0.
 - [data_updater_plant] Increase the `declare_exchange` timeout to 60 sec.
 - [data_updater_plant] Increase the `publish` timeout to 60 sec for the AMQPEventsProducer.
+- [astarte_realm_management_api] Do not crash when receiving trigger errors.
+  Fix [683](https://github.com/astarte-platform/astarte/issues/683).
+- [astarte_e2e] Allow setting custom subjects for alerting emails.
+- [astarte_e2e] Group in a single thread emails referencing the same failure_id.
+- [astarte_appengine_api] Make property unset succeed independently of whether there exist a device
+  session on the broker or not. Fix [#640](https://github.com/astarte-platform/astarte/issues/640).
+- [astarte_data_updater_plant] Log the base64-encoded object when receiving an object
+  with unexpected key.
 
 ## [1.0.2] - 2022-04-01
 ### Added

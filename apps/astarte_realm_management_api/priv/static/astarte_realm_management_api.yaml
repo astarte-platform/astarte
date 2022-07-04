@@ -295,6 +295,8 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/InstallTrigger'
+        '400':
+          description: Bad request
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -324,6 +326,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal Server Error.
     delete:
       tags:
         - trigger
@@ -344,6 +348,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal Server Error.
 components:
   responses:
     ConfigValidationError:
@@ -545,6 +551,12 @@ components:
           example:
             errors:
               detail: Interface minor version was not increased
+    InternalServerError:
+      description: Internal Server Error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
   securitySchemes:
     JWT:
       type: apiKey

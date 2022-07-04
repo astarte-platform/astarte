@@ -38,7 +38,7 @@ defmodule Astarte.Housekeeping.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
+      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -81,7 +81,7 @@ defmodule Astarte.Housekeeping.Mixfile do
     [
       {:xandra, "~> 0.13"},
       {:excoveralls, "~> 0.12", only: :test},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:plug_cowboy, "~> 2.1"},
       {:skogsra, "~> 2.2"},
       {:pretty_log, "~> 0.1"},
