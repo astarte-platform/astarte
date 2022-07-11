@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [1.0.3] - Unreleased
+## [1.0.3] - 2022-07-04
 ### Fixed
 - [astarte_appengine_api] Consider `allow_bigintegers` and `allow_safe_bigintegers` params
   when querying the root of individual datastream / properties interfaces.
