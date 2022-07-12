@@ -65,10 +65,10 @@ containing the following keys:
 
   In custom deployments those URLs may change, so you can overwrite any of those
   with the following optional keys:
-  + __realm_management_url__
-  + __appengine_url__
-  + __pairing_url__
-  + __flow_url__
+  + __realm_management_api_url__
+  + __appengine_api_url__
+  + __pairing_api_url__
+  + __flow_api_url__
 
 * __default_realm__ (optional):
   the default realm to login into.
