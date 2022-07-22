@@ -75,6 +75,7 @@ Compose might take some time to bring everything up, but usually within a minute
 * `4001`: Housekeeping API
 * `4002`: AppEngine API
 * `4003`: Pairing API
+* `4040`: Dashboard
 * `8883`: MQTTS
 * `1885`: MQTT with Proxy Protocol for SSL termination (won't be used)
 * `80`: Let's Encrypt verification (won't be used)
