@@ -1,0 +1,215 @@
+# Upgrade v1.0.x-v1.1.0
+
+This page describes the required steps to upgrade your Astarte cluster from `v1.0.x` to
+`v1.1`. Starting from the Astarte Operator `v1.1` release, the old `api.astarte-platform.org/v1alpha1`
+APIs are deprecated and will be removed from the Astarte Operator `v1.2` release. In the following,
+the upgrade path is described.
+
+The upcoming sections will cover the following topics:
+- upgrading the Astarte Operator,
+- making sure that the Astarte, AstarteVoyagerIngress and Flow CR are stored using `v1alpha2` API version,
+- upgrading the Astarte, AstarteVoyagerIngress and Flow CRDs to have only `v1alpha2` as storage version.
+
+Before starting with the upgrade procedure it is strongly advised to [backup your Astarte
+resources](095-advanced-operations.html#backup-your-astarte-resources).
+
+## Upgrade Astarte Operator
+The Astarte Operator upgrade procedure is handled by Helm. However, according to the Helm policies,
+upgrading the CRDs must be handled manually.
+
+The current section assumes that the Operator's chart landing version is `v1.1.0`. If a more recent
+chart version is available, it is **your responsibility** referencing to the `v1.1.0` chart using
+the `--version` flag when running `helm` commands.
+
+To upgrade the Astarte CRDs, the following environment variables will be employed:
+
+- `ASTARTE_OP_TEMPLATE_DIR` is the target directory in which the chart templates will be generated,
+- `ASTARTE_OP_RELEASE_NAME` is the name of the Astarte Operator deployment,
+- `ASTARTE_OP_RELEASE_NAMESPACE` is the namespace in which the Astarte Operator resides.
+
+Please, make sure that the values you set for both the Operator's name and namespace match the
+naming you already adopted when installing the Operator. A wrong naming can lead to a malfunctioning
+Astarte cluster.
+
+For standard deployments the following variables should be ok. However, it is your responsibility
+checking that the values you set are consistent with your setup:
+
+```bash
+export ASTARTE_OP_TEMPLATE_DIR=/tmp
+export ASTARTE_OP_RELEASE_NAME=astarte-operator
+export ASTARTE_OP_RELEASE_NAMESPACE=astarte-operator
+```
+
+Update your local Helm charts:
+```bash
+$ helm repo update
+```
+
+Render the Helm templates with the following:
+```bash
+helm template $ASTARTE_OP_RELEASE_NAME astarte/astarte-operator \
+    --namespace $ASTARTE_OP_RELEASE_NAMESPACE \
+    --output-dir $ASTARTE_OP_TEMPLATE_DIR
+```
+
+After these steps you will find the updated CRDs within
+`$ASTARTE_OP_TEMPLATE_DIR/$ASTARTE_OP_RELEASE_NAME/templates/crds.yaml`. Update the CRDs in your
+cluster by replacing the CRDs yaml file:
+```bash
+kubectl replace -f $ASTARTE_OP_TEMPLATE_DIR/$ASTARTE_OP_RELEASE_NAME/templates/crds.yaml
+```
+
+The previous command has updated the CRDs for Astarte, AstarteVoyagerIngress and Flow.
+
+Then, to upgrade the Operator use the dedicated `helm upgrade` command:
+```bash
+helm upgrade astarte-operator astarte/astarte-operator -n astarte-operator
+```
+
+The optional `--version` switch allows to specify the version to upgrade to - when not specified,
+the latest version will be fetched and used. If you choose to upgrade to a specific version of the
+chart by using the `--version` flag, please make sure to generate the updated CRDs template using
+the same chart version.
+
+By design, Astarte Operator's Helm charts cannot univocally be mapped to Operator's releases in a
+one-to-one relationship. However each chart is tied to a specific Operator's version, which is user
+configurable.
+
+Therefore, upgrading a chart leads to an Operator's upgrade if and only if the Operator's tag
+referenced by the chart is changed. You can check the Operator's tag bound to the chart simply
+running:
+
+```bash
+helm show values astarte/astarte-operator
+```
+
+As usual, you can use the `--version` flag to point to a specific chart version.
+
+## Make sure Astarte is stored using the `api.astarte-platform.org/v1alpha2` apiVersion
+
+To do so, simply edit the Astarte resource in the cluster.  
+Open the yaml file describing the Astarte resource with:
+```bash
+kubectl edit astarte -n astarte
+```
+
+Find the `apiVersion` field in the Astarte Spec section and change it (if needed) to `api.astarte-platform.org/v1alpha2`.
+
+After having done this, you Astarte CR will look like this:
+```yaml
+apiVersion: api.astarte-platform.org/v1alpha2
+kind: Astarte
+...
+spec:
+  ...
+status:
+  ...
+```
+
+Once the yaml file is applied, the Operator will take over ensuring the reconciliation of your
+Astarte instance. This will in turn change the version in which the Astarte CR is stored in
+Kubernetes to `api.astarte-platform.org/v1alpha2`.
+
+
+## Make sure Flow is stored using the `api.astarte-platform.org/v1alpha2` apiVersion
+
+To do so, simply edit the Flow resource in the cluster.  
+Open the yaml file describing the Flow resource with:
+```bash
+kubectl edit flow -n astarte
+```
+
+Find the `apiVersion` field in the Flow Spec section and change it (if needed) to `api.astarte-platform.org/v1alpha2`.
+
+After having done this, your Flow CR will look like this:
+```yaml
+apiVersion: api.astarte-platform.org/v1alpha2
+kind: Flow
+...
+spec:
+  ...
+status:
+  ...
+```
+
+Once the yaml file is applied, the Operator will take over ensuring the reconciliation of your
+Flow instance. This will in turn change the version in which the Flow CR is stored in
+Kubernetes to `api.astarte-platform.org/v1alpha2`.
+
+## Make sure AstarteVoyagerIngress is stored using the `api.astarte-platform.org/v1alpha2` apiVersion
+
+**The AstarteVoyagerIngress is deprecated and will be removed starting from Astarte Operator v1.2.**
+**Please consider [switching to the new AstarteDefaultIngress](066-migrate_to_astartedefaultingress.html).**
+
+If you already have dropped the AstarteVoyagerIngress, you can skip this section.
+
+To do so, simply edit the AstarteVoyagerIngress resource in the cluster.  
+Open the yaml file describing the AstarteVoyagerIngress resource with:
+```bash
+kubectl edit avi -n astarte
+```
+
+Find the `apiVersion` field in the AstarteVoyagerIngress Spec section and change it (if needed) to `api.astarte-platform.org/v1alpha2`.
+
+After having done this, your AstarteVoyagerIngress CR will look like this:
+```yaml
+apiVersion: api.astarte-platform.org/v1alpha2
+kind: AstarteVoyagerIngress
+...
+spec:
+  ...
+status:
+  ...
+```
+
+Once the yaml file is applied, the Operator will take over ensuring the reconciliation of your
+AstarteVoyagerIngress instance. This will in turn change the version in which the AstarteVoyagerIngress
+CR is stored in Kubernetes to `api.astarte-platform.org/v1alpha2`.
+
+## Upgrade the CRDs to the new storage version
+This step is handled by [`astartectl`](https://github.com/astarte-platform/astartectl). Ensure that `astartectl`
+is installed on your machine and its version is at least `>= v1.1.0`.
+
+Performing the actual upgrade is as simple as executing the following command:
+
+```bash
+$ astartectl cluster instances migrate storage-version
+```
+
+If an error occurs during the migration procedure, changes made by `migrate storage-version` will be reverted,
+so that you can make sure of having performed all necessary steps described in this page before trying again.
+
+### What happens under the hood?
+
+When invoking the `migrate storage-version` command, `astartectl` interacts with your Astarte cluster and
+retrieves the Astarte, Flow and AVI CRDs which are installed. Then, it checks that the CRDs are in a state
+consistent with the migration step it needs to perform, i.e. that each one of them has both `v1alpha1`
+and `v1alpha2` as `storedVersions`. For example, your Astarte CRD will look like this:
+
+```yaml
+name: astartes.api.astarte-platform.org
+...
+spec:
+  ...
+status:
+  ...
+  storedVersions:
+  - v1alpha1
+  - v1alpha2
+```
+
+Then, `astartectl` simply shrinks the `status.storedVersions` field to just `v1alpha2`.
+After having run the command, your Astarte CRD will look like this:
+```yaml
+name: astartes.api.astarte-platform.org
+...
+spec:
+  ...
+status:
+  ...
+  storedVersions:
+  - v1alpha2
+```
+
+If one of the previous tasks is not successful, the migration logic is reverted as not to leave
+your cluster in a broken state.
