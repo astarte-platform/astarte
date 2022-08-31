@@ -40,22 +40,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils do
     end
   end
 
-  def pretty_change_type(change_type) do
-    case change_type do
-      :INCOMING_INTROSPECTION ->
-        :on_incoming_introspection
-
-      :INTERFACE_ADDED ->
-        :on_interface_added
-
-      :INTERFACE_REMOVED ->
-        :on_interface_removed
-
-      :INTERFACE_MINOR_UPDATED ->
-        :on_interface_minor_updated
-    end
-  end
-
   def pretty_device_event_type(device_event_type) do
     case device_event_type do
       :DEVICE_CONNECTED ->
@@ -69,6 +53,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils do
 
       :DEVICE_ERROR ->
         :on_device_error
+
+      :INCOMING_INTROSPECTION ->
+        :on_incoming_introspection
+
+      :INTERFACE_ADDED ->
+        :on_interface_added
+
+      :INTERFACE_REMOVED ->
+        :on_interface_removed
+
+      :INTERFACE_MINOR_UPDATED ->
+        :on_interface_minor_updated
     end
   end
 end
