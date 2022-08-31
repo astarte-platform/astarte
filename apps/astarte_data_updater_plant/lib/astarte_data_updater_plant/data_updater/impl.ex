@@ -1129,9 +1129,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
             minor = Map.get(db_introspection_minor_map, interface_name)
 
-            # TODO: move away from :any_interface, I guess
             interface_added_targets =
-              Map.get(device_triggers, {:on_interface_added, :any_interface}, [])
+              Map.get(device_triggers, {:on_interface_added, interface_name}, [])
 
             TriggersHandler.interface_added(
               interface_added_targets,
@@ -1160,9 +1159,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                 :ok
               end
 
-            # TODO: move away from :any_interface, I guess
             interface_removed_targets =
-              Map.get(device_triggers, {:on_interface_deleted, :any_interface}, [])
+              Map.get(device_triggers, {:on_interface_removed, interface_name}, [])
 
             TriggersHandler.interface_removed(
               interface_removed_targets,
@@ -2135,7 +2133,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :data_triggers, next_data_triggers)
   end
 
-  # TODO: implement on_incoming_introspection, on_interface_minor_updated
+  # TODO: implement on_interface_minor_updated
   # TODO: implement on_empty_cache_received
   defp load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
     device_triggers = state.device_triggers
@@ -2146,25 +2144,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     event_type =
       EventTypeUtils.pretty_device_event_type(proto_buf_device_trigger.device_event_type)
 
-    # introspection triggers have a pair as key, device ones do not
-    # TODO make a beautiful function
-    trigger_key =
-      case event_type do
-        :on_incoming_introspection ->
-          {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
-
-        :on_interface_added ->
-          {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
-
-        :on_interface_removed ->
-          {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
-
-        :on_interface_minor_updated ->
-          {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
-
-        _ ->
-          event_type
-      end
+    # introspection triggers have a pair as key, standard device ones do not
+    trigger_key = compute_device_trigger_key(event_type, proto_buf_device_trigger)
 
     existing_trigger_targets = Map.get(device_triggers, trigger_key, [])
 
@@ -2177,9 +2158,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :device_triggers, next_device_triggers)
   end
 
-  # TODO
-  # defp introspection_tigger_interface(%ProtobufDeviceTrigger{match_interface: interface}),
-  #   do: interface
+  defp compute_device_trigger_key(event_type, proto_buf_device_trigger) do
+    case event_type do
+      :on_incoming_introspection ->
+        {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
+
+      :on_interface_added ->
+        {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
+
+      :on_interface_removed ->
+        {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
+
+      :on_interface_minor_updated ->
+        {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
+
+      _ ->
+        event_type
+    end
+  end
+
+  defp introspection_trigger_interface(%ProtobufDeviceTrigger{match_interface: interface})
+       when interface != nil do
+    interface
+  end
+
   defp introspection_trigger_interface(%ProtobufDeviceTrigger{}), do: :any_interface
 
   defp resolve_path(path, interface_descriptor, mappings) do
