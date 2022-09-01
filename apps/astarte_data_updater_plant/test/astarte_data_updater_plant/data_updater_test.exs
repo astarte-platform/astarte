@@ -24,10 +24,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.IntrospectionTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataAccess.Database
@@ -210,6 +213,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> Keyword.get(:introspection)
       |> Enum.into(%{})
 
+    # Install a volatile incoming introspection test trigger
+    incoming_introspection_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_id: encoded_device_id,
+            device_event_type: :INCOMING_INTROSPECTION
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    incoming_introspection_trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    incoming_introspection_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    incoming_introspection_volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             encoded_device_id,
+             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
+             2,
+             incoming_introspection_volatile_trigger_parent_id,
+             incoming_introspection_volatile_trigger_id,
+             incoming_introspection_trigger_data,
+             incoming_introspection_trigger_target_data
+           ) == :ok
+
     DataUpdater.handle_introspection(
       realm,
       encoded_device_id,
@@ -217,6 +258,290 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       gen_tracking_id(),
       make_timestamp("2017-10-09T14:00:32+00:00")
     )
+
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "incoming_introspection_event"
+    assert incoming_headers["x_astarte_device_id"] == encoded_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             incoming_introspection_volatile_trigger_parent_id
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             incoming_introspection_volatile_trigger_id
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :incoming_introspection_event,
+               %IncomingIntrospectionEvent{
+                 introspection: existing_introspection_string
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: incoming_introspection_volatile_trigger_parent_id,
+             realm: realm,
+             simple_trigger_id: incoming_introspection_volatile_trigger_id,
+             version: 1
+           }
+
+    # Remove the incoming introspection trigger, don't curse next tests
+    assert DataUpdater.handle_delete_volatile_trigger(
+             realm,
+             encoded_device_id,
+             incoming_introspection_volatile_trigger_id
+           ) == :ok
+
+    # Install a volatile interface added introspection test trigger
+    interface_added_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_id: encoded_device_id,
+            device_event_type: :INTERFACE_ADDED,
+            interface_name: "*"
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    interface_added_trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    interface_added_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    interface_added_volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             encoded_device_id,
+             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
+             2,
+             interface_added_volatile_trigger_parent_id,
+             interface_added_volatile_trigger_id,
+             interface_added_trigger_data,
+             interface_added_trigger_target_data
+           ) == :ok
+
+    new_introspection = existing_introspection_string <> ";com.test.YetAnother:1:0"
+
+    DataUpdater.handle_introspection(
+      realm,
+      encoded_device_id,
+      new_introspection,
+      gen_tracking_id(),
+      make_timestamp("2017-10-09T14:00:32+00:00")
+    )
+
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "interface_added_event"
+    assert incoming_headers["x_astarte_device_id"] == encoded_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             interface_added_volatile_trigger_parent_id
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             interface_added_volatile_trigger_id
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :interface_added_event,
+               %InterfaceAddedEvent{
+                 interface: "com.test.YetAnother",
+                 major_version: 1,
+                 minor_version: 0
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: interface_added_volatile_trigger_parent_id,
+             realm: realm,
+             simple_trigger_id: interface_added_volatile_trigger_id,
+             version: 1
+           }
+
+    # Remove the interface added trigger, don't curse next tests
+    assert DataUpdater.handle_delete_volatile_trigger(
+             realm,
+             encoded_device_id,
+             interface_added_volatile_trigger_id
+           ) == :ok
+
+    # Install a volatile interface minor updated introspection test trigger
+    interface_minor_updated_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_id: encoded_device_id,
+            device_event_type: :INTERFACE_MINOR_UPDATED,
+            interface_name: "com.test.YetAnother",
+            interface_major: 1
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    interface_minor_updated_trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    interface_minor_updated_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    interface_minor_updated_volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             encoded_device_id,
+             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
+             2,
+             interface_minor_updated_volatile_trigger_parent_id,
+             interface_minor_updated_volatile_trigger_id,
+             interface_minor_updated_trigger_data,
+             interface_minor_updated_trigger_target_data
+           ) == :ok
+
+    new_introspection = existing_introspection_string <> ";com.test.YetAnother:1:1"
+
+    DataUpdater.handle_introspection(
+      realm,
+      encoded_device_id,
+      new_introspection,
+      gen_tracking_id(),
+      make_timestamp("2017-10-09T14:00:32+00:00")
+    )
+
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "interface_minor_updated_event"
+    assert incoming_headers["x_astarte_device_id"] == encoded_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             interface_minor_updated_volatile_trigger_parent_id
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             interface_minor_updated_volatile_trigger_id
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :interface_minor_updated_event,
+               %InterfaceMinorUpdatedEvent{
+                 interface: "com.test.YetAnother",
+                 major_version: 1,
+                 old_minor_version: 0,
+                 new_minor_version: 1
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: interface_minor_updated_volatile_trigger_parent_id,
+             realm: realm,
+             simple_trigger_id: interface_minor_updated_volatile_trigger_id,
+             version: 1
+           }
+
+    # Remove the interface minor updated trigger, don't curse next tests
+    assert DataUpdater.handle_delete_volatile_trigger(
+             realm,
+             encoded_device_id,
+             interface_minor_updated_volatile_trigger_id
+           ) == :ok
+
+    # Install a volatile interface removed introspection test trigger
+    interface_removed_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_id: encoded_device_id,
+            device_event_type: :INTERFACE_REMOVED,
+            interface_name: "*"
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    interface_removed_trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    interface_removed_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    interface_removed_volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             encoded_device_id,
+             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
+             2,
+             interface_removed_volatile_trigger_parent_id,
+             interface_removed_volatile_trigger_id,
+             interface_removed_trigger_data,
+             interface_removed_trigger_target_data
+           ) == :ok
+
+    DataUpdater.handle_introspection(
+      realm,
+      encoded_device_id,
+      existing_introspection_string,
+      gen_tracking_id(),
+      make_timestamp("2017-10-09T14:00:32+00:00")
+    )
+
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    assert incoming_headers["x_astarte_event_type"] == "interface_removed_event"
+    assert incoming_headers["x_astarte_device_id"] == encoded_device_id
+    assert incoming_headers["x_astarte_realm"] == realm
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_parent_trigger_id"]) ==
+             interface_removed_volatile_trigger_parent_id
+
+    assert :uuid.string_to_uuid(incoming_headers["x_astarte_simple_trigger_id"]) ==
+             interface_removed_volatile_trigger_id
+
+    assert SimpleEvent.decode(incoming_event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :interface_removed_event,
+               %InterfaceRemovedEvent{
+                 interface: "com.test.YetAnother",
+                 major_version: 1
+               }
+             },
+             timestamp: timestamp_ms,
+             parent_trigger_id: interface_removed_volatile_trigger_parent_id,
+             realm: realm,
+             simple_trigger_id: interface_removed_volatile_trigger_id,
+             version: 1
+           }
+
+    # Remove the interface removed trigger, don't curse next tests
+    assert DataUpdater.handle_delete_volatile_trigger(
+             realm,
+             encoded_device_id,
+             interface_removed_volatile_trigger_id
+           ) == :ok
 
     DataUpdater.dump_state(realm, encoded_device_id)
 
@@ -1006,8 +1331,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert device_row == [
              connected: false,
-             total_received_msgs: 45015,
-             total_received_bytes: 4_500_796,
+             total_received_msgs: 45018,
+             total_received_bytes: 4_501_003,
              exchanged_msgs_by_interface: [
                {["com.example.TestObject", 1], 5},
                {["com.test.LCDMonitor", 1], 6},
