@@ -1207,7 +1207,41 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok = Queries.add_old_interfaces(db_client, new_state.device_id, old_introspection)
     :ok = Queries.remove_old_interfaces(db_client, new_state.device_id, readded_introspection)
 
-    # TODO: handle triggers for interface minor updates
+    interface_minor_updated_map =
+      Enum.map(old_minors, fn {iface, old_minor} ->
+        old_major = Map.fetch!(state.introspection, iface)
+        {iface, old_major, old_minor}
+      end)
+      |> Enum.filter(fn {iface, old_major, _old_minor} ->
+        Enum.member?(db_introspection_map, {iface, old_major})
+      end)
+      |> Enum.reduce(%{}, fn {iface, old_major, old_minor}, acc ->
+        new_minor = Map.get(db_introspection_minor_map, iface)
+
+        if new_minor > old_minor do
+          Map.put(acc, {iface, old_major}, {old_minor, new_minor})
+        else
+          acc
+        end
+      end)
+
+    Enum.each(interface_minor_updated_map, fn {{interface_name, interface_major},
+                                               {old_minor, new_minor}} ->
+      interface_minor_update_targets =
+        Map.get(device_triggers, {:on_interface_minor_updated, interface_name}, []) ++
+          Map.get(device_triggers, {:on_interface_minor_updated, :any_interface}, [])
+
+      TriggersHandler.interface_minor_updated(
+        interface_minor_update_targets,
+        realm,
+        device_id_string,
+        interface_name,
+        interface_major,
+        old_minor,
+        new_minor,
+        timestamp_ms
+      )
+    end)
 
     # Removed/updated interfaces must be purged away, otherwise data will be written using old
     # interface_id.
@@ -2133,7 +2167,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Map.put(state, :data_triggers, next_data_triggers)
   end
 
-  # TODO: implement on_interface_minor_updated
   # TODO: implement on_empty_cache_received
   defp load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
     device_triggers = state.device_triggers
