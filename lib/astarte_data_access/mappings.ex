@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,58 +18,55 @@
 
 defmodule Astarte.DataAccess.Mappings do
   alias Astarte.Core.Mapping
-  alias CQEx.Query
+  alias Astarte.DataAccess.XandraUtils
   require Logger
 
-  @spec fetch_interface_mappings(:cqerl.client(), binary, keyword) ::
+  @spec fetch_interface_mappings(String.t(), binary, keyword) ::
           {:ok, list(%Mapping{})} | {:error, atom}
-  def fetch_interface_mappings(db_client, interface_id, opts \\ []) do
-    include_docs_statement =
+  def fetch_interface_mappings(realm, interface_id, opts \\ []) do
+    XandraUtils.run(realm, &do_fetch_interface_mappings(&1, &2, interface_id, opts))
+  end
+
+  defp do_fetch_interface_mappings(conn, realm_name, interface_id, opts) do
+    include_docs =
       if Keyword.get(opts, :include_docs) do
         ", doc, description"
       else
         ""
       end
 
-    mappings_statement = """
+    statement = """
     SELECT endpoint, value_type, reliability, retention, database_retention_policy,
       database_retention_ttl, expiry, allow_unset, explicit_timestamp, endpoint_id,
-      interface_id #{include_docs_statement}
-    FROM endpoints
+      interface_id #{include_docs}
+    FROM #{realm_name}.endpoints
     WHERE interface_id=:interface_id
     """
 
-    mappings_query =
-      Query.new()
-      |> Query.statement(mappings_statement)
-      |> Query.put(:interface_id, interface_id)
-      |> Query.consistency(:quorum)
-
-    with {:ok, result} <- Query.call(db_client, mappings_query) do
-      mappings = Enum.map(result, &Mapping.from_db_result!/1)
-
-      {:ok, mappings}
-    else
-      %{acc: _, msg: error_message} ->
-        Logger.warn("fetch_interface_mappings: database error: #{error_message}")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warn("fetch_interface_mappings: failed with reason #{inspect(reason)}")
-        {:error, :database_error}
+    with {:ok, %Xandra.Page{} = page} <-
+           XandraUtils.retrieve_page(conn, statement, %{interface_id: interface_id},
+             consistency: :quorum
+           ) do
+      to_mapping_list(page)
     end
   end
 
-  @spec fetch_interface_mappings_map(:cqerl.client(), binary, keyword) ::
-          {:ok, map()} | {:error, atom}
-  def fetch_interface_mappings_map(db_client, interface_id, opts \\ []) do
-    with {:ok, mappings_list} <- fetch_interface_mappings(db_client, interface_id, opts) do
+  @spec fetch_interface_mappings_map(String.t(), binary, keyword) :: {:ok, map()} | {:error, atom}
+  def fetch_interface_mappings_map(realm_name, interface_id, opts \\ []) do
+    with {:ok, mappings_list} <- fetch_interface_mappings(realm_name, interface_id, opts) do
       mappings_map =
         Enum.into(mappings_list, %{}, fn %Mapping{} = mapping ->
           {mapping.endpoint_id, mapping}
         end)
 
       {:ok, mappings_map}
+    end
+  end
+
+  defp to_mapping_list(page) do
+    case Enum.to_list(page) do
+      [] -> {:error, :interface_not_found}
+      mappings -> {:ok, Enum.map(mappings, &Mapping.from_db_result!/1)}
     end
   end
 end
