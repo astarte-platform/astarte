@@ -16,12 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.MappingsTest do
+defmodule Astarte.DataAccess.Mappings.XandraTest do
   use ExUnit.Case
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.DatabaseTestHelper
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Mappings
+
+  @test_realm "autotestrealm"
 
   @test_interface_id <<83, 208, 155, 48, 103, 205, 220, 243, 222, 30, 40, 112, 234, 210, 31, 19>>
 
@@ -142,32 +143,40 @@ defmodule Astarte.DataAccess.MappingsTest do
   }
 
   setup do
-    DatabaseTestHelper.seed_data()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.seed_data(conn)
+    end)
   end
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.create_test_keyspace(conn)
+    end)
 
     on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace()
+      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+        DatabaseTestHelper.destroy_local_test_keyspace(conn)
+      end)
     end)
 
     :ok
   end
 
   test "fetch interface mappings" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
-
-    assert Mappings.fetch_interface_mappings_map(db_client, @simplestreamtest_interface_id) ==
+    assert Mappings.fetch_interface_mappings_map(
+             @test_realm,
+             @simplestreamtest_interface_id
+           ) ==
              {:ok, @simplestreamtest_mappings}
 
-    assert Mappings.fetch_interface_mappings_map(db_client, @test_interface_id, include_docs: true) ==
+    assert Mappings.fetch_interface_mappings_map(@test_realm, @test_interface_id,
+             include_docs: true
+           ) ==
              {:ok, @test_mapping}
 
-    # FIXME: this should return {:error, :interface_not_found}
-    # missing_interface_id = :crypto.strong_rand_bytes(16)
+    missing_interface_id = :crypto.strong_rand_bytes(16)
 
-    # assert Mappings.fetch_interface_mappings_map(db_client, missing_interface_id) ==
-    #         {:error, :interface_not_found}
+    assert Mappings.fetch_interface_mappings_map(@test_realm, missing_interface_id) ==
+             {:error, :interface_not_found}
   end
 end

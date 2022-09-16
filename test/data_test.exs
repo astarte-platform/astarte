@@ -16,85 +16,118 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.DataTest do
+defmodule Astarte.DataAccess.Data.XandraTest do
   use ExUnit.Case
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.DatabaseTestHelper
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Data
-  alias Astarte.DataAccess.Mappings
   alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Mappings
+
+  @test_realm "autotestrealm"
 
   setup do
-    DatabaseTestHelper.seed_data()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.seed_data(conn)
+    end)
   end
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.create_test_keyspace(conn)
+    end)
 
     on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace()
+      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+        DatabaseTestHelper.destroy_local_test_keyspace(conn)
+      end)
     end)
 
     :ok
   end
 
   test "check if path exists" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
-
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
-    {:ok, descriptor} = Interface.fetch_interface_descriptor(db_client, "com.test.LCDMonitor", 1)
+    {:ok, descriptor} =
+      Interface.fetch_interface_descriptor(@test_realm, "com.test.LCDMonitor", 1)
+
     %InterfaceDescriptor{interface_id: interface_id} = descriptor
 
-    {:ok, mappings} = Mappings.fetch_interface_mappings_map(db_client, interface_id)
+    {:ok, mappings} = Mappings.fetch_interface_mappings_map(@test_realm, interface_id)
 
     mapping =
       mappings
       |> Map.values()
       |> Enum.find(fn mapping -> mapping.endpoint == "/weekSchedule/%{day}/stop" end)
 
-    assert Data.path_exists?(db_client, device_id, descriptor, mapping, "/weekSchedule/3/stop") ==
+    assert Data.path_exists?(
+             @test_realm,
+             device_id,
+             descriptor,
+             mapping,
+             "/weekSchedule/3/stop"
+           ) ==
              {:ok, true}
 
-    assert Data.path_exists?(db_client, device_id, descriptor, mapping, "/weekSchedule/9/stop") ==
+    assert Data.path_exists?(
+             @test_realm,
+             device_id,
+             descriptor,
+             mapping,
+             "/weekSchedule/9/stop"
+           ) ==
              {:ok, false}
   end
 
   test "fetch property value on a certain interface" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
-
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
-    {:ok, descriptor} = Interface.fetch_interface_descriptor(db_client, "com.test.LCDMonitor", 1)
+    {:ok, descriptor} =
+      Interface.fetch_interface_descriptor(@test_realm, "com.test.LCDMonitor", 1)
+
     %InterfaceDescriptor{interface_id: interface_id} = descriptor
 
-    {:ok, mappings} = Mappings.fetch_interface_mappings_map(db_client, interface_id)
+    {:ok, mappings} = Mappings.fetch_interface_mappings_map(@test_realm, interface_id)
 
     mapping =
       mappings
       |> Map.values()
       |> Enum.find(fn mapping -> mapping.endpoint == "/weekSchedule/%{day}/stop" end)
 
-    assert Data.fetch_property(db_client, device_id, descriptor, mapping, "/weekSchedule/3/stop") ==
+    assert Data.fetch_property(
+             @test_realm,
+             device_id,
+             descriptor,
+             mapping,
+             "/weekSchedule/3/stop"
+           ) ==
              {:ok, 16}
 
-    assert Data.fetch_property(db_client, device_id, descriptor, mapping, "/weekSchedule/9/stop") ==
+    assert Data.fetch_property(
+             @test_realm,
+             device_id,
+             descriptor,
+             mapping,
+             "/weekSchedule/9/stop"
+           ) ==
              {:error, :property_not_set}
   end
 
   test "fetch last path update" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
-
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
     {:ok, descriptor} =
-      Interface.fetch_interface_descriptor(db_client, "com.test.SimpleStreamTest", 1)
+      Interface.fetch_interface_descriptor(
+        @test_realm,
+        "com.test.SimpleStreamTest",
+        1
+      )
 
     %InterfaceDescriptor{interface_id: interface_id} = descriptor
 
-    {:ok, mappings} = Mappings.fetch_interface_mappings_map(db_client, interface_id)
+    {:ok, mappings} = Mappings.fetch_interface_mappings_map(@test_realm, interface_id)
 
     mapping =
       mappings
@@ -104,7 +137,13 @@ defmodule Astarte.DataAccess.DataTest do
     {:ok, reception_timestamp, _} = DateTime.from_iso8601("2017-09-30 07:10:00.000000Z")
     {:ok, value_timestamp, _} = DateTime.from_iso8601("2017-09-30 07:11:00.000Z")
 
-    assert Data.fetch_last_path_update(db_client, device_id, descriptor, mapping, "/0/value") ==
+    assert Data.fetch_last_path_update(
+             @test_realm,
+             device_id,
+             descriptor,
+             mapping,
+             "/0/value"
+           ) ==
              {:ok,
               %{
                 reception_timestamp: reception_timestamp,

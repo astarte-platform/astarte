@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.1.0-beta.0] - Unreleased
 ### Changed
-- The library is now an Application.
+- BREAKING: The library now handles DB connections and
+  must be started in a supervision tree.
+- Use Xandra as database driver.
+- BREAKING: Public functions now accept a realm name as first
+  argument instead of a CQEx client.
 
 ## [1.1.0-alpha.0] - 2022-11-14
 
