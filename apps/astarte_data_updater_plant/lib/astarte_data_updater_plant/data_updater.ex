@@ -20,6 +20,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.DataUpdater.Server
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataAccess.Database
   alias Astarte.DataUpdaterPlant.MessageTracker
   require Logger
 
@@ -114,20 +116,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         simple_trigger,
         trigger_target
       ) do
-    message_tracker = get_message_tracker(realm, encoded_device_id, offload_start: true)
+    with :ok <- verify_device_exists(realm, encoded_device_id) do
+      message_tracker = get_message_tracker(realm, encoded_device_id, offload_start: true)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker, offload_start: true)
-    |> GenServer.call(
-      {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
-       simple_trigger, trigger_target}
-    )
+      get_data_updater_process(realm, encoded_device_id, message_tracker, offload_start: true)
+      |> GenServer.call(
+        {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
+         simple_trigger, trigger_target}
+      )
+    end
   end
 
   def handle_delete_volatile_trigger(realm, encoded_device_id, trigger_id) do
-    message_tracker = get_message_tracker(realm, encoded_device_id, offload_start: true)
+    with :ok <- verify_device_exists(realm, encoded_device_id) do
+      message_tracker = get_message_tracker(realm, encoded_device_id, offload_start: true)
 
-    get_data_updater_process(realm, encoded_device_id, message_tracker, offload_start: true)
-    |> GenServer.call({:handle_delete_volatile_trigger, trigger_id})
+      get_data_updater_process(realm, encoded_device_id, message_tracker, offload_start: true)
+      |> GenServer.call({:handle_delete_volatile_trigger, trigger_id})
+    end
   end
 
   def dump_state(realm, encoded_device_id) do
@@ -199,5 +205,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     {:ok, pid} = MessageTracker.start_link(acknowledger: acknowledger, name: name)
 
     pid
+  end
+
+  defp verify_device_exists(realm_name, encoded_device_id) do
+    with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, client} <- Database.connect(realm: realm_name),
+         {:ok, exists?} <- Queries.check_device_exists(client, decoded_device_id) do
+      if exists? do
+        :ok
+      else
+        _ =
+          Logger.warn(
+            "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
+            tag: "device_does_not_exist"
+          )
+
+        {:error, :device_does_not_exist}
+      end
+    end
   end
 end

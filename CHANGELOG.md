@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - [astarte_appengine_api] Check for device existence before accepting a watch request on
   Astarte rooms.
+- [astarte_data_updater_plant] Check for device existence before installation or deletion
+  of volatile triggers.
 
 ## [1.0.3] - 2022-07-04
 ### Fixed
