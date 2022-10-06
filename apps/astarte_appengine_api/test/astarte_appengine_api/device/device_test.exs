@@ -243,21 +243,25 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              %{}
            ) == {:error, :endpoint_not_found}
 
-    assert Device.get_interface_values!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             "com.test.LCDMonitor",
-             "weekSchedule/9/start",
-             %{}
-           ) == {:error, :path_not_found}
+    assert unpack_interface_values(
+             Device.get_interface_values!(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               "com.test.LCDMonitor",
+               "weekSchedule/9/start",
+               %{}
+             )
+           ) == %{}
 
-    assert Device.get_interface_values!(
-             "autotestrealm",
-             "f0VMRgIBAQAAAAAAAAAAAA",
-             "com.test.LCDMonitor",
-             "weekSchedule/9",
-             %{}
-           ) == {:error, :path_not_found}
+    assert unpack_interface_values(
+             Device.get_interface_values!(
+               "autotestrealm",
+               "f0VMRgIBAQAAAAAAAAAAAA",
+               "com.test.LCDMonitor",
+               "weekSchedule/9",
+               %{}
+             )
+           ) == %{}
   end
 
   test "get_interface_values! returns interfaces values on individual datastream interface" do

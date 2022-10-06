@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_realm_management] Add support for device introspection triggers.
 - [astarte_realm_management_api] Add support for device introspection triggers.
 
+### Fixed
+- [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
+  which are not fully populated. Fix [531](astarte-platform#531).
+
+
 ## [1.0.3] - 2022-07-04
 ### Fixed
 - [astarte_appengine_api] Consider `allow_bigintegers` and `allow_safe_bigintegers` params
