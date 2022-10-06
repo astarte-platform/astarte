@@ -1189,6 +1189,70 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
               }}
   end
 
+  test "fails to install volatile trigger on missing device" do
+    AMQPTestHelper.clean_queue()
+
+    realm = "autotestrealm"
+
+    {:ok, db_client} = Database.connect(realm: realm)
+
+    # Install a volatile device test trigger
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: :DEVICE_CONNECTED
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    fail_encoded_device_id = "f0VMRgIBAQBBBBBBBBBBBB"
+    {:ok, fail_device_id} = Device.decode_device_id(fail_encoded_device_id)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             fail_encoded_device_id,
+             fail_device_id,
+             1,
+             volatile_trigger_parent_id,
+             volatile_trigger_id,
+             simple_trigger_data,
+             trigger_target_data
+           ) == {:error, :device_does_not_exist}
+  end
+
+  test "fails to delete volatile trigger on missing device" do
+    AMQPTestHelper.clean_queue()
+    realm = "autotestrealm"
+    {:ok, db_client} = Database.connect(realm: realm)
+    volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    fail_encoded_device_id = "f0VMRgIBAQBBBBBBBBBBBB"
+    {:ok, fail_device_id} = Device.decode_device_id(fail_encoded_device_id)
+
+    assert DataUpdater.handle_delete_volatile_trigger(
+             realm,
+             fail_encoded_device_id,
+             volatile_trigger_id
+           ) == {:error, :device_does_not_exist}
+  end
+
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
     query =
       DatabaseQuery.new()

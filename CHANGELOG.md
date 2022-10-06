@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - Unreleased
+### Changed
+- [astarte_appengine_api] Check for device existence before accepting a watch request on
+  Astarte rooms.
+- [astarte_data_updater_plant] Check for device existence before installation or deletion
+  of volatile triggers.
+
 ## [1.0.3] - 2022-07-04
 ### Fixed
 - [astarte_appengine_api] Consider `allow_bigintegers` and `allow_safe_bigintegers` params

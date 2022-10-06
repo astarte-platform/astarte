@@ -121,6 +121,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
     :ok = DatabaseTestHelper.seed_data()
 
+    insert_device_id(@device_id)
+
     group_params = %{
       group_name: @group_name,
       devices: [@grouped_device_id_1, @grouped_device_id_2]
@@ -486,6 +488,23 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       watch_cleanup(socket, @name)
     end
+
+    test "fails if device_id does not exist", %{socket: socket} do
+      missing_device_id = "mZ8WHEQEQ-iC4kd4LSj4RQ"
+
+      missing_device_id_trigger =
+        @device_simple_trigger
+        |> Map.put("device_id", missing_device_id)
+
+      watch_payload = %{
+        "device_id" => missing_device_id,
+        "name" => @name,
+        "simple_trigger" => missing_device_id_trigger
+      }
+
+      ref = push(socket, "watch", watch_payload)
+      assert_reply(ref, :error, @unauthorized_reason)
+    end
   end
 
   describe "unwatch" do
@@ -823,6 +842,12 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
       watch_cleanup(socket, @name)
     end
+  end
+
+  defp insert_device_id(device_id) do
+    {:ok, decoded_device_id} = Astarte.Core.Device.decode_device_id(device_id)
+    {:ok, client} = DatabaseTestHelper.connect_to_test_keyspace()
+    DatabaseTestHelper.insert_empty_device(client, decoded_device_id)
   end
 
   defp room_join_authorized_socket(_context) do
