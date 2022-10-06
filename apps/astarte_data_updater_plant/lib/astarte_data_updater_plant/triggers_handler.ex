@@ -130,6 +130,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def incoming_introspection(target, realm, device_id, introspection, timestamp) do
+    # TODO check that introspection is a string here
     %IncomingIntrospectionEvent{introspection: introspection}
     |> make_simple_event(
       :incoming_introspection_event,

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- [astarte_data_updater_plant] Add support for device introspection triggers.
+- [astarte_realm_management] Add support for device introspection triggers.
+- [astarte_realm_management_api] Add support for device introspection triggers.
 
 ## [1.0.3] - 2022-07-04
 ### Fixed
