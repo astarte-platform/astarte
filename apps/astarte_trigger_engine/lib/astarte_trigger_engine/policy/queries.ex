@@ -1,3 +1,21 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2022 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 defmodule Astarte.TriggerEngine.Policy.Queries do
   require Logger
 
@@ -5,21 +23,13 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
   alias Astarte.Core.Realm
 
   def retrieve_policy_data(realm_name, policy_name) do
-    with :ok <- validate_realm_name(realm_name),
-         :ok <- validate_policy_name(policy_name),
+    with :ok <- verify_realm_name(realm_name),
+         :ok <- verify_policy_name(policy_name),
          {:ok, policy} <-
            Xandra.Cluster.run(:xandra, fn conn ->
              do_retrieve_policy_data(conn, realm_name, policy_name)
            end) do
       {:ok, policy}
-    else
-      {:error, reason} ->
-        _ =
-          Logger.warn("Cannot retrieve policy data: #{inspect(reason)}.",
-            tag: "policy_retrieve_failed"
-          )
-
-        {:error, reason}
     end
   end
 
@@ -48,7 +58,7 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
     end
   end
 
-  defp validate_realm_name(realm_name) do
+  defp verify_realm_name(realm_name) do
     if Realm.valid_name?(realm_name) do
       :ok
     else
@@ -62,7 +72,7 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
     end
   end
 
-  defp validate_policy_name(policy_name) do
+  defp verify_policy_name(policy_name) do
     if Policy.valid_name?(policy_name) do
       :ok
     else

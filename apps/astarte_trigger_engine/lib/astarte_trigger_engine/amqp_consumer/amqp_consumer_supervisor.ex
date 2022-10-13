@@ -16,10 +16,9 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TriggerEngine.Policy.PolicySupervisor do
+defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerSupervisor do
   require Logger
   use DynamicSupervisor
-  alias Astarte.TriggerEngine.Policy
 
   def start_link(init_arg) do
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -27,14 +26,16 @@ defmodule Astarte.TriggerEngine.Policy.PolicySupervisor do
 
   @impl true
   def init(_init_arg) do
-    _ = Logger.info("Starting policy supervisor", tag: "policy_supervisor_start")
+    _ = Logger.info("Starting AMQP consumer supervisor", tag: "amqp_consumer_supervisor_start")
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def start_child(opts) do
-    _ = Logger.info("Adding new policy to policy supervisor", tag: "policy_supervisor_add")
-    spec = Policy.child_spec(opts)
+  def start_child(child) do
+    _ =
+      Logger.info("Adding a new AMQP consumer",
+        tag: "amqp_consumer_supervisor_add"
+      )
 
-    DynamicSupervisor.start_child(__MODULE__, spec)
+    DynamicSupervisor.start_child(__MODULE__, child)
   end
 end

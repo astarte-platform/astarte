@@ -1,134 +1,103 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2022 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 defmodule Astarte.TriggerEngine.Policy do
   use GenServer
   require Logger
 
   alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.TriggerEngine.Config
-  alias Astarte.TriggerEngine.Policy.Queries
+  # TODO use the ExRabbitPool.RabbitMQ adapter when it will have a `nack` function
   alias AMQP.Basic
 
   @consumer Config.events_consumer!()
 
   # API
   def start_link(args \\ []) do
-    with {:ok, realm_name} <- Keyword.fetch(args, :realm_name),
-         {:ok, policy_name} <- Keyword.fetch(args, :policy_name),
-         {:ok, pid} <-
-           GenServer.start_link(__MODULE__, args, name: via_tuple(realm_name, policy_name)) do
-      {:ok, pid}
-    else
-      :error ->
-        # Missing realm or policy in args
-        {:error, :no_realm_or_policy_name}
+    realm_name = Keyword.fetch!(args, :realm_name)
+    policy = Keyword.fetch!(args, :policy)
+
+    case GenServer.start_link(__MODULE__, args, name: via_tuple(realm_name, policy.name)) do
+      {:ok, pid} ->
+        {:ok, pid}
 
       {:error, {:already_started, pid}} ->
         # Already started, we don't care
         {:ok, pid}
-
-      other ->
-        # Relay everything else
-        other
     end
   end
 
-  def handle_event(pid, payload, meta, amqp_channel) do
-    Logger.debug(
-      "policy process #{inspect(pid)} got event, payload: #{inspect(payload)},  meta: #{
-        inspect(meta)
-      }"
-    )
+  def handle_event(pid, channel, payload, meta) do
+    _ =
+      Logger.debug(
+        "policy process #{inspect(pid)} got event, payload: #{inspect(payload)},  meta: #{
+          inspect(meta)
+        }",
+        tag: "policy_handle_event"
+      )
 
-    GenServer.cast(pid, {:handle_event, payload, meta, amqp_channel})
-  end
-
-  def get_event_retry_map(pid) do
-    Logger.debug("Required event retry map for policy process #{inspect(pid)}")
-    GenServer.call(pid, {:get_event_retry_map})
+    GenServer.cast(pid, {:handle_event, channel, payload, meta})
   end
 
   # Server callbacks
 
-  # default (discard all) policy
-  def init(realm_name: _realm_name, policy_name: "@default") do
-    {:ok, %{policy: "@default"}}
-  end
-
-  def init(realm_name: realm_name, policy_name: policy_name) do
-    state = %{realm_name: realm_name, policy_name: policy_name}
-    {:ok, state, {:continue, :fetch_from_database}}
-  end
-
-  def handle_continue(:fetch_from_database, state) do
-    with %{realm_name: realm_name, policy_name: policy_name} <- state,
-         {:ok, policy} <- retrieve_policy_data(realm_name, policy_name) do
-      {:noreply, %{policy: policy, retry_map: %{}}}
-    else
-      _ -> {:stop, :initialization_error, %{}}
-    end
-  end
-
-  # default policy, always discard all
-  def handle_cast(
-        {:handle_event, payload, meta, amqp_channel},
-        %{policy: "@default"} = state
-      ) do
-    {headers, other_meta} = Map.pop(meta, :headers, [])
-    headers_map = amqp_headers_to_map(headers)
-
-    Logger.debug(
-      "got event, payload: #{inspect(payload)}, headers: #{inspect(headers_map)}, meta: #{
-        inspect(other_meta)
-      }"
-    )
-
-    @consumer.consume(payload, headers_map)
-    Basic.ack(amqp_channel, meta.delivery_tag)
-    {:noreply, state}
+  def init(args) do
+    policy = Keyword.get(args, :policy)
+    state = %{policy: policy, retry_map: %{}}
+    {:ok, state}
   end
 
   def handle_cast(
-        {:handle_event, payload, meta, amqp_channel},
-        %{policy: policy, retry_map: retry_map} = state
+        {:handle_event, chan, payload, meta},
+        %{policy: policy, retry_map: retry_map} = _state
       ) do
-    {headers, other_meta} = Map.pop(meta, :headers, [])
+    {headers, _other_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
 
-    Logger.debug(
-      "got event, payload: #{inspect(payload)}, headers: #{inspect(headers_map)}, meta: #{
-        inspect(other_meta)
-      }"
-    )
-
-    event_consumed? = @consumer.consume(payload, headers_map)
+    verify_event_consumed = @consumer.consume(payload, headers_map)
     retry_map = Map.update(retry_map, meta.message_id, 1, fn value -> value + 1 end)
 
-    case event_consumed? do
+    _ =
+      Logger.debug(
+        "Handling event #{meta.message_id}, this is the #{Map.get(retry_map, meta.message_id)}-th time"
+      )
+
+    case verify_event_consumed do
       # All was ok
       :ok ->
-        Basic.ack(amqp_channel, meta.delivery_tag)
+        Basic.ack(chan, meta.delivery_tag)
         retry_map = Map.delete(retry_map, meta.message_id)
         {:noreply, %{policy: policy, retry_map: retry_map}}
 
       {:http_error, status_code} ->
-        with :ok <- retry_sending?(meta.message_id, status_code, policy, retry_map) do
-          Basic.nack(amqp_channel, meta.delivery_tag, requeue: true)
-          {:noreply, %{policy: policy, retry_map: retry_map}}
-        else
-          :no ->
-            Basic.nack(amqp_channel, meta.delivery_tag, requeue: false)
-            retry_map = Map.delete(retry_map, meta.message_id)
-            {:noreply, %{policy: policy, retry_map: retry_map}}
-        end
+        maybe_requeue_message(chan, meta, status_code, policy, retry_map)
 
-      {:error, :connection_error} ->
-        # How do we handle this?
-        Logger.warn("Connection error while processing event.")
+      {:error, :trigger_not_found} ->
+        do_not_requeue_message(chan, meta, policy, retry_map)
 
-      {:error, error} ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
-        error
+      {:error, reason} ->
+        _ =
+          Logger.warn("Error #{reason} while processing event #{meta.message_id}",
+            tag: "event_consume_error"
+          )
+
+        maybe_requeue_message(chan, meta, nil, policy, retry_map)
     end
   end
 
@@ -136,29 +105,41 @@ defmodule Astarte.TriggerEngine.Policy do
     {:ok, retry_map}
   end
 
-  defp retry_sending?(event_id, error_number, policy, retry_map) do
-    %Policy{error_handlers: handlers} = policy
-    handler = Enum.find(handlers, fn handler -> Handler.includes?(handler, error_number) end)
-
-    cond do
-      handler == nil -> :no
-      Handler.discards?(handler) -> :no
-      policy.retry_times == nil -> :no
-      Map.get(retry_map, event_id) < policy.retry_times -> :ok
-      true -> :no
+  defp maybe_requeue_message(chan, meta, status_code, policy, retry_map) do
+    if requeue_message?(meta.message_id, status_code, policy, retry_map) do
+      do_requeue_message(chan, meta, policy, retry_map)
+    else
+      do_not_requeue_message(chan, meta, policy, retry_map)
     end
   end
 
-  defp retrieve_policy_data(realm_name, policy_name) do
-    with {:ok, policy_data} <- Queries.retrieve_policy_data(realm_name, policy_name),
-         policy_proto <- PolicyProto.decode(policy_data),
-         {:ok, policy} <- Policy.from_policy_proto(policy_proto) do
-      {:ok, policy}
-    else
-      error ->
-        Logger.warn("Error while retrieving policy: #{inspect(error)}")
-        {:error, :policy_retrieving_error}
-    end
+  defp do_requeue_message(chan, meta, policy, retry_map) do
+    Basic.nack(chan, meta.delivery_tag, requeue: true)
+
+    {:noreply, %{policy: policy, retry_map: retry_map}}
+  end
+
+  defp do_not_requeue_message(chan, meta, policy, retry_map) do
+    Basic.nack(chan, meta.delivery_tag, requeue: false)
+
+    retry_map = Map.delete(retry_map, meta.message_id)
+    {:noreply, %{policy: policy, retry_map: retry_map}}
+  end
+
+  defp requeue_message?(
+         event_id,
+         error_number,
+         %Policy{error_handlers: handlers, retry_times: retry_times},
+         retry_map
+       ) do
+    handler = Enum.find(handlers, fn handler -> Handler.includes?(handler, error_number) end)
+
+    retry? =
+      handler != nil and not Handler.discards?(handler) and retry_times != nil and
+        Map.get(retry_map, event_id) < retry_times
+
+    _ = Logger.debug("Event #{event_id} was processed; scheduled for retry? #{retry?}")
+    retry?
   end
 
   defp amqp_headers_to_map(headers) do

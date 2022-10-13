@@ -80,6 +80,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
       {:excoveralls, "~> 0.12", only: :test},
+      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},

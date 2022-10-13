@@ -16,25 +16,31 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TriggerEngine.Policy.PolicySupervisor do
+defmodule Astarte.TriggerEngine.RetrySupervisor do
+  # Automatically defines child_spec/1
+  use Supervisor
   require Logger
-  use DynamicSupervisor
-  alias Astarte.TriggerEngine.Policy
+
+  alias Astarte.TriggerEngine.Policy.PolicySupervisor
 
   def start_link(init_arg) do
-    DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
-  @impl true
   def init(_init_arg) do
-    _ = Logger.info("Starting policy supervisor", tag: "policy_supervisor_start")
-    DynamicSupervisor.init(strategy: :one_for_one)
-  end
+    # make amqp supervisors logs less verbose
+    :logger.add_primary_filter(
+      :ignore_rabbitmq_progress_reports,
+      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
+    )
 
-  def start_child(opts) do
-    _ = Logger.info("Adding new policy to policy supervisor", tag: "policy_supervisor_add")
-    spec = Policy.child_spec(opts)
+    _ = Logger.info("Starting retry supervisor", tag: "retry_supervisor_start")
 
-    DynamicSupervisor.start_child(__MODULE__, spec)
+    children = [
+      PolicySupervisor,
+      {Registry, [keys: :unique, name: Registry.PolicyRegistry]}
+    ]
+
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2022 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ defmodule Astarte.TriggerEngine.DeliverySupervisor do
   use Supervisor
   require Logger
 
-  alias Astarte.TriggerEngine.Policy.RetrySupervisor
-  alias Astarte.TriggerEngine.AMQPEventsConsumer
+  alias Astarte.TriggerEngine.RetrySupervisor
+  alias Astarte.TriggerEngine.ConsumerSupervisor
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -35,11 +35,11 @@ defmodule Astarte.TriggerEngine.DeliverySupervisor do
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    Logger.info("Starting delivery supervisor", tag: "delivery_supervisor_start")
+    _ = Logger.info("Starting delivery supervisor", tag: "delivery_supervisor_start")
 
     children = [
       RetrySupervisor,
-      AMQPEventsConsumer
+      ConsumerSupervisor
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

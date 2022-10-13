@@ -30,8 +30,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   @behaviour Astarte.TriggerEngine.EventsConsumer.Behaviour
 
-  # @impl true
-  @spec consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
+  @impl true
   def consume(payload, headers) do
     {:ok, realm} = Map.fetch(headers, "x_astarte_realm")
 
@@ -198,14 +197,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
       case status_code do
         status_code when status_code in 200..399 ->
-          Logger.debug("http request status: :ok, got response: #{inspect(response)} from #{url}")
+          Logger.debug("HTTP request status: ok, got response: #{inspect(response)} from #{url}")
           :ok
 
         status_code when status_code in 400..599 ->
-          Logger.warn(
-            "Error while processing event: #{inspect(response)}. Payload: #{inspect(payload)}, headers: #{
-              inspect(headers)
-            }, action: #{inspect(action)}"
+          Logger.debug(
+            "HTTP request status: error #{status_code}, got response: #{inspect(response)} from #{
+              url
+            }"
           )
 
           {:error, {:http_error, status_code}}
@@ -213,9 +212,9 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     else
       {:error, reason} ->
         Logger.warn(
-          "Error while processing the post request: #{inspect(reason)}. Payload: #{
-            inspect(payload)
-          }, headers: #{inspect(headers)}, action: #{inspect(action)}"
+          "Error while processing the request: #{inspect(reason)}. Payload: #{inspect(payload)}, headers: #{
+            inspect(headers)
+          }, action: #{inspect(action)}"
         )
 
         {:error, :connection_error}
