@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2022 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,12 +58,27 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
     realm_name = Keyword.fetch!(opts, :realm_name)
     policy = Keyword.fetch!(opts, :policy)
 
+    # we trap exits so that we can remove the related policy when we exit
+    Process.flag(:trap_exit, true)
+
     state = %State{
       realm_name: realm_name,
       policy: policy
     }
 
     {:ok, state, {:continue, :connect}}
+  end
+
+  @impl true
+  def terminate(
+        :shutdown,
+        %State{realm_name: realm_name, policy: policy} = _state
+      ) do
+    case Registry.lookup(Registry.PolicyRegistry, {realm_name, policy.name}) do
+      [{pid, nil}] -> PolicySupervisor.terminate_child(pid)
+      # already ded, we don't care
+      [] -> true
+    end
   end
 
   @impl true
@@ -77,8 +92,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
         {:DOWN, monitor, :process, chan_pid, _reason},
         %{monitor: monitor, channel: %{pid: chan_pid}} = state
       ) do
-    schedule_connect()
-    {:noreply, %{state | monitor: nil, channel: nil}}
+    do_connect(state)
   end
 
   # Confirmation sent by the broker after registering this process as a consumer

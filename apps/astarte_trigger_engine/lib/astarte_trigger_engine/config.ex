@@ -114,17 +114,12 @@ defmodule Astarte.TriggerEngine.Config do
           type: :integer,
           default: 10
 
-  @envdoc "The module used to consume events, used for tests with Mox"
-  app_env :events_consumer, :astarte_trigger_engine, :events_consumer,
-    type: :module,
-    binding_skip: [:system],
-    default: Astarte.TriggerEngine.EventsConsumer
-
-  @envdoc "The module used to consume messages from the AMQP broker, used for tests with Mox"
-  app_env :amqp_adapter, :astarte_trigger_engine, :amqp_adapter,
-    type: :module,
-    binding_skip: [:system],
-    default: ExRabbitPool.RabbitMQ
+  @envdoc "The number of channels per RabbitMQ connection used to consume events"
+  app_env :events_consumer_channels_per_connection_number,
+          :astarte_trigger_engine,
+          :events_consumer_channels_per_connection_number,
+          type: :integer,
+          default: 10
 
   @doc """
   Returns the AMQP events consumer connection options
@@ -151,7 +146,8 @@ defmodule Astarte.TriggerEngine.Config do
       port: amqp_consumer_port!(),
       username: amqp_consumer_username!(),
       password: amqp_consumer_password!(),
-      virtual_host: amqp_consumer_virtual_host!()
+      virtual_host: amqp_consumer_virtual_host!(),
+      channels: events_consumer_channels_per_connection_number!()
     ]
     |> populate_ssl_options()
   end
@@ -190,6 +186,14 @@ defmodule Astarte.TriggerEngine.Config do
       size: events_consumer_connection_number!(),
       max_overflow: 0
     ]
+  end
+
+  def amqp_adapter!() do
+    Application.get_env(:astarte_trigger_engine, :amqp_adapter)
+  end
+
+  def events_consumer!() do
+    Application.get_env(:astarte_trigger_engine, :events_consumer)
   end
 
   @doc "A list of host values of accessible Cassandra nodes formatted in the Xandra format"

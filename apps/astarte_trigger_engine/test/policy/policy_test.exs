@@ -25,8 +25,8 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   alias Astarte.TriggerEngine.Policy.PolicySupervisor
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.Handler
-  alias Astarte.Core.Triggers.Policy.KeywordError
-  alias Astarte.Core.Triggers.Policy.RangeError
+  alias Astarte.Core.Triggers.Policy.ErrorKeyword
+  alias Astarte.Core.Triggers.Policy.ErrorRange
 
   @realm_name "autotestrealm"
   @payload "some_payload"
@@ -44,7 +44,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     retry_times: @max_retry_times,
     maximum_capacity: 100,
     error_handlers: [
-      %Handler{on: %KeywordError{keyword: "any_error"}, strategy: "retry"}
+      %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "retry"}
     ]
   }
 
@@ -53,7 +53,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     retry_times: @max_retry_times,
     maximum_capacity: 100,
     error_handlers: [
-      %Handler{on: %KeywordError{keyword: "any_error"}, strategy: "retry"}
+      %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "retry"}
     ]
   }
 
@@ -61,7 +61,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     name: "discard_all",
     maximum_capacity: 100,
     error_handlers: [
-      %Handler{on: %KeywordError{keyword: "any_error"}, strategy: "discard"}
+      %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "discard"}
     ]
   }
 
@@ -70,8 +70,8 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     maximum_capacity: 100,
     retry_times: @max_retry_times,
     error_handlers: [
-      %Handler{on: %KeywordError{keyword: "server_error"}, strategy: "discard"},
-      %Handler{on: %RangeError{error_codes: [401, 402, 403, 404]}, strategy: "retry"}
+      %Handler{on: %ErrorKeyword{keyword: "server_error"}, strategy: "discard"},
+      %Handler{on: %ErrorRange{error_codes: [401, 402, 403, 404]}, strategy: "retry"}
     ]
   }
 

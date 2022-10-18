@@ -37,8 +37,8 @@ defmodule Astarte.TriggerEngine.RetrySupervisor do
     _ = Logger.info("Starting retry supervisor", tag: "retry_supervisor_start")
 
     children = [
-      PolicySupervisor,
-      {Registry, [keys: :unique, name: Registry.PolicyRegistry]}
+      {Registry, [keys: :unique, name: Registry.PolicyRegistry]},
+      PolicySupervisor
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

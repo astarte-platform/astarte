@@ -89,7 +89,7 @@ defmodule Astarte.TriggerEngine.Policy do
         maybe_requeue_message(chan, meta, status_code, policy, retry_map)
 
       {:error, :trigger_not_found} ->
-        do_not_requeue_message(chan, meta, policy, retry_map)
+        discard_message(chan, meta, policy, retry_map)
 
       {:error, reason} ->
         _ =
@@ -101,32 +101,28 @@ defmodule Astarte.TriggerEngine.Policy do
     end
   end
 
-  def handle_call({:get_event_retry_map}, %{retry_map: retry_map}) do
-    {:ok, retry_map}
-  end
-
   defp maybe_requeue_message(chan, meta, status_code, policy, retry_map) do
-    if requeue_message?(meta.message_id, status_code, policy, retry_map) do
-      do_requeue_message(chan, meta, policy, retry_map)
+    if should_requeue_message?(meta.message_id, status_code, policy, retry_map) do
+      requeue_message(chan, meta, policy, retry_map)
     else
-      do_not_requeue_message(chan, meta, policy, retry_map)
+      discard_message(chan, meta, policy, retry_map)
     end
   end
 
-  defp do_requeue_message(chan, meta, policy, retry_map) do
+  defp requeue_message(chan, meta, policy, retry_map) do
     Basic.nack(chan, meta.delivery_tag, requeue: true)
 
     {:noreply, %{policy: policy, retry_map: retry_map}}
   end
 
-  defp do_not_requeue_message(chan, meta, policy, retry_map) do
+  defp discard_message(chan, meta, policy, retry_map) do
     Basic.nack(chan, meta.delivery_tag, requeue: false)
 
     retry_map = Map.delete(retry_map, meta.message_id)
     {:noreply, %{policy: policy, retry_map: retry_map}}
   end
 
-  defp requeue_message?(
+  defp should_requeue_message?(
          event_id,
          error_number,
          %Policy{error_handlers: handlers, retry_times: retry_times},

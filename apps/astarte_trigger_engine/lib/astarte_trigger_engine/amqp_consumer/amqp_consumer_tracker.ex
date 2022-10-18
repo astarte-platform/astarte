@@ -25,13 +25,13 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.Handler
-  alias Astarte.Core.Triggers.Policy.KeywordError
+  alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
 
   # 30 seconds
   @update_timeout 30 * 1000
 
-  # Client
+  @default_policy_name "@default"
 
   def start_link(default) when is_list(default) do
     GenServer.start_link(__MODULE__, default, name: __MODULE__)
@@ -52,15 +52,20 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
     _ = Logger.debug("registered_consumers: #{inspect(registered_consumers)}")
 
-    new_consumers =
-      fetch_all_policies_with_realms_list()
-      |> Enum.reject(fn {realm, {policy_name, _policy_data}} ->
-        {realm, policy_name} in registered_consumers
-      end)
+    all_policies = fetch_all_policies_with_realms()
+
+    new_consumers = Map.drop(all_policies, registered_consumers)
+
+    outdated_consumers =
+      Enum.reject(registered_consumers, &Enum.member?(Map.keys(all_policies), &1))
 
     _ = Logger.debug("new_consumers: #{inspect(new_consumers)}")
 
     Enum.each(new_consumers, &start_new_consumer/1)
+
+    _ = Logger.debug("outdated_consumers: #{inspect(outdated_consumers)}")
+
+    Enum.each(outdated_consumers, &remove_outdated_consumer/1)
 
     schedule_update()
 
@@ -71,7 +76,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
     Process.send_after(__MODULE__, :update_consumers, @update_timeout)
   end
 
-  defp start_new_consumer({realm_name, {policy_name, policy_data}}) do
+  defp start_new_consumer({{realm_name, policy_name}, policy_data}) do
     _ =
       Logger.debug("Found new policy queue for #{realm_name}, #{policy_name}, starting consumer")
 
@@ -91,18 +96,32 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
     {:ok, _pid} = AMQPConsumerSupervisor.start_child(child)
   end
 
-  defp fetch_all_policies_with_realms_list() do
+  defp remove_outdated_consumer({realm_name, policy_name}) do
+    _ = Logger.debug("Removing old consumer for policy #{realm_name}, #{policy_name}")
+
+    case Registry.lookup(Registry.AMQPConsumerRegistry, {realm_name, policy_name}) do
+      [{pid, nil}] -> AMQPConsumerSupervisor.terminate_child(pid)
+      # already ded, we don't care
+      [] -> :ok
+    end
+  end
+
+  def fetch_all_policies_with_realms() do
     with {:ok, realm_names} <- Queries.list_realms() do
-      Enum.reduce(realm_names, [], fn realm_name, acc ->
-        fetch_realm_policies_list(realm_name) ++ acc
+      Enum.reduce(realm_names, %{}, fn realm_name, acc ->
+        Map.merge(acc, fetch_realm_policies_map(realm_name))
       end)
     end
   end
 
-  defp fetch_realm_policies_list(realm_name) do
-    policies = do_fetch_realm_policies_list(realm_name)
-    real_policies = Enum.map(policies, fn x -> {realm_name, x} end)
-    [{realm_name, default_policy()} | real_policies]
+  defp fetch_realm_policies_map(realm_name) do
+    policies_list = do_fetch_realm_policies_list(realm_name)
+
+    Enum.map(policies_list, fn {policy_name, policy_data} ->
+      {{realm_name, policy_name}, policy_data}
+    end)
+    |> Enum.into(%{})
+    |> Map.put({realm_name, @default_policy_name}, default_policy())
   end
 
   defp do_fetch_realm_policies_list(realm_name) do
@@ -113,21 +132,14 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
   # we need this because the default policy cannot be installed
   defp default_policy() do
-    name = "@default"
-
-    policy = %Policy{
-      name: name,
+    %Policy{
+      name: @default_policy_name,
       maximum_capacity: 100,
       error_handlers: [
-        %Handler{on: %KeywordError{keyword: "any_error"}, strategy: "discard"}
+        %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "discard"}
       ]
     }
-
-    policy =
-      policy
-      |> Policy.to_policy_proto()
-      |> PolicyProto.encode()
-
-    {name, policy}
+    |> Policy.to_policy_proto()
+    |> PolicyProto.encode()
   end
 end

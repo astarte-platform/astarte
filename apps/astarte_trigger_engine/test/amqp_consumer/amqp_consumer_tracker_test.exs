@@ -22,7 +22,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.Handler
-  alias Astarte.Core.Triggers.Policy.KeywordError
+  alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.TriggerEngine.DatabaseTestHelper
 
   @test_realm DatabaseTestHelper.test_realm()
@@ -44,7 +44,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
            )
   end
 
-  test "consumer for new policy is created" do
+  test "consumer for policy is created when a new policy is added" do
     policy_name = "policy_name"
 
     policy = %Policy{
@@ -52,7 +52,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
       retry_times: 1,
       maximum_capacity: 100,
       error_handlers: [
-        %Handler{on: %KeywordError{keyword: "any_error"}, strategy: "retry"}
+        %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "retry"}
       ]
     }
 
@@ -62,6 +62,39 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
     AMQPConsumerTracker.handle_info(:update_consumers, [])
 
     assert Enum.member?(
+             Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
+             {@test_realm, policy_name}
+           )
+  end
+
+  test "consumer for new policy is removed when a policy is removed" do
+    policy_name = "another_policy_name"
+
+    policy = %Policy{
+      name: policy_name,
+      retry_times: 1,
+      maximum_capacity: 100,
+      error_handlers: [
+        %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "retry"}
+      ]
+    }
+
+    DatabaseTestHelper.install_policy(policy)
+
+    # make sure we update the consumer list without waiting for the update timeout
+    AMQPConsumerTracker.handle_info(:update_consumers, [])
+
+    assert Enum.member?(
+             Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
+             {@test_realm, policy_name}
+           )
+
+    DatabaseTestHelper.delete_policy(policy_name)
+
+    # make sure we update the consumer list without waiting for the update timeout
+    AMQPConsumerTracker.handle_info(:update_consumers, [])
+
+    assert not Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
              {@test_realm, policy_name}
            )

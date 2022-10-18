@@ -33,9 +33,18 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerSupervisor do
   def start_child(child) do
     _ =
       Logger.info("Adding a new AMQP consumer",
-        tag: "amqp_consumer_supervisor_add"
+        tag: "amqp_consumer_add"
       )
 
     DynamicSupervisor.start_child(__MODULE__, child)
+  end
+
+  def terminate_child(pid) do
+    _ =
+      Logger.info("Terminating an AMQP consumer",
+        tag: "amqp_consumer_terminate"
+      )
+
+    DynamicSupervisor.terminate_child(__MODULE__, pid)
   end
 end

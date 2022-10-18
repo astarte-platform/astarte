@@ -47,7 +47,7 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
   """
 
   @create_kv_store_table """
-    CREATE TABLE autotestrealm.kv_store (
+    CREATE TABLE #{@test_realm}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -57,7 +57,11 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
   """
 
   @insert_policy_into_kv_store """
-    INSERT INTO autotestrealm.kv_store (group, key, value) VALUES ('trigger_policy', :policy_name, :policy_proto)
+    INSERT INTO #{@test_realm}.kv_store (group, key, value) VALUES ('trigger_policy', :policy_name, :policy_proto)
+  """
+
+  @delete_policy_from_kv_store """
+    DELETE FROM #{@test_realm}.kv_store WHERE group = 'trigger_policy' AND key = :policy_name
   """
 
   @insert_realm """
@@ -102,9 +106,13 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
       })
   end
 
+  def delete_policy(policy_name) do
+    {:ok, prepared} = Xandra.Cluster.prepare(:xandra, @delete_policy_from_kv_store)
+    {:ok, _result} = Xandra.Cluster.execute(:xandra, prepared, %{"policy_name" => policy_name})
+  end
+
   def drop_test_env() do
     {:ok, _result} = Xandra.Cluster.execute(:xandra, @drop_astarte_keyspace, %{})
-
     {:ok, _result} = Xandra.Cluster.execute(:xandra, @drop_test_keyspace, %{})
 
     :ok

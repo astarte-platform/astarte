@@ -41,7 +41,7 @@ defmodule Astarte.TriggerEngine.ConsumerSupervisor do
       AMQPConsumerSupervisor,
       {Registry, [keys: :unique, name: Registry.AMQPConsumerRegistry]},
       {ExRabbitPool.PoolSupervisor,
-       rabbitmq_config: Config.amqp_consumer_options!() ++ [channels: 1],
+       rabbitmq_config: Config.amqp_consumer_options!(),
        connection_pools: [Config.events_consumer_pool_config!()]},
       AMQPConsumerTracker
     ]

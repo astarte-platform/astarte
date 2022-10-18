@@ -32,9 +32,18 @@ defmodule Astarte.TriggerEngine.Policy.PolicySupervisor do
   end
 
   def start_child(opts) do
-    _ = Logger.info("Adding new policy to policy supervisor", tag: "policy_supervisor_add")
+    _ = Logger.info("Policy requested to policy supervisor", tag: "policy_supervisor_start_child")
     spec = Policy.child_spec(opts)
 
     DynamicSupervisor.start_child(__MODULE__, spec)
+  end
+
+  def terminate_child(pid) do
+    _ =
+      Logger.info("Removing policy from policy supervisor",
+        tag: "policy_supervisor_terminate_child"
+      )
+
+    DynamicSupervisor.terminate_child(__MODULE__, pid)
   end
 end

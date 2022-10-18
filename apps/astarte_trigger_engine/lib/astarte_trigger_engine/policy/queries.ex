@@ -19,12 +19,10 @@
 defmodule Astarte.TriggerEngine.Policy.Queries do
   require Logger
 
-  alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Realm
 
   def retrieve_policy_data(realm_name, policy_name) do
     with :ok <- verify_realm_name(realm_name),
-         :ok <- verify_policy_name(policy_name),
          {:ok, policy} <-
            Xandra.Cluster.run(:xandra, fn conn ->
              do_retrieve_policy_data(conn, realm_name, policy_name)
@@ -69,20 +67,6 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
         )
 
       {:error, :realm_not_allowed}
-    end
-  end
-
-  defp verify_policy_name(policy_name) do
-    if Policy.valid_name?(policy_name) do
-      :ok
-    else
-      _ =
-        Logger.warn("Invalid policy name.",
-          tag: "invalid_policy_name",
-          policy: policy_name
-        )
-
-      {:error, :policy_not_allowed}
     end
   end
 end
