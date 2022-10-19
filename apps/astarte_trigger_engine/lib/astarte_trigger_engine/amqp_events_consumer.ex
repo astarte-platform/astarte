@@ -26,11 +26,10 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
   alias AMQP.Exchange
   alias AMQP.Queue
   alias Astarte.TriggerEngine.Config
+  alias Astarte.TriggerEngine.Policy
+  alias Astarte.TriggerEngine.Policy.PolicySupervisor
 
   @connection_backoff 10000
-
-  @consumer Config.events_consumer!()
-
   # API
 
   def start_link(args \\ []) do
@@ -91,10 +90,9 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
       }"
     )
 
-    @consumer.consume(payload, headers_map)
-
-    # TODO: should we ack manually?
-    Basic.ack(state.channel, meta.delivery_tag)
+    {realm_name, policy_name} = get_headers_map_trigger_info(headers_map)
+    policy_process = get_policy_process(realm_name, policy_name)
+    Policy.handle_event(policy_process, payload, meta, state.channel)
 
     {:noreply, state}
   end
@@ -130,6 +128,7 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
          {:ok, _consumer_tag} <- Basic.consume(chan, events_queue_name),
          # Get notifications when the chan or conn go down
          Process.monitor(chan.pid) do
+      # TODO add policy to state
       {:ok, %{channel: chan}}
     else
       {:error, reason} ->
@@ -153,5 +152,24 @@ defmodule Astarte.TriggerEngine.AMQPEventsConsumer do
     Enum.reduce(headers, %{}, fn {key, _type, value}, acc ->
       Map.put(acc, key, value)
     end)
+  end
+
+  defp get_headers_map_trigger_info(headers_map) do
+    with {:ok, realm} <- Map.fetch(headers_map, "x_astarte_realm"),
+         {:ok, policy} <- Map.fetch(headers_map, "x_astarte_trigger_policy") do
+      {realm, policy}
+    end
+  end
+
+  defp get_policy_process(realm, policy_name) do
+    case Registry.lookup(Registry.PolicyRegistry, {realm, policy_name}) do
+      [] ->
+        child = {Policy, [realm_name: realm, policy_name: policy_name]}
+        {:ok, pid} = PolicySupervisor.start_child(child)
+        pid
+
+      [{pid, nil}] ->
+        pid
+    end
   end
 end

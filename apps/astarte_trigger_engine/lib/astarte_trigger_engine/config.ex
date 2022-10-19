@@ -114,6 +114,13 @@ defmodule Astarte.TriggerEngine.Config do
     binding_skip: [:system],
     default: Astarte.TriggerEngine.EventsConsumer
 
+  @envdoc "The module used to keep track of the number of redeliveries, used for tests with Mox"
+  app_env :retry_counter, :astarte_trigger_engine, :retry_counter,
+    os_env: "TRIGGER_ENGINE_RETRY_COUNTER",
+    type: :module,
+    binding_skip: [:system],
+    default: Astarte.TriggerEngine.DeliveryRetryCounter
+
   @doc """
   Returns the AMQP events consumer connection options
   """
