@@ -37,5 +37,6 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
     put "/:realm_name/config/:group", RealmConfigController, :update
 
     resources "/:realm_name/triggers", TriggerController, except: [:new, :edit]
+    resources "/:realm_name/policies", TriggerPolicyController, except: [:new, :edit]
   end
 end

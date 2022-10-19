@@ -27,6 +27,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   embedded_schema do
     field :name, :string
     field :action, :any, virtual: true
+    field :policy, :string
     embeds_one :amqp_action, AMQPAction
     embeds_one :http_action, HttpAction
     embeds_many :simple_triggers, SimpleTriggerConfig
@@ -37,8 +38,10 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
     attrs = move_action(attrs)
 
     trigger
-    |> cast(attrs, [:name])
+    |> cast(attrs, [:name, :policy])
     |> validate_required([:name])
+    |> validate_length(:policy, max: 128)
+    |> validate_format(:policy, policy_name_regex())
     |> cast_embed(:amqp_action, required: false, with: {AMQPAction, :changeset, [opts]})
     |> cast_embed(:http_action, required: false)
     |> cast_embed(:simple_triggers, required: true)
@@ -88,5 +91,9 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
         |> delete_change(:http_action)
         |> put_change(:action, http_action)
     end
+  end
+
+  def policy_name_regex do
+    ~r/^(?!@).+$/
   end
 end

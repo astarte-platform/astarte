@@ -1,8 +1,27 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2021 Ispirata Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 defmodule Astarte.RealmManagement.Mock.DB do
   alias Astarte.Core.Interface
+  alias Astarte.Core.Triggers.Policy
 
   def start_link do
-    Agent.start_link(fn -> %{interfaces: %{}} end, name: __MODULE__)
+    Agent.start_link(fn -> %{interfaces: %{}, trigger_policies: %{}} end, name: __MODULE__)
   end
 
   def drop_interfaces() do
@@ -99,5 +118,50 @@ defmodule Astarte.RealmManagement.Mock.DB do
 
   def put_jwt_public_key_pem(realm, jwt_public_key_pem) do
     Agent.update(__MODULE__, &Map.put(&1, "jwt_public_key_pem_#{realm}", jwt_public_key_pem))
+  end
+
+  def install_trigger_policy(realm, %Policy{name: name} = policy) do
+    if get_trigger_policy(realm, name) != nil do
+      {:error, :trigger_policy_already_present}
+    else
+      Agent.update(__MODULE__, fn %{trigger_policies: trigger_policies} = state ->
+        %{state | trigger_policies: Map.put(trigger_policies, {realm, name}, policy)}
+      end)
+    end
+  end
+
+  def get_trigger_policies_list(realm) do
+    Agent.get(__MODULE__, fn %{trigger_policies: trigger_policies} ->
+      keys = Map.keys(trigger_policies)
+
+      for {^realm, name} <- keys do
+        name
+      end
+      |> Enum.uniq()
+    end)
+  end
+
+  def get_trigger_policy(realm, name) do
+    Agent.get(__MODULE__, fn %{trigger_policies: trigger_policies} ->
+      Map.get(trigger_policies, {realm, name})
+    end)
+  end
+
+  def delete_trigger_policy(realm, name) do
+    if get_trigger_policy(realm, name) == nil do
+      {:error, :trigger_policy_not_found}
+    else
+      Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
+        %{state | trigger_policies: Map.delete(interfaces, {realm, name})}
+      end)
+    end
+  end
+
+  def get_trigger_policy_source(realm_name, name) do
+    if trigger_policy = get_trigger_policy(realm_name, name) do
+      Jason.encode!(trigger_policy)
+    else
+      nil
+    end
   end
 end

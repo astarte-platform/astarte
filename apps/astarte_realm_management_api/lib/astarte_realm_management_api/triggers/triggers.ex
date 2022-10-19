@@ -104,6 +104,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
            RealmManagement.install_trigger(
              realm_name,
              trigger_params.name,
+             trigger_params.policy,
              encoded_action,
              tagged_simple_triggers
            ) do
