@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] Add support for device introspection triggers.
 - [astarte_realm_management] Add support for device introspection triggers.
 - [astarte_realm_management_api] Add support for device introspection triggers.
+- [astarte_realm_management] Add support for delivery policies for HTTP triggers.
 
 ### Fixed
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 

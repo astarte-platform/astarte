@@ -585,6 +585,36 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_trigger_policy_1 """
+    {
+      "name": "aname",
+      "error_handlers": [
+        {
+          "on" : "any_error",
+          "strategy": "retry"
+        }
+      ],
+      "maximum_capacity": 300,
+      "retry_times": 10,
+      "event_ttl": 10
+    }
+  """
+
+  @test_trigger_policy_2 """
+    {
+      "name": "anothername",
+      "error_handlers": [
+        {
+          "on" : "any_error",
+          "strategy": "retry"
+        }
+      ],
+      "maximum_capacity": 300,
+      "retry_times": 10,
+      "event_ttl": 10
+    }
+  """
+
   @test_realm_name "autotestrealm"
 
   setup do
@@ -1133,7 +1163,7 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert {:ok, []} = Engine.get_triggers_list(@test_realm_name)
 
-    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, nil, action, [])
 
     assert {:ok, [^trigger_name]} = Engine.get_triggers_list(@test_realm_name)
   end
@@ -1150,7 +1180,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     }
     """
 
-    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, nil, action, [])
   end
 
   test "delete trigger" do
@@ -1164,7 +1194,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     """
 
     # Just to make sure a trigger exists
-    _ = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+    _ = Engine.install_trigger(@test_realm_name, trigger_name, nil, action, [])
 
     assert {:ok, [^trigger_name]} = Engine.get_triggers_list(@test_realm_name)
 
@@ -1185,10 +1215,10 @@ defmodule Astarte.RealmManagement.EngineTest do
     }
     """
 
-    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, nil, action, [])
 
     assert {:error, :already_installed_trigger} =
-             Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+             Engine.install_trigger(@test_realm_name, trigger_name, nil, action, [])
   end
 
   test "fail to install trigger on missing interface" do
@@ -1218,6 +1248,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              Engine.install_trigger(
                @test_realm_name,
                trigger_name,
+               nil,
                action,
                serialized_simple_triggers
              )
@@ -1253,6 +1284,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              Engine.install_trigger(
                @test_realm_name,
                trigger_name,
+               nil,
                action,
                serialized_simple_triggers
              )
@@ -1287,6 +1319,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              Engine.install_trigger(
                @test_realm_name,
                trigger_name,
+               nil,
                action,
                serialized_simple_triggers
              )
@@ -1322,6 +1355,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              Engine.install_trigger(
                @test_realm_name,
                trigger_name,
+               nil,
                action,
                serialized_simple_triggers
              )
@@ -1331,6 +1365,92 @@ defmodule Astarte.RealmManagement.EngineTest do
     trigger_name = "missing_trigger"
 
     assert {:error, :trigger_not_found} = Engine.delete_trigger(@test_realm_name, trigger_name)
+  end
+
+  test "install trigger policy" do
+    assert Engine.get_trigger_policies_list("autotestrealm") == {:ok, []}
+
+    assert Engine.install_trigger_policy("autotestrealm", @test_trigger_policy_1) == :ok
+    assert Engine.install_trigger_policy("autotestrealm", @test_trigger_policy_2) == :ok
+
+    # can't install again the same policy
+    assert Engine.install_trigger_policy("autotestrealm", @test_trigger_policy_1) ==
+             {:error, :trigger_policy_already_present}
+
+    assert Engine.delete_trigger_policy("autotestrealm", "aname") == :ok
+
+    assert Engine.get_trigger_policies_list("autotestrealm") == {:ok, ["anothername"]}
+
+    assert Engine.install_trigger_policy("autotestrealm", @test_trigger_policy_1) == :ok
+
+    {:ok, policies_list} = Engine.get_trigger_policies_list("autotestrealm")
+
+    sorted_policies =
+      policies_list
+      |> Enum.sort()
+
+    assert sorted_policies == ["aname", "anothername"]
+  end
+
+  test "trigger and policy installation coherence" do
+    assert Engine.install_trigger_policy("autotestrealm", @test_trigger_policy_1) == :ok
+
+    trigger = %{
+      realm_name: "autotestrealm",
+      name: "test_trigger",
+      policy: "aname",
+      action: Jason.encode!(%{}),
+      simple_triggers: []
+    }
+
+    assert Engine.install_trigger(
+             trigger.realm_name,
+             trigger.name,
+             trigger.policy,
+             trigger.action,
+             trigger.simple_triggers
+           ) == :ok
+
+    assert Engine.delete_trigger(trigger.realm_name, trigger.name) == :ok
+
+    assert Engine.delete_trigger_policy("autotestrealm", "aname") == :ok
+  end
+
+  test "trigger with non existant policy fails" do
+    trigger = %{
+      realm_name: "autotestrealm",
+      name: "test_trigger",
+      policy: "idontexist",
+      action: Jason.encode!(%{}),
+      simple_triggers: []
+    }
+
+    assert {:error, :trigger_policy_not_found} =
+             Engine.install_trigger(
+               trigger.realm_name,
+               trigger.name,
+               trigger.policy,
+               trigger.action,
+               trigger.simple_triggers
+             )
+  end
+
+  test "trigger with nil policy succeeds" do
+    trigger = %{
+      realm_name: "autotestrealm",
+      name: "test_trigger",
+      policy: nil,
+      action: Jason.encode!(%{}),
+      simple_triggers: []
+    }
+
+    assert Engine.install_trigger(
+             trigger.realm_name,
+             trigger.name,
+             trigger.policy,
+             trigger.action,
+             trigger.simple_triggers
+           ) == :ok
   end
 
   defp unpack_source({:ok, source}) when is_binary(source) do

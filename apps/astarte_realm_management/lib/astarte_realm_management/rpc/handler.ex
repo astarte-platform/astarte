@@ -44,7 +44,13 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     InstallTrigger,
     Reply,
     UpdateInterface,
-    UpdateJWTPublicKeyPEM
+    UpdateJWTPublicKeyPEM,
+    InstallTriggerPolicy,
+    GetTriggerPoliciesList,
+    GetTriggerPoliciesListReply,
+    GetTriggerPolicySource,
+    GetTriggerPolicySourceReply,
+    DeleteTriggerPolicy
   }
 
   alias Astarte.Core.Triggers.Trigger
@@ -140,12 +146,24 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
-  def encode_reply(_call_atom, :ok) do
-    msg = %GenericOkReply{
-      async_operation: false
+  def encode_reply(:get_trigger_policies_list, {:ok, reply}) do
+    msg = %GetTriggerPoliciesListReply{
+      trigger_policies_names: reply
     }
 
-    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, msg}})}
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_policies_list_reply, msg}})}
+  end
+
+  def encode_reply(:get_trigger_policy_source, {:ok, reply}) do
+    msg = %GetTriggerPolicySourceReply{
+      source: reply
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_policy_source_reply, msg}})}
+  end
+
+  def encode_reply(:delete_trigger_policy, :ok) do
+    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
   def encode_reply(_call_atom, {:ok, :started}) do
@@ -273,7 +291,8 @@ defmodule Astarte.RealmManagement.RPC.Handler do
                realm_name: realm_name,
                trigger_name: trigger_name,
                action: action,
-               serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+               serialized_tagged_simple_triggers: serialized_tagged_simple_triggers,
+               trigger_policy: trigger_policy
              }} ->
               _ = Logger.metadata(realm: realm_name)
 
@@ -282,6 +301,7 @@ defmodule Astarte.RealmManagement.RPC.Handler do
                 Engine.install_trigger(
                   realm_name,
                   trigger_name,
+                  trigger_policy,
                   action,
                   serialized_tagged_simple_triggers
                 )
@@ -298,6 +318,56 @@ defmodule Astarte.RealmManagement.RPC.Handler do
             {:delete_trigger, %DeleteTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
               _ = Logger.metadata(realm: realm_name)
               encode_reply(:delete_trigger, Engine.delete_trigger(realm_name, trigger_name))
+
+            {:install_trigger_policy,
+             %InstallTriggerPolicy{
+               realm_name: realm_name,
+               trigger_policy_json: policy_json,
+               async_operation: async_operation
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :install_policy,
+                Engine.install_trigger_policy(realm_name, policy_json, async: async_operation)
+              )
+
+            {:get_trigger_policies_list, %GetTriggerPoliciesList{realm_name: realm_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :get_trigger_policies_list,
+                Engine.get_trigger_policies_list(realm_name)
+              )
+
+            {:get_trigger_policy_source,
+             %GetTriggerPolicySource{
+               realm_name: realm_name,
+               trigger_policy_name: trigger_policy_name
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :get_trigger_policy_source,
+                Engine.trigger_policy_source(realm_name, trigger_policy_name)
+              )
+
+            {:delete_trigger_policy,
+             %DeleteTriggerPolicy{
+               realm_name: realm_name,
+               trigger_policy_name: trigger_policy_name,
+               async_operation: async_operation
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :delete_trigger_policy,
+                Engine.delete_trigger_policy(
+                  realm_name,
+                  trigger_policy_name,
+                  async: async_operation
+                )
+              )
 
             invalid_call ->
               _ = Logger.warn("Received unexpected call: #{inspect(invalid_call)}.")

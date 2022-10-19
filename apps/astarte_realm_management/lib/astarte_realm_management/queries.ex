@@ -37,6 +37,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
+  alias Astarte.Core.Triggers.PolicyProtobuf.PolicyProto
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
@@ -1193,6 +1194,39 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  def install_trigger_policy_link(_client, _trigger_uuid, nil) do
+    :ok
+  end
+
+  def install_trigger_policy_link(client, trigger_uuid, trigger_policy) do
+    insert_trigger_with_policy_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES (:policy_group, :trigger_uuid, uuidAsBlob(:trigger_uuid))"
+
+    insert_trigger_with_policy_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_trigger_with_policy_statement)
+      |> DatabaseQuery.put(:policy_group, "triggers-with-policy-#{trigger_policy}")
+      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
+
+    insert_trigger_to_policy_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('trigger_to_policy',  :trigger_uuid, :trigger_policy);"
+
+    insert_trigger_to_policy_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_trigger_to_policy_statement)
+      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
+      |> DatabaseQuery.put(:trigger_policy, trigger_policy)
+
+    with {:ok, _result} <- DatabaseQuery.call(client, insert_trigger_with_policy_query),
+         {:ok, _result} <- DatabaseQuery.call(client, insert_trigger_to_policy_query) do
+      :ok
+    else
+      not_ok ->
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        {:error, :cannot_install_trigger_policy_link}
+    end
+  end
+
   def retrieve_trigger_uuid(client, trigger_name, format \\ :string) do
     trigger_uuid_query_statement =
       "SELECT value FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
@@ -1218,6 +1252,38 @@ defmodule Astarte.RealmManagement.Queries do
       not_ok ->
         _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_retrieve_trigger_uuid}
+    end
+  end
+
+  def delete_trigger_policy_link(_client, _trigger_uuid, nil) do
+    :ok
+  end
+
+  def delete_trigger_policy_link(client, trigger_uuid, trigger_policy) do
+    delete_trigger_with_policy_statement =
+      "DELETE FROM kv_store WHERE group=:policy_group AND key=:trigger_uuid;"
+
+    delete_trigger_with_policy_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_trigger_with_policy_statement)
+      |> DatabaseQuery.put(:policy_group, "triggers-with-policy-#{trigger_policy}")
+      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
+
+    delete_trigger_to_policy_statement =
+      "DELETE FROM kv_store WHERE group='trigger_to_policy' AND key=:trigger_uuid;"
+
+    delete_trigger_to_policy_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_trigger_to_policy_statement)
+      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
+
+    with {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_with_policy_query),
+         {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_to_policy_query) do
+      :ok
+    else
+      not_ok ->
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        {:error, :cannot_delete_trigger_policy_link}
     end
   end
 
@@ -1397,6 +1463,195 @@ defmodule Astarte.RealmManagement.Queries do
         _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
 
         {:error, :cannot_retrieve_simple_trigger}
+    end
+  end
+
+  def install_new_trigger_policy(client, policy_name, policy_proto) do
+    insert_query_statement =
+      "INSERT INTO kv_store (group, key, value) VALUES ('trigger_policy', :policy_name, :policy_container);"
+
+    insert_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_query_statement)
+      |> DatabaseQuery.put(:policy_name, policy_name)
+      |> DatabaseQuery.put(:policy_container, policy_proto)
+
+    with {:ok, _res} <- DatabaseQuery.call(client, insert_query) do
+      :ok
+    else
+      not_ok ->
+        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        {:error, :cannot_install_trigger_policy}
+    end
+  end
+
+  def get_trigger_policies_list(client) do
+    trigger_policies_list_statement = """
+    SELECT key FROM kv_store WHERE group=:group_name
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(trigger_policies_list_statement)
+      |> DatabaseQuery.put(:group_name, "trigger_policy")
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(client, query) do
+      list =
+        Enum.map(result, fn row ->
+          Keyword.fetch!(row, :key)
+        end)
+
+      {:ok, list}
+    else
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ =
+          Logger.warn("Database error: failed with reason: #{inspect(reason)}.", tag: "db_error")
+
+        {:error, :database_error}
+    end
+  end
+
+  def fetch_trigger_policy(client, policy_name) do
+    policy_cols_statement = """
+    SELECT value
+    FROM kv_store
+    WHERE group=:group_name and key=:policy_name
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(policy_cols_statement)
+      |> DatabaseQuery.put(:group_name, "trigger_policy")
+      |> DatabaseQuery.put(:policy_name, policy_name)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(client, query),
+         policy_row when is_list(policy_row) <- DatabaseResult.head(result),
+         {:ok, container} <- Keyword.fetch(policy_row, :value) do
+      {:ok, container}
+    else
+      :empty_dataset ->
+        {:error, :policy_not_found}
+
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ = Logger.warn("Failed, reason: #{inspect(reason)}.", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
+  def check_policy_has_triggers(client, policy_name) do
+    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name LIMIT 1"
+
+    devices_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(devices_statement)
+      |> DatabaseQuery.put(:group_name, "triggers-with-policy-#{policy_name}")
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(client, devices_query),
+         [key: _device_id] <- DatabaseResult.head(result) do
+      {:ok, true}
+    else
+      :empty_dataset ->
+        {:ok, false}
+
+      {:error, reason} ->
+        _ =
+          Logger.error(
+            "Database error while checking #{policy_name}, reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  def delete_trigger_policy(client, policy_name) do
+    _ =
+      Logger.info("Delete trigger policy.",
+        policy_name: policy_name,
+        tag: "db_delete_trigger_policy"
+      )
+
+    delete_policy_statement =
+      "DELETE FROM kv_store WHERE group= :group_name AND key= :policy_name"
+
+    delete_policy =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_policy_statement)
+      |> DatabaseQuery.put(:group_name, "trigger_policy")
+      |> DatabaseQuery.put(:policy_name, policy_name)
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    # TODO check warning
+    delete_triggers_with_policy_group_statement = "DELETE FROM kv_store WHERE group=:group_name"
+
+    delete_triggers_with_policy_group_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_triggers_with_policy_group_statement)
+      |> DatabaseQuery.put(:group_name, "triggers-with-policy-#{policy_name}")
+      |> DatabaseQuery.consistency(:each_quorum)
+
+    delete_trigger_to_policy_statement = "DELETE FROM kv_store WHERE group=:group_name;"
+
+    delete_trigger_to_policy_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(delete_trigger_to_policy_statement)
+      |> DatabaseQuery.put(:group_name, "trigger_to_policy")
+
+    with {:ok, _result} <- DatabaseQuery.call(client, delete_policy),
+         {:ok, _result} <- DatabaseQuery.call(client, delete_triggers_with_policy_group_query),
+         {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_to_policy_query) do
+      :ok
+    else
+      {:error, reason} ->
+        _ =
+          Logger.error(
+            "Database error while deleting #{policy_name}, reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  def check_trigger_policy_already_present(client, policy_name) do
+    policy_cols_statement = """
+    SELECT COUNT(*)
+    FROM kv_store
+    WHERE group= :group_name and key= :policy_name
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(policy_cols_statement)
+      |> DatabaseQuery.put(:group_name, "trigger_policy")
+      |> DatabaseQuery.put(:policy_name, policy_name)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, result} <- DatabaseQuery.call(client, query),
+         [count: 0] <- DatabaseResult.head(result) do
+      {:ok, false}
+    else
+      [count: _] ->
+        {:ok, true}
+
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        {:error, :database_error}
     end
   end
 end
