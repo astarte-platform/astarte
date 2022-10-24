@@ -8,7 +8,7 @@ Once the Astarte Operator [has been installed](030-installation_kubernetes.html)
 The standard way of deploying an Astarte instance is by creating your own Astarte Custom Resource.
 This gives you an high degree of customization, allowing you to tweak any single parameter in the
 Astarte setup. The main Astarte CRD contains [extensive
-documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/v1.0.3/config/crd/bases/api.astarte-platform.org_astartes.yaml)
+documentation](https://github.com/astarte-platform/astarte-kubernetes-operator/blob/v1.0.4/config/crd/bases/api.astarte-platform.org_astartes.yaml)
 on the available fields in OpenAPIv3 format. Just create your Astarte Custom Resource, which will
 look something like this:
 
@@ -21,7 +21,7 @@ metadata:
 spec:
   # This is the most minimal set of reasonable configuration to spin up an Astarte
   # instance with reasonable defaults and enough control over the deployment.
-  version: 1.0.3
+  version: 1.0.4
   api:
     host: "api.astarte.yourdomain.com" # MANDATORY
   rabbitmq:
