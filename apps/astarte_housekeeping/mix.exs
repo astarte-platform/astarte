@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.0.3",
+      version: "1.0.4",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
@@ -71,9 +71,9 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.0.3"},
-      {:astarte_data_access, "~> 1.0.3"},
-      {:astarte_rpc, "~> 1.0.3"}
+      {:astarte_core, "~> 1.0.4"},
+      {:astarte_data_access, "~> 1.0.4"},
+      {:astarte_rpc, "~> 1.0.4"}
     ]
   end
 
