@@ -23,6 +23,8 @@ defmodule Astarte.RealmManagement.EngineTest do
   alias Astarte.DataAccess.Database
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Engine
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
 
   @test_interface_a_0 """
   {
@@ -558,6 +560,33 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_draft_interface_g_0 """
+  {
+   "interface_name": "com.astarte.ObjectAggregationIface",
+   "version_major": 0,
+   "version_minor": 3,
+   "type": "datastream",
+   "ownership": "device",
+   "aggregation": "object",
+   "description": "Interface description.",
+   "doc": "Interface documentation.",
+   "mappings": [
+      {
+        "endpoint": "/x",
+        "type": "double",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/y",
+        "type": "double",
+        "explicit_timestamp": true
+      }
+    ]
+  }
+  """
+
+  @test_realm_name "autotestrealm"
+
   setup do
     with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
       DatabaseTestHelper.seed_test_data(client)
@@ -1092,6 +1121,218 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_jwt_public_key_pem("notexisting") == {:error, :realm_not_found}
   end
 
+  test "install HTTP trigger" do
+    trigger_name = "http_trigger"
+
+    action = """
+    {
+      "http_url": "http://hello.world.ai",
+      "http_method": "post"
+    }
+    """
+
+    assert {:ok, []} = Engine.get_triggers_list(@test_realm_name)
+
+    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+
+    assert {:ok, [^trigger_name]} = Engine.get_triggers_list(@test_realm_name)
+  end
+
+  test "install AMQP trigger" do
+    trigger_name = "amqp_trigger"
+
+    action = """
+    {
+      "amqp_exchange": "astarte_events_test_hello_world",
+      "amqp_routing_key": "my_routing_key",
+      "amqp_message_expiration_ms": 10000,
+      "amqp_message_persistent": false
+    }
+    """
+
+    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+  end
+
+  test "delete trigger" do
+    trigger_name = "http_trigger"
+
+    action = """
+    {
+      "http_url": "http://hello.world.ai",
+      "http_method": "post"
+    }
+    """
+
+    # Just to make sure a trigger exists
+    _ = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+
+    assert {:ok, [^trigger_name]} = Engine.get_triggers_list(@test_realm_name)
+
+    assert :ok = Engine.delete_trigger(@test_realm_name, trigger_name)
+
+    assert {:ok, []} = Engine.get_triggers_list(@test_realm_name)
+  end
+
+  test "fail install when trigger already exists" do
+    trigger_name = "a_trigger"
+
+    action = """
+    {
+      "amqp_exchange": "astarte_events_test_hello_world",
+      "amqp_routing_key": "my_routing_key",
+      "amqp_message_expiration_ms": 10000,
+      "amqp_message_persistent": false
+    }
+    """
+
+    assert :ok = Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+
+    assert {:error, :already_installed_trigger} =
+             Engine.install_trigger(@test_realm_name, trigger_name, action, [])
+  end
+
+  test "fail to install trigger on missing interface" do
+    trigger_name = "http_trigger_missing_iface"
+
+    action = """
+    {
+      "http_url": "http://hello.world.ai",
+      "http_method": "post"
+    }
+    """
+
+    serialized_simple_triggers =
+      [
+        %SimpleTriggerConfig{
+          type: "data_trigger",
+          on: "incoming_data",
+          interface_name: "com.ispirata.TestMissing",
+          interface_major: 0,
+          match_path: "/streamTest/value",
+          value_match_operator: "*"
+        }
+      ]
+      |> serialize_simple_triggers()
+
+    assert {:error, :interface_not_found} =
+             Engine.install_trigger(
+               @test_realm_name,
+               trigger_name,
+               action,
+               serialized_simple_triggers
+             )
+  end
+
+  test "fail to install property trigger on datastream interface" do
+    # Just to make sure a datastream interface is installed
+    _ = Engine.install_interface(@test_realm_name, @test_draft_interface_c_0)
+
+    trigger_name = "property_trigger"
+
+    action = """
+    {
+      "http_url": "http://hello.world.ai",
+      "http_method": "post"
+    }
+    """
+
+    serialized_simple_triggers =
+      [
+        %SimpleTriggerConfig{
+          type: "data_trigger",
+          on: "value_change",
+          interface_name: "com.ispirata.TestDatastream",
+          interface_major: 0,
+          match_path: "/*",
+          value_match_operator: "*"
+        }
+      ]
+      |> serialize_simple_triggers()
+
+    assert {:error, :invalid_datastream_trigger} =
+             Engine.install_trigger(
+               @test_realm_name,
+               trigger_name,
+               action,
+               serialized_simple_triggers
+             )
+  end
+
+  test "fail to install value change trigger on all paths" do
+    # Just to make sure a datastream interface is installed
+    _ = Engine.install_interface(@test_realm_name, @test_interface_a_2)
+
+    trigger_name = "invalid_value_change_trigger"
+
+    action = """
+    {
+      "http_url": "http://hello.world.ai",
+      "http_method": "post"
+    }
+    """
+
+    serialized_simple_triggers =
+      [
+        %SimpleTriggerConfig{
+          type: "data_trigger",
+          on: "value_change",
+          interface_name: "com.ispirata.Hemera.DeviceLog.Status",
+          interface_major: 2,
+          match_path: "/*"
+        }
+      ]
+      |> serialize_simple_triggers()
+
+    assert {:error, :unsupported_trigger_type} =
+             Engine.install_trigger(
+               @test_realm_name,
+               trigger_name,
+               action,
+               serialized_simple_triggers
+             )
+  end
+
+  test "fail to install trigger not supported by object-aggregated interface" do
+    # Just to make sure an object-aggregated interface is installed
+    :ok = Engine.install_interface("autotestrealm", @test_draft_interface_g_0)
+
+    trigger_name = "not_supported_trigger"
+
+    action = """
+    {
+      "http_url": "http://hello.world.ai",
+      "http_method": "post"
+    }
+    """
+
+    serialized_simple_triggers =
+      [
+        %SimpleTriggerConfig{
+          type: "data_trigger",
+          on: "value_stored",
+          interface_name: "com.astarte.ObjectAggregationIface",
+          interface_major: 0,
+          match_path: "/test/realValues",
+          value_match_operator: "*"
+        }
+      ]
+      |> serialize_simple_triggers()
+
+    assert {:error, :invalid_object_aggregation_trigger} =
+             Engine.install_trigger(
+               @test_realm_name,
+               trigger_name,
+               action,
+               serialized_simple_triggers
+             )
+  end
+
+  test "fail to delete missing trigger" do
+    trigger_name = "missing_trigger"
+
+    assert {:error, :trigger_not_found} = Engine.delete_trigger(@test_realm_name, trigger_name)
+  end
+
   defp unpack_source({:ok, source}) when is_binary(source) do
     interface_obj = Jason.decode!(source)
 
@@ -1106,5 +1347,11 @@ defmodule Astarte.RealmManagement.EngineTest do
 
   defp unpack_source(any) do
     any
+  end
+
+  defp serialize_simple_triggers(simple_triggers) do
+    simple_triggers
+    |> Enum.map(&SimpleTriggerConfig.to_tagged_simple_trigger/1)
+    |> Enum.map(&TaggedSimpleTrigger.encode/1)
   end
 end

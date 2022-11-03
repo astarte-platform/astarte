@@ -162,7 +162,7 @@ services:
 
   # CFSSL
   cfssl:
-    image: astarte/cfssl:1.5.0-astarte.1
+    image: astarte/cfssl:1.5.0-astarte.4
     volumes:
       - ./compose/cfssl-config:/config
       - cfssl-data:/data
