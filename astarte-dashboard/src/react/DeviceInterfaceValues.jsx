@@ -27,27 +27,54 @@ import { useAlerts } from './AlertManager';
 
 const MAX_SHOWN_VALUES = 20;
 
-function linearizePathTree(prefix, data) {
-  return Object.entries(data)
-    .map(([key, value]) => {
-      const newPrefix = `${prefix}/${key}`;
+function isSingleAstarteValue(data) {
+  return _.isBoolean(data) || _.isNumber(data) || _.isString(data);
+}
 
-      if (Array.isArray(value)) {
-        return {
-          path: newPrefix,
-          value,
-        };
-      }
-      if (value.value && typeof value.value !== 'object') {
-        return {
-          path: newPrefix,
-          value: value.value,
-          timestamp: value.timestamp,
-        };
-      }
-      return linearizePathTree(newPrefix, value).flat();
-    })
-    .flat();
+function isArrayAstarteValue(data) {
+  return _.isArray(data) && data.every(isSingleAstarteValue);
+}
+
+function isEmptyAstarteValue(data) {
+  return _.isNull(data);
+}
+
+function isAstarteValue(data) {
+  return isEmptyAstarteValue(data) || isSingleAstarteValue(data) || isArrayAstarteValue(data);
+}
+
+function linearizePathTree(path, data, timestamp) {
+  if ('value' in data && isAstarteValue(data.value)) {
+    return [{ path, value: data.value, timestamp: data.timestamp || timestamp }];
+  }
+  if (isAstarteValue(data)) {
+    return [{ path, value: data, timestamp }];
+  }
+  if (_.isEmpty(data)) {
+    return [];
+  }
+  if (_.isArray(data.value)) {
+    return data.value
+      .map((value) => linearizePathTree(`${path}/value`, value, data.timestamp || timestamp))
+      .flat();
+  }
+  if (_.isObject(data.value)) {
+    return linearizePathTree(`${path}/value`, data.value, data.timestamp || timestamp).flat();
+  }
+  if (_.isArray(data)) {
+    return data.map((value) => linearizePathTree(path, value, timestamp)).flat();
+  }
+  if (_.isObject(data)) {
+    if (_.values(data).every(isAstarteValue)) {
+      return [{ path, value: data, timestamp: data.timestamp || timestamp }];
+    }
+    return Object.entries(data)
+      .map(([key, value]) =>
+        linearizePathTree(`${path}/${key}`, value, data.timestamp || timestamp),
+      )
+      .flat();
+  }
+  return [];
 }
 
 const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
@@ -229,8 +256,10 @@ const ObjectTableList = ({ data }) => {
     return <p>No data sent by the device.</p>;
   }
 
-  return linearizedData.map((obj) => (
-    <ObjectDatastreamTable key={obj.path} path={obj.path} values={obj.value} />
+  const dataByPath = _.groupBy(linearizedData, 'path');
+
+  return Object.entries(dataByPath).map(([path, pathData]) => (
+    <ObjectDatastreamTable key={path} path={path} values={pathData.map((d) => d.value)} />
   ));
 };
 
