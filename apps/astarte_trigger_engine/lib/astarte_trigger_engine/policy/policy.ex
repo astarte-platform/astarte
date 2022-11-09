@@ -33,14 +33,7 @@ defmodule Astarte.TriggerEngine.Policy do
     realm_name = Keyword.fetch!(args, :realm_name)
     policy = Keyword.fetch!(args, :policy)
 
-    case GenServer.start_link(__MODULE__, args, name: via_tuple(realm_name, policy.name)) do
-      {:ok, pid} ->
-        {:ok, pid}
-
-      {:error, {:already_started, pid}} ->
-        # Already started, we don't care
-        {:ok, pid}
-    end
+    GenServer.start_link(__MODULE__, args, name: via_tuple(realm_name, policy.name))
   end
 
   def handle_event(pid, channel, payload, meta) do
@@ -90,14 +83,6 @@ defmodule Astarte.TriggerEngine.Policy do
 
       {:error, :trigger_not_found} ->
         discard_message(chan, meta, policy, retry_map)
-
-      {:error, reason} ->
-        _ =
-          Logger.warn("Error #{reason} while processing event #{meta.message_id}",
-            tag: "event_consume_error"
-          )
-
-        maybe_requeue_message(chan, meta, nil, policy, retry_map)
     end
   end
 

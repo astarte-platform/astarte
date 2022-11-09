@@ -21,7 +21,6 @@ defmodule Astarte.TriggerEngine.DeliverySupervisor do
   use Supervisor
   require Logger
 
-  alias Astarte.TriggerEngine.RetrySupervisor
   alias Astarte.TriggerEngine.ConsumerSupervisor
 
   def start_link(init_arg) do
@@ -38,7 +37,7 @@ defmodule Astarte.TriggerEngine.DeliverySupervisor do
     _ = Logger.info("Starting delivery supervisor", tag: "delivery_supervisor_start")
 
     children = [
-      RetrySupervisor,
+      {Registry, [keys: :unique, name: Registry.PolicyRegistry]},
       ConsumerSupervisor
     ]
 

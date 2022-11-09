@@ -22,7 +22,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   import Mox
   alias Astarte.TriggerEngine.Config
   alias AMQP.Basic
-  alias Astarte.TriggerEngine.Policy.PolicySupervisor
+  alias Astarte.TriggerEngine.Policy, as: PolicyProcess
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
@@ -240,7 +240,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   end
 
   defp get_policy_process(realm_name, policy) do
-    case PolicySupervisor.start_child(realm_name: realm_name, policy: policy) do
+    case PolicyProcess.start_link(realm_name: realm_name, policy: policy) do
       {:ok, pid} ->
         pid
 

@@ -28,9 +28,9 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
 
   use GenServer
   require Logger
-  alias Astarte.TriggerEngine.Policy.PolicySupervisor
   alias Astarte.TriggerEngine.Policy
   alias Astarte.TriggerEngine.Config
+  alias Astarte.Core.Triggers.Policy, as: PolicyStruct
 
   @reconnect_interval 1_000
   @adapter Config.amqp_adapter!()
@@ -58,27 +58,12 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
     realm_name = Keyword.fetch!(opts, :realm_name)
     policy = Keyword.fetch!(opts, :policy)
 
-    # we trap exits so that we can remove the related policy when we exit
-    Process.flag(:trap_exit, true)
-
     state = %State{
       realm_name: realm_name,
       policy: policy
     }
 
     {:ok, state, {:continue, :connect}}
-  end
-
-  @impl true
-  def terminate(
-        :shutdown,
-        %State{realm_name: realm_name, policy: policy} = _state
-      ) do
-    case Registry.lookup(Registry.PolicyRegistry, {realm_name, policy.name}) do
-      [{pid, nil}] -> PolicySupervisor.terminate_child(pid)
-      # already ded, we don't care
-      [] -> true
-    end
   end
 
   @impl true
@@ -162,17 +147,24 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
   # takes a channel out of it channel pool, if there is one available
   # subscribe itself as a consumer process.
   defp do_connect(state) do
-    ExRabbitPool.get_connection_worker(:events_consumer_pool)
-    |> ExRabbitPool.checkout_channel()
-    |> handle_channel_checkout(state)
+    conn = ExRabbitPool.get_connection_worker(:events_consumer_pool)
+
+    case ExRabbitPool.checkout_channel(conn) do
+      {:ok, channel} ->
+        try_to_connect(channel, state)
+
+      {:error, _reason} ->
+        schedule_connect()
+        {:noreply, state}
+    end
   end
 
   # When successfully checks out a channel, sets up exchange and queue, subscribe itself as a consumer
   # process and monitors it handle crashes and reconnections
-  defp handle_channel_checkout(
-         {:ok, %{pid: channel_pid} = channel},
-         %{policy: policy, realm_name: realm_name} = state
-       ) do
+  defp try_to_connect(channel, state) do
+    %{pid: channel_pid} = channel
+    %{policy: policy, realm_name: realm_name} = state
+
     exchange_name = Config.events_exchange_name!()
     queue_name = generate_queue_name(realm_name, policy.name)
     routing_key = generate_routing_key(realm_name, policy.name)
@@ -207,21 +199,17 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
     end
   end
 
-  # When there was an error checking out a channel, retry after some time
-  defp handle_channel_checkout({:error, _reason}, state) do
-    schedule_connect()
-    {:noreply, state}
+  defp generate_policy_x_args(%PolicyStruct{
+         maximum_capacity: maximum_capacity,
+         event_ttl: event_ttl
+       }) do
+    []
+    |> put_x_arg_if(maximum_capacity != nil, {"x-max-length", :signedint, maximum_capacity})
+    |> put_x_arg_if(event_ttl != nil, {"x-message-ttl", :signedint, event_ttl})
   end
 
-  defp generate_policy_x_args(policy) do
-    capacity = {"x-max-length", :signedint, policy.maximum_capacity}
-
-    if policy.event_ttl != nil do
-      [{"x-message-ttl", :signedint, policy.event_ttl}, capacity]
-    else
-      [capacity]
-    end
-  end
+  defp put_x_arg_if(list, true, x_arg), do: [x_arg | list]
+  defp put_x_arg_if(list, false, _x_arg), do: list
 
   defp generate_queue_name(realm, policy) do
     "#{realm}_#{policy}_queue"
@@ -232,11 +220,13 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
   end
 
   defp get_policy_process(realm_name, policy) do
-    case PolicySupervisor.start_child(realm_name: realm_name, policy: policy) do
+    # Link the policy process so we crash if it crashes; in this way unacked messages will be requeued
+    case Policy.start_link(realm_name: realm_name, policy: policy) do
       {:ok, pid} ->
         pid
 
       {:error, {:already_started, pid}} ->
+        # Already started, we don't care
         pid
     end
   end

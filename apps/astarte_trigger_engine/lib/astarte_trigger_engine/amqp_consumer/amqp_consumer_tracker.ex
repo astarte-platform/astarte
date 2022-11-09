@@ -134,7 +134,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
   defp default_policy() do
     %Policy{
       name: @default_policy_name,
-      maximum_capacity: 100,
+      # Do not limit default queue size so that we don't break Astarte < 1.1 behaviour
+      maximum_capacity: nil,
       error_handlers: [
         %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "discard"}
       ]
