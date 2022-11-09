@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.5] - Unreleased
 ## Fixed
 - Fix crash while displaying values of an Astarte interface.
+- Fix duplicate items on device list when changing search filters
+([#341](https://github.com/astarte-platform/astarte-dashboard/issues/341)).
 
 ## [1.0.4] - 2022-10-24
 

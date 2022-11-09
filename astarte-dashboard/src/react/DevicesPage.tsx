@@ -372,6 +372,7 @@ export default ({ astarte }: Props): React.ReactElement => {
   const [requestToken, setRequestToken] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [filters, setFilters] = useState({});
+  const [isLoadingMoreDevices, setIsLoadingMoreDevices] = useState(false);
   const navigate = useNavigate();
 
   const pageAlerts = useAlerts();
@@ -380,34 +381,41 @@ export default ({ astarte }: Props): React.ReactElement => {
     return _.chunk(devices, DEVICES_PER_PAGE);
   }, [deviceList, filters]);
 
-  const loadMoreDevices = async (fromToken?: string, loadAllDevices = false) =>
-    astarte
+  const loadMoreDevices = async (
+    currentDeviceList: AstarteDevice[],
+    fromToken?: string,
+    loadAllDevices = false,
+  ): Promise<void> => {
+    setIsLoadingMoreDevices(true);
+    return astarte
       .getDevices({
         details: true,
         from: fromToken,
         limit: DEVICES_PER_REQUEST,
       })
       .then(({ devices, nextToken }) => {
+        const updatedDeviceList = currentDeviceList.concat(devices);
         setRequestToken(nextToken);
-        setDeviceList((previousList) => {
-          const updatedDeviceList = previousList.concat(devices);
-          const pageCount = Math.ceil(updatedDeviceList.length / DEVICES_PER_PAGE);
-          const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || loadAllDevices;
-          if (shouldLoadMore && nextToken) {
-            loadMoreDevices(nextToken, loadAllDevices);
-          } else {
-            setPhase('ok');
-          }
-          return updatedDeviceList;
-        });
+        setDeviceList(updatedDeviceList);
+        const pageCount = Math.ceil(updatedDeviceList.length / DEVICES_PER_PAGE);
+        const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || loadAllDevices;
+        setPhase('ok');
+        if (shouldLoadMore && nextToken) {
+          return loadMoreDevices(updatedDeviceList, nextToken, loadAllDevices);
+        }
+        return Promise.resolve();
       })
       .catch((err) => {
         pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`);
+      })
+      .finally(() => {
+        setIsLoadingMoreDevices(false);
       });
+  };
 
   const handlePageChange = (pageIndex: number) => {
     if (pageIndex > pagedDevices.length - MAX_SHOWN_PAGES && requestToken) {
-      loadMoreDevices(requestToken);
+      loadMoreDevices(deviceList, requestToken);
     }
     setActivePage(pageIndex);
   };
@@ -416,14 +424,14 @@ export default ({ astarte }: Props): React.ReactElement => {
     if (activePage !== 0) {
       setActivePage(0);
     }
-    if (requestToken) {
-      loadMoreDevices(requestToken, true);
+    if (requestToken && !isLoadingMoreDevices) {
+      loadMoreDevices(deviceList, requestToken, true);
     }
     setFilters(newFilters);
   };
 
   useEffect(() => {
-    loadMoreDevices();
+    loadMoreDevices(deviceList);
   }, []);
 
   let innerHTML;
