@@ -479,6 +479,15 @@ User-Agent: hackney/1.13.0
 Device ydqBlFsGQ--xZ-_efQxuLw just connected from IP 172.18.0.1
 ```
 
+### Trigger Delivery Policies
+When an [HTTP action](060-triggers.html#http-actions) is triggered, an event is sent to a specific URL.
+However, it is possible that the request is not successfully completed, e.g. the required resource is momentarily not available.
+[Trigger Delivery Policies](062-trigger_delivery_policies.html) specify what to do in case of delivery errors and
+how to handle events which have not been successfully delivered.
+A Trigger can be linked to one (at most) Trigger Delivery Policy by specifying the name of the policy in the `"policy"` field.
+If no Trigger Delivery Policies are specified, Astarte will resort to the default (pre v1.1) behaviour, i.e. ignoring delivery errors.
+Refer to the [relevant documentation](062-trigger_delivery_policies.html) for more information on Trigger Delivery Policies.
+
 ### AMQP 0-9-1 Actions
 
 AMQP 0-9-1 actions might be configured as an alternative to HTTP actions for advanced use cases.

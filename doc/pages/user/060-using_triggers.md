@@ -257,3 +257,32 @@ triggers containing the `group_name` key will be triggered only if the device is
 that is indicated in the `group_name` key. Note that when devices in a group are added or removed,
 the changes are not reflected immediately in group triggers. It can take up to 10 minutes to see the
 propagation of said changes.
+
+## Trigger Delivery Policies
+
+[Trigger Delivery Policies](062-using_trigger_delivery_policies.html) allow customizing what Astarte is supposed to do in case of delivery errors
+on HTTP events and how to handle events that have not been delivered.
+A Trigger can be linked to one (at most) Trigger Delivery Policy by specifying the name of the policy in the `"policy"` field.
+If no Trigger Delivery Policies are specified, Astarte will resort to the default (pre v1.1) behaviour, i.e. ignoring delivery errors.
+Note that the Trigger Delivery Policy must be installed before installing a Trigger that is linked to it, or an error will be returned.
+The following is an example of a Connection Trigger linked to the `simple_trigger_delivery_policy` Trigger Delivery Policy:
+
+```json
+{
+    "name": "my_connection_trigger",
+    "action": {
+        "http_url": "<url>",
+        "http_method": "post"
+    },
+    "simple_triggers": [
+        {
+            "type": "device_trigger",
+            "device_id": "*",
+            "on": "device_connected"
+        }
+    ],
+    "policy" : "simple_trigger_delivery_policy"
+}
+```
+
+Refer to the [relevant documentation](062-using_trigger_delivery_policies.html) for more information on Trigger Delivery Policies.
