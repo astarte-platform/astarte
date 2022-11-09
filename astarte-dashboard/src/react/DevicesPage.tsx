@@ -151,9 +151,10 @@ const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
 interface DeviceTableProps {
   deviceList: AstarteDevice[];
   filters: DeviceFilters;
+  isLoading?: boolean;
 }
 
-const DeviceTable = ({ deviceList, filters }: DeviceTableProps): React.ReactElement => (
+const DeviceTable = ({ deviceList, filters, isLoading }: DeviceTableProps): React.ReactElement => (
   <Table responsive>
     <thead>
       <tr>
@@ -166,6 +167,13 @@ const DeviceTable = ({ deviceList, filters }: DeviceTableProps): React.ReactElem
       {deviceList.map((device) => (
         <DeviceRow key={device.id} device={device} filters={filters} />
       ))}
+      {!isLoading && deviceList.length === 0 && (
+        <tr>
+          <td colSpan={3}>
+            <p>No device matches current filters</p>
+          </td>
+        </tr>
+      )}
     </tbody>
   </Table>
 );
@@ -210,6 +218,7 @@ const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
 interface TablePaginationProps {
   activePage: number;
   canLoadMorePages: boolean;
+  isLoadingMorePages?: boolean;
   lastPage: number;
   onPageChange: (pageIndex: number) => void;
 }
@@ -217,10 +226,11 @@ interface TablePaginationProps {
 const TablePagination = ({
   activePage,
   canLoadMorePages,
+  isLoadingMorePages,
   lastPage,
   onPageChange,
 }: TablePaginationProps): React.ReactElement | null => {
-  if (lastPage < 2) {
+  if (lastPage < 2 && !isLoadingMorePages) {
     return null;
   }
 
@@ -264,10 +274,13 @@ const TablePagination = ({
       {items}
       {(endPage < lastPage || canLoadMorePages) && (
         <Pagination.Next
+          disabled={isLoadingMorePages}
           onClick={() => {
             onPageChange(activePage + 1);
           }}
-        />
+        >
+          {isLoadingMorePages && <Spinner animation="border" role="status" size="sm" />}
+        </Pagination.Next>
       )}
     </Pagination>
   );
@@ -448,11 +461,11 @@ export default ({ astarte }: Props): React.ReactElement => {
             <Container fluid>
               <Row>
                 <Col>
-                  {devices.length === 0 ? (
-                    <p>No device matches current filters</p>
-                  ) : (
-                    <DeviceTable deviceList={devices} filters={filters} />
-                  )}
+                  <DeviceTable
+                    deviceList={devices}
+                    filters={filters}
+                    isLoading={isLoadingMoreDevices}
+                  />
                 </Col>
                 <Col xs="auto" className="p-1">
                   <div className="p-2 mb-2" onClick={() => setShowSidebar(!showSidebar)}>
@@ -470,6 +483,7 @@ export default ({ astarte }: Props): React.ReactElement => {
                   <TablePagination
                     activePage={activePage}
                     canLoadMorePages={!!requestToken}
+                    isLoadingMorePages={isLoadingMoreDevices}
                     lastPage={pagedDevices.length}
                     onPageChange={handlePageChange}
                   />
