@@ -57,7 +57,7 @@ export default ({ astarte }: Props): React.ReactElement => {
   }, []);
 
   return (
-    <Container fluid className="p-3">
+    <Container fluid className="p-3" data-testid="triggers-page">
       <Row>
         <Col>
           <h2>Triggers</h2>
