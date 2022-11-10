@@ -77,6 +77,22 @@ function linearizePathTree(path, data, timestamp) {
   return [];
 }
 
+function formatAstarteValue(value) {
+  if (value == null) {
+    return '';
+  }
+  if (_.isArray(value)) {
+    return JSON.stringify(value);
+  }
+  if (_.isBoolean(value)) {
+    return value ? 'true' : 'false';
+  }
+  if (_.isNumber(value)) {
+    return value.toString();
+  }
+  return String(value);
+}
+
 const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
   const [interfaceType, setInterfaceType] = useState(null);
   const deviceData = useFetch(() =>
@@ -181,6 +197,10 @@ const PropertyTree = ({ data }) => (
 const IndividualDatastreamTable = ({ data }) => {
   const paths = linearizePathTree('', data);
 
+  if (paths.length === 0) {
+    return <p>No data sent by the device.</p>;
+  }
+
   return (
     <Table responsive>
       <thead>
@@ -202,7 +222,7 @@ const IndividualDatastreamTable = ({ data }) => {
 const IndividualDatastreamRow = ({ path, value, timestamp }) => (
   <tr>
     <td>{path}</td>
-    <td>{value.toString()}</td>
+    <td>{formatAstarteValue(value)}</td>
     <td>{new Date(timestamp).toLocaleString()}</td>
   </tr>
 );
@@ -220,7 +240,7 @@ const ObjectDatastreamTable = ({ path, values }) => {
   return (
     <>
       <h5 className="mb-1">Path</h5>
-      <p>{path}</p>
+      <p>{path || '/'}</p>
       <Table responsive>
         <thead>
           <tr>
@@ -243,7 +263,7 @@ const ObjectDatastreamTable = ({ path, values }) => {
 const ObjectDatastreamRow = ({ labels, obj }) => (
   <tr>
     {labels.map((label) => (
-      <td key={label}>{obj[label]}</td>
+      <td key={label}>{formatAstarteValue(obj[label])}</td>
     ))}
     <td>{new Date(obj.timestamp).toLocaleString()}</td>
   </tr>
