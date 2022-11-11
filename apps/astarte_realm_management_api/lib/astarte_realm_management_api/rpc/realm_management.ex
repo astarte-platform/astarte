@@ -42,7 +42,13 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     InstallTrigger,
     Reply,
     UpdateInterface,
-    UpdateJWTPublicKeyPEM
+    UpdateJWTPublicKeyPEM,
+    InstallTriggerPolicy,
+    GetTriggerPoliciesList,
+    GetTriggerPoliciesListReply,
+    GetTriggerPolicySource,
+    GetTriggerPolicySourceReply,
+    DeleteTriggerPolicy
   }
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -145,7 +151,7 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
-  def install_trigger(realm_name, trigger_name, action, tagged_simple_triggers) do
+  def install_trigger(realm_name, trigger_name, policy_name, action, tagged_simple_triggers) do
     serialized_tagged_simple_triggers =
       Enum.map(tagged_simple_triggers, &TaggedSimpleTrigger.encode/1)
 
@@ -153,7 +159,8 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name,
       trigger_name: trigger_name,
       action: action,
-      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers,
+      trigger_policy: policy_name
     }
     |> encode_call(:install_trigger)
     |> @rpc_client.rpc_call(@destination)
@@ -196,6 +203,51 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   def get_health do
     %GetHealth{}
     |> encode_call(:get_health)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_trigger_policies_list(realm_name) do
+    %GetTriggerPoliciesList{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_trigger_policies_list)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_trigger_policy_source(realm_name, trigger_policy_name) do
+    %GetTriggerPolicySource{
+      realm_name: realm_name,
+      trigger_policy_name: trigger_policy_name
+    }
+    |> encode_call(:get_trigger_policy_source)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def install_trigger_policy(realm_name, trigger_policy_json) do
+    %InstallTriggerPolicy{
+      realm_name: realm_name,
+      trigger_policy_json: trigger_policy_json,
+      async_operation: true
+    }
+    |> encode_call(:install_trigger_policy)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def delete_trigger_policy(realm_name, trigger_policy_name) do
+    %DeleteTriggerPolicy{
+      realm_name: realm_name,
+      trigger_policy_name: trigger_policy_name,
+      async_operation: true
+    }
+    |> encode_call(:delete_trigger_policy)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -307,6 +359,19 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   defp extract_reply({:get_triggers_list_reply, %GetTriggersListReply{triggers_names: triggers}}) do
     {:ok, triggers}
+  end
+
+  defp extract_reply(
+         {:get_trigger_policies_list_reply,
+          %GetTriggerPoliciesListReply{trigger_policies_names: list}}
+       ) do
+    {:ok, list}
+  end
+
+  defp extract_reply(
+         {:get_trigger_policy_source_reply, %GetTriggerPolicySourceReply{source: source}}
+       ) do
+    {:ok, source}
   end
 
   defp extract_reply({:error, :rpc_error}) do

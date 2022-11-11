@@ -76,23 +76,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
       :ok
     else
-      {:error, :client_error} ->
+      {:error, {:http_error, status_code}} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
           %{},
-          %{realm: realm, status: :client_error}
+          %{realm: realm, status: status_code}
         )
 
-        :client_error
-
-      {:error, :server_error} ->
-        :telemetry.execute(
-          [:astarte, :trigger_engine, :http_action_executed],
-          %{},
-          %{realm: realm, status: :server_error}
-        )
-
-        :server_error
+        {:http_error, status_code}
 
       {:error, :connection_error} ->
         :telemetry.execute(
@@ -101,7 +92,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
           %{realm: realm, status: :connection_error}
         )
 
-        :connection_error
+        {:error, :connection_error}
 
       error ->
         Logger.warn("Error while processing event: #{inspect(error)}")
@@ -206,33 +197,24 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
       case status_code do
         status_code when status_code in 200..399 ->
-          Logger.debug("http request status: :ok, got response: #{inspect(response)} from #{url}")
+          Logger.debug("HTTP request status: ok, got response: #{inspect(response)} from #{url}")
           :ok
 
-        status_code when status_code in 400..499 ->
-          Logger.warn(
-            "Error while processing event: #{inspect(response)}. Payload: #{inspect(payload)}, headers: #{
-              inspect(headers)
-            }, action: #{inspect(action)}"
+        status_code when status_code in 400..599 ->
+          Logger.debug(
+            "HTTP request status: error #{status_code}, got response: #{inspect(response)} from #{
+              url
+            }"
           )
 
-          {:error, :client_error}
-
-        status_code when status_code >= 500 ->
-          Logger.warn(
-            "Error while processing event: #{inspect(response)}. Payload: #{inspect(payload)}, headers: #{
-              inspect(headers)
-            }, action: #{inspect(action)}"
-          )
-
-          {:error, :server_error}
+          {:error, {:http_error, status_code}}
       end
     else
       {:error, reason} ->
         Logger.warn(
-          "Error while processing the post request: #{inspect(reason)}. Payload: #{
-            inspect(payload)
-          }, headers: #{inspect(headers)}, action: #{inspect(action)}"
+          "Error while processing the request: #{inspect(reason)}. Payload: #{inspect(payload)}, headers: #{
+            inspect(headers)
+          }, action: #{inspect(action)}"
         )
 
         {:error, :connection_error}

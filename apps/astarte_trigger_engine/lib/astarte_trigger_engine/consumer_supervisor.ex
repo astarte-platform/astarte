@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2022 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,41 +16,36 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TriggerEngine.Application do
-  @moduledoc false
-
-  use Application
+defmodule Astarte.TriggerEngine.ConsumerSupervisor do
+  # Automatically defines child_spec/1
+  use Supervisor
   require Logger
-
   alias Astarte.TriggerEngine.Config
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-  alias Astarte.TriggerEngine.DeliverySupervisor
 
-  @app_version Mix.Project.config()[:version]
+  alias Astarte.TriggerEngine.AMQPConsumer.{AMQPConsumerSupervisor, AMQPConsumerTracker}
 
-  def start(_type, _args) do
+  def start_link(init_arg) do
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
+
+  def init(_init_arg) do
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
       :ignore_rabbitmq_progress_reports,
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    Logger.info("Starting application v#{@app_version}.", tag: "trigger_engine_app_start")
-
-    Config.validate!()
-    DataAccessConfig.validate!()
-
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    _ = Logger.info("Starting consumer supervisor", tag: "consumer_supervisor_start")
 
     children = [
-      Astarte.TriggerEngineWeb.Telemetry,
-      {Xandra.Cluster, xandra_options},
-      DeliverySupervisor
+      AMQPConsumerSupervisor,
+      {Registry, [keys: :unique, name: Registry.AMQPConsumerRegistry]},
+      {ExRabbitPool.PoolSupervisor,
+       rabbitmq_config: Config.amqp_consumer_options!(),
+       connection_pools: [Config.events_consumer_pool_config!()]},
+      AMQPConsumerTracker
     ]
 
-    opts = [strategy: :one_for_one, name: Astarte.TriggerEngine.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 end

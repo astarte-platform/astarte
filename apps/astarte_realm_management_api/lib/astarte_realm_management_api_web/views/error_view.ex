@@ -47,6 +47,18 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
     %{errors: %{detail: "Trigger not found"}}
   end
 
+  def render("trigger_policy_not_found.json", _assigns) do
+    %{errors: %{detail: "Trigger policy not found"}}
+  end
+
+  def render("trigger_policy_already_present.json", _assigns) do
+    %{errors: %{detail: "Policy already exists"}}
+  end
+
+  def render("cannot_delete_currently_used_trigger_policy.json", _assigns) do
+    %{errors: %{detail: "Cannot delete policy as it is being currently used by triggers"}}
+  end
+
   def render("overlapping_mappings.json", _assigns) do
     %{errors: %{detail: "Overlapping endpoints in interface mappings"}}
   end

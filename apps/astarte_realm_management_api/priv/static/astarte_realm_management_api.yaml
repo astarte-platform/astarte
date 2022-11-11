@@ -350,6 +350,100 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           description: Internal Server Error.
+  '/{realm_name}/policies':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+    get:
+      tags:
+        - policy
+      summary: Get trigger delivery policy list
+      description: >-
+        Get a list of all installed trigger delivery policies. The name for each
+        installed trigger delivery policy is reported.
+      operationId: getTriggerDeliveryPolicyList
+      security:
+        - JWT: []
+      responses:
+        '200':
+          $ref: '#/components/responses/GetTriggerDeliveryPolicyList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - policy
+      summary: Install a trigger delivery policy configuration
+      description: >-
+        Install a new trigger delivery policy using provided configuration.
+        Trigger Delivery Policy validation is performed before installation.
+        If the trigger delivery policy configuration is not valid or a trigger
+        delivery policy with the same name already exists an error is reported.
+      operationId: installTriggerDeliveryPolicy
+      security:
+        - JWT: []
+      responses:
+        '201':
+          $ref: '#/components/responses/InstallTriggerDeliveryPolicy'
+        '400':
+          description: Bad request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/TriggerDeliveryPolicyAlreadyInstalledError'
+        '422':
+          $ref: '#/components/responses/TriggerDeliveryPolicyValidationError'
+      requestBody:
+        $ref: '#/components/requestBodies/InstallTriggerDeliveryPolicy'
+  '/{realm_name}/policies/{policy_name}':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+      - $ref: '#/components/parameters/TriggerDeliveryPolicyName'
+    get:
+      tags:
+        - policy
+      summary: Get the trigger delivery policy configuration
+      description: Retrieve installed trigger delivery policy configuration.
+      operationId: getTriggerDeliveryPolicy
+      security:
+        - JWT: []
+      responses:
+        '200':
+          $ref: '#/components/responses/GetTriggerDeliveryPolicy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal Server Error.
+    delete:
+      tags:
+        - policy
+      summary: Delete trigger delivery policy
+      description: >-
+        Deletes the trigger delivery policy with given `policy_name`.
+        An existing trigger delivery policy can be deleted only if there are no
+        triggers linking to it.
+      operationId: deleteTriggerDeliveryPolicy
+      security:
+        - JWT: []
+      responses:
+        '204':
+          description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/TriggerDeliveryPolicyCurrentlyUsedError'
+        '500':
+          description: Internal Server Error.
 components:
   responses:
     ConfigValidationError:
@@ -450,6 +544,24 @@ components:
                   - type: device_trigger
                     'on': device_connected
                     device_id: glO6LullTKmwxebForU-eg
+    GetTriggerDeliveryPolicy:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: string
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/TriggerDeliveryPolicyConfig'
+            example:
+              data:
+                name: my_policy
+                maximum_capacity: 100
+                handlers:
+                  - 'on': any_error
+                    strategy: discard
     GetTriggerList:
       description: Success
       content:
@@ -468,6 +580,24 @@ components:
                 - new_data_on_test_interface
                 - connected_device
                 - value_above_threshold_alarm
+    GetTriggerDeliveryPolicyList:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+            example:
+              data:
+                - retry_on_all_errors_policy
+                - simple_policy
+                - discard_403_errors_policy
     InstallInterface:
       description: Interface installation succesfully started
       headers:
@@ -491,6 +621,22 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/TriggerConfig'
+    InstallTriggerDeliveryPolicy:
+      description: Success
+      headers:
+        Location:
+          description: URL of the installed trigger delivery policy
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/TriggerDeliveryPolicyConfig'
     InterfaceNotFound:
       description: Requested interface was not found
       content:
@@ -522,6 +668,33 @@ components:
               simple_triggers:
                 - device_id:
                     - is not a valid device_id
+    TriggerDeliveryPolicyAlreadyInstalledError:
+      description: A trigger delivery policy with this name already exists.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Policy already exists
+    TriggerDeliveryPolicyCurrentlyUsedError:
+      description: The trigger delivery policy to delete is linked to one or more triggers.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Cannot delete policy as it is being currently used by triggers
+    TriggerDeliveryPolicyValidationError:
+      description: The provided trigger delivery policy is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            errors:
+              detail: is invalid
     NotFound:
       description: Resource not found
       content:
@@ -581,6 +754,16 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/TriggerConfig'
+    InstallTriggerDeliveryPolicy:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/TriggerDeliveryPolicyConfig'
     InstallInterface:
       content:
         application/json:
@@ -656,6 +839,13 @@ components:
       name: trigger_name
       in: path
       description: Trigger name
+      required: true
+      schema:
+        type: string
+    TriggerDeliveryPolicyName:
+      name: policy_name
+      in: path
+      description: Trigger delivery policy name
       required: true
       schema:
         type: string
@@ -913,6 +1103,62 @@ components:
             match_path: /realValue
             value_match_operator: '>'
             known_value: 0.6
+    TriggerDeliveryPolicyConfig:
+      type: object
+      properties:
+        name:
+          description: Name of the trigger delivery policy.
+          type: string
+          pattern: >-
+            ^(?!@).+$
+          minLength: 1
+          maxLength: 128
+        maximum_capacity:
+          type: integer
+          description: Maximum size of the event queue of the trigger delivery policy.
+        handlers:
+          description: >-
+            Handlers for HTTP errors. Specify what action to take upon errors.
+          type: array
+          minLength: 1
+          maxLength: 200
+          items:
+            $ref: '#/components/schemas/TriggerDeliveryPolicyErrorHandler'
+        event_ttl:
+          type: integer
+          description: The amount of time (in milliseconds) an event will be retained in the event queue.
+        retry_times:
+          type: integer
+          description: The amount of times an event will be requeued if delivery fails and the related handler has 'retry' strategy.
+      required:
+        - name
+        - maximum_capacity
+        - handlers
+      example:
+        name: my_policy
+        maximum_capacity: 100
+        handlers:
+          - 'on': any_error
+            strategy: discard
+    TriggerDeliveryPolicyErrorHandler:
+      type: object
+      properties:
+        'on':
+          description: >-
+            The range of errors the handler refers to. Must be one of: 'any_error',
+            'client_error', 'server_error' or a custom error range (e.g. '[418, 419, 420, 500]').
+        retry_strategy:
+          type: string
+          enum:
+          - discard
+          - retry
+          description: What Astarte must do if an HTTP error occurs when delivering errors the handler refers to.
+      required:
+        - 'on'
+        - retry_strategy
+      example:
+        'on': any_error
+        strategy: discard
     HTTPPostAction:
       type: object
       description: >-

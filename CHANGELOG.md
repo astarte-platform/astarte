@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] Add support for device introspection triggers.
 - [astarte_realm_management] Add support for device introspection triggers.
 - [astarte_realm_management_api] Add support for device introspection triggers.
+- [astarte_realm_management] Add support for delivery policies for HTTP triggers.
+- [astarte_realm_management_api] Add support for delivery policies for HTTP triggers.
+- [astarte_data_updater_plant] Add a HTTP trigger routing mechanism based on
+  trigger policies.
+- [astarte_trigger_engine] Add a customizable HTTP trigger redelivery mechanism via
+  trigger policies (see [#554](https://github.com/astarte-platform/astarte/issues/554)).
 
 ### Fixed
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
-
 
 ## [1.0.3] - 2022-07-04
 ### Fixed

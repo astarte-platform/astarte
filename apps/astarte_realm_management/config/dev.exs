@@ -7,6 +7,7 @@ config :logger, :console,
     :interface,
     :interface_major,
     :trigger_name,
+    :policy_name,
     :module,
     :function,
     :tag

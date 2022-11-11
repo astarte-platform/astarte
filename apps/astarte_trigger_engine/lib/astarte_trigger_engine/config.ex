@@ -107,12 +107,19 @@ defmodule Astarte.TriggerEngine.Config do
     type: :integer,
     default: 4000
 
-  @envdoc "The module used to consume events, used for tests with Mox"
-  app_env :events_consumer, :astarte_trigger_engine, :events_consumer,
-    os_env: "TRIGGER_ENGINE_EVENTS_CONSUMER",
-    type: :module,
-    binding_skip: [:system],
-    default: Astarte.TriggerEngine.EventsConsumer
+  @envdoc "The number of connections to RabbitMQ used to consume events"
+  app_env :events_consumer_connection_number,
+          :astarte_trigger_engine,
+          :events_consumer_connection_number,
+          type: :integer,
+          default: 10
+
+  @envdoc "The number of channels per RabbitMQ connection used to consume events"
+  app_env :events_consumer_channels_per_connection_number,
+          :astarte_trigger_engine,
+          :events_consumer_channels_per_connection_number,
+          type: :integer,
+          default: 10
 
   @doc """
   Returns the AMQP events consumer connection options
@@ -139,7 +146,8 @@ defmodule Astarte.TriggerEngine.Config do
       port: amqp_consumer_port!(),
       username: amqp_consumer_username!(),
       password: amqp_consumer_password!(),
-      virtual_host: amqp_consumer_virtual_host!()
+      virtual_host: amqp_consumer_virtual_host!(),
+      channels: events_consumer_channels_per_connection_number!()
     ]
     |> populate_ssl_options()
   end
@@ -169,6 +177,23 @@ defmodule Astarte.TriggerEngine.Config do
       server_name = amqp_consumer_ssl_custom_sni!() || amqp_consumer_host!()
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
+  end
+
+  def events_consumer_pool_config!() do
+    [
+      name: {:local, :events_consumer_pool},
+      worker_module: ExRabbitPool.Worker.RabbitConnection,
+      size: events_consumer_connection_number!(),
+      max_overflow: 0
+    ]
+  end
+
+  def amqp_adapter!() do
+    Application.get_env(:astarte_trigger_engine, :amqp_adapter)
+  end
+
+  def events_consumer!() do
+    Application.get_env(:astarte_trigger_engine, :events_consumer)
   end
 
   @doc "A list of host values of accessible Cassandra nodes formatted in the Xandra format"

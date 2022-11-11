@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2022 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,41 +16,31 @@
 # limitations under the License.
 #
 
-defmodule Astarte.TriggerEngine.Application do
+defmodule Astarte.TriggerEngine.DeliverySupervisor do
   @moduledoc false
-
-  use Application
+  use Supervisor
   require Logger
 
-  alias Astarte.TriggerEngine.Config
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-  alias Astarte.TriggerEngine.DeliverySupervisor
+  alias Astarte.TriggerEngine.ConsumerSupervisor
 
-  @app_version Mix.Project.config()[:version]
+  def start_link(init_arg) do
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
 
-  def start(_type, _args) do
+  def init(_init_arg) do
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
       :ignore_rabbitmq_progress_reports,
       {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
     )
 
-    Logger.info("Starting application v#{@app_version}.", tag: "trigger_engine_app_start")
-
-    Config.validate!()
-    DataAccessConfig.validate!()
-
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    _ = Logger.info("Starting delivery supervisor", tag: "delivery_supervisor_start")
 
     children = [
-      Astarte.TriggerEngineWeb.Telemetry,
-      {Xandra.Cluster, xandra_options},
-      DeliverySupervisor
+      {Registry, [keys: :unique, name: Registry.PolicyRegistry]},
+      ConsumerSupervisor
     ]
 
-    opts = [strategy: :one_for_one, name: Astarte.TriggerEngine.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.init(children, strategy: :one_for_one)
   end
 end

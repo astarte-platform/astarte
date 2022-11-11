@@ -87,6 +87,27 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     |> render(:overlapping_mappings)
   end
 
+  def call(conn, {:error, :trigger_policy_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:trigger_policy_not_found)
+  end
+
+  def call(conn, {:error, :trigger_policy_already_present}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:trigger_policy_already_present)
+  end
+
+  def call(conn, {:error, :cannot_delete_currently_used_trigger_policy}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:cannot_delete_currently_used_trigger_policy)
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn

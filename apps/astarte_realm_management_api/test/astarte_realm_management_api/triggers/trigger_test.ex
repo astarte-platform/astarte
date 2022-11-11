@@ -142,4 +142,28 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
               ]
             }} == out
   end
+
+  test "absent trigger policy is set to nil" do
+    input = %{
+      "name" => "test_trigger",
+      "simple_triggers" => [
+        %{
+          "type" => "device_trigger",
+          "device_id" => "*",
+          "on" => "device_connected"
+        }
+      ],
+      "action" => %{
+        "http_url" => "http://www.example.com",
+        "http_method" => "delete"
+      }
+    }
+
+    {:ok, out} =
+      %Trigger{}
+      |> Trigger.changeset(input, realm_name: "test")
+      |> Changeset.apply_action(:insert)
+
+    assert out.policy == nil
+  end
 end
