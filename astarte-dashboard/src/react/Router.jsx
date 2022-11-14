@@ -143,9 +143,8 @@ function RegisterDevice(props) {
 
 function GroupDevicesSubPath(props) {
   const { groupName } = useParams();
-  const decodedGroupName = decodeURIComponent(groupName);
 
-  return <GroupDevicesPage groupName={decodedGroupName} {...props} />;
+  return <GroupDevicesPage groupName={groupName} {...props} />;
 }
 
 function FlowDetails(props) {
