@@ -27,27 +27,70 @@ import { useAlerts } from './AlertManager';
 
 const MAX_SHOWN_VALUES = 20;
 
-function linearizePathTree(prefix, data) {
-  return Object.entries(data)
-    .map(([key, value]) => {
-      const newPrefix = `${prefix}/${key}`;
+function isSingleAstarteValue(data) {
+  return _.isBoolean(data) || _.isNumber(data) || _.isString(data);
+}
 
-      if (Array.isArray(value)) {
-        return {
-          path: newPrefix,
-          value,
-        };
-      }
-      if (value.value && typeof value.value !== 'object') {
-        return {
-          path: newPrefix,
-          value: value.value,
-          timestamp: value.timestamp,
-        };
-      }
-      return linearizePathTree(newPrefix, value).flat();
-    })
-    .flat();
+function isArrayAstarteValue(data) {
+  return _.isArray(data) && data.every(isSingleAstarteValue);
+}
+
+function isEmptyAstarteValue(data) {
+  return _.isNull(data);
+}
+
+function isAstarteValue(data) {
+  return isEmptyAstarteValue(data) || isSingleAstarteValue(data) || isArrayAstarteValue(data);
+}
+
+function linearizePathTree(path, data, timestamp) {
+  if ('value' in data && isAstarteValue(data.value)) {
+    return [{ path, value: data.value, timestamp: data.timestamp || timestamp }];
+  }
+  if (isAstarteValue(data)) {
+    return [{ path, value: data, timestamp }];
+  }
+  if (_.isEmpty(data)) {
+    return [];
+  }
+  if (_.isArray(data.value)) {
+    return data.value
+      .map((value) => linearizePathTree(`${path}/value`, value, data.timestamp || timestamp))
+      .flat();
+  }
+  if (_.isObject(data.value)) {
+    return linearizePathTree(`${path}/value`, data.value, data.timestamp || timestamp).flat();
+  }
+  if (_.isArray(data)) {
+    return data.map((value) => linearizePathTree(path, value, timestamp)).flat();
+  }
+  if (_.isObject(data)) {
+    if (_.values(data).every(isAstarteValue)) {
+      return [{ path, value: data, timestamp: data.timestamp || timestamp }];
+    }
+    return Object.entries(data)
+      .map(([key, value]) =>
+        linearizePathTree(`${path}/${key}`, value, data.timestamp || timestamp),
+      )
+      .flat();
+  }
+  return [];
+}
+
+function formatAstarteValue(value) {
+  if (value == null) {
+    return '';
+  }
+  if (_.isArray(value)) {
+    return JSON.stringify(value);
+  }
+  if (_.isBoolean(value)) {
+    return value ? 'true' : 'false';
+  }
+  if (_.isNumber(value)) {
+    return value.toString();
+  }
+  return String(value);
 }
 
 const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
@@ -154,6 +197,10 @@ const PropertyTree = ({ data }) => (
 const IndividualDatastreamTable = ({ data }) => {
   const paths = linearizePathTree('', data);
 
+  if (paths.length === 0) {
+    return <p>No data sent by the device.</p>;
+  }
+
   return (
     <Table responsive>
       <thead>
@@ -175,7 +222,7 @@ const IndividualDatastreamTable = ({ data }) => {
 const IndividualDatastreamRow = ({ path, value, timestamp }) => (
   <tr>
     <td>{path}</td>
-    <td>{value.toString()}</td>
+    <td>{formatAstarteValue(value)}</td>
     <td>{new Date(timestamp).toLocaleString()}</td>
   </tr>
 );
@@ -193,7 +240,7 @@ const ObjectDatastreamTable = ({ path, values }) => {
   return (
     <>
       <h5 className="mb-1">Path</h5>
-      <p>{path}</p>
+      <p>{path || '/'}</p>
       <Table responsive>
         <thead>
           <tr>
@@ -216,7 +263,7 @@ const ObjectDatastreamTable = ({ path, values }) => {
 const ObjectDatastreamRow = ({ labels, obj }) => (
   <tr>
     {labels.map((label) => (
-      <td key={label}>{obj[label]}</td>
+      <td key={label}>{formatAstarteValue(obj[label])}</td>
     ))}
     <td>{new Date(obj.timestamp).toLocaleString()}</td>
   </tr>
@@ -229,8 +276,10 @@ const ObjectTableList = ({ data }) => {
     return <p>No data sent by the device.</p>;
   }
 
-  return linearizedData.map((obj) => (
-    <ObjectDatastreamTable key={obj.path} path={obj.path} values={obj.value} />
+  const dataByPath = _.groupBy(linearizedData, 'path');
+
+  return Object.entries(dataByPath).map(([path, pathData]) => (
+    <ObjectDatastreamTable key={path} path={path} values={pathData.map((d) => d.value)} />
   ));
 };
 
