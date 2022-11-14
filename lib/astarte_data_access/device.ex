@@ -50,9 +50,7 @@ defmodule Astarte.DataAccess.Device do
       :interface_not_found ->
         # TODO: report device introspection here for debug purposes
         Logger.warn(
-          "interface_version: interface #{inspect(interface)} not found in device #{
-            inspect(device_id)
-          } introspection"
+          "interface_version: interface #{inspect(interface)} not found in device #{inspect(device_id)} introspection"
         )
 
         {:error, :interface_not_in_introspection}
