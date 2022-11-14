@@ -151,9 +151,10 @@ const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
 interface DeviceTableProps {
   deviceList: AstarteDevice[];
   filters: DeviceFilters;
+  isLoading?: boolean;
 }
 
-const DeviceTable = ({ deviceList, filters }: DeviceTableProps): React.ReactElement => (
+const DeviceTable = ({ deviceList, filters, isLoading }: DeviceTableProps): React.ReactElement => (
   <Table responsive>
     <thead>
       <tr>
@@ -166,6 +167,13 @@ const DeviceTable = ({ deviceList, filters }: DeviceTableProps): React.ReactElem
       {deviceList.map((device) => (
         <DeviceRow key={device.id} device={device} filters={filters} />
       ))}
+      {!isLoading && deviceList.length === 0 && (
+        <tr>
+          <td colSpan={3}>
+            <p>No device matches current filters</p>
+          </td>
+        </tr>
+      )}
     </tbody>
   </Table>
 );
@@ -210,6 +218,7 @@ const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
 interface TablePaginationProps {
   activePage: number;
   canLoadMorePages: boolean;
+  isLoadingMorePages?: boolean;
   lastPage: number;
   onPageChange: (pageIndex: number) => void;
 }
@@ -217,10 +226,11 @@ interface TablePaginationProps {
 const TablePagination = ({
   activePage,
   canLoadMorePages,
+  isLoadingMorePages,
   lastPage,
   onPageChange,
 }: TablePaginationProps): React.ReactElement | null => {
-  if (lastPage < 2) {
+  if (lastPage < 2 && !isLoadingMorePages) {
     return null;
   }
 
@@ -264,10 +274,13 @@ const TablePagination = ({
       {items}
       {(endPage < lastPage || canLoadMorePages) && (
         <Pagination.Next
+          disabled={isLoadingMorePages}
           onClick={() => {
             onPageChange(activePage + 1);
           }}
-        />
+        >
+          {isLoadingMorePages && <Spinner animation="border" role="status" size="sm" />}
+        </Pagination.Next>
       )}
     </Pagination>
   );
@@ -372,6 +385,7 @@ export default ({ astarte }: Props): React.ReactElement => {
   const [requestToken, setRequestToken] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [filters, setFilters] = useState({});
+  const [isLoadingMoreDevices, setIsLoadingMoreDevices] = useState(false);
   const navigate = useNavigate();
 
   const pageAlerts = useAlerts();
@@ -380,34 +394,41 @@ export default ({ astarte }: Props): React.ReactElement => {
     return _.chunk(devices, DEVICES_PER_PAGE);
   }, [deviceList, filters]);
 
-  const loadMoreDevices = async (fromToken?: string, loadAllDevices = false) =>
-    astarte
+  const loadMoreDevices = async (
+    currentDeviceList: AstarteDevice[],
+    fromToken?: string,
+    loadAllDevices = false,
+  ): Promise<void> => {
+    setIsLoadingMoreDevices(true);
+    return astarte
       .getDevices({
         details: true,
         from: fromToken,
         limit: DEVICES_PER_REQUEST,
       })
       .then(({ devices, nextToken }) => {
+        const updatedDeviceList = currentDeviceList.concat(devices);
         setRequestToken(nextToken);
-        setDeviceList((previousList) => {
-          const updatedDeviceList = previousList.concat(devices);
-          const pageCount = Math.ceil(updatedDeviceList.length / DEVICES_PER_PAGE);
-          const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || loadAllDevices;
-          if (shouldLoadMore && nextToken) {
-            loadMoreDevices(nextToken, loadAllDevices);
-          } else {
-            setPhase('ok');
-          }
-          return updatedDeviceList;
-        });
+        setDeviceList(updatedDeviceList);
+        const pageCount = Math.ceil(updatedDeviceList.length / DEVICES_PER_PAGE);
+        const shouldLoadMore = pageCount < activePage + MAX_SHOWN_PAGES || loadAllDevices;
+        setPhase('ok');
+        if (shouldLoadMore && nextToken) {
+          return loadMoreDevices(updatedDeviceList, nextToken, loadAllDevices);
+        }
+        return Promise.resolve();
       })
       .catch((err) => {
         pageAlerts.showError(`Couldn't retrieve the device list from Astarte: ${err.message}`);
+      })
+      .finally(() => {
+        setIsLoadingMoreDevices(false);
       });
+  };
 
   const handlePageChange = (pageIndex: number) => {
     if (pageIndex > pagedDevices.length - MAX_SHOWN_PAGES && requestToken) {
-      loadMoreDevices(requestToken);
+      loadMoreDevices(deviceList, requestToken);
     }
     setActivePage(pageIndex);
   };
@@ -416,14 +437,14 @@ export default ({ astarte }: Props): React.ReactElement => {
     if (activePage !== 0) {
       setActivePage(0);
     }
-    if (requestToken) {
-      loadMoreDevices(requestToken, true);
+    if (requestToken && !isLoadingMoreDevices) {
+      loadMoreDevices(deviceList, requestToken, true);
     }
     setFilters(newFilters);
   };
 
   useEffect(() => {
-    loadMoreDevices();
+    loadMoreDevices(deviceList);
   }, []);
 
   let innerHTML;
@@ -440,11 +461,11 @@ export default ({ astarte }: Props): React.ReactElement => {
             <Container fluid>
               <Row>
                 <Col>
-                  {devices.length === 0 ? (
-                    <p>No device matches current filters</p>
-                  ) : (
-                    <DeviceTable deviceList={devices} filters={filters} />
-                  )}
+                  <DeviceTable
+                    deviceList={devices}
+                    filters={filters}
+                    isLoading={isLoadingMoreDevices}
+                  />
                 </Col>
                 <Col xs="auto" className="p-1">
                   <div className="p-2 mb-2" onClick={() => setShowSidebar(!showSidebar)}>
@@ -462,6 +483,7 @@ export default ({ astarte }: Props): React.ReactElement => {
                   <TablePagination
                     activePage={activePage}
                     canLoadMorePages={!!requestToken}
+                    isLoadingMorePages={isLoadingMoreDevices}
                     lastPage={pagedDevices.length}
                     onPageChange={handlePageChange}
                   />
