@@ -104,13 +104,8 @@ class SessionManager {
       return null;
     }
 
-    const {
-      enableFlowPreview,
-      appEngineApiUrl,
-      realmManagementApiUrl,
-      pairingApiUrl,
-      flowApiUrl,
-    } = this.config;
+    const { enableFlowPreview, appEngineApiUrl, realmManagementApiUrl, pairingApiUrl, flowApiUrl } =
+      this.config;
 
     const { realm, token } = this.credentials;
 

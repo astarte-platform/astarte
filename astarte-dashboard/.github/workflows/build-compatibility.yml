@@ -18,13 +18,12 @@ jobs:
           - macos-latest
           - windows-latest
         node_version:
-          - 12
           - 14
-          - 15
+          - 16
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js ${{ matrix.node_version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node_version }}
@@ -35,6 +34,6 @@ jobs:
             **/node_modules
           key: ${{ matrix.os }}-${{ matrix.node_version }}-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Check App compilation
         run: npm run build

@@ -13,7 +13,7 @@ module.exports = merge(common, {
     historyApiFallback: {
       disableDotRule: true,
     },
-    contentBase: './src',
+    static: './src',
     hot: true,
   },
   module: {

@@ -58,7 +58,7 @@ const useFetch = <Data = any>(fetchData: () => Promise<Data>): FetchState<Data> 
         setData(fetchedData);
         setStatus('ok');
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err);
       setStatus('err');
     }

@@ -27,7 +27,7 @@ require('./styles/main.scss');
 
 const $ = require('jquery');
 
-// eslint-disable-next-line import/no-unresolved
+// eslint-disable-next-line
 const elmApp = require('../elm/Main').Elm.Main;
 
 let reactHistory = null;

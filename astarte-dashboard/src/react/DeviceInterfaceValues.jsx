@@ -121,7 +121,7 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
         throw new Error('Interface not found in device introspection.');
       }
 
-      const interface = await astarte
+      const iface = await astarte
         .getInterface({
           interfaceName,
           interfaceMajor: interfaceIntrospection.major,
@@ -130,9 +130,9 @@ const DeviceInterfaceValues = ({ astarte, deviceId, interfaceName }) => {
           throw new Error('Could not retrieve interface properties.');
         });
 
-      if (interface.type === 'properties') {
+      if (iface.type === 'properties') {
         setInterfaceType('properties');
-      } else if (interface.type === 'datastream' && interface.aggregation === 'object') {
+      } else if (iface.type === 'datastream' && iface.aggregation === 'object') {
         setInterfaceType('datastream-object');
       } else {
         setInterfaceType('datastream-individual');

@@ -94,9 +94,8 @@ const IntrospectionControlRow = ({
     minor: 1,
   };
 
-  const [interfaceDescriptor, setInterfaceDescriptor] = useState<AstarteInterfaceDescriptor>(
-    initialState,
-  );
+  const [interfaceDescriptor, setInterfaceDescriptor] =
+    useState<AstarteInterfaceDescriptor>(initialState);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;

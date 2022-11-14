@@ -181,15 +181,8 @@ const GlobalAlertsProvider = ({
   ...props
 }: GlobalAlertsProviderProps): React.ReactElement => {
   const alertUtilsContext = useRef<IAlertsUtils | null>(null);
-  const {
-    alerts,
-    close,
-    closeAll,
-    showSuccess,
-    showWarning,
-    showError,
-    showInfo,
-  } = useAlertsContext({ timeout: 5000 });
+  const { alerts, close, closeAll, showSuccess, showWarning, showError, showInfo } =
+    useAlertsContext({ timeout: 5000 });
 
   alertUtilsContext.current = {
     close,
