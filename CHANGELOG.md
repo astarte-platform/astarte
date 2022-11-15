@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
 
+## [1.0.4] - 2022-10-25
+### Changed
+- [astarte_appengine_api] Check for device existence before accepting a watch request on
+  Astarte rooms.
+- [astarte_data_updater_plant] Check for device existence before installation or deletion
+  of volatile triggers.
+
 ## [1.0.3] - 2022-07-04
 ### Fixed
 - [astarte_appengine_api] Consider `allow_bigintegers` and `allow_safe_bigintegers` params
