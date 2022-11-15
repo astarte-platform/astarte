@@ -35,7 +35,7 @@ describe('Blocks page tests', () => {
     it('displays the list of blocks', function () {
       cy.get('.main-content').within(() => {
         this.blocks.data.forEach((block) => {
-          cy.get('.card button').contains(block.name);
+          cy.get(`.card[data-testid="${block.name}"]`).get('button').contains(block.name);
         });
       });
     });
@@ -43,16 +43,13 @@ describe('Blocks page tests', () => {
     it("native blocks have a Native badge, custom blocks don't", function () {
       cy.get('.main-content').within(() => {
         this.blocks.data.forEach((block) => {
-          cy.get('.card button')
-            .contains(block.name)
-            .parents('.card')
-            .within(() => {
-              if (block.beam_module) {
-                cy.get('.badge').contains('native');
-              } else {
-                cy.get('.badge').should('not.exist');
-              }
-            });
+          cy.get(`.card[data-testid="${block.name}"]`).within(() => {
+            if (block.beam_module) {
+              cy.get('.badge').contains('native');
+            } else {
+              cy.get('.badge').should('not.exist');
+            }
+          });
         });
       });
     });
