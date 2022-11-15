@@ -74,16 +74,7 @@ const astarteDeviceInterfaceStatsSchema: yup.ObjectSchema<AstarteDeviceInterface
   .object({
     name: yup.string().required(),
     major: yup.number().integer().min(0).required(),
-    minor: yup
-      .number()
-      .integer()
-      .min(0)
-      .required()
-      .when('major', {
-        is: 0,
-        then: yup.number().integer().min(1).required(),
-        otherwise: yup.number().integer().min(0).required(),
-      }),
+    minor: yup.number().integer().min(0).required(),
     exchangedMessages: yup.number().integer().min(0).required(),
     exchangedBytes: yup.number().integer().min(0).required(),
   })
