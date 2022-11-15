@@ -213,7 +213,7 @@ Rust:
 Unregistering a device boils down to making its credentials secret invalid.  
 Just as device registration, there are manual or programmatic options. 
 In all cases, you can use the astartectl command [`astartectl`](https://github.com/astarte-platform/astartectl),
-the [`Astarte Dashboard`](https://docs.astarte-platform.org/snapshot/015-astarte_dashboard.html)), or 
+the [`Astarte Dashboard`](https://docs.astarte-platform.org/1.1/015-astarte_dashboard.html)), or
 the [Astarte API for device unregistration](https://docs.astarte-platform.org/latest/api/index.html?urls.primaryName=Pairing%20API#/agent/unregisterDevice).
 
 For Go and Elixir, you can also do this programmatically. 
