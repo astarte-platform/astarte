@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2022 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 */
 
 import React from 'react';
-import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
+import { Navigate, RouteObject, useLocation, useRoutes } from 'react-router-dom';
 
 import LoginPage from './LoginPage';
 import HomePage from './HomePage';
@@ -100,49 +100,46 @@ function Login(): React.ReactElement {
   );
 }
 
-type PrivateRouteProps = React.ComponentProps<typeof Route>;
+const privateRoutes: RouteObject[] = [
+  { path: '/', element: <HomePage /> },
+  { path: 'home', element: <HomePage /> },
+  { path: 'triggers', element: <TriggersPage /> },
+  { path: 'triggers/new', element: <NewTriggerPage /> },
+  { path: 'triggers/:triggerName/edit', element: <TriggerPage /> },
+  { path: 'interfaces', element: <InterfacesPage /> },
+  { path: 'interfaces/new', element: <NewInterfacePage /> },
+  { path: 'interfaces/:interfaceName/:interfaceMajor/edit', element: <InterfacePage /> },
+  { path: 'devices', element: <DevicesPage /> },
+  { path: 'devices/register', element: <RegisterDevicePage /> },
+  { path: 'devices/:deviceId/edit', element: <DeviceStatusPage /> },
+  { path: 'devices/:deviceId/interfaces/:interfaceName', element: <DeviceInterfaceValues /> },
+  { path: 'groups', element: <GroupsPage /> },
+  { path: 'groups/new', element: <NewGroupPage /> },
+  { path: 'groups/:groupName/edit', element: <GroupDevicesPage /> },
+  { path: 'flows', element: <FlowInstancesPage /> },
+  { path: 'flows/new', element: <FlowConfigurationPage /> },
+  { path: 'flows/:flowName/edit', element: <FlowDetailsPage /> },
+  { path: 'pipelines', element: <PipelinesPage /> },
+  { path: 'pipelines/new', element: <NewPipelinePage /> },
+  { path: 'pipelines/:pipelineId/edit', element: <PipelineSourcePage /> },
+  { path: 'blocks', element: <BlocksPage /> },
+  { path: 'blocks/new', element: <NewBlockPage /> },
+  { path: 'blocks/:blockId/edit', element: <BlockSourcePage /> },
+  { path: 'settings', element: <RealmSettingsPage /> },
+  { path: '*', element: <Navigate to="/" /> },
+];
 
-const PrivateRoute = ({ ...props }: PrivateRouteProps) => {
+const publicRoutes: RouteObject[] = [
+  { path: 'auth', element: <AttemptLogin /> },
+  { path: 'logout', element: <Logout /> },
+  { path: 'login', element: <Login /> },
+];
+
+export default (): React.ReactElement => {
   const astarte = useAstarte();
-  return astarte.isAuthenticated ? <Route {...props} /> : <Navigate to="/login" />;
+  const routes = astarte.isAuthenticated
+    ? publicRoutes.concat(privateRoutes)
+    : publicRoutes.concat({ path: '*', element: <Navigate to="/login" /> });
+  const router = useRoutes(routes);
+  return <>{router}</>;
 };
-
-export default (): React.ReactElement => (
-  <Routes>
-    <PrivateRoute path="/" element={<HomePage />} />
-    <PrivateRoute path="home" element={<HomePage />} />
-    <Route path="auth" element={<AttemptLogin />} />
-    <Route path="logout" element={<Logout />} />
-    <Route path="login" element={<Login />} />
-    <PrivateRoute path="triggers" element={<TriggersPage />} />
-    <PrivateRoute path="triggers/new" element={<NewTriggerPage />} />
-    <PrivateRoute path="triggers/:triggerName/edit" element={<TriggerPage />} />
-    <PrivateRoute path="interfaces" element={<InterfacesPage />} />
-    <PrivateRoute path="interfaces/new" element={<NewInterfacePage />} />
-    <PrivateRoute
-      path="interfaces/:interfaceName/:interfaceMajor/edit"
-      element={<InterfacePage />}
-    />
-    <PrivateRoute path="devices" element={<DevicesPage />} />
-    <PrivateRoute path="devices/register" element={<RegisterDevicePage />} />
-    <PrivateRoute path="devices/:deviceId/edit" element={<DeviceStatusPage />} />
-    <PrivateRoute
-      path="devices/:deviceId/interfaces/:interfaceName"
-      element={<DeviceInterfaceValues />}
-    />
-    <PrivateRoute path="groups" element={<GroupsPage />} />
-    <PrivateRoute path="groups/new" element={<NewGroupPage />} />
-    <PrivateRoute path="groups/:groupName/edit" element={<GroupDevicesPage />} />
-    <PrivateRoute path="flows" element={<FlowInstancesPage />} />
-    <PrivateRoute path="flows/new" element={<FlowConfigurationPage />} />
-    <PrivateRoute path="flows/:flowName/edit" element={<FlowDetailsPage />} />
-    <PrivateRoute path="pipelines" element={<PipelinesPage />} />
-    <PrivateRoute path="pipelines/new" element={<NewPipelinePage />} />
-    <PrivateRoute path="pipelines/:pipelineId/edit" element={<PipelineSourcePage />} />
-    <PrivateRoute path="blocks" element={<BlocksPage />} />
-    <PrivateRoute path="blocks/new" element={<NewBlockPage />} />
-    <PrivateRoute path="blocks/:blockId/edit" element={<BlockSourcePage />} />
-    <PrivateRoute path="settings" element={<RealmSettingsPage />} />
-    <Route path="*" element={<Navigate to="/" />} />
-  </Routes>
-);
