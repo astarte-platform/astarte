@@ -758,6 +758,7 @@ describe('Trigger builder tests', () => {
             .its('request.body.data')
             .should('deep.eq', trigger.data);
           cy.location('pathname').should('eq', '/triggers');
+          cy.get('[data-testid="triggers-page"]').should('be.visible');
           cy.get('h2').contains('Triggers');
         });
       });
@@ -811,6 +812,7 @@ describe('Trigger builder tests', () => {
         });
         cy.wait('@deleteTriggerRequest');
         cy.location('pathname').should('eq', '/triggers');
+        cy.get('[data-testid="triggers-page"]').should('be.visible');
         cy.get('h2').contains('Triggers');
       });
     });

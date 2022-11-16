@@ -169,7 +169,7 @@ export default (): React.ReactElement => {
     try {
       const pipelineSource = nodeModelToSource(editorModel);
       setPipeline({ ...pipeline, source: pipelineSource });
-    } catch (error) {
+    } catch (error: any) {
       formAlertsController.showError(error.message);
     }
   };

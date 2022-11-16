@@ -57,7 +57,7 @@ interface BlockCardProps {
 
 function BlockCard({ block, onShow }: BlockCardProps) {
   return (
-    <Card className="mb-4">
+    <Card className="mb-4" data-testid={block.name}>
       <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
         <Button variant="link" className="p-0" onClick={onShow}>
           {block.name}
