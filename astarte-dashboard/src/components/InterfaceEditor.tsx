@@ -574,7 +574,7 @@ export default ({
         return;
       }
       setInterfaceDraft(parsedInterface);
-      const mapping: AstarteMapping | undefined = _.get(parsedInterface, 'mappings.0');
+      const mapping = _.get(parsedInterface, 'mappings.0') as AstarteMapping | undefined;
       if (parsedInterface.type === 'datastream' && parsedInterface.aggregation === 'object') {
         setDatastreamOptions({
           reliability: mapping?.reliability,
@@ -612,7 +612,7 @@ export default ({
   let interfaceValidationErrors: { [key: string]: string } = {};
   try {
     AstarteInterface.validation.validateSync(interfaceDraft, { abortEarly: false });
-  } catch (err) {
+  } catch (err: any) {
     interfaceValidationErrors = _.mapValues(
       _.keyBy(_.uniqBy(err.inner, 'path'), 'path'),
       'message',
@@ -640,7 +640,7 @@ export default ({
   } else {
     try {
       parseAstarteInterfaceJSON(JSON.parse(interfaceSource));
-    } catch (err) {
+    } catch (err: any) {
       isValidInterfaceSource = false;
       interfaceSourceError = err.message;
     }

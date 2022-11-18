@@ -104,20 +104,20 @@ const getAmqpExchangeRegex = (realm?: string | null) =>
 
 const amqpRoutingKeyRegex = /^[^{}]+$/;
 
-const generateObjectValidation = <K, V>(keySchema: yup.Schema<K>, valueSchema: yup.Schema<V>) => (
-  obj: unknown,
-) => {
-  if (_.isUndefined(obj)) {
-    return true;
-  }
-  return (
-    _.isObject(obj) &&
-    _.isPlainObject(obj) &&
-    Object.entries(obj).every(
-      ([key, value]) => keySchema.isValidSync(key) && valueSchema.isValidSync(value),
-    )
-  );
-};
+const generateObjectValidation =
+  <K, V>(keySchema: yup.Schema<K>, valueSchema: yup.Schema<V>) =>
+  (obj: unknown) => {
+    if (_.isUndefined(obj)) {
+      return true;
+    }
+    return (
+      _.isObject(obj) &&
+      _.isPlainObject(obj) &&
+      Object.entries(obj).every(
+        ([key, value]) => keySchema.isValidSync(key) && valueSchema.isValidSync(value),
+      )
+    );
+  };
 
 const astarteTriggerHttpActionObjectSchema: yup.ObjectSchema<AstarteTriggerHTTPActionObject> = yup
   .object({
@@ -198,27 +198,28 @@ const astarteTriggerActionObjectSchema = yup.lazy((action) => {
   return astarteTriggerAmqpActionObjectSchema;
 });
 
-const astarteSimpleDeviceTriggerObjectSchema: yup.ObjectSchema<AstarteSimpleDeviceTriggerObject> = yup
-  .object({
-    type: yup.string().oneOf(['device_trigger']).required(),
-    on: yup
-      .string()
-      .oneOf([
-        'device_disconnected',
-        'device_connected',
-        'device_error',
-        'device_empty_cache_received',
-      ])
-      .required(),
-    deviceId: yup.string().notRequired(),
-    groupName: yup
-      .string()
-      .notRequired()
-      .when('deviceId', (deviceId: unknown, schema: yup.StringSchema) =>
-        deviceId != null ? schema.strip(true) : schema,
-      ),
-  })
-  .required();
+const astarteSimpleDeviceTriggerObjectSchema: yup.ObjectSchema<AstarteSimpleDeviceTriggerObject> =
+  yup
+    .object({
+      type: yup.string().oneOf(['device_trigger']).required(),
+      on: yup
+        .string()
+        .oneOf([
+          'device_disconnected',
+          'device_connected',
+          'device_error',
+          'device_empty_cache_received',
+        ])
+        .required(),
+      deviceId: yup.string().notRequired(),
+      groupName: yup
+        .string()
+        .notRequired()
+        .when('deviceId', (deviceId: unknown, schema: yup.StringSchema) =>
+          deviceId != null ? schema.strip(true) : schema,
+        ),
+    })
+    .required();
 
 const astarteSimpleDataTriggerObjectSchema: yup.ObjectSchema<AstarteSimpleDataTriggerObject> = yup
   .object({

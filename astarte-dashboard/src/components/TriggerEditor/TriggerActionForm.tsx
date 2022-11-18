@@ -63,7 +63,7 @@ const TriggerActionForm = ({
 }: TriggerActionFormProps): React.ReactElement => {
   const isHttpAction = _.get(action, 'httpUrl') != null;
   const isAmqpAction = _.get(action, 'amqpExchange') != null;
-  const triggerPayloadType = _.get(action, 'templateType') || 'default';
+  const triggerPayloadType = (_.get(action, 'templateType') || 'default') as 'default' | 'mustache';
   const triggerHttpHeaders = _.get(action, 'httpStaticHeaders') || {};
   const triggerAmqpHeaders = _.get(action, 'amqpStaticHeaders') || {};
 

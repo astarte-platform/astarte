@@ -185,7 +185,7 @@ const InterfaceData = ({ interfaceData }: InterfaceDataProps): React.ReactElemen
 };
 
 export default (): React.ReactElement => {
-  const { deviceId, interfaceName } = useParams();
+  const { deviceId = '', interfaceName = '' } = useParams();
   const astarte = useAstarte();
   const deviceDataFetcher = useFetch(() =>
     astarte.client.getDeviceDataTree({

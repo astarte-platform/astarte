@@ -62,13 +62,13 @@ export interface AstarteDeviceObject {
   lastCredentialsRequestIp?: string;
 }
 
-const generateMapValidation = <K, V>(keySchema: yup.Schema<K>, valueSchema: yup.Schema<V>) => (
-  obj: unknown,
-) =>
-  _.isMap(obj) &&
-  Array.from(obj.entries()).every(
-    ([key, value]) => keySchema.isValidSync(key) && valueSchema.isValidSync(value),
-  );
+const generateMapValidation =
+  <K, V>(keySchema: yup.Schema<K>, valueSchema: yup.Schema<V>) =>
+  (obj: unknown) =>
+    _.isMap(obj) &&
+    Array.from(obj.entries()).every(
+      ([key, value]) => keySchema.isValidSync(key) && valueSchema.isValidSync(value),
+    );
 
 const astarteDeviceInterfaceStatsSchema: yup.ObjectSchema<AstarteDeviceInterfaceStats> = yup
   .object({

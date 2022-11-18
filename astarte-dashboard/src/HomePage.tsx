@@ -320,9 +320,10 @@ export default (): React.ReactElement => {
   const flowHealth = config.features.flow ? useFetch(astarte.client.getFlowHealth) : null;
   const navigate = useNavigate();
 
-  const connectedDevicesProvider = useMemo(() => getConnectedDevices(astarte.client), [
-    astarte.client,
-  ]);
+  const connectedDevicesProvider = useMemo(
+    () => getConnectedDevices(astarte.client),
+    [astarte.client],
+  );
 
   const refreshData = () => {
     devicesStats.refresh();

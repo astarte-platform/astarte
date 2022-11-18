@@ -40,7 +40,7 @@ type DataFetcher<Data> =
 
 export const useChartProviders = <
   DataWrapper extends ChartDataWrapper,
-  DataKind extends ChartDataKind
+  DataKind extends ChartDataKind,
 >(params: {
   providers: ChartProvider<DataWrapper, DataKind>[];
   onError?: (error: Error) => void;
@@ -56,7 +56,7 @@ export const useChartProviders = <
         params.providers.map((provider) => provider.getData()),
       );
       setData(providersData);
-    } catch (err) {
+    } catch (err: any) {
       if (params.onError) {
         params.onError(err);
       }

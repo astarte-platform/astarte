@@ -143,7 +143,7 @@ type PageModal =
   | ReregisterDeviceModalT;
 
 export default (): React.ReactElement => {
-  const { deviceId } = useParams();
+  const { deviceId = '' } = useParams();
   const astarte = useAstarte();
   const deviceFetcher = useFetch(() => astarte.client.getDeviceInfo(deviceId));
   const groupsFetcher = useFetch(() => astarte.client.getGroupList());

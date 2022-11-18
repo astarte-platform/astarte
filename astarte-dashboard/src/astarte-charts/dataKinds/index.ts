@@ -33,7 +33,7 @@ type ChartDataWrapper = 'Object' | 'Array';
 
 type ChartData<
   Wrapper extends ChartDataWrapper,
-  Kind extends ChartDataKind
+  Kind extends ChartDataKind,
 > = Wrapper extends 'Object' ? Kind : Wrapper extends 'Array' ? Kind[] : never;
 
 export { Aggregated, TimestampedAggregated, TimestampedIndividual, ConnectedDevices, DeviceStats };

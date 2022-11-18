@@ -93,8 +93,8 @@ export default (): React.ReactElement => {
   const astarte = useAstarte();
   const navigate = useNavigate();
   const pathParams = useParams();
-  const { interfaceName } = pathParams;
-  const interfaceMajor = parseInt(pathParams.interfaceMajor, 10);
+  const { interfaceName = '' } = pathParams;
+  const interfaceMajor = parseInt(pathParams.interfaceMajor || '', 10);
 
   const interfaceFetcher = useFetch(() =>
     astarte.client.getInterface({ interfaceName, interfaceMajor }),
