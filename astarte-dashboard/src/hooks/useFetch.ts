@@ -62,7 +62,7 @@ const useFetch = <Data = unknown, FetchParams extends unknown[] = unknown[]>(
           setData(fetchedData);
           setStatus('ok');
         }
-      } catch (err) {
+      } catch (err: any) {
         setError(err);
         setStatus('err');
       }

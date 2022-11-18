@@ -7,12 +7,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Custom library to render graphic charts for data coming from Astarte.
-
 ### Changed
 - Major rework for the Interface Editor.
 - Major rework for the Trigger Editor.
 
-## [1.0.1] - Unreleased
+## [1.0.5] - Unreleased
+## Fixed
+- Fix crash while displaying values of an Astarte interface.
+- Fix duplicate items on device list when changing search filters
+([#341](https://github.com/astarte-platform/astarte-dashboard/issues/341)).
+
+## [1.0.4] - 2022-10-24
+
+## [1.0.3] - 2022-07-04
+
+## [1.0.2] - 2022-03-30
+ 
+## [1.0.1] - 2021-12-16
 ### Fixed
 - Visualization of boolean mappings in the device values page.
 

@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2022 Ispirata Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import type { AstarteDevice } from 'astarte-client';
 
 import { Link, useNavigate } from 'react-router-dom';
 import SingleCardPage from './ui/SingleCardPage';
-import { AlertsBanner, useAlerts } from './AlertManager';
 import Empty from './components/Empty';
 import Highlight from './components/Highlight';
 import Icon from './components/Icon';
@@ -201,6 +200,7 @@ const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
 interface TablePaginationProps {
   activePage: number;
   canLoadMorePages: boolean;
+  isLoadingMorePages?: boolean;
   lastPage: number;
   onPageChange: (pageIndex: number) => void;
 }
@@ -208,10 +208,11 @@ interface TablePaginationProps {
 const TablePagination = ({
   activePage,
   canLoadMorePages,
+  isLoadingMorePages,
   lastPage,
   onPageChange,
 }: TablePaginationProps): React.ReactElement | null => {
-  if (lastPage < 2) {
+  if (lastPage < 2 && !isLoadingMorePages) {
     return null;
   }
 
@@ -255,10 +256,13 @@ const TablePagination = ({
       {items}
       {(endPage < lastPage || canLoadMorePages) && (
         <Pagination.Next
+          disabled={isLoadingMorePages}
           onClick={() => {
             onPageChange(activePage + 1);
           }}
-        />
+        >
+          {isLoadingMorePages && <Spinner animation="border" role="status" size="sm" />}
+        </Pagination.Next>
       )}
     </Pagination>
   );
@@ -436,7 +440,7 @@ export default (): React.ReactElement => {
     }
     const fromToken = devicesFetcher.value?.nextToken;
     const previousDevices = devicesFetcher.value?.devices || [];
-    if (fromToken) {
+    if (fromToken && devicesFetcher.status !== 'loading') {
       devicesFetcher.refresh({ previousDevices, fromToken, fetchAll: true });
     }
     setFilters(newFilters);
@@ -486,6 +490,7 @@ export default (): React.ReactElement => {
                     <TablePagination
                       activePage={activePage}
                       canLoadMorePages={!!nextToken}
+                      isLoadingMorePages={devicesFetcher.status === 'loading'}
                       lastPage={pagedDevices.length}
                       onPageChange={handlePageChange}
                     />
