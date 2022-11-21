@@ -20,7 +20,7 @@ import _axios from 'axios';
 
 import AstarteClient from './client';
 
-const axios = (_axios as unknown) as jest.Mock; // Set correct Typescript type
+const axios = _axios as unknown as jest.Mock; // Set correct Typescript type
 jest.mock('axios');
 
 describe('AstarteClient', () => {

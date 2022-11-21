@@ -103,11 +103,10 @@ const SimpleTriggerForm = ({
   const hasTargetGroup = _.get(simpleTrigger, 'groupName') != null;
   // eslint-disable-next-line no-nested-ternary
   const triggerTargetType = hasTargetDevice ? 'device' : hasTargetGroup ? 'group' : 'all_devices';
-  const triggerInterfaceName: string | undefined = _.get(simpleTrigger, 'interfaceName');
+  const triggerInterfaceName = _.get(simpleTrigger, 'interfaceName') as string | undefined;
   const hasSelectedInterface = triggerInterfaceName != null && triggerInterfaceName !== '*';
-  const triggerValueMatchOperator:
-    | AstarteSimpleDataTrigger['valueMatchOperator']
-    | undefined = _.get(simpleTrigger, 'valueMatchOperator');
+  const triggerValueMatchOperator: AstarteSimpleDataTrigger['valueMatchOperator'] | undefined =
+    _.get(simpleTrigger, 'valueMatchOperator');
   const hasSelectedOperator =
     triggerValueMatchOperator != null && triggerValueMatchOperator !== '*';
   const triggerMatchPath: AstarteSimpleDataTrigger['matchPath'] | undefined = _.get(

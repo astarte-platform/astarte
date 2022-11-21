@@ -31,7 +31,7 @@ import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 
 export default (): React.ReactElement => {
-  const { pipelineId } = useParams();
+  const { pipelineId = '' } = useParams();
   const astarte = useAstarte();
   const pipelineFetcher = useFetch(() => astarte.client.getPipeline(pipelineId));
   const [showDeleteModal, setShowDeleteModal] = useState(false);

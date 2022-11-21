@@ -127,7 +127,7 @@ export default ({
     let names: string[] = [];
     try {
       names = await fetchInterfacesName();
-    } catch (err) {
+    } catch (err: any) {
       if (onError) {
         onError(`Could not retrieve major versions for interface: ${err.message}`, err);
       }
@@ -143,7 +143,7 @@ export default ({
       let majors: number[] = [];
       try {
         majors = await fetchInterfaceMajors(interfaceName);
-      } catch (err) {
+      } catch (err: any) {
         if (onError) {
           onError(
             `Could not retrieve major versions for ${interfaceName} interface: ${err.message}`,
@@ -164,7 +164,7 @@ export default ({
       let iface: AstarteInterface | null = null;
       try {
         iface = await fetchInterface(params);
-      } catch (err) {
+      } catch (err: any) {
         if (onError) {
           onError(
             `Could not retrieve selected interface ${params.interfaceName} v${params.interfaceMajor}: ${err.message}`,
@@ -182,8 +182,8 @@ export default ({
   const handleFetchInterfacesForTrigger = useCallback(
     async (trigger: AstarteTrigger) => {
       await handleFetchInterfacesName();
-      const interfaceName = _.get(trigger, 'simpleTriggers[0].interfaceName');
-      if (interfaceName === '*') {
+      const interfaceName = _.get(trigger, 'simpleTriggers[0].interfaceName') as string | undefined;
+      if (!interfaceName || interfaceName === '*') {
         return trigger;
       }
       const ifaceMajors = await handleFetchInterfaceMajors(interfaceName);
@@ -389,7 +389,7 @@ export default ({
         abortEarly: false,
         context: { realm, interface: triggerInterface },
       });
-    } catch (err) {
+    } catch (err: any) {
       validationErrors = _.mapValues(_.keyBy(_.uniqBy(err.inner, 'path'), 'path'), 'message');
     }
     setTriggerValidationErrors(validationErrors);

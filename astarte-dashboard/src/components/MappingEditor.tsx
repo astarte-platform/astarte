@@ -66,7 +66,7 @@ export default ({
   let mappingValidationErrors: { [property: string]: string } = {};
   try {
     AstarteMapping.validation.validateSync(mapping, { abortEarly: false });
-  } catch (err) {
+  } catch (err: any) {
     mappingValidationErrors = _.mapValues(_.keyBy(_.uniqBy(err.inner, 'path'), 'path'), 'message');
   }
 
@@ -242,7 +242,8 @@ export default ({
                 name="mappingDatabaseRetention"
                 value={mapping.databaseRetentionPolicy || 'no_ttl'}
                 onChange={({ currentTarget: { value } }) => {
-                  const databaseRetentionPolicy = value as AstarteMapping['databaseRetentionPolicy'];
+                  const databaseRetentionPolicy =
+                    value as AstarteMapping['databaseRetentionPolicy'];
                   onChange({
                     ...mapping,
                     databaseRetentionPolicy:

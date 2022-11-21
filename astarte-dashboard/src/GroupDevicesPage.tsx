@@ -89,7 +89,7 @@ const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) 
 );
 
 const GroupDevicesPage = (): React.ReactElement => {
-  const groupName = decodeURIComponent(useParams().groupName);
+  const { groupName = '' } = useParams();
   const [selectedDevice, setSelectedDevice] = useState<AstarteDevice | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isRemovingDevice, setIsRemovingDevice] = useState(false);

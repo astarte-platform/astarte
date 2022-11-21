@@ -28,7 +28,7 @@ import useFetch from './hooks/useFetch';
 import { useAstarte } from './AstarteManager';
 
 export default (): React.ReactElement => {
-  const { flowName } = useParams();
+  const { flowName = '' } = useParams();
   const astarte = useAstarte();
   const flowFetcher = useFetch(() => astarte.client.getFlowDetails(flowName));
 

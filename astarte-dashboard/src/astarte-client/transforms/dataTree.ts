@@ -73,7 +73,7 @@ type JSON<Value> = Value | { [prop: string]: JSON<Value> };
 type Equals<T, S> = [T] extends [S] ? ([S] extends [T] ? true : false) : false;
 
 interface AstarteDataTreeNode<
-  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData
+  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData,
 > {
   dataKind: AstarteDataTreeKind;
   name: string;
@@ -95,7 +95,7 @@ interface AstarteDataTreeNode<
 }
 
 interface AstarteDataTreeLeafNodeParams<
-  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData
+  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData,
 > {
   interface: AstarteInterface;
   data: Equals<Data, AstarteDatastreamObjectData> extends true
@@ -108,8 +108,9 @@ interface AstarteDataTreeLeafNodeParams<
 }
 
 class AstarteDataTreeLeafNode<
-  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData
-> implements AstarteDataTreeNode<Data> {
+  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData,
+> implements AstarteDataTreeNode<Data>
+{
   readonly dataKind: AstarteDataTreeKind;
 
   readonly endpoint: string;
@@ -223,7 +224,7 @@ class AstarteDataTreeLeafNode<
 }
 
 interface AstarteDataTreeBranchNodeParams<
-  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData
+  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData,
 > {
   interface: AstarteInterface;
   data: AstarteInterfaceValues;
@@ -231,8 +232,9 @@ interface AstarteDataTreeBranchNodeParams<
   parentNode?: AstarteDataTreeBranchNode<Data> | null;
 }
 class AstarteDataTreeBranchNode<
-  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData
-> implements AstarteDataTreeNode<Data> {
+  Data extends AstartePropertyData | AstarteDatastreamIndividualData | AstarteDatastreamObjectData,
+> implements AstarteDataTreeNode<Data>
+{
   readonly dataKind: AstarteDataTreeKind;
 
   readonly endpoint: string;

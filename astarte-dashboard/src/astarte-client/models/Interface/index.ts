@@ -47,7 +47,8 @@ interface AstarteInterfaceObject {
   mappings: AstarteMapping[];
 }
 
-const interfaceNameRegex = /^([a-zA-Z][a-zA-Z0-9]*\.([a-zA-Z0-9][a-zA-Z0-9-]*\.)*)?[a-zA-Z][a-zA-Z0-9]*$/;
+const interfaceNameRegex =
+  /^([a-zA-Z][a-zA-Z0-9]*\.([a-zA-Z0-9][a-zA-Z0-9-]*\.)*)?[a-zA-Z][a-zA-Z0-9]*$/;
 const mappingEndpointPlaceholderRegex = /%{[a-zA-Z]+[a-zA-Z0-9_]*}/;
 
 const getMappingEndpointPrefix = (endpoint: unknown) =>

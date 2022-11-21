@@ -78,7 +78,7 @@ export default (): React.ReactElement => {
   const [deletionAlerts, deletionAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
-  const { triggerName } = useParams();
+  const { triggerName = '' } = useParams();
 
   const triggerFetcher = useFetch(() => astarte.client.getTrigger(triggerName));
 

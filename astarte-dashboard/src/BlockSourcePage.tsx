@@ -37,7 +37,7 @@ const blockTypeToLabel = {
 };
 
 export default (): React.ReactElement => {
-  const { blockId } = useParams();
+  const { blockId = '' } = useParams();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletionAlerts, deletionAlertsController] = useAlerts();
   const navigate = useNavigate();
