@@ -74,7 +74,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:amqp, "~> 2.1"},
       {:castore, "~> 0.1.0"},
       {:cyanide, github: "ispirata/cyanide"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},

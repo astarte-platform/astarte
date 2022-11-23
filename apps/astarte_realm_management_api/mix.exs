@@ -88,7 +88,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:cors_plug, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:skogsra, "~> 2.2"},

@@ -79,7 +79,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:cyanide, github: "ispirata/cyanide"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
       # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
       {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},

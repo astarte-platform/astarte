@@ -85,7 +85,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:cors_plug, "~> 2.0"},
       {:plug_cowboy, "~> 2.1"},
       {:guardian, "~> 2.1"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},

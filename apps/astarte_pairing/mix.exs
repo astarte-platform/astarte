@@ -78,7 +78,7 @@ defmodule Astarte.Pairing.Mixfile do
     [
       {:cfxxl, github: "ispirata/cfxxl"},
       {:bcrypt_elixir, "~> 2.2"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},

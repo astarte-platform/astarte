@@ -80,7 +80,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   defp deps do
     [
       {:xandra, "~> 0.13"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:plug_cowboy, "~> 2.1"},
       {:skogsra, "~> 2.2"},
