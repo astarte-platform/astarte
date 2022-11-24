@@ -1,6 +1,6 @@
 {
   "name": "astarte-dashboard",
-  "version": "1.1.0-dev",
+  "version": "1.1.0-alpha.0",
   "description": "Astarte dashboard",
   "keywords": [
     "astarte",
@@ -10,13 +10,13 @@
   "contributors": [
     {
       "name": "Mattia Pavinati",
-      "email": "mattia.pavinati@ispirata.com",
-      "url": "https://ispirata.com/"
+      "email": "mattia.pavinati@secomind.com",
+      "url": "https://secomind.com/"
     },
     {
       "name": "Davide Briani",
-      "email": "davide.briani@ispirata.com",
-      "url": "https://ispirata.com/"
+      "email": "davide.briani@secomind.com",
+      "url": "https://secomind.com/"
     }
   ],
   "license": "Apache-2.0",
