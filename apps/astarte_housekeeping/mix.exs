@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.1.0-dev",
+      version: "1.1.0-alpha.0",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
@@ -80,7 +80,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   defp deps do
     [
       {:xandra, "~> 0.13"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:plug_cowboy, "~> 2.1"},
       {:skogsra, "~> 2.2"},

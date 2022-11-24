@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   def project do
     [
       app: :astarte_housekeeping_api,
-      version: "1.1.0-dev",
+      version: "1.1.0-alpha.0",
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
@@ -85,7 +85,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:cors_plug, "~> 2.0"},
       {:plug_cowboy, "~> 2.1"},
       {:guardian, "~> 2.1"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},

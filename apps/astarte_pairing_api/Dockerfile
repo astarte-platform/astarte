@@ -1,4 +1,9 @@
-FROM elixir:1.11.4 as builder
+FROM hexpm/elixir:1.11.4-erlang-23.2.7-debian-buster-20210208 as builder
+
+# install build dependencies
+# --allow-releaseinfo-change allows to pull from 'oldstable'
+RUN apt-get update --allow-releaseinfo-change -y && apt-get install -y build-essential git \
+    && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 WORKDIR /app
 

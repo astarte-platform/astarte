@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   def project do
     [
       app: :astarte_realm_management_api,
-      version: "1.1.0-dev",
+      version: "1.1.0-alpha.0",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
@@ -88,7 +88,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:cors_plug, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:skogsra, "~> 2.2"},
