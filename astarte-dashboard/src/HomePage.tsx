@@ -2,6 +2,7 @@
    This file is part of Astarte.
 
    Copyright 2020-2021 Ispirata Srl
+   Copyright 2022 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -210,7 +211,7 @@ const InterfacesCard = ({
           </Card.Text>
           <Card.Text>
             <a
-              href="https://docs.astarte-platform.org/1.0/030-interface.html"
+              href="https://docs.astarte-platform.org/1.1/030-interface.html"
               target="_blank"
               rel="noreferrer"
             >
@@ -288,7 +289,7 @@ const TriggersCard = ({
           </Card.Text>
           <Card.Text>
             <a
-              href="https://docs.astarte-platform.org/1.0/060-using_triggers.html"
+              href="https://docs.astarte-platform.org/1.1/060-using_triggers.html"
               target="_blank"
               rel="noreferrer"
             >
