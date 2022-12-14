@@ -150,8 +150,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
-             simple_trigger_id: DatabaseTestHelper.group1_device_connected_trigger_id(),
-             version: 1
+             simple_trigger_id: DatabaseTestHelper.group1_device_connected_trigger_id()
            }
 
     {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
@@ -176,8 +175,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
-             simple_trigger_id: DatabaseTestHelper.device_connected_trigger_id(),
-             version: 1
+             simple_trigger_id: DatabaseTestHelper.device_connected_trigger_id()
            }
 
     device_query =
@@ -281,8 +279,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: incoming_introspection_volatile_trigger_parent_id,
              realm: realm,
-             simple_trigger_id: incoming_introspection_volatile_trigger_id,
-             version: 1
+             simple_trigger_id: incoming_introspection_volatile_trigger_id
            }
 
     # Remove the incoming introspection trigger, don't curse next tests
@@ -365,8 +362,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: interface_added_volatile_trigger_parent_id,
              realm: realm,
-             simple_trigger_id: interface_added_volatile_trigger_id,
-             version: 1
+             simple_trigger_id: interface_added_volatile_trigger_id
            }
 
     # Remove the interface added trigger, don't curse next tests
@@ -451,8 +447,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: interface_minor_updated_volatile_trigger_parent_id,
              realm: realm,
-             simple_trigger_id: interface_minor_updated_volatile_trigger_id,
-             version: 1
+             simple_trigger_id: interface_minor_updated_volatile_trigger_id
            }
 
     # Remove the interface minor updated trigger, don't curse next tests
@@ -532,8 +527,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: interface_removed_volatile_trigger_parent_id,
              realm: realm,
-             simple_trigger_id: interface_removed_volatile_trigger_id,
-             version: 1
+             simple_trigger_id: interface_removed_volatile_trigger_id
            }
 
     # Remove the interface removed trigger, don't curse next tests
@@ -677,8 +671,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
-             simple_trigger_id: DatabaseTestHelper.less_than_device_incoming_trigger_id(),
-             version: 1
+             simple_trigger_id: DatabaseTestHelper.less_than_device_incoming_trigger_id()
            }
 
     DataUpdater.handle_data(
@@ -715,8 +708,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
-             simple_trigger_id: DatabaseTestHelper.equal_to_group_incoming_trigger_id(),
-             version: 1
+             simple_trigger_id: DatabaseTestHelper.equal_to_group_incoming_trigger_id()
            }
 
     DataUpdater.handle_data(
@@ -875,8 +867,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
-             simple_trigger_id: DatabaseTestHelper.greater_than_incoming_trigger_id(),
-             version: 1
+             simple_trigger_id: DatabaseTestHelper.greater_than_incoming_trigger_id()
            }
 
     {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
@@ -904,8 +895,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: volatile_changed_trigger_parent_id,
              realm: realm,
-             simple_trigger_id: volatile_changed_trigger_id,
-             version: 1
+             simple_trigger_id: volatile_changed_trigger_id
            }
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
@@ -949,8 +939,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: volatile_trigger_parent_id,
              realm: realm,
-             simple_trigger_id: volatile_trigger_id,
-             version: 1
+             simple_trigger_id: volatile_trigger_id
            }
 
     # We check that all 3 on_incoming_data triggers were correctly installed
@@ -1196,8 +1185,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: "autotestrealm",
-             simple_trigger_id: DatabaseTestHelper.path_removed_trigger_id(),
-             version: 1
+             simple_trigger_id: DatabaseTestHelper.path_removed_trigger_id()
            }
 
     endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/time/from")
@@ -1400,8 +1388,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
              realm: realm,
-             simple_trigger_id: DatabaseTestHelper.group2_device_connected_trigger_id(),
-             version: 1
+             simple_trigger_id: DatabaseTestHelper.group2_device_connected_trigger_id()
            }
 
     device_introspection_query =
