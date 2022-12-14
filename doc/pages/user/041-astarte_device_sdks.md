@@ -158,7 +158,9 @@ let namespaced_id = astarte_sdk::registration::generate_uuid(namespaceUuid, &pay
 ```
 
 ### Automatic Registration (Agent)
-You can refer to the [Astarte API for device registration](https://docs.astarte-platform.org/latest/api/index.html?urls.primaryName=Pairing%20API#/agent/registerDevice) for more details.
+You can refer to the [Astarte API for device
+registration](https://docs.astarte-platform.org/astarte/latest/api/index.html?urls.primaryName=Pairing%20API#/agent/registerDevice)
+for more details.
 
 C (ESP32):
 ```c
@@ -213,8 +215,10 @@ Rust:
 Unregistering a device boils down to making its credentials secret invalid.  
 Just as device registration, there are manual or programmatic options. 
 In all cases, you can use the astartectl command [`astartectl`](https://github.com/astarte-platform/astartectl),
-the [`Astarte Dashboard`](https://docs.astarte-platform.org/snapshot/015-astarte_dashboard.html)), or 
-the [Astarte API for device unregistration](https://docs.astarte-platform.org/latest/api/index.html?urls.primaryName=Pairing%20API#/agent/unregisterDevice).
+the [`Astarte
+Dashboard`](https://docs.astarte-platform.org/astarte/latest/015-astarte_dashboard.html)), or the
+[Astarte API for device
+unregistration](https://docs.astarte-platform.org/astarte/latest/api/index.html?urls.primaryName=Pairing%20API#/agent/unregisterDevice).
 
 For Go and Elixir, you can also do this programmatically. 
 
