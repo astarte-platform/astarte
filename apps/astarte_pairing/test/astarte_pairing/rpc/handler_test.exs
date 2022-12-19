@@ -135,10 +135,10 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
           {:generic_error_reply,
            %GenericErrorReply{
              error_name: "realm_not_found",
-             error_data: "",
-             user_readable_error_name: "",
-             user_readable_message: "",
-             user_readable_message: ""
+             error_data: nil,
+             user_readable_error_name: nil,
+             user_readable_message: nil,
+             user_readable_message: nil
            }},
         version: 0
       }
@@ -191,10 +191,10 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
           {:generic_error_reply,
            %GenericErrorReply{
              error_name: "realm_not_found",
-             error_data: "",
-             user_readable_error_name: "",
-             user_readable_message: "",
-             user_readable_message: ""
+             error_data: nil,
+             user_readable_error_name: nil,
+             user_readable_message: nil,
+             user_readable_message: nil
            }},
         version: 0
       }
@@ -388,9 +388,9 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
           {:generic_error_reply,
            %GenericErrorReply{
              error_name: "invalid_device_id",
-             error_data: "",
-             user_readable_error_name: "",
-             user_readable_message: ""
+             error_data: nil,
+             user_readable_error_name: nil,
+             user_readable_message: nil
            }},
         version: 0
       }
@@ -487,9 +487,9 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
           {:generic_error_reply,
            %GenericErrorReply{
              error_name: "invalid_ip",
-             error_data: "",
-             user_readable_error_name: "",
-             user_readable_message: ""
+             error_data: nil,
+             user_readable_error_name: nil,
+             user_readable_message: nil
            }},
         version: 0
       }
