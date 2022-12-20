@@ -49,10 +49,10 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
       reply:
         {:generic_error_reply,
          %GenericErrorReply{
-           error_data: "",
+           error_data: nil,
            error_name: "fake_error",
-           user_readable_error_name: "",
-           user_readable_message: ""
+           user_readable_error_name: nil,
+           user_readable_message: nil
          }}
     }
 
