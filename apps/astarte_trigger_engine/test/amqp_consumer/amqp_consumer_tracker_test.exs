@@ -94,6 +94,10 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
     # make sure we update the consumer list without waiting for the update timeout
     AMQPConsumerTracker.handle_info(:update_consumers, [])
 
+    # Take some more time, as Registry unsubscription is slower than other operations.
+    # See https://hexdocs.pm/elixir/1.13.4/Registry.html#module-registrations
+    Process.sleep(1000)
+
     assert not Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
              {@test_realm, policy_name}
