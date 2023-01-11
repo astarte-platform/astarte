@@ -25,11 +25,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
   alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
-
-  use Astarte.Core.Triggers.SimpleTriggersProtobuf
 
   require Logger
 

@@ -19,9 +19,6 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   use Astarte.RealmManagement.APIWeb, :view
   alias Astarte.RealmManagement.APIWeb.TriggerView
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-
-  use Astarte.Core.Triggers.SimpleTriggersProtobuf
 
   def render("index.json", %{triggers: triggers}) do
     %{data: render_many(triggers, TriggerView, "trigger_name_only.json")}
