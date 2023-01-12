@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   trigger policies.
 - [astarte_trigger_engine] Add a customizable HTTP trigger redelivery mechanism via
   trigger policies (see [#554](https://github.com/astarte-platform/astarte/issues/554)).
+- [astarte_realm_management] Allow to change the prefetch count of a trigger delivery policy.
+  This feature is experimental (disabled by default) and must be explicitly enabled using the
+  `REALM_MANAGEMENT_ALLOW_TRIGGER_POLICY_PREFETCH_COUNT` feature gate.
 
 ### Fixed
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 

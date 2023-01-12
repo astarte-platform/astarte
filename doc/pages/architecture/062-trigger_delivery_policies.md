@@ -51,14 +51,16 @@ A Trigger Delivery Policy is composed of:
   milliseconds an event is retained in the event queue. When an event expires, it is discarded from the event queue, even if it has not been
   delivered. This is optional.
 
-
 ## Known issues
 
 At the moment, Trigger Delivery Policies in general do not provide a guarantee of in-order delivery of events.
-Note that, since previous Astarte versions (i.e. < 1.1) did not provide a retry mechanism for events, this change does
-not impact the expected behaviour if Trigger Delivery Policies are not used.
+If the `retry` strategy is specified, in-order delivery cannot be guaranteed because a > 1 consumer prefetch count is being used. This allows for higher throughput at the cost of consistency.
+An experimental feature allows to set the maximum number of messages that can be dequeued concurrently from the event queue
+using AMQP (RabbitMQ) [consumer prefetch count](https://www.rabbitmq.com/consumer-prefetch.html). When prefetch count is set to 1, events are processed in order. Higher values allow for higher throughput by relaxing the ordering guarantee.
+This feature is disabled by default.
 
-- If the Astarte Trigger Engine service is replicated, events could be delivered out of order, as data from event queues are delivered to consumers in a round-robin fashion.
-- If the `retry` strategy is specified, in-order delivery cannot be guaranteed because a > 1 [consumer prefetch count](https://www.rabbitmq.com/consumer-prefetch.html) is being used.
-  This allows for higher throughput at the cost of consistency. In the future, the user will be allowed to choose between having an higher number of
-  events handled, but out of order, or ordered event handling at a lower rate.
+Moreover, Trigger Delivery Policies do not provide a guarantee of in-order delivery of events if the Astarte Trigger Engine component
+is replicated (event when the policy prefetch count is set to 1), as data from event queues are delivered to consumers in a round-robin fashion.
+
+Note that, since previous Astarte versions (i.e. < 1.1) did not provide a retry mechanism for events, both issues do
+not impact the expected behaviour if Trigger Delivery Policies are not used.
