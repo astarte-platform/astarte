@@ -71,33 +71,4 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPAction do
       end
     end)
   end
-
-  defimpl Jason.Encoder, for: AMQPAction do
-    def encode(action, opts) do
-      %AMQPAction{
-        amqp_exchange: amqp_exchange,
-        amqp_routing_key: amqp_routing_key,
-        amqp_static_headers: amqp_headers,
-        amqp_message_expiration_ms: amqp_message_expiration_ms,
-        amqp_message_persistent: amqp_message_persistent,
-        amqp_message_priority: amqp_message_priority
-      } = action
-
-      %{
-        "amqp_exchange" => amqp_exchange,
-        "amqp_routing_key" => amqp_routing_key,
-        "amqp_message_expiration_ms" => amqp_message_expiration_ms,
-        "amqp_message_persistent" => amqp_message_persistent
-      }
-      |> maybe_put("amqp_static_headers", amqp_headers)
-      |> maybe_put("amqp_message_priority", amqp_message_priority)
-      |> Jason.Encode.map(opts)
-    end
-
-    defp maybe_put(map, _key, nil),
-      do: map
-
-    defp maybe_put(map, key, value),
-      do: Map.put(map, key, value)
-  end
 end

@@ -156,31 +156,4 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
       end
     end)
   end
-
-  defimpl Jason.Encoder, for: HttpAction do
-    def encode(action, opts) do
-      %HttpAction{
-        http_url: http_url,
-        http_method: http_method,
-        http_static_headers: http_static_headers,
-        template: template,
-        template_type: template_type
-      } = action
-
-      %{
-        "http_url" => http_url,
-        "http_method" => http_method
-      }
-      |> maybe_put("http_static_headers", http_static_headers)
-      |> maybe_put("template", template)
-      |> maybe_put("template_type", template_type)
-      |> Jason.Encode.map(opts)
-    end
-
-    defp maybe_put(map, _key, nil),
-      do: map
-
-    defp maybe_put(map, key, value),
-      do: Map.put(map, key, value)
-  end
 end

@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-rc.0] - Unreleased
+### Fixed
+- [astarte_realm_management_api] Provide detailed feedback when a trigger action
+  is malformed. Fix [#748](https://github.com/astarte-platform/astarte/issues/748).
+
 ## [1.1.0-alpha.0] - 2022-11-24
 ### Added
 - [astarte_data_updater_plant] Add support for device introspection triggers.
