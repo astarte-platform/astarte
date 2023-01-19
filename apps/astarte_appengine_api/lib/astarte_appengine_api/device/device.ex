@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -412,8 +412,9 @@ defmodule Astarte.AppEngine.API.Device do
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,
          expected_types <- extract_expected_types(mappings),
-         :ok <- validate_value_type(expected_types, raw_value),
-         wrapped_value = wrap_to_bson_struct(nil, raw_value),
+         {:ok, value} <- cast_value(expected_types, raw_value),
+         :ok <- validate_value_type(expected_types, value),
+         wrapped_value = wrap_to_bson_struct(nil, value),
          reliability = extract_aggregate_reliability(mappings),
          interface_type = interface_descriptor.type,
          publish_opts = build_publish_opts(interface_type, reliability),
@@ -447,7 +448,7 @@ defmodule Astarte.AppEngine.API.Device do
         nil,
         nil,
         path,
-        raw_value,
+        value,
         timestamp_micro,
         opts
       )
@@ -674,6 +675,21 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp cast_value(expected_types, object) when is_map(expected_types) and is_map(object) do
+    Enum.reduce_while(object, {:ok, %{}}, fn {key, value}, {:ok, acc} ->
+      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+           {:ok, normalized_value} <- cast_value(expected_type, value) do
+        {:cont, {:ok, Map.put(acc, key, normalized_value)}}
+      else
+        {:error, reason, expected} ->
+          {:halt, {:error, reason, expected}}
+
+        :error ->
+          {:halt, {:error, :unexpected_object_key}}
+      end
+    end)
   end
 
   defp cast_value(:datetime, value) when is_binary(value) do
