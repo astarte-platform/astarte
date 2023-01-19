@@ -751,7 +751,7 @@ defmodule Astarte.AppEngine.API.Device do
     {:ok, anyvalue}
   end
 
-  defp map_while_ok(values, fun) do
+  defp map_while_ok(values, fun) when is_list(values) do
     result =
       Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
         case fun.(value) do
@@ -766,6 +766,10 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, mapped_values} <- result do
       {:ok, Enum.reverse(mapped_values)}
     end
+  end
+
+  defp map_while_ok(not_list_values, _fun) do
+    {:error, :values_is_not_a_list}
   end
 
   defp wrap_to_bson_struct(:binaryblob, value) do

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Correctly handle `binaryblob` and `datetime` in server-owned object
   aggregated interfaces.
+- [astarte_appengine_api] Handle non-array values POSTed to an array endpoint gracefully instead of
+  crashing with an Internal Server Error
 
 ## [1.0.4] - 2022-10-25
 ### Changed
