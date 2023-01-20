@@ -30,6 +30,14 @@ defmodule Astarte.RealmManagement.Config do
     type: :integer,
     default: 4000
 
+  @envdoc "Specify whether to allow setting a custom consumer prefetch count for trigger policy queues (experimental feature)."
+  app_env :allow_trigger_policy_prefetch_count,
+          :astarte_realm_management,
+          :allow_trigger_policy_prefetch_count,
+          os_env: "REALM_MANAGEMENT_ALLOW_TRIGGER_POLICY_PREFETCH_COUNT",
+          type: :boolean,
+          default: false
+
   def cassandra_node!, do: Enum.random(cqex_nodes!())
 
   @doc """

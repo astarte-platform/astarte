@@ -25,6 +25,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   alias Astarte.RealmManagement.Engine
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.RealmManagement.Config
 
   @test_interface_a_0 """
   {
@@ -612,6 +613,22 @@ defmodule Astarte.RealmManagement.EngineTest do
       "maximum_capacity": 300,
       "retry_times": 10,
       "event_ttl": 10
+    }
+  """
+
+  @test_trigger_policy_3 """
+    {
+      "name": "yetanothername",
+      "error_handlers": [
+        {
+          "on" : "any_error",
+          "strategy": "retry"
+        }
+      ],
+      "maximum_capacity": 300,
+      "retry_times": 10,
+      "event_ttl": 10,
+      "prefetch_count": 1
     }
   """
 
@@ -1390,6 +1407,20 @@ defmodule Astarte.RealmManagement.EngineTest do
       |> Enum.sort()
 
     assert sorted_policies == ["aname", "anothername"]
+  end
+
+  test "install trigger policy with set prefetch_count succeeds only when the feature is enabled" do
+    assert Config.allow_trigger_policy_prefetch_count!() == false
+
+    assert Engine.install_trigger_policy("autotestrealm", @test_trigger_policy_3) ==
+             {:error, :trigger_policy_prefetch_count_not_allowed}
+
+    Config.put_allow_trigger_policy_prefetch_count(true)
+    assert Config.allow_trigger_policy_prefetch_count!() == true
+    assert Engine.install_trigger_policy("autotestrealm", @test_trigger_policy_3) == :ok
+
+    # Let's go back to normal
+    Config.put_allow_trigger_policy_prefetch_count(false)
   end
 
   test "trigger and policy installation coherence" do
