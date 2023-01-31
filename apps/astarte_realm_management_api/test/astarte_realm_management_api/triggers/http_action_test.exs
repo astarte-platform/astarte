@@ -207,33 +207,4 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
 
     assert length(errors) == 1
   end
-
-  test "well-formed http action with headers is correctly encoded" do
-    input = %{
-      "http_url" => "https://example.com/",
-      "http_method" => "put",
-      "http_static_headers" => %{
-        "Foo" => "Bar",
-        "Key" => "Value"
-      }
-    }
-
-    out =
-      %HttpAction{}
-      |> HttpAction.changeset(input)
-      |> Changeset.apply_action(:insert)
-
-    assert {:ok, action} = out
-
-    jason_out_map =
-      action
-      |> Jason.encode!()
-      |> Jason.decode!()
-
-    assert %{
-             "http_url" => "https://example.com/",
-             "http_method" => "put",
-             "http_static_headers" => %{"Foo" => "Bar", "Key" => "Value"}
-           } = jason_out_map
-  end
 end

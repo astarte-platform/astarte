@@ -19,14 +19,15 @@
 defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   use Ecto.Schema
   import Ecto.Changeset
+  alias Ecto.Changeset
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.RealmManagement.API.Triggers.{AMQPAction, HttpAction, Trigger}
+  alias Astarte.RealmManagement.API.Triggers.{Action, AMQPAction, HttpAction, Trigger}
 
   @derive {Phoenix.Param, key: :name}
   @primary_key false
   embedded_schema do
     field :name, :string
-    field :action, :any, virtual: true
+    embeds_one :action, Action
     field :policy, :string
     embeds_one :amqp_action, AMQPAction
     embeds_one :http_action, HttpAction
@@ -74,23 +75,37 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
   end
 
   def normalize(changeset) do
-    amqp_action = get_field(changeset, :amqp_action)
-    http_action = get_field(changeset, :http_action)
+    amqp_action = get_change(changeset, :amqp_action)
+    http_action = get_change(changeset, :http_action)
 
     case {amqp_action, http_action} do
       {nil, nil} ->
         changeset
 
       {_, nil} ->
-        changeset
-        |> delete_change(:amqp_action)
-        |> put_change(:action, amqp_action)
+        normalize_action(changeset, amqp_action)
 
       {nil, _} ->
-        changeset
-        |> delete_change(:http_action)
-        |> put_change(:action, http_action)
+        normalize_action(changeset, http_action)
     end
+  end
+
+  defp normalize_action(parent_changeset, action_changeset) do
+    %Changeset{changes: changes, errors: errors} = action_changeset
+
+    parent_changeset
+    |> delete_change(:amqp_action)
+    |> delete_change(:http_action)
+    |> put_change(:action, changes)
+    |> put_errors(:action, errors)
+  end
+
+  defp put_errors(changeset, field, errors) do
+    Enum.reduce(errors, changeset, fn {subfield, {message, keys}}, acc ->
+      Changeset.update_change(acc, field, fn sub_changeset ->
+        Changeset.add_error(sub_changeset, subfield, message, keys)
+      end)
+    end)
   end
 
   def policy_name_regex do
