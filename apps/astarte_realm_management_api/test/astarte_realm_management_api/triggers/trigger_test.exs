@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Astarte.RealmManagement.API.Triggers.AMQPAction
   alias Astarte.RealmManagement.API.Triggers.HttpAction
+  alias Astarte.RealmManagement.API.Triggers.Action
   alias Ecto.Changeset
 
   test "valid triggers with http action are accepted" do
@@ -48,9 +49,50 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
     assert {:ok,
             %Trigger{
               name: "test_trigger",
-              action: %HttpAction{
+              action: %Action{
                 http_url: "http://www.example.com",
-                http_method: "delete"
+                http_method: "delete",
+                ignore_ssl_errors: false
+              },
+              simple_triggers: [
+                %SimpleTriggerConfig{
+                  device_id: "*",
+                  on: "device_connected",
+                  type: "device_trigger"
+                }
+              ]
+            }} == out
+  end
+
+  test "valid triggers with http action and ignore_ssl_errors are accepted" do
+    input = %{
+      "name" => "test_trigger",
+      "simple_triggers" => [
+        %{
+          "type" => "device_trigger",
+          "device_id" => "*",
+          "on" => "device_connected"
+        }
+      ],
+      "action" => %{
+        "http_url" => "http://www.example.com",
+        "http_method" => "delete",
+        "ignore_ssl_errors" => true
+      }
+    }
+
+    out =
+      %Trigger{}
+      |> Trigger.changeset(input, realm_name: "test")
+      |> Changeset.apply_action(:insert)
+
+    assert {:ok,
+            %Trigger{
+              name: "test_trigger",
+              action: %Action{
+                http_url: "http://www.example.com",
+                http_method: "delete",
+                ignore_ssl_errors: true
               },
               simple_triggers: [
                 %SimpleTriggerConfig{
@@ -85,7 +127,7 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
     assert {:ok,
             %Trigger{
               name: "test_trigger",
-              action: %HttpAction{
+              action: %Action{
                 http_url: "http://www.example.com",
                 http_method: "post"
               },
@@ -126,7 +168,7 @@ defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
     assert {:ok,
             %Trigger{
               name: "test_trigger",
-              action: %AMQPAction{
+              action: %Action{
                 amqp_exchange: "astarte_events_test_custom_exchange",
                 amqp_routing_key: "routing_key",
                 amqp_message_persistent: true,

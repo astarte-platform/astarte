@@ -1157,7 +1157,8 @@ defmodule Astarte.RealmManagement.EngineTest do
     action = """
     {
       "http_url": "http://hello.world.ai",
-      "http_method": "post"
+      "http_method": "post",
+      "ignore_ssl_errors": true
     }
     """
 
