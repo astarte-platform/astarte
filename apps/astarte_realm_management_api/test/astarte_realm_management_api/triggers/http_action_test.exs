@@ -207,4 +207,24 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
 
     assert length(errors) == 1
   end
+
+  test "ignore_ssl_errors is set" do
+    input = %{
+      "http_url" => "http://example.com/",
+      "http_method" => "get",
+      "ignore_ssl_errors" => true
+    }
+
+    out =
+      %HttpAction{}
+      |> HttpAction.changeset(input)
+      |> Changeset.apply_action(:insert)
+
+    assert {:ok,
+            %HttpAction{
+              http_url: "http://example.com/",
+              http_method: "get",
+              ignore_ssl_errors: true
+            }} = out
+  end
 end

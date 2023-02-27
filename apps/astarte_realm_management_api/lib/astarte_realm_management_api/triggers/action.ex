@@ -34,6 +34,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Action do
     field :template, :string
     field :template_type, :string
     field :http_post_url, :string, virtual: true
+    # Default here because it's Action that gets inserted, not HttpAction
+    field :ignore_ssl_errors, :boolean, default: false
     field :amqp_exchange, :string
     field :amqp_routing_key, :string
     field :amqp_static_headers, {:map, :string}
@@ -49,12 +51,14 @@ defmodule Astarte.RealmManagement.API.Triggers.Action do
         http_method: http_method,
         http_static_headers: http_static_headers,
         template: template,
-        template_type: template_type
+        template_type: template_type,
+        ignore_ssl_errors: ignore_ssl_errors
       } = action
 
       %{
         "http_url" => http_url,
-        "http_method" => http_method
+        "http_method" => http_method,
+        "ignore_ssl_errors" => ignore_ssl_errors
       }
       |> maybe_put("http_static_headers", http_static_headers)
       |> maybe_put("template", template)

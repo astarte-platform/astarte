@@ -31,6 +31,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     field :template_type, :string
 
     field :http_post_url, :string, virtual: true
+    field :ignore_ssl_errors, :boolean
   end
 
   @all_attrs [
@@ -39,7 +40,8 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     :http_static_headers,
     :template,
     :template_type,
-    :http_post_url
+    :http_post_url,
+    :ignore_ssl_errors
   ]
 
   @valid_methods ["delete", "get", "head", "options", "patch", "post", "put"]
