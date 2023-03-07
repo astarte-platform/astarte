@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_realm_management_api] Provide detailed feedback when a trigger action
   is malformed. Fix [#748](https://github.com/astarte-platform/astarte/issues/748).
+- [astarte_realm_management_api] Include the `policy` field when a trigger is returned.
 
 ## [1.1.0-alpha.0] - 2022-11-24
 ### Added
