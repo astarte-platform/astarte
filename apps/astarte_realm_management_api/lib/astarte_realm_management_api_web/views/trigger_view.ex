@@ -56,7 +56,8 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
     %{
       name: trigger.name,
       action: trigger.action,
-      simple_triggers: trigger.simple_triggers
+      simple_triggers: trigger.simple_triggers,
+      policy: trigger.policy
     }
   end
 
