@@ -80,6 +80,7 @@ export default (): React.ReactElement => {
           onChange={handleTriggerChange}
           onError={handleTriggerEditorError}
           isSourceVisible={isSourceVisible}
+          fetchPoliciesName={astarte.client.getPolicyNames}
           fetchInterfacesName={astarte.client.getInterfaceNames}
           fetchInterfaceMajors={astarte.client.getInterfaceMajors}
           fetchInterface={astarte.client.getInterface}
