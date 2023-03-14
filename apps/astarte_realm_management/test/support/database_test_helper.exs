@@ -19,10 +19,6 @@
 defmodule Astarte.RealmManagement.DatabaseTestHelper do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Client, as: DatabaseClient
-  alias CQEx.Result, as: DatabaseResult
-  alias Astarte.RealmManagement.Config
   require Logger
 
   @jwt_public_key_pem """
@@ -136,173 +132,181 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
   @insert_public_key """
     INSERT INTO autotestrealm.kv_store (group, key, value)
-    VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
+    VALUES ('auth', 'jwt_public_key_pem', :pem);
   """
 
-  def seed_datastream_test_data(client, device_id, interface_name, major, endpoint_id, path) do
+  def seed_datastream_test_data(device_id, interface_name, major, endpoint_id, path) do
     interface_id = CQLUtils.interface_id(interface_name, major)
 
     Enum.each(
       [
         """
-        INSERT INTO individual_properties
+        INSERT INTO autotestrealm.individual_properties
           (device_id, interface_id, endpoint_id, path)
         VALUES (:device_id, :interface_id, :endpoint_id, :path);
         """,
         """
-        INSERT INTO individual_datastreams
+        INSERT INTO autotestrealm.individual_datastreams
           (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value)
         VALUES (:device_id, :interface_id, :endpoint_id, '/0/integerValues', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 0, 42);
         """
       ],
       fn statement ->
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(statement)
-          |> DatabaseQuery.put(:device_id, device_id)
-          |> DatabaseQuery.put(:interface_id, interface_id)
-          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-          |> DatabaseQuery.put(:path, path)
+        params = %{
+          device_id: device_id,
+          interface_id: interface_id,
+          endpoint_id: endpoint_id,
+          path: path
+        }
 
-        DatabaseQuery.call!(client, query)
+        execute_query!(statement, params)
       end
     )
 
-    kv_store_statement = "INSERT INTO kv_store (group, key) VALUES (:group, :key)"
+    kv_store_statement = "INSERT INTO autotestrealm.kv_store (group, key) VALUES (:group, :key)"
 
-    kv_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(kv_store_statement)
-      |> DatabaseQuery.put(:group, "devices-with-data-on-interface-#{interface_name}-v0")
-      |> DatabaseQuery.put(:key, Device.encode_device_id(device_id))
-      |> DatabaseQuery.consistency(:all)
+    kv_params = %{
+      group: "devices-with-data-on-interface-#{interface_name}-v0",
+      key: Device.encode_device_id(device_id)
+    }
 
-    DatabaseQuery.call!(client, kv_query)
+    execute_query!(kv_store_statement, kv_params)
 
     :ok
   end
 
-  def count_rows_for_datastream(client, device_id, interface_name, major, endpoint_id, path) do
+  def count_rows_for_datastream(device_id, interface_name, major, endpoint_id, path) do
     count_statement = """
     SELECT COUNT(*)
-    FROM individual_datastreams
+    FROM autotestrealm.individual_datastreams
     WHERE device_id=:device_id AND interface_id=:interface_id
       AND endpoint_id=:endpoint_id AND path=:path
     """
 
     interface_id = CQLUtils.interface_id(interface_name, major)
 
-    count_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(count_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
+    count_params = %{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    }
 
-    DatabaseQuery.call!(client, count_query)
-    |> DatabaseResult.head()
-    |> Keyword.fetch!(:count)
+    execute_query!(count_statement, count_params, consistency: :all)
+    |> Enum.to_list()
+    |> (fn [%{count: count}] -> count end).()
   end
 
-  def seed_properties_test_value(client, device_id, interface_name, major, endpoint_id, path) do
+  def seed_properties_test_value(device_id, interface_name, major, endpoint_id, path) do
     interface_id = CQLUtils.interface_id(interface_name, major)
 
     property_statement = """
-    INSERT INTO individual_properties
+    INSERT INTO autotestrealm.individual_properties
       (device_id, interface_id, endpoint_id, path)
     VALUES (:device_id, :interface_id, :endpoint_id, :path)
     """
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(property_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
+    property_params = %{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    }
 
-    DatabaseQuery.call!(client, query)
+    execute_query!(property_statement, property_params)
 
-    kv_store_statement = "INSERT INTO kv_store (group, key) VALUES (:group, :key)"
+    kv_store_statement = "INSERT INTO autotestrealm.kv_store (group, key) VALUES (:group, :key)"
 
-    kv_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(kv_store_statement)
-      |> DatabaseQuery.put(:group, "devices-with-data-on-interface-#{interface_name}-v0")
-      |> DatabaseQuery.put(:key, Device.encode_device_id(device_id))
-      |> DatabaseQuery.consistency(:all)
+    kv_params = %{
+      group: "devices-with-data-on-interface-#{interface_name}-v0",
+      key: Device.encode_device_id(device_id)
+    }
 
-    DatabaseQuery.call!(client, kv_query)
+    execute_query!(kv_store_statement, kv_params)
 
     :ok
   end
 
-  def count_interface_properties_for_device(client, device_id, interface_name, major) do
+  def count_interface_properties_for_device(device_id, interface_name, major) do
     count_statement = """
     SELECT COUNT(*)
-    FROM individual_properties
+    FROM autotestrealm.individual_properties
     WHERE device_id=:device_id AND interface_id=:interface_id
     """
 
     interface_id = CQLUtils.interface_id(interface_name, major)
 
-    count_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(count_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
+    count_params = %{
+      device_id: device_id,
+      interface_id: interface_id
+    }
 
-    DatabaseQuery.call!(client, count_query)
-    |> DatabaseResult.head()
-    |> Keyword.fetch!(:count)
+    execute_query!(count_statement, count_params, consistency: :all)
+    |> Enum.to_list()
+    |> (fn [%{count: count}] -> count end).()
   end
 
-  def create_test_keyspace(client) do
-    DatabaseQuery.call!(client, @create_autotestrealm)
-    DatabaseQuery.call!(client, @create_interfaces_table)
-    DatabaseQuery.call!(client, @create_endpoints_table)
-    DatabaseQuery.call!(client, @create_individual_properties_table)
-    DatabaseQuery.call!(client, @create_kv_store_table)
-    DatabaseQuery.call!(client, @create_simple_triggers_table)
+  def create_test_keyspace() do
+    Xandra.Cluster.run(
+      :xandra,
+      fn conn ->
+        Xandra.execute!(conn, @create_autotestrealm)
+        Xandra.execute!(conn, @create_interfaces_table)
+        Xandra.execute!(conn, @create_endpoints_table)
+        Xandra.execute!(conn, @create_individual_properties_table)
+        Xandra.execute!(conn, @create_kv_store_table)
+        Xandra.execute!(conn, @create_simple_triggers_table)
+      end
+    )
 
     :ok
   end
 
-  def seed_test_data(client) do
+  def seed_test_data() do
     Enum.each(["interfaces", "endpoints", "individual_properties", "kv_store"], fn table ->
-      DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
+      Xandra.Cluster.run(:xandra, &Xandra.execute!(&1, "TRUNCATE autotestrealm.#{table}"))
     end)
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_public_key)
-      |> DatabaseQuery.put(:pem, @jwt_public_key_pem)
+    Xandra.Cluster.run(:xandra, fn conn ->
+      with {:ok, prepared} <- Xandra.prepare(conn, @insert_public_key),
+           {:ok, _result} <- Xandra.execute(conn, prepared, %{pem: @jwt_public_key_pem}) do
+        :ok
+      else
+        error ->
+          Logger.warn("Database error: #{inspect(error)}")
+          {:error, :database_error}
+      end
+    end)
+  end
 
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
+  def drop_test_keyspace() do
+    with {:ok, _result} <-
+           Xandra.Cluster.run(:xandra, &Xandra.execute(&1, "DROP KEYSPACE autotestrealm")) do
       :ok
     else
       error ->
         Logger.warn("Database error: #{inspect(error)}")
         {:error, :database_error}
     end
-  end
-
-  def drop_test_keyspace(client) do
-    with {:ok, _result} <- DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm") do
-      :ok
-    else
-      error ->
-        Logger.warn("Database error: #{inspect(error)}")
-        {:error, :database_error}
-    end
-  end
-
-  def connect_to_test_database do
-    DatabaseClient.new(List.first(Config.cqex_nodes!()))
   end
 
   def jwt_public_key_pem_fixture do
     @jwt_public_key_pem
+  end
+
+  defp execute_query!(statement, params \\ %{}, opts \\ []) do
+    Xandra.Cluster.run(
+      :xandra,
+      fn conn ->
+        {:ok, prepared} = Xandra.prepare(conn, statement)
+
+        Xandra.execute!(
+          conn,
+          prepared,
+          params,
+          opts ++ [uuid_format: :binary, timestamp_format: :integer]
+        )
+      end
+    )
   end
 end
