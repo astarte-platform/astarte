@@ -67,7 +67,7 @@ defmodule CSystem do
     with {:ok, res} <- Xandra.execute(conn, query, %{}, consistency: :one) do
       schema_versions =
         res
-        |> Stream.map(&Map.fetch!(&1, "schema_version"))
+        |> Stream.map(&Map.fetch!(&1, :schema_version))
         |> Stream.uniq()
         |> Enum.to_list()
 
@@ -83,7 +83,7 @@ defmodule CSystem do
         res
         |> Enum.take(1)
         |> List.first()
-        |> Map.fetch!("schema_version")
+        |> Map.fetch!(:schema_version)
 
       {:ok, schema_version}
     end
