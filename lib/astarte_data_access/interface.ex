@@ -21,21 +21,23 @@ defmodule Astarte.DataAccess.Interface do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.XandraUtils
 
-  @spec retrieve_interface_row(String.t(), String.t(), integer) ::
+  @interface_row_default_selector "name, major_version, minor_version, interface_id, type, ownership, aggregation,
+  storage, storage_type, automaton_transitions, automaton_accepting_states"
+
+  @spec retrieve_interface_row(String.t(), String.t(), integer, keyword()) ::
           {:ok, keyword()} | {:error, atom}
-  def retrieve_interface_row(realm, interface_name, major_version) do
-    with true <- Utils.verify_realm_ok(realm) do
-      Xandra.Cluster.run(
-        :astarte_data_access_xandra,
-        &do_retrieve_interface_row(&1, realm, interface_name, major_version)
-      )
-    end
+  def retrieve_interface_row(realm, interface_name, major_version, opts \\ []) do
+    XandraUtils.run(
+      realm,
+      &do_retrieve_interface_row(&1, &2, interface_name, major_version, opts)
+    )
   end
 
-  def do_retrieve_interface_row(conn, realm_name, interface_name, major_version) do
-    interface_row_query = """
-    SELECT name, major_version, minor_version, interface_id, type, ownership, aggregation,
-      storage, storage_type, automaton_transitions, automaton_accepting_states
+  def do_retrieve_interface_row(conn, realm_name, interface_name, major_version, opts) do
+    selector = if opts[:include_docs], do: "*", else: @interface_row_default_selector
+
+    statement = """
+    SELECT #{selector}
     FROM #{realm_name}.interfaces
     WHERE name=:name AND major_version=:major_version
     """
@@ -46,7 +48,7 @@ defmodule Astarte.DataAccess.Interface do
     }
 
     with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, interface_row_query, params) do
+           XandraUtils.retrieve_page(conn, statement, params) do
       case Enum.to_list(page) do
         [] -> {:error, :interface_not_found}
         [row] -> {:ok, row}
