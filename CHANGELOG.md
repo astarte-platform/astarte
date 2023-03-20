@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   aggregated interfaces.
 - [astarte_appengine_api] Handle non-array values POSTed to an array endpoint gracefully instead of
   crashing with an Internal Server Error
+  
+### Changed
+- [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
+  Astarte Operator and Kubernetes are moved to the
+  [astarte-kubernetes-operator](https://github.com/astarte-platform/astarte-kubernetes-operator)
+  repository.
 
 ## [1.0.4] - 2022-10-25
 ### Changed

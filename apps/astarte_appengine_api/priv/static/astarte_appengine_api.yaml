@@ -41,7 +41,7 @@ info:
     email: info@ispirata.com
 externalDocs:
   description: User documentation
-  url: 'https://docs.astarte-platform.org/1.0/050-query_device.html'
+  url: 'https://docs.astarte-platform.org/astarte/1.0/050-query_device.html'
 tags:
   - name: device
     description: >-
