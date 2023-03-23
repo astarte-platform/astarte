@@ -323,12 +323,16 @@ class AstarteClient {
   }
 
   async getTrigger(triggerName: string): Promise<AstarteTrigger> {
-    const response = await this.$get(this.apiConfig.trigger({ ...this.config, triggerName }));
+    const encodedTriggerName = encodeURIComponent(triggerName);
+    const response = await this.$get(
+      this.apiConfig.trigger({ ...this.config, triggerName: encodedTriggerName }),
+    );
     return fromAstarteTriggerDTO(response.data);
   }
 
   async deleteTrigger(triggerName: string): Promise<void> {
-    await this.$delete(this.apiConfig.trigger({ ...this.config, triggerName }));
+    const encodedTriggerName = encodeURIComponent(triggerName);
+    await this.$delete(this.apiConfig.trigger({ ...this.config, triggerName: encodedTriggerName }));
   }
 
   async installTrigger(trigger: AstarteTrigger): Promise<void> {
