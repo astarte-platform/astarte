@@ -1,7 +1,13 @@
 defmodule Doc.MixProject do
   use Mix.Project
 
+  @source_ref "release-1.0"
+
   def project do
+    source_version =
+      String.replace_prefix(@source_ref, "release-", "")
+      |> String.replace("master", "snapshot")
+
     [
       app: :doc,
       version: "1.0.4",
@@ -9,7 +15,8 @@ defmodule Doc.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Astarte",
-      homepage_url: "http://astarte-platform.org",
+      homepage_url: "https://docs.astarte-platform.org/astarte/#{source_version}/",
+      source_url: "https://github.com/astarte-platform/astarte",
       docs: docs()
     ]
   end
@@ -23,12 +30,12 @@ defmodule Doc.MixProject do
     [
       main: "001-intro_user",
       logo: "images/mascot.png",
-      source_url: "https://git.ispirata.com/Astarte-NG/%{path}#L%{line}",
       # It's in the docs repo root
       javascript_config_path: "../common_vars.js",
       extras: Path.wildcard("pages/*/*.md"),
       assets: "images/",
       api_reference: false,
+      source_ref: "#{@source_ref}/doc",
       groups_for_extras: [
         "Architecture, Design and Concepts": ~r"/architecture/",
         "User Guide": ~r"/user/",
