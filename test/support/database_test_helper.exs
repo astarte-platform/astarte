@@ -17,9 +17,6 @@
 #
 
 defmodule Astarte.DataAccess.DatabaseTestHelper do
-  alias Astarte.DataAccess.Database
-  alias CQEx.Query, as: DatabaseQuery
-
   @create_autotestrealm """
     CREATE KEYSPACE autotestrealm
       WITH
@@ -384,71 +381,32 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     ('org.astarte-platform.NewInterface', 0, :automaton_accepting_states, :automaton_transitions, 1,
     53d09b30-67cd-dcf3-de1e-2870ead21f13, 1, 1, 'individual_properties', 1, 1)
   """
-  def connect_to_test_keyspace() do
-    Database.connect(realm: "autotestrealm")
-  end
 
-  def insert_empty_device(client, device_id) do
-    insert_statement = "INSERT INTO devices (device_id) VALUES (:device_id)"
-
-    insert_device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    DatabaseQuery.call!(client, insert_device_query)
-  end
-
-  def remove_device(client, device_id) do
-    delete_statement = "DELETE FROM devices WHERE device_id=:device_id"
-
-    delete_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    DatabaseQuery.call!(client, delete_query)
-  end
-
-  def create_test_keyspace do
-    {:ok, client} = Database.connect()
-
-    case DatabaseQuery.call(client, @create_autotestrealm) do
+  def create_test_keyspace(conn) do
+    case Xandra.execute(conn, @create_autotestrealm) do
       {:ok, _} ->
-        DatabaseQuery.call!(client, @create_devices_table)
+        Xandra.execute!(conn, @create_devices_table)
+        Xandra.execute!(conn, @create_names_table)
+        Xandra.execute!(conn, @create_kv_store)
+        Xandra.execute!(conn, @create_endpoints_table)
+        Xandra.execute!(conn, @create_individual_properties_table)
+        Xandra.execute!(conn, @create_individual_datastreams_table)
+        Xandra.execute!(conn, @create_test_object_table)
+        Xandra.execute!(conn, @create_interfaces_table)
+        :ok
 
-        DatabaseQuery.call!(client, @create_names_table)
-
-        DatabaseQuery.call!(client, @create_kv_store)
-
-        DatabaseQuery.call!(client, @create_endpoints_table)
-
-        DatabaseQuery.call!(client, @create_individual_properties_table)
-        DatabaseQuery.call!(client, @create_individual_datastreams_table)
-        DatabaseQuery.call!(client, @create_test_object_table)
-
-        DatabaseQuery.call!(client, @create_interfaces_table)
-
-        {:ok, client}
-
-      %{msg: msg} ->
+      {:error, msg} ->
         {:error, msg}
     end
   end
 
-  def seed_data do
-    {:ok, client} = Database.connect()
-
+  def seed_data(conn) do
     Enum.each(
       ["interfaces", "endpoints", "individual_properties", "individual_datastreams", "kv_store"],
       fn table ->
-        DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
+        Xandra.execute!(conn, "TRUNCATE autotestrealm.#{table}")
       end
     )
-
-    insert_device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_device_statement)
 
     devices_list = [
       {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000, %{"display_name" => "device_a"}},
@@ -461,111 +419,95 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     for {encoded_device_id, total_received_bytes, aliases} <- devices_list do
       device_id = Base.url_decode64!(encoded_device_id, padding: false)
 
-      insert_device_query =
-        insert_device_query
-        |> DatabaseQuery.put(:device_id, device_id)
-        |> DatabaseQuery.put(:aliases, aliases)
-        |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
+      insert_device_query_params = %{
+        device_id: device_id,
+        aliases: aliases,
+        total_received_bytes: total_received_bytes
+      }
 
-      DatabaseQuery.call!(client, insert_device_query)
+      insert_device_query_prp = Xandra.prepare!(conn, @insert_device_statement)
+
+      Xandra.execute!(conn, insert_device_query_prp, insert_device_query_params)
 
       for {_key, device_alias} <- aliases || %{} do
-        insert_alias_query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_alias_statement)
-          |> DatabaseQuery.put(:device_id, device_id)
-          |> DatabaseQuery.put(:alias, device_alias)
+        insert_alias_query_params = %{
+          device_id: device_id,
+          alias: device_alias
+        }
 
-        DatabaseQuery.call!(client, insert_alias_query)
+        alias_query_prepared = Xandra.prepare!(conn, @insert_alias_statement)
+
+        Xandra.execute!(conn, alias_query_prepared, insert_alias_query_params)
       end
     end
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_interface_0)
-      |> DatabaseQuery.put(
-        :automaton_accepting_states,
+    insert_into_interface_0_params = %{
+      automaton_accepting_states:
         Base.decode64!(
           "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
-        )
-      )
-      |> DatabaseQuery.put(
-        :automaton_transitions,
+        ),
+      automaton_transitions:
         Base.decode64!(
           "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
         )
-      )
+    }
 
-    DatabaseQuery.call!(client, query)
+    insert_into_interface_0_prepared = Xandra.prepare!(conn, @insert_into_interface_0)
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_interface_1)
-      |> DatabaseQuery.put(
-        :automaton_accepting_states,
+    Xandra.execute!(conn, insert_into_interface_0_prepared, insert_into_interface_0_params)
+
+    insert_into_interface_1_params = %{
+      automaton_accepting_states:
         Base.decode64!(
           "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
-        )
-      )
-      |> DatabaseQuery.put(
-        :automaton_transitions,
+        ),
+      automaton_transitions:
         Base.decode64!(
           "g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="
         )
-      )
+    }
 
-    DatabaseQuery.call!(client, query)
+    insert_into_interface_1_prepared = Xandra.prepare!(conn, @insert_into_interface_1)
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_interface_2)
+    Xandra.execute!(conn, insert_into_interface_1_prepared, insert_into_interface_1_params)
 
-    DatabaseQuery.call!(client, query)
+    Xandra.execute!(conn, @insert_into_interface_2, %{})
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_interface_3)
-      |> DatabaseQuery.put(
-        :automaton_accepting_states,
-        Base.decode64!("g3QAAAABYQNtAAAAEOPZVKNVUNqw17mW3O0hiYc=")
-      )
-      |> DatabaseQuery.put(
-        :automaton_transitions,
+    insert_into_interface_3_params = %{
+      automaton_accepting_states: Base.decode64!("g3QAAAABYQNtAAAAEOPZVKNVUNqw17mW3O0hiYc="),
+      automaton_transitions:
         Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAABhAmgCYQJtAAAABWNvbG9yYQM=")
-      )
+    }
 
-    DatabaseQuery.call!(client, query)
+    insert_into_interface_3_prepared = Xandra.prepare!(conn, @insert_into_interface_3)
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_interface_4)
-      |> DatabaseQuery.put(
-        :automaton_accepting_states,
-        Base.decode64!("g3QAAAABYQNtAAAAEGZjaujopxRZWiHuQLZfzfQ=")
-      )
-      |> DatabaseQuery.put(
-        :automaton_transitions,
+    Xandra.execute!(conn, insert_into_interface_3_prepared, insert_into_interface_3_params)
+
+    insert_into_interface_4_params = %{
+      automaton_accepting_states: Base.decode64!("g3QAAAABYQNtAAAAEGZjaujopxRZWiHuQLZfzfQ="),
+      automaton_transitions:
         Base.decode64!(
           "g3QAAAADaAJhAG0AAAADbmV3YQFoAmEBbQAAAAlpbnRlcmZhY2VhAmgCYQJtAAAABXZhbHVlYQM="
         )
-      )
+    }
 
-    DatabaseQuery.call!(client, query)
+    insert_into_interface_4_prepared = Xandra.prepare!(conn, @insert_into_interface_4)
+
+    Xandra.execute!(conn, insert_into_interface_4_prepared, insert_into_interface_4_params)
 
     Enum.each(@insert_endpoints, fn query ->
-      DatabaseQuery.call!(client, query)
+      Xandra.execute!(conn, query)
     end)
 
     Enum.each(@insert_values, fn query ->
-      DatabaseQuery.call!(client, query)
+      Xandra.execute!(conn, query)
     end)
 
     :ok
   end
 
-  def destroy_local_test_keyspace do
-    {:ok, client} = Database.connect()
-    DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
+  def destroy_local_test_keyspace(conn) do
+    Xandra.execute(conn, "DROP KEYSPACE autotestrealm;")
     :ok
   end
 end
