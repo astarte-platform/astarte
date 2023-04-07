@@ -51,7 +51,9 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyController do
 
   def show(conn, %{"realm_name" => realm_name, "id" => id}) do
     with {:ok, policy_source} <- Policies.get_trigger_policy_source(realm_name, id),
-         {:ok, decoded_json} <- Jason.decode(policy_source) do
+         # Use (safe) atoms as keys to simplify handler normalization in Trigger Policy View
+         # TODO: move this to a function in Astarte Core building a Policy from its source
+         {:ok, decoded_json} <- Jason.decode(policy_source, keys: :atoms!) do
       render(conn, "show.json", policy: decoded_json)
     end
   end
