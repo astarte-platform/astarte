@@ -190,6 +190,7 @@ class AstarteClient {
     this.getFlowHealth = this.getFlowHealth.bind(this);
     this.getPipeline = this.getPipeline.bind(this);
     this.getPipelines = this.getPipelines.bind(this);
+    this.getPolicyNames = this.getPolicyNames.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
@@ -200,7 +201,8 @@ class AstarteClient {
       interface:             astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       interfaceData:         astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       trigger:               astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers/${'triggerName'}`,
-      triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`,
+      triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`, 
+      policies:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies`,
       appengineHealth:       astarteAPIurl`${config.appEngineApiUrl}health`,
       devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
       devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
@@ -261,6 +263,11 @@ class AstarteClient {
     });
   }
 
+  async getPolicyNames(): Promise<string[]> {
+    const response = await this.$get(this.apiConfig.policies(this.config));
+    return response.data;
+  }
+
   async getInterfaceNames(): Promise<string[]> {
     const response = await this.$get(this.apiConfig.interfaces(this.config));
     return response.data;
@@ -316,12 +323,16 @@ class AstarteClient {
   }
 
   async getTrigger(triggerName: string): Promise<AstarteTrigger> {
-    const response = await this.$get(this.apiConfig.trigger({ ...this.config, triggerName }));
+    const encodedTriggerName = encodeURIComponent(triggerName);
+    const response = await this.$get(
+      this.apiConfig.trigger({ ...this.config, triggerName: encodedTriggerName }),
+    );
     return fromAstarteTriggerDTO(response.data);
   }
 
   async deleteTrigger(triggerName: string): Promise<void> {
-    await this.$delete(this.apiConfig.trigger({ ...this.config, triggerName }));
+    const encodedTriggerName = encodeURIComponent(triggerName);
+    await this.$delete(this.apiConfig.trigger({ ...this.config, triggerName: encodedTriggerName }));
   }
 
   async installTrigger(trigger: AstarteTrigger): Promise<void> {

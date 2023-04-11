@@ -142,6 +142,7 @@ export default (): React.ReactElement => {
                 isReadOnly
                 onError={handleTriggerEditorError}
                 isSourceVisible={isSourceVisible}
+                fetchPoliciesName={astarte.client.getPolicyNames}
                 fetchInterfacesName={astarte.client.getInterfaceNames}
                 fetchInterfaceMajors={astarte.client.getInterfaceMajors}
                 fetchInterface={astarte.client.getInterface}

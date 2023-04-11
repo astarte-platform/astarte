@@ -78,6 +78,7 @@ interface Props {
     interfaceName: string;
     interfaceMajor: number;
   }) => Promise<AstarteInterface>;
+  fetchPoliciesName: () => Promise<string[]>;
   initialData?: AstarteTrigger;
   isReadOnly?: boolean;
   isSourceVisible?: boolean;
@@ -90,6 +91,7 @@ export default ({
   fetchInterfacesName,
   fetchInterfaceMajors,
   fetchInterface,
+  fetchPoliciesName,
   initialData,
   isReadOnly = false,
   isSourceVisible = false,
@@ -111,6 +113,8 @@ export default ({
   const [isLoadingInterfacesName, setIsLoadingInterfacesName] = useState(false);
   const [isLoadingInterfaceMajors, setIsLoadingInterfaceMajors] = useState(false);
   const [isLoadingInterface, setIsLoadingInterface] = useState(false);
+  const [policiesName, setPoliciesName] = useState<string[]>([]);
+  const [isLoadingPoliciesName, setIsLoadingPoliciesName] = useState(false);
   const [activeModal, setActiveModal] = useState<ActiveModal | null>(null);
 
   const actionValidationErrors = useMemo(
@@ -121,6 +125,21 @@ export default ({
     () => getNestedValidationErrors(triggerValidationErrors, 'simpleTriggers[0]'),
     [triggerValidationErrors],
   );
+
+  const handleFetchPoliciesName = useCallback(async () => {
+    setIsLoadingPoliciesName(true);
+    let policies: string[] = [];
+    try {
+      policies = await fetchPoliciesName();
+    } catch (err: any) {
+      if (onError) {
+        onError(`Could not retrieve trigger delivery policies for trigger: ${err.message}`, err);
+      }
+    }
+    setPoliciesName(policies);
+    setIsLoadingPoliciesName(false);
+    return policies;
+  }, [fetchPoliciesName, onError]);
 
   const handleFetchInterfacesName = useCallback(async () => {
     setIsLoadingInterfacesName(true);
@@ -269,6 +288,18 @@ export default ({
     setTriggerDraft((draft) => ({ ...draft, name: value }));
   }, []);
 
+  const handleTriggerPolicyNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    if (value) {
+      setTriggerDraft((draft) => ({ ...draft, policy: value }));
+    } else {
+      setTriggerDraft((draft) => {
+        const { policy, ...restElements } = draft;
+        return restElements;
+      });
+    }
+  }, []);
+
   const dismissModal = useCallback(() => setActiveModal(null), []);
 
   const handleAddActionAmqpHeader = useCallback(() => {
@@ -406,7 +437,11 @@ export default ({
     } else {
       handleFetchInterfacesName();
     }
-  }, [handleFetchInterfacesForTrigger, handleFetchInterfacesName, initialData]);
+  }, [initialData, handleFetchInterfacesForTrigger, handleFetchInterfacesName]);
+
+  useEffect(() => {
+    handleFetchPoliciesName();
+  }, [handleFetchPoliciesName]);
 
   return (
     <Row>
@@ -460,6 +495,36 @@ export default ({
             realm={realm}
             validationErrors={actionValidationErrors}
           />
+          <Form>
+            <Form.Row className="mb-2">
+              <Col sm={12}>
+                <Form.Group controlId="triggerPolicyName">
+                  <Form.Label>Trigger delivery policy</Form.Label>
+                  <Form.Control
+                    as="select"
+                    name="triggerPolicyName"
+                    disabled={isReadOnly || isLoadingPoliciesName}
+                    value={_.get(triggerDraft, 'policy')}
+                    onChange={handleTriggerPolicyNameChange}
+                    isInvalid={_.get(triggerValidationErrors, 'policy') != null}
+                  >
+                    <option value="" disabled>
+                      Choose available trigger delivery policy
+                    </option>
+                    <option value="">Use default policy</option>
+                    {policiesName.map((policy) => (
+                      <option key={policy} value={policy}>
+                        {policy}
+                      </option>
+                    ))}
+                  </Form.Control>
+                  <Form.Control.Feedback type="invalid">
+                    {_.get(triggerValidationErrors, 'policy')}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Form.Row>
+          </Form>
         </Container>
       </Col>
       {isSourceVisible && (
