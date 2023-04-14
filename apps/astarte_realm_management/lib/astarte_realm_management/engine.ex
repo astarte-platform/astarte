@@ -31,6 +31,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.Core.Device
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
@@ -993,4 +994,11 @@ defmodule Astarte.RealmManagement.Engine do
       {:error, :database_connection_error}
     end
   end
+
+  def delete_device(realm_name, device_id) do
+    # TODO check if allow_extended_id
+      with {:ok, device_id} <- Device.decode_device_id(device_id) do
+        Queries.insert_device_into_deleted(realm_name, device_id)
+      end
+    end
 end

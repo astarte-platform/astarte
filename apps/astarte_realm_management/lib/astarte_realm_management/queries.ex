@@ -1655,4 +1655,585 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :database_error}
     end
   end
+
+  def check_device_exists(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_check_device_exists(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_check_device_exists(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    SELECT COUNT (*)
+    FROM #{realm_name}.devices
+    WHERE device_id = :device_id
+    """
+
+    params = %{device_id: device_id}
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, [result]} <-
+           execute_device_exists_query(conn, prepared, params,
+             consistency: :quorum,
+             uuid_format: :binary
+           ) do
+      {:ok, device_exists_result_to_boolean(result)}
+    end
+  end
+
+  defp device_exists_result_to_boolean(%{count: 1}), do: true
+  defp device_exists_result_to_boolean(_), do: false
+
+  defp execute_device_exists_query(conn, prepared, params, opts) do
+    case Xandra.execute(conn, prepared, params, opts) do
+      {:ok, %Xandra.Page{} = page} ->
+        {:ok, Enum.to_list(page)}
+
+      {:error, %Xandra.ConnectionError{}} ->
+        _ =
+          Logger.warn(
+            "Cannot check if device exists, connection error",
+            tag: "check_device_exists_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = error} ->
+        _ =
+          Logger.warn(
+            "Cannot check if device exists, reason #{error.message}",
+            tag: "check_device_exists_error"
+          )
+
+        {:error, error.reason}
+    end
+  end
+
+  def insert_device_into_deletion_in_progress(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_insert_device_into_deletion_in_progress(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_insert_device_into_deletion_in_progress(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    INSERT INTO #{realm_name}.deletion_in_progress
+    (device_id, vmq_ack, dup_ack)
+    VALUES (:device_id, false, false)
+    """
+
+    params = %{device_id: device_id}
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement) do
+      case Xandra.execute(conn, prepared, params,
+             consistency: :quorum,
+             uuid_format: :binary
+           ) do
+        {:ok, result} ->
+          {:ok, result}
+
+        {:error, %Xandra.ConnectionError{}} ->
+          _ =
+            Logger.warn(
+              "Cannot insert device #{inspect(device_id)} into deleted, connection error",
+              tag: "insert_device_into_deleted_connection_error"
+            )
+
+          {:error, :database_connection_error}
+
+        {:error, %Xandra.Error{} = error} ->
+          _ =
+            Logger.warn(
+              "Cannot insert device #{inspect(device_id)} into deleted, reason #{error.message}",
+              tag: "insert_device_into_deleted_error"
+            )
+
+          {:error, error.reason}
+      end
+    end
+  end
+
+  # TODO maybe move to AstarteDataAccess
+  def retrieve_device_introspection_map!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_introspection_map!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_introspection_map!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    SELECT introspection
+    FROM #{realm_name}.devices
+    WHERE device_id=:device_id
+    """
+
+    params = %{device_id: device_id}
+    prepared = Xandra.prepare!(conn, statement)
+
+    [%{introspection: introspection_map}] =
+      Xandra.execute!(conn, prepared, params, consistency: :quorum, uuid_format: :binary)
+      |> Enum.to_list()
+
+    # Introspection might be still empty: handle the nil case
+    introspection_map || %{}
+  end
+
+  def retrieve_interface_descriptor!(
+        realm_name,
+        interface_name,
+        interface_major
+      ) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_interface_descriptor!(
+        &1,
+        realm_name,
+        interface_name,
+        interface_major
+      )
+    )
+  end
+
+  defp do_retrieve_interface_descriptor!(
+         conn,
+         realm_name,
+         interface_name,
+         interface_major
+       ) do
+    # TODO: validate realm name
+    statement = """
+    SELECT *
+    FROM #{realm_name}.interfaces
+    WHERE name=:name AND major_version=:major_version
+    """
+
+    params = %{name: interface_name, major_version: interface_major}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params, consistency: :quorum)
+    |> Enum.to_list()
+    # If we're looking for a descriptor of an interface of known name and major, we're fairly sure the result is unique
+    |> hd()
+    |> Astarte.Core.InterfaceDescriptor.from_db_result!()
+  end
+
+  def retrieve_individual_datastreams_keys!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_individual_datastreams_keys!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_individual_datastreams_keys!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    SELECT DISTINCT device_id, interface_id, endpoint_id, path
+    FROM #{realm_name}.individual_datastreams
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_individual_datastream_values!(
+        realm_name,
+        device_id,
+        interface_id,
+        endpoint_id,
+        path
+      ) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_individual_datastream_values!(
+        &1,
+        realm_name,
+        device_id,
+        interface_id,
+        endpoint_id,
+        path
+      )
+    )
+  end
+
+  defp do_delete_individual_datastream_values!(
+         conn,
+         realm_name,
+         device_id,
+         interface_id,
+         endpoint_id,
+         path
+       ) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.individual_datastreams
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    AND endpoint_id=:endpoint_id AND path=:path
+    """
+
+    params = %{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_individual_properties_keys!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_individual_properties_keys!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_individual_properties_keys!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    SELECT DISTINCT device_id, interface_id
+    FROM #{realm_name}.individual_properties
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_individual_properties_values!(realm_name, device_id, interface_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_individual_properties_values!(&1, realm_name, device_id, interface_id)
+    )
+  end
+
+  defp do_delete_individual_properties_values!(
+         conn,
+         realm_name,
+         device_id,
+         interface_id
+       ) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.individual_properties
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    """
+
+    params = %{
+      device_id: device_id,
+      interface_id: interface_id
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_object_datastream_keys!(realm_name, device_id, table_name) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_object_datastream_keys!(&1, realm_name, device_id, table_name)
+    )
+  end
+
+  defp do_retrieve_object_datastream_keys!(
+         conn,
+         realm_name,
+         device_id,
+         table_name
+       ) do
+    # TODO: validate realm name
+    statement = """
+    SELECT DISTINCT device_id, path
+    FROM #{realm_name}.#{table_name}
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_object_datastream_values!(&1, realm_name, device_id, path, table_name)
+    )
+  end
+
+  defp do_delete_object_datastream_values!(
+         conn,
+         realm_name,
+         device_id,
+         path,
+         table_name
+       ) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.#{table_name}
+    WHERE device_id=:device_id AND path=:path
+    """
+
+    params = %{
+      device_id: device_id,
+      path: path
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_aliases!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_aliases!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_aliases!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    SELECT object_name
+    FROM #{realm_name}.names
+    WHERE object_uuid =:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_alias_values!(realm_name, device_alias) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_alias_values!(&1, realm_name, device_alias)
+    )
+  end
+
+  defp do_delete_alias_values!(conn, realm_name, device_alias) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.names
+    WHERE object_name = :device_alias
+    """
+
+    params = %{device_alias: device_alias}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_groups_keys!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_groups_keys!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_groups_keys!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    SELECT group_name, insertion_uuid, device_id
+    FROM #{realm_name}.grouped_devices
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary, timeuuid_format: :binary)
+    |> Enum.to_list()
+  end
+
+  def delete_group_values!(realm_name, device_id, group_name, insertion_uuid) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_group_values!(&1, realm_name, device_id, group_name, insertion_uuid)
+    )
+  end
+
+  defp do_delete_group_values!(
+         conn,
+         realm_name,
+         device_id,
+         group_name,
+         insertion_uuid
+       ) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.grouped_devices
+    WHERE group_name = :group_name AND insertion_uuid = :insertion_uuid AND device_id = :device_id
+    """
+
+    params = %{
+      group_name: group_name,
+      insertion_uuid: insertion_uuid,
+      device_id: device_id
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary,
+      timeuuid_format: :binary
+    )
+  end
+
+  def retrieve_kv_store_entries!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_kv_store_entries!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_kv_store_entries!(conn, realm_name, encoded_device_id) do
+    # TODO: validate realm name
+    statement = """
+    SELECT group, key
+    FROM #{realm_name}.kv_store
+    WHERE key=:key ALLOW FILTERING
+    """
+
+    params = %{key: encoded_device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_kv_store_entry!(realm_name, group, key) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_kv_store_entry!(&1, realm_name, group, key)
+    )
+  end
+
+  defp do_delete_kv_store_entry!(conn, realm_name, group, key) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.kv_store
+    WHERE group = :group AND key = :key
+    """
+
+    params = %{group: group, key: key}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def delete_device!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_device!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_delete_device!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.devices
+    WHERE device_id = :device_id
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def remove_device_from_deletion_in_progress!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_remove_device_from_deletion_in_progress!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_remove_device_from_deletion_in_progress!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    statement = """
+    DELETE FROM #{realm_name}.deletion_in_progress
+    WHERE device_id = :device_id
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_realms!() do
+    statement = """
+    SELECT *
+    FROM astarte.realms
+    """
+
+    realms =
+      Xandra.Cluster.run(
+        :xandra,
+        &Xandra.execute!(&1, statement, %{}, consistency: :local_quorum)
+      )
+
+    Enum.to_list(realms)
+  end
+
+  def retrieve_devices_to_delete!(realm_name) do
+    Xandra.Cluster.run(:xandra_device_deletion, &do_retrieve_devices_to_delete!(&1, realm_name))
+  end
+
+  defp do_retrieve_devices_to_delete!(conn, realm_name) do
+    # TODO: validate realm name
+    statement = """
+    SELECT *
+    FROM #{realm_name}.deletion_in_progress
+    """
+
+    Xandra.execute!(conn, statement, %{},
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+    |> Enum.to_list()
+    |> Enum.filter(fn %{vmq_ack: vmq_ack, dup_ack: dup_ack} -> vmq_ack and dup_ack end)
+  end
 end
