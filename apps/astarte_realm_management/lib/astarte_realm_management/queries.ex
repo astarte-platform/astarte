@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1722,8 +1722,8 @@ defmodule Astarte.RealmManagement.Queries do
     # TODO: validate realm name
     statement = """
     INSERT INTO #{realm_name}.deletion_in_progress
-    (device_id, vmq_ack, dup_ack)
-    VALUES (:device_id, false, false)
+    (device_id, vmq_ack, dup_start_ack, dup_end_ack)
+    VALUES (:device_id, false, false, false)
     """
 
     params = %{device_id: device_id}

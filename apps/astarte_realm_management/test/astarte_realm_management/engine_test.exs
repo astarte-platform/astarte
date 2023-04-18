@@ -1454,6 +1454,27 @@ defmodule Astarte.RealmManagement.EngineTest do
            ) == :ok
   end
 
+  test "existing device starts to be deleted" do
+    device_id = Astarte.Core.Device.random_device_id()
+    DatabaseTestHelper.seed_devices_test_data!("autotestrealm", device_id)
+
+    Engine.delete_device(@test_realm_name, device_id)
+
+    statement = """
+    SELECT * FROM #{@test_realm_name}.deletion_in_progress
+    """
+
+    assert [%{device_id: ^device_id}] =
+             Xandra.Cluster.execute!(:xandra, statement, %{}, uuid_format: :binary)
+             |> Enum.to_list()
+  end
+
+  test "missing device is not deleted" do
+    device_id = Astarte.Core.Device.random_device_id()
+
+    assert {:error, :device_does_not_exist} = Engine.delete_device(@test_realm_name, device_id)
+  end
+
   defp unpack_source({:ok, source}) when is_binary(source) do
     interface_obj = Jason.decode!(source)
 
