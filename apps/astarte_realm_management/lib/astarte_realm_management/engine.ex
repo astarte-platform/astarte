@@ -410,8 +410,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def execute_interface_deletion(client, realm_name, name, major) do
-    with {:ok, interface_row} <-
-           Interface.retrieve_interface_row(realm_name, name, major),
+    with {:ok, interface_row} <- Interface.retrieve_interface_row(realm_name, name, major),
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          :ok <- Queries.delete_interface_storage(client, descriptor),
          :ok <- Queries.delete_devices_with_data_on_interface(client, name) do
