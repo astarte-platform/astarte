@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,6 +38,25 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
+  """
+
+  @create_astarte_keyspace """
+    CREATE KEYSPACE astarte
+      WITH
+        replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+        durable_writes = true;
+  """
+
+  @create_astarte_realms_table """
+  CREATE TABLE astarte.realms (
+    realm_name ascii,
+    PRIMARY KEY (realm_name)
+  );
+  """
+
+  @insert_autotestrealm_into_realms """
+  INSERT INTO astarte.realms (realm_name)
+  VALUES ('autotestrealm');
   """
 
   @create_interfaces_table """
@@ -190,7 +209,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   CREATE TABLE IF NOT EXISTS autotestrealm.deletion_in_progress (
       device_id uuid,
       vmq_ack boolean,
-      dup_ack boolean,
+      dup_start_ack boolean,
+      dup_end_ack boolean,
       PRIMARY KEY ((device_id))
     )
   """
@@ -324,6 +344,9 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
   def create_test_keyspace(client) do
     DatabaseQuery.call!(client, @create_autotestrealm)
+    DatabaseQuery.call!(client, @create_astarte_keyspace)
+    DatabaseQuery.call!(client, @create_astarte_realms_table)
+    DatabaseQuery.call!(client, @insert_autotestrealm_into_realms)
     DatabaseQuery.call!(client, @create_interfaces_table)
     DatabaseQuery.call!(client, @create_endpoints_table)
     DatabaseQuery.call!(client, @create_individual_properties_table)
@@ -358,7 +381,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   end
 
   def drop_test_keyspace(client) do
-    with {:ok, _result} <- DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm") do
+    with {:ok, _result} <- DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm"),
+         {:ok, _result} <- DatabaseQuery.call(client, "DROP KEYSPACE astarte") do
       :ok
     else
       error ->

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017,2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   alias Astarte.RealmManagement.Engine
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Device
 
   @test_interface_a_0 """
   {
@@ -1454,11 +1455,12 @@ defmodule Astarte.RealmManagement.EngineTest do
            ) == :ok
   end
 
-  test "existing device starts to be deleted" do
-    device_id = Astarte.Core.Device.random_device_id()
-    DatabaseTestHelper.seed_devices_test_data!("autotestrealm", device_id)
+  test "begin deletion of an existing device" do
+    device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
+    DatabaseTestHelper.seed_devices_test_data!(realm_name: "autotestrealm", device_id: device_id)
 
-    Engine.delete_device(@test_realm_name, device_id)
+    assert :ok = Engine.delete_device(@test_realm_name, encoded_device_id)
 
     statement = """
     SELECT * FROM #{@test_realm_name}.deletion_in_progress
@@ -1469,10 +1471,10 @@ defmodule Astarte.RealmManagement.EngineTest do
              |> Enum.to_list()
   end
 
-  test "missing device is not deleted" do
-    device_id = Astarte.Core.Device.random_device_id()
+  test "do not begin deletion of a missing device" do
+    missing_device_id = Device.random_device_id() |> Device.encode_device_id()
 
-    assert {:error, :device_does_not_exist} = Engine.delete_device(@test_realm_name, device_id)
+    assert {:error, :device_not_found} = Engine.delete_device(@test_realm_name, missing_device_id)
   end
 
   defp unpack_source({:ok, source}) when is_binary(source) do
