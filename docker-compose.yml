@@ -273,3 +273,7 @@ volumes:
   scylla-data:
   vernemq-data:
   cfssl-data:
+
+networks:
+  default:
+    name: astarte
