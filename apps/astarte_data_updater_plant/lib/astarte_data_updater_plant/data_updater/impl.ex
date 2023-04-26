@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id, message_tracker) do
     MessageTracker.register_data_updater(message_tracker)
@@ -74,7 +75,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       last_seen_message: 0,
       last_device_triggers_refresh: 0,
       last_groups_refresh: 0,
-      trigger_id_to_policy_name: %{}
+      trigger_id_to_policy_name: %{},
+      discard_messages: false,
+      last_deletion_in_progress_refresh: 0
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
@@ -96,6 +99,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.info("Deactivated device process.", tag: "device_process_deactivated")
 
     :ok
+  end
+
+  def handle_connection(%State{discard_messages: true} = state, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
@@ -153,6 +161,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
+  def handle_heartbeat(%State{discard_messages: true} = state, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
+  end
+
   # TODO make this private when all heartbeats will be moved to internal
   def handle_heartbeat(state, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
@@ -168,7 +181,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_internal(state, "/heartbeat", _payload, message_id, timestamp) do
-    handle_heartbeat(state, message_id, timestamp)
+    {:continue, handle_heartbeat(state, message_id, timestamp)}
+  end
+
+  def handle_internal(%State{discard_messages: true} = state, "/f", _, message_id, _) do
+    :ok = Queries.ack_end_device_deletion(state.realm, state.device_id)
+    _ = Logger.info("End device deletion acked.", tag: "device_delete_ack")
+    MessageTracker.ack_delivery(state.message_tracker, message_id)
+    {:stop, state}
   end
 
   def handle_internal(state, path, payload, message_id, timestamp) do
@@ -200,7 +220,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       timestamp
     )
 
-    update_stats(new_state, "", nil, path, payload)
+    {:continue, update_stats(new_state, "", nil, path, payload)}
+  end
+
+  def start_device_deletion(state, timestamp) do
+    {:ok, db_client} = Database.connect(realm: state.realm)
+
+    # Device deletion is among time-based actions
+    new_state = execute_time_based_actions(state, timestamp, db_client)
+
+    {:ok, new_state}
   end
 
   def handle_disconnection(state, message_id, timestamp) do
@@ -454,6 +483,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     :ok
+  end
+
+  def handle_data(%State{discard_messages: true} = state, _, _, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
   end
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
@@ -1147,6 +1181,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
+  def handle_introspection(%State{discard_messages: true} = state, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
+  end
+
   def handle_introspection(state, payload, message_id, timestamp) do
     with {:ok, new_introspection_list} <- PayloadsDecoder.parse_introspection(payload) do
       process_introspection(state, new_introspection_list, payload, message_id, timestamp)
@@ -1409,6 +1448,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
+  def handle_control(%State{discard_messages: true} = state, _, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
+  end
+
   def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
@@ -1576,6 +1620,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_install_volatile_trigger(
+        %State{discard_messages: true} = state,
+        _,
+        message_id,
+        _
+      ) do
+    MessageTracker.ack_delivery(state.message_tracker, message_id)
+    state
+  end
+
+  def handle_install_volatile_trigger(
         state,
         object_id,
         object_type,
@@ -1666,6 +1720,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, load_trigger(new_state, trigger, target)}
       end
     end
+  end
+
+  def handle_delete_volatile_trigger(%State{discard_messages: true} = state, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
   end
 
   def handle_delete_volatile_trigger(state, trigger_id) do
@@ -1836,6 +1895,55 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> reload_groups_on_expiry(timestamp, db_client)
     |> purge_expired_interfaces(timestamp)
     |> reload_device_triggers_on_expiry(timestamp, db_client)
+    |> reload_device_deletion_status_on_expiry(timestamp, db_client)
+  end
+
+  defp reload_device_deletion_status_on_expiry(state, timestamp, db_client) do
+    if state.last_deletion_in_progress_refresh + @deletion_refresh_lifespan_decimicroseconds <=
+         timestamp do
+      new_state = maybe_start_device_deletion(db_client, state, timestamp)
+      %State{new_state | last_deletion_in_progress_refresh: timestamp}
+    else
+      state
+    end
+  end
+
+  defp maybe_start_device_deletion(db_client, state, timestamp) do
+    if should_start_device_deletion?(state.realm, state.device_id) do
+      encoded_device_id = Device.encode_device_id(state.device_id)
+
+      :ok = force_device_deletion_from_broker(state.realm, encoded_device_id)
+      new_state = set_device_disconnected(state, db_client, timestamp)
+
+      _ =
+        Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
+
+      # It's ok to repeat that, as we always write ⊤
+      Queries.ack_start_device_deletion(state.realm, state.device_id)
+
+      %State{new_state | discard_messages: true}
+    else
+      state
+    end
+  end
+
+  defp should_start_device_deletion?(realm_name, device_id) do
+    case Queries.check_device_deletion_in_progress(realm_name, device_id) do
+      {:ok, true} ->
+        true
+
+      {:ok, false} ->
+        false
+
+      {:error, reason} ->
+        _ =
+          Logger.warn(
+            "Cannot check device deletion status for #{inspect(device_id)}, reason #{inspect(reason)}",
+            tag: "should_start_device_deletion_fail"
+          )
+
+        false
+    end
   end
 
   defp purge_expired_interfaces(state, timestamp) do
@@ -2152,6 +2260,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp force_disconnection(realm, encoded_device_id) do
     case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
+      # Successfully disconnected
+      :ok ->
+        :ok
+
+      # Not found means it was already disconnected, succeed anyway
+      {:error, :not_found} ->
+        :ok
+
+      # Some other error, return it
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp force_device_deletion_from_broker(realm, encoded_device_id) do
+    _ = Logger.info("Disconnecting device to be deleted, device_id #{encoded_device_id}")
+
+    case VMQPlugin.delete(realm, encoded_device_id) do
       # Successfully disconnected
       :ok ->
         :ok
