@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -157,6 +157,7 @@ defmodule Astarte.Housekeeping.Queries do
            :ok <- create_individual_properties_table(realm_conn),
            :ok <- create_simple_triggers_table(realm_conn),
            :ok <- create_grouped_devices_table(realm_conn),
+           :ok <- create_deletion_in_progress_table(realm_conn),
            :ok <- insert_realm_public_key(realm_conn, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(realm_conn),
            :ok <- insert_realm(realm_conn) do
@@ -551,6 +552,35 @@ defmodule Astarte.Housekeeping.Queries do
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
           Logger.warn("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  defp create_deletion_in_progress_table({conn, realm}) do
+    query = """
+    CREATE TABLE #{realm}.deletion_in_progress (
+      device_id uuid,
+      vmq_ack boolean,
+      dup_start_ack boolean,
+      dup_end_ack boolean,
+      PRIMARY KEY (device_id)
+    );
+    """
+
+    case CSystem.execute_schema_change(conn, query) do
+      {:ok, %Xandra.SchemaChange{}} ->
+        :ok
+
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{Exception.message(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{Exception.message(err)}.",
             tag: "database_connection_error"
           )
 
