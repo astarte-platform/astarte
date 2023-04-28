@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,5 +38,7 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
 
     resources "/:realm_name/triggers", TriggerController, except: [:new, :edit]
     resources "/:realm_name/policies", TriggerPolicyController, except: [:new, :edit]
+
+    delete "/:realm_name/devices/:device_id", DeviceController, :delete
   end
 end
