@@ -163,6 +163,8 @@ Make sure that the differences between two distinct interface names are not limi
 the presence of hyphens. This situation leads to a collision in the interface names which brings to
 an error in the interface installation process.
 
+### Limitations
+
 A valid interface must resolve a path univocally to a single endpoint. Take the following example:
 
 ```json
