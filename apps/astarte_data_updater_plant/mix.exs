@@ -80,6 +80,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:castore, "~> 0.1.0"},
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},

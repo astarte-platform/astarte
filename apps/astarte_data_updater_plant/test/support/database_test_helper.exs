@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -352,6 +352,16 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   @insert_into_simple_triggers """
   INSERT INTO autotestrealm.simple_triggers (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target)
   VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :trigger_data, :trigger_target);
+  """
+
+  @create_deletion_in_progress_table """
+    CREATE TABLE autotestrealm.deletion_in_progress (
+      device_id uuid,
+      dup_start_ack boolean,
+      dup_end_ack boolean,
+
+      PRIMARY KEY (device_id)
+  );
   """
 
   def create_test_keyspace do
@@ -756,6 +766,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
           |> DatabaseQuery.put(:trigger_target, trigger_target_data)
 
         DatabaseQuery.call!(client, query)
+
+        DatabaseQuery.call!(client, @create_deletion_in_progress_table)
 
         {:ok, client}
 
