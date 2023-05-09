@@ -1,5 +1,5 @@
 {
-    "astarte_api_url": "localhost",
+    "astarte_api_url": "http://api.astarte.localhost",
     "default_auth": "token",
     "enable_flow_preview": false,
     "auth": [
