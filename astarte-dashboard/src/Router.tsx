@@ -46,6 +46,9 @@ import DeviceStatusPage from './DeviceStatusPage';
 import DeviceInterfaceValues from './DeviceInterfaceValues';
 import { useConfig } from './ConfigManager';
 import { useAstarte } from './AstarteManager';
+import TriggerPoliciesPage from './TriggerDeliveryPoliciesPage';
+import NewPolicyPage from './NewTriggerDeliveryPolicyPage';
+import TriggerDeliveryPolicyPage from './TriggerDeliveryPolicyPage';
 
 function AttemptLogin(): React.ReactElement {
   const { search, hash } = useLocation();
@@ -106,6 +109,9 @@ const privateRoutes: RouteObject[] = [
   { path: 'triggers', element: <TriggersPage /> },
   { path: 'triggers/new', element: <NewTriggerPage /> },
   { path: 'triggers/:triggerName/edit', element: <TriggerPage /> },
+  { path: 'trigger-delivery-policies', element: <TriggerPoliciesPage /> },
+  { path: 'trigger-delivery-policies/new', element: <NewPolicyPage /> },
+  { path: 'trigger-delivery-policies/:policyName/edit', element: <TriggerDeliveryPolicyPage /> },
   { path: 'interfaces', element: <InterfacesPage /> },
   { path: 'interfaces/new', element: <NewInterfacePage /> },
   { path: 'interfaces/:interfaceName/:interfaceMajor/edit', element: <InterfacePage /> },

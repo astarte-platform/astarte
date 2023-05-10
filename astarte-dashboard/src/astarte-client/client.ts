@@ -19,6 +19,7 @@
 import axios from 'axios';
 import { Channel, Socket } from 'phoenix';
 import _ from 'lodash';
+import { AstarteTriggerDeliveryPolicyDTO } from 'astarte-client/types/dto';
 
 import {
   AstarteDataTreeNode,
@@ -183,6 +184,7 @@ class AstarteClient {
     this.getInterfaceNames = this.getInterfaceNames.bind(this);
     this.getTriggerNames = this.getTriggerNames.bind(this);
     this.getTrigger = this.getTrigger.bind(this);
+    this.getTriggerDeliveryPolicyNames = this.getTriggerDeliveryPolicyNames.bind(this);
     this.deleteTrigger = this.deleteTrigger.bind(this);
     this.getAppengineHealth = this.getAppengineHealth.bind(this);
     this.getRealmManagementHealth = this.getRealmManagementHealth.bind(this);
@@ -201,8 +203,9 @@ class AstarteClient {
       interface:             astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       interfaceData:         astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       trigger:               astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers/${'triggerName'}`,
-      triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`, 
+      triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`,
       policies:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies`,
+      policy:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies/${'policyName'}`,
       appengineHealth:       astarteAPIurl`${config.appEngineApiUrl}health`,
       devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
       devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
@@ -337,6 +340,24 @@ class AstarteClient {
 
   async installTrigger(trigger: AstarteTrigger): Promise<void> {
     await this.$post(this.apiConfig.triggers(this.config), toAstarteTriggerDTO(trigger));
+  }
+
+  async getTriggerDeliveryPolicyNames(): Promise<string[]> {
+    const response = await this.$get(this.apiConfig.policies(this.config));
+    return response.data;
+  }
+
+  async installTriggerDeliveryPolicy(policy: AstarteTriggerDeliveryPolicyDTO): Promise<void> {
+    await this.$post(this.apiConfig.policies(this.config), policy);
+  }
+
+  async getTriggerDeliveryPolicy(policyName: string): Promise<AstarteTriggerDeliveryPolicyDTO> {
+    const response = await this.$get(this.apiConfig.policy({ ...this.config, policyName }));
+    return response.data;
+  }
+
+  async deleteTriggerDeliveryPolicy(policyName: string): Promise<void> {
+    await this.$delete(this.apiConfig.policy({ ...this.config, policyName }));
   }
 
   async getDevicesStats(): Promise<{ connectedDevices: number; totalDevices: number }> {
