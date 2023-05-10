@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2023 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,14 +15,19 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+/* eslint camelcase: 0 */
 
-export * from './Block';
-export * from './Realm';
-export * from './Token';
-export * from './Device';
-export * from './Flow';
-export * from './Pipeline';
-export * from './Mapping';
-export * from './Interface';
-export * from './Trigger';
-export * from './Policy';
+interface AstarteTriggerDeliveryPolicyHandlerDTO {
+  on: 'any_error' | 'client_error' | 'server_error' | number[];
+  strategy: 'discard' | 'retry';
+}
+
+interface AstarteTriggerDeliveryPolicyDTO {
+  name: string;
+  error_handlers: AstarteTriggerDeliveryPolicyHandlerDTO[];
+  retry_times?: number;
+  maximum_capacity: number;
+  event_ttl?: number;
+}
+
+export { AstarteTriggerDeliveryPolicyHandlerDTO, AstarteTriggerDeliveryPolicyDTO };

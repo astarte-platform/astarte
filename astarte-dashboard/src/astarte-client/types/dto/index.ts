@@ -30,3 +30,7 @@ export type {
   AstarteTriggerHTTPActionDTO,
   AstarteTriggerAMQPActionDTO,
 } from './trigger.d';
+export type {
+  AstarteTriggerDeliveryPolicyHandlerDTO,
+  AstarteTriggerDeliveryPolicyDTO,
+} from './triggerDeliveryPolicy.d';
