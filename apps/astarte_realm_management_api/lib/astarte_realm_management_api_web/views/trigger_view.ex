@@ -56,12 +56,15 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
     %{
       name: trigger.name,
       action: trigger.action,
-      simple_triggers: trigger.simple_triggers,
-      policy: trigger.policy
+      simple_triggers: trigger.simple_triggers
     }
+    |> maybe_add_policy(trigger.policy)
   end
 
   def render("trigger_name_only.json", %{trigger: trigger}) do
     trigger
   end
+
+  defp maybe_add_policy(trigger, nil), do: trigger
+  defp maybe_add_policy(trigger, policy), do: Map.put(trigger, :policy, policy)
 end
