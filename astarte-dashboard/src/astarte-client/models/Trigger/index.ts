@@ -80,7 +80,7 @@ interface AstarteTriggerObject {
   name: string;
   action: AstarteTriggerHTTPActionObject | AstarteTriggerAMQPActionObject;
   simpleTriggers: AstarteSimpleTriggerObject[];
-  policy?: string;
+  policy?: string | null;
 }
 
 const reservedHttpHeaders = [
@@ -358,7 +358,7 @@ const astarteTriggerObjectSchema: yup.ObjectSchema<AstarteTriggerObject> = yup
     name: yup.string().required(),
     action: astarteTriggerActionObjectSchema,
     simpleTriggers: yup.array(astarteSimpleTriggerObjectSchema).required(),
-    policy: yup.string(),
+    policy: yup.string().nullable(),
   })
   .required();
 
@@ -382,7 +382,9 @@ class AstarteTrigger {
     this.name = validatedObj.name;
     this.action = validatedObj.action;
     this.simpleTriggers = validatedObj.simpleTriggers;
-    this.policy = validatedObj.policy;
+    if (validatedObj.policy) {
+      this.policy = validatedObj.policy;
+    }
   }
 
   static validation = astarteTriggerObjectSchema;
