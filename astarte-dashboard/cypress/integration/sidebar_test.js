@@ -29,6 +29,8 @@ describe('Sidebar tests', () => {
           .as('interfaces')
           .next('.nav-link')
           .as('triggers')
+          .next('.nav-link')
+          .as('trigger-delivery-policies')
           .next('.nav-item')
           .next('.nav-link')
           .as('devices')
@@ -54,6 +56,9 @@ describe('Sidebar tests', () => {
         cy.get('@home').should('have.attr', 'href', '/').contains('Home');
         cy.get('@interfaces').should('have.attr', 'href', '/interfaces').contains('Interfaces');
         cy.get('@triggers').should('have.attr', 'href', '/triggers').contains('Triggers');
+        cy.get('@trigger-delivery-policies')
+          .should('have.attr', 'href', '/trigger-delivery-policies')
+          .contains('Delivery Policies');
         cy.get('@devices').should('have.attr', 'href', '/devices').contains('Devices');
         cy.get('@groups').should('have.attr', 'href', '/groups').contains('Groups');
         cy.get('@flows').should('have.attr', 'href', '/flows').contains('Flows');
