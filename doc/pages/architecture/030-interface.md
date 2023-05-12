@@ -163,6 +163,8 @@ Make sure that the differences between two distinct interface names are not limi
 the presence of hyphens. This situation leads to a collision in the interface names which brings to
 an error in the interface installation process.
 
+### Limitations
+
 A valid interface must resolve a path univocally to a single endpoint. Take the following example:
 
 ```json
@@ -219,6 +221,14 @@ of a valid aggregated interface mapping:
         },
     [...]
 ```
+
+Additional limitations (which stem from the MQTT protocol specification) can be outlined. When using
+parametric endpoints, the actual values used in place of parameter placeholders must fulfill the
+following requirements:
+* endpoint parameters must be UTF-8 encoded strings;
+* endpoint parameters must not contain the following characters: `+` and `#`. In particular, those
+  characters are treated as wildcards for MQTT topics and therefore must be avoided;
+* endpoint parameters must not contain the `/` character.
 
 ## Aggregation
 
