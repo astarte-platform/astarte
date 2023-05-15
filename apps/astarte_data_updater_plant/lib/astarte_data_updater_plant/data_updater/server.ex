@@ -55,9 +55,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     end
   end
 
+  # TODO remove this when all heartbeats will be moved to internal
   def handle_cast({:handle_heartbeat, message_id, timestamp}, state) do
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
       new_state = Impl.handle_heartbeat(state, message_id, timestamp)
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
+  end
+
+  def handle_cast({:handle_internal, payload, path, message_id, timestamp}, state) do
+    if MessageTracker.can_process_message(state.message_tracker, message_id) do
+      new_state = Impl.handle_internal(state, payload, path, message_id, timestamp)
       {:noreply, new_state}
     else
       {:noreply, state}

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.1.0-rc.0] - Unreleased
 ### Changed
 - Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2.
+- [astarte_data_updater_plant] Use the `internal` event type for Astarte
+  internal messages. (e.g. device heartbeat).
 ### Fixed
 - [astarte_realm_management_api] Provide detailed feedback when a trigger action
   is malformed. Fix [#748](https://github.com/astarte-platform/astarte/issues/748).

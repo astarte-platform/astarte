@@ -153,6 +153,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
+  # TODO make this private when all heartbeats will be moved to internal
   def handle_heartbeat(state, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
@@ -164,6 +165,42 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.info("Device heartbeat.", tag: "device_heartbeat")
 
     %{new_state | connected: true, last_seen_message: timestamp}
+  end
+
+  def handle_internal(state, "/heartbeat", _payload, message_id, timestamp) do
+    handle_heartbeat(state, message_id, timestamp)
+  end
+
+  def handle_internal(state, path, payload, message_id, timestamp) do
+    Logger.warn("Unexpected internal message on #{path}, payload: #{inspect(payload)}",
+      tag: "unexpected_internal_message"
+    )
+
+    {:ok, new_state} = ask_clean_session(state, timestamp)
+    MessageTracker.discard(new_state.message_tracker, message_id)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_internal_message],
+      %{},
+      %{realm: new_state.realm}
+    )
+
+    base64_payload = Base.encode64(payload)
+
+    error_metadata = %{
+      "path" => inspect(path),
+      "base64_payload" => base64_payload
+    }
+
+    # TODO maybe we don't want triggers on unexpected internal messages?
+    execute_device_error_triggers(
+      new_state,
+      "unexpected_internal_message",
+      error_metadata,
+      timestamp
+    )
+
+    update_stats(new_state, "", nil, path, payload)
   end
 
   def handle_disconnection(state, message_id, timestamp) do

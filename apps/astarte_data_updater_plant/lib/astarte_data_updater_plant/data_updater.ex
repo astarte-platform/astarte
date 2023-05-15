@@ -49,6 +49,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     |> GenServer.cast({:handle_disconnection, message_id, timestamp})
   end
 
+  # TODO remove this when all heartbeats will be moved to internal
   def handle_heartbeat(realm, encoded_device_id, tracking_id, timestamp) do
     message_tracker = get_message_tracker(realm, encoded_device_id)
     {message_id, delivery_tag} = tracking_id
@@ -56,6 +57,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.cast({:handle_heartbeat, message_id, timestamp})
+  end
+
+  def handle_internal(
+        realm,
+        encoded_device_id,
+        path,
+        payload,
+        tracking_id,
+        timestamp
+      ) do
+    message_tracker = get_message_tracker(realm, encoded_device_id)
+    {message_id, delivery_tag} = tracking_id
+    MessageTracker.track_delivery(message_tracker, message_id, delivery_tag)
+
+    get_data_updater_process(realm, encoded_device_id, message_tracker)
+    |> GenServer.cast({:handle_internal, path, payload, message_id, timestamp})
   end
 
   def handle_data(
