@@ -37,31 +37,32 @@ jobs:
       run: docker-compose up -d
     - name: Wait for Astarte to come up
       run: |
-        wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.0.0-alpha.1/wait-for-astarte-docker-compose_1.0.0-alpha.1_linux_amd64.tar.gz
-        tar xf wait-for-astarte-docker-compose_1.0.0-alpha.1_linux_amd64.tar.gz
+        wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
+        tar xf wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
         ./wait-for-astarte-docker-compose
     - name: Install astartectl
       run: |
-        wget https://github.com/astarte-platform/astartectl/releases/download/v0.11.1/astartectl_linux_amd64 -O astartectl
+        wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.01/astartectl_22.11.01_linux_x86_64.tar.gz
+        tar xf astartectl_22.11.01_linux_x86_64.tar.gz
         chmod +x astartectl
     - name: Create realm
       run: |
         ./astartectl utils gen-keypair test
-        ./astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ -p test_public.pem -k compose/astarte-keys/housekeeping_private.pem
+        ./astartectl housekeeping realms create test --astarte-url http://api.astarte.localhost --realm-public-key test_public.pem -k compose/astarte-keys/housekeeping_private.pem -y
         echo "E2E_REALM=test" >> $GITHUB_ENV
         sleep 5
     - name: Install e2e test interfaces
       run: |
         for i in $(ls tools/astarte_e2e/priv/interfaces/); do
           echo "Installing $i"
-          ./astartectl realm-management interfaces install tools/astarte_e2e/priv/interfaces/$i --realm-management-url http://localhost:4000 -k test_private.pem -r $E2E_REALM
+          ./astartectl realm-management interfaces install tools/astarte_e2e/priv/interfaces/$i --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM
           sleep 2
         done
     - name: Register device
       run: |
         DEVICE_ID=$(./astartectl utils device-id generate-random)
         echo "E2E_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
-        CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID --pairing-url http://localhost:4003 -k test_private.pem -r $E2E_REALM | grep "Credentials Secret is" | cut -d '"' -f 2)
+        CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM | grep "Credentials Secret is" | cut -d '"' -f 2)
         echo "E2E_CREDENTIALS_SECRET=$CREDENTIALS_SECRET" >> $GITHUB_ENV
     - name: Generate AppEngine JWT
       run: |
@@ -87,8 +88,8 @@ jobs:
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:
-        E2E_PAIRING_URL: http://localhost:4003
-        E2E_APPENGINE_URL: http://localhost:4002
+        E2E_PAIRING_URL: http://api.astarte.localhost/pairing
+        E2E_APPENGINE_URL: http://api.astarte.localhost/appengine
         E2E_IGNORE_SSL_ERRORS: true
         E2E_CHECK_INTERVAL_SECONDS: 5
         E2E_CHECK_REPETITIONS: 5
