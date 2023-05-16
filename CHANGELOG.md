@@ -26,6 +26,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
 
+## [1.0.5] - Unreleased
+### Fixed
+- [astarte_appengine_api] Correctly handle `binaryblob` and `datetime` in server-owned object
+  aggregated interfaces.
+- [astarte_appengine_api] Handle non-array values POSTed to an array endpoint gracefully instead of
+  crashing with an Internal Server Error
+  
+### Changed
+- [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
+  Astarte Operator and Kubernetes are moved to the
+  [astarte-kubernetes-operator](https://github.com/astarte-platform/astarte-kubernetes-operator)
+  repository.
+
 ## [1.0.4] - 2022-10-25
 ### Changed
 - [astarte_appengine_api] Check for device existence before accepting a watch request on

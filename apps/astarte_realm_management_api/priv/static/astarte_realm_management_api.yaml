@@ -30,12 +30,12 @@ tags:
       possible) and updating Interfaces in a Realm.
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/1.0/030-manage_interfaces.html'
+      url: 'https://docs.astarte-platform.org/astarte/1.0/030-manage_interfaces.html'
   - name: trigger
     description: Trigger management
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/1.0/060-triggers.html'
+      url: 'https://docs.astarte-platform.org/astarte/1.0/060-triggers.html'
 paths:
   '/{realm_name}/config/auth':
     parameters:
@@ -182,7 +182,7 @@ paths:
         asynchronously by default. You can perform the call synchronously by
         setting the async_operation query param to false. For more information
         about what is allowed when updating an interface, see [the
-        doc](https://docs.astarte-platform.org/1.0/030-interface.html#versioning).
+        doc](https://docs.astarte-platform.org/astarte/1.0/030-interface.html#versioning).
         This operation cannot be reverted.
       operationId: updateInterface
       security:

@@ -23,12 +23,12 @@ routine, which results in the device obtaining its Credentials for accessing its
 Transport.
 
 A Device's *Credentials Secret* allows access to [Pairing API's Device REST
-API](https://docs.astarte-platform.org/1.1/api/?urls.primaryName=Pairing%20API#/device), which
-is then used for obtaining information about which Transports the Device can use for communicating,
-and for obtaining Credentials for its assigned Transports.
+API](https://docs.astarte-platform.org/astarte/1.1/api/?urls.primaryName=Pairing%20API#/device),
+which is then used for obtaining information about which Transports the Device can use for
+communicating, and for obtaining Credentials for its assigned Transports.
 
 The ability to request Credentials of a Device can be inhibited with [AppEngine
-API](https://docs.astarte-platform.org/1.1/api/#/device/updateDeviceStatus) or using
+API](https://docs.astarte-platform.org/astarte/1.1/api/#/device/updateDeviceStatus) or using
 [`astartectl`](https://github.com/astarte-platform/astartectl) with this command:
 
 ```bash
