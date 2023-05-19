@@ -69,7 +69,7 @@ the [protocol documentation](080-mqtt-v1-protocol.html#introspection).
 Data Updater Plant failed to push data towards the device. This could result from the device being
 currently offline and not having a persistent session on the MQTT broker or from the device not
 having all the [MQTT subscriptions required by the Astarte
-protocol](https://docs.astarte-platform.org/latest/080-mqtt-v1-protocol.html#mqtt-topics-overview)
+protocol](https://docs.astarte-platform.org/astarte/1.0/080-mqtt-v1-protocol.html#mqtt-topics-overview)
 
 ## `resend_interface_properties_failed`
 

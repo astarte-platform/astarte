@@ -20,12 +20,12 @@ tags:
     description: Device registration and credentials secret emission
     externalDocs:
       description: Find out more
-      url: 'https://docs.astarte-platform.org/1.0/050-pairing_mechanism.html'
+      url: 'https://docs.astarte-platform.org/astarte/1.0/050-pairing_mechanism.html'
   - name: device
     description: Device credentials emission and info
     externalDocs:
       description: Find out more
-      url: 'https://docs.astarte-platform.org/1.0/050-pairing_mechanism.html'
+      url: 'https://docs.astarte-platform.org/astarte/1.0/050-pairing_mechanism.html'
 paths:
   '/{realm_name}/agent/devices':
     post:

@@ -15,7 +15,7 @@ defmodule Doc.MixProject do
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.24", only: :dev}]
+    [{:ex_doc, "~> 0.29", only: :dev}]
   end
 
   # Add here additional documentation files
@@ -33,7 +33,6 @@ defmodule Doc.MixProject do
         "Architecture, Design and Concepts": ~r"/architecture/",
         "User Guide": ~r"/user/",
         "Administrator Guide": ~r"/administrator/",
-        "Upgrade Guide": ~r"/upgrade/",
         Tutorials: ~r"/tutorials/",
         "REST API Reference": ~r"/api/"
       ],

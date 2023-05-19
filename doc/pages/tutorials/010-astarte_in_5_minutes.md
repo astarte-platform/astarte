@@ -112,7 +112,7 @@ $ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k
 We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. However before starting, we will have to install `org.astarte-platform.genericsensors.Values` interface into our new realm. To do that, we can use `astartectl` again:
 
 ```sh
-$ astartectl realm-management interfaces install standard-interfaces/org.astarte-platform.genericsensors.Values.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+$ astartectl realm-management interfaces sync standard-interfaces/org.astarte-platform.genericsensors.Values.json standard-interfaces/org.astarte-platform.genericcommands.ServerCommands.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem -y
 ```
 
 Now `org.astarte-platform.genericsensors.Values` should show up among our available interfaces:

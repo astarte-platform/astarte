@@ -41,25 +41,19 @@ jobs:
       run: mix docs
     - name: Copy Docs, preserving Device SDK docs
       run: |
-        export DOCS_DIRNAME="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
         rm -rf docs/$DOCS_DIRNAME
         mkdir docs/$DOCS_DIRNAME
-        cd docs
-        # Restore Kubernetes Operator docs. Don't fail if they're not there.
-        git restore $DOCS_DIRNAME/astarte-kubernetes-operator || true
-        # Restore Device SDK docs. Don't fail if they're not there.
-        git restore $DOCS_DIRNAME/device-sdks || true
-        cd ..
         cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
     - name: Checkout Swagger UI
       uses: actions/checkout@v2
       with:
         repository: swagger-api/swagger-ui
         path: swagger-ui
-        ref: 'v3.25.0'
+        ref: 'v4.9.1'
     - name: Copy all Swagger UI files
       run: |
-        export DOCS_DIRNAME="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
         mkdir docs/$DOCS_DIRNAME/api
         cp swagger-ui/dist/* docs/$DOCS_DIRNAME/api
         rm docs/$DOCS_DIRNAME/api/index.html
