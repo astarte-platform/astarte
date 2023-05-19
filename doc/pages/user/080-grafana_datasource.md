@@ -17,7 +17,7 @@ When deploying locally using `docker-compose` as mentioned in the
 [Astarte in 5 mins
 tutorial](https://docs.astarte-platform.org/astarte/1.1/010-astarte_in_5_minutes.html#install-astarte),
 Astarte Datasource Plugin will be automatically installed. You may then access Grafana
-by visiting http://localhost:3000.
+by visiting http://grafana.astarte.localhost.
 
 When first logging into Grafana, you will be prompted to change default
 credentials user `admin`, password: `admin`.

@@ -70,20 +70,23 @@ $ docker-compose up -d
 
 `docker-compose-initializer` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
 
-Compose might take some time to bring everything up, but usually within a minute from the containers creation Astarte will be ready. Compose will forward the following ports to your machine:
+Compose might take some time to bring everything up, but usually within a minute from the containers creation Astarte will be ready.
+You can reach Astarte at the following addresses:
 
-* `4000`: Realm Management API
-* `4001`: Housekeeping API
-* `4002`: AppEngine API
-* `4003`: Pairing API
-* `4040`: Dashboard
+* `api.astarte.localhost`: Astarte API, in detail:
+  * `api.astarte.localhost/appengine`: AppEngine
+  * `api.astarte.localhost/housekeeping`: Housekeeping
+  * `api.astarte.localhost/pairing`: Pairing
+  * `api.astarte.localhost/realmmanagement`: Realm Management
+* `broker.astarte.localhost`: VerneMQ broker
+* `dashboard.astarte.localhost`: Astarte Dashboard
+
+Moreover, Compose will forward the following ports to your machine:
+
+* `80`: HTTP
 * `8883`: MQTTS
-* `1885`: MQTT with Proxy Protocol for SSL termination (won't be used)
-* `80`: Let's Encrypt verification (won't be used)
 
-This example won't use Let's Encrypt with VerneMQ - in case binding to port 80 is a problem to you, you can comment it out in `docker-compose.yml` without affecting any functionality.
-
-To check everything went fine, use `docker ps` to verify relevant containers are up: Astarte itself, VerneMQ, PostgreSQL (used by CFSSL), CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker-compose up -d` again to fix potential temporary failures.
+To check everything went fine, use `docker ps` to verify relevant containers are up: Astarte itself, VerneMQ, CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker-compose up -d` again to fix potential temporary failures.
 
 ## Create a Realm
 
@@ -98,13 +101,13 @@ Also, we will need a JWT token to authenticate against Housekeeping. `generate-c
 Use `astartectl` to create a new Realm:
 
 ```sh
-$ astartectl housekeeping realms create test --housekeeping-url http://localhost:4001/ --realm-public-key test_public.pem -k compose/astarte-keys/housekeeping_private.pem
+$ astartectl housekeeping realms create test --astarte-url http://api.astarte.localhost --realm-public-key test_public.pem -k compose/astarte-keys/housekeeping_private.pem
 ```
 
 This creates a `test` realm, which should be ready to be used almost immediately. To ensure your realm is available and ready, check if it exists in Astarte by issuing:
 
 ```sh
-$ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k compose/astarte-keys/housekeeping_private.pem
+$ astartectl housekeeping realms ls --astarte-url http://api.astarte.localhost -k compose/astarte-keys/housekeeping_private.pem
 ```
 
 ## Install an interface
@@ -112,13 +115,13 @@ $ astartectl housekeeping realms ls --housekeeping-url http://localhost:4001/ -k
 We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. However before starting, we will have to install `org.astarte-platform.genericsensors.Values` interface into our new realm. To do that, we can use `astartectl` again:
 
 ```sh
-$ astartectl realm-management interfaces sync standard-interfaces/org.astarte-platform.genericsensors.Values.json standard-interfaces/org.astarte-platform.genericcommands.ServerCommands.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem -y
+$ astartectl realm-management interfaces sync standard-interfaces/org.astarte-platform.genericsensors.Values.json standard-interfaces/org.astarte-platform.genericcommands.ServerCommands.json --astarte-url http://api.astarte.localhost -r test -k test_private.pem -y
 ```
 
 Now `org.astarte-platform.genericsensors.Values` should show up among our available interfaces:
 
 ```sh
-$ astartectl realm-management interfaces ls --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+$ astartectl realm-management interfaces ls --astarte-url http://api.astarte.localhost -r test -k test_private.pem
 ```
 
 Our Astarte instance is now ready for our devices.
@@ -155,13 +158,13 @@ Replace `$TRIGGER_TARGET_URL` with your target URL in the example below, you can
 Replace `$TRIGGER_TARGET_URL` with the URL your Trigger will target. Assuming you saved this as `my_trigger.json`, you can now install it through `astartectl`:
 
 ```sh
-$ astartectl realm-management triggers install my_trigger.json --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+$ astartectl realm-management triggers install my_trigger.json --astarte-url http://api.astarte.localhost -r test -k test_private.pem
 ```
 
 You can now check that your trigger is correctly installed:
 
 ```sh
-$ astartectl realm-management triggers ls --realm-management-url http://localhost:4000/ -r test -k test_private.pem
+$ astartectl realm-management triggers ls --astarte-url http://api.astarte.localhost -r test -k test_private.pem
 ```
 
 ## Stream data
@@ -183,26 +186,26 @@ $ docker pull astarte/astarte-stream-qt5-test:v1.1.0-alpha.0
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_HOST=http://localhost:4003" -e "REALM=test" -e "AGENT_KEY=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:v1.1.0-alpha.0
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_URL=http://api.astarte.localhost/pairing" -e "REALM=test" -e "PAIRING_JWT=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:v1.1.0-alpha.0
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
 
 Refer to `stream-qt5-test` [README](https://github.com/astarte-platform/stream-qt5-test/blob/release-1.1/README.md) for more details on which variables can be passed to the container.
 
-Also, please note that the `--net="host"` parameter is required to make `localhost` work. If this is not desirable, you can change `PAIRING_HOST` to an host reachable from within the container network. Obviously, that parameter isn't required if you're running the container on a different machine and `PAIRING_HOST` is pointing to a different URL.
+Also, please note that the `--net="host"` parameter is required to make `localhost` work. If this is not desirable, you can change `PAIRING_URL` to an host reachable from within the container network. Obviously, that parameter isn't required if you're running the container on a different machine and `PAIRING_URL` is pointing to a different URL.
 
 ## Grab your tea
 
 Congratulations! Your devices or fake devices are now communicating with Astarte, and your tea should be ready by now. You can check if everything is working out by invoking AppEngine APIs to get some values. In case you are using `stream-qt5-test`, you can get the last sent value with `astartectl`:
 
 ```sh
-$ astartectl appengine devices get-samples <your device id> org.astarte-platform.genericsensors.Values /streamTest/value --count 1 --appengine-url http://localhost:4002 -r test -k test_private.pem
+$ astartectl appengine devices get-samples <your device id> org.astarte-platform.genericsensors.Values /streamTest/value --count 1  --astarte-url http://api.astarte.localhost -r test -k test_private.pem
 ```
 
 If you get a meaningful value, congratulations - you have a working Astarte installation with your first `datastream` coming in!
 
-Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://localhost:4040/` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt all-realm-apis -k test_private.pem`. By default, `astartectl` will generate a token valid for 8 hours, but you can set a specific expiration by using the `-e <seconds>` parameter.
+Moreover, Astarte's Docker Compose also installs [Astarte Dashboard](https://github.com/astarte-platform/astarte-dashboard), from which you can manage your Realms and install Triggers, Interfaces and more from a Web UI. It is accessible by default at `http://dashboard.astarte.localhost` - remember that if you are not exposing Astarte from `localhost`, you have to change Realm Management API's URL in Dashboard's configuration file, to be found in `compose/astarte-dashboard/config.json` in Astarte's repository. You can generate a token for Astarte Dashboard, as usual, through `astartectl utils gen-jwt all-realm-apis -k test_private.pem`. By default, `astartectl` will generate a token valid for 8 hours, but you can set a specific expiration by using the `-e <seconds>` parameter.
 
 From here on, you can use all of Astarte's APIs and features from your own installation. You can add devices, experiment with interfaces, or develop your own applications on top of Astarte's triggers or AppEngine's APIs. And have a lot of fun!
 
