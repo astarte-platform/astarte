@@ -106,12 +106,7 @@ defmodule Astarte.Housekeeping.APIWeb.AuthTest do
         put_req_header(
           conn,
           "authorization",
-          "bearer #{
-            JWTTestHelper.gen_jwt_token([
-              "^GET$::#{@non_matching_auth_path}",
-              "^GET$::#{@valid_auth_path}"
-            ])
-          }"
+          "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@non_matching_auth_path}", "^GET$::#{@valid_auth_path}"])}"
         )
         |> get(@request_path)
 
@@ -135,12 +130,7 @@ defmodule Astarte.Housekeeping.APIWeb.AuthTest do
         put_req_header(
           conn,
           "authorization",
-          "bearer #{
-            JWTTestHelper.gen_jwt_token([
-              "^POST$::#{@valid_auth_path}",
-              "^GET$::#{@valid_auth_path}"
-            ])
-          }"
+          "bearer #{JWTTestHelper.gen_jwt_token(["^POST$::#{@valid_auth_path}", "^GET$::#{@valid_auth_path}"])}"
         )
         |> get(@request_path)
 

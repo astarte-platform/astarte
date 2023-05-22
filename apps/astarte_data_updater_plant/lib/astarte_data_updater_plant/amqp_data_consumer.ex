@@ -337,9 +337,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   defp handle_invalid_msg(payload, headers, timestamp, meta) do
     Logger.warn(
-      "Invalid AMQP message: #{inspect(payload)} #{inspect(headers)} #{inspect(timestamp)} #{
-        inspect(meta)
-      }",
+      "Invalid AMQP message: #{inspect(payload)} #{inspect(headers)} #{inspect(timestamp)} #{inspect(meta)}",
       tag: "data_consumer_invalid_msg"
     )
 

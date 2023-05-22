@@ -39,9 +39,7 @@ defmodule Astarte.TriggerEngine.Policy do
   def handle_event(pid, channel, payload, meta) do
     _ =
       Logger.debug(
-        "policy process #{inspect(pid)} got event, payload: #{inspect(payload)},  meta: #{
-          inspect(meta)
-        }",
+        "policy process #{inspect(pid)} got event, payload: #{inspect(payload)},  meta: #{inspect(meta)}",
         tag: "policy_handle_event"
       )
 

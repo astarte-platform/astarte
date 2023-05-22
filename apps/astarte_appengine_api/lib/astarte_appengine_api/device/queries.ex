@@ -136,9 +136,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     # TODO: should we filter on path for performance reason?
     # TODO: probably we should sanitize also table_name: right now it is stored on database
-    "SELECT path, #{Astarte.Core.CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{
-      table_name
-    }" <>
+    "SELECT path, #{Astarte.Core.CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name}" <>
       " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
   end
 
@@ -215,14 +213,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       end
 
     where_clause =
-      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{
-        since_statement
-      } #{to_statement} #{limit_statement}"
+      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}"
 
     {
-      "SELECT value_timestamp, reception_timestamp, reception_timestamp_submillis, #{
-        CQLUtils.type_to_db_column_name(value_type)
-      } #{metadata_column} FROM #{table_name} #{where_clause}",
+      "SELECT value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} #{where_clause}",
       "SELECT count(value_timestamp) FROM #{table_name} #{where_clause}",
       query
     }
@@ -551,9 +545,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement("""
       INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis)
-        VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{
-        ttl_string
-      };
+        VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{ttl_string};
       """)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:path, path)
@@ -1175,9 +1167,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       end
 
     where_clause =
-      "WHERE device_id=:device_id #{since_statement} AND path=:path #{to_statement} #{
-        limit_statement
-      } ;"
+      "WHERE device_id=:device_id #{since_statement} AND path=:path #{to_statement} #{limit_statement} ;"
 
     values_query_statement =
       "SELECT #{columns} #{timestamp_column} FROM #{interface_row[:storage]} #{where_clause};"

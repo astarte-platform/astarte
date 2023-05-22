@@ -891,9 +891,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         base64_payload = Base.encode64(payload)
 
         Logger.warn(
-          "Received object with unexpected key, object base64 is: #{base64_payload} sent to #{
-            interface
-          }#{path}.",
+          "Received object with unexpected key, object base64 is: #{base64_payload} sent to #{interface}#{path}.",
           tag: "unexpected_object_key"
         )
 
@@ -1593,7 +1591,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            match_path: "/*"
          }} ->
           with {:ok, db_client} <- Database.connect(realm: state.realm),
-               :ok <- InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
+               :ok <-
+                 InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
             {:ok, new_state}
           else
             {:error, reason} ->
