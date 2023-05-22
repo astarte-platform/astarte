@@ -468,7 +468,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
              {:ok, property_value} <-
                Data.fetch_property(
-                 db_client,
+                 new_state.realm,
                  new_state.device_id,
                  interface_descriptor,
                  endpoint,
@@ -1593,7 +1593,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            match_path: "/*"
          }} ->
           with {:ok, db_client} <- Database.connect(realm: state.realm),
-               :ok <- InterfaceQueries.check_if_interface_exists(db_client, interface_name, major) do
+               :ok <- InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
             {:ok, new_state}
           else
             {:error, reason} ->
@@ -1609,7 +1609,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          }} ->
           with {:ok, db_client} <- Database.connect(realm: state.realm),
                {:ok, %InterfaceDescriptor{automaton: automaton}} <-
-                 InterfaceQueries.fetch_interface_descriptor(db_client, interface_name, major),
+                 InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
             {:ok, new_state}
           else
@@ -1877,13 +1877,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
     with {:ok, major_version} <-
-           DeviceQueries.interface_version(db_client, state.device_id, interface_name),
+           DeviceQueries.interface_version(state.realm, state.device_id, interface_name),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(db_client, interface_name, major_version),
+           InterfaceQueries.retrieve_interface_row(state.realm, interface_name, major_version),
          %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor <-
            InterfaceDescriptor.from_db_result!(interface_row),
          {:ok, mappings} <-
-           Mappings.fetch_interface_mappings_map(db_client, interface_id),
+           Mappings.fetch_interface_mappings_map(state.realm, interface_id),
          new_interfaces_by_expiry <-
            state.interfaces_by_expiry ++
              [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],

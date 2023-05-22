@@ -1202,7 +1202,7 @@ defmodule Astarte.RealmManagement.Queries do
     insert_trigger_with_policy_statement =
       "INSERT INTO kv_store (group, key, value) VALUES (:policy_group, :trigger_uuid, uuidAsBlob(:t_uuid_to_be_converted))"
 
-    insert_trigger_with_policy_query =
+      insert_trigger_with_policy_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(insert_trigger_with_policy_statement)
       |> DatabaseQuery.put(:policy_group, "triggers-with-policy-#{trigger_policy}")
