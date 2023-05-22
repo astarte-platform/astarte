@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.1.0-rc.0] - Unreleased
+### Changed
+- Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2.
 ### Fixed
 - [astarte_realm_management_api] Provide detailed feedback when a trigger action
   is malformed. Fix [#748](https://github.com/astarte-platform/astarte/issues/748).
