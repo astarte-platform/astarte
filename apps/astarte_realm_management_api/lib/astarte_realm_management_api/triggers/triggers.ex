@@ -58,7 +58,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
           %{
             trigger_name: name,
             trigger_action: action,
-            tagged_simple_triggers: tagged_simple_triggers
+            tagged_simple_triggers: tagged_simple_triggers,
+            policy: policy
           }} <- RealmManagement.get_trigger(realm_name, trigger_name),
          {:ok, action_map} <- Jason.decode(action) do
       simple_triggers_configs =
@@ -68,7 +69,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
        %Trigger{
          name: name,
          action: action_map,
-         simple_triggers: simple_triggers_configs
+         simple_triggers: simple_triggers_configs,
+         policy: policy
        }}
     end
   end
