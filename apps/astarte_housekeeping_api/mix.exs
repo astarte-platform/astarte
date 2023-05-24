@@ -79,8 +79,9 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:phoenix, "~> 1.5"},
+      {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
+      {:phoenix_view, "~> 2.0"},
       {:gettext, "~> 0.11"},
       {:cors_plug, "~> 2.0"},
       {:plug_cowboy, "~> 2.1"},

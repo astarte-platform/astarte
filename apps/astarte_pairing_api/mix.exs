@@ -80,10 +80,11 @@ defmodule Astarte.Pairing.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.5"},
+      {:phoenix, "~> 1.7"},
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 2.2"},
       {:phoenix_ecto, "~> 4.0"},
+      {:phoenix_view, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},
       {:remote_ip, "~> 1.0"},
