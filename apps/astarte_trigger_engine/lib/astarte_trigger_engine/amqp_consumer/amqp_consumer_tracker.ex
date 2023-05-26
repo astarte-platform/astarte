@@ -27,6 +27,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
   alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.TriggerEngine.Config
 
   # 30 seconds
   @update_timeout 30 * 1000

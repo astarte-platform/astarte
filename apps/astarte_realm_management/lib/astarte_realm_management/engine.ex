@@ -832,6 +832,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, json_obj} <- decode_policy(policy_json),
          policy_changeset = Policy.changeset(%Policy{}, json_obj),
          {:ok, %Policy{name: policy_name} = policy} <- validate_trigger_policy(policy_changeset),
+         :ok <- verify_policy_prefetch_count_allowed(policy),
          :ok <- verify_trigger_policy_not_exists(client, policy_name) do
       _ =
         Logger.info("Installing trigger policy",
@@ -929,6 +930,20 @@ defmodule Astarte.RealmManagement.Engine do
       else
         Engine.execute_trigger_policy_deletion(client, policy_name)
       end
+    end
+  end
+
+  defp verify_policy_prefetch_count_allowed(policy) do
+    %Policy{name: name, prefetch_count: prefetch_count} = policy
+
+    if Config.allow_trigger_policy_prefetch_count!() or prefetch_count == nil do
+      :ok
+    else
+      Logger.warn("Trigger policy prefetch_count not allowed, but set in #{name}",
+        tag: "trigger_policy_prefetch_count_not_allowed"
+      )
+
+      {:error, :trigger_policy_prefetch_count_not_allowed}
     end
   end
 

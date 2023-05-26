@@ -169,7 +169,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
     queue_name = generate_queue_name(realm_name, policy.name)
     routing_key = generate_routing_key(realm_name, policy.name)
 
-    with :ok <- @adapter.qos(channel, prefetch_count: Config.amqp_consumer_prefetch_count!()),
+    with :ok <- @adapter.qos(channel, prefetch_count: prefetch_count_or_default(policy)),
          :ok <- @adapter.declare_exchange(channel, exchange_name, type: :direct, durable: true),
          {:ok, _queue} <- @adapter.declare_queue(channel, queue_name, durable: true),
          :ok <-
@@ -198,6 +198,13 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
         {:noreply, %{state | channel: nil, monitor: nil}}
     end
   end
+
+  # Protobuf3 encodes missing int field as 0
+  defp prefetch_count_or_default(%PolicyStruct{prefetch_count: 0}),
+    do: Config.amqp_consumer_prefetch_count!()
+
+  defp prefetch_count_or_default(%PolicyStruct{prefetch_count: prefetch_count}),
+    do: prefetch_count
 
   defp generate_policy_x_args(%PolicyStruct{
          maximum_capacity: maximum_capacity,

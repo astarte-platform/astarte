@@ -101,6 +101,13 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     |> render(:trigger_policy_already_present)
   end
 
+  def call(conn, {:error, :trigger_policy_prefetch_count_not_allowed}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:trigger_policy_prefetch_count_not_allowed)
+  end
+
   def call(conn, {:error, :cannot_delete_currently_used_trigger_policy}) do
     conn
     |> put_status(:conflict)

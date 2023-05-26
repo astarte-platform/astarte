@@ -59,6 +59,10 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
     %{errors: %{detail: "Cannot delete policy as it is being currently used by triggers"}}
   end
 
+  def render("trigger_policy_prefetch_count_not_allowed.json", _assigns) do
+    %{errors: %{detail: "Not allowed to specify prefetch_count in policy"}}
+  end
+
   def render("overlapping_mappings.json", _assigns) do
     %{errors: %{detail: "Overlapping endpoints in interface mappings"}}
   end
