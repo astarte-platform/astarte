@@ -26,7 +26,7 @@ env:
 jobs:
   end-to-end-test:
     name: End-to-end Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
     - name: Initialize docker-compose files
@@ -42,8 +42,8 @@ jobs:
         ./wait-for-astarte-docker-compose
     - name: Install astartectl
       run: |
-        wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.01/astartectl_22.11.01_linux_x86_64.tar.gz
-        tar xf astartectl_22.11.01_linux_x86_64.tar.gz
+        wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.02/astartectl_22.11.02_linux_x86_64.tar.gz
+        tar xf astartectl_22.11.02_linux_x86_64.tar.gz
         chmod +x astartectl
     - name: Create realm
       run: |
@@ -76,7 +76,7 @@ jobs:
       with:
         path: tools/astarte_e2e/_build
         key: build-${{ env.otp_version }}-${{ env.elixir_version }}
-    - uses: erlef/setup-beam@v1.7.0
+    - uses: erlef/setup-beam@v1.15
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
