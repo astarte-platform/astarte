@@ -44,6 +44,10 @@ deps
 .rebar3
 apps/*/_checkouts/
 
+# Nix
+.nix-mix/
+.nix-hex/
+
 # Direnv
 .direnv/
 .envrc
