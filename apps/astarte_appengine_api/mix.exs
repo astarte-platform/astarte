@@ -24,7 +24,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       elixir: "~> 1.14",
       version: "1.1.0-alpha.0",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      compilers: [:gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
