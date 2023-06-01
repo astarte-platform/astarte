@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,6 +45,14 @@ defmodule AstarteE2E.ServiceNotifier do
     }
   end
 
+  def disable do
+    :gen_statem.call(__MODULE__, :disable_notifications)
+  end
+
+  def enable do
+    :gen_statem.call(__MODULE__, :enable_notifications)
+  end
+
   def notify_service_down(reason) do
     :gen_statem.call(__MODULE__, {:notify_service_down, reason})
   end
@@ -63,6 +71,12 @@ defmodule AstarteE2E.ServiceNotifier do
     with %Bamboo.Email{} = sent_email <- Mailer.deliver_later(configured_email) do
       {:ok, sent_email}
     end
+  end
+
+  defp disable_notifications(state, data, from) do
+    new_data = {state, data}
+    actions = [{:reply, from, :ok}]
+    {:next_state, :service_disabled, new_data, actions}
   end
 
   # Callbacks
@@ -124,6 +138,10 @@ defmodule AstarteE2E.ServiceNotifier do
     {:keep_state_and_data, actions}
   end
 
+  def starting({:call, from}, :disable_notifications, data) do
+    disable_notifications(:starting, data, from)
+  end
+
   def service_down(
         {:call, from},
         :notify_service_up,
@@ -155,6 +173,10 @@ defmodule AstarteE2E.ServiceNotifier do
     actions = [{:reply, from, :nothing_to_do}]
 
     {:keep_state_and_data, actions}
+  end
+
+  def service_down({:call, from}, :disable_notifications, data) do
+    disable_notifications(:service_down, data, from)
   end
 
   def service_up({:call, from}, :notify_service_up, data) do
@@ -223,5 +245,19 @@ defmodule AstarteE2E.ServiceNotifier do
     updated_data = Map.put(data, :failures_before_alert, data.failures_before_alert - 1)
 
     {:keep_state, updated_data, actions}
+  end
+
+  def service_up({:call, from}, :disable_notifications, data) do
+    disable_notifications(:service_up, data, from)
+  end
+
+  def service_disabled({:call, from}, :enable_notifications, {old_state, old_data}) do
+    actions = [{:reply, from, :ok}]
+    {:next_state, old_state, old_data, actions}
+  end
+
+  def service_disabled({:call, from}, _message, _data) do
+    actions = [{:reply, from, :service_disabled}]
+    {:keep_state_and_data, actions}
   end
 end
