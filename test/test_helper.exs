@@ -1,7 +1,7 @@
 ExUnit.start()
 
 children = [
-  {Astarte.DataAccess, [atom_keys: true]}
+  {Astarte.DataAccess, xandra_options: Astarte.DataAccess.Config.xandra_options!()}
 ]
 
 Supervisor.start_link(children, strategy: :one_for_one)
