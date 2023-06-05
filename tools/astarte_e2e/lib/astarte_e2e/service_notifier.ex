@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,11 +75,18 @@ defmodule AstarteE2E.ServiceNotifier do
   @impl true
   def init(args) do
     mail_subject = Keyword.get(args, :mail_subject)
+    mail_enabled = Keyword.get(args, :mail_enabled)
+    delivery_data = case mail_enabled do
+      true -> %{function: &deliver/1, report: " The user has been notified."}
+      false -> %{function: fn _mail -> {:ok, nil} end, report: ""}
+    end
 
     data = %{
       failures_before_alert: Config.failures_before_alert!(),
       failure_id: @default_failure_id,
-      mail_subject: mail_subject
+      mail_subject: mail_subject,
+      deliver: delivery_data.function,
+      delivery_report: delivery_data.report
     }
 
     {:ok, :starting, data, [{:state_timeout, 60_000, nil}]}
@@ -99,10 +106,10 @@ defmodule AstarteE2E.ServiceNotifier do
 
     reason
     |> Email.service_down_email(event_id, mail_subject)
-    |> deliver()
+    |> data.deliver.()
 
     Logger.warn(
-      "Service down. The user has been notified. Reason: #{reason}.",
+      "Service down.#{data.delivery_report} Reason: #{reason}.",
       tag: "service_down_notified",
       failure_id: event_id
     )
@@ -137,9 +144,9 @@ defmodule AstarteE2E.ServiceNotifier do
       |> Map.put(:failure_id, failure_id)
 
     Email.service_up_email(failure_id, mail_subject)
-    |> deliver()
+    |> data.deliver.()
 
-    Logger.info("Service up. The user has been notified.",
+    Logger.info("Service up.#{data.delivery_report}",
       tag: "service_up_notified",
       failure_id: failure_id
     )
@@ -178,10 +185,10 @@ defmodule AstarteE2E.ServiceNotifier do
 
     reason
     |> Email.service_down_email(event_id, mail_subject)
-    |> deliver()
+    |> data.deliver.()
 
     Logger.warn(
-      "Service down. The user has been notified. Reason: #{reason}.",
+      "Service down.#{data.delivery_report} Reason: #{reason}.",
       tag: "service_down_notified",
       failure_id: event_id
     )
@@ -204,10 +211,10 @@ defmodule AstarteE2E.ServiceNotifier do
 
     reason
     |> Email.service_down_email(event_id, mail_subject)
-    |> deliver()
+    |> data.deliver.()
 
     Logger.warn(
-      "Service down. The user has been notified. Reason: #{reason}.",
+      "Service down.#{data.delivery_report} Reason: #{reason}.",
       tag: "service_down_notified",
       failure_id: event_id
     )

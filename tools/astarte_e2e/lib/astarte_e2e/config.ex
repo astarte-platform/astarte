@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ defmodule AstarteE2E.Config do
 
   @type notifier_option ::
           {:mail_subject, String.t()}
+          | {:mail_enabled, boolean()}
 
   @type client_options :: [client_option()]
   @type device_options :: Astarte.Device.device_options()
@@ -146,6 +147,14 @@ defmodule AstarteE2E.Config do
     required: true
 
   @envdoc """
+  Whether to enable the mail service. Defaults to true.
+  """
+  app_env :mail_enabled, :astarte_e2e, :mail_enabled,
+    os_env: "E2E_MAIL_ENABLED",
+    type: :boolean,
+    default: true
+
+  @envdoc """
   The mail service's API key. This env var must be set and valid to use the mail
   service.
   """
@@ -239,7 +248,10 @@ defmodule AstarteE2E.Config do
 
   @spec notifier_opts() :: notifier_options()
   def notifier_opts do
-    [mail_subject: mail_subject!()]
+    [
+      mail_subject: mail_subject!(),
+      mail_enabled: mail_enabled!()
+    ]
   end
 
   def service_notifier_config do
