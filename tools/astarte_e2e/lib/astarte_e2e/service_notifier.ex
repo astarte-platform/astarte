@@ -88,6 +88,16 @@ defmodule AstarteE2E.ServiceNotifier do
 
   @impl true
   def init(args) do
+    service_enabled = Keyword.get(args, :mail_enabled)
+
+    if service_enabled do
+      service_init(args)
+    else
+      {:ok, :service_disabled, :disabled_from_config}
+    end
+  end
+
+  defp service_init(args) do
     mail_subject = Keyword.get(args, :mail_subject)
 
     data = %{
@@ -249,6 +259,12 @@ defmodule AstarteE2E.ServiceNotifier do
 
   def service_up({:call, from}, :disable_notifications, data) do
     disable_notifications(:service_up, data, from)
+  end
+
+  def service_disabled({:call, from}, :enable_notifications, :disabled_from_config) do
+    Logger.warn("Service disabled from the configuration. Can not be enabled manually.")
+    actions = [{:reply, from, :service_disabled}]
+    {:keep_state_and_data, actions}
   end
 
   def service_disabled({:call, from}, :enable_notifications, {old_state, old_data}) do
