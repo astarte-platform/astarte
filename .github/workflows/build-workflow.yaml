@@ -18,7 +18,7 @@ env:
 jobs:
   test-dialyzer:
     name: Check Dialyzer
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       MIX_ENV: ci
     steps:
@@ -41,7 +41,7 @@ jobs:
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-
-    - uses: erlef/setup-elixir@v1.7.0
+    - uses: erlef/setup-beam@v1.15
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
@@ -53,7 +53,7 @@ jobs:
 
   test-coverage:
     name: Build and Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # Wait for Dialyzer to give it a go before building
     needs:
       - test-dialyzer
@@ -61,8 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         database:
-        - "cassandra:3.11.10"
-        - "scylladb/scylla:4.4.3"
+        - "cassandra:3.11.15"
+        - "scylladb/scylla:5.2.2"
     services:
       database:
         image: ${{ matrix.database }}
@@ -86,7 +86,7 @@ jobs:
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-
-    - uses: erlef/setup-elixir@v1.7.0
+    - uses: erlef/setup-beam@v1.15
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
