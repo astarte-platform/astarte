@@ -97,7 +97,7 @@ jobs:
         - astarte_realm_management_api
         - astarte_trigger_engine
         database:
-        - "cassandra:3.11.10"
+        - "cassandra:3.11.15"
         - "scylladb/scylla:5.2.2"
         rabbitmq:
         - "rabbitmq:3.12.0-management"
