@@ -97,6 +97,22 @@ defmodule AstarteE2E.Config do
     type: :integer,
     default: 60
 
+  @envdoc """
+  Number of checks performed before declaring a timeout at startup.
+  Defaults to 1.
+  """
+  app_env :check_limit, :astarte_e2e, :check_limit,
+    os_env: "E2E_CHECK_LIMIT",
+    type: :integer
+    
+  @envdoc """
+  Time interval before declaring a timeout at startup (in seconds).
+  This option takes priority if both E2E_CHECK_LIMIT and E2E_STARTUP_TIMEOUT_SECONDS are defined.
+  """
+  app_env :startup_timeout_s, :astarte_e2e, :startup_timeout_s,
+    os_env: "E2E_STARTUP_TIMEOUT_SECONDS",
+    type: :integer
+
   @envdoc "The port used to expose AstarteE2E's metrics. Defaults to 4010."
   app_env :port, :astarte_e2e, :port,
     os_env: "E2E_PORT",
@@ -229,9 +245,17 @@ defmodule AstarteE2E.Config do
 
   @spec scheduler_opts() :: scheduler_options()
   def scheduler_opts do
+    check_interval = check_interval_s!()
+    timeout_s = startup_timeout_s!()
+
+    limit = check_limit!()
+    limit_from_timeout = timeout_s && div(timeout_s, check_interval)
+    allowed_retries = max(limit || limit_from_timeout || 1, 1)
+    
     [
-      check_interval_s: check_interval_s!(),
+      check_interval_s: check_interval,
       check_repetitions: check_repetitions!(),
+      timeout: {:active, allowed_retries},
       realm: realm!(),
       device_id: device_id!()
     ]
