@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-rc.0] - 2023-06-08
+### Added
+- Trigger Delivery Policy Editor to manage delivery policies for triggers
+([#365](https://github.com/astarte-platform/astarte-dashboard/issues/365)).
+
 ## [1.1.0-alpha.0] - 2022-11-24
 ### Added
 - Custom library to render graphic charts for data coming from Astarte.
