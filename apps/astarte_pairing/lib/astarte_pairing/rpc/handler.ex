@@ -251,9 +251,7 @@ defmodule Astarte.Pairing.RPC.Handler do
         err ->
           # We skip it and keep going since if we crash we block all pairing
           Logger.warn(
-            "Error while building protocol status: #{inspect(err)} with protocol_map #{
-              inspect(protocol_map)
-            }"
+            "Error while building protocol status: #{inspect(err)} with protocol_map #{inspect(protocol_map)}"
           )
 
           acc

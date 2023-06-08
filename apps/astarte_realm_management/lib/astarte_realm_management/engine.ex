@@ -138,10 +138,11 @@ defmodule Astarte.RealmManagement.Engine do
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, {:ok, true}} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
-         {:ok, installed_interface} <- Interface.fetch_interface_descriptor(client, name, major),
+         {:ok, installed_interface} <-
+           Interface.fetch_interface_descriptor(realm_name, name, major),
          :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
-         {:ok, mapping_updates} <- extract_mapping_updates(client, interface_doc),
+         {:ok, mapping_updates} <- extract_mapping_updates(realm_name, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
       interface_update =
         Map.merge(installed_interface, interface_descriptor, fn _k, old, new ->
@@ -291,11 +292,11 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp extract_mapping_updates(db_client, %{mappings: upd_mappings} = interface_doc) do
+  defp extract_mapping_updates(realm_name, %{mappings: upd_mappings} = interface_doc) do
     descriptor = InterfaceDescriptor.from_interface(interface_doc)
 
     with {:ok, mappings_map} <-
-           Mappings.fetch_interface_mappings_map(db_client, descriptor.interface_id,
+           Mappings.fetch_interface_mappings_map(realm_name, descriptor.interface_id,
              include_docs: true
            ) do
       upd_mappings_map =
@@ -381,11 +382,11 @@ defmodule Astarte.RealmManagement.Engine do
            {:triggers, Queries.has_interface_simple_triggers?(client, interface_id)} do
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
-        Task.start_link(Engine, :execute_interface_deletion, [client, name, major])
+        Task.start_link(Engine, :execute_interface_deletion, [client, realm_name, name, major])
 
         {:ok, :started}
       else
-        Engine.execute_interface_deletion(client, name, major)
+        Engine.execute_interface_deletion(client, realm_name, name, major)
       end
     else
       {:major, _} ->
@@ -408,8 +409,9 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def execute_interface_deletion(client, name, major) do
-    with {:ok, interface_row} <- Interface.retrieve_interface_row(client, name, major),
+  def execute_interface_deletion(client, realm_name, name, major) do
+    with {:ok, interface_row} <-
+           Interface.retrieve_interface_row(realm_name, name, major),
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          :ok <- Queries.delete_interface_storage(client, descriptor),
          :ok <- Queries.delete_devices_with_data_on_interface(client, name) do

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-use Mix.Config
+import Config
 
 config :astarte_pairing, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
 

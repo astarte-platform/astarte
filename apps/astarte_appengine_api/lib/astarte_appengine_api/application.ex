@@ -40,9 +40,11 @@ defmodule Astarte.AppEngine.API.Application do
     RPCConfig.validate!()
     Config.validate!()
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = Config.xandra_options!()
+
+    data_access_opts = [xandra_options: xandra_options]
+
+    ae_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     # Define workers and child supervisors to be supervised
     children = [
@@ -52,7 +54,8 @@ defmodule Astarte.AppEngine.API.Application do
       Astarte.AppEngine.API.Rooms.MasterSupervisor,
       Astarte.AppEngine.API.Rooms.AMQPClient,
       Astarte.AppEngine.APIWeb.Endpoint,
-      {Xandra.Cluster, xandra_options}
+      {Xandra.Cluster, ae_xandra_opts},
+      {Astarte.DataAccess, data_access_opts}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

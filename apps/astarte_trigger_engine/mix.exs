@@ -22,7 +22,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       version: "1.1.0-alpha.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -39,7 +39,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do

@@ -18,7 +18,7 @@
 
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Mix.Config module.
-use Mix.Config
+import Config
 
 # lager is used by rabbit_common.
 # Silent it by setting the higher loglevel.
@@ -43,4 +43,4 @@ config :astarte_trigger_engine, :events_consumer, Astarte.TriggerEngine.EventsCo
 
 config :astarte_trigger_engine, :amqp_adapter, ExRabbitPool.RabbitMQ
 
-import_config "#{Mix.env()}.exs"
+import_config "#{config_env()}.exs"

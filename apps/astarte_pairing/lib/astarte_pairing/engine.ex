@@ -144,9 +144,7 @@ defmodule Astarte.Pairing.Engine do
         _device_ip
       ) do
     Logger.warn(
-      "get_credentials: unknown protocol #{inspect(protocol)} with params #{
-        inspect(credentials_params)
-      }"
+      "get_credentials: unknown protocol #{inspect(protocol)} with params #{inspect(credentials_params)}"
     )
 
     {:error, :unknown_protocol}
@@ -281,9 +279,7 @@ defmodule Astarte.Pairing.Engine do
 
   def verify_credentials(protocol, credentials_map, _realm, _hw_id, _secret) do
     Logger.warn(
-      "verify_credentials: unknown protocol #{inspect(protocol)} with params #{
-        inspect(credentials_map)
-      }"
+      "verify_credentials: unknown protocol #{inspect(protocol)} with params #{inspect(credentials_map)}"
     )
 
     {:error, :unknown_protocol}

@@ -202,9 +202,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
         status_code when status_code in 400..599 ->
           Logger.debug(
-            "HTTP request status: error #{status_code}, got response: #{inspect(response)} from #{
-              url
-            }"
+            "HTTP request status: error #{status_code}, got response: #{inspect(response)} from #{url}"
           )
 
           {:error, {:http_error, status_code}}
@@ -212,9 +210,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     else
       {:error, reason} ->
         Logger.warn(
-          "Error while processing the request: #{inspect(reason)}. Payload: #{inspect(payload)}, headers: #{
-            inspect(headers)
-          }, action: #{inspect(action)}"
+          "Error while processing the request: #{inspect(reason)}. Payload: #{inspect(payload)}, headers: #{inspect(headers)}, action: #{inspect(action)}"
         )
 
         {:error, :connection_error}

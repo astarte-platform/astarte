@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -54,7 +54,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do
@@ -81,10 +81,11 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp deps do
     [
-      {:phoenix, "~> 1.5"},
+      {:phoenix, "~> 1.7"},
       {:plug_cowboy, "~> 2.1"},
       {:gettext, "~> 0.11"},
       {:phoenix_ecto, "~> 4.0"},
+      {:phoenix_view, "~> 2.0"},
       {:cors_plug, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},

@@ -27,7 +27,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -50,7 +50,7 @@ defmodule Astarte.Housekeeping.Mixfile do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do

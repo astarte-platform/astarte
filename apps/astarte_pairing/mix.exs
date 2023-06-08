@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.Mixfile do
     [
       app: :astarte_pairing,
       version: "1.1.0-alpha.0",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -46,7 +46,7 @@ defmodule Astarte.Pairing.Mixfile do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do

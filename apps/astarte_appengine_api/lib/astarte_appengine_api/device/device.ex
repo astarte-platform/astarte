@@ -172,9 +172,10 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version) do
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version) do
       do_get_interface_values!(
         client,
         device_id,
@@ -196,9 +197,10 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version),
          path <- "/" <> no_prefix_path,
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ok, endpoint_ids} <-
@@ -407,7 +409,7 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
 
     with {:ok, mappings} <-
-           Mappings.fetch_interface_mappings(client, interface_descriptor.interface_id),
+           Mappings.fetch_interface_mappings(realm_name, interface_descriptor.interface_id),
          {:ok, endpoint} <-
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,
@@ -504,9 +506,10 @@ defmodule Astarte.AppEngine.API.Device do
       ) do
     with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version),
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path do
@@ -790,9 +793,10 @@ defmodule Astarte.AppEngine.API.Device do
   def delete_interface_values(realm_name, encoded_device_id, interface, no_prefix_path) do
     with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version),
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
