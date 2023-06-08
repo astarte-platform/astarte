@@ -53,6 +53,10 @@ defmodule AstarteE2E.ServiceNotifier do
     :gen_statem.call(__MODULE__, :notify_service_up)
   end
 
+  def notify_timeout do
+    :gen_statem.call(__MODULE__, :timeout)
+  end
+
   defp deliver(%Bamboo.Email{} = email) do
     service_notifier_config = Config.service_notifier_config()
 
@@ -82,10 +86,10 @@ defmodule AstarteE2E.ServiceNotifier do
       mail_subject: mail_subject
     }
 
-    {:ok, :starting, data, [{:state_timeout, 60_000, nil}]}
+    {:ok, :starting, data}
   end
 
-  def starting(:state_timeout, _content, %{mail_subject: mail_subject} = data) do
+  def starting({:call, from}, :timeout, %{mail_subject: mail_subject} = data) do
     reason = "Timeout at startup"
 
     event_id = Hukai.generate("%a-%A")
@@ -107,7 +111,8 @@ defmodule AstarteE2E.ServiceNotifier do
       failure_id: event_id
     )
 
-    {:next_state, :service_down, updated_data}
+    actions = [{:reply, from, :ok}]
+    {:next_state, :service_down, updated_data, actions}
   end
 
   def starting({:call, from}, :notify_service_up, data) do

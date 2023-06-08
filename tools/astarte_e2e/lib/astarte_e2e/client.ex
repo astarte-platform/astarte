@@ -90,6 +90,11 @@ defmodule AstarteE2E.Client do
     |> GenSocketClient.call(:wait_for_connection, :infinity)
   end
 
+  def notify_startup_timeout(realm, device_id) do
+    via_tuple(realm, device_id)
+    |> GenSocketClient.call(:notify_startup_timeout, :infinity)
+  end
+
   defp join_topic(transport, state) do
     topic =
       state
@@ -587,5 +592,10 @@ defmodule AstarteE2E.Client do
 
       {:noreply, new_state}
     end
+  end
+
+  def handle_call(:notify_startup_timeout, from, _transport, state) do
+    ServiceNotifier.notify_timeout()
+    {:reply, :ok, state}
   end
 end
