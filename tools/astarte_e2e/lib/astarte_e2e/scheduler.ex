@@ -55,24 +55,22 @@ defmodule AstarteE2E.Scheduler do
 
   @impl true
   def handle_info(:do_perform_check, state) do
-    return_val =
-      case AstarteE2E.perform_check() do
-        :ok ->
-          handle_successful_job(state)
-
-        {:error, :timeout} ->
-          handle_timed_out_job(state)
-
-        {:error, :not_connected} ->
-          {:noreply, state}
-
-        e ->
-          Logger.warn("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
-          {:noreply, state}
-      end
-
     Process.send_after(self(), :do_perform_check, state.check_interval_ms)
-    return_val
+
+    case AstarteE2E.perform_check() do
+      :ok ->
+        handle_successful_job(state)
+
+      {:error, :timeout} ->
+        handle_timed_out_job(state)
+
+      {:error, :not_connected} ->
+        {:noreply, state}
+
+      e ->
+        Logger.warn("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
+        {:noreply, state}
+    end
   end
 
   defp handle_successful_job(state) do
