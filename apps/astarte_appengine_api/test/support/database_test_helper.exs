@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,12 +24,14 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
      %{
        {"com.example.TestObject", 1} => 9300,
+       {"com.example.ServerOwnedTestObject", 1} => 100,
        {"com.example.PixelsConfiguration", 1} => 4230,
        {"com.test.LCDMonitor", 1} => 10,
        {"com.test.LCDMonitor", 0} => 42
      },
      %{
        {"com.example.TestObject", 1} => 2_000_000,
+       {"com.example.ServerOwnedTestObject", 1} => 30_000,
        {"com.example.PixelsConfiguration", 1} => 2_010_000,
        {"com.test.LCDMonitor", 1} => 3000,
        {"com.test.LCDMonitor", 0} => 9000
@@ -131,9 +133,11 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       '2016-08-15 11:05+0121', '2016-08-20 11:05+0121', '198.51.100.81', '198.51.100.89',
       45000, :total_received_bytes, false,
       {'com.test.LCDMonitor' : 1, 'com.test.SimpleStreamTest' : 1,
-       'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1},
+       'com.example.TestObject': 1, 'com.example.PixelsConfiguration': 1,
+       'com.example.ServerOwnedTestObject': 1},
       {'com.test.LCDMonitor' : 3, 'com.test.SimpleStreamTest' : 0,
-       'com.example.TestObject': 5, 'com.example.PixelsConfiguration': 0},
+       'com.example.TestObject': 5, 'com.example.PixelsConfiguration': 0,
+       'com.example.ServerOwnedTestObject': 0},
       :exchanged_msgs_by_interface, :exchanged_bytes_by_interface
     );
   """
@@ -235,6 +239,14 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (9651f167-a619-3ff5-1c4e-6771fb1929d4, 342c0830-f496-0db0-6776-2d1a7e534022, True, '/%{x}/%{y}/color', 0, 1, 0, 'com.example.PixelsConfiguration', 1, 1, 1, 7);
+    """,
+    """
+    INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (f0deb891-a02d-19db-ce8e-e8ed82c45587, 81da86f7-7a57-a0c1-ce84-363511058bf8, False, '/%{param}/string', 0, 1, 0, 'com.example.ServerOwnedTestObject', 2, 3, 1, 7);
+    """,
+    """
+    INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (f0deb891-a02d-19db-ce8e-e8ed82c45587, 3b937f4e-7e37-82f7-b19b-7244e8f530d5, False, '/%{param}/value', 0, 1, 0, 'com.example.ServerOwnedTestObject', 2, 3, 1, 1);
     """
   ]
 
@@ -399,6 +411,11 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   @insert_into_interface_3 """
   INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
     ('com.example.PixelsConfiguration', 1, :automaton_accepting_states, :automaton_transitions, 1, 9651f167-a619-3ff5-1c4e-6771fb1929d4, 0, 2, 'individual_properties', 1, 1)
+  """
+
+  @insert_into_interface_4 """
+  INSERT INTO autotestrealm.interfaces (name, major_version, automaton_accepting_states, automaton_transitions, aggregation, interface_id, minor_version, ownership, storage, storage_type, type) VALUES
+    ('com.example.ServerOwnedTestObject', 1, :automaton_accepting_states, :automaton_transitions, 2, f0deb891-a02d-19db-ce8e-e8ed82c45587, 0, 2, 'com_example_testobject_v1', 5, 2)
   """
 
   def connect_to_test_keyspace() do
@@ -594,6 +611,20 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       |> DatabaseQuery.put(
         :automaton_transitions,
         Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAABhAmgCYQJtAAAABWNvbG9yYQM=")
+      )
+
+    DatabaseQuery.call!(client, query)
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(@insert_into_interface_4)
+      |> DatabaseQuery.put(
+        :automaton_accepting_states,
+        Base.decode64!("g3QAAAACYQJtAAAAEIHahvd6V6DBzoQ2NREFi/hhA20AAAAQO5N/Tn43gvexm3JE6PUw1Q==")
+      )
+      |> DatabaseQuery.put(
+        :automaton_transitions,
+        Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAAZzdHJpbmdhAmgCYQFtAAAABXZhbHVlYQM=")
       )
 
     DatabaseQuery.call!(client, query)
