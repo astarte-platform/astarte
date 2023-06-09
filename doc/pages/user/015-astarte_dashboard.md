@@ -44,7 +44,7 @@ it relies on Kubernetes APIs to operate.
 Depending on how you are using Astarte, here is where you can find the Dashboard:
 
 - Docker-compose: if you are using a local instance of Astarte via `docker-compose`, you will find
-  it by pointing your browser to the default address `http://localhost:4040/`. To login, fill in the
+  it by pointing your browser to the default address `http://dashboard.astarte.localhost`. To login, fill in the
   name of your realm and a valid JWT token: if you possess the realm private key, as it is the case
   if you followed the [Astarte in 5 minutes](010-astarte_in_5_minutes.html) guide, you can generate
   the token with the command `astartectl utils gen-jwt all-realm-apis -k <private_key>`.

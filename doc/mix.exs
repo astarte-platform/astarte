@@ -1,21 +1,28 @@
 defmodule Doc.MixProject do
   use Mix.Project
 
+  @source_ref "release-1.0"
+
   def project do
+    source_version =
+      String.replace_prefix(@source_ref, "release-", "")
+      |> String.replace("master", "snapshot")
+
     [
       app: :doc,
-      version: "1.1.0-dev",
+      version: "1.1.0-rc.0",
       elixir: "~> 1.4",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Astarte",
-      homepage_url: "http://astarte-platform.org",
+      homepage_url: "https://docs.astarte-platform.org/astarte/#{source_version}/",
+      source_url: "https://github.com/astarte-platform/astarte",
       docs: docs()
     ]
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.24", only: :dev}]
+    [{:ex_doc, "~> 0.29", only: :dev}]
   end
 
   # Add here additional documentation files
@@ -23,17 +30,16 @@ defmodule Doc.MixProject do
     [
       main: "001-intro_user",
       logo: "images/mascot.png",
-      source_url: "https://git.ispirata.com/Astarte-NG/%{path}#L%{line}",
       # It's in the docs repo root
       javascript_config_path: "../common_vars.js",
       extras: Path.wildcard("pages/*/*.md"),
       assets: "images/",
       api_reference: false,
+      source_ref: "#{@source_ref}/doc",
       groups_for_extras: [
         "Architecture, Design and Concepts": ~r"/architecture/",
         "User Guide": ~r"/user/",
         "Administrator Guide": ~r"/administrator/",
-        "Upgrade Guide": ~r"/upgrade/",
         Tutorials: ~r"/tutorials/",
         "REST API Reference": ~r"/api/"
       ],

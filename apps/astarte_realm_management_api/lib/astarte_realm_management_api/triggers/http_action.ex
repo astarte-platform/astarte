@@ -31,6 +31,7 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     field :template_type, :string
 
     field :http_post_url, :string, virtual: true
+    field :ignore_ssl_errors, :boolean
   end
 
   @all_attrs [
@@ -39,7 +40,8 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
     :http_static_headers,
     :template,
     :template_type,
-    :http_post_url
+    :http_post_url,
+    :ignore_ssl_errors
   ]
 
   @valid_methods ["delete", "get", "head", "options", "patch", "post", "put"]
@@ -155,32 +157,5 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpAction do
         [{field, opts[:message] || "headers total size must be lower than #{@max_headers_size}"}]
       end
     end)
-  end
-
-  defimpl Jason.Encoder, for: HttpAction do
-    def encode(action, opts) do
-      %HttpAction{
-        http_url: http_url,
-        http_method: http_method,
-        http_static_headers: http_static_headers,
-        template: template,
-        template_type: template_type
-      } = action
-
-      %{
-        "http_url" => http_url,
-        "http_method" => http_method
-      }
-      |> maybe_put("http_static_headers", http_static_headers)
-      |> maybe_put("template", template)
-      |> maybe_put("template_type", template_type)
-      |> Jason.Encode.map(opts)
-    end
-
-    defp maybe_put(map, _key, nil),
-      do: map
-
-    defp maybe_put(map, key, value),
-      do: Map.put(map, key, value)
   end
 end

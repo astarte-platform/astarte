@@ -41,13 +41,16 @@ defmodule Astarte.DataUpdaterPlant.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = Config.xandra_options!()
+
+    data_access_opts = [xandra_options: xandra_options]
+
+    dup_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
       Astarte.DataUpdaterPlantWeb.Telemetry,
-      {Xandra.Cluster, xandra_options},
+      {Xandra.Cluster, dup_xandra_opts},
+      {Astarte.DataAccess, data_access_opts},
       Astarte.DataUpdaterPlant.DataPipelineSupervisor
     ]
 

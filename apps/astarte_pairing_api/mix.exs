@@ -22,8 +22,8 @@ defmodule Astarte.Pairing.API.Mixfile do
   def project do
     [
       app: :astarte_pairing_api,
-      version: "1.1.0-dev",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
+      version: "1.1.0-rc.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -50,7 +50,7 @@ defmodule Astarte.Pairing.API.Mixfile do
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do
@@ -70,8 +70,8 @@ defmodule Astarte.Pairing.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.1"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-1.1"}
     ]
   end
 
@@ -80,14 +80,15 @@ defmodule Astarte.Pairing.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.5"},
+      {:phoenix, "~> 1.7"},
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 2.2"},
       {:phoenix_ecto, "~> 4.0"},
+      {:phoenix_view, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},
       {:remote_ip, "~> 1.0"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},

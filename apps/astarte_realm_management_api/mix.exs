@@ -22,12 +22,12 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   def project do
     [
       app: :astarte_realm_management_api,
-      version: "1.1.0-dev",
+      version: "1.1.0-rc.0",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -54,7 +54,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do
@@ -74,21 +74,22 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.1"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-1.1"}
     ]
   end
 
   defp deps do
     [
-      {:phoenix, "~> 1.5"},
+      {:phoenix, "~> 1.7"},
       {:plug_cowboy, "~> 2.1"},
       {:gettext, "~> 0.11"},
       {:phoenix_ecto, "~> 4.0"},
+      {:phoenix_view, "~> 2.0"},
       {:cors_plug, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.1"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:skogsra, "~> 2.2"},

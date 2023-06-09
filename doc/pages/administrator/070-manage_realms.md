@@ -16,4 +16,4 @@ You can then use `housekeeping.key` to authenticate against Housekeeping API.
 ## Work in progress
 
 This guide is not yet complete, as this part is a moving target within `astartectl`. Please refer to the
-[API Documentation](api/) to manage Realms manually once here.
+[API Documentation](api/001-intro_api.md) to manage Realms manually once here.

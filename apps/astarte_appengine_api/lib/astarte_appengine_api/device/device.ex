@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -172,9 +172,10 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version) do
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version) do
       do_get_interface_values!(
         client,
         device_id,
@@ -196,9 +197,10 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
          {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version),
          path <- "/" <> no_prefix_path,
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ok, endpoint_ids} <-
@@ -407,13 +409,14 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
 
     with {:ok, mappings} <-
-           Mappings.fetch_interface_mappings(client, interface_descriptor.interface_id),
+           Mappings.fetch_interface_mappings(realm_name, interface_descriptor.interface_id),
          {:ok, endpoint} <-
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,
          expected_types <- extract_expected_types(mappings),
-         :ok <- validate_value_type(expected_types, raw_value),
-         wrapped_value = wrap_to_bson_struct(nil, raw_value),
+         {:ok, value} <- cast_value(expected_types, raw_value),
+         :ok <- validate_value_type(expected_types, value),
+         wrapped_value = wrap_to_bson_struct(nil, value),
          reliability = extract_aggregate_reliability(mappings),
          interface_type = interface_descriptor.type,
          publish_opts = build_publish_opts(interface_type, reliability),
@@ -447,7 +450,7 @@ defmodule Astarte.AppEngine.API.Device do
         nil,
         nil,
         path,
-        raw_value,
+        value,
         timestamp_micro,
         opts
       )
@@ -503,9 +506,10 @@ defmodule Astarte.AppEngine.API.Device do
       ) do
     with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version),
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path do
@@ -676,6 +680,21 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp cast_value(expected_types, object) when is_map(expected_types) and is_map(object) do
+    Enum.reduce_while(object, {:ok, %{}}, fn {key, value}, {:ok, acc} ->
+      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+           {:ok, normalized_value} <- cast_value(expected_type, value) do
+        {:cont, {:ok, Map.put(acc, key, normalized_value)}}
+      else
+        {:error, reason, expected} ->
+          {:halt, {:error, reason, expected}}
+
+        :error ->
+          {:halt, {:error, :unexpected_object_key}}
+      end
+    end)
+  end
+
   defp cast_value(:datetime, value) when is_binary(value) do
     with {:ok, datetime, _utc_off} <- DateTime.from_iso8601(value) do
       {:ok, datetime}
@@ -735,7 +754,7 @@ defmodule Astarte.AppEngine.API.Device do
     {:ok, anyvalue}
   end
 
-  defp map_while_ok(values, fun) do
+  defp map_while_ok(values, fun) when is_list(values) do
     result =
       Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
         case fun.(value) do
@@ -750,6 +769,10 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, mapped_values} <- result do
       {:ok, Enum.reverse(mapped_values)}
     end
+  end
+
+  defp map_while_ok(not_list_values, _fun) do
+    {:error, :values_is_not_a_list}
   end
 
   defp wrap_to_bson_struct(:binaryblob, value) do
@@ -770,9 +793,10 @@ defmodule Astarte.AppEngine.API.Device do
   def delete_interface_values(realm_name, encoded_device_id, interface, no_prefix_path) do
     with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, major_version} <- DeviceQueries.interface_version(client, device_id, interface),
+         {:ok, major_version} <-
+           DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(client, interface, major_version),
+           InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version),
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,

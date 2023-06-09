@@ -22,12 +22,12 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.1.0-dev",
+      version: "1.1.0-rc.0",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -50,7 +50,7 @@ defmodule Astarte.Housekeeping.Mixfile do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do
@@ -71,16 +71,17 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.1"},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.1"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-1.1"}
     ]
   end
 
   defp deps do
     [
       {:xandra, "~> 0.13"},
-      {:excoveralls, "~> 0.12", only: :test},
+      {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:plug_cowboy, "~> 2.1"},
       {:skogsra, "~> 2.2"},

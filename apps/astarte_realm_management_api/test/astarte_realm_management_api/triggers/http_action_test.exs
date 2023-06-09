@@ -208,14 +208,11 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
     assert length(errors) == 1
   end
 
-  test "well-formed http action with headers is correctly encoded" do
+  test "ignore_ssl_errors is set" do
     input = %{
-      "http_url" => "https://example.com/",
-      "http_method" => "put",
-      "http_static_headers" => %{
-        "Foo" => "Bar",
-        "Key" => "Value"
-      }
+      "http_url" => "http://example.com/",
+      "http_method" => "get",
+      "ignore_ssl_errors" => true
     }
 
     out =
@@ -223,17 +220,11 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
       |> HttpAction.changeset(input)
       |> Changeset.apply_action(:insert)
 
-    assert {:ok, action} = out
-
-    jason_out_map =
-      action
-      |> Jason.encode!()
-      |> Jason.decode!()
-
-    assert %{
-             "http_url" => "https://example.com/",
-             "http_method" => "put",
-             "http_static_headers" => %{"Foo" => "Bar", "Key" => "Value"}
-           } = jason_out_map
+    assert {:ok,
+            %HttpAction{
+              http_url: "http://example.com/",
+              http_method: "get",
+              ignore_ssl_errors: true
+            }} = out
   end
 end

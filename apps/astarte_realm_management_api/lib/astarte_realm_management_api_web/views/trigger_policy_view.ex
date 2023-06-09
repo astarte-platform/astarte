@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyView do
   use Astarte.RealmManagement.APIWeb, :view
   alias Astarte.RealmManagement.APIWeb.TriggerPolicyView
+  alias Astarte.Core.Triggers.Policy.Handler
 
   def render("index.json", %{policies: policies}) do
     %{data: render_many(policies, TriggerPolicyView, "trigger_policy_name_only.json")}
@@ -33,10 +34,26 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyView do
   end
 
   def render("policy.json", %{trigger_policy: policy}) do
-    policy
+    Map.update!(policy, :error_handlers, fn error_handlers ->
+      Enum.map(error_handlers, &normalize_handler/1)
+    end)
   end
 
   def render("trigger_policy_name_only.json", %{trigger_policy: policy_name}) do
     policy_name
+  end
+
+  defp normalize_handler(handler = %Handler{}), do: handler
+
+  defp normalize_handler(error_handler = %{}) do
+    normalized_error = normalize_error(error_handler)
+    Map.put(error_handler, :on, normalized_error)
+  end
+
+  defp normalize_error(%{on: error}) do
+    case error do
+      %{keyword: value} -> value
+      %{error_codes: value} -> value
+    end
   end
 end

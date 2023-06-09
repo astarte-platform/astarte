@@ -56,9 +56,9 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   defp generic_error(
          error_name,
-         user_readable_message \\ "",
-         user_readable_error_name \\ "",
-         error_data \\ ""
+         user_readable_message \\ nil,
+         user_readable_error_name \\ nil,
+         error_data \\ nil
        ) do
     %Reply{
       version: 0,
@@ -216,7 +216,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
              realm: @test_realm,
              jwt_public_key_pem: @public_key_pem,
              replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-             datacenter_replication_factors: [{"datacenter1", 1}]
+             datacenter_replication_factors: %{"datacenter1" => 1}
            )}
       )
       |> Call.encode()
@@ -238,7 +238,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
            realm_name: @test_realm,
            jwt_public_key_pem: @public_key_pem,
            replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-           datacenter_replication_factors: [{"datacenter1", 1}],
+           datacenter_replication_factors: %{"datacenter1" => 1},
            replication_factor: 0
          }}
     }

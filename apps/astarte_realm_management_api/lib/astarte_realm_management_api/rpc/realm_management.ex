@@ -339,7 +339,8 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
        ) do
     %Trigger{
       name: trigger_name,
-      action: trigger_action
+      action: trigger_action,
+      policy: policy
     } = Trigger.decode(trigger_data)
 
     tagged_simple_triggers =
@@ -347,14 +348,13 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
         TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
       end
 
-    {
-      :ok,
-      %{
-        trigger_name: trigger_name,
-        trigger_action: trigger_action,
-        tagged_simple_triggers: tagged_simple_triggers
-      }
-    }
+    {:ok,
+     %{
+       trigger_name: trigger_name,
+       trigger_action: trigger_action,
+       tagged_simple_triggers: tagged_simple_triggers,
+       policy: policy
+     }}
   end
 
   defp extract_reply({:get_triggers_list_reply, %GetTriggersListReply{triggers_names: triggers}}) do

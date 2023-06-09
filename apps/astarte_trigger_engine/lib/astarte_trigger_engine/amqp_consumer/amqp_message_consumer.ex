@@ -105,9 +105,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
       ) do
     _ =
       Logger.debug(
-        "consumer for #{realm_name}, #{policy.name} received message, payload: #{inspect(payload)}, meta: #{
-          inspect(meta)
-        }",
+        "consumer for #{realm_name}, #{policy.name} received message, payload: #{inspect(payload)}, meta: #{inspect(meta)}",
         tag: "message_received"
       )
 
@@ -185,9 +183,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
 
       _ =
         Logger.debug(
-          "Queue #{queue_name} on exchange #{exchange_name} declared, bound with routing key #{
-            routing_key
-          }",
+          "Queue #{queue_name} on exchange #{exchange_name} declared, bound with routing key #{routing_key}",
           tag: "queue_bound"
         )
 

@@ -1,28 +1,24 @@
 version: '2.3'
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:snapshot
+    image: astarte/astarte_housekeeping:1.1.0-rc.0
     build:
       context: apps/astarte_housekeeping
     env_file:
-     - ./compose.env
-    ports:
-      - "4008:4000"
+      - ./compose.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
       - "scylla"
 
   astarte-housekeeping-api:
-    image: astarte/astarte_housekeeping_api:snapshot
+    image: astarte/astarte_housekeeping_api:1.1.0-rc.0
     build:
       context: apps/astarte_housekeeping_api
     env_file:
-     - ./compose.env
+      - ./compose.env
     environment:
       HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping_public.pem"
-    ports:
-      - "4001:4001"
     volumes:
       - type: bind
         source: ./compose/astarte-keys/housekeeping_public.pem
@@ -30,40 +26,56 @@ services:
     restart: on-failure
     depends_on:
       - "rabbitmq"
+      - "traefik"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.astarte-housekeeping-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-housekeeping-api.rule=PathPrefix(`/housekeeping`)"
+      - "traefik.http.routers.astarte-housekeeping-api.entrypoints=web"
+      - "traefik.http.routers.astarte-housekeeping-api.middlewares=astarte-housekeeping-api"
+      - "traefik.http.routers.astarte-housekeeping-api.service=astarte-housekeeping-api"
+      - "traefik.http.middlewares.astarte-housekeeping-api.stripprefix.prefixes=/housekeeping"
+      - "traefik.http.middlewares.astarte-housekeeping-api.stripprefix.forceSlash=false"
+      - "traefik.http.services.astarte-housekeeping-api.loadbalancer.server.port=4001"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:snapshot
+    image: astarte/astarte_realm_management:1.1.0-rc.0
     build:
       context: apps/astarte_realm_management
     env_file:
-     - ./compose.env
-    ports:
-      - "4006:4000"
+      - ./compose.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
       - "scylla"
 
   astarte-realm-management-api:
-    image: astarte/astarte_realm_management_api:snapshot
+    image: astarte/astarte_realm_management_api:1.1.0-rc.0
     build:
       context: apps/astarte_realm_management_api
     env_file:
-     - ./compose.env
-    ports:
-      - "4000:4000"
+      - ./compose.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
+      - "traefik"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.astarte-realm-management-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-realm-management-api.rule=PathPrefix(`/realmmanagement`)"
+      - "traefik.http.routers.astarte-realm-management-api.entrypoints=web"
+      - "traefik.http.routers.astarte-realm-management-api.middlewares=astarte-realm-management-api"
+      - "traefik.http.routers.astarte-realm-management-api.service=astarte-realm-management-api"
+      - "traefik.http.middlewares.astarte-realm-management-api.stripprefix.prefixes=/realmmanagement"
+      - "traefik.http.middlewares.astarte-realm-management-api.stripprefix.forceSlash=false"
+      - "traefik.http.services.astarte-realm-management-api.loadbalancer.server.port=4000"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:snapshot
+    image: astarte/astarte_pairing:1.1.0-rc.0
     build:
       context: apps/astarte_pairing
     env_file:
-     - ./compose.env
-    ports:
-        - "4005:4000"
+      - ./compose.env
     environment:
       PAIRING_CFSSL_URL: "http://cfssl:8080"
     restart: on-failure
@@ -72,43 +84,56 @@ services:
       - "scylla"
 
   astarte-pairing-api:
-    image: astarte/astarte_pairing_api:snapshot
+    image: astarte/astarte_pairing_api:1.1.0-rc.0
     build:
       context: apps/astarte_pairing_api
     env_file:
-     - ./compose.env
-    ports:
-      - "4003:4003"
+      - ./compose.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
+      - "traefik"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.astarte-pairing-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-pairing-api.rule=PathPrefix(`/pairing`)"
+      - "traefik.http.routers.astarte-pairing-api.entrypoints=web"
+      - "traefik.http.routers.astarte-pairing-api.middlewares=astarte-pairing-api"
+      - "traefik.http.routers.astarte-pairing-api.service=astarte-pairing-api"
+      - "traefik.http.middlewares.astarte-pairing-api.stripprefix.prefixes=/pairing"
+      - "traefik.http.middlewares.astarte-pairing-api.stripprefix.forceSlash=false"
+      - "traefik.http.services.astarte-pairing-api.loadbalancer.server.port=4003"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:snapshot
+    image: astarte/astarte_appengine_api:1.1.0-rc.0
     build:
       context: apps/astarte_appengine_api
     env_file:
-     - ./compose.env
+      - ./compose.env
     environment:
-      APPENGINE_API_MQTT_HOST: "vernemq"
-      APPENGINE_API_MQTT_USERNAME: "appengine"
-      APPENGINE_API_MQTT_PASSWORD: "appengine"
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
-    ports:
-      - "4002:4002"
     restart: on-failure
     depends_on:
       - "rabbitmq"
       - "scylla"
+      - "traefik"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.astarte-appengine-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-appengine-api.rule=PathPrefix(`/appengine`)"
+      - "traefik.http.routers.astarte-appengine-api.entrypoints=web"
+      - "traefik.http.routers.astarte-appengine-api.middlewares=astarte-appengine-api"
+      - "traefik.http.routers.astarte-appengine-api.service=astarte-appengine-api"
+      - "traefik.http.middlewares.astarte-appengine-api.stripprefix.prefixes=/appengine"
+      - "traefik.http.middlewares.astarte-appengine-api.stripprefix.forceSlash=false"
+      - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:snapshot
+    image: astarte/astarte_data_updater_plant:1.1.0-rc.0
     build:
       context: apps/astarte_data_updater_plant
     env_file:
-     - ./compose.env
-    ports:
-      - "4004:4000"
+      - ./compose.env
     environment:
       DATA_UPDATER_PLANT_AMQP_CONSUMER_HOST: "rabbitmq"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST: "rabbitmq"
@@ -122,13 +147,11 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:snapshot
+    image: astarte/astarte_trigger_engine:1.1.0-rc.0
     build:
       context: apps/astarte_trigger_engine
     env_file:
-     - ./compose.env
-    ports:
-      - "4007:4000"
+      - ./compose.env
     environment:
       TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
     restart: on-failure
@@ -137,25 +160,60 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:snapshot
-    ports:
-      - "4040:80"
+    image: astarte/astarte-dashboard:1.1.0-rc.0
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json
     depends_on:
       - "astarte-realm-management-api"
       - "astarte-appengine-api"
+      - "traefik"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.astarte-dashboard.rule=Host(`dashboard.astarte.localhost`)"
+      - "traefik.http.routers.astarte-dashboard.entrypoints=web"
+      - "traefik.http.routers.astarte-dashboard.service=astarte-dashboard"
+      - "traefik.http.services.astarte-dashboard.loadbalancer.server.port=80"
 
   astarte-grafana:
-    image: astarte/grafana:snapshot
-    ports:
-      - "3000:3000"
+    image: astarte/grafana:1.1.0-rc.0
     depends_on:
       - "astarte-appengine-api"
+      - "traefik"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.astarte-grafana.rule=Host(`grafana.astarte.localhost`)"
+      - "traefik.http.routers.astarte-grafana.entrypoints=web"
+      - "traefik.http.routers.astarte-grafana.service=astarte-grafana"
+      - "traefik.http.services.astarte-grafana.loadbalancer.server.port=3000"
+
+  traefik:
+    image: traefik:v2.9
+    restart: on-failure
+    command:
+      # Uncomment this if you want to enable Traefik's web UI
+      # - "--api.insecure=true"
+      # Tells Traefik to listen to docker
+      - "--providers.docker"
+      # Don't expose everything
+      - "--providers.docker.exposedbydefault=false"
+      # Expose Astarte API/Dahsboard/Grafana
+      - "--entrypoints.web.address=:80"
+      # Expose Astarte broker
+      - "--entryPoints.vernemq.address=:8883"
+    ports:
+      # The HTTP port
+      - "80:80"
+      # Uncomment this if you want to display Traefik's web UI (enabled by --api.insecure=true)
+      # - "8080:8080"
+      # VerneMQ's SSL Listener
+      - "8883:8883"
+    volumes:
+      # So that Traefik can listen to the Docker events
+      - /var/run/docker.sock:/var/run/docker.sock
 
   # RabbitMQ
   rabbitmq:
-    image: rabbitmq:3.8.16-management
+    image: rabbitmq:3.12.0-management
     restart: on-failure
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
@@ -172,15 +230,16 @@ services:
 
   # Scylla
   scylla:
-    image: scylladb/scylla:4.4.3
+    image: scylladb/scylla:5.2.2
+    restart: on-failure
     volumes:
       - scylla-data:/var/lib/scylla
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:snapshot
+    image: astarte/vernemq:1.1.0-rc.0
     env_file:
-     - ./compose.env
+      - ./compose.env
     environment:
       DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CAFILE: "/opt/vernemq/etc/ca.pem"
       DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CERTFILE: "/opt/vernemq/etc/cert.pem"
@@ -190,28 +249,31 @@ services:
       DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__HOST: "rabbitmq"
       DOCKER_VERNEMQ_USER_appengine: "appengine"
       CFSSL_URL: "http://cfssl:8080"
-    ports:
-      # 1883 is used internally and isn't exposed
-      # Used with HAProxy only
-      - "1885:1885"
-      # Used with SSL Listener only
-      - "8883:8883"
-      # You can comment this out if you don't need Let's Encrypt
-      - "80:80"
-      # HTTP Listener for health check
-      - "8888:8888"
     volumes:
       - vernemq-data:/opt/vernemq/data
       - ./compose/vernemq-certs:/etc/ssl/vernemq-certs
     depends_on:
       - "cfssl"
       - "rabbitmq"
+      - "traefik"
     # Ensure we wait for rabbit and cfssl
     command: wait-for rabbitmq:5672 -t 90 -- wait-for cfssl:8080 -t 90 -- /opt/vernemq/bin/vernemq.sh
     # Restart if we fail
     restart: on-failure
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.vernemq.rule=HostSNI(`broker.astarte.localhost`)"
+      - "traefik.tcp.routers.vernemq.entrypoints=vernemq"
+      - "traefik.tcp.routers.vernemq.tls.passthrough=true"
+      - "traefik.tcp.routers.vernemq.service=vernemq"
+      - "traefik.tcp.services.vernemq.loadbalancer.server.port=8883"
+
 volumes:
   rabbitmq-data:
   scylla-data:
   vernemq-data:
   cfssl-data:
+
+networks:
+  default:
+    name: astarte

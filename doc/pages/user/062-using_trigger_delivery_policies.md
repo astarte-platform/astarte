@@ -118,11 +118,11 @@ The following policy has a different behaviour depending on whether the HTTP del
     "error_handlers" : [
             {
                 "on" : "server_error",
-                "strategy" : "none"
+                "strategy" : "retry"
             },
             {
                 "on" : "client_error",
-                "strategy" : "retry"
+                "strategy" : "discard"
             }
         ],
     "retry_times" : 5,

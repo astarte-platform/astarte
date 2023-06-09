@@ -15,7 +15,7 @@ info:
     Astarte's Realm Management API is the main mechanism to configure a Realm.
     It allows installing and managing Interfaces, Triggers and any configuration
     of the Realm itself.
-  version: 1.1.0-dev
+  version: 1.1.0-alpha.0
   title: Astarte Realm Management API
   contact:
     email: info@ispirata.com
@@ -30,12 +30,12 @@ tags:
       possible) and updating Interfaces in a Realm.
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/1.0/030-manage_interfaces.html'
+      url: 'https://docs.astarte-platform.org/astarte/1.0/030-manage_interfaces.html'
   - name: trigger
     description: Trigger management
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/1.0/060-triggers.html'
+      url: 'https://docs.astarte-platform.org/astarte/1.0/060-triggers.html'
 paths:
   '/{realm_name}/config/auth':
     parameters:
@@ -182,7 +182,7 @@ paths:
         asynchronously by default. You can perform the call synchronously by
         setting the async_operation query param to false. For more information
         about what is allowed when updating an interface, see [the
-        doc](https://docs.astarte-platform.org/1.0/030-interface.html#versioning).
+        doc](https://docs.astarte-platform.org/astarte/1.0/030-interface.html#versioning).
         This operation cannot be reverted.
       operationId: updateInterface
       security:
@@ -559,7 +559,7 @@ components:
               data:
                 name: my_policy
                 maximum_capacity: 100
-                handlers:
+                error_handlers:
                   - 'on': any_error
                     strategy: discard
     GetTriggerList:
@@ -1116,7 +1116,7 @@ components:
         maximum_capacity:
           type: integer
           description: Maximum size of the event queue of the trigger delivery policy.
-        handlers:
+        error_handlers:
           description: >-
             Handlers for HTTP errors. Specify what action to take upon errors.
           type: array
@@ -1133,11 +1133,11 @@ components:
       required:
         - name
         - maximum_capacity
-        - handlers
+        - error_handlers
       example:
         name: my_policy
         maximum_capacity: 100
-        handlers:
+        error_handlers:
           - 'on': any_error
             strategy: discard
     TriggerDeliveryPolicyErrorHandler:
