@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,6 +41,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       minor: 0,
       exchanged_msgs: 4230,
       exchanged_bytes: 2_010_000
+    },
+    "com.example.ServerOwnedTestObject" => %InterfaceInfo{
+      major: 1,
+      minor: 0,
+      exchanged_msgs: 100,
+      exchanged_bytes: 30_000
     },
     "com.example.TestObject" => %InterfaceInfo{
       major: 1,
@@ -162,6 +168,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
     assert Enum.sort(result) == [
              "com.example.PixelsConfiguration",
+             "com.example.ServerOwnedTestObject",
              "com.example.TestObject",
              "com.test.LCDMonitor",
              "com.test.SimpleStreamTest"
@@ -1308,6 +1315,24 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                %{"enable" => "true", "samplingPeriod" => 10},
                par
              ) == {:error, :unexpected_value_type, expected: :boolean}
+    end
+
+    test "fails with unexpected key" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      path = "/my_path"
+      value = %{"enable" => true, "samplingPeriod" => 10, "invalidKey" => true}
+      par = nil
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               path,
+               value,
+               par
+             ) == {:error, :unexpected_object_key}
     end
 
     test "fails with invalid path" do

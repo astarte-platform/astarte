@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -104,6 +104,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupControllerTest do
 
       assert Enum.sort(json_response(conn, 200)["data"]) == [
                "com.example.PixelsConfiguration",
+               "com.example.ServerOwnedTestObject",
                "com.example.TestObject",
                "com.test.LCDMonitor",
                "com.test.SimpleStreamTest"
@@ -209,6 +210,29 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupControllerTest do
         )
 
       assert json_response(object_conn, 200)["data"] == expected_reply
+    end
+  end
+
+  describe "update" do
+    test "returns an error when given invalid keys", %{conn: conn} do
+      conn =
+        put(
+          conn,
+          interface_values_by_group_path(
+            conn,
+            :update,
+            @realm,
+            @group_name,
+            @device_id,
+            "com.example.ServerOwnedTestObject",
+            ["my_path"]
+          ),
+          %{
+            data: %{"string" => "aaa", "invalidKey" => true}
+          }
+        )
+
+      assert json_response(conn, 400)["errors"] == %{"detail" => "Unexpected object key"}
     end
   end
 end
