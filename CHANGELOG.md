@@ -4,7 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+### Changed
+- Forward port changes from release 1.1.
+
+## [1.1.0-rc.0] - 2023-06-09
+### Changed
+- Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2.
+- [astarte_data_updater_plant] Use the `internal` event type for Astarte
+  internal messages. (e.g. device heartbeat).
+### Fixed
+- [astarte_realm_management_api] Provide detailed feedback when a trigger action
+  is malformed. Fix [#748](https://github.com/astarte-platform/astarte/issues/748).
+- [astarte_realm_management_api] Include the `policy` field when a trigger is returned.
+
+## [1.1.0-alpha.0] - 2022-11-24
 ### Added
 - [astarte_data_updater_plant] Add support for device introspection triggers.
 - [astarte_realm_management] Add support for device introspection triggers.
@@ -19,6 +33,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
+
+## [1.0.5] - Unreleased
+### Fixed
+- [astarte_appengine_api] Correctly handle `binaryblob` and `datetime` in server-owned object
+  aggregated interfaces.
+- [astarte_appengine_api] Handle non-array values POSTed to an array endpoint gracefully instead of
+  crashing with an Internal Server Error
+- [astarte_appengine_api] Handle updates of objects with invalid keys gracefully instead of crashing
+  with an Internal Server Error.
+
+### Changed
+- [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
+  Astarte Operator and Kubernetes are moved to the
+  [astarte-kubernetes-operator](https://github.com/astarte-platform/astarte-kubernetes-operator)
+  repository.
 
 ## [1.0.4] - 2022-10-25
 ### Changed
@@ -82,11 +111,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - [astarte_appengine_api] Correctly serialize events containing datetime and array values.
-- [astarte_appengine_api] Do not fail when querying `datastream` interfaces data with `since`, 
-`to`, `sinceAfter` params if result is empty. Fix [#552](https://github.com/astarte-platform/astarte/issues/552). 
+- [astarte_appengine_api] Do not fail when querying `datastream` interfaces data with `since`,
+`to`, `sinceAfter` params if result is empty. Fix [#552](https://github.com/astarte-platform/astarte/issues/552).
 - [astarte_appengine_api] Consider microseconds when using timestamps.
   Fix [#620](https://github.com/astarte-platform/astarte/issues/620).
-- [astarte_appengine_api] Don't crash when removing an alias with non-existing tag. 
+- [astarte_appengine_api] Don't crash when removing an alias with non-existing tag.
   Fix [495](https://github.com/astarte-platform/astarte/issues/495).
 - [astarte_trigger_engine] Correctly serialize events containing datetime and array values.
 - [astarte_data_updater_plant] Don't crash when receiving `binaryblobarray` and `datetimearray`
@@ -123,7 +152,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Don't crash when an interface contains `null` values, just show them as
   `null` in the resulting JSON.
-- [astarte_realm_management] Fix log noise due to Cassandra warnings when checking health 
+- [astarte_realm_management] Fix log noise due to Cassandra warnings when checking health
   (see [#420](https://github.com/astarte-platform/astarte/issues/420)).
 
 ## [1.0.0-beta.2] - 2021-03-24
@@ -216,7 +245,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [realm_management] Avoid deleting all interfaces sharing the same name by mistake, only the v0
   interface can be deleted.
-- [data_updater_plant] Use a reasonable backoff time (at most around 5 minutes) when publishing 
+- [data_updater_plant] Use a reasonable backoff time (at most around 5 minutes) when publishing
   to RabbitMQ.
 
 ## [0.11.4] - 2021-01-26

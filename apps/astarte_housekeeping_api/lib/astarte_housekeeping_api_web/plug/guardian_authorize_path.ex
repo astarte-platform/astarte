@@ -45,9 +45,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.GuardianAuthorizePath do
     else
       {:error, :invalid_auth_path} ->
         Logger.warn(
-          "Can't build auth_path with path_params: #{inspect(conn.path_params)} path_info: #{
-            inspect(conn.path_info)
-          } query_params: #{inspect(conn.query_params)}"
+          "Can't build auth_path with path_params: #{inspect(conn.path_params)} path_info: #{inspect(conn.path_info)} query_params: #{inspect(conn.query_params)}"
         )
 
         conn
@@ -56,9 +54,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.GuardianAuthorizePath do
 
       {:error, {:unauthorized, method, auth_path, authorizations}} ->
         Logger.info(
-          "Unauthorized request: #{method} #{auth_path} failed with authorizations #{
-            inspect(authorizations)
-          }"
+          "Unauthorized request: #{method} #{auth_path} failed with authorizations #{inspect(authorizations)}"
         )
 
         conn

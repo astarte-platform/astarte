@@ -19,7 +19,22 @@
 defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   use ExUnit.Case
 
-  use Astarte.Core.Triggers.SimpleEvents
+  alias Astarte.Core.Triggers.SimpleEvents.{
+    DeviceConnectedEvent,
+    DeviceDisconnectedEvent,
+    DeviceErrorEvent,
+    IncomingDataEvent,
+    IncomingIntrospectionEvent,
+    InterfaceAddedEvent,
+    InterfaceMinorUpdatedEvent,
+    InterfaceRemovedEvent,
+    PathCreatedEvent,
+    PathRemovedEvent,
+    SimpleEvent,
+    ValueChangeAppliedEvent,
+    ValueChangeEvent,
+    ValueStoredEvent
+  }
 
   alias AMQP.Channel
   alias AMQP.Connection

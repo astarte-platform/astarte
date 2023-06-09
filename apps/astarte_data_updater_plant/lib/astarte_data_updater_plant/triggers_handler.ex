@@ -29,7 +29,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   @max_backoff_exponent 8
   @max_rand trunc(:math.pow(2, 32) - 1)
 
-  use Astarte.Core.Triggers.SimpleEvents
+  alias Astarte.Core.Triggers.SimpleEvents.{
+    DeviceConnectedEvent,
+    DeviceDisconnectedEvent,
+    DeviceErrorEvent,
+    IncomingDataEvent,
+    IncomingIntrospectionEvent,
+    InterfaceAddedEvent,
+    InterfaceMinorUpdatedEvent,
+    InterfaceRemovedEvent,
+    PathCreatedEvent,
+    PathRemovedEvent,
+    SimpleEvent,
+    ValueChangeAppliedEvent,
+    ValueChangeEvent
+  }
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer

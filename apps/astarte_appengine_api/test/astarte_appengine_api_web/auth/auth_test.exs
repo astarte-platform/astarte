@@ -29,9 +29,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   @request_path "/v1/#{@realm}/devices/#{@device_id}/interfaces/#{@interface}#{@path}"
   @valid_auth_path "devices/#{@device_id}/interfaces/#{@escaped_interface}#{@path}"
   @fake_valid_auth_path "devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@escaped_interface}#{@path}"
-  @fake_request_path "/v1/#{@realm}/devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@interface}#{
-                       @path
-                     }"
+  @fake_request_path "/v1/#{@realm}/devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@interface}#{@path}"
   @other_device_id "OTHERDEVICEAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
   @other_device_auth_path "devices/#{@other_device_id}/interfaces/#{@escaped_interface}#{@path}"
 
@@ -135,12 +133,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         put_req_header(
           conn,
           "authorization",
-          "bearer #{
-            JWTTestHelper.gen_jwt_token([
-              "GET::#{@other_device_auth_path}",
-              "GET::#{@valid_auth_path}"
-            ])
-          }"
+          "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@other_device_auth_path}", "GET::#{@valid_auth_path}"])}"
         )
         |> get(@request_path)
 

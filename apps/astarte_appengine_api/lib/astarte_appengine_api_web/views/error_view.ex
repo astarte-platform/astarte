@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -92,6 +92,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
 
   def render("422_invalid_attributes.json", _assigns) do
     %{errors: %{detail: "Invalid attributes"}}
+  end
+
+  def render("422_unexpected_object_key.json", _assigns) do
+    %{errors: %{detail: "Unexpected object key"}}
   end
 
   def render("500.json", _assigns) do

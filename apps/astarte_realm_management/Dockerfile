@@ -1,4 +1,9 @@
-FROM elixir:1.11.4 as builder
+FROM hexpm/elixir:1.14.5-erlang-25.3.2-debian-bullseye-20230522-slim as builder
+
+# install build dependencies
+# --allow-releaseinfo-change allows to pull from 'oldstable'
+RUN apt-get update --allow-releaseinfo-change -y && apt-get install -y build-essential git \
+    && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 WORKDIR /app
 
@@ -23,7 +28,7 @@ ADD . .
 RUN mix do compile, release
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 WORKDIR /app
 

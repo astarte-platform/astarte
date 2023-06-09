@@ -19,9 +19,6 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerView do
   use Astarte.RealmManagement.APIWeb, :view
   alias Astarte.RealmManagement.APIWeb.TriggerView
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-
-  use Astarte.Core.Triggers.SimpleTriggersProtobuf
 
   def render("index.json", %{triggers: triggers}) do
     %{data: render_many(triggers, TriggerView, "trigger_name_only.json")}
@@ -61,9 +58,13 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerView do
       action: trigger.action,
       simple_triggers: trigger.simple_triggers
     }
+    |> maybe_add_policy(trigger.policy)
   end
 
   def render("trigger_name_only.json", %{trigger: trigger}) do
     trigger
   end
+
+  defp maybe_add_policy(trigger, nil), do: trigger
+  defp maybe_add_policy(trigger, policy), do: Map.put(trigger, :policy, policy)
 end

@@ -35,6 +35,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   @control_path_header "x_astarte_control_path"
   @interface_header "x_astarte_interface"
   @path_header "x_astarte_path"
+  @internal_path_header "x_astarte_internal_path"
 
   # API
 
@@ -255,6 +256,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     end
   end
 
+  # TODO remove this when all heartbeats will be moved to internal
   defp handle_consume("heartbeat", payload, headers, timestamp, meta) do
     with %{
            @realm_header => realm,
@@ -263,6 +265,27 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
          {:ok, tracking_id} <- get_tracking_id(meta) do
       # Following call might spawn processes and implicitly monitor them
       DataUpdater.handle_heartbeat(realm, device_id, tracking_id, timestamp)
+    else
+      _ -> handle_invalid_msg(payload, headers, timestamp, meta)
+    end
+  end
+
+  defp handle_consume("internal", payload, headers, timestamp, meta) do
+    with %{
+           @realm_header => realm,
+           @device_id_header => device_id,
+           @internal_path_header => internal_path
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
+      # Following call might spawn processes and implicitly monitor them
+      DataUpdater.handle_internal(
+        realm,
+        device_id,
+        internal_path,
+        payload,
+        tracking_id,
+        timestamp
+      )
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end
@@ -337,9 +360,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   defp handle_invalid_msg(payload, headers, timestamp, meta) do
     Logger.warn(
-      "Invalid AMQP message: #{inspect(payload)} #{inspect(headers)} #{inspect(timestamp)} #{
-        inspect(meta)
-      }",
+      "Invalid AMQP message: #{inspect(payload)} #{inspect(headers)} #{inspect(timestamp)} #{inspect(meta)}",
       tag: "data_consumer_invalid_msg"
     )
 
