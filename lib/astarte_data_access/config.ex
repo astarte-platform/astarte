@@ -67,11 +67,11 @@ defmodule Astarte.DataAccess.Config do
     type: :binary,
     default: "cassandra"
 
-  @envdoc "The number of connections to start for the pool, Defaults to 1."
+  @envdoc "The number of connections to start for the pool, Defaults to 10."
   app_env :pool_size, :astarte_data_access, :pool_size,
     os_env: "CASSANDRA_POOL_SIZE",
     type: :integer,
-    default: 1
+    default: 10
 
   @envdoc "Enable SSL for Cassandra connections. Defaults to false."
   app_env :ssl_enabled, :astarte_data_access, :ssl_enabled,

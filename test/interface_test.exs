@@ -16,11 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.InterfacesTest do
+defmodule Astarte.DataAccess.Interfaces.XandraTest do
   use ExUnit.Case
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.DatabaseTestHelper
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
 
   @simplestreamtest_interface_id <<10, 13, 167, 125, 133, 181, 147, 217, 212, 210, 189, 38, 221,
@@ -56,57 +55,83 @@ defmodule Astarte.DataAccess.InterfacesTest do
     type: :datastream
   }
 
+  @test_realm "autotestrealm"
+
   setup do
-    DatabaseTestHelper.seed_data()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.seed_data(conn)
+    end)
   end
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.create_test_keyspace(conn)
+    end)
 
     on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace()
+      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+        DatabaseTestHelper.destroy_local_test_keyspace(conn)
+      end)
     end)
 
     :ok
   end
 
   test "check if interfaces exists" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
-
-    assert Interface.check_if_interface_exists(db_client, "com.test.SimpleStreamTest", 0) ==
+    assert Interface.check_if_interface_exists(
+             @test_realm,
+             "com.test.SimpleStreamTest",
+             0
+           ) ==
              {:error, :interface_not_found}
 
-    assert Interface.check_if_interface_exists(db_client, "com.test.SimpleStreamTest", 1) == :ok
+    assert Interface.check_if_interface_exists(
+             @test_realm,
+             "com.test.SimpleStreamTest",
+             1
+           ) == :ok
 
-    assert Interface.check_if_interface_exists(db_client, "com.test.SimpleStreamTest", 2) ==
+    assert Interface.check_if_interface_exists(
+             @test_realm,
+             "com.test.SimpleStreamTest",
+             2
+           ) ==
              {:error, :interface_not_found}
 
-    assert Interface.check_if_interface_exists(db_client, "com.Missing", 1) ==
+    assert Interface.check_if_interface_exists(@test_realm, "com.Missing", 1) ==
              {:error, :interface_not_found}
 
-    assert Interface.check_if_interface_exists(db_client, "com.example.TestObject", 0) ==
+    assert Interface.check_if_interface_exists(
+             @test_realm,
+             "com.example.TestObject",
+             0
+           ) ==
              {:error, :interface_not_found}
 
-    assert Interface.check_if_interface_exists(db_client, "com.example.TestObject", 1) == :ok
+    assert Interface.check_if_interface_exists(
+             @test_realm,
+             "com.example.TestObject",
+             1
+           ) == :ok
   end
 
   test "fetch_interface_descriptor returns an InterfaceDescriptor struct" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
-
-    assert Interface.fetch_interface_descriptor(db_client, "com.test.SimpleStreamTest", 1) ==
+    assert Interface.fetch_interface_descriptor(
+             @test_realm,
+             "com.test.SimpleStreamTest",
+             1
+           ) ==
              {:ok, @simplestreamtest_interface_descriptor}
   end
 
   test "retrieve_interface_row returns a row with expected values" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
+    {:ok, row} = Interface.retrieve_interface_row(@test_realm, "com.test.SimpleStreamTest", 1)
 
-    {:ok, row} = Interface.retrieve_interface_row(db_client, "com.test.SimpleStreamTest", 1)
+    assert is_map(row) == true
 
-    assert is_list(row) == true
-
-    assert Keyword.fetch(row, :name) == {:ok, "com.test.SimpleStreamTest"}
-    assert Keyword.fetch(row, :interface_id) == {:ok, @simplestreamtest_interface_id}
-    assert Keyword.fetch(row, :major_version) == {:ok, 1}
-    assert Keyword.fetch(row, :minor_version) == {:ok, 0}
+    assert Map.fetch(row, :name) == {:ok, "com.test.SimpleStreamTest"}
+    assert Map.fetch(row, :interface_id) == {:ok, @simplestreamtest_interface_id}
+    assert Map.fetch(row, :major_version) == {:ok, 1}
+    assert Map.fetch(row, :minor_version) == {:ok, 0}
   end
 end

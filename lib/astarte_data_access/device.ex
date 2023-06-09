@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,53 +18,43 @@
 
 defmodule Astarte.DataAccess.Device do
   require Logger
+  alias Astarte.DataAccess.XandraUtils
   alias Astarte.Core.Device
-  alias CQEx.Query
-  alias CQEx.Result
 
-  @spec interface_version(:cqerl.client(), Device.device_id(), String.t()) ::
+  @spec interface_version(String.t(), Device.device_id(), String.t()) ::
           {:ok, integer} | {:error, atom}
-  def interface_version(client, device_id, interface) do
-    device_introspection_statement = """
+  def interface_version(realm, device_id, interface_name) do
+    XandraUtils.run(realm, &do_interface_version(&1, &2, device_id, interface_name))
+  end
+
+  defp do_interface_version(conn, realm_name, device_id, interface_name) do
+    statement = """
     SELECT introspection
-    FROM devices
+    FROM #{realm_name}.devices
     WHERE device_id=:device_id
     """
 
-    device_introspection_query =
-      Query.new()
-      |> Query.statement(device_introspection_statement)
-      |> Query.put(:device_id, device_id)
+    with {:ok, %Xandra.Page{} = page} <-
+           XandraUtils.retrieve_page(conn, statement, %{device_id: device_id}),
+         {:ok, introspection} <- retrieve_introspection(page),
+         {:ok, major} <- retrieve_major(introspection, interface_name) do
+      {:ok, major}
+    end
+  end
 
-    with {:ok, result} <- Query.call(client, device_introspection_query),
-         device_row when is_list(device_row) <- Result.head(result),
-         introspection <- Keyword.get(device_row, :introspection) || [],
-         {_interface_name, interface_major} <-
-           List.keyfind(introspection, interface, 0, :interface_not_found) do
-      {:ok, interface_major}
-    else
-      :empty_dataset ->
-        Logger.debug("interface_version: device not found #{inspect(device_id)}")
+  defp retrieve_introspection(page) do
+    case Enum.to_list(page) do
+      [] ->
         {:error, :device_not_found}
 
-      :interface_not_found ->
-        # TODO: report device introspection here for debug purposes
-        Logger.warn(
-          "interface_version: interface #{inspect(interface)} not found in device #{
-            inspect(device_id)
-          } introspection"
-        )
+      [%{introspection: introspection}] ->
+        {:ok, introspection}
+    end
+  end
 
-        {:error, :interface_not_in_introspection}
-
-      %{acc: _, msg: error_message} ->
-        Logger.warn("interface_version: database error: #{error_message}")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        # DB Error
-        Logger.warn("interface_version: failed with reason #{inspect(reason)}")
-        {:error, :database_error}
+  defp retrieve_major(introspection, interface_name) do
+    with :error <- Map.fetch(introspection, interface_name) do
+      {:error, :interface_not_in_introspection}
     end
   end
 end

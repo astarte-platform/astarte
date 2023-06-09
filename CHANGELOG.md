@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0-rc.0] - 2023-06-08
+### Changed
+- BREAKING: The library now handles DB connections and
+  must be started in a supervision tree.
+- Use Xandra as database driver.
+- BREAKING: Public functions now accept a realm name as first
+  argument instead of a CQEx client.
+
+## [1.1.0-alpha.0] - 2022-11-14
 
 ## [1.0.4] - 2022-10-24
 

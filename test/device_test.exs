@@ -16,42 +16,58 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.DeviceTest do
+defmodule Astarte.DataAccess.Device.XandraTest do
   use ExUnit.Case
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.DatabaseTestHelper
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device
 
   setup do
-    DatabaseTestHelper.seed_data()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.seed_data(conn)
+    end)
   end
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.create_test_keyspace(conn)
+    end)
 
     on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace()
+      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+        DatabaseTestHelper.destroy_local_test_keyspace(conn)
+      end)
     end)
 
     :ok
   end
 
   test "retrieve interface version for a certain device" do
-    {:ok, db_client} = Database.connect(realm: "autotestrealm")
-
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
-    assert Device.interface_version(db_client, device_id, "com.test.SimpleStreamTest") == {:ok, 1}
-
-    assert Device.interface_version(db_client, device_id, "com.Missing") ==
-             {:error, :interface_not_in_introspection}
 
     missing_device_id = :crypto.strong_rand_bytes(16)
 
-    assert Device.interface_version(db_client, missing_device_id, "com.test.SimpleStreamTest") ==
+    assert Device.interface_version(
+             "autotestrealm",
+             device_id,
+             "com.test.SimpleStreamTest"
+           ) == {:ok, 1}
+
+    assert Device.interface_version("autotestrealm", device_id, "com.Missing") ==
+             {:error, :interface_not_in_introspection}
+
+    assert Device.interface_version(
+             "autotestrealm",
+             missing_device_id,
+             "com.test.SimpleStreamTest"
+           ) ==
              {:error, :device_not_found}
 
-    assert Device.interface_version(db_client, missing_device_id, "com.Missing") ==
+    assert Device.interface_version(
+             "autotestrealm",
+             missing_device_id,
+             "com.Missing"
+           ) ==
              {:error, :device_not_found}
   end
 end
