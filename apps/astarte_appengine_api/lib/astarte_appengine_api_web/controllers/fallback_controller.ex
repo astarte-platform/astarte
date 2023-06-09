@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -195,6 +195,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> put_status(:bad_request)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
     |> render(:"422_invalid_attributes")
+  end
+
+  def call(conn, {:error, :unexpected_object_key}) do
+    conn
+    |> put_status(:bad_request)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"422_unexpected_object_key")
   end
 
   # This is called when no JWT token is present

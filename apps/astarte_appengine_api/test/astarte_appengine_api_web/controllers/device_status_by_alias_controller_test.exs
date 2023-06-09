@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,12 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasControllerTest do
       "minor" => 0,
       "exchanged_msgs" => 4230,
       "exchanged_bytes" => 2_010_000
+    },
+    "com.example.ServerOwnedTestObject" => %{
+      "major" => 1,
+      "minor" => 0,
+      "exchanged_msgs" => 100,
+      "exchanged_bytes" => 30_000
     },
     "com.example.TestObject" => %{
       "major" => 1,
