@@ -81,7 +81,7 @@ Compose might take some time to bring everything up, but usually within a minute
 
 This example won't use Let's Encrypt with VerneMQ - in case binding to port 80 is a problem to you, you can comment it out in `docker-compose.yml` without affecting any functionality.
 
-To check everything went fine, use `docker ps` to verify relevant containers are up: Astarte itself, VerneMQ, PostgreSQL (used by CFSSL), CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker-compose up -d` again to fix potential temporary failures.
+To check everything went fine, use `docker-compose ps` to verify relevant containers are up: Astarte itself, VerneMQ, PostgreSQL (used by CFSSL), CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker-compose ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker-compose up -d` again to fix potential temporary failures.
 
 ## Create a Realm
 
