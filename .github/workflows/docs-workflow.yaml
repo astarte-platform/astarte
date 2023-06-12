@@ -31,8 +31,8 @@ jobs:
         path: docs
     - uses: erlef/setup-beam@v1.15
       with:
-        elixir_version: "1.14.5"
-        otp_version: "25.3.2"
+        elixir-version: "1.14.5"
+        otp-version: "25.3.2"
     - name: Install Dependencies
       working-directory: ./astarte/doc
       run: mix deps.get
