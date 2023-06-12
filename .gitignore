@@ -44,5 +44,9 @@ deps
 .rebar3
 apps/*/_checkouts/
 
+# Direnv
+.direnv/
+.envrc
+
 examples/*/node_modules/
 examples/*/.idea/
