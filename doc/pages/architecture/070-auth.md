@@ -45,7 +45,7 @@ Other valid examples are:
 
 * `.*::.*`: Allows any operation on the given API.
 
-Both verb and path regular expressions are implicitly delimited by adding `^` before and `$` after the regular expression string. For example, if you use `GET::interfaces` as regular expression in Realm Management API, the path will be matched against `^GET$` and the path will be matched against `^interfaces$`. This way the only operation allowed will be listing all the interfaces, while all operation on `interfaces/` subpaths will be denied.
+Both verb and path regular expressions are implicitly delimited by adding `^` before and `$` after the regular expression string. For example, if you use `GET::interfaces` as regular expression in Realm Management API, the verb will be matched against `^GET$` and the path will be matched against `^interfaces$`. This way the only operation allowed will be listing all the interfaces, while all operation on `interfaces/` subpaths will be denied.
 
 ### Token claims and formats
 

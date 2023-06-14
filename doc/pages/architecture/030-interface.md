@@ -90,7 +90,7 @@ series in the database, making them suitable for time span filtering and any oth
 series operation, and they are not idempotent in the REST API semantics.
 
 Due to their nature, `datastream` interfaces have a number of [additional
-properties](#datastream-specific features) which fine tune their behavior.
+properties](#datastream-specific-features) which fine tune their behavior.
 
 ### Properties
 
@@ -305,7 +305,7 @@ transferred and indexed. The following properties can be set at mapping level.
   whether data should be considered delivered when the transport successfully sends the data
   regardless of the outcome (`unreliable`), when data has been received at least once by the
   recipient (`guaranteed`) or when data has been received exactly once by the recipient (`unique`).
-  When using `reliable` data, consider you might incur in additional resource usage on both the
+  When using reliable data, consider you might incur in additional resource usage on both the
   transport and the device's end.
 * `retention`: Each mapping can have a `discard` (default), `volatile`, `stored` retention. This
   defines whether data should be discarded if the transport is temporarily uncapable of delivering
