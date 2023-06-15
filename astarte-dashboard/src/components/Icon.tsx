@@ -43,6 +43,7 @@ const iconToClassName = {
   statusKO: 'fas fa-times-circle color-red',
   statusNeverConnected: 'fas fa-circle color-grey',
   triggers: 'fas fa-bolt',
+  policy: 'fas fa-file-invoice',
 };
 
 type Icon = keyof typeof iconToClassName;

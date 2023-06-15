@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version:
+        node_version:
           - 16
     steps:
       - name: Checkout repository

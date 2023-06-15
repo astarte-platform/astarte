@@ -73,6 +73,7 @@ export const fromAstarteTriggerDTO = (dto: AstarteTriggerDTO): AstarteTrigger =>
             knownValue: simpleTriggerDTO.known_value,
           },
     ),
+    policy: dto.policy,
   });
 };
 
@@ -122,5 +123,6 @@ export const toAstarteTriggerDTO = (trigger: AstarteTrigger): AstarteTriggerDTO 
             known_value: simpleTrigger.knownValue,
           },
     ),
+    policy: trigger.policy,
   };
 };

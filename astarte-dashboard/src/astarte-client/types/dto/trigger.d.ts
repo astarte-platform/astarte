@@ -70,6 +70,7 @@ interface AstarteTriggerDTO {
   name: string;
   action: AstarteTriggerHTTPActionDTO | AstarteTriggerAMQPActionDTO;
   simple_triggers: AstarteSimpleTriggerDTO[];
+  policy?: string | null;
 }
 
 interface AstarteTransientTriggerDTO {
@@ -77,6 +78,7 @@ interface AstarteTransientTriggerDTO {
   device_id?: string;
   group_name?: string;
   simple_trigger: AstarteSimpleTriggerDTO;
+  policy?: string | null;
 }
 
 export {

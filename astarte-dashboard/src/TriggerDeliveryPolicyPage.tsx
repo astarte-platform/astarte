@@ -1,7 +1,8 @@
+/* eslint-disable camelcase */
 /*
    This file is part of Astarte.
 
-   Copyright 2021 Ispirata Srl
+   Copyright 2023 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,26 +21,40 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
 
+import { AstarteTriggerDeliveryPolicyDTO } from 'astarte-client/types/dto';
 import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
 import Empty from './components/Empty';
-import TriggerEditor from './components/TriggerEditor';
+import TriggerDeliveryPolicyEditor from './components/TriggerDeliveryPolicyEditor';
 import ConfirmModal from './components/modals/Confirm';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import BackButton from './ui/BackButton';
 
+const parsedErrorMessage = (status: number): string => {
+  switch (status) {
+    case 401:
+      return 'Unauthorized.';
+    case 403:
+      return 'Forbidden.';
+    case 409:
+      return 'Cannot delete policy as it is being currently used by triggers.';
+    default:
+      return 'Not found';
+  }
+};
+
 interface DeleteModalProps {
-  triggerName: string;
+  policyName: string;
   onCancel: () => void;
   onConfirm: () => void;
-  isDeletingTrigger: boolean;
+  isDeletingPolicy: boolean;
 }
 
-const DeleteModal = ({ triggerName, onCancel, onConfirm, isDeletingTrigger }: DeleteModalProps) => {
+const DeleteModal = ({ policyName, onCancel, onConfirm, isDeletingPolicy }: DeleteModalProps) => {
   const [confirmString, setConfirmString] = useState('');
 
-  const canDelete = confirmString === triggerName;
+  const canDelete = confirmString === policyName;
 
   return (
     <ConfirmModal
@@ -48,21 +63,21 @@ const DeleteModal = ({ triggerName, onCancel, onConfirm, isDeletingTrigger }: De
       confirmLabel="Delete"
       onCancel={onCancel}
       onConfirm={onConfirm}
-      isConfirming={isDeletingTrigger}
+      isConfirming={isDeletingPolicy}
       disabled={!canDelete}
     >
       <p>
         You are going to delete&nbsp;
-        <b>{triggerName}</b>. This might cause data loss, deleted triggers cannot be restored. Are
-        you sure?
+        <b>{policyName}</b>. This might cause data loss, deleted trigger delivery policy cannot be
+        restored. Are you sure?
       </p>
       <p>
-        Please type <b>{triggerName}</b> to proceed.
+        Please type <b>{policyName}</b> to proceed.
       </p>
-      <Form.Group controlId="confirmTriggerName">
+      <Form.Group controlId="confirmPolicyName">
         <Form.Control
           type="text"
-          placeholder="Trigger Name"
+          placeholder="Policy Name"
           value={confirmString}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmString(e.target.value)}
         />
@@ -72,15 +87,26 @@ const DeleteModal = ({ triggerName, onCancel, onConfirm, isDeletingTrigger }: De
 };
 
 export default (): React.ReactElement => {
-  const [isDeletingTrigger, setIsDeletingTrigger] = useState(false);
+  const [isDeletingPolicy, setIsDeletingPolicy] = useState(false);
   const [isSourceVisible, setIsSourceVisible] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletionAlerts, deletionAlertsController] = useAlerts();
   const astarte = useAstarte();
   const navigate = useNavigate();
-  const { triggerName = '' } = useParams();
+  const { policyName = '' } = useParams();
 
-  const triggerFetcher = useFetch(() => astarte.client.getTrigger(triggerName));
+  const policyFetcher = useFetch(() => astarte.client.getTriggerDeliveryPolicy(policyName));
+
+  const checkData = (data: AstarteTriggerDeliveryPolicyDTO | null) => {
+    const newData: AstarteTriggerDeliveryPolicyDTO | null = data;
+    if (data?.event_ttl === null) {
+      delete newData?.event_ttl;
+    }
+    if (data?.retry_times === null || data?.retry_times === 0) {
+      delete newData?.retry_times;
+    }
+    return newData;
+  };
 
   const handleToggleSourceVisibility = useCallback(() => {
     setIsSourceVisible((isVisible) => !isVisible);
@@ -94,58 +120,51 @@ export default (): React.ReactElement => {
     setShowDeleteModal(false);
   }, []);
 
-  const handleConfirmDeleteTrigger = useCallback(() => {
-    setIsDeletingTrigger(true);
+  const handleConfirmDeletePolicy = useCallback(() => {
+    setIsDeletingPolicy(true);
     astarte.client
-      .deleteTrigger(triggerName)
+      .deleteTriggerDeliveryPolicy(policyName)
       .then(() => {
-        navigate('/triggers');
+        navigate('/trigger-delivery-policies');
       })
       .catch((err) => {
-        deletionAlertsController.showError(`Could not delete trigger: ${err.message}`);
-        setIsDeletingTrigger(false);
+        deletionAlertsController.showError(
+          `Could not delete policy: ${parsedErrorMessage(err.response.status)}`,
+        );
+        setIsDeletingPolicy(false);
         hideConfirmDeleteModal();
       });
-  }, [astarte.client, triggerName, navigate, deletionAlertsController, hideConfirmDeleteModal]);
-
-  const handleTriggerEditorError = useCallback(
-    (message: string) => {
-      deletionAlertsController.showError(message);
-    },
-    [deletionAlertsController],
-  );
+  }, [astarte.client, policyName, navigate, deletionAlertsController, hideConfirmDeleteModal]);
 
   return (
     <Container fluid className="p-3">
       <h2>
-        <BackButton href="/triggers" />
-        Trigger Editor
+        <BackButton href="/trigger-delivery-policies" />
+        Trigger Delivery Policy Editor
       </h2>
       <div className="mt-4">
         <AlertsBanner alerts={deletionAlerts} />
         <WaitForData
-          data={triggerFetcher.value}
-          status={triggerFetcher.status}
+          data={checkData(policyFetcher.value)}
+          status={policyFetcher.status}
           fallback={
             <Container fluid className="text-center">
               <Spinner animation="border" role="status" />
             </Container>
           }
           errorFallback={
-            <Empty title="Couldn't load trigger source" onRetry={triggerFetcher.refresh} />
+            <Empty
+              title="Couldn't load trigger delivery policy source"
+              onRetry={policyFetcher.refresh}
+            />
           }
         >
-          {(trigger) => (
+          {(policy) => (
             <>
-              <TriggerEditor
-                initialData={trigger}
+              <TriggerDeliveryPolicyEditor
+                initialData={policy}
                 isReadOnly
-                onError={handleTriggerEditorError}
                 isSourceVisible={isSourceVisible}
-                fetchPoliciesName={astarte.client.getPolicyNames}
-                fetchInterfacesName={astarte.client.getInterfaceNames}
-                fetchInterfaceMajors={astarte.client.getInterfaceMajors}
-                fetchInterface={astarte.client.getInterface}
               />
               <Row className="justify-content-end m-0 mt-3">
                 <Button variant="secondary" className="mr-2" onClick={handleToggleSourceVisibility}>
@@ -154,9 +173,9 @@ export default (): React.ReactElement => {
                 <Button
                   variant="danger"
                   onClick={showConfirmDeleteModal}
-                  disabled={isDeletingTrigger}
+                  disabled={isDeletingPolicy}
                 >
-                  {isDeletingTrigger && (
+                  {isDeletingPolicy && (
                     <Spinner
                       as="span"
                       size="sm"
@@ -165,7 +184,7 @@ export default (): React.ReactElement => {
                       className="mr-2"
                     />
                   )}
-                  Delete trigger
+                  Delete Trigger Delivery Policy
                 </Button>
               </Row>
             </>
@@ -174,10 +193,10 @@ export default (): React.ReactElement => {
       </div>
       {showDeleteModal && (
         <DeleteModal
-          triggerName={triggerName}
+          policyName={policyName}
           onCancel={hideConfirmDeleteModal}
-          onConfirm={handleConfirmDeleteTrigger}
-          isDeletingTrigger={isDeletingTrigger}
+          onConfirm={handleConfirmDeletePolicy}
+          isDeletingPolicy={isDeletingPolicy}
         />
       )}
     </Container>
