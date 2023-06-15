@@ -43,8 +43,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       event: {
         event_type,
         event
-      },
-      version: 1
+      }
     } = decoded_payload
 
     timestamp_ms =

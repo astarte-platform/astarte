@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - Unreleased
+### Fixed
+- [astarte_trigger_engine] Allow to decode events that do not contain the
+  deprecated `version` field. 
+
 ## [1.1.0-rc.0] - 2023-06-09
 ### Changed
 - Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2.
