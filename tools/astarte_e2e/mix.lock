@@ -43,6 +43,6 @@
   "tortoise": {:hex, :tortoise, "0.10.0", "d8821b9a5052355ca61d9fa784652f435997fa98b210f88565c98f3494605efd", [:mix], [{:gen_state_machine, "~> 2.0 or ~> 3.0", [hex: :gen_state_machine, repo: "hexpm", optional: false]}], "hexpm", "926d97b03cd0d2f6e0e1ebf06c1efa50101de96d0317dea5604c1c9e43e66735"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.7.0", "bc84380c9ab48177092f43ac89e4dfa2c6d62b40b8bd132b1059ecc7232f9a78", [:rebar3], [], "hexpm", "25eee6d67df61960cf6a794239566599b09e17e668d3700247bc498638152521"},
   "websocket_client": {:hex, :websocket_client, "1.4.2", "f1036e3f9427eecdb66808eee56dbcaeb5a1a352306e6a0d0d23a9487205f4d7", [:rebar3], [], "hexpm", "c005e5f8f2f6a8533c497a509dc52f3e6fb42fa2e0d67bff8ebc8802868d84ed"},
-  "x509": {:hex, :x509, "0.8.5", "22b2c5dfc87b05d46595d3764f41a23fcb7360f891e0464f1a2ec118177cd4e4", [:mix], [], "hexpm", "c63eb89e8bbe8a5e21b6404ad1082faff670e38b74960297f90d023177949e07"},
+  "x509": {:hex, :x509, "0.8.7", "576130ad83731613fdb5787917f2fadbe308b6f5a48ed6e865a4b6be3fa802d0", [:mix], [], "hexpm", "3604125d6a0171da6e8a935810b58c999fccab0e3d20b2ed28d97fa2d9e2f6b4"},
   "xxhash": {:hex, :xxhash, "0.3.1", "0e978aeba3d7ea0f53b88c5c975a0bee8e873856f0daad9764f9e5e7b60c8d17", [:mix], [], "hexpm", "14fef02f550c1b393de52912f7ef4ce53b5749c63db70ffdc6582474e625513c"},
 }

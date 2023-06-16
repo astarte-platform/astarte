@@ -66,7 +66,10 @@ defmodule AstarteE2E.MixProject do
       {:bamboo, "~> 1.6"},
       {:bamboo_config_adapter, "~> 1.0"},
       {:hukai, "~> 0.3"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

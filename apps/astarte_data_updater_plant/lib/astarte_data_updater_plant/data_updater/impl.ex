@@ -697,7 +697,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :invalid_interface} ->
-        Logger.warn("Received invalid interface: #{inspect(interface)}.", tag: "invalid_interface")
+        Logger.warn("Received invalid interface: #{inspect(interface)}.",
+          tag: "invalid_interface"
+        )
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)

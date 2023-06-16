@@ -8,4 +8,4 @@ config :lager,
   error_logger_redirect: false,
   handlers: [level: :critical]
 
-import_config "#{config_env}.exs"
+import_config "#{config_env()}.exs"
