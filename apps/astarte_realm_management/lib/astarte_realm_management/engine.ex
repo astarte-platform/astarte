@@ -793,7 +793,10 @@ defmodule Astarte.RealmManagement.Engine do
     with {:ok, client} <- get_database_client(realm_name),
          {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
       _ =
-        Logger.info("Deleting trigger.", trigger_name: trigger_name, tag: "delete_trigger_started")
+        Logger.info("Deleting trigger.",
+          trigger_name: trigger_name,
+          tag: "delete_trigger_started"
+        )
 
       delete_all_simple_triggers_succeeded =
         Enum.all?(trigger.simple_triggers_uuids, fn simple_trigger_uuid ->

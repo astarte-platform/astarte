@@ -25,7 +25,10 @@ defmodule Astarte.Import.MixProject do
       {:logfmt, "~> 3.3"},
       {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
-      {:distillery, "~> 2.0"}
+      {:distillery, "~> 2.0"},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

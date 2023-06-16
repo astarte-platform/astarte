@@ -42,7 +42,10 @@ defmodule AstarteExport.MixProject do
       {:pretty_log, "~> 0.1.0"},
       {:xml_stream_writer, "~> 0.1"},
       {:excoveralls, "~> 0.12", only: :test},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

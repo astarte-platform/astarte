@@ -366,7 +366,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     if endpoint.allow_unset == false do
       _ =
-        Logger.warn("Tried to unset value on allow_unset=false mapping.", tag: "unset_not_allowed")
+        Logger.warn("Tried to unset value on allow_unset=false mapping.",
+          tag: "unset_not_allowed"
+        )
 
       # TODO: should we handle this situation?
     end
