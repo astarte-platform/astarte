@@ -59,9 +59,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.1"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.1"}
+      {:astarte_core, "~> 1.1"},
+      {:astarte_data_access, "~> 1.1"}
     ]
   end
 
@@ -77,7 +76,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:amqp, "~> 2.1"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 0.1.0"},
-      {:cyanide, github: "ispirata/cyanide"},
+      {:cyanide, "~> 2.0"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
       {:excoveralls, "~> 0.15", only: :test},

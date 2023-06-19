@@ -70,10 +70,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.1"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.1"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc", branch: "release-1.1"}
+      {:astarte_core, "~> 1.1"},
+      {:astarte_data_access, "~> 1.1"},
+      {:astarte_rpc, "~> 1.1"}
     ]
   end
 
@@ -90,7 +89,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:jason, "~> 1.2"},
       {:cors_plug, "~> 2.0"},
       {:ex_lttb, "~> 0.3"},
-      {:cyanide, github: "ispirata/cyanide"},
+      {:cyanide, "~> 2.0"},
       {:guardian, "~> 2.1"},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.7"},
