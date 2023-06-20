@@ -63,7 +63,7 @@ To get our Astarte instance running as fast as possible, we will install Astarte
 
 ```sh
 $ git clone https://github.com/astarte-platform/astarte.git && cd astarte
-$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.1.0-rc.0
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.1
 $ docker-compose pull
 $ docker-compose up -d
 ```
