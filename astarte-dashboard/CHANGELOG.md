@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.1.0] - 2023-06-20
+
 ## [1.1.0-rc.0] - 2023-06-08
 ### Added
 - Trigger Delivery Policy Editor to manage delivery policies for triggers
