@@ -110,15 +110,19 @@ This creates a `test` realm, which should be ready to be used almost immediately
 $ astartectl housekeeping realms ls --astarte-url http://api.astarte.localhost -k compose/astarte-keys/housekeeping_private.pem
 ```
 
-## Install an interface
+## Install interfaces
 
-We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. However before starting, we will have to install `org.astarte-platform.genericsensors.Values` interface into our new realm. To do that, we can use `astartectl` again:
+We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test)
+to feed data into Astarte. However before starting, we will have to install the `org.astarte-
+platform.genericsensors.Values` and the `org.astarte-platform.genericcommands.ServerCommands`
+interfaces into our new realm. To do that, we can use `astartectl` again:
 
 ```sh
 $ astartectl realm-management interfaces sync standard-interfaces/org.astarte-platform.genericsensors.Values.json standard-interfaces/org.astarte-platform.genericcommands.ServerCommands.json --astarte-url http://api.astarte.localhost -r test -k test_private.pem -y
 ```
 
-Now `org.astarte-platform.genericsensors.Values` should show up among our available interfaces:
+Now `org.astarte-platform.genericsensors.Values` and `org.astarte-
+platform.genericcommands.ServerCommands` should show up among our available interfaces:
 
 ```sh
 $ astartectl realm-management interfaces ls --astarte-url http://api.astarte.localhost -r test -k test_private.pem
@@ -180,13 +184,13 @@ or from another machine or device on the same network.
 Astarte's `stream-qt5-test` can be pulled from Docker Hub with:
 
 ```sh
-$ docker pull astarte/astarte-stream-qt5-test:v1.0.4
+$ docker pull astarte/astarte-stream-qt5-test:1.0.4
 ```
 
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_URL=http://api.astarte.localhost/pairing" -e "REALM=test" -e "PAIRING_JWT=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:v1.0.4
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_URL=http://api.astarte.localhost/pairing" -e "REALM=test" -e "PAIRING_JWT=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0.4
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
