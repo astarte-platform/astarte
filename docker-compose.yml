@@ -210,6 +210,14 @@ services:
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      default:
+        aliases:
+          # Create traefik aliases for its hosts, so that other containers
+          # in the same network can curl them.
+          - api.astarte.localhost
+          - dashboard.astarte.localhost
+          - grafana.astarte.localhost
 
   # RabbitMQ
   rabbitmq:
