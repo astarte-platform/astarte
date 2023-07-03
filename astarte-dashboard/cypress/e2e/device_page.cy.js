@@ -209,7 +209,7 @@ describe('Device page tests', () => {
           cy.contains('Inhibit credentials').click();
           cy.wait('@updateDeviceRequest')
             .its('request.body')
-            .then((body) => JSON.parse(body).data.credentials_inhibited)
+            .then((body) => body.data.credentials_inhibited)
             .should('deep.eq', true);
           cy.contains('Credentials inhibited').next().contains('True');
           cy.contains('Enable credentials request').should('exist').and('not.be.disabled');
@@ -250,7 +250,7 @@ describe('Device page tests', () => {
           cy.contains('Enable credentials request').click();
           cy.wait('@updateDeviceRequest')
             .its('request.body')
-            .then((body) => JSON.parse(body).data.credentials_inhibited)
+            .then((body) => body.data.credentials_inhibited)
             .should('deep.eq', false);
           cy.contains('Credentials inhibited').next().contains('False');
           cy.contains('Enable credentials request').should('not.exist');
@@ -323,7 +323,7 @@ describe('Device page tests', () => {
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
-          .then((body) => JSON.parse(body).data)
+          .then((body) => body.data)
           .should('deep.eq', { aliases: { alias_key: 'alias_value' } });
       });
       cy.get('.main-content').within(() => {
@@ -376,7 +376,7 @@ describe('Device page tests', () => {
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
-          .then((body) => JSON.parse(body).data)
+          .then((body) => body.data)
           .should('deep.eq', { aliases: { alias_key2: null } });
       });
       cy.get('.main-content').within(() => {
@@ -429,7 +429,7 @@ describe('Device page tests', () => {
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
-          .then((body) => JSON.parse(body).data)
+          .then((body) => body.data)
           .should('deep.eq', { aliases: { alias_key: 'alias_new_value' } });
       });
       cy.get('.main-content').within(() => {
@@ -479,7 +479,7 @@ describe('Device page tests', () => {
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
-          .then((body) => JSON.parse(body).data)
+          .then((body) => body.data)
           .should('deep.eq', { attributes: { attribute_key: 'attribute_value' } });
       });
       cy.get('.main-content').within(() => {
@@ -536,7 +536,7 @@ describe('Device page tests', () => {
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
-          .then((body) => JSON.parse(body).data)
+          .then((body) => body.data)
           .should('deep.eq', { attributes: { attribute_key2: null } });
       });
       cy.get('.main-content').within(() => {
@@ -590,7 +590,7 @@ describe('Device page tests', () => {
           });
         cy.wait('@updateDeviceRequest')
           .its('request.body')
-          .then((body) => JSON.parse(body).data)
+          .then((body) => body.data)
           .should('deep.eq', { attributes: { attribute_key: 'attribute_new_value' } });
       });
       cy.get('.main-content').within(() => {
