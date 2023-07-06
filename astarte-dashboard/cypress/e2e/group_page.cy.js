@@ -72,9 +72,13 @@ describe('Group page tests', () => {
           `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices?details=true`,
           groupDevices,
         );
+        cy.intercept('DELETE', `/appengine/v1/${this.realm.name}/groups/*/devices/*`, {
+          statusCode: 204,
+        }).as('deleteDeviceRequest');
         cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}/edit`);
         cy.get('.main-content table tbody tr .btn').first().click();
         cy.get('[role="dialog"]').get('button').contains('Remove').click();
+        cy.wait('@deleteDeviceRequest');
       });
     });
 

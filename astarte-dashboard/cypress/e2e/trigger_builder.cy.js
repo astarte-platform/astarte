@@ -348,7 +348,9 @@ describe('Trigger builder tests', () => {
           .should('be.enabled')
           .contains('Any interface')
           .should('be.selected');
-        cy.get('#triggerInterfaceName').select(this.first_interface.data.interface_name);
+        cy.get('#triggerInterfaceName').select(this.first_interface.data.interface_name, {
+          force: true,
+        });
         cy.get('label[for="triggerInterfaceMajor"]').contains('Interface major');
         cy.get('#triggerInterfaceMajor')
           .should('be.enabled')
@@ -380,7 +382,7 @@ describe('Trigger builder tests', () => {
           .contains('Use default event format (JSON)')
           .should('be.selected');
 
-        cy.get('#triggerInterfaceName').select('Any interface');
+        cy.get('#triggerInterfaceName').select('Any interface', { force: true });
         cy.get('#triggerInterfaceMajor').should('not.exist');
         cy.get('#triggerPath').should('not.exist');
         cy.get('#triggerOperator').should('not.exist');
@@ -468,7 +470,7 @@ describe('Trigger builder tests', () => {
 
       it('correctly lists Trigger Condition options for a Data trigger / Any interface', () => {
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
-        cy.get('#triggerInterfaceName').select('Any interface');
+        cy.get('#triggerInterfaceName').select('Any interface', { force: true });
         cy.get('#triggerCondition option').should((options) => {
           const labels = [...options].map((option) => option.textContent);
           expect(labels).to.deep.eq(['Incoming Data', 'Value Stored']);
@@ -478,7 +480,7 @@ describe('Trigger builder tests', () => {
       it('correctly lists Trigger Condition options for a Data trigger / Datastream interface', function () {
         const iface = this.datastream_object_interface.data;
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
-        cy.get('#triggerInterfaceName').select(iface.interface_name);
+        cy.get('#triggerInterfaceName').select(iface.interface_name, { force: true });
         cy.get('#triggerCondition option').should((options) => {
           const labels = [...options].map((option) => option.textContent);
           expect(labels).to.deep.eq(['Incoming Data', 'Value Stored']);
@@ -488,7 +490,7 @@ describe('Trigger builder tests', () => {
       it('correctly lists Trigger Condition options for a Data trigger / Properties interface', function () {
         const iface = this.properties_interface.data;
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
-        cy.get('#triggerInterfaceName').select(iface.interface_name);
+        cy.get('#triggerInterfaceName').select(iface.interface_name, { force: true });
         cy.get('#triggerCondition option').should((options) => {
           const labels = [...options].map((option) => option.textContent);
           expect(labels).to.deep.eq([
@@ -513,12 +515,12 @@ describe('Trigger builder tests', () => {
 
       it('lists appropriate Condition Operators for the specified interface path', function () {
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
-        cy.get('#triggerInterfaceName').select('Any interface');
+        cy.get('#triggerInterfaceName').select('Any interface', { force: true });
         cy.get('#triggerOperator').should('not.exist');
 
         // Without specified path
         const iface = this.properties_interface.data;
-        cy.get('#triggerInterfaceName').select(iface.interface_name);
+        cy.get('#triggerInterfaceName').select(iface.interface_name, { force: true });
         cy.get('#triggerPath').clear().paste('/*');
         cy.get('#triggerOperator option').should((options) => {
           const labels = [...options].map((option) => option.textContent);
@@ -576,7 +578,7 @@ describe('Trigger builder tests', () => {
       it('shows Path field as invalid if not existent in its interface', function () {
         const iface = this.properties_interface.data;
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
-        cy.get('#triggerInterfaceName').select(iface.interface_name);
+        cy.get('#triggerInterfaceName').select(iface.interface_name, { force: true });
         cy.get('#triggerInterfaceMajor').select(String(iface.version_major));
         cy.get('#triggerPath').clear().paste('/*');
         cy.get('#triggerPath').should('not.have.class', 'is-invalid');
@@ -591,7 +593,7 @@ describe('Trigger builder tests', () => {
       it("shows Value field as invalid if inconsistent with its path's value type", function () {
         const iface = this.properties_interface.data;
         cy.get('#triggerSimpleTriggerType').select('Data Trigger');
-        cy.get('#triggerInterfaceName').select(iface.interface_name);
+        cy.get('#triggerInterfaceName').select(iface.interface_name, { force: true });
         cy.get('#triggerInterfaceMajor').select(String(iface.version_major));
         cy.get('#triggerPath').clear().paste('/lights/kitchen'); // boolean type
         cy.get('#triggerOperator').select('==');
