@@ -16,8 +16,7 @@ jobs:
         os:
           - ubuntu-latest
         node_version:
-          - 14
-          - 16
+          - 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
