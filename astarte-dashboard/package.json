@@ -25,8 +25,8 @@
     "url": "https://github.com/astarte-platform/astarte-dashboard"
   },
   "scripts": {
-    "start": "PORT=8080 react-scripts start",
-    "build": "react-scripts build",
+    "start": "PORT=8080 react-scripts --openssl-legacy-provider start",
+    "build": "react-scripts --openssl-legacy-provider build",
     "eject": "react-scripts eject",
     "lint": "eslint --fix src --ext .js,.jsx,.ts,.tsx",
     "check-lint": "eslint src --ext .js,.jsx,.ts,.tsx",
