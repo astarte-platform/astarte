@@ -1,4 +1,4 @@
-version: '2.3'
+version: '3.8'
 services:
   astarte-housekeeping:
     image: astarte/astarte_housekeeping:1.1.0
