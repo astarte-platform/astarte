@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Forward port changes from release 1.1.
 
-## [1.1.0] - Unreleased
+## [1.1.0] - 2023-06-20
 ### Fixed
 - [astarte_trigger_engine] Allow to decode events that do not contain the
   deprecated `version` field. 

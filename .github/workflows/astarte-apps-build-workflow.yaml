@@ -127,12 +127,14 @@ jobs:
         key: ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
         restore-keys: |
           ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/cache@v1
-      with:
-        path: apps/${{ matrix.app }}/_build
-        key: ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
+    # Caching _build is causing tests to fail rather unexpectedly.
+    # TODO try to undestand why and restore the cache step.
+    # - uses: actions/cache@v1
+    #   with:
+    #     path: apps/${{ matrix.app }}/_build
+    #     key: ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
     - uses: erlef/setup-beam@v1.15
       with:
         otp-version: ${{ env.otp_version }}

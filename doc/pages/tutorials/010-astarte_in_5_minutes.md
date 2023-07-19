@@ -47,15 +47,15 @@ $ docker-compose -v
 docker compose version 1.17.1, build unknown
 ```
 
-astartectl 1.0.x is recommended:
+astartectl >= 22.11 is recommended:
 
 ```sh
 $ astartectl version
-astartectl 1.1.0-dev
+astartectl 22.11.02
 ```
 
 This procedure has been tested on several systems, and is validated and maintained against
-Ubuntu 18.04 and macOS 10.15 Catalina, but any other modern operating system should work.
+Ubuntu 22.04 and macOS 10.15 Catalina, but any other modern operating system should work.
 
 ## Install Astarte
 
