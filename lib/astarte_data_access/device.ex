@@ -47,6 +47,10 @@ defmodule Astarte.DataAccess.Device do
       [] ->
         {:error, :device_not_found}
 
+      # We're here if the device has been registered but has not declared its introspection yet
+      [%{introspection: nil}] ->
+        {:ok, %{}}
+
       [%{introspection: introspection}] ->
         {:ok, introspection}
     end

@@ -70,4 +70,27 @@ defmodule Astarte.DataAccess.Device.XandraTest do
            ) ==
              {:error, :device_not_found}
   end
+
+  test "error when retrieving interface version on a device that has no introspection" do
+    device_id = :crypto.strong_rand_bytes(16)
+
+    insert_empty_introspection_stmt = """
+    INSERT INTO autotestrealm.devices (device_id, introspection)
+    VALUES (:device_id, :empty_introspection);
+    """
+
+    prepared =
+      Xandra.Cluster.prepare!(:astarte_data_access_xandra, insert_empty_introspection_stmt)
+
+    Xandra.Cluster.execute!(:astarte_data_access_xandra, prepared, %{
+      device_id: device_id,
+      empty_introspection: %{}
+    })
+
+    assert Device.interface_version(
+             "autotestrealm",
+             device_id,
+             "com.test.SimpleStreamTest"
+           ) == {:error, :interface_not_in_introspection}
+  end
 end
