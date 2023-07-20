@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] Don't crash when retrieving the interface version
   in a device whose introspection is empty, allowing data in `astarte-data_`
   AMQP queues to flow seamlessy.
+- [astarte_appengine_api] Don't crash when retrieving the interface version
+  in a device whose introspection is empty.
 
 ## [1.1.0] - 2023-06-20
 ### Fixed
