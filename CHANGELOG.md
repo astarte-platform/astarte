@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_pairing] Fix crash when using a custom CA certificate.
 - [astarte_data_updater_plant] Remove asynchronous startup of Data Updater, which could lead to Data
   Updater stalling in some corner cases.
+- [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
 
 ### Changed
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
