@@ -67,17 +67,17 @@ function AttemptLogin(): React.ReactElement {
   }
 
   if (!succesfulLogin) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
-  return <Navigate to="/" />;
+  return <Navigate to="/" replace />;
 }
 
 function Logout(): React.ReactElement {
   const astarte = useAstarte();
   astarte.logout();
 
-  return <Navigate to="/login" />;
+  return <Navigate to="/login" replace />;
 }
 
 function Login(): React.ReactElement {
@@ -86,7 +86,7 @@ function Login(): React.ReactElement {
   const config = useConfig();
 
   if (astarte.isAuthenticated) {
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
 
   const requestedLoginType = new URLSearchParams(search).get('type') || '';
@@ -132,7 +132,7 @@ const privateRoutes: RouteObject[] = [
   { path: 'blocks/new', element: <NewBlockPage /> },
   { path: 'blocks/:blockId/edit', element: <BlockSourcePage /> },
   { path: 'settings', element: <RealmSettingsPage /> },
-  { path: '*', element: <Navigate to="/" /> },
+  { path: '*', element: <Navigate to="/" replace /> },
 ];
 
 const publicRoutes: RouteObject[] = [
@@ -145,7 +145,7 @@ export default (): React.ReactElement => {
   const astarte = useAstarte();
   const routes = astarte.isAuthenticated
     ? publicRoutes.concat(privateRoutes)
-    : publicRoutes.concat({ path: '*', element: <Navigate to="/login" /> });
+    : publicRoutes.concat({ path: '*', element: <Navigate to="/login" replace /> });
   const router = useRoutes(routes);
   return <>{router}</>;
 };
