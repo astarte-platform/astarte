@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   AMQP queues to flow seamlessy.
 - [astarte_appengine_api] Don't crash when retrieving the interface version
   in a device whose introspection is empty.
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when there are more samples than the default query limit.
+  Fix [#824](https://github.com/astarte-platform/astarte/issues/824).
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when used in combination with `format=disjoint_tables`.
+  Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
 
 ## [1.1.0] - 2023-06-20
 ### Fixed
