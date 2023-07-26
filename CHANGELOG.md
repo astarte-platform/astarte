@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   crashing with an Internal Server Error
 - [astarte_appengine_api] Handle updates of objects with invalid keys gracefully instead of crashing
   with an Internal Server Error.
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when there are more samples than the default query limit.
+  Fix [#824](https://github.com/astarte-platform/astarte/issues/824).
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when used in combination with `format=disjoint_tables`.
+  Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
 
 ### Changed
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
