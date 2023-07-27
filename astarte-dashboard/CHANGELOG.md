@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Revalidate token when dashboard is reloaded or opened from different tab.
 ([#375](https://github.com/astarte-platform/astarte-dashboard/issues/375))
+- Improve history navigation by replacing the browser's location.
+([#385](https://github.com/astarte-platform/astarte-dashboard/issues/385))
 
 ## [1.1.0] - 2023-06-20
 
