@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - Unreleased
+### Added
+- Revalidate token when dashboard is reloaded or opened from different tab.
+([#375](https://github.com/astarte-platform/astarte-dashboard/issues/375))
+
 ## [1.1.0] - 2023-06-20
 
 ## [1.1.0-rc.0] - 2023-06-08
