@@ -17,7 +17,7 @@
 */
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import AstarteClient from 'astarte-client';
+import AstarteClient, { AstarteToken } from 'astarte-client';
 import _ from 'lodash';
 
 import type { DashboardConfig } from './types';
@@ -85,8 +85,11 @@ function loadSession(): Session | null {
   } catch {
     session = null;
   }
-  if (_.get(session, '_version') === SESSION_VERSION) {
-    return _.omit(session, '_version');
+  if (session && _.get(session, '_version') === SESSION_VERSION) {
+    const tokenValidation = AstarteToken.validate(session.token);
+    if (tokenValidation === 'valid') {
+      return _.omit(session, '_version');
+    }
   }
   return null;
 }
