@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Return the number of results specified by `downsample_to`
   when used in combination with `format=disjoint_tables`.
   Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
+- [astarte_appengine_api] Fix log noise with cassandra during health checks.
+  Fix [#817](https://github.com/astarte-platform/astarte/issues/817).
 
 ### Changed
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
