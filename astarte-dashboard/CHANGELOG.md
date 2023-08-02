@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ([#385](https://github.com/astarte-platform/astarte-dashboard/issues/385))
 - Show error metadata in live events when AstarteDeviceErrorEvent is received.
 ([#377](https://github.com/astarte-platform/astarte-dashboard/issues/377))
+- Allow removing explicit_timestamp from and existing mapping.
+([#387](https://github.com/astarte-platform/astarte-dashboard/issues/387))
 
 ## [1.1.0] - 2023-06-20
 
