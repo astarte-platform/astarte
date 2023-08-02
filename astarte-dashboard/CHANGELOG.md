@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ([#377](https://github.com/astarte-platform/astarte-dashboard/issues/377))
 - Allow removing explicit_timestamp from and existing mapping.
 ([#387](https://github.com/astarte-platform/astarte-dashboard/issues/387))
+- Improve Device stats card to show Total Bytes/Messages value instead of NaN.
+([#384](https://github.com/astarte-platform/astarte-dashboard/issues/384))
 
 ## [1.1.0] - 2023-06-20
 
