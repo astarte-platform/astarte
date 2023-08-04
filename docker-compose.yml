@@ -218,6 +218,7 @@ services:
           - api.astarte.localhost
           - dashboard.astarte.localhost
           - grafana.astarte.localhost
+          - broker.astarte.localhost
 
   # RabbitMQ
   rabbitmq:
