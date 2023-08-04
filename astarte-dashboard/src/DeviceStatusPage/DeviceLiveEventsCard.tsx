@@ -266,6 +266,18 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
           device error
         </Badge>
         <span>{deviceErrorNameToString(event.errorName)}</span>
+        {event.metadata && (
+          <>
+            <br />
+            <div style={{ paddingLeft: '6.3em' }}>
+              {Object.entries(event.metadata).map(([key, value]) => (
+                <span key={key}>
+                  {key}:<span className="text-secondary pl-2 pr-4">{value}</span>
+                </span>
+              ))}
+            </div>
+          </>
+        )}
       </>
     );
   }
