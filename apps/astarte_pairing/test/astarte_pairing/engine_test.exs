@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ defmodule Astarte.Pairing.EngineTest do
   use ExUnit.Case
 
   alias Astarte.Core.Device
-  alias Astarte.Pairing.Config
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.DatabaseTestHelper
   alias Astarte.Pairing.Engine
@@ -55,6 +54,7 @@ defmodule Astarte.Pairing.EngineTest do
   @valid_ip "2.3.4.5"
 
   setup_all do
+    DatabaseTestHelper.await_cluster_connected()
     DatabaseTestHelper.create_db()
 
     on_exit(fn ->
@@ -153,11 +153,11 @@ defmodule Astarte.Pairing.EngineTest do
       introspection = DatabaseTestHelper.get_introspection(hw_id)
       introspection_minor = DatabaseTestHelper.get_introspection_minor(hw_id)
 
-      assert Enum.member?(introspection, {"org.astarteplatform.Values", 0})
-      assert Enum.member?(introspection_minor, {"org.astarteplatform.Values", 3})
+      assert introspection["org.astarteplatform.Values"] == 0
+      assert introspection_minor["org.astarteplatform.Values"] == 3
 
-      assert Enum.member?(introspection, {"org.astarteplatform.OtherValues", 1})
-      assert Enum.member?(introspection_minor, {"org.astarteplatform.OtherValues", 2})
+      assert introspection["org.astarteplatform.OtherValues"] == 1
+      assert introspection_minor["org.astarteplatform.OtherValues"] == 2
     end
   end
 
@@ -359,14 +359,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-      db_client =
-        Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
+      {:ok, device} = Queries.select_device_for_credentials_request(@test_realm, device_id)
 
-      {:ok, device} = Queries.select_device_for_credentials_request(db_client, device_id)
-
-      assert device[:cert_aki] == second_aki
-      assert device[:cert_serial] == second_serial
+      assert device["cert_aki"] == second_aki
+      assert device["cert_serial"] == second_serial
     end
 
     test "retains first_credentials_request timestamp" do
@@ -375,14 +371,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-      db_client =
-        Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
-
       {:ok, no_credentials_requested_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
+        Queries.select_device_for_credentials_request(@test_realm, device_id)
 
-      assert no_credentials_requested_device[:first_credentials_request] == nil
+      assert no_credentials_requested_device["first_credentials_request"] == nil
 
       assert {:ok, %{client_crt: _first_certificate}} =
                Engine.get_credentials(
@@ -395,10 +387,10 @@ defmodule Astarte.Pairing.EngineTest do
                )
 
       {:ok, credentials_requested_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
+        Queries.select_device_for_credentials_request(@test_realm, device_id)
 
       first_credentials_request_timestamp =
-        credentials_requested_device[:first_credentials_request]
+        credentials_requested_device["first_credentials_request"]
 
       assert first_credentials_request_timestamp != nil
 
@@ -413,10 +405,10 @@ defmodule Astarte.Pairing.EngineTest do
                )
 
       {:ok, credentials_requested_again_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
+        Queries.select_device_for_credentials_request(@test_realm, device_id)
 
       assert first_credentials_request_timestamp ==
-               credentials_requested_again_device[:first_credentials_request]
+               credentials_requested_again_device["first_credentials_request"]
     end
   end
 

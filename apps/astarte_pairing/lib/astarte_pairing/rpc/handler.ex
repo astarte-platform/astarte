@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -272,13 +272,52 @@ defmodule Astarte.Pairing.RPC.Handler do
   end
 
   defp generic_error(
-         error_name,
+         error,
          user_readable_message \\ nil,
          user_readable_error_name \\ nil,
          error_data \\ nil
+       )
+
+  defp generic_error(
+         %Xandra.Error{message: message, reason: reason} = _error,
+         user_readable_message,
+         user_readable_error_name,
+         error_data
        ) do
     %GenericErrorReply{
-      error_name: to_string(error_name),
+      error_name: inspect(reason),
+      user_readable_message: user_readable_message || message,
+      user_readable_error_name: user_readable_error_name,
+      error_data: error_data
+    }
+    |> encode_reply(:generic_error_reply)
+    |> ok_wrap()
+  end
+
+  defp generic_error(
+         %Xandra.ConnectionError{action: _action, reason: reason} = _error,
+         user_readable_message,
+         user_readable_error_name,
+         error_data
+       ) do
+    %GenericErrorReply{
+      error_name: inspect(reason),
+      user_readable_message: user_readable_message,
+      user_readable_error_name: user_readable_error_name,
+      error_data: error_data
+    }
+    |> encode_reply(:generic_error_reply)
+    |> ok_wrap()
+  end
+
+  defp generic_error(
+         error,
+         user_readable_message,
+         user_readable_error_name,
+         error_data
+       ) do
+    %GenericErrorReply{
+      error_name: to_string(error),
       user_readable_message: user_readable_message,
       user_readable_error_name: user_readable_error_name,
       error_data: error_data

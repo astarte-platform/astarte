@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,23 +18,22 @@
 
 defmodule Astarte.Pairing.DatabaseTestHelper do
   alias Astarte.Core.Device
-  alias Astarte.Pairing.Config
+  alias Astarte.Pairing.Queries
   alias Astarte.Pairing.TestHelper
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.CredentialsSecret.Cache
-  alias CQEx.Query
-  alias CQEx.Client
-  alias CQEx.Result
+
+  @test_realm "autotestrealm"
 
   @create_autotestrealm """
-  CREATE KEYSPACE autotestrealm
+  CREATE KEYSPACE #{@test_realm}
     WITH
     replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
     durable_writes = true;
   """
 
   @create_devices_table """
-  CREATE TABLE autotestrealm.devices (
+  CREATE TABLE #{@test_realm}.devices (
     device_id uuid,
     introspection map<ascii, int>,
     introspection_minor map<ascii, int>,
@@ -60,7 +59,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @create_kv_store_table """
-  CREATE TABLE autotestrealm.kv_store (
+  CREATE TABLE #{@test_realm}.kv_store (
     group varchar,
     key varchar,
     value blob,
@@ -77,15 +76,13 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @insert_jwt_public_key_pem """
-  INSERT INTO autotestrealm.kv_store (group, key, value)
+  INSERT INTO #{@test_realm}.kv_store (group, key, value)
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob('#{@jwt_public_key_pem}'))
   """
 
   @drop_autotestrealm """
-  DROP KEYSPACE autotestrealm;
+  DROP KEYSPACE #{@test_realm};
   """
-
-  @test_realm "autotestrealm"
 
   @unregistered_128_bit_hw_id TestHelper.random_128_bit_hw_id()
   @unregistered_256_bit_hw_id TestHelper.random_256_bit_hw_id()
@@ -103,7 +100,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   @registered_and_inhibited_credentials_secret CredentialsSecret.generate()
 
   @insert_device """
-  INSERT INTO devices
+  INSERT INTO #{@test_realm}.devices
   (device_id, credentials_secret, inhibit_credentials_request, first_registration,
   protocol_revision, total_received_bytes, total_received_msgs, first_credentials_request)
   VALUES (:device_id, :credentials_secret, :inhibit_credentials_request, :first_registration,
@@ -138,18 +135,27 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def registered_and_inhibited_credentials_secret(),
     do: @registered_and_inhibited_credentials_secret
 
-  def create_db do
-    client =
-      Config.cassandra_node!()
-      |> Client.new!()
+  # https://github.com/lexhide/xandra/blob/47cabaa3a5ae49127f1a9da91acd003f5ada7c1d/test/support/test_helper.ex#L7C15-L7C15
+  def await_cluster_connected(cluster \\ nil, tries \\ 10) do
+    cluster = cluster || Application.get_env(:astarte_pairing, :cluster_name)
+    fun = &Xandra.execute!(&1, "SELECT * FROM system.local")
 
-    with {:ok, _} <- Query.call(client, @create_autotestrealm),
-         {:ok, _} <- Query.call(client, @create_devices_table),
-         {:ok, _} <- Query.call(client, @create_kv_store_table),
-         {:ok, _} <- Query.call(client, @insert_jwt_public_key_pem) do
+    with {:error, %Xandra.ConnectionError{}} <- Xandra.Cluster.run(cluster, _options = [], fun) do
+      if tries > 0 do
+        Process.sleep(100)
+        await_cluster_connected(cluster, tries - 1)
+      else
+        raise("Connection to the cluster failed")
+      end
+    end
+  end
+
+  def create_db do
+    with {:ok, _} <- Queries.custom_query(@create_autotestrealm),
+         {:ok, _} <- Queries.custom_query(@create_devices_table),
+         {:ok, _} <- Queries.custom_query(@create_kv_store_table),
+         {:ok, _} <- Queries.custom_query(@insert_jwt_public_key_pem) do
       :ok
-    else
-      %{msg: msg} -> {:error, msg}
     end
   end
 
@@ -157,176 +163,123 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   end
 
   def seed_devices do
-    client =
-      Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
-
     {:ok, registered_not_confirmed_device_id} =
       Device.decode_device_id(@registered_not_confirmed_hw_id, allow_extended_id: true)
 
     secret_hash = CredentialsSecret.hash(@registered_not_confirmed_credentials_secret)
 
-    registered_not_confirmed_query =
-      Query.new()
-      |> Query.statement(@insert_device)
-      |> Query.put(:device_id, registered_not_confirmed_device_id)
-      |> Query.put(:credentials_secret, secret_hash)
-      |> Query.put(:inhibit_credentials_request, false)
-      |> Query.put(
-        :first_registration,
-        TestHelper.now_millis()
-      )
-      |> Query.put(:first_credentials_request, nil)
+    registered_not_confirmed_params = %{
+      "device_id" => registered_not_confirmed_device_id,
+      "credentials_secret" => secret_hash,
+      "inhibit_credentials_request" => false,
+      "first_registration" => TestHelper.now_millis(),
+      "first_credentials_request" => nil
+    }
 
     {:ok, registered_and_confirmed_256_device_id} =
       Device.decode_device_id(@registered_and_confirmed_256_hw_id, allow_extended_id: true)
 
     secret_hash = CredentialsSecret.hash(@registered_and_confirmed_256_credentials_secret)
 
-    registered_and_confirmed_256_query =
-      Query.new()
-      |> Query.statement(@insert_device)
-      |> Query.put(:device_id, registered_and_confirmed_256_device_id)
-      |> Query.put(:credentials_secret, secret_hash)
-      |> Query.put(:inhibit_credentials_request, false)
-      |> Query.put(
-        :first_registration,
-        TestHelper.now_millis()
-      )
-      |> Query.put(
-        :first_credentials_request,
-        TestHelper.now_millis()
-      )
+    registered_and_confirmed_256_params = %{
+      "device_id" => registered_and_confirmed_256_device_id,
+      "credentials_secret" => secret_hash,
+      "inhibit_credentials_request" => false,
+      "first_registration" => TestHelper.now_millis(),
+      "first_credentials_request" => TestHelper.now_millis()
+    }
 
     {:ok, registered_and_confirmed_128_device_id} =
       Device.decode_device_id(@registered_and_confirmed_128_hw_id, allow_extended_id: true)
 
     secret_hash = CredentialsSecret.hash(@registered_and_confirmed_128_credentials_secret)
 
-    registered_and_confirmed_128_query =
-      Query.new()
-      |> Query.statement(@insert_device)
-      |> Query.put(:device_id, registered_and_confirmed_128_device_id)
-      |> Query.put(:credentials_secret, secret_hash)
-      |> Query.put(:inhibit_credentials_request, false)
-      |> Query.put(
-        :first_registration,
-        TestHelper.now_millis()
-      )
-      |> Query.put(
-        :first_credentials_request,
-        TestHelper.now_millis()
-      )
+    registered_and_confirmed_128_params = %{
+      "device_id" => registered_and_confirmed_128_device_id,
+      "credentials_secret" => secret_hash,
+      "inhibit_credentials_request" => false,
+      "first_registration" => TestHelper.now_millis(),
+      "first_credentials_request" => TestHelper.now_millis()
+    }
 
     {:ok, registered_and_inhibited_device_id} =
       Device.decode_device_id(@registered_and_inhibited_hw_id, allow_extended_id: true)
 
     secret_hash = CredentialsSecret.hash(@registered_and_inhibited_credentials_secret)
 
-    registered_and_inhibited_query =
-      Query.new()
-      |> Query.statement(@insert_device)
-      |> Query.put(:device_id, registered_and_inhibited_device_id)
-      |> Query.put(:credentials_secret, secret_hash)
-      |> Query.put(:inhibit_credentials_request, true)
-      |> Query.put(
-        :first_registration,
-        TestHelper.now_millis()
-      )
-      |> Query.put(
-        :first_credentials_request,
-        TestHelper.now_millis()
-      )
+    registered_and_inhibited_params = %{
+      "device_id" => registered_and_inhibited_device_id,
+      "credentials_secret" => secret_hash,
+      "inhibit_credentials_request" => true,
+      "first_registration" => TestHelper.now_millis(),
+      "first_credentials_request" => TestHelper.now_millis()
+    }
 
-    with {:ok, _} <- Query.call(client, registered_not_confirmed_query),
-         {:ok, _} <- Query.call(client, registered_and_confirmed_256_query),
-         {:ok, _} <- Query.call(client, registered_and_confirmed_128_query),
-         {:ok, _} <- Query.call(client, registered_and_inhibited_query) do
+    with {:ok, _} <-
+           Queries.custom_query(@insert_device, @test_realm, registered_not_confirmed_params),
+         {:ok, _} <-
+           Queries.custom_query(@insert_device, @test_realm, registered_and_confirmed_256_params),
+         {:ok, _} <-
+           Queries.custom_query(@insert_device, @test_realm, registered_and_confirmed_128_params),
+         {:ok, _} <-
+           Queries.custom_query(@insert_device, @test_realm, registered_and_inhibited_params) do
       :ok
     end
   end
 
   def get_first_registration(hardware_id) do
-    client =
-      Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
-
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
     statement = """
     SELECT first_registration
-    FROM devices
+    FROM #{@test_realm}.devices
     WHERE device_id=:device_id
     """
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
+    params = %{"device_id" => device_id}
 
-    with {:ok, result} <- Query.call(client, query),
-         [first_registration: first_registration] <- Result.head(result) do
+    with {:ok, result} <- Queries.custom_query(statement, @test_realm, params, result: :first),
+         %{"first_registration" => first_registration} <- result do
       first_registration
-    else
-      :empty_dataset ->
-        nil
     end
   end
 
   def get_introspection(hardware_id) do
-    client =
-      Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
-
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
     statement = """
     SELECT introspection
-    FROM devices
+    FROM #{@test_realm}.devices
     WHERE device_id=:device_id
     """
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
+    params = %{"device_id" => device_id}
 
-    with {:ok, result} <- Query.call(client, query),
-         [introspection: introspection] <- Result.head(result) do
+    with {:ok, result} <- Queries.custom_query(statement, @test_realm, params, result: :first!) do
+      %{"introspection" => introspection} = result
       introspection
     end
   end
 
   def get_introspection_minor(hardware_id) do
-    client =
-      Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
-
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
     statement = """
     SELECT introspection_minor
-    FROM devices
+    FROM #{@test_realm}.devices
     WHERE device_id=:device_id
     """
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
+    params = %{"device_id" => device_id}
 
-    with {:ok, result} <- Query.call(client, query),
-         [introspection_minor: introspection_minor] <- Result.head(result) do
+    with {:ok, result} <- Queries.custom_query(statement, @test_realm, params, result: :first!) do
+      %{"introspection_minor" => introspection_minor} = result
       introspection_minor
     end
   end
 
   def clean_devices do
-    client =
-      Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
-
-    Query.call!(client, "TRUNCATE devices")
+    Queries.custom_query("TRUNCATE #{@test_realm}.devices")
     # Also clean the cache
     Cache.flush()
 
@@ -334,11 +287,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   end
 
   def drop_db do
-    client =
-      Config.cassandra_node!()
-      |> Client.new!()
-
-    Query.call(client, @drop_autotestrealm)
+    Queries.custom_query(@drop_autotestrealm)
     # Also clean the cache
     Cache.flush()
   end

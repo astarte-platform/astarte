@@ -106,6 +106,7 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
   """
 
   setup_all do
+    DatabaseTestHelper.await_cluster_connected()
     DatabaseTestHelper.create_db()
 
     on_exit(fn ->

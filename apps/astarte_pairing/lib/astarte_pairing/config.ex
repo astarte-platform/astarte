@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,21 +61,13 @@ defmodule Astarte.Pairing.Config do
     end
   end
 
-  @doc """
-  Returns the cassandra node configuration
-  """
-  @spec cassandra_node!() :: {String.t(), integer()}
-  def cassandra_node!, do: Enum.random(cqex_nodes!())
+  def xandra_options! do
+    cluster = Application.get_env(:astarte_pairing, :cluster_name)
 
-  @doc """
-  Returns Cassandra nodes formatted in the Xandra format.
-  """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
+    # Dropping :autodiscovery since the option has been deprecated in xandra v0.15.0
+    # and is now always enabled.
+    DataAccessConfig.xandra_options!()
+    |> Keyword.drop([:autodiscovery])
+    |> Keyword.put(:name, cluster)
+  end
 end
