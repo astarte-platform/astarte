@@ -50,7 +50,7 @@ defmodule Astarte.Pairing.Config do
     type: :binary
 
   def init! do
-    if {:ok, nil} = ca_cert() do
+    if {:ok, nil} == ca_cert() do
       case CFSSLCredentials.ca_cert() do
         {:ok, cert} ->
           put_ca_cert(cert)
