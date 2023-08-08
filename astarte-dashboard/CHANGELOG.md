@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ([#375](https://github.com/astarte-platform/astarte-dashboard/issues/375))
 - Improve history navigation by replacing the browser's location.
 ([#385](https://github.com/astarte-platform/astarte-dashboard/issues/385))
+- Show error metadata in live events when AstarteDeviceErrorEvent is received.
+([#377](https://github.com/astarte-platform/astarte-dashboard/issues/377))
 
 ## [1.1.0] - 2023-06-20
 
