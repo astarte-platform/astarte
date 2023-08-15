@@ -36,7 +36,7 @@ Clicking on the Device ID will take you to its details page.
 
 ### Query Device status using AppEngine API
 
-`GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA`
+`GET <astarte base API URL>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA`
 
 ```json
 {
@@ -86,7 +86,7 @@ Clicking on the Device ID will take you to its details page.
 
 Through the API, it is also possible to get the Introspection of the device only:
 
-`GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces`
+`GET <astarte base API URL>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces`
 
 ```json
 {
@@ -101,7 +101,7 @@ number of string values associated to a corresponding string key.
 To set, modify and delete `attributes`, a `PATCH` on the device endpoint is required:
 
 ```
-PATCH api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA
+PATCH <astarte base API URL>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA
 ```
 
 In the request body, the `data` JSON object should have a `attributes` key which bears a dictionary
@@ -117,19 +117,19 @@ or use `astartectl` to perform the same operation on the command line. Some exam
 
 `astartectl` invocation: `astartectl appengine devices data-snapshot f0VMRgIBAQAAAAAAAAAAAA com.example.ExampleInterface`
 
-AppEngine API invocation: `GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.ExampleInterface`
+AppEngine API invocation: `GET <astarte base API URL>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.ExampleInterface`
 
 ### Get last sent value from an `individual` `device` `datastream` interface
 
 `astartectl` invocation: `astartectl appengine devices data-snapshot f0VMRgIBAQAAAAAAAAAAAA com.example.TestInterface`
 
-AppEngine API invocation: `GET api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestInterface/myValue?limit=1`
+AppEngine API invocation: `GET <astarte base API URL>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.TestInterface/myValue?limit=1`
 
 ### Set values in an `individual` `server` `datastream` interface
 
 `astartectl` invocation: `astartectl appengine devices send-data f0VMRgIBAQAAAAAAAAAAAA com.example.OtherTestInterface /myOtherValue <value>`
 
-AppEngine API invocation: `POST api.<your astarte domain>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.OtherTestInterface/myOtherValue`
+AppEngine API invocation: `POST <astarte base API URL>/appengine/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA/interfaces/com.example.OtherTestInterface/myOtherValue`
 Request body: `{"data": <value>}`
 
 ### API Query semantics
