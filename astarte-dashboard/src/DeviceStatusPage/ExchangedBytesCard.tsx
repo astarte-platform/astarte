@@ -79,18 +79,20 @@ const ExchangedBytesCard = ({ astarte, device }: ExchangedBytesCardProps): React
     computedStats.push({
       name: `${interfaceStats.name} v${interfaceStats.major}.${interfaceStats.minor}`,
       bytes: interfaceStats.exchangedBytes,
-      bytesPercent: (interfaceStats.exchangedBytes * 100) / totalBytes,
+      bytesPercent: interfaceBytes !== 0 ? (interfaceStats.exchangedBytes * 100) / totalBytes : 0,
       messages: interfaceStats.exchangedMessages,
-      messagesPercent: (interfaceStats.exchangedMessages * 100) / totalMessages,
+      messagesPercent:
+        interfaceMessages !== 0 ? (interfaceStats.exchangedMessages * 100) / totalMessages : 0,
     });
   });
 
   computedStats.push({
     name: 'Other',
     bytes: totalBytes - interfaceBytes,
-    bytesPercent: ((totalBytes - interfaceBytes) * 100) / totalBytes,
+    bytesPercent: interfaceBytes !== 0 ? ((totalBytes - interfaceBytes) * 100) / totalBytes : 0,
     messages: totalMessages - interfaceMessages,
-    messagesPercent: ((totalMessages - interfaceMessages) * 100) / totalMessages,
+    messagesPercent:
+      interfaceMessages !== 0 ? ((totalMessages - interfaceMessages) * 100) / totalMessages : 0,
   });
 
   computedStats.push({
