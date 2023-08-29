@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,14 +42,11 @@ defmodule Astarte.DataUpdaterPlant.Application do
     DataAccessConfig.validate!()
 
     xandra_options = Config.xandra_options!()
-
     data_access_opts = [xandra_options: xandra_options]
-
-    dup_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
       Astarte.DataUpdaterPlantWeb.Telemetry,
-      {Xandra.Cluster, dup_xandra_opts},
+      {Xandra.Cluster, xandra_options},
       {Astarte.DataAccess, data_access_opts},
       Astarte.DataUpdaterPlant.DataPipelineSupervisor
     ]

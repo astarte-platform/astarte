@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -860,5 +860,20 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
   def equal_to_group_incoming_trigger_id() do
     <<140, 143, 242, 83, 113, 178, 249, 23, 213, 224, 46, 58, 138, 34, 20, 45>>
+  end
+
+  # TODO: include in astarte_data_access
+  def await_cluster_connected!(cluster \\ nil, tries \\ 10) do
+    cluster = cluster || Config.xandra_options!()[:name]
+    fun = &Xandra.execute!(&1, "SELECT * FROM system.local")
+
+    with {:error, %Xandra.ConnectionError{}} <- Xandra.Cluster.run(cluster, _options = [], fun) do
+      if tries > 0 do
+        Process.sleep(100)
+        await_cluster_connected!(cluster, tries - 1)
+      else
+        raise("Connection to the cluster failed")
+      end
+    end
   end
 end

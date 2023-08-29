@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017,2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias CQEx.Result, as: DatabaseResult
 
   setup_all do
+    DatabaseTestHelper.await_cluster_connected!()
     {:ok, _client} = Astarte.DataUpdaterPlant.DatabaseTestHelper.create_test_keyspace()
     {:ok, _pid} = AMQPTestHelper.start_link()
 
